@@ -21,6 +21,9 @@ import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning import model
 import unified_planning.engines
 import unified_planning.model.htn
+import unified_planning.engines
+import unified_planning.plans
+from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
 import unified_planning.plans
 from unified_planning.model.types import domain_size, domain_item
@@ -31,6 +34,7 @@ from unified_planning.model.operators import (
     IRA_OPERATORS,
     RELATIONS,
     OperatorKind,
+    TRAJECTORY_CONSTRAINTS,
 )
 from unified_planning.model.timing import TimepointKind
 
@@ -64,6 +68,16 @@ def map_operator(op: int) -> str:
         return "up:exists"
     elif op == OperatorKind.FORALL:
         return "up:forall"
+    elif op == OperatorKind.ALWAYS:
+        return "up:always"
+    elif op == OperatorKind.AT_MOST_ONCE:
+        return "up:at_most_once"
+    elif op == OperatorKind.SOMETIME:
+        return "up:sometime"
+    elif op == OperatorKind.SOMETIME_AFTER:
+        return "up:sometime_after"
+    elif op == OperatorKind.SOMETIME_BEFORE:
+        return "up:sometime_before"
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -238,7 +252,11 @@ class FNode2Protobuf(walkers.DagWalker):
             type=proto_type(expression.fluent().type),
         )
 
-    @walkers.handles(BOOL_OPERATORS.union(IRA_OPERATORS).union(RELATIONS))
+    @walkers.handles(
+        BOOL_OPERATORS.union(IRA_OPERATORS)
+        .union(RELATIONS)
+        .union(TRAJECTORY_CONSTRAINTS)
+    )
     def walk_operator(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
@@ -525,7 +543,7 @@ class ProtobufWriter(Converter):
     @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
-        for t, gs in problem.timed_goals:
+        for t, gs in problem.timed_goals.items():
             goals += [
                 proto.Goal(goal=self.convert(g), timing=self.convert(t)) for g in gs
             ]
@@ -534,7 +552,12 @@ class ProtobufWriter(Converter):
         hierarchy = None
         if isinstance(problem, model.htn.HierarchicalProblem):
             hierarchy = self.build_hierarchy(problem)
-
+        epsilon = None
+        if problem.epsilon is not None:
+            epsilon = proto.Real(
+                numerator=problem.epsilon.numerator,
+                denominator=problem.epsilon.denominator,
+            )
         return proto.Problem(
             domain_name=problem_name + "_domain",
             problem_name=problem_name,
@@ -551,6 +574,12 @@ class ProtobufWriter(Converter):
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
             hierarchy=hierarchy,
+            trajectory_constraints=[
+                self.convert(tc) for tc in problem.trajectory_constraints
+            ],
+            discrete_time=problem.discrete_time,
+            self_overlapping=problem.self_overlapping,
+            epsilon=epsilon,
         )
 
     @handles(model.metrics.MinimizeActionCosts)
@@ -606,13 +635,31 @@ class ProtobufWriter(Converter):
         goals = []
         for g, c in metric.goals.items():
             goals.append(
-                proto.GoalWithCost(
-                    goal=self.convert(g), cost=self.convert(fractions.Fraction(c))
+                proto.GoalWithWeight(
+                    goal=self.convert(g), weight=self.convert(fractions.Fraction(c))
                 )
             )
         return proto.Metric(
             kind=proto.Metric.OVERSUBSCRIPTION,
             goals=goals,
+        )
+
+    @handles(model.metrics.TemporalOversubscription)
+    def _convert_temporal_oversubscription_metric(
+        self, metric: model.metrics.TemporalOversubscription
+    ) -> proto.Metric:
+        timed_goals = []
+        for (i, g), c in metric.goals.items():
+            timed_goals.append(
+                proto.TimedGoalWithWeight(
+                    timing=self.convert(i),
+                    goal=self.convert(g),
+                    weight=self.convert(fractions.Fraction(c)),
+                )
+            )
+        return proto.Metric(
+            kind=proto.Metric.TEMPORAL_OVERSUBSCRIPTION,
+            timed_goals=timed_goals,
         )
 
     @handles(model.Parameter)
@@ -633,14 +680,16 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.plans.ActionInstance)
     def _convert_action_instance(
-        self, a: unified_planning.plans.ActionInstance, start_time=None, end_time=None
+        self,
+        a: unified_planning.plans.ActionInstance,
+        start_time=None,
+        end_time=None,
+        id=None,
     ) -> proto.ActionInstance:
-        parameters = []
-        for param in a.actual_parameters:
-            # The parameters are atoms
-            parameters.append(self.convert(param).atom)
+        parameters = [self.convert(param).atom for param in a.actual_parameters]
 
         return proto.ActionInstance(
+            id=id,
             action_name=a.action.name,
             parameters=parameters,
             start_time=start_time,
@@ -653,25 +702,73 @@ class ProtobufWriter(Converter):
 
     @handles(unified_planning.plans.SequentialPlan)
     def _convert_sequential_plan(
-        self, plan: unified_planning.plans.SequentialPlan
+        self,
+        plan: unified_planning.plans.SequentialPlan,
+        ids: Dict[ActionInstance, str] = None,
     ) -> proto.Plan:
-        return proto.Plan(actions=[self.convert(a) for a in plan.actions])
+        def id(a: ActionInstance):
+            return ids.get(a) if ids is not None else None
+
+        return proto.Plan(
+            actions=[self._convert_action_instance(a, id=id(a)) for a in plan.actions]
+        )
 
     @handles(unified_planning.plans.TimeTriggeredPlan)
     def _convert_time_triggered_plan(
-        self, plan: unified_planning.plans.TimeTriggeredPlan
+        self,
+        plan: unified_planning.plans.TimeTriggeredPlan,
+        ids: Dict[ActionInstance, str] = None,
     ) -> proto.Plan:
         action_instances = []
 
         for a in plan.timed_actions:
+            id = ids.get(a[1]) if ids else None
             start_time = self.convert(a[0])
-            end_time = self.convert(a[0] + a[2])
+            duration = 0 if a[2] is None else a[2]
+            end_time = self.convert(a[0] + duration)
             instance = self._convert_action_instance(
-                a[1], start_time=start_time, end_time=end_time
+                a[1], start_time=start_time, end_time=end_time, id=id
             )
             action_instances.append(instance)
 
         return proto.Plan(actions=action_instances)
+
+    @handles(unified_planning.plans.HierarchicalPlan)
+    def _convert_hierarchical_plan(
+        self, plan: unified_planning.plans.HierarchicalPlan
+    ) -> proto.Plan:
+        ids = {act: id for id, act in plan.actions()}
+        flat_plan: proto.Plan = self.convert(plan.action_plan, ids)
+
+        def get_subtasks(prefix: str, d: Decomposition) -> Dict[str, str]:
+            mapping = {}
+            for task_id in d.subtasks:
+                instance = d.subtasks[task_id]
+                if isinstance(instance, MethodInstance):
+                    mapping[task_id] = f"{prefix}{task_id}::{instance.method.name}"
+                else:
+                    assert isinstance(instance, ActionInstance)
+                    mapping[task_id] = f"{prefix}{task_id}"
+            return mapping
+
+        methods = []
+        for id, method in plan.methods():
+            parameters = [self.convert(param).atom for param in method.parameters]
+            subtasks = get_subtasks(id + "::", method.decomposition)
+            m = proto.MethodInstance(
+                id=id,
+                method_name=method.method.name,
+                parameters=parameters,
+                subtasks=subtasks,
+            )
+            methods.append(m)
+        root_tasks = get_subtasks("", plan.decomposition)
+
+        plan = proto.Plan(
+            actions=flat_plan.actions,
+            hierarchy=proto.PlanHierarchy(root_tasks=root_tasks, methods=methods),
+        )
+        return plan
 
     @handles(unified_planning.engines.PlanGenerationResult)
     def _convert_plan_generation_result(
@@ -809,5 +906,7 @@ class ProtobufWriter(Converter):
             return proto.ValidationResult.ValidationResultStatus.Value("VALID")
         elif status == unified_planning.engines.ValidationResultStatus.INVALID:
             return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
+        elif status == unified_planning.engines.ValidationResultStatus.UNKNOWN:
+            return proto.ValidationResult.ValidationResultStatus.Value("UNKNOWN")
         else:
             raise UPException(f"Unknown result status: {status}")

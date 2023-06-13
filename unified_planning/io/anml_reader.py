@@ -73,25 +73,29 @@ from unified_planning.model import (
     Variable,
 )
 from fractions import Fraction
-from typing import Dict, Set, Tuple, Union, Callable, List, Optional
-from pyparsing.results import ParseResults
+from typing import Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
+from pyparsing import ParseResults
+from unified_planning.io.utils import parse_string, parse_file
 
 
 class ANMLReader:
     """
     Class that offers the capability, with the :func:`parse_problem <unified_planning.io.ANMLReader.parse_problem>`, to create a :class:`~unified_planning.model.Problem` from an
-    `ANML` file.
+    **ANML** file.
 
     The assumptions made in order for this Reader to work are the followings:
-    1. statements containing the duration of an action are not mixed with other statements ( `duration == 3 and at(l_from);` ).
-    2. the action duration can be set with:
-        - `duration == expression;`
-        - `duration := expression;`
-        - `duration CT expression and duration CT expression`, where CT are Compare Tokens, so `>`, `>=`, `<` and `<=`.
+
+    #. statements containing the duration of an action are **not** mixed with other statements ( ``duration == 3 and at(l_from);`` ).
+    #. the action duration can be set with:
+
+        * ``duration == expression;``
+        * ``duration := expression;``
+        * ``duration CT expression and duration CT expression``, where ``CT`` are Compare Tokens, so ``>``, ``>=``, ``<`` and ``<=``.
+
         All the other ways to define the duration of an Action are not supported.
-    3. Statements containing both conditions and effects are not supported ( `(at(l_from) == true) := false);` or `(at(l_from) == true) and (at(l_from) := false);` ).
-    4. Quantifier body does not support intervals, they can only be defined outside.
-    5. Conditional effects are not supported inside an expression block.
+    #. Statements containing both conditions and effects are **not** supported ( ``(at(l_from) == true) := false);`` or ``(at(l_from) == true) and (at(l_from) := false);`` ).
+    #. Quantifier body does not support intervals, they can only be defined outside.
+    #. Conditional effects are not supported inside an expression block.
     """
 
     def __init__(self, env: Optional[Environment] = None):
@@ -194,14 +198,17 @@ class ANMLReader:
         return self._problem
 
     def parse_problem(
-        self, problem_filename: str, problem_name: Optional[str] = None
+        self,
+        problem_filename: Union[str, Sequence[str]],
+        problem_name: Optional[str] = None,
     ) -> "up.model.Problem":
         """
         Takes in input a filename containing an `ANML` problem and returns the parsed `Problem`.
 
         Check the class documentation for the assumptions made for this parser to work.
 
-        :param problem_filename: The path to the file containing the `ANML` problem.
+        :param problem_filename: The path to the file containing the `ANML` problem
+            or to the files to concatenate to obtain the complete problem.
         :param problem_name: Optionally, the name to give to the created problem; if it is None,
             `problem_filename` will be set as the problem name.
         :return: The `Problem` parsed from the given anml file.
@@ -209,9 +216,12 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        grammar.problem.parse_file(problem_filename, parse_all=True)
+        parse_file(grammar.problem, problem_filename, parse_all=True)
         if problem_name is None:
-            problem_name = problem_filename
+            if isinstance(problem_filename, str):
+                problem_name = problem_filename
+            else:
+                problem_name = "_".join(problem_filename)
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
 
@@ -230,7 +240,7 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        grammar.problem.parse_string(problem_str, parse_all=True)
+        parse_string(grammar.problem, problem_str, parse_all=True)
 
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem

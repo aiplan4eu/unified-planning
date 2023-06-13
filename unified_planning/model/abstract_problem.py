@@ -15,10 +15,11 @@
 """This module defines an abstract problem class."""
 
 import unified_planning as up
+from abc import ABC, abstractmethod
 from typing import Optional
 
 
-class AbstractProblem:
+class AbstractProblem(ABC):
     """
     This is an abstract class that represents a generic `planning problem`.
 
@@ -49,14 +50,17 @@ class AbstractProblem:
         """Sets the `Problem` `name`."""
         self._name = new_name
 
+    @abstractmethod
     def clone(self):
         raise NotImplementedError
 
     @property
+    @abstractmethod
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the :class:`~unified_planning.model.ProblemKind` of this `Problem`."""
         raise NotImplementedError
 
+    @abstractmethod
     def has_name(self, name: str) -> bool:
         """
         Returns `True` the given `name` is already used inside this `Problem`,
@@ -67,6 +71,7 @@ class AbstractProblem:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """
         Normalizes the given `Plan`, that is potentially the result of another

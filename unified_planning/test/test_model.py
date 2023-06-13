@@ -15,6 +15,11 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPTypeError,
+    UPConflictingEffectsException,
+)
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import TestCase, main
 
@@ -27,11 +32,11 @@ class TestModel(TestCase):
     def test_expression(self):
         test_type = UserType("test_type")
         identity = Fluent("identity", test_type, obj=test_type)
-        id = Fluent("id", test_type, obj_id=IntType())
+        id = Fluent("id", test_type, obj_id=IntType(0, 10))
         self.assertEqual(id(1).type, test_type)
         env_2 = up.environment.Environment()
         test_type_2 = env_2.type_manager.UserType("test_type")
-        it_2 = env_2.type_manager.IntType()
+        it_2 = env_2.type_manager.IntType(0, 10)
         id_2 = Fluent("id", test_type_2, obj_id=it_2, environment=env_2)
         obj_2 = Object("obj", test_type_2, env_2)
         self.assertEqual(id_2(1).type, test_type_2)
@@ -85,15 +90,8 @@ class TestModel(TestCase):
 
     def test_clone_action(self):
         Location = UserType("Location")
-        a = Action("move", l_from=Location, l_to=Location)
-        with self.assertRaises(NotImplementedError):
-            a.clone()
-        with self.assertRaises(NotImplementedError):
-            hash(a)
-        with self.assertRaises(NotImplementedError):
-            a == a.name
-        with self.assertRaises(NotImplementedError):
-            a.is_conditional()
+        with self.assertRaises(TypeError):
+            a = Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
 
     def test_clone_effect(self):
         x = FluentExp(Fluent("x"))
@@ -119,6 +117,109 @@ class TestModel(TestCase):
             FluentExp(km), Int(10), TRUE(), unified_planning.model.EffectKind.INCREASE
         )
         self.assertEqual(move.effects[0], e)
+
+        # variables used to test exceptions
+        Utl1 = UserType("UserTypeL1")
+        Utl2 = UserType("UserTypeL2")
+        is_at = Fluent("is_at", BoolType(), obj=Utl1)
+        int_fluent = Fluent("int", IntType())
+        test_exceptions = InstantaneousAction("test_exceptions")
+        l1 = ObjectExp(Object("l1", Utl1))
+        l2 = ObjectExp(Object("l2", Utl2))
+
+        # test add_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_effect(l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_effect must be a Fluent or a FluentExp or a Dot.",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_effect(is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_effect(is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"InstantaneousAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        test_exceptions.add_effect(int_fluent, 5)
+        test_exceptions.add_effect(int_fluent, 5)
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.add_effect(int_fluent, 6)
+        effect = Effect(int_fluent(), Int(6), TRUE())
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The effect {effect} is in conflict with the effects already in the action.",
+        )
+
+        # test add_increase_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_increase_effect(l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot.",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"InstantaneousAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(is_at(l1), True)
+        self.assertEqual(
+            str(type_error.exception),
+            "Increase effects can be created only on numeric types!",
+        )
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.add_increase_effect(int_fluent, 6)
+        effect = Effect(int_fluent(), Int(6), TRUE(), EffectKind.INCREASE)
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The effect {effect} is in conflict with the effects already in the action.",
+        )
+        test_exceptions.clear_effects()
+        test_exceptions.add_increase_effect(int_fluent, 6)
+        sim_eff = SimulatedEffect([int_fluent()], lambda x, y, z: [Int(6)])
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.set_simulated_effect(sim_eff)
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The simulated effect {sim_eff} is in conflict with the effects already in the action.",
+        )
+
+        # test add_decrease_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_decrease_effect(l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_decrease_effect must be a Fluent or a FluentExp or a Dot.",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"InstantaneousAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(is_at(l1), True)
+        self.assertEqual(
+            str(type_error.exception),
+            "Decrease effects can be created only on numeric types!",
+        )
 
     def test_durative_action(self):
         Location = UserType("Location")
@@ -148,6 +249,110 @@ class TestModel(TestCase):
         move.add_condition(StartTiming(), x)
         move.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), x)
         self.assertIn("duration = [1, 2)", str(move))
+
+        # variables used to test exceptions
+        Utl1 = UserType("UserTypeL1")
+        Utl2 = UserType("UserTypeL2")
+        is_at = Fluent("is_at", BoolType(), obj=Utl1)
+        int_fluent = Fluent("int", IntType())
+        test_exceptions = DurativeAction("test_exceptions")
+        l1 = ObjectExp(Object("l1", Utl1))
+        l2 = ObjectExp(Object("l2", Utl2))
+        t = StartTiming()
+
+        # test add_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_effect(t, l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_effect must be a Fluent or a FluentExp",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_effect(t, is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_effect(t, is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"DurativeAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        test_exceptions.add_effect(t, int_fluent, 5)
+        test_exceptions.add_effect(t, int_fluent, 5)
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.add_effect(t, int_fluent, 6)
+        effect = Effect(int_fluent(), Int(6), TRUE())
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The effect {effect} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
+        )
+
+        # test add_increase_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_increase_effect(t, l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_increase_effect must be a Fluent or a FluentExp",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(t, is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(t, is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"DurativeAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_effect(t, is_at(l1), True)
+        self.assertEqual(
+            str(type_error.exception),
+            "Increase effects can be created only on numeric types!",
+        )
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.add_increase_effect(t, int_fluent, 6)
+        effect = Effect(int_fluent(), Int(6), TRUE(), EffectKind.INCREASE)
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The effect {effect} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
+        )
+        test_exceptions.clear_effects()
+        test_exceptions.add_increase_effect(t, int_fluent, 6)
+        sim_eff = SimulatedEffect([int_fluent()], lambda x, y, z: [Int(6)])
+        with self.assertRaises(UPConflictingEffectsException) as conf_error:
+            test_exceptions.set_simulated_effect(t, sim_eff)
+        self.assertEqual(
+            str(conf_error.exception),
+            f"The simulated effect {sim_eff} at timing {t} is in conflict with the effects already in the action or problem: test_exceptions.",
+        )
+
+        # test add_decrease_effect exceptions
+        with self.assertRaises(UPUsageError) as usage_error:
+            test_exceptions.add_decrease_effect(t, l1, l2)
+        self.assertEqual(
+            str(usage_error.exception),
+            "fluent field of add_decrease_effect must be a Fluent or a FluentExp",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(t, is_at(l1), l2, l1)
+        self.assertEqual(
+            str(type_error.exception), "Effect condition is not a Boolean condition!"
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(t, is_at(l1), l2)
+        self.assertEqual(
+            str(type_error.exception),
+            f"DurativeAction effect has an incompatible value type. Fluent type: {is_at(l1).type} // Value type: {l2.type}",
+        )
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_effect(t, is_at(l1), True)
+        self.assertEqual(
+            str(type_error.exception),
+            "Decrease effects can be created only on numeric types!",
+        )
 
     def test_problem(self):
         x = Fluent("x")
@@ -185,3 +390,8 @@ class TestModel(TestCase):
             ),
             str(problem),
         )
+
+    def test_parameters(self):
+        int_5 = IntType(5)
+        with self.assertRaises(UPTypeError):
+            Fluent("x", p1=int_5)

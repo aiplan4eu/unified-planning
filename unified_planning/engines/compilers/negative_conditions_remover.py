@@ -26,12 +26,16 @@ from unified_planning.model import (
     FNode,
     Action,
     Effect,
-    Timing,
     ProblemKind,
     Oversubscription,
+    TemporalOversubscription,
 )
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    replace_action,
+    updated_minimize_action_costs,
+)
 from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPProblemDefinitionError,
@@ -101,29 +105,47 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECTS")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_time("SELF_OVERLAPPING")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
@@ -220,14 +242,37 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             ng = fluent_remover.remove_negative_fluents(g)
             new_problem.add_goal(ng)
 
+        for tc in problem.trajectory_constraints:
+            ntc = fluent_remover.remove_negative_fluents(tc)
+            new_problem.add_trajectory_constraint(ntc)
+
         for qm in problem.quality_metrics:
-            if isinstance(qm, Oversubscription):
+            if qm.is_minimize_action_costs():
+                new_problem.add_quality_metric(
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
+                )
+            elif qm.is_oversubscription():
+                assert isinstance(qm, Oversubscription)
                 new_problem.add_quality_metric(
                     Oversubscription(
                         {
                             fluent_remover.remove_negative_fluents(g): v
                             for g, v in qm.goals.items()
-                        }
+                        },
+                        environment=new_problem.environment,
+                    )
+                )
+            elif qm.is_temporal_oversubscription():
+                assert isinstance(qm, TemporalOversubscription)
+                new_problem.add_quality_metric(
+                    TemporalOversubscription(
+                        {
+                            (t, fluent_remover.remove_negative_fluents(g)): v
+                            for (t, g), v in qm.goals.items()
+                        },
+                        environment=new_problem.environment,
                     )
                 )
             else:

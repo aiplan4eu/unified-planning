@@ -16,6 +16,8 @@
 
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
+from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from abc import ABC
 from enum import Enum, auto
 from fractions import Fraction
 from typing import Union, Optional
@@ -107,9 +109,9 @@ class Timing:
     A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the start of the `Plan`.
     """
 
-    def __init__(self, delay: Union[int, Fraction], timepoint: Timepoint):
+    def __init__(self, delay: NumericConstant, timepoint: Timepoint):
         self._timepoint = timepoint
-        self._delay = delay
+        self._delay = uniform_numeric_constant(delay)
 
     def __repr__(self):
         if self._delay == 0:
@@ -164,9 +166,7 @@ class Timing:
         return not self.is_from_start()
 
 
-def StartTiming(
-    delay: Union[int, Fraction] = 0, container: Optional[str] = None
-) -> Timing:
+def StartTiming(delay: NumericConstant = 0, container: Optional[str] = None) -> Timing:
     """
     Returns the start timing of an :class:`~unified_planning.model.Action`.
     Created with a delay > 0 represents "delay" time
@@ -185,28 +185,23 @@ def StartTiming(
     return Timing(delay, Timepoint(TimepointKind.START, container=container))
 
 
-def EndTiming(
-    delay: Union[int, Fraction] = 0, container: Optional[str] = None
-) -> Timing:
+def EndTiming(container: Optional[str] = None) -> Timing:
     """
     Returns the end timing of an :class:`~unified_planning.model.Action`.
-    Created with a delay > 0 represents `delay` time
-    before the end of the `Action`.
 
     For example, `Action` ends at time 10:
     `EndTiming() = 10`
-    `EndTiming(1.5) = 10-Fraction(3, 2) = Fraction(17, 2) = 8.5`.
+    `EndTiming() - 4 = 10 - 4 = 6`.
 
-    :param delay: The delay from the end of an `Action`.
     :param container: Identifier of the container in which the `Timepoint` is defined.
         If not set, then refers to the enclosing `action or method`.
     :return: The created `Timing`.
     """
 
-    return Timing(delay, Timepoint(TimepointKind.END, container=container))
+    return Timing(delay=0, timepoint=Timepoint(TimepointKind.END, container=container))
 
 
-def GlobalStartTiming(delay: Union[int, Fraction] = 0):
+def GlobalStartTiming(delay: NumericConstant = 0):
     """
     Represents the absolute `Timing`.
     Created with a delay > 0 represents `delay` time
@@ -219,7 +214,7 @@ def GlobalStartTiming(delay: Union[int, Fraction] = 0):
     return Timing(delay, Timepoint(TimepointKind.GLOBAL_START))
 
 
-def GlobalEndTiming(delay: Union[int, Fraction] = 0):
+def GlobalEndTiming():
     """
     Represents the end `Timing` of an execution.
     Created with a delay > 0 represents "delay" time
@@ -229,7 +224,7 @@ def GlobalEndTiming(delay: Union[int, Fraction] = 0):
     :return: The created `Timing`.
     """
 
-    return Timing(delay, Timepoint(TimepointKind.GLOBAL_END))
+    return Timing(delay=0, timepoint=Timepoint(TimepointKind.GLOBAL_END))
 
 
 class Interval:
@@ -304,7 +299,7 @@ class Interval:
         return self._is_right_open
 
 
-class Duration:
+class Duration(ABC):
     pass
 
 

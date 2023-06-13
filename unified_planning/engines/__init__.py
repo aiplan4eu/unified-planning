@@ -20,6 +20,7 @@ from unified_planning.engines.credits import Credits
 from unified_planning.engines.factory import Factory
 from unified_planning.engines.parallel import Parallel
 from unified_planning.engines.pddl_planner import PDDLPlanner
+from unified_planning.engines.pddl_anytime_planner import PDDLAnytimePlanner
 from unified_planning.engines.plan_validator import SequentialPlanValidator
 from unified_planning.engines.oversubscription_planner import OversubscriptionPlanner
 from unified_planning.engines.replanner import Replanner
@@ -32,12 +33,16 @@ from unified_planning.engines.results import (
     ValidationResult,
     ValidationResultStatus,
     CompilerResult,
+    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
-    SequentialSimulator,
-    InstantaneousEvent,
+    UPSequentialSimulator,
+    evaluate_quality_metric,
+    evaluate_quality_metric_in_initial_state,
 )
-from unified_planning.engines.mixins.simulator import SimulatorMixin, Event
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
@@ -48,9 +53,10 @@ __all__ = [
     "Grounder",
     "Parallel",
     "PDDLPlanner",
+    "PDDLAnytimePlanner",
     "SequentialPlanValidator",
-    "SimulatorMixin",
-    "SequentialSimulator",
+    "SequentialSimulatorMixin",
+    "UPSequentialSimulator",
     "Event",
     "InstantaneousEvent",
     "Engine",
@@ -64,6 +70,7 @@ __all__ = [
     "PlanGenerationResultStatus",
     "ValidationResult",
     "ValidationResultStatus",
+    "FailedValidationReason",
     "CompilerResult",
     "PortfolioSelectorMixin",
     "OperationMode",

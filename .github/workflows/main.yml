@@ -3,9 +3,10 @@ name: CI
 on: push
 
 env:
-  up_tamer_commit: "80a2463c5925a3152ceaa6542be21e70a1a295f7"
-  up_pyperplan_commit: "587a92b6a8198e8259ca9172312927f3e409867e"
-  up_fast_downward_commit: "52b08699a8f76bf24884a5fd5100e013b4fca224"
+  up_tamer_commit: "d6c6a8937f4725190a75f993ebc89d2b7234de08"
+  up_pyperplan_commit: "71e0c1fe65f9564f04912168ee26699eff144095"
+  up_fast_downward_commit: "7ccd86de2ce8992a2bc720b1a4b43002b6e1230b"
+  up_fmap_commit: "ad3a878eb049749cdf3ff2ce7d44014dfc4c4424"
 
 jobs:
   basic-check:
@@ -42,9 +43,103 @@ jobs:
       - name: Test all packages imports
         run: python3 scripts/test_imports.py
 
+  check-documentation:
+    runs-on: ubuntu-latest
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.8"
+
+      - name: Install pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc
+
+      - name: Install python requirements
+        run: |
+          pip install --upgrade pip
+          pip install .
+          pip install -r docs/requirements.txt
+
+      - name: Listing dependency versions
+        run: pip freeze
+
+      - name: Building docs
+        run: make html
+        working-directory: ./docs
+
+  run-tests-ubuntu-20-04:
+    runs-on: ubuntu-20.04
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install pyparsing version used in ROS1
+        run: python3 -m pip install pyparsing==2.4.6
+
+      - name: Install Python dependencies
+        run: python3 -m pip install -r requirements.txt
+
+      - name: Install Development Python dependencies
+        run: python3 -m pip install -r dev-requirements.txt
+
+      - name: Checkout up-tamer
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-tamer
+          path: up-tamer
+          ref: ${{env.up_tamer_commit}}
+
+      - name: Install up-tamer
+        run: python3 -m pip install up-tamer/
+
+      - name: Checkout up-pyperplan
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-pyperplan
+          path: up-pyperplan
+          ref: ${{env.up_pyperplan_commit}}
+
+      - name: Install up-pyperplan
+        run: python3 -m pip install up-pyperplan/
+
+      - name: Setup java for ENHSP
+        uses: actions/setup-java@v2
+        with:
+          distribution: "microsoft"
+          java-version: "17"
+
+      - name: Download and install ENHSP
+        run: |
+          git clone https://gitlab.com/enricos83/ENHSP-Public.git
+          cd ENHSP-Public; git checkout enhsp20-0.9.7; ./compile; cd ..
+          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+
+      - name: Run tests
+        run: bash run_tests.sh
+
   run-tests-ubuntu:
     runs-on: ubuntu-latest
-    needs: [basic-check]
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
 
     steps:
       - name: Checkout
@@ -114,7 +209,10 @@ jobs:
 
   run-tests-windows:
     runs-on: windows-latest
-    needs: [basic-check]
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
 
     steps:
       - name: Checkout
@@ -168,7 +266,10 @@ jobs:
 
   run-tests-macos:
     runs-on: macos-latest
-    needs: [basic-check]
+    needs: [
+        basic-check,
+        check-protobuf,
+      ]
 
     steps:
       - name: Checkout
@@ -252,11 +353,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [
         basic-check,
-        run-tests-ubuntu,
-        run-tests-windows,
-        run-tests-macos,
         check-protobuf,
-      ] # We only test colabs if the base tests were succesful
+      ]
 
     steps:
       - name: Checkout
@@ -297,9 +395,19 @@ jobs:
 
       - name: Install up-fast-downward
         run: python3 -m pip install up-fast-downward/
-      
+
       - name: Install up-aries
         run: pip3 install up-aries
+
+      - name: Checkout up-fmap
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-fmap
+          path: up-fmap
+          ref: ${{env.up_fmap_commit}}
+
+      - name: Install up-fmap
+        run: python3 -m pip install up-fmap/
 
       - name: Install jupyter and ipython3
         run: sudo apt install jupyter; sudo apt install ipython3
@@ -312,10 +420,12 @@ jobs:
     needs: [
         basic-check,
         run-tests-ubuntu,
+        run-tests-ubuntu-20-04,
         run-tests-windows,
         run-tests-macos,
         check-protobuf,
         run-colab-notebooks,
+        check-documentation,
       ] # We only deploy if the tests were successful
     if: github.ref == 'refs/heads/master' # We only deploy on master commits
 

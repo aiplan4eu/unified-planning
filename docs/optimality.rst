@@ -25,7 +25,7 @@ The UP library defines a set of "Quality Metrics" to express the objective funct
 
 - **MinimizeMakespan** (Temporal planning only) Asks to find a plan taking the shortest possible time until the ending of the last action in the plan.
 
-Creating quality metrics amounts to instantiate the corresponding object and adding it to one or more `Problem` instances. See the `Optimal Planning Notebook <https://github.com/aiplan4eu/unified-planning/blob/master/notebooks/Optimal_Planning.ipynb>`_ for an example.
+Creating quality metrics amounts to instantiate the corresponding object and adding it to one or more `Problem` instances. See the `Optimal Planning Notebook <https://github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/02-optimal-planning.ipynb>`_ for an example.
 
 
 Optimal and Satisficing Planning
@@ -43,8 +43,4 @@ If a planning problem without optimality metrics is required to be solved optima
 
 If a planning problem without optimality metrics is solved by a planning engine capable of guaranteeing some optimality, it is anyway marked as `SOLVED_SATISFICING`.
 
-
-
-
-
-
+The UP currently supports only 1 metric in each problem, therefore multi-objective optimization is not possible.

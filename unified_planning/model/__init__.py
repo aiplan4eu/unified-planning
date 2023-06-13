@@ -24,6 +24,8 @@ from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
     Expression,
+    NumericConstant,
+    NumericExpression,
     ExpressionManager,
 )
 from unified_planning.model.fnode import FNode
@@ -36,7 +38,7 @@ from unified_planning.model.problem import Problem
 from unified_planning.model.contingent_problem import ContingentProblem
 from unified_planning.model.delta_stn import DeltaSimpleTemporalNetwork
 from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.model.state import ROState, COWState, UPCOWState
+from unified_planning.model.state import State, UPState
 from unified_planning.model.timing import (
     Timepoint,
     TimepointKind,
@@ -62,7 +64,7 @@ from unified_planning.model.timing import (
     LeftOpenTimeInterval,
     RightOpenTimeInterval,
 )
-from unified_planning.model.types import Type, TypeManager
+from unified_planning.model.types import Type
 from unified_planning.model.variable import Variable, FreeVarsOracle
 from unified_planning.model.metrics import (
     PlanQualityMetric,
@@ -72,6 +74,7 @@ from unified_planning.model.metrics import (
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
+    TemporalOversubscription,
 )
 import unified_planning.model.multi_agent
 import unified_planning.model.scheduling
@@ -85,6 +88,8 @@ __all__ = [
     "EffectKind",
     "BoolExpression",
     "Expression",
+    "NumericConstant",
+    "NumericExpression",
     "ExpressionManager",
     "FNode",
     "Fluent",
@@ -94,9 +99,8 @@ __all__ = [
     "AbstractProblem",
     "Problem",
     "ProblemKind",
-    "ROState",
-    "COWState",
-    "UPCOWState",
+    "State",
+    "UPState",
     "Timepoint",
     "TimepointKind",
     "Timing",
@@ -117,7 +121,6 @@ __all__ = [
     "LeftOpenTimeInterval",
     "RightOpenTimeInterval",
     "Type",
-    "TypeManager",
     "Variable",
     "FreeVarsOracle",
     "PlanQualityMetric",
@@ -127,5 +130,6 @@ __all__ = [
     "MinimizeExpressionOnFinalState",
     "MaximizeExpressionOnFinalState",
     "Oversubscription",
+    "TemporalOversubscription",
     "DeltaSimpleTemporalNetwork",
 ]

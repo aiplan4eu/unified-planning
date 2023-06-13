@@ -39,8 +39,9 @@ class Environment:
         import unified_planning.model
         import unified_planning.engines
         import unified_planning.model.walkers
+        import unified_planning.model.type_manager
 
-        self._type_manager = unified_planning.model.TypeManager()
+        self._type_manager = unified_planning.model.type_manager.TypeManager()
         self._factory = unified_planning.engines.Factory(self)
         self._tc = unified_planning.model.walkers.TypeChecker(self)
         self._expression_manager = unified_planning.model.ExpressionManager(self)
@@ -96,7 +97,7 @@ class Environment:
         return self._expression_manager
 
     @property
-    def type_manager(self) -> "unified_planning.model.TypeManager":
+    def type_manager(self) -> "unified_planning.model.type_manager.TypeManager":
         """Returns the environment's `TypeManager`."""
         return self._type_manager
 

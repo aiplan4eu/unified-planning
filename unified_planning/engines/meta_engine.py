@@ -14,6 +14,7 @@
 #
 """This module defines the meta engine interface."""
 
+from abc import abstractmethod
 from unified_planning.exceptions import UPUsageError
 from unified_planning.engines.engine import Engine, EngineMeta
 from unified_planning.model import ProblemKind
@@ -82,6 +83,7 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
         self.engine.error_on_failed_checks = new_value
 
     @staticmethod
+    @abstractmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
         """
         Returns `True` iff the given `engine` is compatible with this `MetaEngine`.
@@ -92,11 +94,13 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _supported_kind(engine: Type[Engine]) -> ProblemKind:
         """Returns the supported kind of this meta engine with the given engine"""
         raise NotImplementedError
 
     @staticmethod
+    @abstractmethod
     def _supports(problem_kind: ProblemKind, engine: Type[Engine]) -> bool:
         """Returns true iff the given problem kind is supported by this meta
         engine with the given engine"""

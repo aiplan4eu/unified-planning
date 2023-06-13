@@ -25,16 +25,15 @@ from unified_planning.exceptions import (
     UPTypeError,
     UPUnboundedVariablesError,
     UPProblemDefinitionError,
-    UPConflictingEffectsException,
+    UPUsageError,
 )
-from fractions import Fraction
-from typing import List, Set, Union, Optional
+from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
-from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 
-
-class Action:
+class Action(ABC):
     """This is the `Action` interface."""
 
     def __init__(
@@ -67,12 +66,28 @@ class Action:
                     n, t, self._environment
                 )
 
+    @abstractmethod
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
 
+    def __call__(
+        self,
+        *args: "up.model.Expression",
+        agent: Optional["up.model.multi_agent.Agent"] = None,
+        motion_paths: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+        ] = None,
+    ) -> "up.plans.plan.ActionInstance":
+        params = tuple(args)
+        return up.plans.plan.ActionInstance(
+            self, params, agent=agent, motion_paths=motion_paths
+        )
+
+    @abstractmethod
     def clone(self):
         raise NotImplementedError
 
@@ -154,8 +169,10 @@ class InstantaneousAction(Action):
         self._preconditions: List["up.model.fnode.FNode"] = []
         self._effects: List[up.model.effect.Effect] = []
         self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
-        # fluent assigned is the set of the fluent that have an unconditional assignment
-        self._fluents_assigned: Set["up.model.fnode.FNode"] = set()
+        # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
+        self._fluents_assigned: Dict[
+            "up.model.fnode.FNode", "up.model.fnode.FNode"
+        ] = {}
         # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
         self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
 
@@ -244,8 +261,9 @@ class InstantaneousAction(Action):
     def clear_effects(self):
         """Removes all the `Action's effects`."""
         self._effects = []
-        self._fluents_assigned = set()
+        self._fluents_assigned = {}
         self._fluents_inc_dec = set()
+        self._simulated_effect = None
 
     @property
     def conditional_effects(self) -> List["up.model.effect.Effect"]:
@@ -316,7 +334,10 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_effect must be a Fluent or a FluentExp or a Dot."
+            )
         if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
@@ -347,11 +368,16 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot."
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -382,11 +408,16 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_decrease_effect must be a Fluent or a FluentExp or a Dot."
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("InstantaneousAction effect has not compatible types!")
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -402,31 +433,14 @@ class InstantaneousAction(Action):
         assert (
             effect.environment == self._environment
         ), "effect does not have the same environment of the action"
-        if not effect.is_conditional():
-            if effect.is_assignment():
-                if (
-                    effect.fluent in self._fluents_assigned
-                    or effect.fluent in self._fluents_inc_dec
-                ):
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the effects already in the action."
-                    )
-                self._fluents_assigned.add(effect.fluent)
-            elif effect.is_increase() or effect.is_decrease():
-                if effect.fluent in self._fluents_assigned:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} is in conflict with the effects already in the action."
-                    )
-                self._fluents_inc_dec.add(effect.fluent)
-            else:
-                raise NotImplementedError
-        if (
-            self._simulated_effect is not None
-            and effect.fluent in self._simulated_effect.fluents
-        ):
-            raise UPConflictingEffectsException(
-                f"The effect {effect} is in conflict with the simulated effects already in the action."
-            )
+        up.model.effect.check_conflicting_effects(
+            effect,
+            None,
+            self._simulated_effect,
+            self._fluents_assigned,
+            self._fluents_inc_dec,
+            "action",
+        )
         self._effects.append(effect)
 
     @property
@@ -441,11 +455,17 @@ class InstantaneousAction(Action):
         :param simulated_effect: The `SimulatedEffect` instance that must be set as this `action`'s only
             `simulated effect`.
         """
-        for f in simulated_effect.fluents:
-            if f in self._fluents_assigned or f in self._fluents_inc_dec:
-                raise UPConflictingEffectsException(
-                    f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
-                )
+        up.model.effect.check_conflicting_simulated_effects(
+            simulated_effect,
+            None,
+            self._fluents_assigned,
+            self._fluents_inc_dec,
+            "action",
+        )
+        if simulated_effect.environment != self.environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
         self._simulated_effect = simulated_effect
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
@@ -565,7 +585,7 @@ class DurativeAction(Action, TimedCondsEffs):
             )
         self._duration = duration
 
-    def set_fixed_duration(self, value: Union["up.model.fnode.FNode", int, Fraction]):
+    def set_fixed_duration(self, value: "up.model.expression.NumericExpression"):
         """
         Sets the `duration interval` for this `action` as the interval `[value, value]`.
 
@@ -576,8 +596,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_closed_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `[lower, upper]`.
@@ -594,8 +614,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this action as the interval `]lower, upper[`.
@@ -614,8 +634,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_left_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `]lower, upper]`.
@@ -634,8 +654,8 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def set_right_open_duration_interval(
         self,
-        lower: Union["up.model.fnode.FNode", int, Fraction],
-        upper: Union["up.model.fnode.FNode", int, Fraction],
+        lower: "up.model.expression.NumericExpression",
+        upper: "up.model.expression.NumericExpression",
     ):
         """
         Sets the `duration interval` for this `action` as the interval `[lower, upper[`.
@@ -698,7 +718,7 @@ class SensingAction(InstantaneousAction):
         new_sensing_action._observed_fluents = self._observed_fluents.copy()
         return new_sensing_action
 
-    def add_observed_fluents(self, observed_fluents: List["up.model.fnode.FNode"]):
+    def add_observed_fluents(self, observed_fluents: Iterable["up.model.fnode.FNode"]):
         """
         Adds the given list of observed fluents.
 

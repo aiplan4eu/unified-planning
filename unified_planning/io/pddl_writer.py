@@ -31,6 +31,8 @@ from unified_planning.model import (
     Parameter,
     Problem,
     Object,
+    Effect,
+    Timing,
 )
 from unified_planning.exceptions import (
     UPTypeError,
@@ -38,6 +40,12 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.types import _UserType
+from unified_planning.plans import (
+    SequentialPlan,
+    TimeTriggeredPlan,
+    Plan,
+    ActionInstance,
+)
 from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
@@ -316,12 +324,24 @@ class ConverterToPDDLString(walkers.DagWalker):
 
 
 class PDDLWriter:
-    """This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`."""
+    """
+    This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`.
+    The constructor of this class takes the problem to write and 2 flags:
+    needs_requirements determines if the printed problem must have the :requirements,
+    rewrite_bool_assignments determines if this writer will write
+    non constant boolean assignment as conditional effects.
+    """
 
-    def __init__(self, problem: "up.model.Problem", needs_requirements: bool = True):
+    def __init__(
+        self,
+        problem: "up.model.Problem",
+        needs_requirements: bool = True,
+        rewrite_bool_assignments: bool = False,
+    ):
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
+        self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             Union[
@@ -354,7 +374,7 @@ class PDDLWriter:
             raise UPProblemDefinitionError(
                 "PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0)."
             )
-        if self.problem_kind.has_timed_effect() or self.problem_kind.has_timed_goals():
+        if self.problem_kind.has_timed_effects() or self.problem_kind.has_timed_goals():
             raise UPProblemDefinitionError(
                 "PDDL2.1 does not support timed effects or timed goals."
             )
@@ -374,18 +394,22 @@ class PDDLWriter:
                 out.write(" :negative-preconditions")
             if self.problem_kind.has_disjunctive_conditions():
                 out.write(" :disjunctive-preconditions")
-            if self.problem_kind.has_equality():
+            if self.problem_kind.has_equalities():
                 out.write(" :equality")
             if (
                 self.problem_kind.has_continuous_numbers()
                 or self.problem_kind.has_discrete_numbers()
+                or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
             if self.problem_kind.has_conditional_effects():
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
                 out.write(" :existential-preconditions")
-            if self.problem_kind.has_trajectory_constraints():
+            if (
+                self.problem_kind.has_trajectory_constraints()
+                or self.problem_kind.has_state_invariants()
+            ):
                 out.write(" :constraints")
             if self.problem_kind.has_universal_conditions():
                 out.write(" :universal-preconditions")
@@ -498,7 +522,7 @@ class PDDLWriter:
                     costs[a] = cost_exp
                     if cost_exp is not None:
                         _update_domain_objects(self.domain_objects, obe.get(cost_exp))
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+            elif metric.is_minimize_sequential_plan_length():
                 for a in self.problem.actions:
                     costs[a] = self.problem.environment.expression_manager.Int(1)
         elif len(metrics) > 1:
@@ -522,35 +546,24 @@ class PDDLWriter:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
                 if len(a.preconditions) > 0:
-                    out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in (c.simplify() for c in a.preconditions) if not p.is_true()])})'
-                    )
+                    precond_str: List[str] = []
+                    for p in (c.simplify() for c in a.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
-                        simplified_cond = e.condition.simplify()
-                        if not simplified_cond.is_true():
-                            if simplified_cond.is_false():
-                                continue
-                            out.write(f" (when {converter.convert(simplified_cond)}")
-                        if e.value.is_true():
-                            out.write(f" {converter.convert(e.fluent)}")
-                        elif e.value.is_false():
-                            out.write(f" (not {converter.convert(e.fluent)})")
-                        elif e.is_increase():
-                            out.write(
-                                f" (increase {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        elif e.is_decrease():
-                            out.write(
-                                f" (decrease {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        else:
-                            out.write(
-                                f" (assign {converter.convert(e.fluent)} {converter.convert(e.value)})"
-                            )
-                        if not simplified_cond.is_true():
-                            out.write(f")")
+                        _write_effect(
+                            e,
+                            None,
+                            out,
+                            converter,
+                            self.rewrite_bool_assignments,
+                        )
 
                     if a in costs:
                         out.write(
@@ -609,35 +622,13 @@ class PDDLWriter:
                     out.write("\n  :effect (and")
                     for t, el in a.effects.items():
                         for e in el:
-                            simplified_cond = e.condition.simplify()
-                            if simplified_cond.is_false():
-                                continue
-                            if t.is_from_start():
-                                out.write(f" (at start")
-                            else:
-                                out.write(f" (at end")
-                            if not simplified_cond.is_true():
-                                out.write(f" (when {converter.convert(e.condition)}")
-                            simplified_value = e.value.simplify()
-                            if simplified_value.is_true():
-                                out.write(f" {converter.convert(e.fluent)}")
-                            elif simplified_value.is_false():
-                                out.write(f" (not {converter.convert(e.fluent)})")
-                            elif e.is_increase():
-                                out.write(
-                                    f" (increase {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            elif e.is_decrease():
-                                out.write(
-                                    f" (decrease {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            else:
-                                out.write(
-                                    f" (assign {converter.convert(e.fluent)} {converter.convert(simplified_value)})"
-                                )
-                            if not simplified_cond.is_true():
-                                out.write(")")
-                            out.write(")")
+                            _write_effect(
+                                e,
+                                t,
+                                out,
+                                converter,
+                                self.rewrite_bool_assignments,
+                            )
                     if a in costs:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
@@ -692,9 +683,13 @@ class PDDLWriter:
         if self.problem.kind.has_actions_cost():
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
-        out.write(
-            f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
-        )
+        goals_str: List[str] = []
+        for g in (c.simplify() for c in self.problem.goals):
+            if g.is_and():
+                goals_str.extend(map(converter.convert, g.args))
+            else:
+                goals_str.append(converter.convert(g))
+        out.write(f' (:goal (and {" ".join(goals_str)}))\n')
         if len(self.problem.trajectory_constraints) > 0:
             out.write(
                 f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
@@ -703,15 +698,22 @@ class PDDLWriter:
         if len(metrics) == 1:
             metric = metrics[0]
             out.write(" (:metric ")
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+            if metric.is_minimize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MinimizeExpressionOnFinalState
+                )
                 out.write(f"minimize {converter.convert(metric.expression)}")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif metric.is_maximize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MaximizeExpressionOnFinalState
+                )
                 out.write(f"maximize {converter.convert(metric.expression)}")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts) or isinstance(
-                metric, up.model.metrics.MinimizeSequentialPlanLength
+            elif (
+                metric.is_minimize_action_costs()
+                or metric.is_minimize_sequential_plan_length()
             ):
                 out.write(f"minimize (total-cost)")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+            elif metric.is_minimize_makespan():
                 out.write(f"minimize (total-time)")
             else:
                 raise NotImplementedError
@@ -722,6 +724,27 @@ class PDDLWriter:
             )
         out.write(")\n")
 
+    def _write_plan(self, plan: Plan, out: IO[str]):
+        def _format_action_instance(action_instance: ActionInstance) -> str:
+            param_str = ""
+            if action_instance.actual_parameters:
+                param_str = f" {' '.join((p.object().name for p in action_instance.actual_parameters))}"
+            return f"({action_instance.action.name}{param_str})"
+
+        if isinstance(plan, SequentialPlan):
+            for ai in plan.actions:
+                out.write(f"{_format_action_instance(ai)}\n")
+        elif isinstance(plan, TimeTriggeredPlan):
+            for s, ai, dur in plan.timed_actions:
+                start = s.numerator if s.denominator == 1 else float(s)
+                out.write(f"{start}: {_format_action_instance(ai)}")
+                if dur is not None:
+                    duration = dur.numerator if dur.denominator == 1 else float(dur)
+                    out.write(f"[{duration}]")
+                out.write("\n")
+        else:
+            raise NotImplementedError
+
     def print_domain(self):
         """Prints to std output the `PDDL` domain."""
         self._write_domain(sys.stdout)
@@ -729,6 +752,10 @@ class PDDLWriter:
     def print_problem(self):
         """Prints to std output the `PDDL` problem."""
         self._write_problem(sys.stdout)
+
+    def print_plan(self, plan: Plan):
+        """Prints to std output the `PDDL` plan."""
+        self._write_plan(plan, sys.stdout)
 
     def get_domain(self) -> str:
         """Returns the `PDDL` domain."""
@@ -742,6 +769,12 @@ class PDDLWriter:
         self._write_problem(out)
         return out.getvalue()
 
+    def get_plan(self, plan: Plan) -> str:
+        """Returns the `PDDL` plan."""
+        out = StringIO()
+        self._write_plan(plan, out)
+        return out.getvalue()
+
     def write_domain(self, filename: str):
         """Dumps to file the `PDDL` domain."""
         with open(filename, "w") as f:
@@ -751,6 +784,11 @@ class PDDLWriter:
         """Dumps to file the `PDDL` problem."""
         with open(filename, "w") as f:
             self._write_problem(f)
+
+    def write_plan(self, plan: Plan, filename: str):
+        """Dumps to file the `PDDL` plan."""
+        with open(filename, "w") as f:
+            self._write_plan(plan, f)
 
     def _get_mangled_name(
         self,
@@ -917,3 +955,91 @@ def _update_domain_objects(
     for ut, os in values.items():
         os_to_update = dict_to_update.setdefault(ut, set())
         os_to_update |= os
+
+
+def _write_effect(
+    effect: Effect,
+    timing: Optional[Timing],
+    out: IO[str],
+    converter: ConverterToPDDLString,
+    rewrite_bool_assignments: bool,
+):
+    simplified_cond = effect.condition.simplify()
+    # check for non-constant-bool-assignment
+    non_const_bool_ass = (
+        effect.value.type.is_bool_type()
+        and not effect.value.is_true()
+        and not effect.value.is_false()
+    )
+    if non_const_bool_ass and not rewrite_bool_assignments:
+        raise UPProblemDefinitionError(
+            "The problem has non-constant boolean assignments.This can't be directly written ",
+            "in PDDL, but it can be translated into a conditional effect maintaining the ",
+            "semantic. To enable this feature, set the flag rewrite_bool_assignments",
+            " to True in the PDDLWriter constructor.",
+        )
+    simplified_cond = effect.condition.simplify()
+    if non_const_bool_ass:
+        assert effect.is_assignment()
+        positive_cond = (simplified_cond & effect.value).simplify()
+        if not positive_cond.is_false():
+            if timing is not None:
+                if timing.is_from_start():
+                    out.write(f" (at start")
+                else:
+                    out.write(f" (at end")
+            if positive_cond.is_true():
+                out.write(f" {converter.convert(effect.fluent)}")
+            else:
+                out.write(
+                    f" (when {converter.convert(positive_cond)} {converter.convert(effect.fluent)})"
+                )
+            if timing is not None:
+                out.write(")")
+        negative_cond = (simplified_cond & effect.value.Not()).simplify()
+        if not negative_cond.is_false():
+            if timing is not None:
+                if timing.is_from_start():
+                    out.write(f" (at start")
+                else:
+                    out.write(f" (at end")
+            if negative_cond.is_true():
+                out.write(f" {converter.convert(effect.fluent)}")
+            else:
+                out.write(
+                    f" (when {converter.convert(negative_cond)} (not {converter.convert(effect.fluent)}))"
+                )
+            if timing is not None:
+                out.write(")")
+        return
+
+    if simplified_cond.is_false():
+        return
+    if timing is not None:
+        if timing.is_from_start():
+            out.write(f" (at start")
+        else:
+            out.write(f" (at end")
+    if not simplified_cond.is_true():
+        out.write(f" (when {converter.convert(effect.condition)}")
+    simplified_value = effect.value.simplify()
+    if simplified_value.is_true():
+        out.write(f" {converter.convert(effect.fluent)}")
+    elif simplified_value.is_false():
+        out.write(f" (not {converter.convert(effect.fluent)})")
+    elif effect.is_increase():
+        out.write(
+            f" (increase {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    elif effect.is_decrease():
+        out.write(
+            f" (decrease {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    else:
+        out.write(
+            f" (assign {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
+        )
+    if not simplified_cond.is_true():
+        out.write(")")
+    if timing is not None:
+        out.write(")")

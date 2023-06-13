@@ -14,6 +14,7 @@
 #
 
 import unified_planning as up
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import IO, Optional, Iterator
 from warnings import warn
@@ -24,7 +25,7 @@ class AnytimeGuarantee(Enum):
     OPTIMAL_PLANS = auto()
 
 
-class AnytimePlannerMixin:
+class AnytimePlannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `AnytimePlanner`."""
 
     def __init__(self):
@@ -39,7 +40,7 @@ class AnytimePlannerMixin:
         """
         :param anytime_guarantee: The `anytime_guarantee` that must be satisfied.
         :return: `True` if the `AnytimePlannerMixin` implementation ensures the given
-        `anytime_guarantee`, `False` otherwise.
+            `anytime_guarantee`, `False` otherwise.
         """
         return False
 
@@ -75,6 +76,7 @@ class AnytimePlannerMixin:
         for res in self._get_solutions(problem, timeout, output_stream):
             yield res
 
+    @abstractmethod
     def _get_solutions(
         self,
         problem: "up.model.AbstractProblem",

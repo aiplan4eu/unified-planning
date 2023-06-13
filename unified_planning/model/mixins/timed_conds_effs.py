@@ -1,8 +1,12 @@
-from typing import Optional, Dict, List, Set, Union
+from typing import Optional, Dict, List, Set, Tuple, Union, cast
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPConflictingEffectsException, UPTypeError
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPTypeError,
+    UPUsageError,
+)
 
 
 class TimedCondsEffs:
@@ -20,7 +24,8 @@ class TimedCondsEffs:
             "up.model.timing.Timing", "up.model.effect.SimulatedEffect"
         ] = {}
         self._fluents_assigned: Dict[
-            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
+            "up.model.timing.Timing",
+            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
         ] = {}
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
@@ -81,7 +86,7 @@ class TimedCondsEffs:
         other._effects = {t: [e.clone() for e in el] for t, el in self._effects.items()}
         other._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
         other._fluents_assigned = {
-            t: fs.copy() for t, fs in self._fluents_assigned.items()
+            t: d.copy() for t, d in self._fluents_assigned.items()
         }
         other._fluents_inc_dec = {
             t: fs.copy() for t, fs in self._fluents_inc_dec.items()
@@ -116,6 +121,7 @@ class TimedCondsEffs:
         self._effects = {}
         self._fluents_assigned = {}
         self._fluents_inc_dec = {}
+        self._simulated_effects = {}
 
     @property
     def conditional_effects(
@@ -210,11 +216,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_effect must be a Fluent or a FluentExp"
+            )
         if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         self._add_effect_instance(
             timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
         )
@@ -240,11 +251,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -278,11 +294,16 @@ class TimedCondsEffs:
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        assert fluent_exp.is_fluent_exp()
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_decrease_effect must be a Fluent or a FluentExp"
+            )
         if not condition_exp.type.is_bool_type():
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError("DurativeAction effect has not compatible types!")
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
         self._add_effect_instance(
@@ -301,31 +322,17 @@ class TimedCondsEffs:
         assert (
             self._environment == effect.environment
         ), "effect does not have the same environment of the action"
-        fluents_assigned = self._fluents_assigned.setdefault(timing, set())
+        fluents_assigned = self._fluents_assigned.setdefault(timing, {})
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
         simulated_effect = self._simulated_effects.get(timing, None)
-        if not effect.is_conditional():
-            if effect.is_assignment():
-                if (
-                    effect.fluent in fluents_assigned
-                    or effect.fluent in fluents_inc_dec
-                ):
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
-                    )
-                fluents_assigned.add(effect.fluent)
-            elif effect.is_increase() or effect.is_decrease():
-                if effect.fluent in fluents_assigned:
-                    raise UPConflictingEffectsException(
-                        f"The effect {effect} at timing {timing} is in conflict with the effects already in the action."
-                    )
-                fluents_inc_dec.add(effect.fluent)
-            else:
-                raise NotImplementedError
-        if simulated_effect is not None and effect.fluent in simulated_effect.fluents:
-            raise UPConflictingEffectsException(
-                f"The effect {effect} is in conflict with the simulated effects already in the action."
-            )
+        up.model.effect.check_conflicting_effects(
+            effect,
+            timing,
+            simulated_effect,
+            fluents_assigned,
+            fluents_inc_dec,
+            f"action or problem: {self.name}",  # type: ignore[attr-defined]
+        )
         self._effects.setdefault(timing, []).append(effect)
 
     @property
@@ -346,11 +353,15 @@ class TimedCondsEffs:
         :param timing: The time in which the `simulated effect` must be applied.
         :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
         """
-        for f in simulated_effect.fluents:
-            if f in self._fluents_assigned.get(
-                timing, set()
-            ) or f in self._fluents_inc_dec.get(timing, set()):
-                raise UPConflictingEffectsException(
-                    f"The simulated effect {simulated_effect} is in conflict with the effects already in the action."
-                )
+        up.model.effect.check_conflicting_simulated_effects(
+            simulated_effect,
+            timing,
+            self._fluents_assigned.setdefault(timing, {}),
+            self._fluents_inc_dec.get(timing, set()),
+            f"action or problem: {self.name}",  # type: ignore[attr-defined]
+        )
+        if simulated_effect.environment != self._environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
         self._simulated_effects[timing] = simulated_effect

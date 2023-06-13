@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from fractions import Fraction
 from typing import Optional, List, Union, Dict
 from warnings import warn
 
 import unified_planning as up
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
@@ -32,14 +32,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         *,
         initial_defaults: Dict[
             "up.model.types.Type",
-            Union[
-                "up.model.fnode.FNode",
-                "up.model.object.Object",
-                bool,
-                int,
-                float,
-                Fraction,
-            ],
+            ConstantExpression,
         ] = {},
     ):
         super().__init__(
@@ -95,8 +88,11 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
-                costs = {new_p.action(a.name): c for a, c in m.costs.items()}
+            if m.is_minimize_action_costs():
+                assert isinstance(m, up.model.metrics.MinimizeActionCosts)
+                costs: Dict["up.model.Action", "up.model.Expression"] = {
+                    new_p.action(a.name): c for a, c in m.costs.items()
+                }
                 new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
             else:
                 new_p._metrics.append(m)
@@ -181,7 +177,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         else:
             assert len(kwargs) == 0
         if self.has_name(task.name):
-            msg = f"Name of task {task.name} already defined!"
+            msg = f"Name of task {task.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 task.name == t for t in self._abstract_tasks
             ):
@@ -206,7 +202,7 @@ class HierarchicalProblem(up.model.problem.Problem):
             method.achieved_task is not None
         ), f"No achieved task was specified for this method."
         if self.has_name(method.name):
-            msg = f"Name of method {method.name} already defined!"
+            msg = f"Name of method {method.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 method.name == m for m in self._methods
             ):

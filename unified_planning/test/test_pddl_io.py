@@ -21,10 +21,10 @@ from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.types import _UserType
-from unified_planning.engines import PlanGenerationResultStatus
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -52,6 +52,34 @@ class TestPddlIO(TestCase):
         pddl_problem = w.get_problem()
         self.assertIn("(:domain basic-domain)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
+        self.assertIn("(:goal (and (x)))", pddl_problem)
+
+    def test_basic_non_constant_boolean_assignment(self):
+        problem = self.problems["basic"].problem.clone()
+        x = problem.fluent("x")
+        y = problem.add_fluent("y", default_initial_value=True)
+        a = problem.action("a")
+        a.clear_effects()
+        a.add_effect(x, y)
+
+        w = PDDLWriter(problem)
+        with self.assertRaises(UPProblemDefinitionError) as e:
+            _ = w.get_domain()
+
+        w = PDDLWriter(problem, rewrite_bool_assignments=True)
+        pddl_domain = w.get_domain()
+        self.assertIn("(:requirements :strips :negative-preconditions)", pddl_domain)
+        self.assertIn("(:predicates (x) (y))", pddl_domain)
+        self.assertIn("(:action a", pddl_domain)
+        self.assertIn(":parameters ()", pddl_domain)
+        self.assertIn(":precondition (and (not (x)))", pddl_domain)
+        self.assertIn(
+            ":effect (and (when (y) (x)) (when (not (y)) (not (x)))))", pddl_domain
+        )
+
+        pddl_problem = w.get_problem()
+        self.assertIn("(:domain basic-domain)", pddl_problem)
+        self.assertIn("(:init (y))", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
 
     def test_basic_conditional_writer(self):
@@ -447,6 +475,13 @@ class TestPddlIO(TestCase):
                 kind.has_intermediate_conditions_and_effects()
                 or kind.has_object_fluents()
                 or kind.has_oversubscription()
+                or kind.has_timed_goals()
+                or kind.has_bool_fluent_parameters()
+                or kind.has_bounded_int_fluent_parameters()
+                or kind.has_bool_action_parameters()
+                or kind.has_bounded_int_action_parameters()
+                or kind.has_unbounded_int_action_parameters()
+                or kind.has_real_action_parameters()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:
@@ -496,6 +531,15 @@ class TestPddlIO(TestCase):
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
+
+                self.assertEqual(
+                    len(problem.trajectory_constraints),
+                    len(parsed_problem.trajectory_constraints),
+                )
+                self.assertEqual(
+                    set(map(str, problem.trajectory_constraints)),
+                    set(map(str, parsed_problem.trajectory_constraints)),
+                )
 
     def test_basic_with_object_constant(self):
         problem = self.problems["basic_with_object_constant"].problem
@@ -749,6 +793,31 @@ class TestPddlIO(TestCase):
             ) as planner:
                 plan = planner.solve(problem).plan
                 self.assertEqual(len(plan.actions), expected_plan_length)
+
+    def test_writer_nested_and(self):
+        x, y, z = Fluent("x"), Fluent("y"), Fluent("z")
+        goals: List[FNode] = [
+            And(x, y),
+            And(x, And(y, z)),
+            And(Or(x, y), And(y, z)),
+        ]
+        expected_goals: List[str] = [
+            "(:goal (and (x) (y)))\n",
+            "(:goal (and (x) (y) (z)))\n",
+            "(:goal (and (or (x) (y)) (y) (z)))\n",
+        ]
+        assert len(goals) == len(
+            expected_goals
+        ), "goals and expected_goals must have the same length"
+        for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
+            problem = Problem(f"test_{i}")
+            problem.add_fluent(x, default_initial_value=False)
+            problem.add_fluent(y, default_initial_value=False)
+            problem.add_fluent(z, default_initial_value=False)
+            problem.add_goal(goal)
+            writer = PDDLWriter(problem)
+            pddl_problem = writer.get_problem()
+            self.assertIn(expected_goal, pddl_problem)
 
 
 def _have_same_user_types_considering_renamings(

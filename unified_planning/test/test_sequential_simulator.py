@@ -13,16 +13,18 @@
 # limitations under the License.
 
 
+from typing import cast
+import warnings
 import unified_planning as up
 import pytest
+from itertools import product
 from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialSimulator, SimulatorMixin
-from unified_planning.model import UPCOWState
+from unified_planning.engines import UPSequentialSimulator, SequentialSimulatorMixin
+from unified_planning.model import State
+from unified_planning.plans import ActionInstance
 from unified_planning.test import TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPUsageError
-from itertools import product
-from typing import cast
 
 
 class TestSimulator(TestCase):
@@ -31,7 +33,7 @@ class TestSimulator(TestCase):
         self.problems = get_example_problems()
 
     def simulate_on_hierarchical_blocks_world(
-        self, simulator: SimulatorMixin, problem: "up.model.Problem"
+        self, simulator: SequentialSimulatorMixin, problem: "up.model.Problem"
     ):
         # This test takes a simulator and the problem and makes some testing.
         self.assertEqual(problem.name, "hierarchical_blocks_world")
@@ -45,7 +47,8 @@ class TestSimulator(TestCase):
         block_1 = problem.object("block_1")
         block_2 = problem.object("block_2")
         block_3 = problem.object("block_3")
-        state = UPCOWState(problem.initial_values)
+        state: Optional[State] = simulator.get_initial_state()
+        assert state is not None
         # The initial state is:
         # ts_1, block_3, block_1, block_2
         # ts_2
@@ -66,41 +69,18 @@ class TestSimulator(TestCase):
         # move(block_1, from block_3, to block_2)
         # move(block_3, from ts_1, to ts_3)
         # move(block_1, from block_2, to ts_1)
-        events = simulator.get_events(move, (block_2, block_1, ts_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_2, block_1, ts_2))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_1, block_3, block_2))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_1, block_3, block_2))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_3, ts_1, ts_3))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_3, ts_1, ts_3))
+        assert state is not None
 
-        events = simulator.get_events(move, (block_1, block_2, ts_1))
-        self.assertEqual(
-            len(events), 1
-        )  # only 1 even corresponds to in Instantaneous Action
-        state = cast(UPCOWState, simulator.apply(events[0], state))
-        self.assertIsNotNone(
-            state
-        )  # If the state is None it means the action was not applicable
+        state = simulator.apply(state, move, (block_1, block_2, ts_1))
+        assert state is not None
+
         # now we check that the state is what we desired
         Movable = problem.user_type("Movable")
         check_on = [(block_1, ts_1), (block_2, ts_2), (block_3, ts_3)]
@@ -111,8 +91,7 @@ class TestSimulator(TestCase):
                 self.assertEqual(state.get_value(on(*obj_tuple)), em.FALSE())
         # Now we want to check if we can apply the action move (block_3, from ts_1, to ts_3),
         # which we know is not because the block_3 is not on the table space 1 (ts_1)
-        event = simulator.get_events(move, (block_3, ts_1, ts_3))[0]
-        self.assertFalse(simulator.is_applicable(event, state))
+        self.assertFalse(simulator.is_applicable(state, move, (block_3, ts_1, ts_3)))
         # Now we check if we reached the goal
         self.assertFalse(simulator.is_goal(state))
         # To reach the goal, which is designed like this:
@@ -126,39 +105,161 @@ class TestSimulator(TestCase):
         # move(block_2, from ts_2, to block_1)
         # move(block_3, from ts_1, to block_2)
         # And then we check if we reached the goal.
-        event = simulator.get_events(move, (block_3, ts_3, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_1, ts_1, ts_3))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, block_2, ts_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_2, ts_2, block_1))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
-        event = simulator.get_events(move, (block_3, ts_1, block_2))[0]
-        state = cast(UPCOWState, simulator.apply(event, state))
-        self.assertIsNotNone(state)
+        state = simulator.apply(state, move, (block_3, ts_3, block_2))
+        assert state is not None
+        state = simulator.apply(state, move, (block_1, ts_1, ts_3))
+        assert state is not None
+        state = simulator.apply(state, move, (block_3, block_2, ts_1))
+        assert state is not None
+        state = simulator.apply(state, move, (block_2, ts_2, block_1))
+        assert state is not None
+        state = simulator.apply(state, move, (block_3, ts_1, block_2))
+        assert state is not None
 
         self.assertTrue(simulator.is_goal(state))
 
-    def test_with_sequential_simualtor_instance(self):
+        with self.assertRaises(UPUsageError):
+            _ = simulator.apply(state, move, (ts_1, block_3, block_2))
+        with self.assertRaises(UPUsageError):
+            ai = ActionInstance(
+                move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2))
+            )
+            _ = simulator.apply(state, ai, (ts_1, block_3, block_2))
+
+    def test_with_sequential_simulator_instance(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        simulator = SequentialSimulator(problem)
+        simulator = UPSequentialSimulator(problem)
         self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
-    def test_with_smulator_from_factory(self):
+    def test_with_simulator_from_factory(self):
         problem = self.problems["hierarchical_blocks_world"].problem
-        with Simulator(problem) as simulator:
+        with SequentialSimulator(problem) as simulator:
             self.simulate_on_hierarchical_blocks_world(simulator, problem)
 
     @pytest.mark.filterwarnings("ignore:We cannot establish")
     def test_check_disabling(self):
         problem = self.problems["matchcellar"].problem
         with self.assertRaises(UPUsageError) as e:
-            SequentialSimulator(problem)
+            UPSequentialSimulator(problem)
         self.assertIn("cannot establish whether", str(e.exception))
-        with Simulator(problem, name="sequential_simulator") as simulator:
+        with SequentialSimulator(problem, name="sequential_simulator") as simulator:
             pass
+
+    def test_bounded_types(self):
+        counter = Fluent("counter", IntType(0))
+        increase = InstantaneousAction("increase")
+        increase.add_increase_effect(counter, 1)
+        decrease = InstantaneousAction("decrease")
+        decrease.add_decrease_effect(counter, 1)
+        problem = Problem("simple_counter")
+        problem.add_fluent(counter, default_initial_value=1)
+        problem.add_action(increase)
+        problem.add_action(decrease)
+
+        with SequentialSimulator(problem) as simulator:
+            init = simulator.get_initial_state()
+            self.assertTrue(simulator.is_applicable(init, increase))
+
+            dec_state = simulator.apply(init, decrease)
+            assert dec_state is not None
+            self.assertFalse(simulator.is_applicable(dec_state, decrease))
+            double_dec_state = simulator.apply(dec_state, decrease)
+            self.assertIsNone(double_dec_state)
+
+    def test_exceptions(self):
+
+        condition1 = Fluent("condition1")
+        condition2 = Fluent("condition2")
+        condition3 = Fluent("condition3")
+        fluent = Fluent("fluent", IntType())
+
+        test_int = InstantaneousAction("test_int")
+        test_int.add_effect(fluent, 5, condition1)
+        test_int.add_effect(fluent, 6, condition2)
+        test_int.add_increase_effect(fluent, 5, condition3)
+        unset_cond_1 = InstantaneousAction("unset_cond_1")
+        unset_cond_1.add_effect(condition1, False)
+        unset_cond_2 = InstantaneousAction("unset_cond_2")
+        unset_cond_2.add_effect(condition2, False)
+        unset_cond_3 = InstantaneousAction("unset_cond_3")
+        unset_cond_3.add_effect(condition3, False)
+
+        problem = Problem("test_problem")
+        problem.add_actions([test_int, unset_cond_1, unset_cond_2, unset_cond_3])
+        problem.add_fluent(condition1, default_initial_value=True)
+        problem.add_fluent(condition2, default_initial_value=True)
+        problem.add_fluent(condition3, default_initial_value=True)
+        problem.add_fluent(fluent, default_initial_value=0)
+
+        with SequentialSimulator(problem=problem) as simulator:
+            init = simulator.get_initial_state()
+
+            self.assertFalse(simulator.is_applicable(init, test_int))
+            self.assertIsNone(simulator.apply(init, test_int))
+
+            new_state = simulator.apply(init, unset_cond_2)
+            self.assertIsNone(simulator.apply(new_state, test_int))
+
+            new_state = simulator.apply(new_state, unset_cond_3)
+            test_state = simulator.apply(new_state, test_int)
+            self.assertIsNotNone(test_state)
+
+    def test_add_after_delete(self):
+        bf = Fluent("bool_fluent")
+
+        act = InstantaneousAction("act")
+        act.add_effect(bf, True)
+        act.add_effect(bf, False)
+
+        problem = Problem("test_add_after_delete")
+        problem.add_fluent(bf, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(bf)
+
+        with SequentialSimulator(problem=problem) as simulator:
+            init = simulator.get_initial_state()
+
+            self.assertTrue(simulator.is_applicable(init, act))
+
+            goal_state = simulator.apply_unsafe(init, act)
+
+            self.assertTrue(simulator.is_goal(goal_state))
+
+    def test_parameters_type(self):
+        # Test that the simulator correctly handles fluents with bool parameters
+        problem, plan = self.problems["basic_bool_fluent_param"]
+        simulator = UPSequentialSimulator(problem)
+        state: Optional[State] = simulator.get_initial_state()
+        for ai in plan.actions:
+            state = simulator.apply(cast(State, state), ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(cast(State, state)))
+
+        # Test that the simulator correctly handles fluents with integer parameters
+        problem, plan = self.problems["basic_int_fluent_param"]
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        for ai in plan.actions:
+            state = simulator.apply(cast(State, state), ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(cast(State, state)))
+
+        # Test that the simulator correctly handles actions with bounded integer parameters
+        problem, plan = self.problems["basic_bounded_int_action_param"]
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        self.assertEqual(4, len(tuple(simulator.get_applicable_actions(state))))
+        for ai in plan.actions:
+            state = simulator.apply(cast(State, state), ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(cast(State, state)))
+
+        # Test that the simulator correctly handles actions with bounded integer parameters
+        problem, plan = self.problems["basic_unbounded_int_action_param"]
+        with warnings.catch_warnings(record=True) as _:
+            simulator = UPSequentialSimulator(problem, error_on_failed_checks=False)
+        state = simulator.get_initial_state()
+        for ai in plan.actions:
+            state = simulator.apply(cast(State, state), ai)
+            self.assertIsNotNone(state)
+        self.assertTrue(simulator.is_goal(cast(State, state)))

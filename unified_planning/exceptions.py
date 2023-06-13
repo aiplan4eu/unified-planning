@@ -25,6 +25,10 @@ class UPProblemDefinitionError(UPException):
     pass
 
 
+class UPPlanDefinitionError(UPException):
+    pass
+
+
 class UPTypeError(UPException, TypeError):
     pass
 
@@ -66,4 +70,8 @@ class UPConflictingEffectsException(UPException):
 
 
 class ANMLSyntaxError(UPException, SyntaxError):
+    pass
+
+
+class UPInvalidActionError(UPException):
     pass

@@ -54,8 +54,14 @@ class SequentialPlan(plans.plan.Plan):
                 )
         self._actions = actions
 
+    def __str__(self) -> str:
+        ret = ["SequentialPlan:"]
+        convert_ai = lambda ai: f"    {ai}"
+        ret.extend(map(convert_ai, self._actions))
+        return "\n".join(ret)
+
     def __repr__(self) -> str:
-        return str(self._actions)
+        return f"SequentialPlan({self._actions})"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
@@ -93,7 +99,7 @@ class SequentialPlan(plans.plan.Plan):
         Returns a new `SequentialPlan` where every `ActionInstance` of the current `Plan` is replaced using the given function.
 
         :param replace_function: The function that applied to an `ActionInstance A` returns the `ActionInstance B`; `B`
-        replaces `A` in the resulting `SequentialPlan`.
+            replaces `A` in the resulting `SequentialPlan`.
         :return: The `SequentialPlan` where every `ActionInstance` is replaced using the given `replace_function`.
         """
         new_ai = []

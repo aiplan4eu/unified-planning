@@ -37,6 +37,41 @@ class Substituter(IdentityDagWalker):
     def _get_key(self, expression, **kwargs):
         return expression
 
+    def _push_with_children_to_stack(self, expression: FNode, **kwargs):
+        """Add children to the stack."""
+
+        # Deal with quantifiers
+        if expression.is_exists() or expression.is_forall():
+            # 1. We create a new substitution in which we remove the
+            #    bound variables from the substitution map
+            substitutions: Dict[FNode, FNode] = kwargs["subs"]
+            new_subs: Dict[Expression, Expression] = {}
+            for k, v in substitutions.items():
+                # If at least one bound variable is in the cone of k,
+                # we do not consider this substitution in the body of
+                # the quantifier.
+                if all(
+                    m not in expression.variables()
+                    for m in self.environment.free_vars_oracle.get_free_variables(k)
+                ):
+                    new_subs[k] = v
+
+            # 2. We apply the substitution on the quantifier body with
+            #    the new 'reduced' map
+            sub = self.__class__(self.environment)
+            res_expression = sub.substitute(expression.arg(0), new_subs)
+
+            # 3. We invoke the relevant function (walk_exists or
+            #    walk_forall) to compute the substitution
+            fun = self.functions[expression.node_type]
+            res = fun(expression, args=[res_expression], **kwargs)
+
+            # 4. We memoize the result
+            key = self._get_key(expression, **kwargs)
+            self.memoization[key] = res
+        else:
+            IdentityDagWalker._push_with_children_to_stack(self, expression, **kwargs)
+
     def substitute(
         self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
     ) -> FNode:

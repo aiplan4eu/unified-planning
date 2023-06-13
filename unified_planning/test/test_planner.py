@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from typing import Callable
 import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
@@ -20,6 +21,7 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     general_numeric_kind,
+    bounded_types_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
@@ -28,6 +30,7 @@ from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
 from unified_planning.engines.results import POSITIVE_OUTCOMES
+from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
@@ -72,6 +75,24 @@ class TestPlanner(TestCase):
                 self.assertEqual(len(plan.actions[0].actual_parameters), 0)
                 self.assertEqual(len(w), 1)
                 self.assertEqual("Tamer does not support timeout.", str(w[-1].message))
+
+    @skipIfEngineNotAvailable("tamer")
+    def test_basic_parameters(self):
+        problem_names = [
+            "basic_bool_fluent_param",
+            "basic_int_fluent_param",
+            "basic_bounded_int_action_param",
+        ]
+        problem = self.problems["basic_bool_fluent_param"].problem
+        for problem_name in problem_names:
+            problem = self.problems[problem_name].problem
+        with OneshotPlanner(name="tamer") as planner:
+            self.assertNotEqual(planner, None)
+            plan = planner.solve(problem).plan
+            self.assertIsNotNone(plan)
+            with PlanValidator(name="sequential_plan_validator") as validator:
+                val_res = validator.validate(problem, plan)
+                self.assertTrue(val_res)
 
     @skipIfEngineNotAvailable("tamer")
     def test_basic_parallel(self):
@@ -194,7 +215,9 @@ class TestPlanner(TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")
@@ -285,6 +308,42 @@ class TestPlanner(TestCase):
             planner.skip_checks = True
             plan = planner.solve(problem).plan
             self.assertIsNotNone(plan)
+
+    def test_engine_class(self):
+        with self.assertRaises(TypeError):
+            Engine()  # type: ignore[abstract]
+
+        class OneshotEnginePartial(Engine, OneshotPlannerMixin):
+            @property
+            def name(self):
+                return "PartialEngine"
+
+            def supports(self):
+                return True
+
+            def supported_kind(self):
+                return ProblemKind()
+
+        with self.assertRaises(TypeError):
+            OneshotEnginePartial()  # type: ignore[abstract]
+
+        class OneshotEngineComplete(OneshotEnginePartial):
+            @property
+            def name(self):
+                return "CompleteEngine"
+
+            def _solve(
+                self,
+                problem: "up.model.AbstractProblem",
+                heuristic: Optional[
+                    Callable[["up.model.state.State"], Optional[float]]
+                ] = None,
+                timeout: Optional[float] = None,
+                output_stream: Optional[IO[str]] = None,
+            ) -> "up.engines.results.PlanGenerationResult":
+                raise NotImplementedError
+
+        OneshotEngineComplete()
 
 
 if __name__ == "__main__":

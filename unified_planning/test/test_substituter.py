@@ -98,6 +98,62 @@ class TestSubstituter(TestCase):
             e6 = Int(1)
             s.substitute(e6, subst)
 
+    def test_shadowing(self):
+        # Here is tested the correct shadowing of the variables in the quantifiers.
+        # The substituter should never substitute an expression containing a Variable bounded
+        # by the substituter.
+        UT = UserType("UT")
+        v1, v2, v3 = (Variable(f"v{i}", UT) for i in range(1, 4))
+        f = Fluent("f", RealType(), var=UT)
+        exp1 = Forall(Equals(f(v1), f(v2) + f(v3)), v1, v2)
+        exp2 = And(exp1, Forall(LT(f(v2), Plus(f(v3), f(v1))), v2, v3))
+        s1, s2, s3 = (Variable(f"s{i}", UT) for i in range(1, 4))
+        subs: Dict[Expression, Expression] = {
+            v1: s1,
+            v2: s2,
+            v3: s3,
+        }
+        # only v3 is changed with s3, because it's the only one not bound to a quantifier
+        test_sub_exp1 = Forall(Equals(f(v1), f(v2) + f(s3)), v1, v2)
+        # in the right part, only v1 is changed with s1, because it's the only one not bound to a quantifier
+        test_sub_exp2 = And(
+            test_sub_exp1, Forall(LT(f(v2), Plus(f(v3), f(s1))), v2, v3)
+        )
+        self.assertEqual(exp2.substitute(subs), test_sub_exp2)
+
+        # test nested quantifiers
+        exp1 = Forall(And(f(v2) > f(v1), Exists(Equals(f(v1), f(v2) + f(v3)), v2)), v1)
+        # v2 is changed with s2 in the Forall, while in the Exists only v3 is changed with s3
+        test_sub_exp1 = Forall(
+            And(f(s2) > f(v1), Exists(Equals(f(v1), f(v2) + f(s3)), v2)), v1
+        )
+        self.assertEqual(exp1.substitute(subs), test_sub_exp1)
+
+        exp1 = Equals(f(v2), f(v1))
+        self.assertEqual(exp1.substitute(subs), Equals(f(s2), f(s1)))
+
+        exp2 = And(Forall(exp1, v1), exp1)
+        self.assertEqual(
+            exp2.substitute(subs),
+            And(Forall(Equals(f(s2), f(v1)), v1), Equals(f(s2), f(s1))),
+        )
+
+        exp3 = And(exp1, Forall(exp1, v1))
+        self.assertEqual(
+            exp3.substitute(subs),
+            And(Equals(f(s2), f(s1)), Forall(Equals(f(s2), f(v1)), v1)),
+        )
+
+        b = Fluent("b", param=UT)
+        exp1 = And(b(v1), Forall(And(b(v1), b(v2)), v2))
+        subs = {b(v1): True}
+        test_sub_exp1 = Forall(b(v2), v2)
+        self.assertEqual(exp1.substitute(subs).simplify(), test_sub_exp1)
+
+        subs = {b(v2): True}
+        test_sub_exp1 = And(b(v1), Forall(And(b(v1), b(v2)), v2))
+        self.assertEqual(exp1.substitute(subs), test_sub_exp1)
+
 
 if __name__ == "__main__":
     main()

@@ -15,9 +15,11 @@
 
 
 import unified_planning as up
-from unified_planning.environment import Environment, get_environment
 from unified_planning.model import AbstractProblem
-from typing import Callable, Optional, Tuple
+from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import UPTypeError
+from abc import ABC, abstractmethod
+from typing import Callable, Optional, Sequence, Tuple, Dict
 from enum import Enum, auto
 
 
@@ -35,13 +37,29 @@ class ActionInstance:
     def __init__(
         self,
         action: "up.model.Action",
-        params: Tuple["up.model.FNode", ...] = tuple(),
+        params: Sequence["up.model.Expression"] = tuple(),
         agent: Optional["up.model.multi_agent.Agent"] = None,
+        motion_paths: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+        ] = None,
     ):
-        assert len(action.parameters) == len(params)
+        auto_promote = action.environment.expression_manager.auto_promote
+        assert agent is None or isinstance(
+            agent, up.model.multi_agent.Agent
+        ), "Typing not respected"
         self._agent = agent
         self._action = action
-        self._params = tuple(params)
+        self._params = tuple(auto_promote(params))
+        assert len(action.parameters) == len(self._params)
+        for param, assigned_value in zip(action.parameters, self._params):
+            if not param.type.is_compatible(assigned_value.type):
+                raise UPTypeError(
+                    f"Incompatible parameter type assignment. {assigned_value} can't be assigned to: {param}"
+                )
+        assert motion_paths is None or isinstance(
+            motion_paths, dict
+        ), "Typing not respected"
+        self._motion_paths = motion_paths
 
     def __repr__(self) -> str:
         s = []
@@ -64,6 +82,13 @@ class ActionInstance:
     def agent(self) -> Optional["up.model.multi_agent.Agent"]:
         """Returns the `Agent` of this `ActionInstance`."""
         return self._agent
+
+    @property
+    def motion_paths(
+        self,
+    ) -> Optional[Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]]:
+        """Returns the motion paths of this `ActionInstance`."""
+        return self._motion_paths
 
     @property
     def action(self) -> "up.model.Action":
@@ -101,10 +126,11 @@ class PlanKind(Enum):
     PARTIAL_ORDER_PLAN = auto()
     CONTINGENT_PLAN = auto()
     STN_PLAN = auto()
+    HIERARCHICAL_PLAN = auto()
     SCHEDULE = auto()
 
 
-class Plan:
+class Plan(ABC):
     """Represents a generic plan."""
 
     def __init__(
@@ -123,6 +149,7 @@ class Plan:
         """Returns the `Plan` `kind`"""
         return self._kind
 
+    @abstractmethod
     def replace_action_instances(
         self, replace_function: Callable[[ActionInstance], Optional[ActionInstance]]
     ) -> "Plan":
@@ -137,6 +164,7 @@ class Plan:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         """
         This function takes a `PlanKind` and returns the representation of `self`

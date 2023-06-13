@@ -35,6 +35,9 @@ from unified_planning.model import (
 )
 from unified_planning.model.effect import EffectKind
 from unified_planning.model.operators import OperatorKind
+from unified_planning.plans import ActionInstance
+from unified_planning.plans.hierarchical_plan import MethodInstance, Decomposition
+from unified_planning.model.htn.hierarchical_problem import HierarchicalProblem
 
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
@@ -43,8 +46,10 @@ def convert_type_str(s: str, problem: Problem) -> model.types.Type:
     elif s == "up:integer":
         return problem.environment.type_manager.IntType()
     elif "up:integer[" in s:
-        lb = int(s.split("[")[1].split(",")[0])
-        ub = int(s.split(",")[1].split("]")[0])
+        str_lb = s.split("[")[1].split(",")[0]
+        lb = None if "-inf" in str_lb else int(str_lb)
+        str_ub = s.split(",")[1].split("]")[0]
+        ub = None if "inf" in str_ub else int(str_ub)
         return problem.environment.type_manager.IntType(lb, ub)
     elif s == "up:real":
         return problem.environment.type_manager.RealType()
@@ -88,7 +93,16 @@ def op_to_node_type(op: str) -> OperatorKind:
         return OperatorKind.IMPLIES
     elif op == "up:iff":
         return OperatorKind.IFF
-
+    elif op == "up:always":
+        return OperatorKind.ALWAYS
+    elif op == "up:at_most_once":
+        return OperatorKind.AT_MOST_ONCE
+    elif op == "up:sometime":
+        return OperatorKind.SOMETIME
+    elif op == "up:sometime_after":
+        return OperatorKind.SOMETIME_AFTER
+    elif op == "up:sometime_before":
+        return OperatorKind.SOMETIME_BEFORE
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -332,6 +346,9 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_timed_goal(interval=timing, goal=goal)
 
+        for tc in msg.trajectory_constraints:
+            problem.add_trajectory_constraint(self.convert(tc, problem))
+
         for metric in msg.metrics:
             problem.add_quality_metric(self.convert(metric, problem))
 
@@ -343,6 +360,12 @@ class ProtobufReader(Converter):
             problem._initial_task_network = self.convert(
                 msg.hierarchy.initial_task_network, problem
             )
+
+        problem.discrete_time = msg.discrete_time
+        problem.self_overlapping = msg.self_overlapping
+        if msg.HasField("epsilon"):
+            value = msg.epsilon
+            problem.epsilon = fractions.Fraction(value.numerator, value.denominator)
 
         return problem
 
@@ -419,6 +442,7 @@ class ProtobufReader(Converter):
         metrics.MinimizeExpressionOnFinalState,
         metrics.MaximizeExpressionOnFinalState,
         metrics.Oversubscription,
+        metrics.TemporalOversubscription,
     ]:
         if msg.kind == proto.Metric.MINIMIZE_ACTION_COSTS:
             costs = {}
@@ -449,8 +473,15 @@ class ProtobufReader(Converter):
         elif msg.kind == proto.Metric.OVERSUBSCRIPTION:
             goals = {}
             for g in msg.goals:
-                goals[self.convert(g.goal, problem)] = self.convert(g.cost)
+                goals[self.convert(g.goal, problem)] = self.convert(g.weight)
             return metrics.Oversubscription(goals)
+        elif msg.kind == proto.Metric.TEMPORAL_OVERSUBSCRIPTION:
+            timed_goals = {}
+            for g in msg.timed_goals:
+                timed_goals[
+                    (self.convert(g.timing, problem), self.convert(g.goal, problem))
+                ] = self.convert(g.weight)
+            return metrics.TemporalOversubscription(timed_goals)
         else:
             raise UPException(f"Unknown metric kind `{msg.kind}`")
 
@@ -578,47 +609,89 @@ class ProtobufReader(Converter):
     def _convert_plan(
         self, msg: proto.Plan, problem: Problem
     ) -> unified_planning.plans.Plan:
-        actions = [self.convert(a, problem) for a in msg.actions]
-        if all(isinstance(a, tuple) for a in actions):
-            # If all actions are tuples, we can assume that they are
-            # (absolute start time, action, duration)
-            return unified_planning.plans.TimeTriggeredPlan(actions)
+        actions = [self._convert_action_instance(a, problem) for a in msg.actions]
+        if all(a[2] is not None for a in actions):
+            # If all actions have temporal term, we can assume that they are
+            # (id, action, (absolute start time, duration))
+            time_triggered_actions = [
+                (start, action, duration) for _, action, (start, duration) in actions
+            ]
+            flat_plan = unified_planning.plans.TimeTriggeredPlan(time_triggered_actions)
         else:
-            # Otherwise, we assume they are instantenous actions
-            return unified_planning.plans.SequentialPlan(actions=actions)
+            # Otherwise, we assume they are a sequence of actions (id, action, None)
+            action_sequence = [action for _, action, _ in actions]
+            flat_plan = unified_planning.plans.SequentialPlan(actions=action_sequence)
+
+        if msg.HasField("hierarchy"):
+            assert isinstance(problem, HierarchicalProblem)
+            # map each action/method ID with the correcponding instance
+            instances = {id: action for id, action, _ in actions}
+
+            # return the Action/Method with the given id
+            # this recursively build any needed instance.
+            def instance_with_id(id: str) -> Union[ActionInstance, MethodInstance]:
+                if id not in instances:
+                    proto_method = next(
+                        filter(lambda m: m.id == id, msg.hierarchy.methods)
+                    )
+                    method = problem.method(proto_method.method_name)
+                    parameters = tuple(
+                        [
+                            self._convert_atom(param, problem)
+                            for param in proto_method.parameters
+                        ]
+                    )
+                    subtasks = {
+                        id: instance_with_id(impl)
+                        for id, impl in proto_method.subtasks.items()
+                    }
+                    instance = MethodInstance(
+                        method, parameters, Decomposition(subtasks)
+                    )
+                    instances[id] = instance
+                return instances[id]
+
+            decomposition = Decomposition(
+                {
+                    id: instance_with_id(impl)
+                    for id, impl in msg.hierarchy.root_tasks.items()
+                }
+            )
+
+            return unified_planning.plans.HierarchicalPlan(flat_plan, decomposition)
+
+        else:
+            return flat_plan
 
     @handles(proto.ActionInstance)
     def _convert_action_instance(
         self, msg: proto.ActionInstance, problem: Problem
-    ) -> Union[
-        Tuple[
-            model.timing.Timing,
-            unified_planning.plans.ActionInstance,
-            model.timing.Duration,
-        ],
-        unified_planning.plans.ActionInstance,
+    ) -> Tuple[
+        str,
+        ActionInstance,
+        Optional[Tuple[fractions.Fraction, Optional[fractions.Fraction]]],
     ]:
         # action instance parameters are atoms but in UP they are FNodes
         # converting to up.model.FNode
         parameters = tuple([self.convert(param, problem) for param in msg.parameters])
 
+        id = msg.id
         action_instance = unified_planning.plans.ActionInstance(
             problem.action(msg.action_name),
             parameters,
         )
 
-        start_time = (
-            self.convert(msg.start_time) if msg.HasField("start_time") else None
-        )
-        end_time = self.convert(msg.end_time) if msg.HasField("end_time") else None
-        if start_time is not None:
+        if msg.HasField("start_time") and msg.HasField("end_time"):
+            start_time = self.convert(msg.start_time)
+            end_time = self.convert(msg.end_time)
+            duration = end_time - start_time
             return (
-                start_time,  # Absolute Start Time
+                id,
                 action_instance,
-                end_time - start_time if end_time else None,  # Duration
+                (start_time, None if duration == 0 else duration),
             )
         else:
-            return action_instance
+            return id, action_instance, None
 
     @handles(proto.PlanGenerationResult)
     def _convert_plan_generation_result(
@@ -729,7 +802,7 @@ class ProtobufReader(Converter):
         for grounded_action in problem.actions:
             original_action_instance = self.convert(
                 result.map_back_plan[grounded_action.name], lifted_problem
-            )
+            )[1]
             map[grounded_action] = (
                 original_action_instance.action,
                 original_action_instance.actual_parameters,
@@ -755,6 +828,10 @@ class ProtobufReader(Converter):
             "INVALID"
         ):
             r_status = unified_planning.engines.ValidationResultStatus.INVALID
+        elif result.status == proto.ValidationResult.ValidationResultStatus.Value(
+            "UNKNOWN"
+        ):
+            r_status = unified_planning.engines.ValidationResultStatus.UNKNOWN
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
         return unified_planning.engines.ValidationResult(

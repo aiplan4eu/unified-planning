@@ -160,7 +160,7 @@ class TestProtobufIO(TestCase):
         action_instance = plan.actions[0]
 
         action_instance_pb = self.pb_writer.convert(action_instance)
-        action_instance_up = self.pb_reader.convert(action_instance_pb, problem)
+        action_instance_up = self.pb_reader.convert(action_instance_pb, problem)[1]
 
         self.assertEqual(action_instance.action, action_instance_up.action)
         self.assertEqual(
@@ -189,16 +189,8 @@ class TestProtobufIO(TestCase):
         problem = Problem("test")
         problem.add_quality_metric(metric=MinimizeSequentialPlanLength())
         problem.add_quality_metric(metric=MinimizeMakespan())
-        problem.add_quality_metric(
-            metric=MinimizeExpressionOnFinalState(
-                problem.environment.expression_manager.true_expression
-            )
-        )
-        problem.add_quality_metric(
-            metric=MaximizeExpressionOnFinalState(
-                problem.environment.expression_manager.true_expression
-            )
-        )
+        problem.add_quality_metric(metric=MinimizeExpressionOnFinalState(6))
+        problem.add_quality_metric(metric=MaximizeExpressionOnFinalState(3.5))
 
         for metric in problem.quality_metrics:
             metric_pb = self.pb_writer.convert(metric)
@@ -333,7 +325,7 @@ class TestProtobufIO(TestCase):
         global_end_symbol = "up:global_end"
         int_delay = 5
         frac_delay = Fraction(1, 5)
-        act = Action("move")
+        act = InstantaneousAction("move")
 
         # [ ] Delay
         # [ ] Container
@@ -354,7 +346,7 @@ class TestProtobufIO(TestCase):
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
         ):
             for delay in [int_delay, frac_delay]:
-                t_pb = build(timing(delay))
+                t_pb = build(timing() + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=1)
@@ -384,7 +376,7 @@ class TestProtobufIO(TestCase):
             [start_symbol, end_symbol],
         ):
             for delay in [int_delay, frac_delay]:
-                t_pb = build(timing(delay, act.name))
+                t_pb = build(timing(container=act.name) + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=2)
@@ -410,6 +402,7 @@ class TestProtobufProblems(TestCase):
     def test_all_problems(self):
         for name, example in self.problems.items():
             problem = example.problem
+            kind = problem.kind
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
@@ -419,6 +412,20 @@ class TestProtobufProblems(TestCase):
                 hash(problem_up),
                 f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
             )
+            if kind.has_continuous_time():
+                problem = problem.clone()
+                problem.epsilon = "2"
+                problem.self_overlapping = True
+                problem.discrete_time = True
+                problem_pb = self.pb_writer.convert(problem)
+                problem_up = self.pb_reader.convert(problem_pb)
+
+                self.assertEqual(problem, problem_up)
+                self.assertEqual(
+                    hash(problem),
+                    hash(problem_up),
+                    f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
+                )
 
     def test_all_plans(self):
         for name, example in self.problems.items():

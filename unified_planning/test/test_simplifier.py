@@ -19,6 +19,7 @@ from unified_planning.test import TestCase, main
 from unified_planning.model.walkers import Simplifier, Substituter
 from unified_planning.environment import get_environment
 from fractions import Fraction
+from typing import List
 
 
 class TestBoolOperators(TestCase):

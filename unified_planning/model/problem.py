@@ -15,10 +15,13 @@
 """This module defines the problem class."""
 
 
+from numbers import Real
 import unified_planning as up
+import unified_planning.model.tamp
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -27,17 +30,19 @@ from unified_planning.model.mixins import (
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.types import _IntType
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast
 
 
 class Problem(  # type: ignore[misc]
     AbstractProblem,
     UserTypesSetMixin,
+    TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
@@ -59,6 +64,9 @@ class Problem(  # type: ignore[misc]
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
+        TimeModelMixin.__init__(
+            self, epsilon_default=None, discrete_time=False, self_overlapping=False
+        )
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
@@ -79,20 +87,28 @@ class Problem(  # type: ignore[misc]
         ] = {}
         self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
         self._goals: List["up.model.fnode.FNode"] = list()
+        self._fluents_assigned: Dict[
+            "up.model.timing.Timing",
+            Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+        ] = {}
+        self._fluents_inc_dec: Dict[
+            "up.model.timing.Timing", Set["up.model.fnode.FNode"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
+        custom_str = lambda x: f"  {str(x)}\n"
         if self.name is not None:
             s.append(f"problem name = {str(self.name)}\n\n")
+        if self._epsilon is not None:
+            s.append(f"epsilon separation = {self._epsilon}\n\n")
         if len(self.user_types) > 0:
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
-        for f in self.fluents:
-            s.append(f"  {str(f)}\n")
+        s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
         s.append("actions = [\n")
-        for a in self.actions:
-            s.append(f"  {str(a)}\n")
+        s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
@@ -124,18 +140,15 @@ class Problem(  # type: ignore[misc]
                     s.append(f"    {str(g)}\n")
             s.append("]\n\n")
         s.append("goals = [\n")
-        for g in self.goals:
-            s.append(f"  {str(g)}\n")
+        s.extend(map(custom_str, self.goals))
         s.append("]\n\n")
         if self.trajectory_constraints:
             s.append("trajectory constraints = [\n")
-            for c in self.trajectory_constraints:
-                s.append(f"  {str(c)}\n")
+            s.extend(map(custom_str, self.trajectory_constraints))
             s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
-            for qm in self.quality_metrics:
-                s.append(f"  {str(qm)}\n")
+            s.extend(map(custom_str, self.quality_metrics))
             s.append("]\n\n")
         return "".join(s)
 
@@ -212,6 +225,7 @@ class Problem(  # type: ignore[misc]
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
+        TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
         new_p._timed_effects = {
@@ -220,6 +234,9 @@ class Problem(  # type: ignore[misc]
         new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
+        new_p._fluents_assigned = {
+            t: d.copy() for t, d in self._fluents_assigned.items()
+        }
 
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
@@ -269,6 +286,70 @@ class Problem(  # type: ignore[misc]
                 raise NotImplementedError
         return up.plans.ActionInstance(new_a, tuple(params))
 
+    def _get_static_and_unused_fluents(
+        self,
+    ) -> Tuple[Set["up.model.fluent.Fluent"], Set["up.model.fluent.Fluent"]]:
+        """
+        Support method to calculate the set of static fluents (The fluents that are never modified in the problem)
+        and the set of the unused fluents (The fluents that are never red in the problem.
+        NOTE: The fluents used only in the ActionCost quality metric are in the unused_fluents set anyway).
+        """
+        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        unused_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        fve = self._env.free_vars_extractor
+        # function that takes an FNode and removes all the fluents contained in the given FNode
+        # from the unused_fluents  set.
+        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
+            (f.fluent() for e in exps for f in fve.get(e))
+        )
+        for a in self._actions:
+            if isinstance(a, up.model.action.InstantaneousAction):
+                remove_used_fluents(*a.preconditions)
+                for e in a.effects:
+                    remove_used_fluents(e.fluent, e.value, e.condition)
+                    static_fluents.discard(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    # empty the set because a simulated effect reads all the fluents
+                    unused_fluents.clear()
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
+            elif isinstance(a, up.model.action.DurativeAction):
+                for cl in a.conditions.values():
+                    remove_used_fluents(*cl)
+                for el in a.effects.values():
+                    for e in el:
+                        remove_used_fluents(e.fluent, e.value, e.condition)
+                        static_fluents.discard(e.fluent.fluent())
+                for se in a.simulated_effects.values():
+                    unused_fluents.clear()
+                    for f in se.fluents:
+                        static_fluents.discard(f.fluent())
+            else:
+                raise NotImplementedError
+        for el in self._timed_effects.values():
+            for e in el:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
+        for gl in self._timed_goals.values():
+            remove_used_fluents(*gl)
+        remove_used_fluents(*self._trajectory_constraints)
+        remove_used_fluents(*self._goals)
+        for qm in self.quality_metrics:
+            if isinstance(
+                qm,
+                (
+                    up.model.metrics.MinimizeExpressionOnFinalState,
+                    up.model.metrics.MaximizeExpressionOnFinalState,
+                ),
+            ):
+                remove_used_fluents(qm.expression)
+            elif isinstance(qm, up.model.metrics.Oversubscription):
+                remove_used_fluents(*qm.goals.keys())
+            elif isinstance(qm, up.model.metrics.TemporalOversubscription):
+                for _, g in qm.goals.keys():
+                    remove_used_fluents(g)
+        return static_fluents, unused_fluents
+
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """
         Returns the set of the `static fluents`.
@@ -277,28 +358,14 @@ class Problem(  # type: ignore[misc]
         appear in the :func:`fluent <unified_planning.model.Effect.fluent>` field of an `Effect`, therefore there are no :func:`Actions <unified_planning.model.Problem.actions>`
         in the `Problem` that can change their value.
         """
-        static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
-        for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousAction):
-                for e in a.effects:
-                    static_fluents.discard(e.fluent.fluent())
-                if a.simulated_effect is not None:
-                    for f in a.simulated_effect.fluents:
-                        static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.action.DurativeAction):
-                for el in a.effects.values():
-                    for e in el:
-                        static_fluents.discard(e.fluent.fluent())
-                for _, se in a.simulated_effects.items():
-                    for f in se.fluents:
-                        static_fluents.discard(f.fluent())
-            else:
-                raise NotImplementedError
-        for el in self._timed_effects.values():
-            for e in el:
-                if e.fluent.fluent() in static_fluents:
-                    static_fluents.remove(e.fluent.fluent())
-        return static_fluents
+        return self._get_static_and_unused_fluents()[0]
+
+    @property
+    def timed_goals(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
+        """Returns all the `timed goals` in the `Problem`."""
+        return self._timed_goals
 
     def add_timed_goal(
         self,
@@ -329,16 +396,16 @@ class Problem(  # type: ignore[misc]
         if goal_exp not in goals:
             goals.append(goal_exp)
 
-    @property
-    def timed_goals(
-        self,
-    ) -> Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]]:
-        """Returns all the `timed goals` in the `Problem`."""
-        return self._timed_goals
-
     def clear_timed_goals(self):
         """Removes all the `timed goals` from the `Problem`."""
         self._timed_goals = {}
+
+    @property
+    def timed_effects(
+        self,
+    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+        """Returns all the `timed effects` in the `Problem`."""
+        return self._timed_effects
 
     def add_timed_effect(
         self,
@@ -456,20 +523,28 @@ class Problem(  # type: ignore[misc]
         assert (
             effect.environment == self._env
         ), "effect does not have the same environment of the problem"
-        effects = self._timed_effects.setdefault(timing, [])
-        if effect not in effects:
-            effects.append(effect)
+        fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
 
-    @property
-    def timed_effects(
-        self,
-    ) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
-        """Returns all the `timed effects` in the `Problem`."""
-        return self._timed_effects
+        up.model.effect.check_conflicting_effects(
+            effect,
+            timing,
+            None,
+            self._fluents_assigned.setdefault(timing, {}),
+            fluents_inc_dec,
+            "problem",
+        )
+        self._timed_effects.setdefault(timing, []).append(effect)
 
     def clear_timed_effects(self):
         """Removes all the `timed effects` from the `Problem`."""
         self._timed_effects = {}
+        self._fluents_assigned = {}
+        self._fluents_inc_dec = {}
+
+    @property
+    def goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns all the `goals` in the `Problem`."""
+        return self._goals
 
     def add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
@@ -487,6 +562,15 @@ class Problem(  # type: ignore[misc]
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
+
+    def clear_goals(self):
+        """Removes all the `goals` from the `Problem`."""
+        self._goals = []
+
+    @property
+    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the 'trajectory_constraints' in the 'Problem'."""
+        return self._trajectory_constraints
 
     def add_trajectory_constraint(self, constraint: "up.model.fnode.FNode"):
         """
@@ -517,23 +601,34 @@ class Problem(  # type: ignore[misc]
             ), "trajectory constraint not in the correct form"
         self._trajectory_constraints.append(constraint.simplify())
 
-    @property
-    def goals(self) -> List["up.model.fnode.FNode"]:
-        """Returns all the `goals` in the `Problem`."""
-        return self._goals
-
-    @property
-    def trajectory_constraints(self) -> List["up.model.fnode.FNode"]:
-        """Returns the 'trajectory_constraints' in the 'Problem'."""
-        return self._trajectory_constraints
-
-    def clear_goals(self):
-        """Removes all the `goals` from the `Problem`."""
-        self._goals = []
-
     def clear_trajectory_constraints(self):
         """Removes the trajectory_constraints."""
         self._trajectory_constraints = []
+
+    @property
+    def state_invariants(self) -> List["up.model.fnode.FNode"]:
+        """Returns the List of ``state_invariants`` in the problem."""
+        em = self._env.expression_manager
+        state_invariants = []
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                state_invariants.append(tc.arg(0))
+            elif tc.is_and():
+                for a in tc.args:
+                    if a.is_always():
+                        state_invariants.append(a.arg(0))
+            elif tc.is_forall() and tc.arg(0).is_always():
+                state_invariants.append(em.Forall(tc.arg(0).arg(0), *tc.variables()))
+        return state_invariants
+
+    def add_state_invariant(self, invariant: "up.model.expression.BoolExpression"):
+        """
+        Adds the given ``invariant`` to the problem's state invariants.
+        State invariants are added as ``Always`` trajectory constraints.
+
+        :param invariant: The invariant expression to add to this problem as a state invariant.
+        """
+        self.add_trajectory_constraint(self._env.expression_manager.Always(invariant))
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
@@ -545,7 +640,7 @@ class Problem(  # type: ignore[misc]
         seldom as possible.
         """
         # Create the needed data structures
-        static_fluents: Set["up.model.fluent.Fluent"] = self.get_static_fluents()
+        static_fluents, unused_fluents = self._get_static_and_unused_fluents()
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
         simplifier = up.model.walkers.simplifier.Simplifier(self._env, self)
@@ -554,10 +649,10 @@ class Problem(  # type: ignore[misc]
         self._kind.set_problem_class("ACTION_BASED")
         self._kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         fluents_to_only_increase, fluents_to_only_decrease = self._update_kind_metric(
-            self._kind, linear_checker
+            self._kind, linear_checker, static_fluents
         )
         for fluent in self._fluents:
-            self._update_problem_kind_fluent(fluent)
+            self._update_problem_kind_fluent(fluent, unused_fluents)
         for object in self._objects:
             self._update_problem_kind_type(object.type)
         for action in self._actions:
@@ -571,21 +666,25 @@ class Problem(  # type: ignore[misc]
             )
         if len(self._timed_effects) > 0:
             self._kind.set_time("CONTINUOUS_TIME")
-            self._kind.set_time("TIMED_EFFECT")
+            self._kind.set_time("TIMED_EFFECTS")
         for effect_list in self._timed_effects.values():
             for effect in effect_list:
                 self._update_problem_kind_effect(
                     effect,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
+                    static_fluents,
                     simplifier,
                     linear_checker,
                 )
         if len(self._timed_goals) > 0:
             self._kind.set_time("TIMED_GOALS")
             self._kind.set_time("CONTINUOUS_TIME")
-        if len(self._trajectory_constraints) > 0:
-            self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        for tc in self._trajectory_constraints:
+            if tc.is_always():
+                self._kind.set_constraints_kind("STATE_INVARIANTS")
+            else:
+                self._kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
                 self._update_problem_kind_condition(goal, linear_checker)
@@ -599,6 +698,13 @@ class Problem(  # type: ignore[misc]
         else:
             if not self._kind.has_simple_numeric_planning():
                 self._kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        if self._kind.has_continuous_time() and self.discrete_time:
+            self._kind.set_time("DISCRETE_TIME")
+            self._kind.unset_time("CONTINUOUS_TIME")
+        if self._self_overlapping and (
+            self._kind.has_continuous_time() or self._kind.has_discrete_time()
+        ):
+            self._kind.set_time("SELF_OVERLAPPING")
         return self._kind
 
     def _update_problem_kind_effect(
@@ -606,6 +712,7 @@ class Problem(  # type: ignore[misc]
         e: "up.model.effect.Effect",
         fluents_to_only_increase: Set["up.model.fluent.Fluent"],
         fluents_to_only_decrease: Set["up.model.fluent.Fluent"],
+        static_fluents: Set["up.model.fluent.Fluent"],
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
@@ -647,6 +754,8 @@ class Problem(  # type: ignore[misc]
                 self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_assignment():
             value_type = value.type
+            value = e.value
+            fluents_in_value = self._env.free_vars_extractor.get(value)
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
@@ -657,6 +766,15 @@ class Problem(  # type: ignore[misc]
                     or not value.is_constant()
                 ):
                     self._kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            if any(f in static_fluents for f in fluents_in_value):
+                self._kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            if any(f not in static_fluents for f in fluents_in_value):
+                self._kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            elif value.type.is_bool_type():
+                if any(f in static_fluents for f in fluents_in_value):
+                    self._kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+                if any(f not in static_fluents for f in fluents_in_value):
+                    self._kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
 
     def _update_problem_kind_condition(
         self,
@@ -665,7 +783,7 @@ class Problem(  # type: ignore[misc]
     ):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind("EQUALITY")
+            self._kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         if OperatorKind.OR in ops:
@@ -688,14 +806,37 @@ class Problem(  # type: ignore[misc]
         elif type.is_real_type():
             self._kind.set_numbers("CONTINUOUS_NUMBERS")
 
-    def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
-        self._update_problem_kind_type(fluent.type)
-        if fluent.type.is_int_type() or fluent.type.is_real_type():
-            self._kind.set_fluents_type("NUMERIC_FLUENTS")
-        elif fluent.type.is_user_type():
+    def _update_problem_kind_fluent(
+        self,
+        fluent: "up.model.fluent.Fluent",
+        unused_fluents: Set["up.model.fluent.Fluent"],
+    ):
+        type = fluent.type
+        if fluent not in unused_fluents or (
+            not type.is_int_type() and not type.is_real_type()
+        ):
+            self._update_problem_kind_type(type)
+        if fluent.type.is_int_type() or type.is_real_type():
+            numeric_type = type
+            assert isinstance(
+                numeric_type, (up.model.types._RealType, up.model.types._IntType)
+            )
+            if (
+                numeric_type.lower_bound is not None
+                or numeric_type.upper_bound is not None
+            ):
+                self._kind.set_numbers("BOUNDED_TYPES")
+            if fluent not in unused_fluents:
+                self._kind.set_fluents_type("NUMERIC_FLUENTS")
+        elif type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
-        for p in fluent.signature:
-            self._update_problem_kind_type(p.type)
+        for param in fluent.signature:
+            pt = param.type
+            self._update_problem_kind_type(pt)
+            if pt.is_bool_type():
+                self._kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+            elif pt.is_int_type():
+                self._kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
 
     def _update_problem_kind_action(
         self,
@@ -706,10 +847,26 @@ class Problem(  # type: ignore[misc]
         simplifier: "up.model.walkers.simplifier.Simplifier",
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
     ):
-        for p in action.parameters:
-            self._update_problem_kind_type(p.type)
+        for param in action.parameters:
+            pt = param.type
+            self._update_problem_kind_type(pt)
+            if pt.is_bool_type():
+                self._kind.set_parameters("BOOL_ACTION_PARAMETERS")
+            elif pt.is_real_type():
+                self._kind.set_parameters("REAL_ACTION_PARAMETERS")
+            elif pt.is_int_type():
+                if (
+                    cast(_IntType, pt).lower_bound is None
+                    or cast(_IntType, pt).upper_bound is None
+                ):
+                    self._kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+                else:
+                    self._kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         if isinstance(action, up.model.action.SensingAction):
             self._kind.set_problem_class("CONTINGENT")
+        if isinstance(action, up.model.tamp.InstantaneousMotionAction):
+            if len(action.motion_constraints) > 0:
+                self._kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self._update_problem_kind_condition(c, linear_checker)
@@ -718,6 +875,7 @@ class Problem(  # type: ignore[misc]
                     e,
                     fluents_to_only_increase,
                     fluents_to_only_decrease,
+                    static_fluents,
                     simplifier,
                     linear_checker,
                 )
@@ -737,22 +895,34 @@ class Problem(  # type: ignore[misc]
                         only_static = False
                         break
                 if only_static:
-                    self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
+                    self._kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
                 else:
-                    self._kind.set_expression_duration("FLUENTS_IN_DURATION")
+                    self._kind.set_expression_duration("FLUENTS_IN_DURATIONS")
             for i, lc in action.conditions.items():
                 if i.lower.delay != 0 or i.upper.delay != 0:
-                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    for t in [i.lower, i.upper]:
+                        if (t.is_from_start() and t.delay > 0) or (
+                            t.is_from_end() and t.delay < 0
+                        ):
+                            self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                        else:
+                            self._kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for c in lc:
                     self._update_problem_kind_condition(c, linear_checker)
             for t, le in action.effects.items():
                 if t.delay != 0:
-                    self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    if (t.is_from_start() and t.delay > 0) or (
+                        t.is_from_end() and t.delay < 0
+                    ):
+                        self._kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                    else:
+                        self._kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for e in le:
                     self._update_problem_kind_effect(
                         e,
                         fluents_to_only_increase,
                         fluents_to_only_decrease,
+                        static_fluents,
                         simplifier,
                         linear_checker,
                     )

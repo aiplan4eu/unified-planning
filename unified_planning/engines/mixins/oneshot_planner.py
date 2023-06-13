@@ -15,6 +15,7 @@
 
 from warnings import warn
 import unified_planning as up
+from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import IO, Optional, Callable
 
@@ -24,7 +25,7 @@ class OptimalityGuarantee(Enum):
     SOLVED_OPTIMALLY = auto()
 
 
-class OneshotPlannerMixin:
+class OneshotPlannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `OneshotPlanner`."""
 
     def __init__(self):
@@ -37,18 +38,16 @@ class OneshotPlannerMixin:
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
         """
-        :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
-        :return: `True` if the `OneshotPlannerMixin` implementation satisfies the given
-        `optimality_guarantee`, `False` otherwise.
+        :param optimality_guarantee: The ``optimality_guarantee`` that must be satisfied.
+        :return: ``True`` if the ``OneshotPlannerMixin`` implementation satisfies the given
+            ``optimality_guarantee``, ``False`` otherwise.
         """
         return False
 
     def solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.ROState"], Optional[float]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
@@ -80,12 +79,11 @@ class OneshotPlannerMixin:
             raise up.exceptions.UPUsageError(msg)
         return self._solve(problem, heuristic, timeout, output_stream)
 
+    @abstractmethod
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.ROState"], Optional[float]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":

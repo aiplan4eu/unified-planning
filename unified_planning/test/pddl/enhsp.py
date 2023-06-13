@@ -14,20 +14,24 @@
 
 import os
 import unified_planning as up
-import unified_planning.engines
-from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.engines import PlanGenerationResult, PlanGenerationResultStatus
+from unified_planning.model import ProblemKind
+from unified_planning.engines import (
+    PlanGenerationResult,
+    PlanGenerationResultStatus,
+    PDDLAnytimePlanner,
+)
+from unified_planning.engines.pddl_anytime_planner import Writer
 from unified_planning.environment import get_environment
-from typing import List, Optional, Union, IO, Iterator
+from unified_planning.io import PDDLWriter
+from typing import List, Optional
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
+class ENHSP(PDDLAnytimePlanner):
     def __init__(self):
-        up.engines.PDDLPlanner.__init__(self, False)
-        self._options = ["-planner", "opt-hrmax"]
+        PDDLAnytimePlanner.__init__(self, False, True)
 
     @property
     def name(self) -> str:
@@ -48,7 +52,31 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
             problem_filename,
             "-sp",
             plan_filename,
-        ] + self._options
+            "-planner",
+            "opt-hrmax",
+        ]
+
+    def _get_anytime_cmd(
+        self, domanin_filename: str, problem_filename: str, plan_filename: str
+    ) -> List[str]:
+        return [
+            "java",
+            "-jar",
+            os.path.join(
+                FILE_PATH, "..", "..", "..", ".planners", "enhsp-20", "enhsp.jar"
+            ),
+            "-o",
+            domanin_filename,
+            "-f",
+            problem_filename,
+            "-sp",
+            plan_filename,
+            "-h",
+            "hadd",
+            "-s",
+            "gbfs",
+            "-anytime",
+        ]
 
     def _result_status(
         self,
@@ -64,81 +92,14 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         else:
             return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
-    def _get_solutions(
-        self,
-        problem: "up.model.AbstractProblem",
-        timeout: Optional[float] = None,
-        output_stream: Optional[IO[str]] = None,
-    ) -> Iterator["up.engines.results.PlanGenerationResult"]:
-        import threading
-        import queue
+    def _starting_plan_str(self) -> str:
+        return "Found Plan:"
 
-        opts = self._options
+    def _ending_plan_str(self) -> str:
+        return "Plan-Length:"
 
-        self._options = [
-            "-h",
-            "hadd",
-            "-s",
-            "gbfs",
-            "-anytime",
-        ]
-
-        if timeout is not None:
-            self._options.extend(["-timeout", str(timeout)])
-
-        q: queue.Queue = queue.Queue()
-
-        class Writer(up.AnyBaseClass):
-            def __init__(self, os, q, engine):
-                self._os = os
-                self._q = q
-                self._engine = engine
-                self._plan = []
-                self._storing = False
-
-            def write(self, txt: str):
-                if self._os is not None:
-                    self._os.write(txt)
-                for l in txt.splitlines():
-                    if "Found Plan:" in l:
-                        self._storing = True
-                    elif "Plan-Length:" in l:
-                        plan_str = "\n".join(self._plan)
-                        plan = self._engine._plan_from_str(
-                            problem, plan_str, self._engine._writer.get_item_named
-                        )
-                        res = PlanGenerationResult(
-                            PlanGenerationResultStatus.INTERMEDIATE,
-                            plan=plan,
-                            engine_name=self._engine.name,
-                        )
-                        self._q.put(res)
-                        self._plan = []
-                        self._storing = False
-                    elif self._storing and l:
-                        self._plan.append(l.split(":")[1])
-
-        def run():
-            writer: IO[str] = Writer(output_stream, q, self)
-            res = self._solve(problem, output_stream=writer)
-            q.put(res)
-
-        try:
-            t = threading.Thread(target=run, daemon=True)
-            t.start()
-            status = PlanGenerationResultStatus.INTERMEDIATE
-            while status == PlanGenerationResultStatus.INTERMEDIATE:
-                res = q.get()
-                status = res.status
-                yield res
-        finally:
-            if self._process is not None:
-                try:
-                    self._process.kill()
-                except OSError:
-                    pass  # This can happen if the process is already terminated
-            t.join()
-            self._options = opts
+    def _parse_plan_line(self, plan_line: str) -> str:
+        return plan_line.split(":")[1]
 
     @staticmethod
     def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
@@ -156,19 +117,26 @@ class ENHSP(up.engines.PDDLPlanner, up.engines.mixins.AnytimePlannerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         return supported_kind

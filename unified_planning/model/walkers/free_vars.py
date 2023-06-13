@@ -32,11 +32,14 @@ class FreeVarsExtractor(walkers.dag.DagWalker):
         :param expression: The expression containing the `fluent expressions` to be returned.
         :return: The set of `fluent expressions` appearing in the given expression.
         """
-        return self.walk(expression)
+        ret = self.walk(expression)
+        return (
+            ret.copy()
+        )  # return a copy, otherwise modifications of the returned set will invalidate memoization
 
     @walkers.handles(OperatorKind)
     def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:
         res = set(x for y in args for x in y)
         if expression.is_fluent_exp():
-            res = res | {expression}
+            res |= {expression}
         return res

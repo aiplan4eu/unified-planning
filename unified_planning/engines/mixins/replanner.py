@@ -14,12 +14,13 @@
 #
 
 import unified_planning as up
+from abc import ABC, abstractmethod
 from fractions import Fraction
 from typing import IO, Optional, Union
 from warnings import warn
 
 
-class ReplannerMixin:
+class ReplannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `Replanner`."""
 
     def __init__(self, problem: "up.model.AbstractProblem"):
@@ -124,6 +125,7 @@ class ReplannerMixin:
         """
         return self._remove_action(name)
 
+    @abstractmethod
     def _resolve(
         self,
         timeout: Optional[float] = None,
@@ -135,6 +137,7 @@ class ReplannerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _update_initial_value(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
@@ -154,6 +157,7 @@ class ReplannerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _add_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
@@ -163,6 +167,7 @@ class ReplannerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _remove_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
     ):
@@ -172,6 +177,7 @@ class ReplannerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _add_action(self, action: "up.model.action.Action"):
         """
         Method called by the ReplannerMixin.add_action method that has to be implemented
@@ -179,6 +185,7 @@ class ReplannerMixin:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _remove_action(self, name: str):
         """
         Method called by the ReplannerMixin.remove_action method that has to be implemented

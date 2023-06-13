@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 
+from abc import ABC, abstractmethod
 from warnings import warn
 import unified_planning as up
 from typing import Any, Dict, List, Optional, Tuple
 
 
-class PortfolioSelectorMixin:
+class PortfolioSelectorMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `PortfolioSelector`."""
 
     def __init__(self):
@@ -35,7 +36,7 @@ class PortfolioSelectorMixin:
         """
         :param optimality_guarantee: The `optimality_guarantee` that must be satisfied.
         :return: `True` if the `PortfolioSelectorMixin` implementation satisfies the given
-        `optimality_guarantee`, `False` otherwise.
+            `optimality_guarantee`, `False` otherwise.
         """
         return False
 
@@ -80,6 +81,7 @@ class PortfolioSelectorMixin:
             )
         return self._get_best_oneshot_planners(problem, max_planners)
 
+    @abstractmethod
     def _get_best_oneshot_planners(
         self,
         problem: "up.model.AbstractProblem",

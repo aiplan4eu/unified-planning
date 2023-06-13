@@ -19,8 +19,7 @@ from unified_planning.model.mixins import (
     ActionsSetMixin,
     FluentsSetMixin,
 )
-from typing import Optional, List, Union
-from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
+from typing import Optional, List, Union, Iterable
 from unified_planning.model.expression import ConstantExpression
 
 
@@ -141,18 +140,18 @@ class Agent(
             **kwargs,
         )
 
-    def add_public_fluents(self, fluents: List["up.model.fluent.Fluent"]):
+    def add_public_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
-        Adds the given `list` of `public fluents` to the `problem`.
-        :param fluents: The `list` of `public fluents` that must be added to the `problem`.
+        Adds the given `public fluents` to the `problem`.
+        :param fluents: The `public fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
             self.add_public_fluent(fluent)
 
-    def add_private_fluents(self, fluents: List["up.model.fluent.Fluent"]):
+    def add_private_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
-        Adds the given `list` of `private fluents` to the `problem`.
-        :param fluents: The `list` of `private fluents` that must be added to the `problem`.
+        Adds the given `private fluents` to the `problem`.
+        :param fluents: The `private fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
             self.add_private_fluent(fluent)

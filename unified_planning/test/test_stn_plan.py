@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from typing import Set, cast
+from typing import Set, cast, List, Tuple, Dict
 from numbers import Real as RealNumbers
 import unified_planning as up
 from unified_planning.shortcuts import *

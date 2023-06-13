@@ -13,13 +13,18 @@
 # limitations under the License.
 #
 
+from abc import ABC, abstractmethod
 from warnings import warn
 import unified_planning as up
 
 
-class PlanRepairerMixin:
+class PlanRepairerMixin(ABC):
     def __init__(self):
         self.optimality_metric_required = False
+
+    @staticmethod
+    def is_plan_repairer() -> bool:
+        return True
 
     @staticmethod
     def satisfies(
@@ -34,6 +39,7 @@ class PlanRepairerMixin:
         return False
 
     @staticmethod
+    @abstractmethod
     def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
         """
         :param plan_kind: The :func:`kind <unified_planning.plans.Plan.kind>` of the :class:`~unified_planning.plans.Plan` that must be supported.
@@ -71,6 +77,7 @@ class PlanRepairerMixin:
             raise up.exceptions.UPUsageError(msg)
         return self._repair(problem, plan)
 
+    @abstractmethod
     def _repair(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.PlanGenerationResult":

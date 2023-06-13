@@ -63,3 +63,62 @@ class TestProblem(TestCase):
                     self.assertEqual(
                         validation_result.status, ValidationResultStatus.VALID
                     )
+
+    def test_quality_metric(self):
+        pv = SequentialPlanValidator()
+        problem, plan = self.problems["basic"]
+        problem = problem.clone()
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeSequentialPlanLength)
+            self.assertEqual(val, 1)
+
+        problem, plan = self.problems["locations_connected_visited_oversubscription"]
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, Oversubscription)
+            self.assertEqual(val, 15)
+
+        problem, plan = self.problems["locations_connected_cost_minimize"]
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeActionCosts)
+            self.assertEqual(val, 10)
+
+    def test_state_invariants(self):
+        problem = self.problems["robot_loader_weak_bridge"].problem
+        move = problem.action("move")
+        load = problem.action("load")
+        unload = problem.action("unload")
+        l1, l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
+        # the plan is bad because going loaded from l3 to l1 violates a global constraint
+        invalid_action = up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1)))
+        bad_plan = up.plans.SequentialPlan(
+            [
+                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
+                up.plans.ActionInstance(load, (ObjectExp(l3),)),
+                invalid_action,
+                up.plans.ActionInstance(unload, (ObjectExp(l1),)),
+            ]
+        )
+        with PlanValidator(name="sequential_plan_validator") as pv:
+            self.assertEqual(pv.name, "sequential_plan_validator")
+            self.assertTrue(pv.supports(problem.kind))
+            validation_result = pv.validate(problem, bad_plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+            self.assertEqual(invalid_action, validation_result.inapplicable_action)
+            # when removing the trajectory constraints, the bad plan should become valid
+            problem = problem.clone()
+            problem.clear_trajectory_constraints()
+            validation_result = pv.validate(problem, bad_plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)

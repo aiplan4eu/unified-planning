@@ -701,7 +701,7 @@ def get_example_problems():
         ),
     )
     dur_move.add_effect(StartTiming(1), is_at(l_from), False)
-    dur_move.add_effect(EndTiming(5), is_at(l_to), True)
+    dur_move.add_effect(EndTiming() - 5, is_at(l_to), True)
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
     l3 = Object("l3", Location)
@@ -886,6 +886,13 @@ def get_example_problems():
     robot_static_fluents_duration = Example(problem=problem, plan=t_plan)
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
+    # Robot with timed_goals (extension of the previous problem with timed goals)
+    problem = problem.clone()
+    name = "robot_with_static_fluents_duration_timed_goals"
+    problem.name = name
+    problem.add_timed_goal(GlobalStartTiming() + 50, is_at(l5, r1))
+    problems[name] = Example(problem=problem, plan=t_plan)
+
     # travel
     problem = Problem("travel")
 
@@ -940,9 +947,9 @@ def get_example_problems():
 
     plan = up.plans.SequentialPlan(
         [
-            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l3))),
-            up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l4))),
-            up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
+            move(l1, l3),
+            move(l3, l4),
+            move(l4, l5),
         ]
     )
     travel = Example(problem=problem, plan=plan)

@@ -17,10 +17,10 @@ from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
-    basic_classical_kind,
     classical_kind,
     simple_numeric_kind,
     general_numeric_kind,
+    bounded_types_kind,
     basic_temporal_kind,
     hierarchical_kind,
 )
@@ -55,8 +55,12 @@ class TestGrounder(TestCase):
         grounded_problem.name = problem.name
         self.assertEqual(grounded_problem, problem)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(general_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
+    )
+    @skipIfNoPlanValidatorForProblemKind(
+        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot(self):
         problem = self.problems["robot"].problem
 
@@ -78,8 +82,12 @@ class TestGrounder(TestCase):
             with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
+    @skipIfNoPlanValidatorForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot_locations_connected(self):
         problem = self.problems["robot_locations_connected"].problem
 
@@ -101,8 +109,12 @@ class TestGrounder(TestCase):
             with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as pv:
                 self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
+    @skipIfNoPlanValidatorForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot_locations_connected_from_factory(self):
         problem = self.problems["robot_locations_connected"].problem
 
@@ -129,8 +141,12 @@ class TestGrounder(TestCase):
                 ) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
-    @skipIfNoPlanValidatorForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
+    @skipIfNoPlanValidatorForProblemKind(
+        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+    )
     def test_robot_locations_connected_from_factory_with_problem_kind(self):
         problem = self.problems["robot_locations_connected"].problem
         kind = problem.kind
@@ -171,7 +187,7 @@ class TestGrounder(TestCase):
         ground_result = gro.compile(problem, CompilationKind.GROUNDING)
         grounded_problem = ground_result.problem
         assert isinstance(grounded_problem, Problem)
-        self.assertEqual(len(grounded_problem.actions), 90)
+        self.assertEqual(len(grounded_problem.actions), 108)
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
 

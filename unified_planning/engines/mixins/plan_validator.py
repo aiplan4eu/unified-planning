@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from abc import ABC, abstractmethod
 from warnings import warn
 import unified_planning as up
 
 
-class PlanValidatorMixin:
+class PlanValidatorMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `PlanValidator`."""
 
     @staticmethod
@@ -25,6 +26,7 @@ class PlanValidatorMixin:
         return True
 
     @staticmethod
+    @abstractmethod
     def supports_plan(plan_kind: "up.plans.PlanKind") -> bool:
         """
         :param plan_kind: The :func:`kind <unified_planning.plans.Plan.kind>` of the :class:`~unified_planning.plans.Plan` that must be supported.
@@ -59,6 +61,7 @@ class PlanValidatorMixin:
                 warn(msg)
         return self._validate(problem, plan)
 
+    @abstractmethod
     def _validate(
         self, problem: "up.model.AbstractProblem", plan: "up.plans.Plan"
     ) -> "up.engines.results.ValidationResult":

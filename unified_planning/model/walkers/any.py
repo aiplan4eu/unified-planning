@@ -16,7 +16,7 @@
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Callable
+from typing import List, Callable, Set
 
 
 class AnyChecker(walkers.dag.DagWalker):
@@ -38,3 +38,27 @@ class AnyChecker(walkers.dag.DagWalker):
     @walkers.handles(OperatorKind)
     def walk_all_types(self, expression: FNode, args: List[bool]) -> bool:
         return self._predicate(expression) or any(x for x in args)
+
+
+class AnyGetter(walkers.dag.DagWalker):
+    """This expression walker returns any subexpression that matches the given predicate."""
+
+    def __init__(self, predicate: Callable[[FNode], bool]):
+        walkers.dag.DagWalker.__init__(self)
+        self._predicate = predicate
+
+    def get(self, expression: FNode) -> Set[FNode]:
+        """
+        Returns all the subexpressions matching the predicate given at the constructor.
+
+        :param expression: The expression from where all the subexrepssions are extracted.
+        :return: The set of the subexpressions matching the predicate.
+        """
+        return self.walk(expression)
+
+    @walkers.handles(OperatorKind)
+    def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:
+        ret_set: Set[FNode] = {expression} if self._predicate(expression) else set()
+        for x in args:
+            ret_set |= x
+        return ret_set

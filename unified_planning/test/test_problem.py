@@ -17,6 +17,7 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPTypeError
 
 
 class TestProblem(TestCase):
@@ -523,10 +524,10 @@ class TestProblem(TestCase):
             "robot_decrease",
             "robot_locations_connected",
             "robot_locations_visited",
-            "robot_with_durative_action",
             "robot_fluent_of_user_type_with_int_id",
-            "matchcellar_static_duration",
-            "locations_connected_cost_minimize",
+            "basic_int_fluent_param",
+            "basic_bounded_int_action_param",
+            "basic_unbounded_int_action_param",
         ]
         for problem, _ in self.problems.values():
             if problem.name in names_of_SNP_problems:
@@ -556,6 +557,7 @@ class TestProblem(TestCase):
         problem.add_fluent(total_distance, default_initial_value=0)
         problem.set_initial_value(distance(l1, l2), 5)
         problem.add_action(move)
+        problem.add_goal(distance(l1, l2) < 6)
 
         # This problem is not SNP because of the increase of 2*distance(l_from, l_to)
         # by grounding, this distance(l_from, l_to) becomes distance(l1, l2), so it can be seen as a constant.
@@ -567,6 +569,16 @@ class TestProblem(TestCase):
                 problem, CompilationKind.GROUNDING
             ).problem
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
+
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), 2.0)
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), "2.0")
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), "4/2")
+        with self.assertRaises(UPTypeError):
+            problem.set_initial_value(distance(l2, l1), Div(4, 2))
+        problem.set_initial_value(distance(l2, l1), "20")
 
 
 if __name__ == "__main__":

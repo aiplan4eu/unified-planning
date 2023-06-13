@@ -1,0 +1,24 @@
+{% extends "sphinx_rtd_theme/layout.html" %}
+
+{% block extrahead %}
+
+<link rel="stylesheet" href="{{ pathto('_static/tcs_theme.css', 1) }}" type="text/css" />
+
+{% endblock %}
+
+{% block content %}
+
+<!-- <span style="float: right;" >
+    <a class="github-button" href="https://github.com/aiplan4eu/unified-planning" data-color-scheme="no-preference: light; light: light; dark: dark;" data-size="large" aria-label="Edit unified-planning on GitHub" ">Edit</a>
+</span> -->
+
+{{ super() }}
+
+{% endblock %}
+
+{% block footer %}
+
+<script type="text/javascript" src="{{ pathto('static/tcs_theme.js', 1) }}"></script>
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+
+{% endblock %}

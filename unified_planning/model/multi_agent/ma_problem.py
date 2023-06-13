@@ -19,20 +19,19 @@ from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
     UPExpressionDefinitionError,
-    UPValueError,
+    UPPlanDefinitionError,
 )
-from fractions import Fraction
-from typing import Optional, List, Dict, Union, cast
+from typing import Optional, List, Dict, Union, cast, Iterable
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
     AgentsSetMixin,
 )
+from fractions import Fraction
 
 
 class MultiAgentProblem(  # type: ignore[misc]
@@ -196,13 +195,10 @@ class MultiAgentProblem(  # type: ignore[misc]
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: Union[
-            "up.model.fnode.FNode",
+            "up.model.expression.NumericExpression",
             "up.model.fluent.Fluent",
             "up.model.object.Object",
             bool,
-            int,
-            float,
-            Fraction,
         ],
     ):
         """
@@ -294,17 +290,20 @@ class MultiAgentProblem(  # type: ignore[misc]
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        assert self._env.type_checker.get_type(
+            goal_exp
+        ).is_bool_type(), "A goal must be a boolean expression"
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 
     def add_goals(
-        self, goals: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]]
+        self,
+        goals: Iterable[Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]],
     ):
         """
         Adds the given `goal` to the `MultiAgentProblem`.
 
-        :param goals: The `list` of `goals` that must be added to the `MultiAgentProblem`.
+        :param goals: The `goals` that must be added to the `MultiAgentProblem`.
         """
         for goal in goals:
             self.add_goal(goal)
@@ -353,7 +352,7 @@ class MultiAgentProblem(  # type: ignore[misc]
     def _update_problem_kind_condition(self, exp: "up.model.fnode.FNode"):
         ops = self._operators_extractor.get(exp)
         if OperatorKind.EQUALS in ops:
-            self._kind.set_conditions_kind("EQUALITY")
+            self._kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         if OperatorKind.OR in ops:
@@ -376,6 +375,15 @@ class MultiAgentProblem(  # type: ignore[misc]
     def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
         self._update_problem_kind_type(fluent.type)
         if fluent.type.is_int_type() or fluent.type.is_real_type():
+            numeric_type = fluent.type
+            assert isinstance(
+                numeric_type, (up.model.types._RealType, up.model.types._IntType)
+            )
+            if (
+                numeric_type.lower_bound is not None
+                or numeric_type.upper_bound is not None
+            ):
+                self._kind.set_numbers("BOUNDED_TYPES")
             self._kind.set_fluents_type("NUMERIC_FLUENTS")
         elif fluent.type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
@@ -394,3 +402,38 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
+        """
+        Normalizes the given `Plan`, that is potentially the result of another
+        `MAProblem`, updating the `Object` references in the `Plan` with the ones of
+        this `MAProblem` which are syntactically equal.
+
+        :param plan: The `Plan` that must be normalized.
+        :return: A `Plan` syntactically valid for this `Problem`.
+        """
+        return plan.replace_action_instances(self._replace_action_instance)
+
+    def _replace_action_instance(
+        self, action_instance: "up.plans.ActionInstance"
+    ) -> "up.plans.ActionInstance":
+        em = self.environment.expression_manager
+        if action_instance.agent is None:
+            raise UPPlanDefinitionError(
+                f"An ActionInstance for a multi-agent problem must have an Agent; {action_instance} has no Agent."
+            )
+        new_a = action_instance.agent.action(action_instance.action.name)
+        params = []
+        for p in action_instance.actual_parameters:
+            if p.is_object_exp():
+                obj = self.object(p.object().name)
+                params.append(em.ObjectExp(obj))
+            elif p.is_bool_constant():
+                params.append(em.Bool(p.is_true()))
+            elif p.is_int_constant():
+                params.append(em.Int(cast(int, p.constant_value())))
+            elif p.is_real_constant():
+                params.append(em.Real(cast(Fraction, p.constant_value())))
+            else:
+                raise NotImplementedError
+        return up.plans.ActionInstance(new_a, tuple(params), action_instance.agent)

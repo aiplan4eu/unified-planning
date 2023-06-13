@@ -16,10 +16,8 @@
 from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.model import DurativeAction
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
-from unified_planning.test.examples import get_example_problems
+from unified_planning.test import TestCase
 from unified_planning.io import ANMLReader
-import tempfile
 import os
 
 

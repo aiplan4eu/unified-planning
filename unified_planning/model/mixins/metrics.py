@@ -1,10 +1,11 @@
-from typing import List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
-from unified_planning.model.metrics import PlanQualityMetric
-from unified_planning.model.problem_kind import ProblemKind
 
 import unified_planning as up
+from unified_planning.model.metrics import PlanQualityMetric
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.mixins import ActionsSetMixin
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class MetricsMixin:
@@ -21,6 +22,10 @@ class MetricsMixin:
 
         :param metric: The `quality metric` that a `Plan` of this `Problem` must satisfy in order to be valid.
         """
+        if metric.environment != self._env:
+            raise up.exceptions.UPUsageError(
+                "The added metric does not have the same environment of the MetricsMixin"
+            )
         self._metrics.append(metric)
 
     @property
@@ -45,10 +50,17 @@ class MetricsMixin:
         We make sure that any action appearing in hte metric is from the new set passed as parameter."""
         cloned: List[PlanQualityMetric] = []
         for m in self._metrics:
-            if isinstance(m, up.model.metrics.MinimizeActionCosts):
+            if m.is_minimize_action_costs():
+                assert isinstance(m, up.model.metrics.MinimizeActionCosts)
                 assert new_actions is not None
-                costs = {new_actions.action(a.name): c for a, c in m.costs.items()}
-                cloned.append(up.model.metrics.MinimizeActionCosts(costs))
+                costs: Dict["up.model.Action", "up.model.Expression"] = {
+                    new_actions.action(a.name): c for a, c in m.costs.items()
+                }
+                cloned.append(
+                    up.model.metrics.MinimizeActionCosts(
+                        costs, default=m.default, environment=other._env
+                    )
+                )
             else:
                 cloned.append(m)
         other._metrics = cloned
@@ -57,6 +69,7 @@ class MetricsMixin:
         self,
         kind: ProblemKind,
         linear_checker: "up.model.walkers.linear_checker.LinearChecker",
+        static_fluents: Set["up.model.Fluent"],
     ) -> Tuple[Set["up.model.Fluent"], Set["up.model.Fluent"]]:
         """Updates the kind object passed as parameter to account for given metrics.
         Return a pair for fluent sets that should respectively be only increased/decreased
@@ -64,8 +77,12 @@ class MetricsMixin:
         """
         fluents_to_only_increase = set()
         fluents_to_only_decrease = set()
+        fve = self._env.free_vars_extractor
         for metric in self._metrics:
-            if isinstance(metric, up.model.metrics.MinimizeExpressionOnFinalState):
+            if metric.is_minimize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MinimizeExpressionOnFinalState
+                )
                 kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
@@ -81,7 +98,10 @@ class MetricsMixin:
                     }
                 else:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MaximizeExpressionOnFinalState):
+            elif metric.is_maximize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MaximizeExpressionOnFinalState
+                )
                 kind.set_quality_metrics("FINAL_VALUE")
                 (
                     is_linear,
@@ -97,14 +117,35 @@ class MetricsMixin:
                     }
                 else:
                     kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            elif isinstance(metric, up.model.metrics.MinimizeActionCosts):
+            elif metric.is_minimize_action_costs():
+                assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 kind.set_quality_metrics("ACTIONS_COST")
-            elif isinstance(metric, up.model.metrics.MinimizeMakespan):
+                for cost in metric.costs.values():
+                    if cost is None:
+                        raise UPProblemDefinitionError(
+                            "The cost of an Action can't be None."
+                        )
+                    if metric.default is not None:
+                        for f in fve.get(metric.default):
+                            if f.fluent() in static_fluents:
+                                kind.set_actions_cost_kind(
+                                    "STATIC_FLUENTS_IN_ACTIONS_COST"
+                                )
+                            else:
+                                kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+                    for f in fve.get(cost):
+                        if f.fluent() in static_fluents:
+                            kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+                        else:
+                            kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+            elif metric.is_minimize_makespan():
                 kind.set_quality_metrics("MAKESPAN")
-            elif isinstance(metric, up.model.metrics.MinimizeSequentialPlanLength):
+            elif metric.is_minimize_sequential_plan_length():
                 kind.set_quality_metrics("PLAN_LENGTH")
-            elif isinstance(metric, up.model.metrics.Oversubscription):
+            elif metric.is_oversubscription():
                 kind.set_quality_metrics("OVERSUBSCRIPTION")
+            elif metric.is_temporal_oversubscription():
+                kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
             else:
                 assert False, "Unknown quality metric"
         return fluents_to_only_increase, fluents_to_only_decrease

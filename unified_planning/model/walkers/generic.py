@@ -31,13 +31,16 @@ def nt_to_fun(o: OperatorKind) -> str:
 
 
 class handles(object):
-    """Decorator for walker functions.
+    """
+    Decorator for walker functions.
     Use it by specifying the nodetypes that need to be handled by the
-    given function. It is possible to use groupd (e.g., OperatorKind.RELATIONS)
+    given function. It is possible to use grouped (e.g., OperatorKind.RELATIONS)
     directly. ::
-      @handles(OperatorKind.NODE, ...)
-      def walk_special(...):
-         ...
+
+        `@handles(OperatorKind.NODE, ...)
+        def walk_special(...):
+            ...`
+
     """
 
     def __init__(self, *nodetypes):

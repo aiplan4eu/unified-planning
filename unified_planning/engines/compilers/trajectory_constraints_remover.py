@@ -21,7 +21,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import InstantaneousAction, Action, FNode, Fluent
 from unified_planning.model.walkers import Substituter, ExpressionQuantifiersRemover
-from unified_planning.model import Problem, ProblemKind
+from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
 from unified_planning.model.operators import OperatorKind
 from functools import partial
 from unified_planning.engines.compilers.utils import (
@@ -73,8 +73,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = ProblemKind(problem_kind.features)
-        if new_kind.has_trajectory_constraints():
-            new_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+        if new_kind.has_trajectory_constraints() or new_kind.has_state_invariants():
+            new_kind.unset_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            new_kind.unset_constraints_kind("STATE_INVARIANTS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     @staticmethod
@@ -83,25 +86,37 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
-        supported_kind.set_time("CONTINUOUS_TIME")
-        supported_kind.set_time("DISCRETE_TIME")
-        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECT")
-        supported_kind.set_time("TIMED_GOALS")
-        supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
 
@@ -112,9 +127,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the `TRAJECTORY_CONSTRAINTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`
-        and returns a `CompilerResult` where the problem whitout trajectory_constraints.
+        and returns a `CompilerResult` where the problem without trajectory_constraints.
 
-        :param problem: The instance of the `Problem` that contains the trajecotry constraints.
+        :param problem: The instance of the `Problem` that contains the trajectory constraints.
         :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
             only `TRAJECTORY_CONSTRAINTS_REMOVING` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.
@@ -126,14 +141,14 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             problem, CompilationKind.GROUNDING
         )
         assert isinstance(grounding_result.problem, Problem)
-        problem = grounding_result.problem.clone()
-        assert isinstance(problem, Problem)
-        problem.name = f"{self.name}_{problem.name}"
-        A = problem.actions
-        I = problem.initial_values
+        grounded_problem = grounding_result.problem
+        new_problem = grounded_problem.clone()
+        assert isinstance(new_problem, Problem)
+        new_problem.name = f"{self.name}_{problem.name}"
+        I = new_problem.initial_values
         C = []
-        for c in problem.trajectory_constraints:
-            new_c = expression_quantifier_remover.remove_quantifiers(c, problem)
+        for c in new_problem.trajectory_constraints:
+            new_c = expression_quantifier_remover.remove_quantifiers(c, new_problem)
             if new_c.is_and():
                 C.extend(new_c.args)
             else:
@@ -141,7 +156,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
-        A_prime: List["up.model.effect.Effect"] = list()
+        A_prime: List["up.model.InstantaneousAction"] = list()
         I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
@@ -149,10 +164,10 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
         assert isinstance(grounding_result.map_back_action_instance, partial)
         map_grounded_action = grounding_result.map_back_action_instance.keywords["map"]
-        for a in A:
+        for a in new_problem.actions:
             map_value = map_grounded_action[a]
             assert isinstance(a, InstantaneousAction)
-            E: List["up.model.effect.Effect"] = list()
+            effects_to_add: List["up.model.effect.Effect"] = []
             # create an empty list to store the new effects for each trajectory constraints
             relevant_constraints = self._get_relevant_constraints(a, relevancy_dict)
             for c in relevant_constraints:
@@ -163,19 +178,29 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     )
                 elif c.is_at_most_once():
                     precondition, to_add = self._manage_amo_compilation(
-                        env, c.args[0], self._monitoring_atom_dict[c], a, E
+                        env, c.args[0], self._monitoring_atom_dict[c], a, effects_to_add
                     )
                 elif c.is_sometime_before():
                     precondition, to_add = self._manage_sb_compilation(
-                        env, c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
+                        env,
+                        c.args[0],
+                        c.args[1],
+                        self._monitoring_atom_dict[c],
+                        a,
+                        effects_to_add,
                     )
                 elif c.is_sometime():
                     self._manage_sometime_compilation(
-                        env, c.args[0], self._monitoring_atom_dict[c], a, E
+                        env, c.args[0], self._monitoring_atom_dict[c], a, effects_to_add
                     )
                 elif c.is_sometime_after():
                     self._manage_sa_compilation(
-                        env, c.args[0], c.args[1], self._monitoring_atom_dict[c], a, E
+                        env,
+                        c.args[0],
+                        c.args[1],
+                        self._monitoring_atom_dict[c],
+                        a,
+                        effects_to_add,
                     )
                 else:
                     raise Exception(
@@ -183,29 +208,44 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     )
                 if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
                     if to_add and not precondition.is_true():
-                        a.preconditions.append(precondition)
-            for eff in E:
-                a.effects.append(eff)
+                        a.add_precondition(precondition)
+            for eff in effects_to_add:
+                a._add_effect_instance(eff)
             if env.expression_manager.FALSE() not in a.preconditions:
                 A_prime.append(a)
             trace_back_map[a] = map_value
         # create new problem to return
         # adding new fluents, goal, initial values and actions
-        G_new = (env.expression_manager.And(problem.goals, G_prime)).simplify()
-        problem.clear_goals()
-        problem.add_goal(G_new)
-        problem.clear_trajectory_constraints()
+        G_new = (env.expression_manager.And(new_problem.goals, G_prime)).simplify()
+        new_problem.clear_goals()
+        new_problem.add_goal(G_new)
+        new_problem.clear_trajectory_constraints()
         for fluent in F_prime:
-            problem.add_fluent(fluent)
-        problem.clear_actions()
+            new_problem.add_fluent(fluent)
+        new_problem.clear_actions()
         for action in A_prime:
-            problem.add_action(action)
+            new_problem.add_action(action)
         for init_val in I_prime:
-            problem.set_initial_value(
+            new_problem.set_initial_value(
                 up.model.Fluent(f"{init_val}", env.type_manager.BoolType()), True
             )
+
+        new_problem.clear_quality_metrics()
+        for qm in grounded_problem.quality_metrics:
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
+                new_costs = {
+                    na: qm.get_action_cost(grounded_problem.action(na.name))
+                    for na in new_problem.actions
+                }
+                new_problem.add_quality_metric(
+                    MinimizeActionCosts(new_costs), environment=new_problem.environment
+                )
+            else:
+                new_problem.add_quality_metric(qm)
+
         return CompilerResult(
-            problem, partial(lift_action_instance, map=trace_back_map), self.name
+            new_problem, partial(lift_action_instance, map=trace_back_map), self.name
         )
 
     def _manage_sa_compilation(self, env, phi, psi, m_atom, a, E):

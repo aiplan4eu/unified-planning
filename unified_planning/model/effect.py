@@ -20,8 +20,12 @@ A `condition` can be added to make it a `conditional effect`.
 
 
 import unified_planning as up
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPProblemDefinitionError,
+)
 from enum import Enum, auto
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Optional, Set, Union
 
 
 class EffectKind(Enum):
@@ -53,6 +57,13 @@ class Effect:
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
     ):
+        fve = fluent.environment.free_vars_extractor
+        fluents_in_fluent = fve.get(fluent)
+        fluents_in_fluent.remove(fluent)
+        if fluents_in_fluent:
+            raise UPProblemDefinitionError(
+                f"The fluent: {fluent} contains other fluents in his arguments: {fluents_in_fluent}"
+            )
         self._fluent = fluent
         self._value = value
         self._condition = condition
@@ -165,32 +176,48 @@ class SimulatedEffect:
     This class represents a `simulated effect` over a list of :class:`~unified_planning.model.Fluent` expressions.
     The `fluent's parameters` must be constants or :class:`~unified_planning.model.Action` `parameters`.
     The callable function must return the result of the `simulated effects` applied
-    in the given :class:`~unified_planning.model.ROState` for the specified `fluent` expressions.
+    in the given :class:`~unified_planning.model.State` for the specified `fluent` expressions.
     """
 
     def __init__(
         self,
-        fluents: List["up.model.fnode.FNode"],
+        fluents: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]],
         function: Callable[
             [
                 "up.model.problem.AbstractProblem",
-                "up.model.state.ROState",
+                "up.model.state.State",
                 Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
             ],
             List["up.model.fnode.FNode"],
         ],
     ):
+        self._fluents: List["up.model.fnode.FNode"] = []
+        env = None
         for f in fluents:
-            if not f.is_fluent_exp():
+            if env is None:
+                env = f.environment
+            assert env is not None
+            if isinstance(f, up.model.Fluent):
+                (f_exp,) = env.expression_manager.auto_promote(f)
+            else:
+                f_exp = f
+            assert isinstance(f_exp, up.model.FNode), "Typing not respected"
+            if not f_exp.is_fluent_exp():
                 raise up.exceptions.UPUsageError(
                     "Simulated effects can be defined on fluent expressions with constant parameters"
                 )
-            for c in f.args:
+            for c in f_exp.args:
                 if not (c.is_constant() or c.is_parameter_exp()):
                     raise up.exceptions.UPUsageError(
                         "Simulated effects can be defined on fluent expressions with constant parameters"
                     )
-        self._fluents = fluents
+            if env != f_exp.environment:
+                raise up.exceptions.UPUsageError(
+                    "The same SimulatedEffect contains fluents of different environments."
+                )
+            self._fluents.append(f_exp)
+        assert env is not None
+        self._env: "up.environment.Environment" = env
         self._function = function
 
     def __repr__(self) -> str:
@@ -209,6 +236,10 @@ class SimulatedEffect:
         return res
 
     @property
+    def environment(self) -> "up.environment.Environment":
+        return self._env
+
+    @property
     def fluents(self) -> List["up.model.fnode.FNode"]:
         """Returns the `list` of `Fluents Expressions` modified by this `SimulatedEffect`."""
         return self._fluents
@@ -219,7 +250,7 @@ class SimulatedEffect:
     ) -> Callable[
         [
             "up.model.problem.AbstractProblem",
-            "up.model.state.ROState",
+            "up.model.state.State",
             Dict["up.model.parameter.Parameter", "up.model.fnode.FNode"],
         ],
         List["up.model.fnode.FNode"],
@@ -229,3 +260,115 @@ class SimulatedEffect:
         are modified when this `simulated effect` is applied.
         """
         return self._function
+
+
+def check_conflicting_effects(
+    effect: Effect,
+    timing: Optional["up.model.timing.Timing"],
+    simulated_effect: Optional[SimulatedEffect],
+    fluents_assigned: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+    fluents_inc_dec: Set["up.model.fnode.FNode"],
+    name: str,
+):
+    """
+    This method checks if the effect that would be added is in conflict with the effects/simulated-effects
+    already in the action/problem.
+
+    Note: This method has side effects on the fluents_assigned mapping and the fluents_inc_dec set, based
+        on the given effect.
+
+    :param effect: The target effect to add.
+    :param timing: Optionally, the timing at which the effect is performed; None if the timing
+        is not meaningful, like in InstantaneousActions.
+    :param simulated_effect: The simulated effect that happen in the same moment of the effect.
+    :param fluents_assigned: The mapping from a fluent to it's value of the effects happening in the
+        same instant of the given effect.
+    :param fluents_inc_dec: The set of fluents being increased or decremented in the same instant
+        of the given effect.
+    :param name: string used for better error indexing.
+    :raises: UPConflictingException if the given effect is in conflict with the data structure around it.
+    """
+    assigned_value = fluents_assigned.get(effect.fluent, None)
+    if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
+        if effect.is_assignment():
+            # if the same fluent is involved in an increase/decrease, raise exception
+            if effect.fluent in fluents_inc_dec:
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the increase/decrease effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
+            # if the same fluent is involved in a simulated effect
+            elif (
+                simulated_effect is not None
+                and effect.fluent in simulated_effect.fluents
+            ):
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
+            # the same fluent is involved in another assign
+            elif assigned_value is not None:
+                # if the 2 values are different, raise exception
+                if assigned_value != effect.value and not (
+                    assigned_value.is_constant()
+                    and effect.value.is_constant()
+                    and assigned_value.constant_value() == effect.value.constant_value()
+                ):
+                    if timing is None:
+                        msg = f"The effect {effect} is in conflict with the effects already in the {name}."
+                    else:
+                        msg = f"The effect {effect} at timing {timing} is in conflict with the effects already in the {name}."
+                    raise UPConflictingEffectsException(msg)
+            else:
+                fluents_assigned[effect.fluent] = effect.value
+        elif effect.is_increase() or effect.is_decrease():
+            if effect.fluent in fluents_assigned:
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
+            fluents_inc_dec.add(effect.fluent)
+            if (
+                simulated_effect is not None
+                and effect.fluent in simulated_effect.fluents
+            ):
+                if timing is None:
+                    msg = f"The effect {effect} is in conflict with the simulated effects already in the {name}."
+                else:
+                    msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
+                raise UPConflictingEffectsException(msg)
+        else:
+            raise NotImplementedError
+
+
+def check_conflicting_simulated_effects(
+    simulated_effect: SimulatedEffect,
+    timing: Optional["up.model.timing.Timing"],
+    fluents_assigned: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
+    fluents_inc_dec: Set["up.model.fnode.FNode"],
+    name: str,
+):
+    """
+    This method checks if the simulated effect that would be added is in conflict with the effects
+    already in the action/problem.
+
+    :param simulated_effect: The target simulated_effect to add.
+    :param timing: Optionally, the timing at which the simulated_effect is performed; None if the timing
+        is not meaningful, like in InstantaneousActions.
+    :param fluents_assigned: The mapping from a fluent to it's value of the effects happening in the
+        same instant of the given simulated_effect.
+    :param fluents_inc_dec: The set of fluents being increased or decremented in the same instant
+        of the given simulated_effect.
+    :param name: string used for better error indexing.
+    :raises: UPConflictingException if the given simulated_effect is in conflict with the data structure around it.
+    """
+    for f in simulated_effect.fluents:
+        if f in fluents_inc_dec or f in fluents_assigned:
+            if timing is None:
+                msg = f"The simulated effect {simulated_effect} is in conflict with the effects already in the {name}."
+            else:
+                msg = f"The simulated effect {simulated_effect} at timing {timing} is in conflict with the effects already in the {name}."
+            raise UPConflictingEffectsException(msg)

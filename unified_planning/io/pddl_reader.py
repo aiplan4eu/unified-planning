@@ -14,47 +14,31 @@
 #
 
 from itertools import product
+from collections import OrderedDict
+from fractions import Fraction
+import re
+from typing import Dict, Union, Callable, List, cast
+import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
-import typing
 from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPUsageError
-from collections import OrderedDict
-from fractions import Fraction
-from typing import Dict, Union, Callable, List, cast
+from unified_planning.exceptions import UPUsageError, UPException
+from unified_planning.io.utils import parse_string, set_results_name, Located
 
+import pyparsing
+from pyparsing import ParseResults
+from pyparsing import CharsNotIn, Empty, col, lineno
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, rest_of_line, Optional, Forward
-from pyparsing import CharsNotIn, Empty, Located, col, lineno
-from pyparsing.results import ParseResults
-from pyparsing import one_of
+from pyparsing import Suppress, Group, Optional, Forward
 
-
-class CaseInsensitiveToken:
-    """A case-insensitive representation of a string."""
-
-    def __init__(self, name: Union[str, ParseResults]):
-        if isinstance(name, ParseResults):
-            name = name[0]
-        assert isinstance(name, str)
-        self._name = name
-        self._canonical = name.lower()
-
-    def __repr__(self):
-        return self._name
-
-    def __hash__(self):
-        return hash(self._canonical)
-
-    def __eq__(self, other):
-        if isinstance(other, str):
-            return other.lower() == self._canonical
-        elif isinstance(other, CaseInsensitiveToken):
-            return self._canonical == other._canonical
-        else:
-            return False
+if pyparsing.__version__ < "3.0.0":
+    from pyparsing import oneOf as one_of
+    from pyparsing import restOfLine as rest_of_line
+else:
+    from pyparsing import one_of
+    from pyparsing import rest_of_line
 
 
 class CustomParseResults:
@@ -85,8 +69,8 @@ class CustomParseResults:
         return col(self.locn_end, complete_str)
 
 
-Object = CaseInsensitiveToken("object")
-TypesMap = Dict[CaseInsensitiveToken, unified_planning.model.Type]
+Object = "object"
+TypesMap = Dict[str, unified_planning.model.Type]
 
 
 def nested_expr():
@@ -106,8 +90,6 @@ def nested_expr():
 class PDDLGrammar:
     def __init__(self):
         name = Word(alphas, alphanums + "_" + "-")
-        # Parser for types that convert the string into a token that is case-insensitive
-        tpe = name.copy().add_parse_action(lambda t: CaseInsensitiveToken(t))
         variable = Suppress("?") + name
 
         require_def = (
@@ -124,18 +106,26 @@ class PDDLGrammar:
         types_def = (
             Suppress("(")
             + ":types"
-            - OneOrMore(
-                Group(Group(OneOrMore(tpe)) + Optional(Suppress("-") + tpe))
-            ).setResultsName("types")
+            - set_results_name(
+                OneOrMore(
+                    Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                ),
+                "types",
+            )
             + Suppress(")")
         )
 
         constants_def = (
             Suppress("(")
             + ":constants"
-            - ZeroOrMore(
-                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe)))
-            ).setResultsName("constants")
+            - set_results_name(
+                ZeroOrMore(
+                    Group(
+                        Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
+                    )
+                ),
+                "constants",
+            )
             + Suppress(")")
         )
 
@@ -148,7 +138,7 @@ class PDDLGrammar:
                         Group(
                             Located(
                                 Group(OneOrMore(variable))
-                                + Optional(Suppress("-") + tpe)
+                                + Optional(Suppress("-") + name)
                             )
                         )
                     )
@@ -160,57 +150,63 @@ class PDDLGrammar:
         predicates_def = (
             Suppress("(")
             + ":predicates"
-            - Group(OneOrMore(predicate)).setResultsName("predicates")
+            - set_results_name(Group(OneOrMore(predicate)), "predicates")
             + Suppress(")")
         )
 
         functions_def = (
             Suppress("(")
             + ":functions"
-            - Group(
-                OneOrMore(predicate + Optional(Suppress("- number")))
-            ).setResultsName("functions")
+            - set_results_name(
+                Group(OneOrMore(predicate + Optional(Suppress("- number")))),
+                "functions",
+            )
             + Suppress(")")
         )
 
-        parameters = ZeroOrMore(
-            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + tpe)))
-        ).setResultsName("params")
+        parameters = set_results_name(
+            ZeroOrMore(
+                Group(
+                    Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name))
+                )
+            ),
+            "params",
+        )
         action_def = Group(
             Suppress("(")
             + ":action"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
-            + Optional(":precondition" - nested_expr().setResultsName("pre"))
-            + Optional(":effect" - nested_expr().setResultsName("eff"))
-            + Optional(":observe" - nested_expr().setResultsName("obs"))
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Optional(":observe" - set_results_name(nested_expr(), "obs"))
             + Suppress(")")
         )
 
         dur_action_def = Group(
             Suppress("(")
             + ":durative-action"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
             + ":duration"
-            - nested_expr().setResultsName("duration")
+            - set_results_name(nested_expr(), "duration")
             + ":condition"
-            - nested_expr().setResultsName("cond")
+            - set_results_name(nested_expr(), "cond")
             + ":effect"
-            - nested_expr().setResultsName("eff")
+            - set_results_name(nested_expr(), "eff")
             + Suppress(")")
         )
 
         task_def = Group(
             Suppress("(")
             + ":task"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
@@ -221,23 +217,25 @@ class PDDLGrammar:
         method_def = Group(
             Suppress("(")
             + ":method"
-            - name.setResultsName("name")
+            - set_results_name(name, "name")
             + ":parameters"
             - Suppress("(")
             + parameters
             + Suppress(")")
             + ":task"
-            - nested_expr().setResultsName("task")
-            + Optional(":precondition" - nested_expr().setResultsName("precondition"))
+            - set_results_name(nested_expr(), "task")
+            + Optional(
+                ":precondition" - set_results_name(nested_expr(), "precondition")
+            )
             + Optional(
                 one_of(":ordered-subtasks :ordered-tasks")
-                - nested_expr().setResultsName("ordered-subtasks")
+                - set_results_name(nested_expr(), "ordered-subtasks")
             )
             + Optional(
-                one_of(":subtasks :tasks") - nested_expr().setResultsName("subtasks")
+                one_of(":subtasks :tasks") - set_results_name(nested_expr(), "subtasks")
             )
-            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
-            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
+            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
+            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
             + Suppress(")")
         )
 
@@ -246,22 +244,25 @@ class PDDLGrammar:
             + "define"
             + Suppress("(")
             + "domain"
-            + name.setResultsName("name")
+            + set_results_name(name, "name")
             + Suppress(")")
-            + Optional(require_def).setResultsName("features")
+            + set_results_name(Optional(require_def), "features")
             + Optional(types_def)
             + Optional(constants_def)
             + Optional(predicates_def)
             + Optional(functions_def)
-            + Group(ZeroOrMore(task_def)).setResultsName("tasks")
-            + Group(ZeroOrMore(method_def)).setResultsName("methods")
-            + Group(ZeroOrMore(action_def | dur_action_def)).setResultsName("actions")
+            + set_results_name(Group(ZeroOrMore(task_def)), "tasks")
+            + set_results_name(Group(ZeroOrMore(method_def)), "methods")
+            + set_results_name(
+                Group(ZeroOrMore(action_def | dur_action_def)), "actions"
+            )
             + Suppress(")")
         )
 
-        objects = OneOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + tpe))
-        ).setResultsName("objects")
+        objects = set_results_name(
+            ZeroOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))),
+            "objects",
+        )
 
         htn_def = Group(
             Suppress("(")
@@ -269,26 +270,26 @@ class PDDLGrammar:
             - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
             + Optional(
                 one_of(":ordered-tasks :ordered-subtasks")
-                - nested_expr().setResultsName("ordered-tasks")
+                - set_results_name(nested_expr(), "ordered-tasks")
             )
             + Optional(
-                one_of(":tasks :subtasks") - nested_expr().setResultsName("tasks")
+                one_of(":tasks :subtasks") - set_results_name(nested_expr(), "tasks")
             )
-            + Optional(":ordering" - nested_expr().setResultsName("ordering"))
-            + Optional(":constraints" - nested_expr().setResultsName("constraints"))
+            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
+            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
             + Suppress(")")
         )
 
-        metric = (Keyword("minimize") | Keyword("maximize")).setResultsName(
-            "optimization"
-        ) + (name | nested_expr()).setResultsName("metric")
+        metric = set_results_name(
+            (Keyword("minimize") | Keyword("maximize")), "optimization"
+        ) + set_results_name((name | nested_expr()), "metric")
 
         problem = (
             Suppress("(")
             + "define"
             + Suppress("(")
             + "problem"
-            + name.setResultsName("name")
+            + set_results_name(name, "name")
             + Suppress(")")
             + Suppress("(")
             + ":domain"
@@ -296,21 +297,21 @@ class PDDLGrammar:
             + Suppress(")")
             + Optional(require_def)
             + Optional(Suppress("(") + ":objects" + objects + Suppress(")"))
-            + Optional(htn_def.setResultsName("htn"))
+            + Optional(set_results_name(htn_def, "htn"))
             + Suppress("(")
             + ":init"
-            + ZeroOrMore(nested_expr()).setResultsName("init")
+            + set_results_name(ZeroOrMore(nested_expr()), "init")
             + Suppress(")")
             + Optional(
                 Suppress("(")
                 + ":goal"
-                + nested_expr().setResultsName("goal")
+                + set_results_name(nested_expr(), "goal")
                 + Suppress(")")
             )
             + Optional(
                 Suppress("(")
                 + ":constraints"
-                + nested_expr().setResultsName("constraints")
+                + set_results_name(OneOrMore(nested_expr()), "constraints")
                 + Suppress(")")
             )
             + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
@@ -341,7 +342,9 @@ class PDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
 
-    Note: in the error report messages, a tabulation counts as one column.
+    Note: in the error report messages, a tabulation counts as one column; and due to PDDL case-insensitivity, everything in the
+    PDDL files will be turned to lower case, so the names of fluents, actions etc. and the error report
+    will all be in lower-case.
     """
 
     def __init__(self, environment: typing.Optional[Environment] = None):
@@ -978,17 +981,13 @@ class PDDLReader:
         universal_assignments: Dict["up.model.Action", List[CustomParseResults]] = {}
 
         # extract all type declarations into a dictionary
-        type_declarations: Dict[
-            CaseInsensitiveToken, typing.Optional[CaseInsensitiveToken]
-        ] = {}
+        type_declarations: Dict[str, typing.Optional[str]] = {}
         for type_line in domain_res.get("types", []):
-            father_name = (
-                None if len(type_line) <= 1 else CaseInsensitiveToken(str(type_line[1]))
-            )
+            father_name = None if len(type_line) <= 1 else str(type_line[1])
             if father_name is None and object_type_needed:
                 father_name = Object
             for declared_type in type_line[0]:
-                declared_type = CaseInsensitiveToken(str(declared_type))
+                declared_type = str(declared_type)
                 if declared_type in type_declarations:
                     raise SyntaxError(
                         f"Type {declared_type} is declared more than once"
@@ -998,8 +997,8 @@ class PDDLReader:
         # Processes a type and adds it to the `types_map`.
         # If the father was not previously declared, it will be recursively declared as well.
         def declare_type(
-            type: CaseInsensitiveToken,
-            father_name: typing.Optional[CaseInsensitiveToken],
+            type: str,
+            father_name: typing.Optional[str],
         ):
             if type in types_map:
                 # type was already processed which might happen if it already appeared as the parent of another type
@@ -1019,7 +1018,6 @@ class PDDLReader:
                 father = self._env.type_manager.UserType(str(father_name), None)
                 types_map[father_name] = father
             # we identified the father, add the type to our map
-            # note that the type_map allows retrieving the `Type` object in a case-insensitive way
             types_map[type] = self._env.type_manager.UserType(str(type), father)
             # Force declaration of the type in the `Problem`, even if it is not explicitly used yet
             problem._add_user_type(types_map[type])
@@ -1538,13 +1536,24 @@ class PDDLReader:
                     )
                     problem.add_unknown_initial_constraint(arg)
                 else:
-                    problem.set_initial_value(
-                        self._parse_exp(
-                            problem, None, types_map, {}, init, problem_str
-                        ),
-                        self._em.TRUE(),
+                    exp = self._parse_exp(
+                        problem, None, types_map, {}, init, problem_str
                     )
-
+                    if not exp.is_not():
+                        if not exp.is_fluent_exp():
+                            raise SyntaxError(
+                                f"In init expected predicate, found {exp}\n"
+                                + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            )
+                        problem.set_initial_value(
+                            exp,
+                            self._em.TRUE(),
+                        )
+                    elif not exp.arg(0).is_fluent_exp():
+                        raise SyntaxError(
+                            f"In init expected (not predicate), found {exp}\n"
+                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                        )
             if "goal" in problem_res:
                 problem.add_goal(
                     self._parse_exp(
@@ -1560,16 +1569,17 @@ class PDDLReader:
                 raise SyntaxError("Missing goal section in problem file.")
 
             if "constraints" in problem_res:
-                problem.add_trajectory_constraint(
-                    self._parse_exp(
-                        problem,
-                        None,
-                        types_map,
-                        {},
-                        CustomParseResults(problem_res["constraints"][0]),
-                        problem_str,
+                for tc in problem_res["constraints"]:
+                    problem.add_trajectory_constraint(
+                        self._parse_exp(
+                            problem,
+                            None,
+                            types_map,
+                            {},
+                            CustomParseResults(tc),
+                            problem_str,
+                        )
                     )
-                )
 
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
                 problem
@@ -1649,7 +1659,11 @@ class PDDLReader:
         Takes in input a filename containing the `PDDL` domain and optionally a filename
         containing the `PDDL` problem and returns the parsed `Problem`.
 
-        Note that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+        Note: that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
 
         :param domain_filename: The path to the file containing the `PDDL` domain.
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
@@ -1674,17 +1688,132 @@ class PDDLReader:
 
         Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
 
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
+
         :param domain_filename: The string representing the `PDDL` domain.
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        domain_str = domain_str.replace("\t", " ")
-        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+        domain_str = domain_str.replace("\t", " ").lower()
+        domain_res = parse_string(self._pp_domain, domain_str, parse_all=True)
 
         if problem_str is not None:
-            problem_str = problem_str.replace("\t", " ")
-            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
+            problem_str = problem_str.replace("\t", " ").lower()
+            problem_res = parse_string(self._pp_problem, problem_str, parse_all=True)
         else:
             problem_res = None
 
         return self._parse_problem(domain_res, domain_str, problem_res, problem_str)
+
+    def parse_plan(
+        self,
+        problem: "up.model.Problem",
+        plan_filename: str,
+        get_item_named: typing.Optional[
+            Callable[
+                [str],
+                Union[
+                    "up.model.Type",
+                    "up.model.Action",
+                    "up.model.Fluent",
+                    "up.model.Object",
+                    "up.model.Parameter",
+                    "up.model.Variable",
+                ],
+            ]
+        ] = None,
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a filename and optionally a map of renaming and returns the plan parsed from the file.
+
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_filename: The path of the file in which the plan is written.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming; if None the problem is used to retrieve the actions and objects in the
+            plan from their name.
+        :return: The up.plans.Plan corresponding to the parsed plan from the file
+        """
+        with open(plan_filename) as plan:
+            return self.parse_plan_string(problem, plan.read(), get_item_named)
+
+    def parse_plan_string(
+        self,
+        problem: "up.model.Problem",
+        plan_str: str,
+        get_item_named: typing.Optional[
+            Callable[
+                [str],
+                Union[
+                    "up.model.Type",
+                    "up.model.Action",
+                    "up.model.Fluent",
+                    "up.model.Object",
+                    "up.model.Parameter",
+                    "up.model.Variable",
+                ],
+            ]
+        ] = None,
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a string and optionally a map of renaming and returns the plan parsed from the string.
+
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_str: The plan in string.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming; if None the problem is used to retrieve the actions and objects in the
+            plan from their name.:return: The up.plans.Plan corresponding to the parsed plan from the string
+        """
+        actions: List = []
+        is_tt = False
+        for line in plan_str.splitlines():
+            if re.match(r"^\s*(;.*)?$", line):
+                continue
+            line = line.lower()
+            s_ai = re.match(r"^\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*$", line)
+            t_ai = re.match(
+                r"^\s*(\d+)\s*:\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*(\[\s*(\d+)\s*\])?\s*$",
+                line,
+            )
+            if s_ai:
+                assert is_tt == False
+                name = s_ai.group(1)
+                params_name = s_ai.group(2).split()
+            elif t_ai:
+                is_tt = True
+                start = Fraction(t_ai.group(1))
+                name = t_ai.group(2)
+                params_name = t_ai.group(3).split()
+                dur = None
+                if t_ai.group(6) is not None:
+                    dur = Fraction(t_ai.group(6))
+            else:
+                raise UPException(
+                    "Error parsing plan generated by " + self.__class__.__name__
+                )
+
+            action = (
+                get_item_named(name)
+                if get_item_named is not None
+                else problem.action(name)
+            )
+            assert isinstance(action, up.model.Action), "Wrong plan or renaming."
+            parameters = []
+            for p in params_name:
+                obj = (
+                    get_item_named(p)
+                    if get_item_named is not None
+                    else problem.object(p)
+                )
+                assert isinstance(obj, up.model.Object), "Wrong plan or renaming."
+                parameters.append(problem.environment.expression_manager.ObjectExp(obj))
+            act_instance = up.plans.ActionInstance(action, tuple(parameters))
+            if is_tt:
+                actions.append((start, act_instance, dur))
+            else:
+                actions.append(act_instance)
+        if is_tt:
+            return up.plans.TimeTriggeredPlan(actions)
+        else:
+            return up.plans.SequentialPlan(actions)

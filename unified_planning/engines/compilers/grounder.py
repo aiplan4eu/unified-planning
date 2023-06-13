@@ -28,7 +28,6 @@ from unified_planning.model import (
     Expression,
     FNode,
     MinimizeActionCosts,
-    Parameter,
 )
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Simplifier
@@ -68,10 +67,10 @@ class GrounderHelper:
             When this map is set, it represents the groundings that this class does.
             So, for every key in the map, the `Action` is grounded with every `tuple of parameters` in the mapped value.
             For example, if the map is `{a: [(o1, o2), (o2, o3)], b: [(o3), (o4)]}`, the resulting grounded actions will be:
-            - `a (o1, o2)`
-            - `a (o2, o3)`
-            - `b (o3)`
-            - `b (o4)`
+            * `a (o1, o2)`
+            * `a (o2, o3)`
+            * `b (o3)`
+            * `b (o4)`
             If this map is `None`, the `unified_planning` grounding algorithm is applied.
         """
         assert isinstance(problem, Problem)
@@ -99,18 +98,18 @@ class GrounderHelper:
         self, action: Action, parameters: Tuple[FNode, ...] = tuple()
     ) -> Optional[Action]:
         """
-        Grounds the given `action` with the given `parameters`.
-        An `Action` is grounded when it has no :func:`parameters <unified_planning.model.Action.parameters>`.
+        Grounds the given action with the given parameters.
+        An ``Action`` is grounded when it has no :func:`parameters <unified_planning.model.Action.parameters>`.
 
-        The returned `Action` is cached, so if the same method is called twice with the same function parameters,
+        The returned ``Action`` is cached, so if the same method is called twice with the same function parameters,
         the same object is returned, and the same object will be returned in the total problem grounding, so
-        if the resulting `Action` or :class:`~unified_planning.model.Problem` are modified, all the copies
+        if the resulting ``Action`` or :class:`~unified_planning.model.Problem` are modified, all the copies
         returned by this class will be modified.
 
-        :param action: The `Action` that must be grounded with the given `parameters`.
-        :param parameters: The tuple of expressions used to ground the given `action`.
-        :return: The `action` grounded with the given `parameters` or `None` if the grounded
-            action does not have `effects` or the `action conditions` can be easily evaluated as a
+        :param action: The ``Action`` that must be grounded with the given ``parameters``.
+        :param parameters: The tuple of expressions used to ground the given ``action``.
+        :return: The ``action`` grounded with the given ``parameters`` or ``None`` if the grounded
+            action does not have ``effects`` or the ``action conditions`` can be easily evaluated as a
             contradiction.
         """
         assert len(action.parameters) == len(
@@ -145,14 +144,15 @@ class GrounderHelper:
         self,
     ) -> Iterator[Tuple[Action, Tuple[FNode, ...], Optional[Action]]]:
         """
-        Returns an `Iterator` over all the possible grounded `Actions` of the `Problem` given at construction time.
-        Every resulting `Tuple` is made of 3 elements: `original_action`, `parameters`, `grounded_action` where:
-            - The `original_action` is the `Action` of the `Problem` that is grounded.
-            - The `parameters` is the `Tuple of expressions` used to ground the `original_action`.
-            - The `grounded_action` is the `Action` created by grounding the `original_action` with the given `parameters`;
-                the `grounded_action` can be `None` if the grounding of the `original_action` with the given parameters
-                creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
-                meaningless if it has no `effects` or contradicting `conditions`).
+        Returns an iterator over all the possible grounded actions of the problem given at construction time.
+        Every resulting tuple is made of 3 elements: ``original_action``, ``parameters``, ``grounded_action`` where:
+
+        * The ``original_action`` is the `Action` of the ``Problem`` that is grounded.
+        * The ``parameters`` is the `Tuple of expressions` used to ground the ``original_action``.
+        * The ``grounded_action`` is the `Action` created by grounding the ``original_action`` with the given ``parameters``;
+            the ``grounded_action`` can be ``None`` if the grounding of the ``original_action`` with the given parameters
+            creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
+            meaningless if it has no `effects` or contradicting `conditions`).
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):
@@ -243,33 +243,48 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECTS")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
-        supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
+        supported_kind.set_time("SELF_OVERLAPPING")
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         return supported_kind
@@ -322,22 +337,12 @@ class Grounder(engines.engine.Engine, CompilerMixin):
 
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
-            if isinstance(qm, MinimizeActionCosts):
-                simplifier = grounder_helper.simplifier
-                new_costs: Dict[Action, Optional[FNode]] = {}
-                for new_action, (old_action, params) in trace_back_map.items():
-                    subs = cast(
-                        Dict[Expression, Expression],
-                        dict(zip(old_action.parameters, params)),
-                    )
-                    old_cost = qm.get_action_cost(old_action)
-                    if old_cost is None:
-                        new_costs[new_action] = None
-                    else:
-                        new_costs[new_action] = simplifier.simplify(
-                            old_cost.substitute(subs)
-                        )
-                new_problem.add_quality_metric(MinimizeActionCosts(new_costs))
+            if qm.is_minimize_action_costs():
+                assert isinstance(qm, MinimizeActionCosts)
+                new_metric = ground_minimize_action_costs_metric(
+                    qm, trace_back_map, grounder_helper.simplifier
+                )
+                new_problem.add_quality_metric(new_metric)
             else:
                 new_problem.add_quality_metric(qm)
 
@@ -346,3 +351,31 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             partial(lift_action_instance, map=trace_back_map),
             self.name,
         )
+
+
+def ground_minimize_action_costs_metric(
+    metric: MinimizeActionCosts,
+    trace_back_map: Dict[Action, Tuple[Action, List[FNode]]],
+    simplifier: Simplifier,
+) -> MinimizeActionCosts:
+    """
+    Support method for a grounder to handle the MinimizeActionCosts metric.
+
+    :param metric: The metric to convert.
+    :param trace_back_map: The grounding map from a grounded Action to the Action
+        and parameters that created the grounded action.
+    :param simplifier: The simplifier used to evaluate the cost; if this simplifier
+        has the Instance of the problem at construction time, it will also substitute
+        the static fluents in the action cost with their value.
+    :return: The equivalent MinimizeActionCosts metric for the grounded problem.
+    """
+    new_costs: Dict[Action, Expression] = {}
+    for new_action, (old_action, params) in trace_back_map.items():
+        subs = cast(
+            Dict[Expression, Expression],
+            dict(zip(old_action.parameters, params)),
+        )
+        old_cost = metric.get_action_cost(old_action)
+        if old_cost is not None:
+            new_costs[new_action] = simplifier.simplify(old_cost.substitute(subs))
+    return MinimizeActionCosts(new_costs)

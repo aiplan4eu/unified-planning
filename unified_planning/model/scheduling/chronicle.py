@@ -1,4 +1,3 @@
-from fractions import Fraction
 from typing import Optional, List, OrderedDict, Union
 
 from unified_planning.model.fnode import FNode

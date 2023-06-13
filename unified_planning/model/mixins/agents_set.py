@@ -43,7 +43,7 @@ class AgentsSetMixin:
         """This method adds an Agent"""
         if agent not in self._agents:
             if self._has_name_method(agent.name):
-                msg = f"The agent name {agent.name} is already used in the problem"
+                msg = f"The agent name {agent.name} is already used in the problem!  Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
                 if self._env.error_used_name or any(
                     agent.name == a.name for a in self._agents
                 ):

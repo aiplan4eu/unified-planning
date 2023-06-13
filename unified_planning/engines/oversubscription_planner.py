@@ -55,37 +55,47 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED"}))  # type: ignore
+        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED", "NEGATIVE_CONDITIONS"}))  # type: ignore
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> "ProblemKind":
         supported_kind = ProblemKind()
         supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("DISCRETE_NUMBERS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITY")
+        supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECT")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECTS")
         supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATION")
-        supported_kind.set_expression_duration("FLUENTS_IN_DURATION")
+        supported_kind.set_time("SELF_OVERLAPPING")
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         final_supported_kind = supported_kind.intersection(engine.supported_kind())
         final_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        final_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         return final_supported_kind
 
     @staticmethod
@@ -95,36 +105,46 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.ROState"], Optional[float]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
+        em = problem.environment.expression_manager
         if len(problem.quality_metrics) == 0:
-            goals: List[Tuple["up.model.FNode", Union[Fraction, int]]] = []
+            goals: List = []
         else:
             assert len(problem.quality_metrics) == 1
             qm = problem.quality_metrics[0]
-            assert isinstance(qm, up.model.metrics.Oversubscription)
+            assert isinstance(
+                qm,
+                (
+                    up.model.metrics.Oversubscription,
+                    up.model.metrics.TemporalOversubscription,
+                ),
+            )
             goals = list(qm.goals.items())
         q = []
         for l in powerset(goals):
-            cost: Union[Fraction, int] = 0
+            weight: Union[Fraction, int] = 0
             sg = []
             for g, c in l:
-                cost += c
+                weight += c
                 sg.append(g)
-            q.append((cost, sg))
+            q.append((weight, sg))
         q.sort(reverse=True, key=lambda t: t[0])
         incomplete = False
         for t in q:
             new_problem = problem.clone()
             new_problem.clear_quality_metrics()
-            for g in t[1]:
-                new_problem.add_goal(g)
+            for g, _ in goals:
+                if isinstance(g, tuple):
+                    goal = g[1] if g[1] in t[1] else em.Not(g[1])
+                    new_problem.add_timed_goal(g[0], goal)
+                else:
+                    goal = g if g in t[1] else em.Not(g)
+                    new_problem.add_goal(goal)
             start = time.time()
             res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
             if timeout is not None:

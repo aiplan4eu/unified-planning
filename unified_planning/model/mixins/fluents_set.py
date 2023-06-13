@@ -17,7 +17,7 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Optional, List, Dict, Union
+from typing import Optional, List, Dict, Union, Iterable
 
 
 class FluentsSetMixin:
@@ -86,11 +86,11 @@ class FluentsSetMixin:
                 return True
         return False
 
-    def add_fluents(self, fluents: List["up.model.fluent.Fluent"]):
+    def add_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
-        Adds the given `list` of `fluents` to the `problem`.
+        Adds the given `fluents` to the `problem`.
 
-        :param fluents: The `list` of `fluents` that must be added to the `problem`.
+        :param fluents: The `fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
             self.add_fluent(fluent)
@@ -137,7 +137,7 @@ class FluentsSetMixin:
                 fluent_or_name, typename, None, environment=self.environment, **kwargs
             )
         if self._has_name_method(fluent.name):
-            msg = f"Name {fluent.name} already defined!"
+            msg = f"Name {fluent.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 fluent.name == f.name for f in self._fluents
             ):

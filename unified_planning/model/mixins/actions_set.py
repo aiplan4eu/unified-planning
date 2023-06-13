@@ -16,7 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List
+from typing import Iterator, List, Iterable
 
 
 class ActionsSetMixin:
@@ -137,7 +137,7 @@ class ActionsSetMixin:
             action.environment == self._env
         ), "Action does not have the same environment of the problem"
         if self._has_name_method(action.name):
-            msg = f"Name {action.name} already defined!"
+            msg = f"Name {action.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
             if self._env.error_used_name or any(
                 action.name == a.name for a in self._actions
             ):
@@ -149,11 +149,11 @@ class ActionsSetMixin:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
 
-    def add_actions(self, actions: List["up.model.action.Action"]):
+    def add_actions(self, actions: Iterable["up.model.action.Action"]):
         """
         Adds the given `actions` to the `problem`.
 
-        :param actions: The `list` of `actions` that must be added to the `problem`.
+        :param actions: The `actions` that must be added to the `problem`.
         """
         for action in actions:
             self.add_action(action)
