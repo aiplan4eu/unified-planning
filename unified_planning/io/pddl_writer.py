@@ -546,9 +546,14 @@ class PDDLWriter:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
                 if len(a.preconditions) > 0:
-                    out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in (c.simplify() for c in a.preconditions) if not p.is_true()])})'
-                    )
+                    precond_str: List[str] = []
+                    for p in (c.simplify() for c in a.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
@@ -678,9 +683,13 @@ class PDDLWriter:
         if self.problem.kind.has_actions_cost():
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
-        out.write(
-            f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
-        )
+        goals_str: List[str] = []
+        for g in (c.simplify() for c in self.problem.goals):
+            if g.is_and():
+                goals_str.extend(map(converter.convert, g.args))
+            else:
+                goals_str.append(converter.convert(g))
+        out.write(f' (:goal (and {" ".join(goals_str)}))\n')
         if len(self.problem.trajectory_constraints) > 0:
             out.write(
                 f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
