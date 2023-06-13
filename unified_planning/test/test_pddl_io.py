@@ -794,6 +794,31 @@ class TestPddlIO(TestCase):
                 plan = planner.solve(problem).plan
                 self.assertEqual(len(plan.actions), expected_plan_length)
 
+    def test_writer_nested_and(self):
+        x, y, z = Fluent("x"), Fluent("y"), Fluent("z")
+        goals: List[FNode] = [
+            And(x, y),
+            And(x, And(y, z)),
+            And(Or(x, y), And(y, z)),
+        ]
+        expected_goals: List[str] = [
+            "(:goal (and (x) (y)))\n",
+            "(:goal (and (x) (y) (z)))\n",
+            "(:goal (and (or (x) (y)) (y) (z)))\n",
+        ]
+        assert len(goals) == len(
+            expected_goals
+        ), "goals and expected_goals must have the same length"
+        for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
+            problem = Problem(f"test_{i}")
+            problem.add_fluent(x, default_initial_value=False)
+            problem.add_fluent(y, default_initial_value=False)
+            problem.add_fluent(z, default_initial_value=False)
+            problem.add_goal(goal)
+            writer = PDDLWriter(problem)
+            pddl_problem = writer.get_problem()
+            self.assertIn(expected_goal, pddl_problem)
+
 
 def _have_same_user_types_considering_renamings(
     original_problem: unified_planning.model.Problem,

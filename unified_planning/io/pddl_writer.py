@@ -684,7 +684,7 @@ class PDDLWriter:
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
         goals_str: List[str] = []
-        for g in self.problem.goals:
+        for g in (c.simplify() for c in self.problem.goals):
             if g.is_and():
                 goals_str.extend(map(converter.convert, g.args))
             else:
