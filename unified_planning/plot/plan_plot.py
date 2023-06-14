@@ -22,7 +22,14 @@ from unified_planning.engines.sequential_simulator import (
     evaluate_quality_metric_in_initial_state,
     evaluate_quality_metric,
 )
-from unified_planning.model import FNode, Problem, State, PlanQualityMetric, Expression
+from unified_planning.model import (
+    FNode,
+    Problem,
+    State,
+    PlanQualityMetric,
+    Expression,
+    Action,
+)
 from unified_planning.model.walkers import StateEvaluator
 from unified_planning.plans.plan import ActionInstance, Plan
 from unified_planning.plans.sequential_plan import SequentialPlan
@@ -597,6 +604,7 @@ def _draw_base_graph(
             Callable[["ContingentPlanNode"], str],
             Callable[["ActionInstance"], str],
             Optional[Callable[["STNPlanNode"], str]],
+            Optional[Callable[[FNode], str]],
         ]
     ] = None,
     arrowsize: int = ARROWSIZE,
