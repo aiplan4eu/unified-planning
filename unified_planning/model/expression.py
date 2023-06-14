@@ -491,12 +491,17 @@ class ExpressionManager(object):
         :param fluent_exp: The ``Fluent_exp`` that will be set as the ``args`` of this expression.
         :return: The created ``Dot`` Expression.
         """
+        (fluent_exp,) = self.auto_promote(fluent_exp)
+        assert fluent_exp.is_fluent_exp()
         if not isinstance(agent, str):
             assert isinstance(agent, up.model.multi_agent.Agent), "Typing not respected"
             assert agent.environment == self.environment
+            if fluent_exp.fluent() not in agent.fluents:
+                raise UPExpressionDefinitionError(
+                    f"Fluent {fluent_exp.fluent()} does not belong to agent {agent.name}"
+                )
             agent = agent.name
         assert isinstance(agent, str)
-        (fluent_exp,) = self.auto_promote(fluent_exp)
         return self.create_node(
             node_type=OperatorKind.DOT, args=(fluent_exp,), payload=agent
         )
