@@ -162,7 +162,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             else:
                 warnings.warn(cast(str, msg))
         prev_state: Optional[State] = simulator.get_initial_state()
-        next_state: State = prev_state
+        next_state: Optional[State] = prev_state
         if metric is not None:
             metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
         msg = None
