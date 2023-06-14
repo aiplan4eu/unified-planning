@@ -240,8 +240,12 @@ class MultiAgentProblem(  # type: ignore[misc]
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.is_dot():
-            agent = fluent_exp.agent()
+            agent = self.agent(fluent_exp.agent())
             f = fluent_exp.arg(0).fluent()
+            if f not in agent.fluents:
+                raise UPProblemDefinitionError(
+                    f"Expression {fluent_exp} is invalid because {f} does not belong to agent {agent.name}"
+                )
             v = agent.fluents_defaults.get(f, None)
             if v is None:
                 raise UPProblemDefinitionError("Initial value not set!")

@@ -175,7 +175,7 @@ class ExpressionManager(object):
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
                 "up.model.timing.Timing",
-                "up.model.multi_agent.Agent",
+                str,
                 bool,
                 int,
                 Fraction,
@@ -479,18 +479,23 @@ class ExpressionManager(object):
 
     def Dot(
         self,
-        agent: "up.model.multi_agent.Agent",
+        agent: Union["up.model.multi_agent.Agent", str],
         fluent_exp: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression for the given ``agent`` and ``fluent_exp``.
-        Restriction: agent must be of ``agent type`` and fluent_exp must be of ``fluentExp type``
+        Restriction: agent must be of ``agent type`` or the name of an agent and
+        fluent_exp must be of ``fluentExp type``
 
         :param agent: The ``Agent`` that will be set as the ``payload`` of this expression.
         :param fluent_exp: The ``Fluent_exp`` that will be set as the ``args`` of this expression.
         :return: The created ``Dot`` Expression.
         """
-        assert agent.environment == self.environment
+        if not isinstance(agent, str):
+            assert isinstance(agent, up.model.multi_agent.Agent), "Typing not respected"
+            assert agent.environment == self.environment
+            agent = agent.name
+        assert isinstance(agent, str)
         (fluent_exp,) = self.auto_promote(fluent_exp)
         return self.create_node(
             node_type=OperatorKind.DOT, args=(fluent_exp,), payload=agent
