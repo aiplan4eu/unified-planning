@@ -21,6 +21,7 @@ from unified_planning.model.mixins import (
 )
 from typing import Optional, List, Union, Iterable
 from unified_planning.model.expression import ConstantExpression
+from unified_planning.exceptions import UPUsageError
 
 
 class Agent(
@@ -84,6 +85,10 @@ class Agent(
     def name(self) -> str:
         """Returns the `Agent` `name`."""
         return self._name
+
+    @name.setter
+    def name(self, new_value: str):
+        raise UPUsageError("The name of an Agent is immutable.")
 
     @property
     def environment(self) -> "up.Environment":

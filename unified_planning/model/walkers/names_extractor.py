@@ -66,7 +66,7 @@ class NamesExtractor(walkers.dag.DagWalker):
         return self._args_merge_in_place(args, {expression.object().name})
 
     def walk_dot(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
-        return self._args_merge_in_place(args, {expression.agent().name})
+        return self._args_merge_in_place(args, {expression.agent()})
 
     @walkers.handles(
         op.OperatorKind.AND,

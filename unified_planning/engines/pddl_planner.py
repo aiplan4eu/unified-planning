@@ -116,6 +116,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
         ],
     ) -> "up.plans.Plan":
@@ -144,6 +145,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
         ],
     ) -> "up.plans.Plan":

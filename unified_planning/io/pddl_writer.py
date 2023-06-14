@@ -177,6 +177,7 @@ class ConverterToPDDLString(walkers.DagWalker):
                     "up.model.Action",
                     "up.model.Fluent",
                     "up.model.Object",
+                    "up.model.multi_agent.Agent",
                 ]
             ],
             str,
@@ -345,6 +346,7 @@ class PDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
             str,
         ] = {}
@@ -358,6 +360,7 @@ class PDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
@@ -745,6 +748,7 @@ class PDDLWriter:
             "up.model.Object",
             "up.model.Parameter",
             "up.model.Variable",
+            "up.model.multi_agent.Agent",
         ],
     ) -> str:
         """This function returns a valid and unique PDDL name."""
@@ -790,6 +794,7 @@ class PDDLWriter:
         "up.model.Object",
         "up.model.Parameter",
         "up.model.Variable",
+        "up.model.multi_agent.Agent",
     ]:
         """
         Since `PDDL` has a stricter set of possible naming compared to the `unified_planning`, when writing
@@ -872,6 +877,7 @@ def _get_pddl_name(
         "up.model.Parameter",
         "up.model.Variable",
         "up.model.Problem",
+        "up.model.multi_agent.Agent",
     ]
 ) -> str:
     """This function returns a pddl name for the chosen item"""

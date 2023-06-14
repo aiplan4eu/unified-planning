@@ -371,15 +371,9 @@ class TypeChecker(walkers.dag.DagWalker):
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> Optional["unified_planning.model.types.Type"]:
         assert expression.is_dot()
-        a = expression.agent()
         t = expression.args[0]
-        f = t.fluent().name
-        if args[0] is None:
-            return None
         if len(args) != 1:
             return None
         if not t.is_fluent_exp():
-            return None
-        if not a.fluent(f):
             return None
         return args[0]
