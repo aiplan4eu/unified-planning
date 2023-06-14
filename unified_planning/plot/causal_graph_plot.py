@@ -13,7 +13,14 @@
 # limitations under the License.
 #
 
-from unified_planning.model import Problem, FNode, Action
+from itertools import chain, product
+from unified_planning.model import (
+    Problem,
+    FNode,
+    Action,
+    InstantaneousAction,
+    DurativeAction,
+)
 from unified_planning.plot.plan_plot import (
     FIGSIZE,
     ARROWSIZE,
@@ -42,20 +49,20 @@ from typing import (
 )
 
 
-def plot_contingent_plan(
+def plot_causal_graph(
     problem: Problem,
     *,
     filename: Optional[str] = None,
     figsize: Tuple[float, float] = FIGSIZE,
     top_bottom: bool = False,
-    generate_node_label: Optional[Callable[[Action, Sequence[FNode]], str]] = None,
+    generate_node_label: Optional[Callable[[FNode], str]] = None,
     arrowsize: int = ARROWSIZE,
     node_size: Union[int, Sequence[int]] = NODE_SIZE,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
     font_color: str = FONT_COLOR,
-    generate_edge_label: Optional[Callable[[Dict[FNode, FNode]], str]] = None,
+    generate_edge_label: Optional[Callable[[Action, Sequence[FNode]], str]] = None,
     edge_font_size: int = EDGE_FONT_SIZE,
     edge_font_color: str = EDGE_FONT_COLOR,
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
@@ -102,18 +109,94 @@ def plot_contingent_plan(
     # param "sanitization"
     if generate_edge_label is None:
         edge_label_function: Callable[
-            [Dict[FNode, FNode]], str
+            [Action, Sequence[FNode]], str
         ] = _generate_causal_graph_edge_label
     else:
         edge_label_function = generate_edge_label
+    if draw_networkx_edge_labels_kwargs is None:
+        draw_networkx_edge_labels_kwargs = {}
     if generate_node_label is None:
-        generate_node_label = lambda x: str(x.action_instance)
-    edge_labels: Dict[Tuple[FNode, FNode], str] = {}
+        generate_node_label = str
+
+    # TODO handle problem not grounded
+    fluents_red: Dict[FNode, Set[Action]] = {}
+    fluents_written: Dict[FNode, Set[Action]] = {}
+
+    fve = problem.environment.free_vars_extractor
+    for action in problem.actions:
+        assert not action.parameters
+        if isinstance(action, InstantaneousAction):
+            for p in action.preconditions:
+                # TODO cover when a fluent has fluents inside...
+                for fluent in fve.get(p):
+                    if any(map(fve.get, fluent.args)):
+                        raise NotImplementedError(
+                            "nested fluents still are not implemented"
+                        )
+                    fluents_red.setdefault(fluent, set()).add(action)
+            for e in action.effects:
+                fluent = e.fluent
+                assert fluent.is_fluent_exp()
+                if any(map(fve.get, fluent.args)):
+                    raise NotImplementedError(
+                        "nested fluents still are not implemented"
+                    )
+                fluents_written.setdefault(fluent, set()).add(action)
+                for fluent in chain(fve.get(e.value), fve.get(e.condition)):
+                    if any(map(fve.get, fluent.args)):
+                        raise NotImplementedError(
+                            "nested fluents still are not implemented"
+                        )
+                    fluents_red.setdefault(fluent, set()).add(action)
+        elif isinstance(action, DurativeAction):
+            for p in chain(*action.conditions.values()):
+                # TODO cover when a fluent has fluents inside...
+                for fluent in fve.get(p):
+                    if any(map(fve.get, fluent.args)):
+                        raise NotImplementedError(
+                            "nested fluents still are not implemented"
+                        )
+                    fluents_red.setdefault(fluent, set()).add(action)
+            for e in chain(*action.effects.values()):
+                fluent = e.fluent
+                assert fluent.is_fluent_exp()
+                if any(map(fve.get, fluent.args)):
+                    raise NotImplementedError(
+                        "nested fluents still are not implemented"
+                    )
+                fluents_written.setdefault(fluent, set()).add(action)
+                for fluent in chain(fve.get(e.value), fve.get(e.condition)):
+                    if any(map(fve.get, fluent.args)):
+                        raise NotImplementedError(
+                            "nested fluents still are not implemented"
+                        )
+                    fluents_red.setdefault(fluent, set()).add(action)
+        else:
+            raise NotImplementedError
+    edge_labels_set: Dict[Tuple[FNode, FNode], Set[str]] = {}
     graph = nx.DiGraph()
-    for node in visit_tree(plan.root_node):
-        for fluents, child in node.children:
-            graph.add_edge(node, child)
-            edge_labels[(node, child)] = edge_label_function(fluents)
+    all_fluents = set(chain(fluents_red.keys(), fluents_written.keys()))
+    # Add an edge if a fluent that is red or written and it's in the same action of a written fluent
+    empty_set = set()
+    for left_node, right_node in product(all_fluents, fluents_written.keys()):
+        rn_actions = fluents_written.get(right_node, empty_set)
+        if left_node != right_node and rn_actions:
+            label = edge_labels_set.setdefault((left_node, right_node), set())
+            edge_created = False
+            for ln_action in chain(
+                fluents_red.get(left_node, empty_set),
+                fluents_written.get(left_node, empty_set),
+            ):
+                if ln_action in rn_actions:
+                    if not edge_created:
+                        edge_created = True
+                        graph.add_edge(left_node, right_node)
+                    label.add(
+                        edge_label_function(ln_action, tuple())
+                    )  # TODO fix the tuple when non-grounded problems will be accepted
+    edge_labels: Dict[Tuple[FNode, FNode], str] = {
+        edge: ", ".join(labels) for edge, labels in edge_labels_set.items() if labels
+    }
 
     fig, ax, pos = _draw_base_graph(
         graph,
