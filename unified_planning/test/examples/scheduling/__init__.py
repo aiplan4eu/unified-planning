@@ -1,7 +1,7 @@
-from unified_planning.test.scheduling import examples, jobshop
+from unified_planning.test.examples.scheduling import examples, jobshop
 
 
-def problems():
+def get_example_problems():
     instances = [
         examples.basic(),
         examples.resource_set(),

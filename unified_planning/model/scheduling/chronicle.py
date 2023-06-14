@@ -9,7 +9,7 @@ from unified_planning.model.types import Type
 
 
 class Chronicle(TimedCondsEffs):
-    """Core structure to represent a set of timed conditions and effects."""
+    """Core structure to represent a set of variables, constraints, timed conditions and effects in scheduling problems."""
 
     def __init__(
         self,

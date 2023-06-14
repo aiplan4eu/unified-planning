@@ -1,4 +1,3 @@
-import unified_planning.test.scheduling.examples
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 from typing import List

@@ -28,7 +28,7 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 class TestScheduling(TestCase):
     def test_load_all(self):
-        problems = up.test.scheduling.problems()
+        problems = up.test.examples.scheduling.get_example_problems()
         for name, test_case in problems.items():
             problem = test_case.problem
             print(f"======== {name} =============")
