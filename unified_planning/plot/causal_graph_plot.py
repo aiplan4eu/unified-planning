@@ -177,7 +177,7 @@ def plot_causal_graph(
     graph = nx.DiGraph()
     all_fluents = set(chain(fluents_red.keys(), fluents_written.keys()))
     # Add an edge if a fluent that is red or written and it's in the same action of a written fluent
-    empty_set = set()
+    empty_set: Set[FNode] = set()
     for left_node, right_node in product(all_fluents, fluents_written.keys()):
         rn_actions = fluents_written.get(right_node, empty_set)
         if left_node != right_node and rn_actions:
@@ -187,6 +187,7 @@ def plot_causal_graph(
                 fluents_red.get(left_node, empty_set),
                 fluents_written.get(left_node, empty_set),
             ):
+                assert isinstance(ln_action, Action)
                 if ln_action in rn_actions:
                     if not edge_created:
                         edge_created = True
