@@ -431,6 +431,8 @@ class TestProtobufProblems(TestCase):
         for name, example in self.problems.items():
             problem = example.problem
             plan = example.plan
+            if plan is None:
+                continue
             plan_pb = self.pb_writer.convert(plan)
             plan_up = self.pb_reader.convert(plan_pb, problem)
 

@@ -14,7 +14,7 @@
 #
 """This module defines the engine interface."""
 
-from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.engines.credits import Credits
 from abc import ABCMeta, abstractmethod, ABC
 from enum import Enum

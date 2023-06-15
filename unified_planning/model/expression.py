@@ -47,6 +47,9 @@ ConstantExpression = Union[
 TimeExpression = Union[
     "up.model.timing.Timing",
     "up.model.timing.Timepoint",
+    int,
+    float,
+    Fraction,
 ]
 Expression = Union[
     TimeExpression,

@@ -118,13 +118,25 @@ class Chronicle(TimedCondsEffs):
         The resulting parameter's identifier will be prefixed with the activity's name but may be
         used outside the activity itself. For instance, it could appear in global constraints or
         constraints involving more than one activity."""
-        assert ":" not in name, f"Usage of ':' is forbidden in names: {name}"
-        scoped_name = f"{self.name}:{name}"
+        assert "." not in name, f"Usage of '.' is forbidden in names: {name}"
+        assert name not in [
+            "start",
+            "end",
+        ], f"Usage of parameter name {name} is reserved"
+        scoped_name = f"{self.name}.{name}"
         if name in self._parameters:
             raise ValueError(f"Name '{name}' already used in chronicle '{self.name}'")
         param = Parameter(scoped_name, tpe)
         self._parameters[name] = param
         return param
+
+    def get_parameter(self, name: str) -> Parameter:
+        """Returns the parameter with the given name."""
+        if name not in self._parameters:
+            raise ValueError(
+                f"Unknown parameter '{name}. Available parameters: {list(self._parameters.keys())}"
+            )
+        return self._parameters[name]
 
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:

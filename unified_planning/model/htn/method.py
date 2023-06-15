@@ -56,7 +56,7 @@ class ParameterizedTask:
         return self._task
 
     @property
-    def parameters(self) -> List[up.model.parameter.Parameter]:
+    def parameters(self) -> List["up.model.parameter.Parameter"]:
         return self._params
 
 

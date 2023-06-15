@@ -380,6 +380,50 @@ message Hierarchy {
     TaskNetwork initial_task_network = 3;
 }
 
+// ============= Scheduling =======================
+
+// Activity in a scheduling problem.
+message Activity {
+    // Name of the activity that must uniquely identify it.
+    string name = 1;
+
+    // Typed and named parameters of the activity.
+    repeated Parameter parameters = 2;
+
+    // Duration of the activity
+    Duration duration = 3;
+
+    // Conjunction of conditions that must hold if the activity is present.
+    repeated Condition conditions = 4;
+
+    // Conjunction of effects that this activity produces.
+    repeated Effect effects = 5;
+
+    // Conjunction of static constraints that must hold if the activity is present.
+    repeated Expression constraints = 6;
+}
+
+// Extension of `Problem` for scheduling
+message SchedulingExtension {
+    // All potential activities of the scheduling problem.
+    repeated Activity activities = 1;
+
+    // All variables in the base problem
+    repeated Parameter variables = 2;
+
+    // All constraints in the base problem.
+    repeated Expression constraints = 5;
+}
+
+message Schedule {
+    // Name of the activities that appear in the solution
+    repeated string activities = 1;
+
+    // Assignment of all variables and activity parameters and timepoints
+    // that appear in the solution.
+    map<string, Atom> variable_assignments = 2;
+}
+
 
 
 // ============== Problem =========================
@@ -481,7 +525,6 @@ message Metric {
     repeated TimedGoalWithWeight timed_goals = 6;
 }
 
-// features: ACTION_BASED
 message Problem {
     string domain_name = 1;
     string problem_name = 2;
@@ -490,6 +533,7 @@ message Problem {
     repeated ObjectDeclaration objects = 5;
 
     // List of actions in the domain.
+    // features: ACTION_BASED
     repeated Action actions = 6;
 
     // Initial state, including default values of state variables.
@@ -508,10 +552,13 @@ message Problem {
     // The plan quality metrics
     repeated Metric metrics = 11;
 
-
     // If the problem is hierarchical, defines the tasks and methods as well as the initial task network.
-    // features: hierarchical
+    // features: HIERARCHICAL
     Hierarchy hierarchy = 12;
+
+    // Scheduling-specific extension of the problem.
+    // features: SCHEDULING
+    SchedulingExtension scheduling_extension = 17;
 
     // Trajectory constraints of the planning problem.
     repeated Expression trajectory_constraints = 13;
@@ -532,6 +579,7 @@ enum Feature {
     // PROBLEM_CLASS
     ACTION_BASED = 0;
     HIERARCHICAL = 26;
+    SCHEDULING = 56;
     // PROBLEM_TYPE
     SIMPLE_NUMERIC_PLANNING = 30;
     GENERAL_NUMERIC_PLANNING = 31;
@@ -622,7 +670,6 @@ message ActionInstance {
     // End time of the action. The default 0 value is OK in the case of non-temporal planning
     // feature: [DURATIVE_ACTIONS]
     Real end_time = 5;
-
 }
 
 message MethodInstance {
@@ -644,18 +691,22 @@ message PlanHierarchy {
 
     // Instances of all methods used in the plan.
     repeated MethodInstance methods = 2;
-
 }
 
 message Plan {
     // An ordered sequence of actions that appear in the plan.
     // The order of the actions in the list must be compatible with the partial order of the start times.
     // In case of non-temporal planning, this allows having all start time at 0 and only rely on the order in this sequence.
+    // features: ACTION_BASED
     repeated ActionInstance actions = 1;
 
     // When the plan is hierarchical, this object provides the decomposition of hte root tasks into the actions of the plan
     // feature: HIERARCHY
     PlanHierarchy hierarchy = 2;
+
+    // Solution representation of a scheduling problem.
+    // feature: SCHEDULING
+    Schedule schedule = 3;
 }
 
 

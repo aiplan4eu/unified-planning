@@ -23,6 +23,7 @@ import unified_planning.engines
 import unified_planning.model.htn
 import unified_planning.engines
 import unified_planning.plans
+from unified_planning.environment import get_environment
 from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
 import unified_planning.plans
@@ -390,10 +391,20 @@ class ProtobufWriter(Converter):
 
     @handles(model.DurativeAction)
     def _convert_durative_action(self, a: model.DurativeAction) -> proto.Action:
-        effects = []
+        return proto.Action(
+            name=a.name,
+            parameters=[self.convert(p) for p in a.parameters],
+            duration=self.convert(a.duration),
+            conditions=self._convert_timed_conditions(a.conditions),
+            effects=self._convert_timed_effects(a.effects),
+        )
+
+    def _convert_timed_conditions(
+        self, conds: Dict[model.timing.TimeInterval, List[model.fnode.FNode]]
+    ) -> List[proto.Condition]:
         conditions = []
 
-        for span, cond in a.conditions.items():
+        for span, cond in conds.items():
             span = self.convert(span)
             for c in cond:
                 conditions.append(
@@ -402,8 +413,14 @@ class ProtobufWriter(Converter):
                         span=span,
                     )
                 )
-        for ot, eff in a.effects.items():
-            ot = self.convert(ot)
+        return conditions
+
+    def _convert_timed_effects(
+        self, effs: Dict[model.timing.Timing, List[model.effect.Effect]]
+    ) -> List[proto.Effect]:
+        effects = []
+        for ot, eff in effs.items():
+            ot = self._convert_timing(ot)
             for e in eff:
                 effects.append(
                     proto.Effect(
@@ -411,13 +428,17 @@ class ProtobufWriter(Converter):
                         occurrence_time=ot,
                     )
                 )
+        return effects
 
-        return proto.Action(
+    @handles(model.scheduling.Activity)
+    def _convert_activity(self, a: model.scheduling.Activity) -> proto.Activity:
+        return proto.Activity(
             name=a.name,
             parameters=[self.convert(p) for p in a.parameters],
             duration=self.convert(a.duration),
-            conditions=conditions,
-            effects=effects,
+            conditions=self._convert_timed_conditions(a.conditions),
+            effects=self._convert_timed_effects(a.effects),
+            constraints=[self.convert(c) for c in a.constraints],
         )
 
     @handles(model.timing.Timepoint)
@@ -531,13 +552,22 @@ class ProtobufWriter(Converter):
             constraints=[self.convert(c) for c in tn.constraints],
         )
 
-    def build_hierarchy(
+    def _build_hierarchy(
         self, problem: model.htn.HierarchicalProblem
     ) -> proto.Hierarchy:
         return proto.Hierarchy(
             initial_task_network=self.convert(problem.task_network),
             abstract_tasks=[self.convert(t) for t in problem.tasks],
             methods=[self.convert(m) for m in problem.methods],
+        )
+
+    def _build_scheduling(
+        self, problem: model.scheduling.SchedulingProblem
+    ) -> proto.SchedulingExtension:
+        return proto.SchedulingExtension(
+            activities=[self.convert(a) for a in problem.activities],
+            variables=[self.convert(v) for v in problem.base_variables],
+            constraints=[self.convert(c) for c in problem.base_constraints],
         )
 
     @handles(model.Problem, model.htn.HierarchicalProblem)
@@ -551,13 +581,8 @@ class ProtobufWriter(Converter):
         problem_name = str(problem.name) if problem.name is not None else ""
         hierarchy = None
         if isinstance(problem, model.htn.HierarchicalProblem):
-            hierarchy = self.build_hierarchy(problem)
-        epsilon = None
-        if problem.epsilon is not None:
-            epsilon = proto.Real(
-                numerator=problem.epsilon.numerator,
-                denominator=problem.epsilon.denominator,
-            )
+            hierarchy = self._build_hierarchy(problem)
+
         return proto.Problem(
             domain_name=problem_name + "_domain",
             problem_name=problem_name,
@@ -579,7 +604,54 @@ class ProtobufWriter(Converter):
             ],
             discrete_time=problem.discrete_time,
             self_overlapping=problem.self_overlapping,
-            epsilon=epsilon,
+            epsilon=self.convert(problem.epsilon)
+            if problem.epsilon is not None
+            else None,
+        )
+
+    @handles(model.scheduling.SchedulingProblem)
+    def _convert_scheduling_problem(
+        self, problem: model.scheduling.SchedulingProblem
+    ) -> proto.Problem:
+        problem_name = str(problem.name) if problem.name is not None else ""
+        goals = [
+            proto.Goal(goal=self.convert(g), timing=self.convert(t))
+            for t, g in problem.base_conditions()
+        ]
+
+        sched = proto.SchedulingExtension(
+            activities=[self.convert(a) for a in problem.activities],
+            variables=[self.convert(v) for v in problem.base_variables],
+            constraints=[self.convert(c) for c in problem.base_constraints()],
+        )
+
+        return proto.Problem(
+            domain_name=problem_name + "_domain",
+            problem_name=problem_name,
+            types=[self.convert(t) for t in problem.user_types],
+            fluents=[self.convert(f, problem) for f in problem.fluents],
+            objects=[self.convert(o) for o in problem.all_objects],
+            initial_state=[
+                proto.Assignment(fluent=self.convert(x), value=self.convert(v))
+                for (x, v) in problem.initial_values.items()
+            ],
+            timed_effects=[
+                proto.TimedEffect(
+                    occurrence_time=self.convert(timing), effect=self.convert(eff)
+                )
+                for (timing, eff) in problem.base_effects()
+            ],
+            goals=goals,
+            features=[map_feature(feature) for feature in problem.kind.features],
+            metrics=[self.convert(m) for m in problem.quality_metrics],
+            hierarchy=None,
+            scheduling_extension=sched,
+            trajectory_constraints=None,
+            discrete_time=problem.discrete_time,
+            self_overlapping=problem.self_overlapping,
+            epsilon=self.convert(problem.epsilon)
+            if problem.epsilon is not None
+            else None,
         )
 
     @handles(model.metrics.MinimizeActionCosts)
@@ -769,6 +841,29 @@ class ProtobufWriter(Converter):
             hierarchy=proto.PlanHierarchy(root_tasks=root_tasks, methods=methods),
         )
         return plan
+
+    @handles(model.scheduling.schedule.Schedule)
+    def _convert_schedule(self, schedule: model.scheduling.schedule.Schedule):
+        assignments = {}
+        for var, val in schedule.assignment.items():
+            if isinstance(var, model.Timepoint):
+                if var.kind == TimepointKind.START:
+                    var = f"{var.container}.start"
+                elif var.kind == TimepointKind.END:
+                    var = f"{var.container}.end"
+                else:
+                    raise ValueError(f"Invalid timepoint in assignment: {var}")
+            else:
+                assert isinstance(var, model.Parameter)
+                var = var.name
+            (val,) = get_environment().expression_manager.auto_promote(val)
+            assignments[var] = self.convert(val).atom
+
+        schedule = proto.Schedule(
+            activities=[a.name for a in schedule.activities],
+            variable_assignments=assignments,
+        )
+        return proto.Plan(schedule=schedule)
 
     @handles(unified_planning.engines.PlanGenerationResult)
     def _convert_plan_generation_result(
