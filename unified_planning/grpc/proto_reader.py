@@ -417,8 +417,9 @@ class ProtobufReader(Converter):
             a = problem.add_activity(pa.name)
             a._set_duration_constraint(self._convert_duration(pa.duration, problem))
             for p in pa.parameters:
-                assert p.name.startswith(pa.name + ".")
-                name = p.name.removeprefix(pa.name + ".")
+                prefix = pa.name + "."
+                assert p.name.startswith(prefix)
+                name = p.name[len(prefix) :]  # remove prefix
                 a.add_parameter(name, convert_type_str(p.type, problem))
             for cond in pa.conditions:
                 a.add_condition(

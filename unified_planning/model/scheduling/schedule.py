@@ -62,7 +62,9 @@ class Schedule(Plan):
             if len(a.parameters) > 0:
 
                 def fmt(p):
-                    return f"{p.name.removeprefix(a.name+'.')}={self.get(p)}"
+                    prefix = a.name + "."
+                    assert p.name.startswith(prefix)
+                    return f"{p.name[len(prefix):]}={self.get(p)}"
 
                 s.append("(")
                 s.append(", ".join(map(fmt, a.parameters)))
