@@ -482,6 +482,7 @@ class TestPddlIO(TestCase):
                 or kind.has_bounded_int_action_parameters()
                 or kind.has_unbounded_int_action_parameters()
                 or kind.has_real_action_parameters()
+                or kind.has_scheduling()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:

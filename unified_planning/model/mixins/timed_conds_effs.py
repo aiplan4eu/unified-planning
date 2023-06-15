@@ -315,9 +315,11 @@ class TimedCondsEffs:
         )
 
     def _add_effect_instance(
-        self, t: "up.model.expression.TimeExpression", effect: "up.model.effect.Effect"
+        self,
+        timing: "up.model.expression.TimeExpression",
+        effect: "up.model.effect.Effect",
     ):
-        timing = Timing.from_time(t)
+        timing = Timing.from_time(timing)
         assert (
             self._environment == effect.environment
         ), "effect does not have the same environment of the action"
