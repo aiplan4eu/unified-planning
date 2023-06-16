@@ -44,10 +44,40 @@ class SchedulingProblem(  # type: ignore[misc]
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        self._kind = up.model.problem_kind.ProblemKind()
-        self._kind.set_problem_class("SCHEDULING")
-        # TODO: complete with more precise kinds
-        return self._kind
+        factory = up.model.problem.KindFactory(self, "SCHEDULING", self.environment)
+
+        # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
+        factory.kind.set_time("CONTINUOUS_TIME")
+
+        if len(self.base_conditions()) > 0:
+            factory.kind.set_time("TIMED_GOALS")
+
+        if len(self.base_effects()) > 0:
+            factory.kind.set_time("TIMED_EFFECTS")
+
+        for _, cond, _ in self.conditions():
+            factory.update_problem_kind_expression(cond)
+
+        for constraint in self.base_constraints():
+            factory.update_problem_kind_expression(constraint)
+
+        for _, eff in self.base_effects():
+            factory.update_problem_kind_effect(eff)
+
+        for act in self.activities:
+            factory.update_action_duration(act.duration)
+            for param in act.parameters:
+                factory.update_action_parameter(param)
+            for t, effs in act.effects.items():
+                for e in effs:
+                    factory.update_action_timed_effect(t, e)
+            for span, conds in act.conditions.items():
+                for cond in conds:
+                    factory.update_action_timed_condition(span, cond)
+            for constraint in act.constraints:
+                factory.update_problem_kind_expression(constraint)
+
+        return factory.finalize()
 
     def __init__(
         self,

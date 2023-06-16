@@ -77,4 +77,6 @@ def parse(instance: str, instance_name: str) -> SchedulingProblem:
 
 
 if __name__ == "__main__":
-    print(parse(FT06, "ft06-operators"))
+    pb = parse(FT06, "ft06-operators")
+    print(pb)
+    print(pb.kind)

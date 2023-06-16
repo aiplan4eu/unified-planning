@@ -15,8 +15,8 @@ class Schedule(Plan):
 
     def __init__(
         self,
-        assignment: Optional[Dict[Variable, Value]] = None,
         activities: Optional[List[Activity]] = None,
+        assignment: Optional[Dict[Variable, Value]] = None,
         environment: Optional["Environment"] = None,
     ):
         # Associate each variable (timepoint or parameter) of the problem to its value in the solution

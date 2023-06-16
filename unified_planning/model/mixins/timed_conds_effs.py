@@ -161,7 +161,9 @@ class TimedCondsEffs:
 
     def add_condition(
         self,
-        interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
+        interval: Union[
+            "up.model.expression.TimeExpression", "up.model.timing.TimeInterval"
+        ],
         condition: Union[
             "up.model.fnode.FNode",
             "up.model.fluent.Fluent",
@@ -178,8 +180,11 @@ class TimedCondsEffs:
         :param condition: The expression that must be `True` in the given `interval` for this
             `action` to be applicable.
         """
-        if isinstance(interval, up.model.Timing):
-            interval = up.model.TimePointInterval(interval)
+        if not isinstance(interval, up.model.TimeInterval):
+            timing = Timing.from_time(
+                interval
+            )  # transform from int/float/timepoint... to Timing
+            interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
         (condition_exp,) = self._environment.expression_manager.auto_promote(condition)
         assert self._environment.type_checker.get_type(condition_exp).is_bool_type()
         conditions = self._conditions.setdefault(interval, [])

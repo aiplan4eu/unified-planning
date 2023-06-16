@@ -1,5 +1,6 @@
 from collections import namedtuple
 
+import unified_planning.plans
 from unified_planning.plans import Schedule
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
@@ -82,5 +83,28 @@ def resource_set():
     return Example(pb, None)
 
 
+def non_numeric():
+    pb = SchedulingProblem()
+    busy = pb.add_fluent("busy", default_initial_value=False)
+
+    def create_activiy(name: str) -> Activity:
+        a = pb.add_activity(name, duration=5)
+        a.add_condition(a.start, Not(busy))
+        a.add_effect(a.start, busy, True)
+        a.add_effect(a.end - 1, busy, False)
+        return a
+
+    a = create_activiy("a")
+    b = create_activiy("b")
+
+    sol = unified_planning.plans.Schedule(
+        [a, b], {a.start: 0, a.end: 5, b.start: 5, b.end: 9}
+    )
+
+    return Example(pb, sol)
+
+
 if __name__ == "__main__":
-    print(basic())
+    print(resource_set().problem)
+    print("=========")
+    print(non_numeric().problem)

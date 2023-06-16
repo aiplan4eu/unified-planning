@@ -882,25 +882,67 @@ class KindFactory:
             elif pt.is_int_type():
                 self.kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
 
+    def update_action_parameter(self, param: "up.model.Parameter"):
+        pt = param.type
+        self.update_problem_kind_type(pt)
+        if pt.is_bool_type():
+            self.kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        elif pt.is_real_type():
+            self.kind.set_parameters("REAL_ACTION_PARAMETERS")
+        elif pt.is_int_type():
+            if (
+                cast(_IntType, pt).lower_bound is None
+                or cast(_IntType, pt).upper_bound is None
+            ):
+                self.kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+            else:
+                self.kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+
+    def update_action_duration(self, duration: "up.model.DurationInterval"):
+        lower, upper = duration.lower, duration.upper
+        if lower != upper:
+            self.kind.set_time("DURATION_INEQUALITIES")
+        free_vars = self.environment.free_vars_extractor.get(
+            lower
+        ) | self.environment.free_vars_extractor.get(upper)
+        if len(free_vars) > 0:
+            only_static = True
+            for fv in free_vars:
+                if fv.fluent() not in self.static_fluents:
+                    only_static = False
+                    break
+            if only_static:
+                self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+            else:
+                self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+
+    def update_action_timed_condition(
+        self, span: "up.model.TimeInterval", cond: "up.model.FNode"
+    ):
+        if span.lower.delay != 0 or span.upper.delay != 0:
+            for t in [span.lower, span.upper]:
+                if (t.is_from_start() and t.delay > 0) or (
+                    t.is_from_end() and t.delay < 0
+                ):
+                    self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                else:
+                    self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        self.update_problem_kind_expression(cond)
+
+    def update_action_timed_effect(self, t: "up.model.Timing", eff: "up.model.Effect"):
+        if t.delay != 0:
+            if (t.is_from_start() and t.delay > 0) or (t.is_from_end() and t.delay < 0):
+                self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+            else:
+                self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        self.update_problem_kind_effect(eff)
+
     def update_problem_kind_action(
         self,
         action: "up.model.action.Action",
     ):
         for param in action.parameters:
-            pt = param.type
-            self.update_problem_kind_type(pt)
-            if pt.is_bool_type():
-                self.kind.set_parameters("BOOL_ACTION_PARAMETERS")
-            elif pt.is_real_type():
-                self.kind.set_parameters("REAL_ACTION_PARAMETERS")
-            elif pt.is_int_type():
-                if (
-                    cast(_IntType, pt).lower_bound is None
-                    or cast(_IntType, pt).upper_bound is None
-                ):
-                    self.kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
-                else:
-                    self.kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+            self.update_action_parameter(param)
         if isinstance(action, up.model.action.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
@@ -914,43 +956,13 @@ class KindFactory:
             if action.simulated_effect is not None:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
         elif isinstance(action, up.model.action.DurativeAction):
-            lower, upper = action.duration.lower, action.duration.upper
-            if lower != upper:
-                self.kind.set_time("DURATION_INEQUALITIES")
-            free_vars = self.environment.free_vars_extractor.get(
-                lower
-            ) | self.environment.free_vars_extractor.get(upper)
-            if len(free_vars) > 0:
-                only_static = True
-                for fv in free_vars:
-                    if fv.fluent() not in self.static_fluents:
-                        only_static = False
-                        break
-                if only_static:
-                    self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-                else:
-                    self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+            self.update_action_duration(action.duration)
             for i, lc in action.conditions.items():
-                if i.lower.delay != 0 or i.upper.delay != 0:
-                    for t in [i.lower, i.upper]:
-                        if (t.is_from_start() and t.delay > 0) or (
-                            t.is_from_end() and t.delay < 0
-                        ):
-                            self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-                        else:
-                            self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for c in lc:
-                    self.update_problem_kind_expression(c)
+                    self.update_action_timed_condition(i, c)
             for t, le in action.effects.items():
-                if t.delay != 0:
-                    if (t.is_from_start() and t.delay > 0) or (
-                        t.is_from_end() and t.delay < 0
-                    ):
-                        self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-                    else:
-                        self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for e in le:
-                    self.update_problem_kind_effect(e)
+                    self.update_action_timed_effect(t, e)
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
