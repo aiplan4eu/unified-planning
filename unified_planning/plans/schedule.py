@@ -4,8 +4,7 @@ from unified_planning.model.expression import ConstantExpression
 from unified_planning.environment import Environment
 from unified_planning.model import AbstractProblem, Parameter, Timepoint, FNode
 from unified_planning.model.scheduling import Activity
-from unified_planning.plans import PlanKind, ActionInstance
-from unified_planning.plans.plan import Plan
+from unified_planning.plans.plan import Plan, PlanKind, ActionInstance
 
 Variable = Union[Parameter, Timepoint]
 Value = ConstantExpression

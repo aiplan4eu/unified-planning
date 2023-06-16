@@ -842,8 +842,8 @@ class ProtobufWriter(Converter):
         )
         return plan
 
-    @handles(model.scheduling.schedule.Schedule)
-    def _convert_schedule(self, schedule: model.scheduling.schedule.Schedule):
+    @handles(unified_planning.plans.Schedule)
+    def _convert_schedule(self, schedule: unified_planning.plans.Schedule):
         assignments = {}
         for var, val in schedule.assignment.items():
             if isinstance(var, model.Timepoint):

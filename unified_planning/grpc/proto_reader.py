@@ -771,7 +771,7 @@ class ProtobufReader(Converter):
 
     def _convert_schedule(
         self, msg: proto.Schedule, problem: model.scheduling.SchedulingProblem
-    ) -> model.scheduling.schedule.Schedule:
+    ) -> unified_planning.plans.Schedule:
         activities = [problem.get_activity(act_name) for act_name in msg.activities]
         assignment = {}
         for var, val in msg.variable_assignments.items():
@@ -788,7 +788,7 @@ class ProtobufReader(Converter):
                 param = problem.get_variable(var)
             val = self._convert_atom(val, problem)
             assignment[param] = val
-        return model.scheduling.schedule.Schedule(
+        return unified_planning.plans.Schedule(
             assignment=assignment, activities=activities
         )
 

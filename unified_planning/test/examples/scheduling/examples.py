@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-from unified_planning.model.scheduling.schedule import Schedule
+from unified_planning.plans import Schedule
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 
