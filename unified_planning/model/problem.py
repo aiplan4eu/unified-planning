@@ -18,6 +18,7 @@
 from numbers import Real
 import unified_planning as up
 import unified_planning.model.tamp
+from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
@@ -360,6 +361,12 @@ class Problem(  # type: ignore[misc]
         """
         return self._get_static_and_unused_fluents()[0]
 
+    def get_unused_fluents(self) -> Set["up.model.fluent.Fluent"]:
+        """
+        Returns the set of `fluents` that are never used in the problem.
+        """
+        return self._get_static_and_unused_fluents()[1]
+
     @property
     def timed_goals(
         self,
@@ -630,40 +637,23 @@ class Problem(  # type: ignore[misc]
         """
         self.add_trajectory_constraint(self._env.expression_manager.Always(invariant))
 
-    @property
-    def kind(self) -> "up.model.problem_kind.ProblemKind":
-        """
-        Calculates and returns the `problem kind` of this `planning problem`.
-        If the `Problem` is modified, this method must be called again in order to be reliable.
-
-        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible.
-        """
-        # Create the needed data structures
-        static_fluents, unused_fluents = self._get_static_and_unused_fluents()
-
+    def _kind_factory(self) -> "KindFactory":
+        """Returns an intermediate view for the kind computation.
+        Subclasses can use the result of this method to update the kind"""
         factory = KindFactory(
             self,
             problem_class="ACTION_BASED",
-            static_fluents=static_fluents,
-            unused_fluents=unused_fluents,
             environment=self._env,
         )
 
         for action in self._actions:
-            factory.update_problem_kind_action(
-                action,
-                static_fluents,
-            )
+            factory.update_problem_kind_action(action)
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
         for effect_list in self._timed_effects.values():
             for effect in effect_list:
-                factory.update_problem_kind_effect(
-                    effect,
-                    static_fluents,
-                )
+                factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
             factory.kind.set_time("TIMED_GOALS")
             factory.kind.set_time("CONTINUOUS_TIME")
@@ -674,11 +664,22 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal_list in self._timed_goals.values():
             for goal in goal_list:
-                factory.update_problem_kind_condition(goal)
+                factory.update_problem_kind_expression(goal)
         for goal in self._goals:
-            factory.update_problem_kind_condition(goal)
+            factory.update_problem_kind_expression(goal)
 
-        return factory.finalize()
+        return factory
+
+    @property
+    def kind(self) -> "up.model.problem_kind.ProblemKind":
+        """
+        Calculates and returns the `problem kind` of this `planning problem`.
+        If the `Problem` is modified, this method must be called again in order to be reliable.
+
+        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
+        seldom as possible.
+        """
+        return self._kind_factory().finalize()
 
 
 class KindFactory:
@@ -686,9 +687,7 @@ class KindFactory:
         self,
         pb: AbstractProblem,
         problem_class: str,
-        static_fluents,
-        unused_fluents,
-        environment,
+        environment: "unified_planning.Environment",
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
@@ -696,10 +695,14 @@ class KindFactory:
         assert isinstance(pb, UserTypesSetMixin)
         assert isinstance(pb, TimeModelMixin)
 
-        self.pb = pb
+        # WARNING: self.pb may in fact be any subclass of AbstractProblem that has the above mixins.
+        # We declare it as a Problem to avoid limitations of the python type system
+        self.pb: up.model.Problem = pb
+        self.static_fluents: Set[Fluent] = pb.get_static_fluents()
+        self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
 
-        self.environment = environment
-        self.kind = up.model.ProblemKind()
+        self.environment: unified_planning.Environment = environment
+        self.kind: up.model.ProblemKind = up.model.ProblemKind()
 
         self.kind.set_problem_class(problem_class)
 
@@ -707,24 +710,28 @@ class KindFactory:
         self.kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
 
         # Create a simplifier and a linear_checker with the problem, so static fluents can be considered as constants
-        self.simplifier = up.model.walkers.simplifier.Simplifier(
-            self.environment, self.pb
+        self.simplifier: up.model.walkers.simplifier.Simplifier = (
+            up.model.walkers.simplifier.Simplifier(self.environment, self.pb)
         )
-        self.linear_checker = up.model.walkers.linear_checker.LinearChecker(
-            self.pb, self.environment
+        self.linear_checker: up.model.walkers.linear_checker.LinearChecker = (
+            up.model.walkers.linear_checker.LinearChecker(self.pb, self.environment)
         )
-        self.operators_extractor = up.model.walkers.OperatorsExtractor()
+        self.operators_extractor: up.model.walkers.OperatorsExtractor = (
+            up.model.walkers.OperatorsExtractor()
+        )
 
         (
             fluents_to_only_increase,
             fluents_to_only_decrease,
-        ) = self.pb._update_kind_metric(self.kind, self.linear_checker, static_fluents)
+        ) = self.pb._update_kind_metric(
+            self.kind, self.linear_checker, self.static_fluents
+        )
         # fluents that can only be increased (resp. decreased) for the problem to be SIMPLE_NUMERIC_PLANNING
-        self.fluents_to_only_increase = fluents_to_only_increase
-        self.fluents_to_only_decrease = fluents_to_only_decrease
+        self.fluents_to_only_increase: Set[Fluent] = fluents_to_only_increase
+        self.fluents_to_only_decrease: Set[Fluent] = fluents_to_only_decrease
 
         for fluent in self.pb.fluents:
-            self.update_problem_kind_fluent(fluent, unused_fluents)
+            self.update_problem_kind_fluent(fluent)
         for object in self.pb.all_objects:
             self.update_problem_kind_type(object.type)
 
@@ -760,11 +767,10 @@ class KindFactory:
     def update_problem_kind_effect(
         self,
         e: "up.model.effect.Effect",
-        static_fluents: Set["up.model.fluent.Fluent"],
     ):
         value = self.simplifier.simplify(e.value)
         if e.is_conditional():
-            self.update_problem_kind_condition(e.condition)
+            self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
@@ -816,17 +822,17 @@ class KindFactory:
                     or not value.is_constant()
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            if any(f in static_fluents for f in fluents_in_value):
+            if any(f in self.static_fluents for f in fluents_in_value):
                 self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-            if any(f not in static_fluents for f in fluents_in_value):
+            if any(f not in self.static_fluents for f in fluents_in_value):
                 self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type():
-                if any(f in static_fluents for f in fluents_in_value):
+                if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-                if any(f not in static_fluents for f in fluents_in_value):
+                if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
 
-    def update_problem_kind_condition(
+    def update_problem_kind_expression(
         self,
         exp: "up.model.fnode.FNode",
     ):
@@ -848,10 +854,9 @@ class KindFactory:
     def update_problem_kind_fluent(
         self,
         fluent: "up.model.fluent.Fluent",
-        unused_fluents: Set["up.model.fluent.Fluent"],
     ):
         type = fluent.type
-        if fluent not in unused_fluents or (
+        if fluent not in self.unused_fluents or (
             not type.is_int_type() and not type.is_real_type()
         ):
             self.update_problem_kind_type(type)
@@ -865,7 +870,7 @@ class KindFactory:
                 or numeric_type.upper_bound is not None
             ):
                 self.kind.set_numbers("BOUNDED_TYPES")
-            if fluent not in unused_fluents:
+            if fluent not in self.unused_fluents:
                 self.kind.set_fluents_type("NUMERIC_FLUENTS")
         elif type.is_user_type():
             self.kind.set_fluents_type("OBJECT_FLUENTS")
@@ -880,7 +885,6 @@ class KindFactory:
     def update_problem_kind_action(
         self,
         action: "up.model.action.Action",
-        static_fluents: Set["up.model.fluent.Fluent"],
     ):
         for param in action.parameters:
             pt = param.type
@@ -904,12 +908,9 @@ class KindFactory:
                 self.kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
-                self.update_problem_kind_condition(c)
+                self.update_problem_kind_expression(c)
             for e in action.effects:
-                self.update_problem_kind_effect(
-                    e,
-                    static_fluents,
-                )
+                self.update_problem_kind_effect(e)
             if action.simulated_effect is not None:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
         elif isinstance(action, up.model.action.DurativeAction):
@@ -922,7 +923,7 @@ class KindFactory:
             if len(free_vars) > 0:
                 only_static = True
                 for fv in free_vars:
-                    if fv.fluent() not in static_fluents:
+                    if fv.fluent() not in self.static_fluents:
                         only_static = False
                         break
                 if only_static:
@@ -939,7 +940,7 @@ class KindFactory:
                         else:
                             self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for c in lc:
-                    self.update_problem_kind_condition(c)
+                    self.update_problem_kind_expression(c)
             for t, le in action.effects.items():
                 if t.delay != 0:
                     if (t.is_from_start() and t.delay > 0) or (
@@ -949,10 +950,7 @@ class KindFactory:
                     else:
                         self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
                 for e in le:
-                    self.update_problem_kind_effect(
-                        e,
-                        static_fluents,
-                    )
+                    self.update_problem_kind_effect(e)
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
