@@ -7,7 +7,7 @@ All types of contributions are encouraged and valued. See the [Table of Contents
 
 > And if you like the project, but just don't have time to contribute, that's fine. There are other easy ways to support the project and show your appreciation, which we would also be very happy about:
 > - Star the project
-> - Tweet about it
+> - Post on it on social networks
 > - Refer this project in your project's readme
 > - Mention the project at local meetups and tell your friends/colleagues
 
@@ -51,7 +51,7 @@ We will then take care of the issue as soon as possible.
 ## I Want To Contribute
 
 > ### Legal Notice <!-- omit in toc -->
-> When contributing to this project, you must agree that you have authored 100% of the content, that you have the necessary rights to the content and that the content you contribute may be provided under the project license.
+> When contributing to this project, you must agree to the [Developer Certificate of Origin (DCO)](DCO.txt): all commits must be signed-off with your real name to signal the adherence to the DCO legal statement.
 
 ### Reporting Bugs
 
@@ -74,7 +74,7 @@ A good bug report shouldn't leave others needing to chase you up for more inform
 <!-- omit in toc -->
 #### How Do I Submit a Good Bug Report?
 
-> You must never report security related issues, vulnerabilities or bugs including sensitive information to the issue tracker, or elsewhere in public. Instead sensitive bugs must be sent by email to <unified-planning-maintainers@googlegroups.com>.
+> You should never report security related issues, vulnerabilities or bugs including sensitive information to the issue tracker, or elsewhere in public. Instead sensitive bugs should be sent by email to <unified-planning-maintainers@googlegroups.com>.
 
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
 

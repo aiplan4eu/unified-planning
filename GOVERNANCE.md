@@ -83,7 +83,7 @@ The following rules govern the promotion and demotion of Committers and Maintain
 
 - Any Maintainer can step down (effective immediately) from being a Maintainer by informing the Board of Maintainers.
 
-- Only a majority vote of the Board of Maintainers can nominate new Maintainers. The number rof Maintainers is not fixed.
+- Only a majority vote of the Board of Maintainers can nominate new Maintainers. The number of Maintainers is not fixed.
 
 - Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can modify the governance rules layed out in this document.
 
