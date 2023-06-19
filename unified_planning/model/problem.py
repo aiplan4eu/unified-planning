@@ -637,10 +637,10 @@ class Problem(  # type: ignore[misc]
         """
         self.add_trajectory_constraint(self._env.expression_manager.Always(invariant))
 
-    def _kind_factory(self) -> "KindFactory":
+    def _kind_factory(self) -> "_KindFactory":
         """Returns an intermediate view for the kind computation.
         Subclasses can use the result of this method to update the kind"""
-        factory = KindFactory(
+        factory = _KindFactory(
             self,
             problem_class="ACTION_BASED",
             environment=self._env,
@@ -682,7 +682,9 @@ class Problem(  # type: ignore[misc]
         return self._kind_factory().finalize()
 
 
-class KindFactory:
+class _KindFactory:
+    """Utility class to help analyze the kind of `AbstractProblem` subclass."""
+
     def __init__(
         self,
         pb: AbstractProblem,
@@ -736,7 +738,7 @@ class KindFactory:
             self.update_problem_kind_type(object.type)
 
     def finalize(self) -> "up.model.ProblemKind":
-        """Once all feature have been added, remove unnecessary features that were added preventively."""
+        """Once all features have been added, remove unnecessary features that were added preventively."""
         if (
             not self.kind.has_continuous_numbers()
             and not self.kind.has_discrete_numbers()

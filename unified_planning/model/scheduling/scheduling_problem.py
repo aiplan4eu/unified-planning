@@ -44,7 +44,7 @@ class SchedulingProblem(  # type: ignore[misc]
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        factory = up.model.problem.KindFactory(self, "SCHEDULING", self.environment)
+        factory = up.model.problem._KindFactory(self, "SCHEDULING", self.environment)
 
         # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
         factory.kind.set_time("CONTINUOUS_TIME")
