@@ -171,6 +171,7 @@ class Timing:
 
     @staticmethod
     def from_time(time: TimeExpression) -> "Timing":
+        """Converts any supported time expression into its canonical Timing representation."""
         if (
             isinstance(time, int)
             or isinstance(time, float)

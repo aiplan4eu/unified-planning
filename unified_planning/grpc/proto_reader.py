@@ -402,7 +402,6 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_condition(self.convert(timing), goal)
 
-        print(msg.scheduling_extension.constraints)
         for c in msg.scheduling_extension.constraints:
             problem.add_constraint(self.convert(c, problem))
 

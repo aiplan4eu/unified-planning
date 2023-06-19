@@ -29,14 +29,13 @@ def basic():
     machine2 = pb.add_resource("machine2", 1)
 
     a1 = pb.add_activity("a1", duration=3)
-    a1.uses(workers)  # translated to a2.uses(workers())
+    a1.uses(workers)
     a1.uses(machine1)
 
     a2 = pb.add_activity("a2", duration=6)
     a2_r = a2.add_parameter("r", Resource)  # Resource to use: r in {r1, r2, g1}
-    pb.add_constraint(
-        red(a2_r)
-    )  # restrict r to {r1, r2} (resources that satisfy red(_))
+    # restrict r to {r1, r2} (resources that satisfy red(_))
+    pb.add_constraint(red(a2_r))
     a2.uses(workers)
     a2.uses(machine2)
     a2.uses(lvl(a2_r))

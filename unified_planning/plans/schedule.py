@@ -11,7 +11,12 @@ Value = ConstantExpression
 
 
 class Schedule(Plan):
-    """Solution to a scheduling problem."""
+    """Solution to a scheduling problem.
+
+    A solution consists of the list of all activities that appear in the solution as well as an assignment of all
+    decision variables in the problem. Besides variables defined in the base problem, decision variables include all
+    parameters and start/end timepoints of activities.
+    """
 
     def __init__(
         self,
@@ -35,11 +40,13 @@ class Schedule(Plan):
             self._activities += activities
 
     def get(self, var: Variable) -> FNode:
+        """Returns the value assigned to this variable."""
         if var not in self.assignment:
             raise ValueError(f"Missing variable {var} in assignment")
         return self._assignment[var]
 
     def set(self, var: Variable, value: Value):
+        """Force the assignment of a particular value to the variable"""
         (value,) = self.environment.expression_manager.auto_promote(value)
         self._assignment[var] = value
 
@@ -86,7 +93,7 @@ class Schedule(Plan):
 
     @property
     def assignment(self) -> Dict[Variable, FNode]:
-        """Returns the an assignment of each variable of the problem to its value in the solution."""
+        """Returns the assignment of each variable of the problem to its value in the solution."""
         return self._assignment
 
     @property

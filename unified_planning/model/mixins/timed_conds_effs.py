@@ -181,9 +181,8 @@ class TimedCondsEffs:
             `action` to be applicable.
         """
         if not isinstance(interval, up.model.TimeInterval):
-            timing = Timing.from_time(
-                interval
-            )  # transform from int/float/timepoint... to Timing
+            # transform from int/float/timepoint... to Timing
+            timing = Timing.from_time(interval)
             interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
         (condition_exp,) = self._environment.expression_manager.auto_promote(condition)
         assert self._environment.type_checker.get_type(condition_exp).is_bool_type()
