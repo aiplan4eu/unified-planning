@@ -46,17 +46,11 @@ class Chronicle(TimedCondsEffs):
     def __repr__(self) -> str:
         s = []
         s.append(f"{self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
+        if len(self.parameters) > 0:
+            s += ["(", ", ".join(map(str, self.parameters)), ")"]
         s.append(" {\n")
+        if hasattr(self, "duration"):
+            s.append(f"    duration = {str(self.duration)}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
             for c in self._constraints:
