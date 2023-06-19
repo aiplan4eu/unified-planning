@@ -106,11 +106,14 @@ class Chronicle(TimedCondsEffs):
         """Returns the `Chronicle` `name`."""
         return self._name
 
+    def _clone_to(self, other: "Chronicle"):  # type: ignore[override]
+        other._parameters = self._parameters.copy()
+        other._constraints = self._constraints.copy()
+        TimedCondsEffs._clone_to(self, other)
+
     def clone(self):
         new = Chronicle(self._name, _env=self._environment)
-        new._parameters = self._parameters.copy()
-        new._constraints = self._constraints.copy()
-        TimedCondsEffs._clone_to(self, new)
+        self._clone_to(new)
         return new
 
     def add_parameter(self, name: str, tpe: Type) -> Parameter:

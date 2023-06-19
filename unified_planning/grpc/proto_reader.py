@@ -423,7 +423,7 @@ class ProtobufReader(Converter):
                 a.add_parameter(name, convert_type_str(p.type, problem))
             for cond in pa.conditions:
                 a.add_condition(
-                    self.convert(cond.span, problem), self.convert(cond.cond)
+                    self.convert(cond.span, problem), self.convert(cond.cond, problem)
                 )
             for eff in pa.effects:
                 timing = self._convert_timing(eff.occurrence_time)
@@ -639,7 +639,9 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.TimeInterval)
-    def _convert_timed_interval(self, msg: proto.TimeInterval) -> model.TimeInterval:
+    def _convert_timed_interval(
+        self, msg: proto.TimeInterval, _problem: Optional[Problem] = None
+    ) -> model.TimeInterval:
         return model.TimeInterval(
             lower=self.convert(msg.lower),
             upper=self.convert(msg.upper),

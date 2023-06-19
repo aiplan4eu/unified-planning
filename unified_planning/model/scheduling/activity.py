@@ -111,3 +111,19 @@ class Activity(Chronicle):
     def set_deadline(self, date: int):
         """Set the latest date at which the activity might end."""
         self.add_constraint(get_environment().expression_manager.LE(self.end, date))
+
+    def clone(self):
+        new = Activity(self.name, _env=self._environment)
+        self._clone_to(new)
+        new._duration = self._duration
+        return new
+
+    def __hash__(self):
+        return Chronicle.__hash__(self) + hash(self._duration)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Activity)
+            and Chronicle.__eq__(self, other)
+            and self._duration == other._duration
+        )
