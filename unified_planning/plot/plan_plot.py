@@ -52,7 +52,7 @@ from typing import (
 )
 
 # Defaults
-FIGSIZE = (12.8, 7.2)
+FIGSIZE = (100, 100)
 ARROWSIZE = 20
 NODE_SIZE = 2000
 NODE_COLOR = "#1f78b4"
@@ -67,7 +67,7 @@ def plot_plan(
     plan: "Plan",
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
 ):
     """
     Method to plot a generic plan; for more control over the overall plot use
@@ -102,11 +102,11 @@ def plot_sequential_plan(
     ] = None,
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ActionInstance"], str]] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[int, Sequence[int]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -164,6 +164,7 @@ def plot_sequential_plan(
         graph = nx.DiGraph()
         if plan.actions:
             current_ai = plan.actions[0]
+            graph.add_node(current_ai)
             for next_ai in plan.actions[1:]:
                 graph.add_edge(current_ai, next_ai)
                 current_ai = next_ai
@@ -225,7 +226,7 @@ def plot_time_triggered_plan(
     plan: "TimeTriggeredPlan",
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     instantaneous_actions_length: int = 1,
 ):
     """
@@ -237,6 +238,9 @@ def plot_time_triggered_plan(
     :param figsize: Width and height in pixels/100; for example (10, 15) means 1000
         pixels wide and 1500 pixels high.
     """
+    if figsize is None:
+        figsize = FIGSIZE
+    assert figsize is not None
     # The data frame created
     data_frame = []
     tick_vals: Set[datetime.datetime] = set()
@@ -301,11 +305,11 @@ def plot_stn_plan(
     plan: "STNPlan",
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["STNPlanNode"], str]] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[int, Sequence[int]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -406,11 +410,11 @@ def plot_contingent_plan(
     plan: "ContingentPlan",
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ContingentPlanNode"], str]] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[int, Sequence[int]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -471,6 +475,7 @@ def plot_contingent_plan(
     edge_labels: Dict[Tuple[ContingentPlanNode, ContingentPlanNode], str] = {}
     graph = nx.DiGraph()
     for node in visit_tree(plan.root_node):
+        graph.add_node(node)
         for fluents, child in node.children:
             graph.add_edge(node, child)
             edge_labels[(node, child)] = edge_label_function(fluents)
@@ -507,11 +512,11 @@ def plot_partial_order_plan(
     plan: "PartialOrderPlan",
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[["ActionInstance"], str]] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[int, Sequence[int]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -578,7 +583,7 @@ def plot_partial_order_plan(
 def _draw_base_graph(
     graph: nx.DiGraph,
     *,
-    figsize: Sequence[float] = FIGSIZE,
+    figsize: Optional[Sequence[float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[
         Union[
@@ -588,7 +593,7 @@ def _draw_base_graph(
         ]
     ] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[float, Sequence[float]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -608,13 +613,27 @@ def _draw_base_graph(
         draw_networkx_kwargs = {}
 
     # drawing part
+    labels: Dict[Any, str] = dict(map(lambda x: (x, node_label(x)), graph.nodes))
+    if node_size is None:
+        font_factor = font_size * font_size * 10.7
+
+        def length_factor(label_length: int) -> float:
+            return label_length * label_length / 28
+
+        node_size = [
+            length_factor(max(len(labels[node]), 3)) * font_factor
+            for node in graph.nodes
+        ]
+    if figsize is None:
+        figsize = FIGSIZE
+    assert figsize is not None
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
     pos = nx.nx_agraph.graphviz_layout(graph, prog="dot")
     nx.draw_networkx(
         graph,
         pos,
-        labels=dict(map(lambda x: (x, node_label(x)), graph.nodes)),
+        labels=labels,
         arrowstyle="-|>",
         arrowsize=arrowsize,
         node_size=node_size,
@@ -622,6 +641,7 @@ def _draw_base_graph(
         edge_color=edge_color,
         font_size=font_size,
         font_color=font_color,
+        font_family="monospace",
         ax=ax,
         **draw_networkx_kwargs,
     )
@@ -676,9 +696,11 @@ def _plot_expressions(
     sequential_simulator: UPSequentialSimulator,
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
 ):
-
+    if figsize is None:
+        figsize = FIGSIZE
+    assert figsize is not None
     se = StateEvaluator(problem)
 
     def fraction_to_float(number: Union[int, Fraction]) -> Union[int, float]:

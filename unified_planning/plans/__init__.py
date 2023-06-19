@@ -17,7 +17,7 @@ from unified_planning.plans.plan import Plan, ActionInstance, PlanKind
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
-from unified_planning.plans.contingent_plan import ContingentPlan
+from unified_planning.plans.contingent_plan import ContingentPlanNode, ContingentPlan
 from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 from unified_planning.plans.hierarchical_plan import HierarchicalPlan
 
@@ -28,6 +28,7 @@ __all__ = [
     "SequentialPlan",
     "TimeTriggeredPlan",
     "PartialOrderPlan",
+    "ContingentPlanNode",
     "ContingentPlan",
     "STNPlanNode",
     "STNPlan",
