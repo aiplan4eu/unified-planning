@@ -34,6 +34,8 @@ class ActionInstance:
     considered different as it is possible to have the same action twice in a `Plan`.
     """
 
+    class_id = 0
+
     def __init__(
         self,
         action: "up.model.Action",
@@ -60,6 +62,8 @@ class ActionInstance:
             motion_paths, dict
         ), "Typing not respected"
         self._motion_paths = motion_paths
+        self.id = ActionInstance.class_id
+        ActionInstance.class_id += 1
 
     def __repr__(self) -> str:
         s = []
