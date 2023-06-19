@@ -58,7 +58,6 @@ DEFAULT_ENGINES = {
     "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
     "aries": ("up_aries", "Aries"),
     "aries-val": ("up_aries", "AriesVal"),
-    "up_pps": ("up_pps.engine", "EngineImplementation"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -148,7 +147,6 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fmap",
     "aries",
     "aries-val",
-    "up_pps",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
