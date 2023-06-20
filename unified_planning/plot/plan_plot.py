@@ -52,15 +52,16 @@ from typing import (
 )
 
 # Defaults
-FIGSIZE = (100, 100)
+FIGSIZE = (13, 8)
 ARROWSIZE = 20
-NODE_SIZE = 2000
+MIN_NODE_SIZE = 4000
 NODE_COLOR = "#1f78b4"
 EDGE_COLOR = "k"
-FONT_SIZE = 8
+FONT_SIZE = 10
 FONT_COLOR = "k"
-EDGE_FONT_SIZE = 6
+EDGE_FONT_SIZE = 8
 EDGE_FONT_COLOR = "k"
+FIGSIZE_SCALE_FACTOR = 65  # A scale factor from the figure size of plotly vs matplotlib
 
 
 def plot_plan(
@@ -81,7 +82,7 @@ def plot_plan(
     functions_map = {
         SequentialPlan: plot_sequential_plan,
         TimeTriggeredPlan: plot_time_triggered_plan,
-        STNPlan: plot_sequential_plan,
+        STNPlan: plot_stn_plan,
         ContingentPlan: plot_contingent_plan,
         PartialOrderPlan: plot_partial_order_plan,
     }
@@ -277,8 +278,8 @@ def plot_time_triggered_plan(
         x_end="end",
         y="Action name",
         color="color",
-        width=figsize[0] * 100,
-        height=figsize[1] * 100,
+        width=figsize[0] * FIGSIZE_SCALE_FACTOR,
+        height=figsize[1] * FIGSIZE_SCALE_FACTOR,
     )
     x_tick_vals_list = list(tick_vals)
     y_tick_vals_list = list(y_remapping.keys())
@@ -287,6 +288,7 @@ def plot_time_triggered_plan(
             tickmode="array",
             tickvals=x_tick_vals_list,
             ticktext=list(map(x_ticks.get, x_tick_vals_list)),
+            title_text="Time",
         ),
         yaxis=dict(
             tickmode="array",
@@ -294,6 +296,7 @@ def plot_time_triggered_plan(
             ticktext=list(map(y_remapping.get, y_tick_vals_list)),
         ),
     )
+
     if filename is not None:
         assert isinstance(filename, str), "typing not respected"
         plan_plot.write_image(file=filename, format="png")
@@ -369,6 +372,8 @@ def plot_stn_plan(
         edge_label_function = generate_edge_label
     if generate_node_label is None:
         generate_node_label = str
+    if draw_networkx_edge_labels_kwargs is None:
+        draw_networkx_edge_labels_kwargs = {}
     edge_labels: Dict[Tuple[STNPlanNode, STNPlanNode], str] = {}
     graph = nx.DiGraph()
     for left_node, constraint_list in plan.get_constraints().items():
@@ -472,6 +477,8 @@ def plot_contingent_plan(
         edge_label_function = generate_edge_label
     if generate_node_label is None:
         generate_node_label = lambda x: str(x.action_instance)
+    if draw_networkx_edge_labels_kwargs is None:
+        draw_networkx_edge_labels_kwargs = {}
     edge_labels: Dict[Tuple[ContingentPlanNode, ContingentPlanNode], str] = {}
     graph = nx.DiGraph()
     for node in visit_tree(plan.root_node):
@@ -621,7 +628,7 @@ def _draw_base_graph(
             return label_length * label_length / 28
 
         node_size = [
-            length_factor(max(len(labels[node]), 3)) * font_factor
+            max(length_factor(max(len(labels[node]), 3)) * font_factor, MIN_NODE_SIZE)
             for node in graph.nodes
         ]
     if figsize is None:
@@ -793,8 +800,8 @@ def _plot_expressions(
         x="Action name",
         y=expressions_str,
         markers=True,
-        width=figsize[0] * 100,
-        height=figsize[1] * 100,
+        width=figsize[0] * FIGSIZE_SCALE_FACTOR,
+        height=figsize[1] * FIGSIZE_SCALE_FACTOR,
     )
 
     # plot boolean expressions
