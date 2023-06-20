@@ -34,4 +34,4 @@ Welcome to Unified-Planning documentation!
    contributions
    issue_tracking
    release_notes
-   api-ref
+   api/index
