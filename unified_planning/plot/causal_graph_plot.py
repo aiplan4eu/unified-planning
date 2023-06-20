@@ -25,17 +25,15 @@ from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
 )
-from unified_planning.plot.plan_plot import (
-    FIGSIZE,
+from unified_planning.plot.utils import (
     ARROWSIZE,
-    MIN_NODE_SIZE,
     NODE_COLOR,
     EDGE_COLOR,
     FONT_SIZE,
     FONT_COLOR,
     EDGE_FONT_SIZE,
     EDGE_FONT_COLOR,
-    _draw_base_graph,
+    draw_base_graph,
 )
 from unified_planning.engines import CompilationKind
 
@@ -44,8 +42,6 @@ import networkx as nx
 from typing import (
     Any,
     Dict,
-    Iterable,
-    List,
     Optional,
     Sequence,
     Set,
@@ -74,19 +70,23 @@ def plot_causal_graph(
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
     draw_networkx_edge_labels_kwargs: Optional[Dict[str, Any]] = None,
 ):
-    """# TODO update
-    This method plots the Contingent plan as a directed graph where the edges are
-    labeled with the temporal constraints contained in the given ``plan``.
+    """
+    This method plots the causal graph as a directed graph where the nodes are the
+    fluents in the (grounded) problem and the edges are labeled with the actions
+    that puts a relation on those fluents.
 
-    :param plan: The plan to plot.
+    Generally speaking, there is an arc from F1 to F2 if there is an action in the
+    problem that reads F1 and writes F2. If an action writes both F1 and F2 the arc
+    from F1 to F2 will be bidirectional.
+
+    :param problem: The problem of which the causal graph is plotted.
     :param filename: The path of the file where the plot is saved; if not specified
         the plot will be shown in a pop-up.
     :param figsize: Width and height in inches.
     :param top_bottom: If ``True`` the graph will be vertical, if ``False`` it will be
         horizontal.
     :param generate_node_label: The function used to generate the node labels
-        of the graph from a ``ContingentPlanNode``; defaults to the str of the
-        node action instance.
+        of the graph from a ``FNode``; defaults to the str method.
     :param arrowsize: The size of the arrows of the graph.
     :param node_size: The size of the nodes of the graph. If a Sequence is
         specified, it must have the same length of the nodes in the plan and
@@ -231,7 +231,7 @@ def plot_causal_graph(
         edge: ", ".join(labels) for edge, labels in edge_labels_set.items() if labels
     }
 
-    fig, ax, pos = _draw_base_graph(
+    fig, ax, pos = draw_base_graph(
         graph,
         figsize=figsize,
         top_bottom=top_bottom,

@@ -28,7 +28,6 @@ from unified_planning.model import (
     State,
     PlanQualityMetric,
     Expression,
-    Action,
 )
 from unified_planning.model.walkers import StateEvaluator
 from unified_planning.plans.plan import ActionInstance, Plan
@@ -41,6 +40,19 @@ from unified_planning.plans.contingent_plan import (
     visit_tree,
 )
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.plot.utils import (
+    FIGSIZE,
+    FIGSIZE_SCALE_FACTOR,
+    ARROWSIZE,
+    NODE_COLOR,
+    EDGE_COLOR,
+    FONT_SIZE,
+    FONT_COLOR,
+    EDGE_FONT_SIZE,
+    EDGE_FONT_COLOR,
+    draw_base_graph,
+)
+
 import datetime
 import plotly.express as px  # type: ignore[import]
 import matplotlib.pyplot as plt  # type: ignore[import]
@@ -57,18 +69,6 @@ from typing import (
     Union,
     Callable,
 )
-
-# Defaults
-FIGSIZE = (13, 8)
-ARROWSIZE = 20
-MIN_NODE_SIZE = 4000
-NODE_COLOR = "#1f78b4"
-EDGE_COLOR = "k"
-FONT_SIZE = 10
-FONT_COLOR = "k"
-EDGE_FONT_SIZE = 8
-EDGE_FONT_COLOR = "k"
-FIGSIZE_SCALE_FACTOR = 65  # A scale factor from the figure size of plotly vs matplotlib
 
 
 def plot_plan(
@@ -176,7 +176,7 @@ def plot_sequential_plan(
             for next_ai in plan.actions[1:]:
                 graph.add_edge(current_ai, next_ai)
                 current_ai = next_ai
-        fig, _, _ = _draw_base_graph(
+        fig, _, _ = draw_base_graph(
             graph,
             figsize=figsize,
             top_bottom=top_bottom,
@@ -390,7 +390,7 @@ def plot_stn_plan(
                 lower_bound, upper_bound
             )
 
-    fig, ax, pos = _draw_base_graph(
+    fig, ax, pos = draw_base_graph(
         graph,
         figsize=figsize,
         top_bottom=top_bottom,
@@ -494,7 +494,7 @@ def plot_contingent_plan(
             graph.add_edge(node, child)
             edge_labels[(node, child)] = edge_label_function(fluents)
 
-    fig, ax, pos = _draw_base_graph(
+    fig, ax, pos = draw_base_graph(
         graph,
         figsize=figsize,
         top_bottom=top_bottom,
@@ -575,7 +575,7 @@ def plot_partial_order_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    fig, _, _ = _draw_base_graph(
+    fig, _, _ = draw_base_graph(
         plan._graph,
         figsize=figsize,
         top_bottom=top_bottom,
@@ -592,75 +592,6 @@ def plot_partial_order_plan(
         plt.show()
     else:
         fig.savefig(filename)
-
-
-def _draw_base_graph(
-    graph: nx.DiGraph,
-    *,
-    figsize: Optional[Sequence[float]] = None,
-    top_bottom: bool = False,
-    generate_node_label: Optional[
-        Union[
-            Callable[["ContingentPlanNode"], str],
-            Callable[["ActionInstance"], str],
-            Optional[Callable[["STNPlanNode"], str]],
-            Optional[Callable[[FNode], str]],
-        ]
-    ] = None,
-    arrowsize: int = ARROWSIZE,
-    node_size: Optional[Union[float, Sequence[float]]] = None,
-    node_color: Union[str, Sequence[str]] = NODE_COLOR,
-    edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
-    font_size: int = FONT_SIZE,
-    font_color: str = FONT_COLOR,
-    draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
-):
-    # input "sanitization"
-    if top_bottom:
-        graph.graph.setdefault("graph", {})["rankdir"] = "TB"
-    else:
-        graph.graph.setdefault("graph", {})["rankdir"] = "LR"
-    if generate_node_label is None:
-        node_label: Callable[[Any], str] = str
-    else:
-        node_label = generate_node_label
-    if draw_networkx_kwargs is None:
-        draw_networkx_kwargs = {}
-
-    # drawing part
-    labels: Dict[Any, str] = dict(map(lambda x: (x, node_label(x)), graph.nodes))
-    if node_size is None:
-        font_factor = font_size * font_size * 10.7
-
-        def length_factor(label_length: int) -> float:
-            return label_length * label_length / 28
-
-        node_size = [
-            max(length_factor(max(len(labels[node]), 3)) * font_factor, MIN_NODE_SIZE)
-            for node in graph.nodes
-        ]
-    if figsize is None:
-        figsize = FIGSIZE
-    assert figsize is not None
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_subplot()
-    pos = nx.nx_agraph.graphviz_layout(graph, prog="dot")
-    nx.draw_networkx(
-        graph,
-        pos,
-        labels=labels,
-        arrowstyle="-|>",
-        arrowsize=arrowsize,
-        node_size=node_size,
-        node_color=node_color,
-        edge_color=edge_color,
-        font_size=font_size,
-        font_color=font_color,
-        font_family="monospace",
-        ax=ax,
-        **draw_networkx_kwargs,
-    )
-    return fig, ax, pos
 
 
 def _generate_contingent_edge_label(fluents: Dict[FNode, FNode]) -> str:
