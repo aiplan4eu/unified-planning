@@ -14,6 +14,10 @@
 #
 
 from itertools import chain, product
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPNoSuitableEngineAvailableException,
+)
 from unified_planning.model import (
     Problem,
     FNode,
@@ -24,7 +28,7 @@ from unified_planning.model import (
 from unified_planning.plot.plan_plot import (
     FIGSIZE,
     ARROWSIZE,
-    NODE_SIZE,
+    MIN_NODE_SIZE,
     NODE_COLOR,
     EDGE_COLOR,
     FONT_SIZE,
@@ -33,6 +37,8 @@ from unified_planning.plot.plan_plot import (
     EDGE_FONT_COLOR,
     _draw_base_graph,
 )
+from unified_planning.engines import CompilationKind
+
 import matplotlib.pyplot as plt  # type: ignore[import]
 import networkx as nx
 from typing import (
@@ -53,11 +59,11 @@ def plot_causal_graph(
     problem: Problem,
     *,
     filename: Optional[str] = None,
-    figsize: Tuple[float, float] = FIGSIZE,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[Callable[[FNode], str]] = None,
     arrowsize: int = ARROWSIZE,
-    node_size: Union[int, Sequence[int]] = NODE_SIZE,
+    node_size: Optional[Union[int, Sequence[int]]] = None,
     node_color: Union[str, Sequence[str]] = NODE_COLOR,
     edge_color: Union[str, Sequence[str]] = EDGE_COLOR,
     font_size: int = FONT_SIZE,
@@ -118,12 +124,39 @@ def plot_causal_graph(
     if generate_node_label is None:
         generate_node_label = str
 
-    # TODO handle problem not grounded
+    if not problem.actions:
+        raise UPUsageError("Can't plot the causal graph of a Problem without actions")
+    to_ground = any(a.parameters for a in problem.actions)
+    actions_mapping: Dict[Action, Tuple[Action, Tuple[FNode, ...]]] = {}
+    grounded_problem = problem
+    if to_ground:
+        try:
+            with problem.environment.factory.Compiler(
+                problem_kind=problem.kind, compilation_kind=CompilationKind.GROUNDING
+            ) as grounder:
+                res = grounder.compile(problem)
+                grounded_problem = res.problem
+                ai_mapping = res.map_back_action_instance
+                for ga in grounded_problem.actions:
+                    lifted_ai = ai_mapping(ga())
+                    actions_mapping[ga] = (
+                        lifted_ai.action,
+                        lifted_ai.actual_parameters,
+                    )
+        except UPNoSuitableEngineAvailableException as ex:
+            raise UPUsageError(
+                "To plot the causal graph of a problem, the problem must be grounder or a grounder capable of handling the given problem must be installed.\n"
+                + str(ex)
+            )
+
+    # Populate 2 maps:
+    #  one from a fluent to all the actions reading that fluent
+    #  one from a fluent to all the actions writing that fluent
     fluents_red: Dict[FNode, Set[Action]] = {}
     fluents_written: Dict[FNode, Set[Action]] = {}
 
     fve = problem.environment.free_vars_extractor
-    for action in problem.actions:
+    for action in grounded_problem.actions:
         assert not action.parameters
         if isinstance(action, InstantaneousAction):
             for p in action.preconditions:
@@ -137,10 +170,7 @@ def plot_causal_graph(
             for e in action.effects:
                 fluent = e.fluent
                 assert fluent.is_fluent_exp()
-                if any(map(fve.get, fluent.args)):
-                    raise NotImplementedError(
-                        "nested fluents still are not implemented"
-                    )
+                assert not any(map(fve.get, fluent.args)), "Error in effect definition"
                 fluents_written.setdefault(fluent, set()).add(action)
                 for fluent in chain(fve.get(e.value), fve.get(e.condition)):
                     if any(map(fve.get, fluent.args)):
@@ -193,8 +223,10 @@ def plot_causal_graph(
                         edge_created = True
                         graph.add_edge(left_node, right_node)
                     label.add(
-                        edge_label_function(ln_action, tuple())
-                    )  # TODO fix the tuple when non-grounded problems will be accepted
+                        edge_label_function(
+                            *actions_mapping.get(ln_action, (ln_action, tuple()))
+                        )
+                    )
     edge_labels: Dict[Tuple[FNode, FNode], str] = {
         edge: ", ".join(labels) for edge, labels in edge_labels_set.items() if labels
     }
