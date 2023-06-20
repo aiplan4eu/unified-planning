@@ -7,6 +7,19 @@ In all the examples below all the shortcuts must be imported, with the command:
 
 `from unified_planning.shortcuts import *`
 
+
+
+TODO: state representation:
+
+- fluents
+- types
+- expression
+  - static / dynamic
+- initial state
+- actions
+
+
+
 Classical and Numeric Example
 -----------------------------
 The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification. A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Unified_Planning_Basics.ipynb>`_ Python notebook where we document and explain all the different classes and their semantics.
