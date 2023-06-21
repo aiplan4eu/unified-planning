@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Set
 from warnings import warn
 
 import unified_planning as up
@@ -103,14 +103,33 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._abstract_tasks = self._abstract_tasks.copy()
         return new_p
 
+    def get_unused_fluents(self):
+        """
+        Returns the set of `fluents` that are never used in the problem.
+        """
+        # from our parents unused fluents, remove all those that appear in methods preconditions and constraints
+        unused_fluents: Set["up.model.fluent.Fluent"] = super().get_unused_fluents()
+        fve = self._env.free_vars_extractor
+        # function that takes an FNode and removes all the fluents contained in the given FNode
+        # from the unused_fluents  set.
+        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
+            (f.fluent() for e in exps for f in fve.get(e))
+        )
+        for m in self.methods:
+            remove_used_fluents(*m.preconditions)
+            remove_used_fluents(*m.constraints)
+        remove_used_fluents(*self.task_network.constraints)
+
+        return unused_fluents
+
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the problem kind of this planning problem.
 
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         minimum time as possible."""
-        self._kind = super().kind
-        self._kind.set_problem_class("HIERARCHICAL")
+        factory = self._kind_factory()
+        factory.kind.set_problem_class("HIERARCHICAL")
         (TO, PO, TEMPORAL) = (0, 1, 2)
 
         def lvl(tn: AbstractTaskNetwork):
@@ -124,27 +143,27 @@ class HierarchicalProblem(up.model.problem.Problem):
 
         ordering_kind = lvl(self.task_network)
         if len(self.task_network.variables) > 0:
-            self._kind.set_hierarchical("INITIAL_TASK_NETWORK_VARIABLES")
+            factory.kind.set_hierarchical("INITIAL_TASK_NETWORK_VARIABLES")
         if len(self.task_network.non_temporal_constraints()) > 0:
-            self._kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+            factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
 
-        linear_checker = up.model.walkers.linear_checker.LinearChecker(self)
         for method in self.methods:
             ordering_kind = max(ordering_kind, lvl(method))
             for method_cond in method.preconditions:
-                self._kind.set_hierarchical("METHOD_PRECONDITIONS")
-                self._update_problem_kind_condition(method_cond, linear_checker)
+                factory.kind.set_hierarchical("METHOD_PRECONDITIONS")
+                factory.update_problem_kind_expression(method_cond)
             if len(method.non_temporal_constraints()) > 0:
-                self._kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+                factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
 
         if ordering_kind == TO:
-            self._kind.set_hierarchical("TASK_ORDER_TOTAL")
+            factory.kind.set_hierarchical("TASK_ORDER_TOTAL")
         elif ordering_kind == PO:
-            self._kind.set_hierarchical("TASK_ORDER_PARTIAL")
+            factory.kind.set_hierarchical("TASK_ORDER_PARTIAL")
         else:
-            self._kind.set_hierarchical("TASK_ORDER_TEMPORAL")
+            factory.kind.set_hierarchical("TASK_ORDER_TEMPORAL")
+            factory.kind.set_time("CONTINUOUS_TIME")
 
-        return self._kind
+        return factory.finalize()
 
     def has_name(self, name: str) -> bool:
         """

@@ -44,8 +44,15 @@ ConstantExpression = Union[
     "up.model.object.Object",
     bool,
 ]
-Expression = Union[
+TimeExpression = Union[
     "up.model.timing.Timing",
+    "up.model.timing.Timepoint",
+    int,
+    float,
+    Fraction,
+]
+Expression = Union[
+    TimeExpression,
     BoolExpression,
     ConstantExpression,
 ]
@@ -134,6 +141,8 @@ class ExpressionManager(object):
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
+            elif isinstance(e, up.model.timing.Timepoint):
+                res.append(self.TimingExp(up.model.timing.Timing(delay=0, timepoint=e)))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             elif (

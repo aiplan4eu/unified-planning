@@ -20,6 +20,7 @@ from unified_planning.plans.partial_order_plan import PartialOrderPlan
 from unified_planning.plans.contingent_plan import ContingentPlan
 from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 from unified_planning.plans.hierarchical_plan import HierarchicalPlan
+from unified_planning.plans.schedule import Schedule
 
 __all__ = [
     "Plan",
@@ -32,4 +33,5 @@ __all__ = [
     "STNPlanNode",
     "STNPlan",
     "HierarchicalPlan",
+    "Schedule",
 ]

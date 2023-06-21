@@ -127,6 +127,7 @@ class PlanKind(Enum):
     CONTINGENT_PLAN = auto()
     STN_PLAN = auto()
     HIERARCHICAL_PLAN = auto()
+    SCHEDULE = auto()
 
 
 class Plan(ABC):

@@ -1,8 +1,9 @@
 from collections import OrderedDict
 from fractions import Fraction
-from typing import Optional, List, Union, Dict
+from typing import Optional, List, Union, Dict, Tuple
 
-from unified_planning.model.expression import ConstantExpression
+from unified_planning.model.effect import Effect
+from unified_planning.model.expression import ConstantExpression, TimeExpression
 from unified_planning.model.mixins import (
     InitialStateMixin,
     MetricsMixin,
@@ -23,7 +24,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle
-from unified_planning.model.timing import GlobalStartTiming
+from unified_planning.model.timing import GlobalStartTiming, Timing, Timepoint
 
 
 class SchedulingProblem(  # type: ignore[misc]
@@ -43,10 +44,40 @@ class SchedulingProblem(  # type: ignore[misc]
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        self._kind = up.model.problem_kind.ProblemKind()
-        self._kind.set_problem_class("SCHEDULING")
-        # TODO: complete with more precise kinds
-        return self._kind
+        factory = up.model.problem._KindFactory(self, "SCHEDULING", self.environment)
+
+        # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
+        factory.kind.set_time("CONTINUOUS_TIME")
+
+        if len(self.base_conditions()) > 0:
+            factory.kind.set_time("TIMED_GOALS")
+
+        if len(self.base_effects()) > 0:
+            factory.kind.set_time("TIMED_EFFECTS")
+
+        for _, cond, _ in self.conditions():
+            factory.update_problem_kind_expression(cond)
+
+        for constraint in self.base_constraints():
+            factory.update_problem_kind_expression(constraint)
+
+        for _, eff in self.base_effects():
+            factory.update_problem_kind_effect(eff)
+
+        for act in self.activities:
+            factory.update_action_duration(act.duration)
+            for param in act.parameters:
+                factory.update_action_parameter(param)
+            for t, effs in act.effects.items():
+                for e in effs:
+                    factory.update_action_timed_effect(t, e)
+            for span, conds in act.conditions.items():
+                for cond in conds:
+                    factory.update_action_timed_condition(span, cond)
+            for constraint in act.constraints:
+                factory.update_problem_kind_expression(constraint)
+
+        return factory.finalize()
 
     def __init__(
         self,
@@ -175,7 +206,7 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def add_variable(self, name: str, tpe: Type) -> Parameter:
         """Adds a new decision variable to the problem.
-        Such variables essentially acts as an existentially quantified variable whose scope is
+        Such variables essentially act as existentially quantified variables whose scope is
         the entire problem, which allows referring to them everywhere and access their value in the solution.
         """
         assert not self.has_name(name)
@@ -183,15 +214,33 @@ class SchedulingProblem(  # type: ignore[misc]
         self._base._parameters[name] = param
         return param
 
+    def get_variable(self, name: str) -> Parameter:
+        """Returns the existing decision variable with the given name."""
+        return self._base.get_parameter(name)
+
+    @property
+    def activities(self) -> List[Activity]:
+        """Return a list of all potential activities in the problem."""
+        return self._activities
+
     def add_activity(self, name: str, duration: int = 0) -> "Activity":
         """Creates a new activity with the given `name` in the problem."""
         act = Activity(name=name, duration=duration)
         self._activities.append(act)
         return act
 
+    def get_activity(self, name) -> "Activity":
+        """Returns the activiy with the given name."""
+        for act in self.activities:
+            if act.name == name:
+                return act
+        raise ValueError(
+            f"Unknown activity '{name}'. Available activity names: {[a.name for a in self.activities]}"
+        )
+
     def add_resource(self, name: str, capacity: int = 1) -> Fluent:
         """Declares a new resource: a numeric fluent in `[0, CAPACITY]` where capacity is the
-        initial value of the fluent and denote the capacity of the resource."""
+        default initial value of the fluent and denote the capacity of the resource."""
         tpe = self._env.type_manager.IntType(0, capacity)
         return self.add_fluent(name, tpe, default_initial_value=capacity)
 
@@ -212,13 +261,11 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def add_effect(
         self,
-        timing: Union[int, "up.model.timing.Timing"],
+        timing: "up.model.expression.TimeExpression",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        if isinstance(timing, int):
-            timing = GlobalStartTiming(timing)
         self._base.add_effect(timing, fluent, value, condition)  # type: ignore
 
     def add_increase_effect(
@@ -234,14 +281,84 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def add_decrease_effect(
         self,
-        timing: Union[int, "up.model.timing.Timing"],
+        timing: TimeExpression,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        if isinstance(timing, int):
-            timing = GlobalStartTiming(timing)
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
+
+    @property
+    def variables(self) -> List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]]:
+        """Returns all decision variables (timepoints and parameters) defined in this problem and its activities.
+        For each variable, the activity in which it was defined is also given."""
+        vars: List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]] = []
+        vars += map(lambda param: (param, None), self._base.parameters)
+        for activity in self.activities:
+            vars.append((activity.start, activity))
+            vars.append((activity.end, activity))
+            vars += map(lambda param: (param, activity), activity.parameters)
+        return vars
+
+    @property
+    def base_variables(self) -> List[Parameter]:
+        """Return all decisions variables that were defined in the base problem (i.e. not in the activities)"""
+        return self._base.parameters.copy()
+
+    @property
+    def constraints(self) -> List[Tuple[FNode, Optional[Activity]]]:
+        """Returns all constraints enforced in this problem or in any of its activities.
+        For each constraint, the activity in which it was defined is also given."""
+        cs: List[Tuple[FNode, Optional[Activity]]] = list(
+            map(lambda c: (c, None), self._base.constraints)
+        )
+        for a in self.activities:
+            cs += map(lambda c: (c, a), a.constraints)
+        return cs
+
+    def base_constraints(self) -> List[FNode]:
+        """Returns all constraints defined in the base problem (ignoring any constraint defined in an activity)."""
+        return self._base.constraints.copy()
+
+    def conditions(self) -> List[Tuple[TimeInterval, FNode, Optional[Activity]]]:
+        """Returns all timed conditions enforced in this problem or in any of its activities.
+        For each condition, the activity in which it was defined is also given."""
+        cs: List[Tuple[TimeInterval, FNode, Optional[Activity]]] = []
+        for timing, conds in self._base.conditions.items():
+            cs += list(map(lambda cond: (timing, cond, None), conds))
+        for act in self.activities:
+            for timing, conds in act.conditions.items():
+                cs += map(lambda cond: (timing, cond, act), conds)
+        return cs
+
+    def base_conditions(self) -> List[Tuple[TimeInterval, FNode]]:
+        """Returns all timed conditions defined in the base problem
+        (i.e. excluding those defined in activities)."""
+        return [
+            (timing, cond)
+            for (timing, conds) in self._base.conditions.items()
+            for cond in conds
+        ]
+
+    def effects(self) -> List[Tuple[Timing, Effect, Optional[Activity]]]:
+        """Returns all timed effects enforced in this problem or in any of its activities.
+        For each effect, the activity in which it was defined is also given."""
+        es: List[Tuple[Timing, Effect, Optional[Activity]]] = []
+        for timing, effs in self._base.effects.items():
+            es += map(lambda eff: (timing, eff, None), effs)
+        for act in self.activities:
+            for timing, effs in act.effects.items():
+                es += map(lambda eff: (timing, eff, act), effs)
+        return es
+
+    def base_effects(self) -> List[Tuple[Timing, Effect]]:
+        """Returns all timed effects defined in the base problem
+        (i.e. excluding those defined in activities)."""
+        return [
+            (timing, eff)
+            for (timing, effs) in self._base.effects.items()
+            for eff in effs
+        ]
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """

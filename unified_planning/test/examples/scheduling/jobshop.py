@@ -1,4 +1,3 @@
-import unified_planning.test.scheduling.examples
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 from typing import List
@@ -23,7 +22,7 @@ Machines
 """
 
 
-def parse(instance: str, instance_name: str):
+def parse(instance: str, instance_name: str) -> SchedulingProblem:
     """Parses a job instance and return the corresponding JobShop with 3 operators instance."""
     lines = instance.splitlines()
 
@@ -49,7 +48,7 @@ def parse(instance: str, instance_name: str):
     # print("Machines: ", machines)
 
     problem = unified_planning.model.scheduling.SchedulingProblem(
-        f"sched:jobshop-{instance_name}"
+        f"sched:jobshop-{instance_name}-operators"
     )
     machine_objects = [
         problem.add_resource(f"m{i}") for i in range(1, num_machines + 1)
@@ -70,8 +69,14 @@ def parse(instance: str, instance_name: str):
             act.uses(operators, amount=1)
 
             if prev_in_job is not None:
-                act.add_constraint(LE(prev_in_job.end, act.start))
+                problem.add_constraint(LE(prev_in_job.end, act.start))
             prev_in_job = act
 
     problem.add_quality_metric(unified_planning.model.metrics.MinimizeMakespan())
     return problem
+
+
+if __name__ == "__main__":
+    pb = parse(FT06, "ft06-operators")
+    print(pb)
+    print(pb.kind)

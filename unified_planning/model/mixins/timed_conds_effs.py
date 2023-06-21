@@ -1,12 +1,10 @@
+from fractions import Fraction
 from typing import Optional, Dict, List, Set, Tuple, Union, cast
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import (
-    UPConflictingEffectsException,
-    UPTypeError,
-    UPUsageError,
-)
+from unified_planning.exceptions import UPTypeError, UPUsageError
+from unified_planning.model.timing import GlobalStartTiming, Timepoint, Timing
 
 
 class TimedCondsEffs:
@@ -163,7 +161,9 @@ class TimedCondsEffs:
 
     def add_condition(
         self,
-        interval: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
+        interval: Union[
+            "up.model.expression.TimeExpression", "up.model.timing.TimeInterval"
+        ],
         condition: Union[
             "up.model.fnode.FNode",
             "up.model.fluent.Fluent",
@@ -180,8 +180,10 @@ class TimedCondsEffs:
         :param condition: The expression that must be `True` in the given `interval` for this
             `action` to be applicable.
         """
-        if isinstance(interval, up.model.Timing):
-            interval = up.model.TimePointInterval(interval)
+        if not isinstance(interval, up.model.TimeInterval):
+            # transform from int/float/timepoint... to Timing
+            timing = Timing.from_time(interval)
+            interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
         (condition_exp,) = self._environment.expression_manager.auto_promote(condition)
         assert self._environment.type_checker.get_type(condition_exp).is_bool_type()
         conditions = self._conditions.setdefault(interval, [])
@@ -197,7 +199,7 @@ class TimedCondsEffs:
 
     def add_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: "up.model.expression.TimeExpression",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
@@ -232,7 +234,7 @@ class TimedCondsEffs:
 
     def add_increase_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: "up.model.expression.TimeExpression",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
@@ -275,7 +277,7 @@ class TimedCondsEffs:
 
     def add_decrease_effect(
         self,
-        timing: "up.model.timing.Timing",
+        timing: "up.model.expression.TimeExpression",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
@@ -317,8 +319,11 @@ class TimedCondsEffs:
         )
 
     def _add_effect_instance(
-        self, timing: "up.model.timing.Timing", effect: "up.model.effect.Effect"
+        self,
+        timing: "up.model.expression.TimeExpression",
+        effect: "up.model.effect.Effect",
     ):
+        timing = Timing.from_time(timing)
         assert (
             self._environment == effect.environment
         ), "effect does not have the same environment of the action"
@@ -351,7 +356,7 @@ class TimedCondsEffs:
         Sets the given `simulated effect` at the specified `timing`.
 
         :param timing: The time in which the `simulated effect` must be applied.
-        :param simulated effects: The `simulated effect` that must be applied at the given `timing`.
+        :param simulated_effect: The `simulated effect` that must be applied at the given `timing`.
         """
         up.model.effect.check_conflicting_simulated_effects(
             simulated_effect,

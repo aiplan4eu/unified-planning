@@ -62,6 +62,8 @@ class TestModel(TestCase):
 
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():
+            if problem.kind.has_scheduling():
+                continue
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
             for action_1, action_2 in zip(

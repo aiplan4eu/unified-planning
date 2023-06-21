@@ -22,7 +22,7 @@ import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.exceptions import UPException
 from unified_planning import Environment
 from unified_planning import model
-from unified_planning.model import metrics
+from unified_planning.model import metrics, TimePointInterval, GlobalEndTiming
 import unified_planning.plans
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model import (
@@ -300,7 +300,9 @@ class ProtobufReader(Converter):
     @handles(proto.Problem)
     def _convert_problem(
         self, msg: proto.Problem, environment: Optional[Environment] = None
-    ) -> Problem:
+    ) -> model.AbstractProblem:
+        if msg.HasField("scheduling_extension"):
+            return self._convert_scheduling_problem(msg, environment)
         problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
         if msg.HasField("hierarchy"):
             problem = model.htn.HierarchicalProblem(
@@ -325,12 +327,7 @@ class ProtobufReader(Converter):
         for eff in msg.timed_effects:
             ot = self.convert(eff.occurrence_time, problem)
             effect = self.convert(eff.effect, problem)
-            problem.add_timed_effect(
-                timing=ot,
-                fluent=effect.fluent,
-                value=effect.value,
-                condition=effect.condition,
-            )
+            problem._add_effect_instance(ot, effect)
 
         for assign in msg.initial_state:
             problem.set_initial_value(
@@ -340,7 +337,7 @@ class ProtobufReader(Converter):
 
         for g in msg.goals:
             goal = self.convert(g.goal, problem)
-            if str(g.timing) == "":
+            if not g.HasField("timing"):
                 problem.add_goal(goal)
             else:
                 timing = self.convert(g.timing)
@@ -364,8 +361,80 @@ class ProtobufReader(Converter):
         problem.discrete_time = msg.discrete_time
         problem.self_overlapping = msg.self_overlapping
         if msg.HasField("epsilon"):
-            value = msg.epsilon
-            problem.epsilon = fractions.Fraction(value.numerator, value.denominator)
+            problem.epsilon = self.convert(msg.epsilon)
+
+        return problem
+
+    def _convert_scheduling_problem(
+        self, msg: proto.Problem, environment: Optional[Environment] = None
+    ) -> model.scheduling.SchedulingProblem:
+        problem_name = str(msg.problem_name) if str(msg.problem_name) != "" else None
+        problem = model.scheduling.SchedulingProblem(
+            name=problem_name, environment=environment
+        )
+
+        for t in msg.types:
+            problem._add_user_type(self.convert(t, problem))
+        for obj in msg.objects:
+            problem.add_object(self.convert(obj, problem))
+        for f in msg.fluents:
+            problem.add_fluent(
+                self.convert(f, problem),
+                default_initial_value=self.convert(f.default_value, problem)
+                if f.HasField("default_value")
+                else None,
+            )
+        for eff in msg.timed_effects:
+            ot = self.convert(eff.occurrence_time, problem)
+            effect = self.convert(eff.effect, problem)
+            problem._base._add_effect_instance(timing=ot, effect=effect)
+        for assign in msg.initial_state:
+            problem.set_initial_value(
+                fluent=self.convert(assign.fluent, problem),
+                value=self.convert(assign.value, problem),
+            )
+
+        for g in msg.goals:
+            goal = self.convert(g.goal, problem)
+            if not g.HasField("timing"):
+                problem.add_condition(TimePointInterval(GlobalEndTiming()), goal)
+            else:
+                timing = self.convert(g.timing)
+                problem.add_condition(self.convert(timing), goal)
+
+        for c in msg.scheduling_extension.constraints:
+            problem.add_constraint(self.convert(c, problem))
+
+        assert len(msg.trajectory_constraints) == 0
+
+        for metric in msg.metrics:
+            problem.add_quality_metric(self.convert(metric, problem))
+
+        assert not msg.HasField("hierarchy")
+        ext = msg.scheduling_extension
+        for pa in ext.activities:
+            a = problem.add_activity(pa.name)
+            a._set_duration_constraint(self._convert_duration(pa.duration, problem))
+            for p in pa.parameters:
+                prefix = pa.name + "."
+                assert p.name.startswith(prefix)
+                name = p.name[len(prefix) :]  # remove prefix
+                a.add_parameter(name, convert_type_str(p.type, problem))
+            for cond in pa.conditions:
+                a.add_condition(
+                    self.convert(cond.span, problem), self.convert(cond.cond, problem)
+                )
+            for eff in pa.effects:
+                timing = self._convert_timing(eff.occurrence_time)
+                effect = self._convert_effect(eff.effect, problem)
+                a._add_effect_instance(timing, effect)
+            for c in pa.constraints:
+                a.add_constraint(self.convert(c, problem))
+
+        problem.discrete_time = msg.discrete_time
+        problem.self_overlapping = msg.self_overlapping
+        if msg.HasField("epsilon"):
+            problem.epsilon = self.convert(msg.epsilon)
 
         return problem
 
@@ -569,7 +638,9 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.TimeInterval)
-    def _convert_timed_interval(self, msg: proto.TimeInterval) -> model.TimeInterval:
+    def _convert_timed_interval(
+        self, msg: proto.TimeInterval, _problem: Optional[Problem] = None
+    ) -> model.TimeInterval:
         return model.TimeInterval(
             lower=self.convert(msg.lower),
             upper=self.convert(msg.upper),
@@ -578,7 +649,9 @@ class ProtobufReader(Converter):
         )
 
     @handles(proto.Timing)
-    def _convert_timing(self, msg: proto.Timing) -> model.timing.Timing:
+    def _convert_timing(
+        self, msg: proto.Timing, _problem: Optional[Problem] = None
+    ) -> model.timing.Timing:
         return model.Timing(
             delay=self.convert(msg.delay)
             if msg.HasField("delay")
@@ -609,6 +682,10 @@ class ProtobufReader(Converter):
     def _convert_plan(
         self, msg: proto.Plan, problem: Problem
     ) -> unified_planning.plans.Plan:
+        if msg.HasField("schedule"):
+            assert not msg.HasField("hierarchy")
+            assert len(msg.actions) == 0
+            return self._convert_schedule(msg.schedule, problem)
         actions = [self._convert_action_instance(a, problem) for a in msg.actions]
         if all(a[2] is not None for a in actions):
             # If all actions have temporal term, we can assume that they are
@@ -692,6 +769,29 @@ class ProtobufReader(Converter):
             )
         else:
             return id, action_instance, None
+
+    def _convert_schedule(
+        self, msg: proto.Schedule, problem: model.scheduling.SchedulingProblem
+    ) -> unified_planning.plans.Schedule:
+        activities = [problem.get_activity(act_name) for act_name in msg.activities]
+        assignment = {}
+        for var, val in msg.variable_assignments.items():
+            if "." in var:
+                activity_name, parameter_name = var.split(".")
+                activity = problem.get_activity(activity_name)
+                if parameter_name == "start":
+                    param = activity.start
+                elif parameter_name == "end":
+                    param = activity.end
+                else:
+                    param = activity.get_parameter(parameter_name)
+            else:
+                param = problem.get_variable(var)
+            val = self._convert_atom(val, problem)
+            assignment[param] = val
+        return unified_planning.plans.Schedule(
+            assignment=assignment, activities=activities
+        )
 
     @handles(proto.PlanGenerationResult)
     def _convert_plan_generation_result(

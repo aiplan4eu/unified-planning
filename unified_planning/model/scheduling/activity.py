@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import Optional, Union
 
+from unified_planning.model.fnode import FNode
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
@@ -21,20 +22,18 @@ class Activity(Chronicle):
         self, name: str, duration: int = 0, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
-        start_tp = Timepoint(TimepointKind.START, container=name)
-        end_tp = Timepoint(TimepointKind.END, container=name)
-        self._start = Timing(0, start_tp)
-        self._end = Timing(0, end_tp)
+        self._start = Timepoint(TimepointKind.START, container=name)
+        self._end = Timepoint(TimepointKind.END, container=name)
 
         self.set_fixed_duration(duration)
 
     @property
-    def start(self) -> Timing:
+    def start(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._start
 
     @property
-    def end(self) -> Timing:
+    def end(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._end
 
@@ -97,13 +96,13 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Fluent, amount: NumericConstant = 1):
+    def uses(self, resource: Union[Fluent, FNode], amount: NumericConstant = 1):
         """Asserts that the activity borrows a given amount (1 by default) of the resource.
         The borrowed resources will be reusable by another activity at the time epoch immediately
          succeeding the activity end.
         """
-        self.add_decrease_effect(self.start, resource, amount)
-        self.add_increase_effect(self.end, resource, amount)
+        self.add_decrease_effect(Timing(0, self.start), resource, amount)
+        self.add_increase_effect(Timing(0, self.end), resource, amount)
 
     def set_release_date(self, date: int):
         """Set the earliest date at which the activity can be started."""
@@ -112,3 +111,19 @@ class Activity(Chronicle):
     def set_deadline(self, date: int):
         """Set the latest date at which the activity might end."""
         self.add_constraint(get_environment().expression_manager.LE(self.end, date))
+
+    def clone(self):
+        new = Activity(self.name, _env=self._environment)
+        self._clone_to(new)
+        new._duration = self._duration
+        return new
+
+    def __hash__(self):
+        return Chronicle.__hash__(self) + hash(self._duration)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Activity)
+            and Chronicle.__eq__(self, other)
+            and self._duration == other._duration
+        )

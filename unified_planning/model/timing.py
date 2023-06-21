@@ -16,7 +16,11 @@
 
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.expression import (
+    NumericConstant,
+    uniform_numeric_constant,
+    TimeExpression,
+)
 from abc import ABC
 from enum import Enum, auto
 from fractions import Fraction
@@ -116,6 +120,8 @@ class Timing:
     def __repr__(self):
         if self._delay == 0:
             return f"{self._timepoint}"
+        elif self._delay < 0:
+            return f"{self._timepoint} - {-self._delay}"
         else:
             return f"{self._timepoint} + {self._delay}"
 
@@ -164,6 +170,21 @@ class Timing:
     def is_from_end(self) -> bool:
         """Returns `True` if this `Timing` is from the end, `False` if it is from the start."""
         return not self.is_from_start()
+
+    @staticmethod
+    def from_time(time: TimeExpression) -> "Timing":
+        """Converts any supported time expression into its canonical Timing representation."""
+        if (
+            isinstance(time, int)
+            or isinstance(time, float)
+            or isinstance(time, Fraction)
+        ):
+            return GlobalStartTiming() + time
+        elif isinstance(time, Timepoint):
+            return Timing(timepoint=time, delay=0)
+        else:
+            assert isinstance(time, Timing)
+            return time
 
 
 def StartTiming(delay: NumericConstant = 0, container: Optional[str] = None) -> Timing:
