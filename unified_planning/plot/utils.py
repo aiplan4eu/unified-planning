@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,10 +93,6 @@ def draw_base_graph(
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
 ):
     # input "sanitization"
-    if top_bottom:
-        graph.graph.setdefault("graph", {})["rankdir"] = "TB"
-    else:
-        graph.graph.setdefault("graph", {})["rankdir"] = "LR"
     if generate_node_label is None:
         node_label: Callable[[Any], str] = str
     else:
@@ -121,7 +117,9 @@ def draw_base_graph(
     assert figsize is not None
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
-    pos = nx.nx_agraph.graphviz_layout(graph, prog="dot")
+
+    pos = _generate_positions(graph, prog="dot", top_bottom=top_bottom)
+
     nx.draw_networkx(
         graph,
         pos,
@@ -138,3 +136,34 @@ def draw_base_graph(
         **draw_networkx_kwargs,
     )
     return fig, ax, pos
+
+
+def _generate_positions(
+    graph: nx.DiGraph, prog: str, top_bottom: bool
+) -> Dict[Any, Tuple[float, float]]:
+    """
+    This method generates the position using the nx.nx_agraph.graphviz_layout
+    method. It needs a wrapper to get different positions of different elements
+    with the same string representation. In the method they are collapsed in the
+    same position.
+    """
+    new_graph = nx.DiGraph()
+    id_to_node: Dict[Any, Any] = {i: node for i, node in enumerate(graph.nodes)}
+    node_to_id = {v: k for k, v in id_to_node.items()}
+
+    for node, nbrdict in graph.adjacency():
+        new_node = node_to_id[node]
+        new_graph.add_node(new_node)
+        for neighbour in nbrdict:
+            new_graph.add_edge(new_node, node_to_id[neighbour])
+
+    if top_bottom:
+        new_graph.graph.setdefault("graph", {})["rankdir"] = "TB"
+    else:
+        new_graph.graph.setdefault("graph", {})["rankdir"] = "LR"
+
+    new_pos = nx.nx_agraph.graphviz_layout(new_graph, prog=prog)
+
+    pos = {id_to_node[i]: value for i, value in new_pos.items()}
+
+    return pos

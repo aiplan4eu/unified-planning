@@ -73,10 +73,10 @@ class TimeTriggeredPlan(plans.plan.Plan):
             if dur is None:
                 return f"    {float(start)}: {ai}"
             else:
-                return f"    {float(start)}: {ai}: {float(dur)}"
+                return f"    {float(start)}: {ai} [{float(dur)}]"
 
         ret = ["TimeTriggeredPlan:"]
-        ret.extend(map(convert_ai, sorted(self._actions)))
+        ret.extend(map(convert_ai, sorted(self._actions, key=lambda x: x[0])))
         return "\n".join(ret)
 
     def __eq__(self, oth: object) -> bool:
