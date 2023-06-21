@@ -17,7 +17,7 @@ jobs:
           - "3.10"
           - "3.11"
 
-    uses: ./.github/workflows/main.yml
+    uses: ./.github/workflows/test.yml
 
     with:
       python-version: ${{matrix.python-version}}
