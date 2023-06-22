@@ -106,8 +106,6 @@ class MAConditionalEffectsRemover(ConditionalEffectsRemover):
                 ):
                     new_to_old[new_action] = action
                     new_ag.add_action(new_action)
-                else:
-                    raise NotImplementedError
             new_problem.add_agent(new_ag)
 
         return CompilerResult(

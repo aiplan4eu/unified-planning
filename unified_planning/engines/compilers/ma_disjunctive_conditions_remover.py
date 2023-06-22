@@ -126,7 +126,6 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 new_fluents,
                 problem.goals,
             )
-
         # Every meaningful action must set to False every new fluent added.
         # For the DurativeActions this must happen every time the action modifies something
         em = env.expression_manager
@@ -155,7 +154,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     def _ma_goals_without_disjunctions_adding_new_elements(
         self,
         dnf: Dnf,
-        new_problem: "MultiAgentProblem",
+        new_problem: "up.model.multi_agent.MultiAgentProblem",
         new_agent: "up.model.multi_agent.Agent",
         new_to_old: Dict[Action, Optional[Action]],
         new_fluents: List["up.model.Fluent"],
@@ -164,8 +163,8 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     ) -> List["up.model.FNode"]:
         env = new_problem.environment
         new_goals: List["up.model.FNode"] = []
-        for g in goals:
-            new_goal = dnf.get_dnf_expression(g)
+        for new_goal in goals:
+            new_goal = dnf.get_dnf_expression(env.expression_manager.And(new_goal))
             if new_goal.is_or():
                 new_name = self.name if timing is None else f"{self.name}_timed"
                 fake_fluent = up.model.Fluent(
@@ -173,7 +172,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                 )
                 fake_action = InstantaneousAction(f"{new_name}_fake_action", _env=env)
                 fake_action.add_effect(fake_fluent, True)
-                for and_exp in g.args:
+                for and_exp in new_goal.args:
                     na = self._create_new_action_with_given_precond(
                         new_problem, and_exp, fake_action, dnf
                     )
@@ -181,11 +180,14 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
                         new_to_old[na] = None
                         new_agent.add_action(na)
                 new_agent.add_fluent(fake_fluent, default_initial_value=False)
+                new_problem.add_agent(new_agent)
                 new_fluents.append(fake_fluent)
-                if new_goal not in new_problem.goals:
-                    new_problem.add_goal(new_goal)
+                goal = env.expression_manager.FluentExp(fake_fluent)
+                if goal not in new_problem.goals:
+                    new_problem.add_goal(goal)
+                    new_goals.append(goal)
             else:
-                new_goals.append(new_goal)
                 if new_goal not in new_problem.goals:
                     new_problem.add_goal(new_goal)
+                    new_goals.append(new_goal)
         return new_goals
