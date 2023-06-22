@@ -19,7 +19,7 @@ setup(
     url="https://www.aiplan4eu-project.eu",
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.7",  # supported Python ranges
+    python_requires=">=3.8",
     install_requires=["pyparsing", "networkx"],
     extras_require={
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
@@ -53,10 +53,10 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
     entry_points={
         "console_scripts": [
