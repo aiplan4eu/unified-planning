@@ -346,7 +346,35 @@ def get_example_problems():
     problem.add_goal(Dot(a2, pos(l6)))
     problem.add_goal(Dot(a3, pos(l6)))
 
-    plan = None
+    plan = up.plans.SequentialPlan(
+        [
+            up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)), a1),
+            up.plans.ActionInstance(
+                push_button,
+                (ObjectExp(yellowButton), ObjectExp(l2), ObjectExp(l4), ObjectExp(l5)),
+                a1,
+            ),
+            up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5)), a2),
+            up.plans.ActionInstance(
+                push_button,
+                (ObjectExp(greenButton), ObjectExp(l5), ObjectExp(l7), ObjectExp(l6)),
+                a2,
+            ),
+            up.plans.ActionInstance(move, (ObjectExp(l7), ObjectExp(l6)), a3),
+            up.plans.ActionInstance(move, (ObjectExp(l5), ObjectExp(l6)), a2),
+            up.plans.ActionInstance(
+                push_red_button2,
+                (ObjectExp(reedButton), ObjectExp(l6), ObjectExp(l2), ObjectExp(l3)),
+                a3,
+            ),
+            up.plans.ActionInstance(
+                push_red_button1,
+                (ObjectExp(reedButton), ObjectExp(l6), ObjectExp(l2), ObjectExp(l3)),
+                a2,
+            ),
+            up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3)), a1),
+        ]
+    )
     ma_RM = Example(problem=problem, plan=plan)
     problems["ma_buttons"] = ma_RM
 
