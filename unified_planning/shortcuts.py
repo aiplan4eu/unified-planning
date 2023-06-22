@@ -46,7 +46,7 @@ def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
 
     | Restriction: Arguments must be ``boolean``.
 
-    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+    :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
         of it, like ``a, b, c``.
     :return: The ``AND`` expression created.
     """
@@ -63,7 +63,7 @@ def Or(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
 
     | Restriction: Arguments must be ``boolean``
 
-    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+    :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
         of it, like ``a, b, c``.
     :return: The ``OR`` expression created.
     """
@@ -80,7 +80,7 @@ def XOr(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
 
     | Restriction: Arguments must be boolean
 
-    :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+    :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
         of it, like ``a, b, c``.
     :return: The exclusive disjunction in CNF form.
     """
@@ -141,7 +141,7 @@ def Exists(
 
     :param expression: The main expression of the ``existential``. The expression should contain
         the given ``variables``.
-    :param \*vars: All the ``Variables`` appearing in the ``existential`` expression.
+    :param \\*vars: All the ``Variables`` appearing in the ``existential`` expression.
     :return: The created ``Existential`` expression.
     """
     return get_environment().expression_manager.Exists(expression, *vars)
@@ -158,7 +158,7 @@ def Forall(
 
     :param expression: The main expression of the ``universal`` quantifier. The expression should contain
         the given ``variables``.
-    :param \*vars: All the ``Variables`` appearing in the ``universal`` expression.
+    :param \\*vars: All the ``Variables`` appearing in the ``universal`` expression.
     :return: The created ``Forall`` expression.
     """
     return get_environment().expression_manager.Forall(expression, *vars)
@@ -329,7 +329,7 @@ def Plus(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     Creates an expression of the form:
         ``args[0] + ... + args[n]``
 
-    :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+    :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
         of it, like ``a, b, 3``.
     :return: The ``PLUS`` expression created. (like ``a + b + 3``)
     """
@@ -353,7 +353,7 @@ def Times(*args: Union[Expression, Iterable[Expression]]) -> FNode:
     Creates an expression of the form:
         ``args[0] * ... * args[n]``
 
-    :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+    :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
         of it, like ``a, b, 3``.
     :return: The ``TIMES`` expression created. (like ``a * b * 3``)
     """
