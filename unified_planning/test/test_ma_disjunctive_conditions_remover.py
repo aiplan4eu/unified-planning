@@ -22,7 +22,7 @@ from unified_planning.engines.compilers.ma_disjunctive_conditions_remover import
 )
 
 
-class TestDisjunctiveConditionsRemover(TestCase):
+class TestMADisjunctiveConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
         self.problems = get_example_problems()
@@ -169,10 +169,3 @@ class TestDisjunctiveConditionsRemover(TestCase):
         self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
         with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             os_res = planner.solve(dnf_problem)
-
-
-o = TestDisjunctiveConditionsRemover()
-o.setUp()
-o.test_ad_hoc_1()
-o.test_ad_hoc_2()
-o.test_ad_hoc_3()
