@@ -1,0 +1,6 @@
+-r requirements.txt
+plotly
+matplotlib
+kaleido
+pandas
+pygraphviz
