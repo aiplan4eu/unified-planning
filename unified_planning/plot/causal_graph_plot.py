@@ -17,6 +17,7 @@ from itertools import chain, product
 from unified_planning.exceptions import (
     UPUsageError,
     UPNoSuitableEngineAvailableException,
+    UPUnsupportedProblemTypeError,
 )
 from unified_planning.model import (
     Problem,
@@ -160,11 +161,10 @@ def plot_causal_graph(
         assert not action.parameters
         if isinstance(action, InstantaneousAction):
             for p in action.preconditions:
-                # TODO cover when a fluent has fluents inside...
                 for fluent in fve.get(p):
                     if any(map(fve.get, fluent.args)):
-                        raise NotImplementedError(
-                            "nested fluents still are not implemented"
+                        raise UPUnsupportedProblemTypeError(
+                            f"Fluent {fluent} contains other fluents. Causal can't be plotted with nested fluents."
                         )
                     fluents_red.setdefault(fluent, set()).add(action)
             for e in action.effects:
@@ -180,11 +180,10 @@ def plot_causal_graph(
                     fluents_red.setdefault(fluent, set()).add(action)
         elif isinstance(action, DurativeAction):
             for p in chain(*action.conditions.values()):
-                # TODO cover when a fluent has fluents inside...
                 for fluent in fve.get(p):
                     if any(map(fve.get, fluent.args)):
-                        raise NotImplementedError(
-                            "nested fluents still are not implemented"
+                        raise UPUnsupportedProblemTypeError(
+                            f"Fluent {fluent} contains other fluents. Causal can't be plotted with nested fluents."
                         )
                     fluents_red.setdefault(fluent, set()).add(action)
             for e in chain(*action.effects.values()):
