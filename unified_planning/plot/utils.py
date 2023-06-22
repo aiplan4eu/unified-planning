@@ -14,45 +14,17 @@
 #
 
 
-from fractions import Fraction
-from functools import partial
 import unified_planning as up
-from unified_planning.engines.sequential_simulator import (
-    UPSequentialSimulator,
-    evaluate_quality_metric_in_initial_state,
-    evaluate_quality_metric,
-)
-from unified_planning.model import (
-    FNode,
-    Problem,
-    State,
-    PlanQualityMetric,
-    Expression,
-    Action,
-)
-from unified_planning.model.walkers import StateEvaluator
-from unified_planning.plans.plan import ActionInstance, Plan
-from unified_planning.plans.sequential_plan import SequentialPlan
-from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.plans.contingent_plan import (
-    ContingentPlan,
-    ContingentPlanNode,
-    visit_tree,
-)
-from unified_planning.plans.partial_order_plan import PartialOrderPlan
-import datetime
-import plotly.express as px  # type: ignore[import]
-import matplotlib.pyplot as plt  # type: ignore[import]
+from unified_planning.model import FNode
+from unified_planning.plans.plan import ActionInstance
+from unified_planning.plans.stn_plan import STNPlanNode
+from unified_planning.plans.contingent_plan import ContingentPlanNode
 import networkx as nx
 from typing import (
     Any,
     Dict,
-    Iterable,
-    List,
     Optional,
     Sequence,
-    Set,
     Tuple,
     Union,
     Callable,
@@ -92,6 +64,8 @@ def draw_base_graph(
     font_color: str = FONT_COLOR,
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
 ):
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     # input "sanitization"
     if generate_node_label is None:
         node_label: Callable[[Any], str] = str

@@ -14,8 +14,6 @@
 #
 
 
-from fractions import Fraction
-from functools import partial
 import unified_planning as up
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
@@ -54,8 +52,8 @@ from unified_planning.plot.utils import (
 )
 
 import datetime
-import plotly.express as px  # type: ignore[import]
-import matplotlib.pyplot as plt  # type: ignore[import]
+from fractions import Fraction
+from functools import partial
 import networkx as nx
 from typing import (
     Any,
@@ -167,6 +165,8 @@ def plot_sequential_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     if expression_or_expressions is None and metric_or_metrics is None:
         # plot sequential_plan as graph
         graph = nx.DiGraph()
@@ -246,6 +246,9 @@ def plot_time_triggered_plan(
     :param figsize: Width and height in pixels/100; for example (10, 15) means 1000
         pixels wide and 1500 pixels high.
     """
+
+    import plotly.express as px  # type: ignore[import]
+
     if figsize is None:
         figsize = FIGSIZE
     assert figsize is not None
@@ -370,6 +373,8 @@ def plot_stn_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     # param "sanitization"
     if generate_edge_label is None:
         edge_label_function: Callable[
@@ -475,6 +480,8 @@ def plot_contingent_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     # param "sanitization"
     if generate_edge_label is None:
         edge_label_function: Callable[
@@ -575,6 +582,8 @@ def plot_partial_order_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     fig, _, _ = draw_base_graph(
         plan._graph,
         figsize=figsize,
@@ -644,6 +653,9 @@ def _plot_expressions(
     filename: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
 ):
+
+    import plotly.express as px  # type: ignore[import]
+
     if figsize is None:
         figsize = FIGSIZE
     assert figsize is not None

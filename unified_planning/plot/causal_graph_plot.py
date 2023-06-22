@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from itertools import chain, product
 from unified_planning.exceptions import (
     UPUsageError,
     UPNoSuitableEngineAvailableException,
@@ -38,7 +37,7 @@ from unified_planning.plot.utils import (
 )
 from unified_planning.engines import CompilationKind
 
-import matplotlib.pyplot as plt  # type: ignore[import]
+from itertools import chain, product
 import networkx as nx
 from typing import (
     Any,
@@ -114,6 +113,8 @@ def plot_causal_graph(
         maintained in any way and it might be removed or modified at any moment.
     """
     # param "sanitization"
+    import matplotlib.pyplot as plt  # type: ignore[import]
+
     if generate_edge_label is None:
         edge_label_function: Callable[
             [Action, Sequence[FNode]], str
