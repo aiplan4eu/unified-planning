@@ -4,16 +4,14 @@ from setuptools import setup, find_packages  # type: ignore
 import unified_planning
 
 
-long_description = """============================================================
- Unified planning: A library that unifies planning frameworks
- ============================================================
-    Insert long description here
-"""
+long_description = "Unified Planning: A library that makes it easy to formulate planning problems and to invoke automated planners."
 
 setup(
     name="unified_planning",
     version=unified_planning.__version__,
     description="Unified Planning Framework",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     author="AIPlan4EU Project",
     author_email="aiplan4eu@fbk.eu",
     url="https://www.aiplan4eu-project.eu",
