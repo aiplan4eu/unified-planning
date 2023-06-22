@@ -219,7 +219,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be ``boolean``.
 
-        :param \*args: Either an ``Iterable`` of ``boolean`` expressions, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean`` expressions, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The ``AND`` expression created.
         """
@@ -244,7 +244,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be ``boolean``
 
-        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The ``OR`` expression created.
         """
@@ -269,7 +269,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be boolean
 
-        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The exclusive disjunction in CNF form.
         """
@@ -347,7 +347,7 @@ class ExpressionManager(object):
 
         :param expression: The main expression of the ``existential``. The expression should contain
             the given ``variables``.
-        :param \*vars: All the ``Variables`` appearing in the ``existential`` expression.
+        :param \\*vars: All the ``Variables`` appearing in the ``existential`` expression.
         :return: The created ``Existential`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
@@ -373,7 +373,7 @@ class ExpressionManager(object):
 
         :param expression: The main expression of the ``universal`` quantifier. The expression should contain
             the given ``variables``.
-        :param \*vars: All the ``Variables`` appearing in the ``universal`` expression.
+        :param \\*vars: All the ``Variables`` appearing in the ``universal`` expression.
         :return: The created ``Forall`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
@@ -600,7 +600,7 @@ class ExpressionManager(object):
         Creates an expression of the form:
             ``args[0] + ... + args[n]``
 
-        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
             of it, like ``a, b, 3``.
         :return: The ``PLUS`` expression created. (like ``a + b + 3``)
         """
@@ -631,7 +631,7 @@ class ExpressionManager(object):
         Creates an expression of the form:
             ``args[0] * ... * args[n]``
 
-        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
             of it, like ``a, b, 3``.
         :return: The ``TIMES`` expression created. (like ``a * b * 3``)
         """

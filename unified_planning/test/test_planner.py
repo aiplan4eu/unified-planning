@@ -190,6 +190,7 @@ class TestPlanner(TestCase):
                 plan = final_report.plan.replace_action_instances(
                     res.map_back_action_instance
                 )
+
                 self.assertEqual(
                     final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
                 )

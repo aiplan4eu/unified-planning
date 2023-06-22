@@ -239,7 +239,7 @@ class ContingentPlan(plans.plan.Plan):
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
 
-def visit_tree(root_node: ContingentPlanNode) -> Iterator[ContingentPlanNode]:
+def visit_tree(root_node: Optional[ContingentPlanNode]) -> Iterator[ContingentPlanNode]:
     """
     Method to visit all the Tree nodes once.
 
@@ -247,7 +247,8 @@ def visit_tree(root_node: ContingentPlanNode) -> Iterator[ContingentPlanNode]:
     :return: The Iterator over all the Nodes in the tree.
     """
     stack: Deque[ContingentPlanNode] = deque()
-    stack.append(root_node)
+    if root_node is not None:
+        stack.append(root_node)
     already_visited: Set[ContingentPlanNode] = set()
     while stack:
         current_element: ContingentPlanNode = stack.popleft()
