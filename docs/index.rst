@@ -20,6 +20,7 @@ Welcome to Unified-Planning documentation!
    problem_representation
    operation_modes
    interoperability
+   plot_package
 
 .. toctree::
    :maxdepth: 2

@@ -11,4 +11,4 @@ plotly
 matplotlib
 kaleido
 pandas
-graphviz
+pygraphviz
