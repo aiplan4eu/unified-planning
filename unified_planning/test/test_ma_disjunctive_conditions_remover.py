@@ -35,7 +35,7 @@ class TestMADisjunctiveConditionsRemover(TestCase):
     )
     def test_ad_hoc_1(self):
         # mockup problem
-        problem = MultiAgentProblem("simple_test")
+        problem: MultiAgentProblem = MultiAgentProblem("simple_test")
         a1 = Agent("a1", problem)
         a2 = Agent("a2", problem)
         a = Fluent("a")
@@ -78,7 +78,7 @@ class TestMADisjunctiveConditionsRemover(TestCase):
         dnfr = MADisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
-        # assert isinstance(dnf_problem, Problem)
+        assert isinstance(dnf_problem, MultiAgentProblem)
 
         self.assertEqual(len(dnf_problem.agent("a1").actions), 4)
         self.assertEqual(len(dnf_problem.agent("a2").actions), 4)
@@ -98,7 +98,7 @@ class TestMADisjunctiveConditionsRemover(TestCase):
 
     def test_ad_hoc_2(self):
         # mockup problem
-        problem = MultiAgentProblem("mockup")
+        problem: MultiAgentProblem = MultiAgentProblem("mockup")
         a1 = Agent("a1", problem)
         a2 = Agent("a2", problem)
         a = Fluent("a")
@@ -125,7 +125,7 @@ class TestMADisjunctiveConditionsRemover(TestCase):
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
     def test_ad_hoc_3(self):
         # mockup problem
-        problem = MultiAgentProblem("mockup")
+        problem: MultiAgentProblem = MultiAgentProblem("mockup")
         a1 = Agent("a1", problem)
         a2 = Agent("a2", problem)
         a = Fluent("a")
@@ -155,17 +155,21 @@ class TestMADisjunctiveConditionsRemover(TestCase):
         problem.set_initial_value(b, False)
         problem.set_initial_value(c, False)
         problem.add_goal(And(a, Or(b, c)))
-        print(problem.goals, "oooooooooo")
         dnfr = MADisjunctiveConditionsRemover()
         res = dnfr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
         dnf_problem = res.problem
         assert isinstance(dnf_problem, MultiAgentProblem)
-
         self.assertEqual(len(dnf_problem.agent("a1").actions), 5)
         self.assertEqual(len(dnf_problem.agent("a2").actions), 5)
-        print(dnf_problem.goals, "oooooooooo")
         self.assertEqual(len(dnf_problem.goals), 2)
-        print(dnf_problem.goals[0], "oooooooooo")
         self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
+        breakpoint()
         with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             os_res = planner.solve(dnf_problem)
+
+
+o = TestMADisjunctiveConditionsRemover()
+o.setUp()
+o.test_ad_hoc_1()
+o.test_ad_hoc_2()
+o.test_ad_hoc_3()

@@ -77,7 +77,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
 
     def _compile(
         self,
-        problem: "up.model.multi_agent.MultiAgentProblem",
+        problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         """
