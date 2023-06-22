@@ -1,0 +1,26 @@
+name: CI-on-master
+
+on:
+  push:
+    branches: master
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        python-version:
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
+
+    uses: ./.github/workflows/test.yml
+
+    with:
+      python-version: ${{matrix.python-version}}
+
+  deploy:
+    needs: [test]
+    uses: ./.github/workflows/deploy.yml
