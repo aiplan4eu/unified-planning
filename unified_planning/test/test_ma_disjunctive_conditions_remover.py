@@ -166,10 +166,3 @@ class TestMADisjunctiveConditionsRemover(TestCase):
         breakpoint()
         with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
             os_res = planner.solve(dnf_problem)
-
-
-o = TestMADisjunctiveConditionsRemover()
-o.setUp()
-o.test_ad_hoc_1()
-o.test_ad_hoc_2()
-o.test_ad_hoc_3()
