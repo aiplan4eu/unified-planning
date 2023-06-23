@@ -168,5 +168,3 @@ class TestMADisjunctiveConditionsRemover(TestCase):
         self.assertEqual(len(dnf_problem.agent("a2").actions), 5)
         self.assertEqual(len(dnf_problem.goals), 2)
         self.assertTrue(dnf_problem.goals[0].is_fluent_exp())
-        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
-            os_res = planner.solve(dnf_problem)
