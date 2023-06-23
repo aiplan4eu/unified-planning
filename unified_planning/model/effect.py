@@ -56,6 +56,7 @@ class Effect:
         value: "up.model.fnode.FNode",
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         fve = fluent.environment.free_vars_extractor
         fluents_in_fluent = fve.get(fluent)
@@ -68,13 +69,17 @@ class Effect:
         self._value = value
         self._condition = condition
         self._kind = kind
+        self._forall = forall
         assert (
             fluent.environment == value.environment
             and value.environment == condition.environment
+            and all(fluent.environment == v.environment for v in forall)
         ), "Effect expressions have different environment."
 
     def __repr__(self) -> str:
         s = []
+        if self.is_forall():
+            s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
             s.append(f"if {str(self._condition)} then")
         s.append(f"{str(self._fluent)}")
@@ -94,6 +99,7 @@ class Effect:
                 and self._value == oth._value
                 and self._condition == oth._condition
                 and self._kind == oth._kind
+                and self._forall == oth._forall
             )
         else:
             return False
@@ -104,11 +110,18 @@ class Effect:
             + hash(self._value)
             + hash(self._condition)
             + hash(self._kind)
+            + hash(tuple(self._forall))
         )
 
     def clone(self):
-        new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
+        new_effect = Effect(self._fluent, self._value, self._condition, self._kind, self._forall.copy())
         return new_effect
+    
+    def is_forall(self) -> bool:
+        """
+        Returns `True` if the `Effect` is a `forall` effect; this means that the `Effect` 
+        is applied for the instances of all the specified `Variables`."""
+        return len(self._forall) > 0
 
     def is_conditional(self) -> bool:
         """
@@ -152,6 +165,11 @@ class Effect:
     def kind(self) -> EffectKind:
         """Returns the `kind` of this `Effect`."""
         return self._kind
+    
+    @property
+    def forall(self) -> List["up.model.variable.Variable"]:
+        """Returns the `Variables` that are universally quantified in this `Effect`."""
+        return self._forall
 
     @property
     def environment(self) -> "up.environment.Environment":
