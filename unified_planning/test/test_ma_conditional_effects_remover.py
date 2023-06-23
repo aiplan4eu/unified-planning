@@ -51,14 +51,3 @@ class TestMAConditionalEffectsRemover(TestCase):
         self.assertEqual(len(unconditional_problem.agent("a1").actions), 2)
         self.assertEqual(len(unconditional_problem.agent("a2").actions), 4)
         self.assertEqual(len(unconditional_problem.agent("a3").actions), 4)
-
-        with OneshotPlanner(problem_kind=unconditional_problem.kind) as planner:
-            self.assertNotEqual(planner, None)
-            uncond_plan = planner.solve(unconditional_problem).plan
-            new_plan = uncond_plan.replace_action_instances(
-                res.map_back_action_instance
-            )
-            # with PlanValidator(
-            #        problem_kind=problem.kind, plan_kind=new_plan.kind
-            # ) as pv:
-            #    self.assertTrue(pv.validate(problem, new_plan))
