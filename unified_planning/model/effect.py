@@ -114,12 +114,14 @@ class Effect:
         )
 
     def clone(self):
-        new_effect = Effect(self._fluent, self._value, self._condition, self._kind, self._forall.copy())
+        new_effect = Effect(
+            self._fluent, self._value, self._condition, self._kind, self._forall.copy()
+        )
         return new_effect
-    
+
     def is_forall(self) -> bool:
         """
-        Returns `True` if the `Effect` is a `forall` effect; this means that the `Effect` 
+        Returns `True` if the `Effect` is a `forall` effect; this means that the `Effect`
         is applied for the instances of all the specified `Variables`."""
         return len(self._forall) > 0
 
@@ -165,7 +167,7 @@ class Effect:
     def kind(self) -> EffectKind:
         """Returns the `kind` of this `Effect`."""
         return self._kind
-    
+
     @property
     def forall(self) -> List["up.model.variable.Variable"]:
         """Returns the `Variables` that are universally quantified in this `Effect`."""
