@@ -774,6 +774,8 @@ class _KindFactory:
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        if e.is_forall():
+            self.kind.set_effects_kind("FORALL_EFFECTS")
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint

@@ -357,6 +357,8 @@ class MultiAgentProblem(  # type: ignore[misc]
         if e.is_conditional():
             self._update_problem_kind_condition(e.condition)
             self._kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        if e.is_forall():
+            self._kind.set_effects_kind("FORALL_EFFECTS")
         if e.is_increase():
             self._kind.set_effects_kind("INCREASE_EFFECTS")
         elif e.is_decrease():
