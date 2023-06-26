@@ -320,6 +320,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         Adds the given `assignment` to the `action's effects`.
@@ -328,6 +329,8 @@ class InstantaneousAction(Action):
         :param value: The `value` to assign to the given `fluent`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
@@ -346,7 +349,7 @@ class InstantaneousAction(Action):
                 f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         self._add_effect_instance(
-            up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
+            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
         )
 
     def add_increase_effect(
@@ -354,6 +357,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         Adds the given `increase effect` to the `action's effects`.
@@ -362,12 +366,16 @@ class InstantaneousAction(Action):
         :param value: The given `fluent` is incremented by the given `value`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
             value_exp,
             condition_exp,
-        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+        ) = self._environment.expression_manager.auto_promote(
+            fluent, value, condition, forall=forall
+        )
         if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
             raise UPUsageError(
                 "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot."
@@ -386,6 +394,7 @@ class InstantaneousAction(Action):
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.INCREASE,
+                forall=forall,
             )
         )
 
@@ -394,6 +403,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         Adds the given `decrease effect` to the `action's effects`.
@@ -402,6 +412,8 @@ class InstantaneousAction(Action):
         :param value: The given `fluent` is decremented by the given `value`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
@@ -426,6 +438,7 @@ class InstantaneousAction(Action):
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.DECREASE,
+                forall=forall,
             )
         )
 

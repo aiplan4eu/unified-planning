@@ -218,6 +218,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         At the given time, adds the given assignment to the `action's effects`.
@@ -227,6 +228,8 @@ class TimedCondsEffs:
         :param value: The `value` to assign to the given `fluent`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
@@ -244,7 +247,8 @@ class TimedCondsEffs:
                 f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         self._add_effect_instance(
-            timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
+            timing,
+            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall),
         )
 
     def add_increase_effect(
@@ -253,6 +257,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         At the given time, adds the given `increment` to the `action's effects`.
@@ -262,6 +267,8 @@ class TimedCondsEffs:
         :param value: The given `fluent` is incremented by the given `value`.
         :param condition: The `condition` in which this effect is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
@@ -287,6 +294,7 @@ class TimedCondsEffs:
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.INCREASE,
+                forall=forall,
             ),
         )
 
@@ -296,6 +304,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: List["up.model.variable.Variable"] = [],
     ):
         """
         At the given time, adds the given `decrement` to the `action's effects`.
@@ -305,6 +314,8 @@ class TimedCondsEffs:
         :param value: The given `fluent` is decremented by the given `value`.
         :param condition: The `condition` in which this effect is applied; the default
             value is `True`.
+        :param forall: The list of 'variables' that are universally quantified in this
+            effect; the default value is `[]`.
         """
         (
             fluent_exp,
@@ -330,6 +341,7 @@ class TimedCondsEffs:
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.DECREASE,
+                forall=forall,
             ),
         )
 

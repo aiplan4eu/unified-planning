@@ -238,6 +238,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             e.value,
                             env.expression_manager.TRUE(),
                             e.kind,
+                            e.forall,
                         )
                         # We try to add the new effect, but it might be in conflict with exising effects,
                         # so the action is not added to the problem
@@ -284,6 +285,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             e.value,
                             env.expression_manager.TRUE(),
                             e.kind,
+                            e.forall,
                         )
                         # We try to add the new effect, but it might be in conflict with exising effects,
                         # so the action is not added to the problem
