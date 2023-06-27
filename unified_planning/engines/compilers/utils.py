@@ -40,6 +40,7 @@ from unified_planning.model import (
     MaximizeExpressionOnFinalState,
     Oversubscription,
     TemporalOversubscription,
+    AbstractProblem,
 )
 from unified_planning.plans import ActionInstance
 from typing import (
@@ -57,7 +58,7 @@ from typing import (
 
 
 def check_and_simplify_conditions(
-    problem: Problem, action: DurativeAction, simplifier
+    problem: AbstractProblem, action: DurativeAction, simplifier
 ) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
     """
     Simplifies conditions and if it is False (a contraddiction)
@@ -94,7 +95,7 @@ def check_and_simplify_conditions(
 
 
 def check_and_simplify_preconditions(
-    problem: Problem, action: InstantaneousAction, simplifier
+    problem: AbstractProblem, action: InstantaneousAction, simplifier
 ) -> Tuple[bool, List[FNode]]:
     """
     Simplifies preconditions and if it is False (a contraddiction)
@@ -251,7 +252,9 @@ def create_action_with_given_subs(
 
 
 def get_fresh_name(
-    problem: Problem, original_name: str, parameters_names: Sequence[str] = tuple()
+    problem: AbstractProblem,
+    original_name: str,
+    parameters_names: Sequence[str] = tuple(),
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]

@@ -14,7 +14,7 @@
 #
 """This module defines the dnf remover class."""
 
-from fractions import Fraction
+
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -24,8 +24,8 @@ from unified_planning.engines.compilers.utils import (
     updated_minimize_action_costs,
 )
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
+    AbstractProblem,
     FNode,
     Problem,
     BoolExpression,
@@ -40,7 +40,7 @@ from unified_planning.model import (
     TemporalOversubscription,
 )
 from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Tuple, Dict, Union, cast
+from typing import Iterator, List, Optional, Tuple, Dict, cast
 from itertools import product
 from functools import partial
 
@@ -162,51 +162,12 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         dnf = Dnf(env)
         for a in problem.actions:
-            if isinstance(a, InstantaneousAction):
-                new_precond = dnf.get_dnf_expression(
-                    env.expression_manager.And(a.preconditions)
-                )
-                if new_precond.is_or():
-                    for and_exp in new_precond.args:
-                        na = self._create_new_action_with_given_precond(
-                            new_problem, and_exp, a, dnf
-                        )
-                        if na is not None:
-                            new_to_old[na] = a
-                            new_problem.add_action(na)
-                else:
-                    na = self._create_new_action_with_given_precond(
-                        new_problem, new_precond, a, dnf
-                    )
-                    if na is not None:
-                        new_to_old[na] = a
-                        new_problem.add_action(na)
-            elif isinstance(a, DurativeAction):
-                interval_list: List[TimeInterval] = []
-                conditions: List[List[FNode]] = []
-                # save the timing, calculate the dnf of the and of all the conditions at the same time
-                # and then save it in conditions.
-                # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
-                for i, cl in a.conditions.items():
-                    interval_list.append(i)
-                    new_cond = dnf.get_dnf_expression(env.expression_manager.And(cl))
-                    if new_cond.is_or():
-                        conditions.append(new_cond.args)
-                    else:
-                        conditions.append([new_cond])
-                conditions_tuple = cast(Tuple[List[FNode], ...], product(*conditions))
-                for cond_list in conditions_tuple:
-                    nda = self._create_new_durative_action_with_given_conds_at_given_times(
-                        new_problem, interval_list, cond_list, a, dnf
-                    )
-                    if nda is not None:
-                        new_to_old[nda] = a
-                        new_problem.add_action(nda)
-            else:
-                raise NotImplementedError
+            for na in self._create_non_disjunctive_actions(a, new_problem, dnf):
+                new_to_old[na] = a
+                new_problem.add_action(na)
 
-        # Meaningful action is the list of the actions that modify fluents that are not added
-        # just to remove the disjunction from goals
+        # Meaningful action is the list of the actions that modify fluents; those actions are not
+        # added just to remove the disjunction from goals
         meaningful_actions: List["up.model.Action"] = new_problem.actions[:]
 
         goal_to_add = self._goals_without_disjunctions_adding_new_elements(
@@ -327,7 +288,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
-        new_problem: "up.model.Problem",
+        new_problem: "up.model.AbstractProblem",
         interval_list: List[TimeInterval],
         cond_list: List[FNode],
         original_action: DurativeAction,
@@ -367,7 +328,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
 
     def _create_new_action_with_given_precond(
         self,
-        new_problem: "up.model.Problem",
+        new_problem: "up.model.AbstractProblem",
         precond: FNode,
         original_action: InstantaneousAction,
         dnf: Dnf,
@@ -401,3 +362,47 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         if len(new_action.effects) == 0:
             return None
         return new_action
+
+    def _create_non_disjunctive_actions(
+        self, action: Action, new_problem: AbstractProblem, dnf: Dnf
+    ) -> Iterator[Action]:
+        env = new_problem.environment
+        if isinstance(action, InstantaneousAction):
+            new_precond = dnf.get_dnf_expression(
+                env.expression_manager.And(action.preconditions)
+            )
+            if new_precond.is_or():
+                for and_exp in new_precond.args:
+                    na = self._create_new_action_with_given_precond(
+                        new_problem, and_exp, action, dnf
+                    )
+                    if na is not None:
+                        yield na
+            else:
+                na = self._create_new_action_with_given_precond(
+                    new_problem, new_precond, action, dnf
+                )
+                if na is not None:
+                    yield na
+        elif isinstance(action, DurativeAction):
+            interval_list: List[TimeInterval] = []
+            conditions: List[List[FNode]] = []
+            # save the timing, calculate the dnf of the and of all the conditions at the same time
+            # and then save it in conditions.
+            # conditions contains lists of Fnodes, where [a,b,c] means a or b or c
+            for i, cl in action.conditions.items():
+                interval_list.append(i)
+                new_cond = dnf.get_dnf_expression(env.expression_manager.And(cl))
+                if new_cond.is_or():
+                    conditions.append(new_cond.args)
+                else:
+                    conditions.append([new_cond])
+            conditions_tuple = cast(Tuple[List[FNode], ...], product(*conditions))
+            for cond_list in conditions_tuple:
+                nda = self._create_new_durative_action_with_given_conds_at_given_times(
+                    new_problem, interval_list, cond_list, action, dnf
+                )
+                if nda is not None:
+                    yield nda
+        else:
+            raise NotImplementedError

@@ -30,6 +30,7 @@ from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
     AgentsSetMixin,
+    InitialStateMixin,
 )
 from fractions import Fraction
 
@@ -140,14 +141,18 @@ class MultiAgentProblem(  # type: ignore[misc]
 
     def clone(self):
         new_p = MultiAgentProblem(self._name, self._env)
-        for f in self.ma_environment.fluents:
-            new_p.ma_environment.add_fluent(f)
+        new_p.ma_environment._fluents = self.ma_environment._fluents.copy()
+        new_p.ma_environment._fluents_defaults = (
+            self.ma_environment._fluents_defaults.copy()
+        )
         for ag in self.agents:
             new_ag = up.model.multi_agent.Agent(ag.name, self)
-            for f in ag.fluents:
-                new_ag.add_fluent(f)
+            new_ag._public_fluents = ag._public_fluents.copy()
+            new_ag._fluents = ag._fluents.copy()
+            new_ag._fluents_defaults = ag._fluents_defaults.copy()
             for a in ag.actions:
                 new_ag.add_action(a.clone())
+            new_p.add_agent(new_ag)
         new_p._user_types = self._user_types[:]
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
@@ -235,8 +240,12 @@ class MultiAgentProblem(  # type: ignore[misc]
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
         elif fluent_exp.is_dot():
-            agent = fluent_exp.agent()
+            agent = self.agent(fluent_exp.agent())
             f = fluent_exp.arg(0).fluent()
+            if f not in agent.fluents:
+                raise UPProblemDefinitionError(
+                    f"Expression {fluent_exp} is invalid because {f} does not belong to agent {agent.name}"
+                )
             v = agent.fluents_defaults.get(f, None)
             if v is None:
                 raise UPProblemDefinitionError("Initial value not set!")
@@ -316,6 +325,10 @@ class MultiAgentProblem(  # type: ignore[misc]
     def clear_goals(self):
         """Removes all the `goals` from the `MultiAgentProblem`."""
         self._goals = []
+
+    def clear_agents(self):
+        """Removes all the `goals` from the `MultiAgentProblem`."""
+        self._agents = []
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":

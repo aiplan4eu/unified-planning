@@ -1721,6 +1721,7 @@ class PDDLReader:
                     "up.model.Object",
                     "up.model.Parameter",
                     "up.model.Variable",
+                    "up.model.multi_agent.Agent",
                 ],
             ]
         ] = None,
@@ -1752,6 +1753,7 @@ class PDDLReader:
                     "up.model.Object",
                     "up.model.Parameter",
                     "up.model.Variable",
+                    "up.model.multi_agent.Agent",
                 ],
             ]
         ] = None,
