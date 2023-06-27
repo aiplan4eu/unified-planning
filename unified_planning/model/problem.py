@@ -824,10 +824,10 @@ class _KindFactory:
                     or not value.is_constant()
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            if any(f in self.static_fluents for f in fluents_in_value):
-                self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-            if any(f not in self.static_fluents for f in fluents_in_value):
-                self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if any(f in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if any(f not in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type():
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
