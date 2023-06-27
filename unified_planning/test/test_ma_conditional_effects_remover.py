@@ -15,21 +15,8 @@
 
 from unified_planning.shortcuts import *
 from unified_planning.model.multi_agent import *
-from collections import namedtuple
 import unified_planning
-from unified_planning.model.problem_kind import (
-    basic_classical_kind,
-    classical_kind,
-    simple_numeric_kind,
-    bounded_types_kind,
-    full_classical_kind,
-    basic_temporal_kind,
-)
-from unified_planning.test import (
-    TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
+from unified_planning.test import TestCase
 from unified_planning.test.examples.multi_agent import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.ma_conditional_effects_remover import (
@@ -42,8 +29,6 @@ class TestMAConditionalEffectsRemover(TestCase):
         TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
-    @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_ma_buttons(self):
         problem = self.problems["ma_buttons"].problem
 

@@ -15,22 +15,8 @@
 
 import unified_planning
 from unified_planning.model.multi_agent import *
-from collections import namedtuple
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    basic_classical_kind,
-    classical_kind,
-    simple_numeric_kind,
-    bounded_types_kind,
-    full_classical_kind,
-    basic_temporal_kind,
-)
-from unified_planning.test import (
-    TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.test.examples import get_example_problems
+from unified_planning.test import TestCase
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.ma_disjunctive_conditions_remover import (
     MADisjunctiveConditionsRemover,
@@ -40,14 +26,7 @@ from unified_planning.engines.compilers.ma_disjunctive_conditions_remover import
 class TestMADisjunctiveConditionsRemover(TestCase):
     def setUp(self):
         TestCase.setUp(self)
-        self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
-    @skipIfNoPlanValidatorForProblemKind(
-        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
     def test_ad_hoc_1(self):
         # mockup problem
         problem: MultiAgentProblem = MultiAgentProblem("simple_test")
@@ -139,7 +118,6 @@ class TestMADisjunctiveConditionsRemover(TestCase):
         self.assertEqual(len(dnf_problem.agent("a1").actions), 1)
         self.assertEqual(len(dnf_problem.agent("a2").actions), 1)
 
-    @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind)
     def test_ad_hoc_3(self):
         # mockup problem
         problem: MultiAgentProblem = MultiAgentProblem("mockup")
