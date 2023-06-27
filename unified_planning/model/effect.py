@@ -69,7 +69,10 @@ class Effect:
         self._value = value
         self._condition = condition
         self._kind = kind
-        self._forall = forall
+        fvo = fluent.environment.free_vars_oracle
+        free_vars = fvo.get_free_variables(fluent)
+        free_vars.update(fvo.get_free_variables(condition))
+        self._forall = [v for v in forall if v in free_vars]
         assert (
             fluent.environment == value.environment
             and value.environment == condition.environment
