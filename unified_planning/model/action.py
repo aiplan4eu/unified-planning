@@ -374,7 +374,9 @@ class InstantaneousAction(Action):
             value_exp,
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(
-            fluent, value, condition, forall=forall
+            fluent,
+            value,
+            condition,
         )
         if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
             raise UPUsageError(
