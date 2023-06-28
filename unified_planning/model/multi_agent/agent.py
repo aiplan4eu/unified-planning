@@ -100,6 +100,7 @@ class Agent(
     ) -> "up.model.fluent.Fluent":
         """Adds the given `public fluent` to the `problem`.
         If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
+
         :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
         :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
@@ -126,6 +127,7 @@ class Agent(
     ) -> "up.model.fluent.Fluent":
         """Adds the given `private fluent` to the `problem`.
         If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
+
         :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
         :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
@@ -143,6 +145,7 @@ class Agent(
     def add_public_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
         Adds the given `public fluents` to the `problem`.
+
         :param fluents: The `public fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
@@ -151,6 +154,7 @@ class Agent(
     def add_private_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
         Adds the given `private fluents` to the `problem`.
+
         :param fluents: The `private fluents` that must be added to the `problem`.
         """
         for fluent in fluents:

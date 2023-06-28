@@ -11,13 +11,39 @@ model.Fluent
 model.Problem
 model.InstantaneousAction
 model.DurativeAction
+model.Parameter
+model.metrics.MinimizeActionCosts
+model.metrics.MinimizeSequentialPlanLength
+model.metrics.MinimizeMakespan
+model.metrics.MinimizeExpressionOnFinalState
+model.metrics.MaximizeExpressionOnFinalState
+model.metrics.Oversubscription
+model.metrics.TemporalOversubscription
 model.htn.HierarchicalProblem
 model.htn.Task
 model.htn.Method
+model.multi_agent.MultiAgentProblem
+model.multi_agent.Agent
+model.multi_agent.MAEnvironment
+io.PDDLReader
+io.PDDLWriter
+io.ANMLWriter
+io.ANMLReader
+io.MAPDDLWriter
+engines.Factory
+engines.OptimalityGuarantee
+engines.AnytimeGuarantee
+engines.CompilationKind
+engines.PlanGenerationResult
+engines.ValidationResult
+engines.CompilerResult
 plans.Plan
+plans.ActionInstance
 plans.SequentialPlan
+plans.TimeTriggeredPlan
 plans.PartialOrderPlan
 plans.STNPlan
+plans.HierarchicalPlan
 """
 
 base_dir = "api/"
@@ -36,7 +62,7 @@ def _add_to_index(dir: str, name):
 
 template = """
 {classname}
-=============================
+====================================
 
 .. autoclass:: unified_planning.{full_classname}
    :members:

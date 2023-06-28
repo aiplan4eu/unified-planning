@@ -9,6 +9,6 @@ Contents:
    :maxdepth: 2
 
    model/index
+   io/index
+   engines/index
    plans/index
-
-
