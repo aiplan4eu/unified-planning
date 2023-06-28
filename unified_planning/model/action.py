@@ -338,6 +338,7 @@ class InstantaneousAction(Action):
             condition_exp,
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
         if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            print(fluent_exp)
             raise UPUsageError(
                 "fluent field of add_effect must be a Fluent or a FluentExp or a Dot."
             )
