@@ -244,14 +244,12 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                             )
                         )
                         if e.is_forall():
-                            vars: List[Variable] = e.forall
+                            vars = e.forall
                             for objects in product(
                                 *(problem.objects(v.type) for v in vars)
                             ):
                                 assert len(vars) == len(objects)
-                                subs: Dict[Expression, Expression] = dict(
-                                    zip(vars, objects)
-                                )
+                                subs = dict(zip(vars, objects))
 
                                 action._add_effect_instance(
                                     t,
@@ -281,10 +279,10 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                     expression_quantifier_remover.remove_quantifiers(e.value, problem)
                 )
             if e.is_forall():
-                vars: List[Variable] = e.forall
+                vars = e.forall
                 for objects in product(*(problem.objects(v.type) for v in vars)):
                     assert len(vars) == len(objects)
-                    subs: Dict[Expression, Expression] = dict(zip(vars, objects))
+                    subs = dict(zip(vars, objects))
                     new_problem._add_effect_instance(
                         t,
                         Effect(

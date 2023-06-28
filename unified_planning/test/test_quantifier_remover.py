@@ -246,6 +246,7 @@ class TestQuantifiersRemover(TestCase):
         qr = QuantifiersRemover()
         res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
         unq_problem = res.problem
+        assert isinstance(unq_problem, Problem)
         expected_effects = {
             a: [
                 (x(o0), y(o0, s0)),
