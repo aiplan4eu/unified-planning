@@ -71,6 +71,7 @@ class Effect:
         self._kind = kind
         fvo = fluent.environment.free_vars_oracle
         free_vars = fvo.get_free_variables(fluent)
+        free_vars.update(fvo.get_free_variables(value))
         free_vars.update(fvo.get_free_variables(condition))
         self._forall = [v for v in forall if v in free_vars]
         assert (
@@ -102,7 +103,7 @@ class Effect:
                 and self._value == oth._value
                 and self._condition == oth._condition
                 and self._kind == oth._kind
-                and self._forall == oth._forall
+                and set(self._forall) == set(oth._forall)
             )
         else:
             return False
@@ -113,7 +114,7 @@ class Effect:
             + hash(self._value)
             + hash(self._condition)
             + hash(self._kind)
-            + hash(tuple(self._forall))
+            + sum(map(hash, self._forall))
         )
 
     def clone(self):
