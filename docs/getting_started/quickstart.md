@@ -9,7 +9,7 @@ In particular we will go through the following steps:
 -   go beyond plan generation showing how to validate a plan and how to ground a planning problem;
 -   call multiple planners in parallel.
 
-### Imports
+## Imports
 
 The basic imports we need for this demo are abstracted in the `shortcuts` package.
 
@@ -17,11 +17,11 @@ The basic imports we need for this demo are abstracted in the `shortcuts` packag
 from unified_planning.shortcuts import *
 ```
 
-### Problem representation
+## Problem representation
 
 In this example, we will model a very simple robot navigation problem.
 
-#### Types
+### Types
 
 The first thing to do is to introduce a `UserType` to model the concept of a location. It is possible to introduce as many types as needed; then, for each type we will define a set of objects of that type.
 
@@ -31,7 +31,7 @@ In addition to `UserType`s we have three built-in types: `Bool`, `Real` and `Int
 Location = UserType('Location')
 ```
 
-#### Fluents and constants
+### Fluents and constants
 
 The basic variables of a planning problem are called "fluents" and are quantities that can change over time. Fluents can have differen types, in this first example we will stick to classical "predicates" that are fluents of boolean type. Moreover, fluents can have parameters: effectively describing multiple variables.
 
@@ -44,7 +44,7 @@ robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
 connected = unified_planning.model.Fluent('connected', BoolType(), l_from=Location, l_to=Location)
 ```
 
-#### Actions
+### Actions
 
 Now we have the problem variables, but in order to describe the possible evolutions of a systems we need to describe how these variables can be changed and how they can evolve. We model this problem using classical, action-based planning, where a set of actions is used to characterize the possible transitions of the system from a state to another.
 
@@ -66,7 +66,7 @@ move.add_effect(robot_at(l_from), False)
 move.add_effect(robot_at(l_to), True)
 ```
 
-#### Creating the problem
+### Creating the problem
 
 The class that represents a planning problem is `Problem`, it contains the set of fluents, the actions, the objects, an intial value for all the fluents and a goal to be reached by the planner. We start by adding the entities we created so far. Note that entities are not bound to one problem, we can create the actions and fluents one and create multiple problems with them.
 
@@ -101,7 +101,7 @@ Finally, we set the goal of the problem. In this example, we set ourselves to re
 problem.add_goal(robot_at(locations[-1]))
 ```
 
-### Solving Planning Problems
+## Solving Planning Problems
 
 The most direct way to solve a planning problem is to select an available planning engine by name and use it to solve the problem. In the following we use `pyperplan` to solve the problem and print the plan.
 
@@ -122,7 +122,7 @@ with OneshotPlanner(problem_kind=problem.kind) as planner:
     print("%s returned: %s" % (planner.name, result.plan))
 ```
 
-#### Beyond plan generation
+### Beyond plan generation
 
 `OneshotPlanner` is not the only operation mode we can invoke from the unified_planning, it is just one way to interact with a planning engine. Another useful functionality is `PlanValidation` that checks if a plan is valid for a problem.
 
@@ -160,7 +160,7 @@ with Compiler(problem_kind=problem.kind, compilation_kind=CompilationKind.GROUND
             assert lift_validation.status == Valid
 ```
 
-#### Parallel planning
+### Parallel planning
 
 We can invoke different instances of a planner in parallel or different planners and return the first plan that is generated effortlessly.
 

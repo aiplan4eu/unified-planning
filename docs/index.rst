@@ -30,6 +30,7 @@ Welcome to Unified-Planning documentation!
    engines
    optimality
    examples
+   notebooks/engines/README
    getting_involved
    contributions
    issue_tracking
