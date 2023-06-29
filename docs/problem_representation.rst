@@ -97,6 +97,9 @@ Problem Kinds
      - CONDITIONAL_EFFECTS
      - At least one effect has a condition.
    * -
+     - FORALL_EFFECTS
+     - At least one effect uses the “forall” quantifier over problem objects.
+   * -
      - INCREASE_EFFECTS
      - At least one effect uses the numeric increment operator.
    * -
