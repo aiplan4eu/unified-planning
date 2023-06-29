@@ -54,10 +54,7 @@ Also for the expressive ANML planning language, the UP provides a reader and a w
     :caption: ANMLWriter example
     :lines: 18-21
 
-Protobuf Serialization
-----------------------
 
-TODO
 
 Tarski Interoperability
 -----------------------

@@ -200,15 +200,6 @@ In all the examples below all the shortcuts must be imported, with the command:
 
 
 
-TODO: state representation:
-
-- fluents
-- types
-- expression
-  - static / dynamic
-- initial state
-- actions
-
 
 
 Classical and Numeric Example
