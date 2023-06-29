@@ -38,7 +38,7 @@ BoolExpression = Union[
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
-NumericExpression = Union["up.model.fnode.FNode", NumericConstant]
+NumericExpression = Union[NumericConstant, "up.model.fnode.FNode"]
 ConstantExpression = Union[
     NumericExpression,
     "up.model.object.Object",

@@ -52,47 +52,13 @@ class SchedulingProblem(  # type: ignore[misc]
     MetricsMixin,
 ):
     """A scheduling problem shares most of its construct with a planning problem with the following differences:
-    - there are no action in a scheduling problem
-    - it defines a set of variables and timepoints over which constraints can be stated
+
+    - scheduling problems replaces *actions* with *activities*. While in planning, a solution plan may contain zero, one
+      or multiple instances of the same action, in scheduling the solution must contain *exactly one* instance of each activity.
+    - it defines a set of variables and timepoints over which constraints can be stated,
     - it provides some shortcuts to deal with typical scheduling constructs (activities, resources, ...)
+    - by default, a `SchedulingProblem` assumes a discrete time model with a minimal temporal separation (aka `epsilon`) of 1.
     """
-
-    @property
-    def kind(self) -> "up.model.problem_kind.ProblemKind":
-        factory = up.model.problem._KindFactory(self, "SCHEDULING", self.environment)
-
-        # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
-        factory.kind.set_time("CONTINUOUS_TIME")
-
-        if len(self.base_conditions()) > 0:
-            factory.kind.set_time("TIMED_GOALS")
-
-        if len(self.base_effects()) > 0:
-            factory.kind.set_time("TIMED_EFFECTS")
-
-        for _, cond, _ in self.conditions():
-            factory.update_problem_kind_expression(cond)
-
-        for constraint in self.base_constraints():
-            factory.update_problem_kind_expression(constraint)
-
-        for _, eff in self.base_effects():
-            factory.update_problem_kind_effect(eff)
-
-        for act in self.activities:
-            factory.update_action_duration(act.duration)
-            for param in act.parameters:
-                factory.update_action_parameter(param)
-            for t, effs in act.effects.items():
-                for e in effs:
-                    factory.update_action_timed_effect(t, e)
-            for span, conds in act.conditions.items():
-                for cond in conds:
-                    factory.update_action_timed_condition(span, cond)
-            for constraint in act.constraints:
-                factory.update_problem_kind_expression(constraint)
-
-        return factory.finalize()
 
     def __init__(
         self,
@@ -123,9 +89,6 @@ class SchedulingProblem(  # type: ignore[misc]
         self._activities: List[Activity] = []
 
         self._metrics: List["up.model.metrics.PlanQualityMetric"] = []
-        print(
-            "WARNING: The SchedulingProblem class is currently unstable and not feature complete."
-        )
 
     def __repr__(self) -> str:
         s = []
@@ -203,7 +166,45 @@ class SchedulingProblem(  # type: ignore[misc]
         res += sum(map(hash, self._activities))
         return res
 
+    @property
+    def kind(self) -> "up.model.problem_kind.ProblemKind":
+        factory = up.model.problem._KindFactory(self, "SCHEDULING", self.environment)
+
+        # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
+        factory.kind.set_time("CONTINUOUS_TIME")
+
+        if len(self.base_conditions) > 0:
+            factory.kind.set_time("TIMED_GOALS")
+
+        if len(self.base_effects) > 0:
+            factory.kind.set_time("TIMED_EFFECTS")
+
+        for _, cond, _ in self.all_conditions():
+            factory.update_problem_kind_expression(cond)
+
+        for constraint in self.base_constraints:
+            factory.update_problem_kind_expression(constraint)
+
+        for _, eff in self.base_effects:
+            factory.update_problem_kind_effect(eff)
+
+        for act in self.activities:
+            factory.update_action_duration(act.duration)
+            for param in act.parameters:
+                factory.update_action_parameter(param)
+            for t, effs in act.effects.items():
+                for e in effs:
+                    factory.update_action_timed_effect(t, e)
+            for span, conds in act.conditions.items():
+                for cond in conds:
+                    factory.update_action_timed_condition(span, cond)
+            for constraint in act.constraints:
+                factory.update_problem_kind_expression(constraint)
+
+        return factory.finalize()
+
     def clone(self):
+        """Returns an equivalent problem."""
         new_p = SchedulingProblem(self._name, self._env)
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
@@ -216,13 +217,10 @@ class SchedulingProblem(  # type: ignore[misc]
         new_p._activities = [a.clone() for a in self._activities]
         return new_p
 
-    def has_name(self, name: str) -> bool:
-        return name in self._base._parameters
-
     def add_variable(self, name: str, tpe: Type) -> Parameter:
         """Adds a new decision variable to the problem.
         Such variables essentially act as existentially quantified variables whose scope is
-        the entire problem, which allows referring to them everywhere and access their value in the solution.
+        the entire problem, which allows referring to them everywhere and access their values in the solution.
         """
         assert not self.has_name(name)
         param = Parameter(name, tpe)
@@ -233,19 +231,26 @@ class SchedulingProblem(  # type: ignore[misc]
         """Returns the existing decision variable with the given name."""
         return self._base.get_parameter(name)
 
+    def add_activity(self, name: str, duration: int = 0) -> "Activity":
+        """Creates a new activity with the given `name` in the problem.
+
+        :param name: Name that uniquely identifies the activity.
+        :param duration: (optional) Fixed duration of the activity. If not set, the duration to 0 (instantaneous activity).
+                         The duration can alter be overriden on the Activity object.
+        """
+        if any(a.name == name for a in self._activities):
+            raise ValueError(f"An activity with name '{name}' already exists.")
+        act = Activity(name=name, duration=duration)
+        self._activities.append(act)
+        return act
+
     @property
     def activities(self) -> List[Activity]:
         """Return a list of all potential activities in the problem."""
         return self._activities
 
-    def add_activity(self, name: str, duration: int = 0) -> "Activity":
-        """Creates a new activity with the given `name` in the problem."""
-        act = Activity(name=name, duration=duration)
-        self._activities.append(act)
-        return act
-
-    def get_activity(self, name) -> "Activity":
-        """Returns the activiy with the given name."""
+    def get_activity(self, name: str) -> "Activity":
+        """Returns the activity with the given name."""
         for act in self.activities:
             if act.name == name:
                 return act
@@ -253,9 +258,13 @@ class SchedulingProblem(  # type: ignore[misc]
             f"Unknown activity '{name}'. Available activity names: {[a.name for a in self.activities]}"
         )
 
-    def add_resource(self, name: str, capacity: int = 1) -> Fluent:
-        """Declares a new resource: a numeric fluent in `[0, CAPACITY]` where capacity is the
-        default initial value of the fluent and denote the capacity of the resource."""
+    def add_resource(self, name: str, capacity: int) -> Fluent:
+        """Declares a new resource: a bounded integer fluent in `[0, CAPACITY]` where capacity is the
+        default initial value of the fluent and denote the capacity of the resource.
+
+        :param name: Name of the fluent that will represent the resource.
+        :param capacity: Upper bound on the fluent value. By default, the fluent initial value is set to `capacity`.
+        """
         tpe = self._env.type_manager.IntType(0, capacity)
         return self.add_fluent(name, tpe, default_initial_value=capacity)
 
@@ -304,7 +313,38 @@ class SchedulingProblem(  # type: ignore[misc]
         self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
 
     @property
-    def variables(self) -> List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]]:
+    def base_variables(self) -> List[Parameter]:
+        """Return all decisions variables that were defined in the base problem (i.e. not in the activities)"""
+        return self._base.parameters.copy()
+
+    @property
+    def base_constraints(self) -> List[FNode]:
+        """Returns all constraints defined in the base problem (ignoring any constraint defined in an activity)."""
+        return self._base.constraints.copy()
+
+    @property
+    def base_conditions(self) -> List[Tuple[TimeInterval, FNode]]:
+        """Returns all timed conditions defined in the base problem
+        (i.e. excluding those defined in activities)."""
+        return [
+            (timing, cond)
+            for (timing, conds) in self._base.conditions.items()
+            for cond in conds
+        ]
+
+    @property
+    def base_effects(self) -> List[Tuple[Timing, Effect]]:
+        """Returns all timed effects defined in the base problem
+        (i.e. excluding those defined in activities)."""
+        return [
+            (timing, eff)
+            for (timing, effs) in self._base.effects.items()
+            for eff in effs
+        ]
+
+    def all_variables(
+        self,
+    ) -> List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]]:
         """Returns all decision variables (timepoints and parameters) defined in this problem and its activities.
         For each variable, the activity in which it was defined is also given."""
         vars: List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]] = []
@@ -315,13 +355,7 @@ class SchedulingProblem(  # type: ignore[misc]
             vars += map(lambda param: (param, activity), activity.parameters)
         return vars
 
-    @property
-    def base_variables(self) -> List[Parameter]:
-        """Return all decisions variables that were defined in the base problem (i.e. not in the activities)"""
-        return self._base.parameters.copy()
-
-    @property
-    def constraints(self) -> List[Tuple[FNode, Optional[Activity]]]:
+    def all_constraints(self) -> List[Tuple[FNode, Optional[Activity]]]:
         """Returns all constraints enforced in this problem or in any of its activities.
         For each constraint, the activity in which it was defined is also given."""
         cs: List[Tuple[FNode, Optional[Activity]]] = list(
@@ -331,11 +365,7 @@ class SchedulingProblem(  # type: ignore[misc]
             cs += map(lambda c: (c, a), a.constraints)
         return cs
 
-    def base_constraints(self) -> List[FNode]:
-        """Returns all constraints defined in the base problem (ignoring any constraint defined in an activity)."""
-        return self._base.constraints.copy()
-
-    def conditions(self) -> List[Tuple[TimeInterval, FNode, Optional[Activity]]]:
+    def all_conditions(self) -> List[Tuple[TimeInterval, FNode, Optional[Activity]]]:
         """Returns all timed conditions enforced in this problem or in any of its activities.
         For each condition, the activity in which it was defined is also given."""
         cs: List[Tuple[TimeInterval, FNode, Optional[Activity]]] = []
@@ -346,16 +376,7 @@ class SchedulingProblem(  # type: ignore[misc]
                 cs += map(lambda cond: (timing, cond, act), conds)
         return cs
 
-    def base_conditions(self) -> List[Tuple[TimeInterval, FNode]]:
-        """Returns all timed conditions defined in the base problem
-        (i.e. excluding those defined in activities)."""
-        return [
-            (timing, cond)
-            for (timing, conds) in self._base.conditions.items()
-            for cond in conds
-        ]
-
-    def effects(self) -> List[Tuple[Timing, Effect, Optional[Activity]]]:
+    def all_effects(self) -> List[Tuple[Timing, Effect, Optional[Activity]]]:
         """Returns all timed effects enforced in this problem or in any of its activities.
         For each effect, the activity in which it was defined is also given."""
         es: List[Tuple[Timing, Effect, Optional[Activity]]] = []
@@ -365,15 +386,6 @@ class SchedulingProblem(  # type: ignore[misc]
             for timing, effs in act.effects.items():
                 es += map(lambda eff: (timing, eff, act), effs)
         return es
-
-    def base_effects(self) -> List[Tuple[Timing, Effect]]:
-        """Returns all timed effects defined in the base problem
-        (i.e. excluding those defined in activities)."""
-        return [
-            (timing, eff)
-            for (timing, effs) in self._base.effects.items()
-            for eff in effs
-        ]
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """
@@ -386,3 +398,6 @@ class SchedulingProblem(  # type: ignore[misc]
         """
         raise NotImplementedError
         # TODO
+
+    def has_name(self, name: str) -> bool:
+        return name in self._base._parameters

@@ -617,13 +617,13 @@ class ProtobufWriter(Converter):
         problem_name = str(problem.name) if problem.name is not None else ""
         goals = [
             proto.Goal(goal=self.convert(g), timing=self.convert(t))
-            for t, g in problem.base_conditions()
+            for t, g in problem.base_conditions
         ]
 
         sched = proto.SchedulingExtension(
             activities=[self.convert(a) for a in problem.activities],
             variables=[self.convert(v) for v in problem.base_variables],
-            constraints=[self.convert(c) for c in problem.base_constraints()],
+            constraints=[self.convert(c) for c in problem.base_constraints],
         )
 
         return proto.Problem(
@@ -640,7 +640,7 @@ class ProtobufWriter(Converter):
                 proto.TimedEffect(
                     occurrence_time=self.convert(timing), effect=self.convert(eff)
                 )
-                for (timing, eff) in problem.base_effects()
+                for (timing, eff) in problem.base_effects
             ],
             goals=goals,
             features=[map_feature(feature) for feature in problem.kind.features],

@@ -65,7 +65,7 @@ def parse(instance: str, instance_name: str) -> SchedulingProblem:
         f"sched:jobshop-{instance_name}-operators"
     )
     machine_objects = [
-        problem.add_resource(f"m{i}") for i in range(1, num_machines + 1)
+        problem.add_resource(f"m{i}", capacity=1) for i in range(1, num_machines + 1)
     ]
 
     # use the jobshop with operators extension: each activity requires an operator

@@ -12,6 +12,7 @@ model.Problem
 model.InstantaneousAction
 model.DurativeAction
 model.Parameter
+model.metrics.PlanQualityMetric
 model.metrics.MinimizeActionCosts
 model.metrics.MinimizeSequentialPlanLength
 model.metrics.MinimizeMakespan
@@ -25,6 +26,13 @@ model.htn.Method
 model.multi_agent.MultiAgentProblem
 model.multi_agent.Agent
 model.multi_agent.MAEnvironment
+model.scheduling.SchedulingProblem
+model.scheduling.Activity
+model.timing.Timepoint
+model.timing.Timing
+model.timing.Interval
+model.timing.Duration
+model.timing.DurationInterval
 io.PDDLReader
 io.PDDLWriter
 io.ANMLWriter
@@ -44,6 +52,7 @@ plans.TimeTriggeredPlan
 plans.PartialOrderPlan
 plans.STNPlan
 plans.HierarchicalPlan
+plans.Schedule
 """
 
 base_dir = "api/"

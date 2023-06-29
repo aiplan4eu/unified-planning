@@ -236,13 +236,13 @@ This means that it is possible to model actions having:
 
 Scheduling Example
 ------------------
-Scheduling is a restricted form of temporal planning where the set of actions (usually called activities) are known in advance and the problem consists in deciding the timing of the activities.
+Scheduling is a restricted form of temporal planning where the set of actions (usually called activities) are known in advance and the problem consists in deciding the timing and parameters of the activities.
 Generally, scheduled problems involve resources and constraints that define the feasible space of solutions.
 Since scheduling problems are very common and scheduling as a computer science problem belongs to a simpler complexity class (NP) with respect to temporal planning (PSPACE, under suitable assumptions) we created a dedicated representation for scheduling problems.
 We can represent a generic scheduling problem using the SchedulingProblem class as shown in the example below.
 
 .. literalinclude:: ./code_snippets/temporal_and_scheduling.py
-    :lines: 47-78
+    :lines: 47-67
 
 
 MultiAgent Example

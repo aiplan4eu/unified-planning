@@ -15,6 +15,8 @@
 
 from typing import Optional, Union
 
+from unified_planning.model.expression import NumericExpression
+
 from unified_planning.model.fnode import FNode
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
@@ -30,8 +32,8 @@ from unified_planning.model.scheduling.chronicle import Chronicle
 
 
 class Activity(Chronicle):
-    """Activity is essentially an interval with start and end timing that facilitates defining constraints in the
-    associated SchedulingProblem"""
+    """Activity is essentially an interval with start and end timepoint that facilitates defining constraints in the
+    associated :class:`SchedulingProblem`"""
 
     def __init__(
         self, name: str, duration: int = 0, _env: Optional[Environment] = None
@@ -111,23 +113,27 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Union[Fluent, FNode], amount: NumericConstant = 1):
+    def uses(self, resource: Union[Fluent, FNode], amount: NumericExpression = 1):
         """Asserts that the activity borrows a given amount (1 by default) of the resource.
         The borrowed resources will be reusable by another activity at the time epoch immediately
-         succeeding the activity end.
-        """
-        self.add_decrease_effect(Timing(0, self.start), resource, amount)
-        self.add_increase_effect(Timing(0, self.end), resource, amount)
+        succeeding the activity end.
 
-    def set_release_date(self, date: int):
-        """Set the earliest date at which the activity can be started."""
+        :param resource: Fluent expression that denotes the resource taht is used.
+        :param amount: Quantity of the resource that is borrowed over the course of the activity.
+        """
+        self.add_decrease_effect(self.start, resource, amount)
+        self.add_increase_effect(self.end, resource, amount)
+
+    def add_release_date(self, date: NumericExpression):
+        """Sets the earliest date at which the activity can be started."""
         self.add_constraint(get_environment().expression_manager.LE(date, self.start))
 
-    def set_deadline(self, date: int):
-        """Set the latest date at which the activity might end."""
+    def add_deadline(self, date: NumericExpression):
+        """Sets the latest date at which the activity might end."""
         self.add_constraint(get_environment().expression_manager.LE(self.end, date))
 
     def clone(self):
+        """Generates a copy of this activity."""
         new = Activity(self.name, _env=self._environment)
         self._clone_to(new)
         new._duration = self._duration

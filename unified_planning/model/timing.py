@@ -44,11 +44,17 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    """Class used to define the point in the time from which a :class:`~unified_planning.model.Timing` is considered."""
+    """Temporal point of interest, one of:
+
+     - global start: temporal origin (time 0) at which the initial state is defined
+     - global end: plan horizon, at which the plan goals must hold.
+     - start time or end time of an action, activity or task/method.
+
+    Used to define the point in the time from which a :class:`~unified_planning.model.timing.Timing` is considered."""
 
     def __init__(self, kind: TimepointKind, container: Optional[str] = None):
         """
-        Creates a new `Timepoint`.
+        Creates a new :class:`Timepoint`.
 
         It is typically used to refer to:
          - the start/end of the containing action or method, or
@@ -96,7 +102,7 @@ class Timepoint:
 
     @property
     def kind(self) -> TimepointKind:
-        """Returns the `kind` of this `Timepoint`; the `kind` defines the semantic of the `Timepoint`."""
+        """Returns the `kind` of this :class:`Timepoint`; the `kind` defines the semantic of the `Timepoint`."""
         return self._kind
 
     @property
@@ -106,11 +112,12 @@ class Timepoint:
 
 
 class Timing:
-    """
-    Class that used a :class:`~unified_planning.model.Timepoint` to define from when this `Timing` is considered and a :func:`delay <unified_planning.model.Timing.delay>`,
+    """Time defined relatively to a :class:`Timepoint`.
+
+    Class that used a :class:`~unified_planning.model.timing.Timepoint` to define from when this `Timing` is considered and a :func:`delay <unified_planning.model.Timing.delay>`,
     representing the distance from the given `Timepoint`.
-    For example:
-    A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the start of the `Plan`.
+    For instance:
+    A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the initial state.
     """
 
     def __init__(self, delay: NumericConstant, timepoint: Timepoint):
