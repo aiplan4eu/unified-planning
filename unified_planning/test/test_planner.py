@@ -311,7 +311,7 @@ class TestPlanner(TestCase):
             self.assertIsNotNone(plan)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
-    def test_check_flags(self):
+    def test_safe_road(self):
         problem = self.problems["safe_road"].problem
         with OneshotPlanner(name="opt-pddl-planner") as planner:
             self.assertTrue(planner.supports(problem.kind))
