@@ -109,11 +109,17 @@ Problem Kinds
      - STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS
      - At least one effect uses a static fluent in the expression of a numeric assignment.
    * -
+     - STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS
+     - At least one effect uses a static fluent in the expression of a object assignment.
+   * -
      - FLUENTS_IN_BOOLEAN_ASSIGNMENTS
      - At least one effect uses a fluent in the expression of a boolean assignment.
    * -
      - FLUENTS_IN_NUMERIC_ASSIGNMENTS
      - At least one effect uses a fluent in the expression of a numeric assignment.
+   * -
+     - FLUENTS_IN_OBJECT_ASSIGNMENTS
+     - At least one effect uses a fluent in the expression of a object assignment.
    * - TYPING
      - FLAT_TYPING
      - The problem uses user-defined types, but no type inherits from another.

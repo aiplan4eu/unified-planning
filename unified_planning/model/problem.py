@@ -833,6 +833,11 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+            elif value.type.is_user_type():
+                if any(f in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
+                if any(f not in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
 
     def update_problem_kind_expression(
         self,
