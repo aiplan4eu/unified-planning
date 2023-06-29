@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from itertools import product
 import unified_planning as up
 from unified_planning.shortcuts import *
 from collections import namedtuple
@@ -954,5 +955,46 @@ def get_example_problems():
     )
     travel = Example(problem=problem, plan=plan)
     problems["travel"] = travel
+
+    # safe_road
+    problem = Problem("safe_road")
+
+    Location = UserType("Location")
+
+    safe = Fluent("safe", l_from=Location, l_to=Location)
+    disaster_happened = Fluent("disaster_happened")
+
+    problem.add_fluent(safe, default_initial_value=True)
+    problem.add_fluent(disaster_happened, default_initial_value=False)
+
+    check = InstantaneousAction("check", l_from=Location, l_to=Location)
+    l_from = check.parameter("l_from")
+    l_to = check.parameter("l_to")
+    check.add_effect(safe(l_from, l_to), True)
+    problem.add_action(check)
+
+    natural_disaster = InstantaneousAction("natural_disaster")
+    lx, ly = Variable("lx", Location), Variable("ly", Location)
+    natural_disaster.add_effect(disaster_happened, True)
+    natural_disaster.add_effect(safe(lx, ly), False, forall=[lx, ly])
+    problem.add_action(natural_disaster)
+
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    locations = (l1, l2, l3)
+    problem.add_objects(locations)
+
+    problem.add_goal(disaster_happened)
+    problem.add_goal(Forall(safe(lx, ly), lx, ly))
+
+    def generate_safe_road_plan():
+        yield natural_disaster()
+        for lx, ly in product(locations, repeat=2):
+            yield check(lx, ly)
+
+    plan = up.plans.SequentialPlan(list(generate_safe_road_plan()))
+    safe_road = Example(problem=problem, plan=plan)
+    problems["safe_road"] = safe_road
 
     return problems

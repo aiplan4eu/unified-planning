@@ -37,7 +37,7 @@ from unified_planning.exceptions import (
     UPTypeError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
 
 class Problem(  # type: ignore[misc]
@@ -420,6 +420,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -429,6 +430,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value assigned to the given `fluent` at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         if timing.is_from_end():
             raise UPProblemDefinitionError(
@@ -445,7 +448,8 @@ class Problem(  # type: ignore[misc]
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Timed effect has not compatible types!")
         self._add_effect_instance(
-            timing, up.model.effect.Effect(fluent_exp, value_exp, condition_exp)
+            timing,
+            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall),
         )
 
     def add_increase_effect(
@@ -454,6 +458,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed increase effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -463,6 +468,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value of which the given `fluent` is increased at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,
@@ -483,6 +490,7 @@ class Problem(  # type: ignore[misc]
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.INCREASE,
+                forall=forall,
             ),
         )
 
@@ -492,6 +500,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given timed decrease effect to the problem; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -501,6 +510,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value of which the given `fluent` is decrease at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,
@@ -521,6 +532,7 @@ class Problem(  # type: ignore[misc]
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.DECREASE,
+                forall=forall,
             ),
         )
 
@@ -774,6 +786,8 @@ class _KindFactory:
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        if e.is_forall():
+            self.kind.set_effects_kind("FORALL_EFFECTS")
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint

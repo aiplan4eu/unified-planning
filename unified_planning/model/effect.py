@@ -23,9 +23,10 @@ import unified_planning as up
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
     UPProblemDefinitionError,
+    UPUnboundedVariablesError,
 )
 from enum import Enum, auto
-from typing import List, Callable, Dict, Optional, Set, Union
+from typing import List, Callable, Dict, Optional, Set, Union, Iterable, Tuple, Iterator
 
 
 class EffectKind(Enum):
@@ -56,6 +57,7 @@ class Effect:
         value: "up.model.fnode.FNode",
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         fve = fluent.environment.free_vars_extractor
         fluents_in_fluent = fve.get(fluent)
@@ -68,13 +70,37 @@ class Effect:
         self._value = value
         self._condition = condition
         self._kind = kind
+        fvo = fluent.environment.free_vars_oracle
+        free_vars: Set["up.model.variable.Variable"] = fvo.get_free_variables(fluent)
+        free_vars.update(fvo.get_free_variables(value))
+        free_vars.update(fvo.get_free_variables(condition))
+
+        def free_vars_without_duplicates() -> Iterator["up.model.variable.Variable"]:
+            # store seen variables to avoid duplicates
+            seen: Set["up.model.variable.Variable"] = set()
+            for v in forall:
+                if v in free_vars and not v in seen:
+                    seen.add(v)
+                    yield v
+            unbounded_vars = free_vars.difference(seen)
+            if unbounded_vars:
+                raise UPUnboundedVariablesError(
+                    f"Some variables in the effect are unbounded: {unbounded_vars}"
+                )
+
+        self._forall: Tuple["up.model.variable.Variable", ...] = tuple(
+            free_vars_without_duplicates()
+        )
         assert (
             fluent.environment == value.environment
             and value.environment == condition.environment
+            and all(fluent.environment == v.environment for v in self._forall)
         ), "Effect expressions have different environment."
 
     def __repr__(self) -> str:
         s = []
+        if self.is_forall():
+            s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
             s.append(f"if {str(self._condition)} then")
         s.append(f"{str(self._fluent)}")
@@ -94,6 +120,7 @@ class Effect:
                 and self._value == oth._value
                 and self._condition == oth._condition
                 and self._kind == oth._kind
+                and set(self._forall) == set(oth._forall)
             )
         else:
             return False
@@ -104,11 +131,20 @@ class Effect:
             + hash(self._value)
             + hash(self._condition)
             + hash(self._kind)
+            + sum(map(hash, self._forall))
         )
 
     def clone(self):
-        new_effect = Effect(self._fluent, self._value, self._condition, self._kind)
+        new_effect = Effect(
+            self._fluent, self._value, self._condition, self._kind, self._forall
+        )
         return new_effect
+
+    def is_forall(self) -> bool:
+        """
+        Returns `True` if the `Effect` is a `forall` effect; this means that the `Effect`
+        is applied for the instances of all the specified `Variables`."""
+        return len(self._forall) > 0
 
     def is_conditional(self) -> bool:
         """
@@ -152,6 +188,11 @@ class Effect:
     def kind(self) -> EffectKind:
         """Returns the `kind` of this `Effect`."""
         return self._kind
+
+    @property
+    def forall(self) -> Tuple["up.model.variable.Variable", ...]:
+        """Returns the `Variables` that are universally quantified in this `Effect`."""
+        return self._forall
 
     @property
     def environment(self) -> "up.environment.Environment":

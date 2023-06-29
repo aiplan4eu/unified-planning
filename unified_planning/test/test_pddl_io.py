@@ -755,8 +755,8 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 2)
         natural_disaster = problem.action("natural_disaster")
         assert isinstance(natural_disaster, InstantaneousAction)
-        # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
-        self.assertEqual(len(natural_disaster.effects), 9)
+        self.assertEqual(len(natural_disaster.effects), 1)
+        self.assertTrue(natural_disaster.effects[0].is_forall())
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
     @skipIfNoOneshotPlannerForProblemKind(

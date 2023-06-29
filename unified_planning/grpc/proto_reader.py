@@ -589,21 +589,25 @@ class ProtobufReader(Converter):
                 action.add_condition(span, c)
             for e, ot in effects:
                 if e.kind == EffectKind.ASSIGN:
-                    action.add_effect(ot, e.fluent, e.value, e.condition)
+                    action.add_effect(ot, e.fluent, e.value, e.condition, e.forall)
                 elif e.kind == EffectKind.DECREASE:
-                    action.add_decrease_effect(ot, e.fluent, e.value, e.condition)
+                    action.add_decrease_effect(
+                        ot, e.fluent, e.value, e.condition, e.forall
+                    )
                 elif e.kind == EffectKind.INCREASE:
-                    action.add_increase_effect(ot, e.fluent, e.value, e.condition)
+                    action.add_increase_effect(
+                        ot, e.fluent, e.value, e.condition, e.forall
+                    )
         elif isinstance(action, InstantaneousAction):
             for c, _ in conditions:
                 action.add_precondition(c)
             for e, _ in effects:
                 if e.kind == EffectKind.ASSIGN:
-                    action.add_effect(e.fluent, e.value, e.condition)
+                    action.add_effect(e.fluent, e.value, e.condition, e.forall)
                 elif e.kind == EffectKind.DECREASE:
-                    action.add_decrease_effect(e.fluent, e.value, e.condition)
+                    action.add_decrease_effect(e.fluent, e.value, e.condition, e.forall)
                 elif e.kind == EffectKind.INCREASE:
-                    action.add_increase_effect(e.fluent, e.value, e.condition)
+                    action.add_increase_effect(e.fluent, e.value, e.condition, e.forall)
 
         return action
 
@@ -624,6 +628,7 @@ class ProtobufReader(Converter):
             value=self.convert(msg.value, problem),
             condition=self.convert(msg.condition, problem),
             kind=kind,
+            forall=(self.convert(var, problem).variable() for var in msg.forall),
         )
 
     @handles(proto.Duration)

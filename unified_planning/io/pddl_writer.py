@@ -566,6 +566,7 @@ class PDDLWriter:
                             out,
                             converter,
                             self.rewrite_bool_assignments,
+                            self._get_mangled_name,
                         )
 
                     if a in costs:
@@ -631,6 +632,7 @@ class PDDLWriter:
                                 out,
                                 converter,
                                 self.rewrite_bool_assignments,
+                                self._get_mangled_name,
                             )
                     if a in costs:
                         out.write(
@@ -969,6 +971,20 @@ def _write_effect(
     out: IO[str],
     converter: ConverterToPDDLString,
     rewrite_bool_assignments: bool,
+    get_mangled_name: Callable[
+        [
+            Union[
+                "up.model.Type",
+                "up.model.Action",
+                "up.model.Fluent",
+                "up.model.Object",
+                "up.model.Parameter",
+                "up.model.Variable",
+                "up.model.multi_agent.Agent",
+            ]
+        ],
+        str,
+    ],
 ):
     simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
@@ -984,11 +1000,21 @@ def _write_effect(
             "semantic. To enable this feature, set the flag rewrite_bool_assignments",
             " to True in the PDDLWriter constructor.",
         )
+    forall_str = ""
+    if effect.is_forall():
+        mid_str = " ".join(
+            (
+                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
+                for v in effect.forall
+            )
+        )
+        forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
     if non_const_bool_ass:
         assert effect.is_assignment()
         positive_cond = (simplified_cond & effect.value).simplify()
         if not positive_cond.is_false():
+            out.write(forall_str)
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -1002,8 +1028,11 @@ def _write_effect(
                 )
             if timing is not None:
                 out.write(")")
+            if effect.is_forall():
+                out.write(")")
         negative_cond = (simplified_cond & effect.value.Not()).simplify()
         if not negative_cond.is_false():
+            out.write(forall_str)
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -1017,10 +1046,13 @@ def _write_effect(
                 )
             if timing is not None:
                 out.write(")")
+            if effect.is_forall():
+                out.write(")")
         return
 
     if simplified_cond.is_false():
         return
+    out.write(forall_str)
     if timing is not None:
         if timing.is_from_start():
             out.write(f" (at start")
@@ -1048,4 +1080,6 @@ def _write_effect(
     if not simplified_cond.is_true():
         out.write(")")
     if timing is not None:
+        out.write(")")
+    if effect.is_forall():
         out.write(")")

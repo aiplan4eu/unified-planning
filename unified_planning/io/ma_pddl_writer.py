@@ -449,6 +449,7 @@ class MAPDDLWriter:
                                 out,
                                 converter,
                                 self.rewrite_bool_assignments,
+                                self._get_mangled_name,
                             )
 
                         if a in costs:
@@ -510,6 +511,7 @@ class MAPDDLWriter:
                                     out,
                                     converter,
                                     self.rewrite_bool_assignments,
+                                    self._get_mangled_name,
                                 )
                         if a in costs:
                             out.write(
