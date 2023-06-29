@@ -142,7 +142,9 @@ def create_effect_with_given_subs(
     if new_condition == problem.environment.expression_manager.FALSE():
         return None
     else:
-        return Effect(new_fluent, new_value, new_condition, old_effect.kind)
+        return Effect(
+            new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
+        )
 
 
 def create_action_with_given_subs(
