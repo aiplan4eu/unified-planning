@@ -8,7 +8,7 @@ on:
         type: string
 
 env:
-  up_tamer_commit: "352edab181a1715cb2a02530020cc0cc1e311b7b"
+  up_tamer_commit: "cae6a57c2b8eb1903e0ec4217444e72124a9c591"
   up_pyperplan_commit: "71e0c1fe65f9564f04912168ee26699eff144095"
   up_fast_downward_commit: "7ccd86de2ce8992a2bc720b1a4b43002b6e1230b"
   up_fmap_commit: "d0e3c0c920b3a515486ae7526c0fba51c75361e1"
