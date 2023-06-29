@@ -355,12 +355,13 @@ class ProtobufWriter(Converter):
             kind = proto.EffectExpression.EffectKind.Value("DECREASE")
         else:
             raise ValueError(f"Unsupported effect: {effect}")
-
+        auto_promote = effect.environment.expression_manager.auto_promote
         return proto.EffectExpression(
             kind=kind,
             fluent=self.convert(effect.fluent),
             value=self.convert(effect.value),
             condition=self.convert(effect.condition),
+            forall=[self.convert(exp) for exp in auto_promote(effect.forall)],
         )
 
     @handles(model.InstantaneousAction)

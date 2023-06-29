@@ -165,6 +165,9 @@ message EffectExpression {
     // If the effect is unconditional, the effect is set to the constant 'true' value.
     // features: CONDITIONAL_EFFECT
     Expression condition = 4;
+
+    // The variables that quantify
+    repeated Expression forall = 5;
 }
 
 // Representation of an effect that allows qualifying the effect expression, e.g., to make it a conditional effect.
@@ -615,6 +618,7 @@ enum Feature {
     FLUENTS_IN_BOOLEAN_ASSIGNMENTS = 43;
     FLUENTS_IN_NUMERIC_ASSIGNMENTS = 44;
     FLUENTS_IN_OBJECT_ASSIGNMENTS = 58;
+    FORALL_EFFECTS = 59;
     // TYPING
     FLAT_TYPING = 17;
     HIERARCHICAL_TYPING = 18;

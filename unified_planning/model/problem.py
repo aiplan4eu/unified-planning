@@ -37,7 +37,7 @@ from unified_planning.exceptions import (
     UPTypeError,
 )
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast
+from typing import Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
 
 class Problem(  # type: ignore[misc]
@@ -420,7 +420,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -430,8 +430,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value assigned to the given `fluent` at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         if timing.is_from_end():
             raise UPProblemDefinitionError(
@@ -458,7 +458,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed increase effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -468,8 +468,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value of which the given `fluent` is increased at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,
@@ -500,7 +500,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given timed decrease effect to the problem; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -510,8 +510,8 @@ class Problem(  # type: ignore[misc]
         :param value: The value of which the given `fluent` is decrease at the given `time`.
         :param condition: The condition that must be evaluated to `True` in order for this `Effect` to be
             actually applied.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,

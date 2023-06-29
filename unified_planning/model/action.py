@@ -320,7 +320,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `assignment` to the `action's effects`.
@@ -329,8 +329,8 @@ class InstantaneousAction(Action):
         :param value: The `value` to assign to the given `fluent`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,
@@ -358,7 +358,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `increase effect` to the `action's effects`.
@@ -367,8 +367,8 @@ class InstantaneousAction(Action):
         :param value: The given `fluent` is incremented by the given `value`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,
@@ -406,7 +406,7 @@ class InstantaneousAction(Action):
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: List["up.model.variable.Variable"] = [],
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `decrease effect` to the `action's effects`.
@@ -415,8 +415,8 @@ class InstantaneousAction(Action):
         :param value: The given `fluent` is decremented by the given `value`.
         :param condition: The `condition` in which this `effect` is applied; the default
             value is `True`.
-        :param forall: The list of 'variables' that are universally quantified in this
-            effect; the default value is `[]`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
         """
         (
             fluent_exp,

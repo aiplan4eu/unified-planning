@@ -593,7 +593,7 @@ class PDDLReader:
                     self._em.FALSE(),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "assign":
                 eff = (
                     self._parse_exp(
@@ -604,7 +604,7 @@ class PDDLReader:
                     ),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
                 eff = (
                     self._parse_exp(
@@ -637,6 +637,7 @@ class PDDLReader:
                     for o in g.value[0]:
                         forall_variables[o] = up.model.Variable(o, t)
                 to_add.append((exp[2], cond, forall_variables))
+                print(forall_variables)
             else:
                 eff = (
                     self._parse_exp(
@@ -645,7 +646,7 @@ class PDDLReader:
                     self._em.TRUE(),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
 
     def _add_condition(
         self,

@@ -756,6 +756,7 @@ class TestPddlIO(TestCase):
         natural_disaster = problem.action("natural_disaster")
         assert isinstance(natural_disaster, InstantaneousAction)
         self.assertEqual(len(natural_disaster.effects), 1)
+        self.assertTrue(natural_disaster.effects[0].is_forall())
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
     @skipIfNoOneshotPlannerForProblemKind(

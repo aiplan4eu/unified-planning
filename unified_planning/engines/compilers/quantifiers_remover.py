@@ -39,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
     updated_minimize_action_costs,
 )
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from functools import partial
 
 
@@ -189,7 +189,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                         e.set_condition(
                             expression_quantifier_remover.remove_quantifiers(
                                 e.condition, problem
-                            )
+                            ).simplify()
                         )
                     e.set_value(
                         expression_quantifier_remover.remove_quantifiers(
@@ -197,7 +197,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                         )
                     )
                     if e.is_forall():
-                        vars: List[Variable] = e.forall
+                        vars: Tuple[Variable, ...] = e.forall
                         for objects in product(
                             *(problem.objects(v.type) for v in vars)
                         ):
@@ -205,16 +205,19 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                             subs: Dict[Expression, Expression] = dict(
                                 zip(vars, objects)
                             )
-                            action._add_effect_instance(
-                                Effect(
-                                    e.fluent.substitute(subs),
-                                    e.value.substitute(subs),
-                                    e.condition.substitute(subs),
-                                    e.kind,
+                            cond = e.condition.substitute(subs).simplify()
+                            if not cond.is_false():
+                                action._add_effect_instance(
+                                    Effect(
+                                        e.fluent.substitute(subs),
+                                        e.value.substitute(subs),
+                                        cond,
+                                        e.kind,
+                                    )
                                 )
-                            )
                     else:
-                        action._add_effect_instance(e)
+                        if not e.condition.is_false():
+                            action._add_effect_instance(e)
                 new_to_old[action] = original_action
             elif isinstance(action, DurativeAction):
                 original_action = problem.action(action.name)
@@ -236,7 +239,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                             e.set_condition(
                                 expression_quantifier_remover.remove_quantifiers(
                                     e.condition, problem
-                                )
+                                ).simplify()
                             )
                         e.set_value(
                             expression_quantifier_remover.remove_quantifiers(
@@ -250,18 +253,20 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                             ):
                                 assert len(vars) == len(objects)
                                 subs = dict(zip(vars, objects))
-
-                                action._add_effect_instance(
-                                    t,
-                                    Effect(
-                                        e.fluent.substitute(subs),
-                                        e.value.substitute(subs),
-                                        e.condition.substitute(subs),
-                                        e.kind,
-                                    ),
-                                )
+                                cond = e.condition.substitute(subs).simplify()
+                                if not cond.is_false():
+                                    action._add_effect_instance(
+                                        t,
+                                        Effect(
+                                            e.fluent.substitute(subs),
+                                            e.value.substitute(subs),
+                                            cond,
+                                            e.kind,
+                                        ),
+                                    )
                         else:
-                            action._add_effect_instance(t, e)
+                            if not e.condition.is_false():
+                                action._add_effect_instance(t, e)
                 new_to_old[action] = original_action
             else:
                 raise NotImplementedError
@@ -273,7 +278,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                     e.set_condition(
                         expression_quantifier_remover.remove_quantifiers(
                             e.condition, problem
-                        )
+                        ).simplify()
                     )
                 e.set_value(
                     expression_quantifier_remover.remove_quantifiers(e.value, problem)
@@ -283,15 +288,17 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                 for objects in product(*(problem.objects(v.type) for v in vars)):
                     assert len(vars) == len(objects)
                     subs = dict(zip(vars, objects))
-                    new_problem._add_effect_instance(
-                        t,
-                        Effect(
-                            e.fluent.substitute(subs),
-                            e.value.substitute(subs),
-                            e.condition.substitute(subs),
-                            e.kind,
-                        ),
-                    )
+                    cond = e.condition.substitute(subs).simplify()
+                    if not cond.is_false():
+                        new_problem._add_effect_instance(
+                            t,
+                            Effect(
+                                e.fluent.substitute(subs),
+                                e.value.substitute(subs),
+                                cond,
+                                e.kind,
+                            ),
+                        )
             else:
                 new_problem._add_effect_instance(t, e)
         for i, gl in problem.timed_goals.items():
