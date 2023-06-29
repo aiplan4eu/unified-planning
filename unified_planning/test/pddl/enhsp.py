@@ -129,6 +129,7 @@ class ENHSP(PDDLAnytimePlanner):
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
