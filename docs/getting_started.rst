@@ -14,15 +14,5 @@ In this guide we present the main functionalities offered by the Unified-Plannin
    :hidden:
    :caption: Getting Started
 
-   getting_started/introduction
    getting_started/installation
    getting_started/quickstart
-
-.. toctree::
-   :maxdepth: 2
-   :glob:
-   :hidden:
-   :caption: Additional Info
-
-   getting_started/Planning-Taxonomy
-   notebooks/engines/README

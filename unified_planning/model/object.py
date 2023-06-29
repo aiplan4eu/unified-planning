@@ -27,6 +27,7 @@ class Object:
     Represents an `Object` of the `unified_planning` library.
 
     An `Object` contains 2 parts:
+
     - `name`: a string containing the `Object's` :func:`name <unified_planning.model.Object.name>`.
     - `type`: a :class:`~unified_planning.model.Type` representing the planning :func:`user_type <unified_planning.model.Object.type>` associated to this `Object`.
 
