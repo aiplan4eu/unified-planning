@@ -24,7 +24,11 @@ import unified_planning.model.htn as htn
 import unified_planning.model.walkers
 from unified_planning.model import ContingentProblem
 from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPUsageError, UPException
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPException,
+    UPUnsupportedProblemTypeError,
+)
 from unified_planning.io.utils import parse_string, set_results_name, Located
 
 import pyparsing
@@ -629,6 +633,10 @@ class PDDLReader:
                 act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
+                if forall_variables:
+                    raise UPUnsupportedProblemTypeError(
+                        "Nested forall on effects are not supported."
+                    )
                 forall_variables = forall_variables.copy()
                 vars_string = " ".join([e.value for e in exp[1]])
                 vars_res = self._pp_parameters.parseString(vars_string)
@@ -637,7 +645,6 @@ class PDDLReader:
                     for o in g.value[0]:
                         forall_variables[o] = up.model.Variable(o, t)
                 to_add.append((exp[2], cond, forall_variables))
-                print(forall_variables)
             else:
                 eff = (
                     self._parse_exp(
@@ -775,6 +782,10 @@ class PDDLReader:
                 )
             elif len(eff) == 3 and op == "forall":
                 assert isinstance(eff, CustomParseResults)
+                if forall_variables:
+                    raise UPUnsupportedProblemTypeError(
+                        "Nested forall on effects are not supported."
+                    )
                 forall_variables = forall_variables.copy()
                 vars_string = " ".join([e.value for e in eff[1]])
                 vars_res = self._pp_parameters.parseString(vars_string)

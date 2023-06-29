@@ -975,6 +975,7 @@ def get_example_problems():
 
     natural_disaster = InstantaneousAction("natural_disaster")
     lx, ly = Variable("lx", Location), Variable("ly", Location)
+    natural_disaster.add_effect(disaster_happened, True)
     natural_disaster.add_effect(safe(lx, ly), False, forall=[lx, ly])
     problem.add_action(natural_disaster)
 

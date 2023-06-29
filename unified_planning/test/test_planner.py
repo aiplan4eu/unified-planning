@@ -310,6 +310,15 @@ class TestPlanner(TestCase):
             plan = planner.solve(problem).plan
             self.assertIsNotNone(plan)
 
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_check_flags(self):
+        problem = self.problems["safe_road"].problem
+        with OneshotPlanner(name="opt-pddl-planner") as planner:
+            self.assertTrue(planner.supports(problem.kind))
+            res = planner.solve(problem)
+            plan = res.plan
+            self.assertEqual(len(plan.actions), 10)
+
     def test_engine_class(self):
         with self.assertRaises(TypeError):
             Engine()  # type: ignore[abstract]

@@ -84,7 +84,6 @@ class Effect:
                     yield v
             unbounded_vars = free_vars.difference(seen)
             if unbounded_vars:
-                print(forall)
                 raise UPUnboundedVariablesError(
                     f"Some variables in the effect are unbounded: {unbounded_vars}"
                 )
