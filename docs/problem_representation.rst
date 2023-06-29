@@ -6,6 +6,9 @@ The main functionality offered by the library concerns the specification of a pl
 One of the key element of the problem specifications is the ProblemKind class (automatically computed by all the planning problems classes via the kind property), which  is a collection of flags, documented in the table below, that identifies the modeling features used in any problem specification, so that the library can determine the applicability of each engine for a certain query.
 
 
+Problem Kinds
+-------------
+
 .. list-table::
    :header-rows: 1
 
@@ -29,7 +32,7 @@ One of the key element of the problem specifications is the ProblemKind class (a
      - The problem is a scheduling problem where a known set of activities need to be scheduled in time.
    * -
      - TAMP
-     - The problem is a Task And Motion Planning problem.
+     - The problem is a *Task and Motion Planning* problem.
    * - PROBLEM_TYPE
      - SIMPLE_NUMERIC_PLANNING
      - The numeric part of the problem exhibits only linear numeric conditions of the form f(X) {>=,>,=} 0 where f(X) is a linear expression constructed over numeric variables X. Moreover, effects are restricted to increase and decrease operations by a constant. For instance x+=k with k constant is allowed, while x+=y with y variable is not.
@@ -50,22 +53,22 @@ One of the key element of the problem specifications is the ProblemKind class (a
      - The temporal planning problem uses either conditions or effects happening outside the interval of an action (e.g. 10 seconds after the end of the action).
    * -
      - TIMED_EFFECTS
-     - The temporal planning problem uses effects scheduled at absolute time (e.g., Timed Initial Literals in PDDL).
+     - The temporal planning problem has effects scheduled at absolute times (e.g., Timed Initial Literals in PDDL).
    * -
      - TIMED_GOALS
      - The temporal planning problem uses goals required to be true at times different from the end of the plan.
    * -
      - DURATION_INEQUALITIES
-     - The temporal planning problem has at least an action with non-constant duration (and instead uses a lower bound different than upper bound).
+     - The temporal planning problem has at least one action with non-constant duration (and instead uses a lower bound different than upper bound).
    * -
      - SELF_OVERLAPPING
      - The temporal planning problem allows actions self overlapping.
    * - EXPRESSION_DURATION
      - STATIC_FLUENTS_IN_DURATION
-     - The duration of at least one action uses fluents that are never changed by the problem.
+     - The duration of at least one action uses static fluents (that may never change).
    * -
      - FLUENTS_IN_DURATION
-     - The duration of at least one action is specified using fluents that might change.
+     - The duration of at least one action is specified using non-static fluents (that might change over the course of a plan).
    * - NUMBERS
      - CONTINUOUS_NUMBERS
      - The problem uses numbers ranging over continuous domains (e.g. reals).
@@ -113,16 +116,16 @@ One of the key element of the problem specifications is the ProblemKind class (a
      - At least one effect uses a fluent in the expression of a numeric assignment.
    * - TYPING
      - FLAT_TYPING
-     - The problem uses types, but no type inherits from another.
+     - The problem uses user-defined types, but no type inherits from another.
    * -
      - HIERARCHICAL_TYPING
-     - At least one type in the problem inherits from another type.
+     - At least one user-defined type in the problem inherits from another type.
    * - PARAMETERS
      - BOOL_FLUENT_PARAMETERS
      - At least one fluent has a parameter of boolean type.
    * -
      - BOUNDED_INT_FLUENT_PARAMETERS
-     - At least one fluent has a parameter of bounded integer type.
+     - At least one fluent has a parameter of bounded integer type. Note that unbounded ints are not allowed in fluent parameters).
    * -
      - BOOL_ACTION_PARAMETERS
      - At least one action has a parameter of boolean type.
