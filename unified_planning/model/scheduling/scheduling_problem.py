@@ -173,19 +173,19 @@ class SchedulingProblem(  # type: ignore[misc]
         # note: auto promoted to discrete time in `finalize()` if that's what is said in the TimeModelMixin.
         factory.kind.set_time("CONTINUOUS_TIME")
 
-        if len(self.base_conditions()) > 0:
+        if len(self.base_conditions) > 0:
             factory.kind.set_time("TIMED_GOALS")
 
-        if len(self.base_effects()) > 0:
+        if len(self.base_effects) > 0:
             factory.kind.set_time("TIMED_EFFECTS")
 
-        for _, cond, _ in self.conditions():
+        for _, cond, _ in self.all_conditions():
             factory.update_problem_kind_expression(cond)
 
-        for constraint in self.base_constraints():
+        for constraint in self.base_constraints:
             factory.update_problem_kind_expression(constraint)
 
-        for _, eff in self.base_effects():
+        for _, eff in self.base_effects:
             factory.update_problem_kind_effect(eff)
 
         for act in self.activities:
