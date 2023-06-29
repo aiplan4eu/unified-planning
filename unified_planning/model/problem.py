@@ -783,6 +783,7 @@ class _KindFactory:
         e: "up.model.effect.Effect",
     ):
         value = self.simplifier.simplify(e.value)
+        fluents_in_value = self.environment.free_vars_extractor.get(value)
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -806,6 +807,10 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if any(f in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if any(f not in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_decrease():
             self.kind.set_effects_kind("DECREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
@@ -824,10 +829,12 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if any(f in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if any(f not in self.static_fluents for f in fluents_in_value):
+                    self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_assignment():
             value_type = value.type
-            value = e.value
-            fluents_in_value = self.environment.free_vars_extractor.get(value)
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
