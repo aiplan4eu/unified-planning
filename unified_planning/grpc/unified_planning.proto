@@ -166,7 +166,7 @@ message EffectExpression {
     // features: CONDITIONAL_EFFECT
     Expression condition = 4;
 
-    // The variables that quantify
+    // The variables that quantify this effect
     repeated Expression forall = 5;
 }
 
