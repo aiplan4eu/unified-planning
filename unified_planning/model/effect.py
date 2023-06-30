@@ -209,7 +209,6 @@ class Effect:
         :return: The Iterator over all the effects needed to maintain semantic
             equivalence with self.
         """
-        # if self._forall:
         if self.is_forall():
             for objects in product(
                 *(objects_set.objects(v.type) for v in self._forall)
