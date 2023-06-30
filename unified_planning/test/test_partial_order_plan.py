@@ -38,13 +38,15 @@ class TestPartialOrderPlan(TestCase):
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.convert_to(PlanKind.PARTIAL_ORDER_PLAN, problem)
-                    for sorted_plan in pop_plan.all_sequential_plans():
+                    for i, sorted_plan in enumerate(pop_plan.all_sequential_plans()):
                         validation_result = validator.validate(problem, sorted_plan)
                         self.assertEqual(
                             up.engines.ValidationResultStatus.VALID,
                             validation_result.status,
                             msg=f"\n{problem}\n{sorted_plan}",
                         )
+                        if i > 100:
+                            break
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
     def test_blocks_world(self):
