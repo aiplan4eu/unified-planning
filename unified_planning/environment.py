@@ -31,7 +31,7 @@ class Environment:
 
     The `Environment` is a structure that contains multiple
     singleton objects that are used throughout the system,
-    such as the :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeChecker <unified_planning.Environment.type_checker>`, :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeManager <unified_planning.Environment.type_manager>`.
+    such as the :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeChecker <unified_planning.Environment.type_checker>`, :func:`Factory <unified_planning.Environment.factory>`, :func:`TypeManager <unified_planning.Environment.type_manager>`.
 
     """
 

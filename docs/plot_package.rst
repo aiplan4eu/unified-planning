@@ -12,7 +12,7 @@ Imports
 Here are the imports needed for the following examples:
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 1-22
+    :lines: 1-37
 
 SequentialPlan Example
 ----------------------
@@ -20,12 +20,10 @@ SequentialPlan Example
 A SequentialPlan is simply a sequence of actions.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 52-55
+    :lines: 70-73
     :emphasize-lines: 4
 
 .. figure:: ./images/sequential_plan.png
-
-    Sequential Plan
 
 
 Plotting fluents in SequentialPlan
@@ -48,12 +46,10 @@ Note: the problem has specified only the parts interesting for this simulation. 
 Plot the value of the battery and the total distance during the plan simulation.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 58-103
-    :emphasize-lines: 46
+    :lines: 76-123
+    :emphasize-lines: 48
 
 .. figure:: ./images/sequential_plan_fluents_plot.png
-
-    Expression plot in Sequential Plan
 
 TimeTriggeredPlan Example
 -------------------------
@@ -63,12 +59,10 @@ the time in which the action starts, and, if the action is a `DurativeAction`, t
 action duration.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 106-114
-    :emphasize-lines: 9
+    :lines: 126-136
+    :emphasize-lines: 11
 
 .. figure:: ./images/time_triggered_plan.png
-
-    Time Triggered plan
 
 Partial Order Plan
 ------------------
@@ -83,12 +77,10 @@ every action has only one possible action that must be done before and one actio
 must be done later.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 117-128
-    :emphasize-lines: 12
+    :lines: 139-154
+    :emphasize-lines: 16
 
 .. figure:: ./images/partial_order_plan.png
-
-    Partial Order plan
 
 
 STNPlan Example
@@ -111,12 +103,10 @@ For example: `N --[0, 7]--> M` means that `M` must happen after -or at the same 
 0 is included- `N`, but no more than 7 time units later.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 131-149
-    :emphasize-lines: 19
+    :lines: 157-187
+    :emphasize-lines: 31
 
 .. figure:: ./images/stn_plan.png
-
-    STN plan
 
 
 Contingent plan Example
@@ -130,12 +120,10 @@ It is represented as a directed graph, with the nodes containing the action to p
 the edges labeled as the expression that must be `True` in order to take that branch.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 152-165
+    :lines: 190-203
     :emphasize-lines: 14
 
 .. figure:: ./images/contingent_plan.png
-
-    Contingent plan
 
 
 Causal Graph
@@ -155,9 +143,7 @@ Define the problem:
 The problem has a cargo at `Location l2` that must be moved by a `robot` to a `Location l1`.
 
 .. literalinclude:: ./code_snippets/plot.py
-    :lines: 168-221
+    :lines: 206-259
     :emphasize-lines: 53-54
 
 .. figure:: ./images/causal_graph.png
-
-    Causal Graph

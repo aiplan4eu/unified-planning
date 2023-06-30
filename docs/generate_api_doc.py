@@ -8,6 +8,8 @@ classes_to_document = """
 model.Type
 model.Object
 model.Fluent
+model.FNode
+model.ExpressionManager
 model.Problem
 model.InstantaneousAction
 model.DurativeAction
