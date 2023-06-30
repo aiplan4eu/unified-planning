@@ -124,6 +124,14 @@ class ConverterToANMLString(walkers.DagWalker):
             self.simplifier.simplify(expression)
         )  # NOTE maybe the converter could remove the first and last char, if they are '(' and ')'
 
+    def convert_forall_variables(self, vars):
+        """Converts the given variables to a ANML string."""
+        vars_string_gen = (
+            f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
+            for v in vars
+        )
+        return f"{', '.join(vars_string_gen)}"
+
     def walk_exists(self, expression, args):
         assert len(args) == 1
         vars_string_gen = (
@@ -398,6 +406,10 @@ class ANMLWriter:
         anml_timing = (
             self._convert_anml_timing(timing) if timing is not None else "start"
         )
+        if effect.is_forall():
+            vars = converter.convert_forall_variables(effect.forall)
+            spaces_from_left += 3
+            results.append(f'forall ({vars}){{\n{spaces_from_left*" "}')
         if effect.is_conditional():
             results.append(
                 f'when [ {anml_timing} ] {converter.convert(effect.condition)}\n{spaces_from_left*" "}{{'
@@ -415,6 +427,9 @@ class ANMLWriter:
         results.append(f"{converter.convert(effect.value)};\n")
         if effect.is_conditional():
             results.append(f'{spaces_from_left*" "}}}\n')
+        if effect.is_forall():
+            spaces_from_left -= 3
+            results.append(f'{spaces_from_left*" "}}};\n')
         return "".join(results)
 
     def _convert_anml_timing(self, timing: "up.model.Timing") -> str:
