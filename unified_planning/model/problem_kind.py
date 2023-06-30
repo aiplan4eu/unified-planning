@@ -129,7 +129,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     The `ProblemKind` of a `Problem` is calculated by it's :func:`kind <unified_planning.model.Problem.kind>` property.
     """
 
-    def __init__(self, features: Set[str] = set()):
+    def __init__(self, features: Set[str] = set(), version=None):
         self._features: Set[str] = set(features)
 
     def __repr__(self) -> str:
@@ -165,6 +165,10 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         if not isinstance(oth, ProblemKind):
             raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
         return self._features.issubset(oth._features)
+
+    def get_version(self):
+        """Currently an empty placeholder, intended to support backward compatible problem kind extensions."""
+        return None
 
     @property
     def features(self) -> Set[str]:
