@@ -155,16 +155,17 @@ class SequentialPlan(plans.plan.Plan):
                     eqr.remove_quantifiers(prec, problem)
                 )
             # add in the required_fluents all the free fluents this action instance deals with
-            for eff in inst_action.effects:
-                lifted_required_fluents |= fve.get(
-                    eqr.remove_quantifiers(eff.condition, problem)
-                )
-                lifted_required_fluents |= fve.get(
-                    eqr.remove_quantifiers(eff.fluent, problem)
-                )
-                lifted_required_fluents |= fve.get(
-                    eqr.remove_quantifiers(eff.value, problem)
-                )
+            for effect in inst_action.effects:
+                for eff in effect.expand_effect(problem):
+                    lifted_required_fluents |= fve.get(
+                        eqr.remove_quantifiers(eff.condition, problem)
+                    )
+                    lifted_required_fluents |= fve.get(
+                        eqr.remove_quantifiers(eff.fluent, problem)
+                    )
+                    lifted_required_fluents |= fve.get(
+                        eqr.remove_quantifiers(eff.value, problem)
+                    )
 
             assignments: Dict[Expression, Expression] = dict(
                 zip(inst_action.parameters, action_instance.actual_parameters)
@@ -196,18 +197,19 @@ class SequentialPlan(plans.plan.Plan):
 
             # for every effect, set current action instance as the last modifier and the current action instance is ordered
             # after every action instance that requires a fluent the current action instance modifies
-            for eff in inst_action.effects:
-                assert eff.fluent.is_fluent_exp()
-                grounded_fluent = simp.simplify(
-                    subs.substitute(eff.fluent, assignments)
-                )
-                last_modifier[grounded_fluent] = action_instance
-                dependent_action_instance_list = all_required.setdefault(
-                    grounded_fluent, []
-                )
-                for dependent_action_instance in dependent_action_instance_list:
-                    if dependent_action_instance != action_instance:
-                        graph.add_edge(dependent_action_instance, action_instance)
+            for effect in inst_action.effects:
+                for eff in effect.expand_effect(problem):
+                    assert eff.fluent.is_fluent_exp()
+                    grounded_fluent = simp.simplify(
+                        subs.substitute(eff.fluent, assignments)
+                    )
+                    last_modifier[grounded_fluent] = action_instance
+                    dependent_action_instance_list = all_required.setdefault(
+                        grounded_fluent, []
+                    )
+                    for dependent_action_instance in dependent_action_instance_list:
+                        if dependent_action_instance != action_instance:
+                            graph.add_edge(dependent_action_instance, action_instance)
 
         assert nx.is_directed_acyclic_graph(graph)
         # remove redundant edges and return the up.plans.partial_order_plan.PartialOrderPlan structure.

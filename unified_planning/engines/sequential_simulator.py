@@ -16,6 +16,7 @@
 
 from enum import Enum, auto
 from fractions import Fraction
+from itertools import product
 from warnings import warn
 import unified_planning as up
 from unified_planning.engines.compilers import Grounder, GrounderHelper
@@ -41,6 +42,8 @@ from unified_planning.model import (
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
     Oversubscription,
+    Expression,
+    Variable,
 )
 from unified_planning.model.types import _RealType
 from unified_planning.model.walkers import StateEvaluator, ExpressionQuantifiersRemover
@@ -281,13 +284,16 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 updated_values[f] = v
                 assigned_fluent.add(f)
 
-        for effect in grounded_action.effects:
-            fluent, value = self._evaluate_effect(
-                effect, state, updated_values, assigned_fluent, em
-            )
-            if fluent is not None:
-                assert value is not None
-                updated_values[fluent] = value
+        for e in grounded_action.effects:
+            for effect in e.expand_effect(
+                cast(up.model.mixins.ObjectsSetMixin, self._problem)
+            ):
+                fluent, value = self._evaluate_effect(
+                    effect, state, updated_values, assigned_fluent, em
+                )
+                if fluent is not None:
+                    assert value is not None
+                    updated_values[fluent] = value
 
         new_state = state.make_child(updated_values)
         for si in self._state_invariants:
@@ -335,7 +341,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         if evaluated_fluent is not None:
             fluent = evaluated_fluent
         else:
-            fluent = effect.fluent.fluent()(*tuple(map(evaluate, effect.fluent.args)))
+            fluent = effect.fluent.fluent()(*(map(evaluate, effect.fluent.args)))
         if evaluated_condition is None:
             evaluated_condition = (
                 not effect.is_conditional() or evaluate(effect.condition).is_true()
@@ -469,53 +475,39 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     updated_values[f] = v
                     assigned_fluent.add(f)
 
-            for e in g_action.conditional_effects:
-                if not e.fluent.type.is_bool_type():
-                    evaluated_condition = evaluate(e.condition).bool_constant_value()
-                    if evaluated_condition:
-                        try:
-                            fluent, value = self._evaluate_effect(
-                                e,
-                                state,
-                                updated_values,
-                                assigned_fluent,
-                                em,
-                                evaluated_condition=evaluated_condition,
-                            )
-                            assert fluent is not None and value is not None
-                            updated_values[fluent] = value
-                        except UPConflictingEffectsException:
-                            reason = InapplicabilityReasons.CONFLICTING_EFFECTS
-                            if early_termination:
-                                return unsatisfied_conditions, reason
+            for effect in g_action.conditional_effects:
+                for e in effect.expand_effect(
+                    cast(up.model.mixins.ObjectsSetMixin, self._problem)
+                ):
+                    if not e.fluent.type.is_bool_type():
+                        evaluated_condition = evaluate(
+                            e.condition
+                        ).bool_constant_value()
+                        if evaluated_condition:
+                            try:
+                                fluent, value = self._evaluate_effect(
+                                    e,
+                                    state,
+                                    updated_values,
+                                    assigned_fluent,
+                                    em,
+                                    evaluated_condition=evaluated_condition,
+                                )
+                                assert fluent is not None and value is not None
+                                updated_values[fluent] = value
+                            except UPConflictingEffectsException:
+                                reason = InapplicabilityReasons.CONFLICTING_EFFECTS
+                                if early_termination:
+                                    return unsatisfied_conditions, reason
 
             if updated_values:
-                for e in g_action.unconditional_effects:
-                    ev_fluent = e.fluent.fluent()(*tuple(map(evaluate, e.fluent.args)))
-                    values = updated_values.get(ev_fluent, None)
-                    if values is not None:
-                        try:
-                            fluent, value = self._evaluate_effect(
-                                e,
-                                state,
-                                updated_values,
-                                assigned_fluent,
-                                em,
-                                evaluated_fluent=ev_fluent,
-                                evaluated_condition=True,
-                            )
-                            assert fluent is not None and value is not None
-                            updated_values[fluent] = value
-                        except UPConflictingEffectsException:
-                            reason = InapplicabilityReasons.CONFLICTING_EFFECTS
-                            if early_termination:
-                                return unsatisfied_conditions, reason
-
-            for e in g_action.effects:
-                if e.fluent.fluent() in self._fluents_in_state_invariants:
-                    ev_fluent = e.fluent.fluent()(*tuple(map(evaluate, e.fluent.args)))
-                    if ev_fluent in self._fluent_exps_in_state_invariants:
-                        if ev_fluent not in updated_values:
+                for effect in g_action.unconditional_effects:
+                    for e in effect.expand_effect(
+                        cast(up.model.mixins.ObjectsSetMixin, self._problem)
+                    ):
+                        ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
+                        values = updated_values.get(ev_fluent, None)
+                        if values is not None:
                             try:
                                 fluent, value = self._evaluate_effect(
                                     e,
@@ -524,13 +516,38 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                                     assigned_fluent,
                                     em,
                                     evaluated_fluent=ev_fluent,
+                                    evaluated_condition=True,
                                 )
                                 assert fluent is not None and value is not None
                                 updated_values[fluent] = value
                             except UPConflictingEffectsException:
-                                raise UPUnreachableCodeError(
-                                    "Conflicting effects should be caught above"
-                                )
+                                reason = InapplicabilityReasons.CONFLICTING_EFFECTS
+                                if early_termination:
+                                    return unsatisfied_conditions, reason
+
+            for effect in g_action.effects:
+                for e in effect.expand_effect(
+                    cast(up.model.mixins.ObjectsSetMixin, self._problem)
+                ):
+                    if e.fluent.fluent() in self._fluents_in_state_invariants:
+                        ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
+                        if ev_fluent in self._fluent_exps_in_state_invariants:
+                            if ev_fluent not in updated_values:
+                                try:
+                                    fluent, value = self._evaluate_effect(
+                                        e,
+                                        state,
+                                        updated_values,
+                                        assigned_fluent,
+                                        em,
+                                        evaluated_fluent=ev_fluent,
+                                    )
+                                    assert fluent is not None and value is not None
+                                    updated_values[fluent] = value
+                                except UPConflictingEffectsException:
+                                    raise UPUnreachableCodeError(
+                                        "Conflicting effects should be caught above"
+                                    )
 
             if not isinstance(state, up.model.UPState):
                 raise UPUsageError(
@@ -607,6 +624,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")

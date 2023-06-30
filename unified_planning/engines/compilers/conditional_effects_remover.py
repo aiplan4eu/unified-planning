@@ -104,6 +104,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -175,13 +176,10 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                         raise UPProblemDefinitionError(
                             f"The condition of effect: {e}\ncould not be removed without changing the problem."
                         )
-                    else:
-                        em = env.expression_manager
-                        c = e.condition
-                        nv = simplifier.simplify(
-                            em.Or(em.And(c, v), em.And(em.Not(c), f))
-                        )
-                        new_problem.add_timed_effect(t, e.fluent, nv)
+                    em = env.expression_manager
+                    c = e.condition
+                    nv = simplifier.simplify(em.Or(em.And(c, v), em.And(em.Not(c), f)))
+                    new_problem.add_timed_effect(t, e.fluent, nv, forall=e.forall)
                 else:
                     new_problem._add_effect_instance(t, e.clone())
 

@@ -19,6 +19,7 @@ A `condition` can be added to make it a `conditional effect`.
 """
 
 
+from itertools import product
 import unified_planning as up
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
@@ -81,6 +82,9 @@ class Effect:
             for v in forall:
                 if v in free_vars and not v in seen:
                     seen.add(v)
+                    assert isinstance(
+                        v, up.model.variable.Variable
+                    ), "Typing not respected"
                     yield v
             unbounded_vars = free_vars.difference(seen)
             if unbounded_vars:
@@ -193,6 +197,34 @@ class Effect:
     def forall(self) -> Tuple["up.model.variable.Variable", ...]:
         """Returns the `Variables` that are universally quantified in this `Effect`."""
         return self._forall
+
+    def expand_effect(
+        self, objects_set: "up.model.mixins.objects_set.ObjectsSetMixin"
+    ) -> Iterator["up.model.Effect"]:
+        """
+        Expands this effect removing the forall and returns all the effects
+        that are needed in order to maintain semantic equivalence with self.
+
+        :param objects_set: The container of the objects needed to expand this effect.
+        :return: The Iterator over all the effects needed to maintain semantic
+            equivalence with self.
+        """
+        if self.is_forall():
+            for objects in product(
+                *(objects_set.objects(v.type) for v in self._forall)
+            ):
+                assert len(self._forall) == len(objects)
+                subs: Dict[
+                    "up.model.expression.Expression", "up.model.expression.Expression"
+                ] = dict(zip(self._forall, objects))
+                yield up.model.Effect(
+                    fluent=self.fluent.substitute(subs),
+                    value=self.value.substitute(subs),
+                    condition=self.condition.substitute(subs),
+                    kind=self.kind,
+                )
+        else:
+            yield self
 
     @property
     def environment(self) -> "up.environment.Environment":

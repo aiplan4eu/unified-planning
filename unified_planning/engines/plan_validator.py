@@ -107,6 +107,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_fluents_type("NUMERIC_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
