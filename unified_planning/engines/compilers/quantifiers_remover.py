@@ -186,38 +186,19 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                     )
                 original_effects = action.effects
                 action.clear_effects()
-                for e in original_effects:
-                    if e.is_conditional():
-                        e.set_condition(
-                            expression_quantifier_remover.remove_quantifiers(
-                                e.condition, problem
-                            ).simplify()
-                        )
-                    e.set_value(
-                        expression_quantifier_remover.remove_quantifiers(
-                            e.value, problem
-                        )
-                    )
-                    if e.is_forall():
-                        vars: Tuple[Variable, ...] = e.forall
-                        for objects in product(
-                            *(problem.objects(v.type) for v in vars)
-                        ):
-                            assert len(vars) == len(objects)
-                            subs: Dict[Expression, Expression] = dict(
-                                zip(vars, objects)
+                for effect in original_effects:
+                    for e in effect.expand_effect(new_problem):
+                        if e.is_conditional():
+                            e.set_condition(
+                                expression_quantifier_remover.remove_quantifiers(
+                                    e.condition, problem
+                                ).simplify()
                             )
-                            cond = e.condition.substitute(subs).simplify()
-                            if not cond.is_false():
-                                action._add_effect_instance(
-                                    Effect(
-                                        e.fluent.substitute(subs),
-                                        e.value.substitute(subs),
-                                        cond,
-                                        e.kind,
-                                    )
-                                )
-                    else:
+                        e.set_value(
+                            expression_quantifier_remover.remove_quantifiers(
+                                e.value, problem
+                            )
+                        )
                         if not e.condition.is_false():
                             action._add_effect_instance(e)
                 new_to_old[action] = original_action
@@ -236,37 +217,19 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                 original_durative_effects = action.effects
                 action.clear_effects()
                 for t, el in original_durative_effects.items():
-                    for e in el:
-                        if e.is_conditional():
-                            e.set_condition(
+                    for effect in el:
+                        for e in effect.expand_effect(new_problem):
+                            if e.is_conditional():
+                                e.set_condition(
+                                    expression_quantifier_remover.remove_quantifiers(
+                                        e.condition, problem
+                                    ).simplify()
+                                )
+                            e.set_value(
                                 expression_quantifier_remover.remove_quantifiers(
-                                    e.condition, problem
-                                ).simplify()
+                                    e.value, problem
+                                )
                             )
-                        e.set_value(
-                            expression_quantifier_remover.remove_quantifiers(
-                                e.value, problem
-                            )
-                        )
-                        if e.is_forall():
-                            vars = e.forall
-                            for objects in product(
-                                *(problem.objects(v.type) for v in vars)
-                            ):
-                                assert len(vars) == len(objects)
-                                subs = dict(zip(vars, objects))
-                                cond = e.condition.substitute(subs).simplify()
-                                if not cond.is_false():
-                                    action._add_effect_instance(
-                                        t,
-                                        Effect(
-                                            e.fluent.substitute(subs),
-                                            e.value.substitute(subs),
-                                            cond,
-                                            e.kind,
-                                        ),
-                                    )
-                        else:
                             if not e.condition.is_false():
                                 action._add_effect_instance(t, e)
                 new_to_old[action] = original_action
@@ -275,34 +238,21 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         problem_timed_effects = new_problem.timed_effects
         new_problem.clear_timed_effects()
         for t, el in problem_timed_effects.items():
-            for e in el:
-                if e.is_conditional():
-                    e.set_condition(
-                        expression_quantifier_remover.remove_quantifiers(
-                            e.condition, problem
-                        ).simplify()
-                    )
-                e.set_value(
-                    expression_quantifier_remover.remove_quantifiers(e.value, problem)
-                )
-            if e.is_forall():
-                vars = e.forall
-                for objects in product(*(problem.objects(v.type) for v in vars)):
-                    assert len(vars) == len(objects)
-                    subs = dict(zip(vars, objects))
-                    cond = e.condition.substitute(subs).simplify()
-                    if not cond.is_false():
-                        new_problem._add_effect_instance(
-                            t,
-                            Effect(
-                                e.fluent.substitute(subs),
-                                e.value.substitute(subs),
-                                cond,
-                                e.kind,
-                            ),
+            for effect in el:
+                for e in effect.expand_effect(new_problem):
+                    if e.is_conditional():
+                        e.set_condition(
+                            expression_quantifier_remover.remove_quantifiers(
+                                e.condition, problem
+                            ).simplify()
                         )
-            else:
-                new_problem._add_effect_instance(t, e)
+                    e.set_value(
+                        expression_quantifier_remover.remove_quantifiers(
+                            e.value, problem
+                        )
+                    )
+                    if not e.condition.is_false():
+                        new_problem._add_effect_instance(t, e)
         for i, gl in problem.timed_goals.items():
             for g in gl:
                 ng = expression_quantifier_remover.remove_quantifiers(g, problem)

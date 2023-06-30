@@ -99,6 +99,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -160,6 +161,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_actions()
         new_problem.clear_goals()
         new_problem.clear_timed_goals()
+        new_problem.clear_timed_effects()
         new_problem.clear_quality_metrics()
 
         dnf = Dnf(env)
@@ -181,16 +183,16 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         )
         new_problem.add_goal(goal_to_add)
 
-        for t, gl in problem.timed_goals.items():
+        for i, gl in problem.timed_goals.items():
             goal_to_add = self._goals_without_disjunctions_adding_new_elements(
                 dnf,
                 new_problem,
                 new_to_old,
                 new_fluents,
                 gl,
-                t,
+                i,
             )
-            new_problem.add_timed_goal(t, goal_to_add)
+            new_problem.add_timed_goal(i, goal_to_add)
 
         # Every meaningful action must set to False every new fluent added.
         # For the DurativeActions this must happen every time the action modifies something
@@ -212,6 +214,21 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
             new_to_old[a] = old_action
+
+        for t, el in problem.timed_effects.items():
+            for e in new_effects:
+                new_problem._add_effect_instance(t, e)
+            for e in el:
+                new_cond = dnf.get_dnf_expression(e.condition)
+                if new_cond.is_or():
+                    for arg in new_cond.args:
+                        ne = e.clone()
+                        ne.set_condition(arg)
+                        new_problem._add_effect_instance(t, ne)
+                else:
+                    ne = e.clone()
+                    ne.set_condition(new_cond)
+                    new_problem._add_effect_instance(t, ne)
 
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
@@ -239,11 +256,11 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
                     Tuple["up.model.timing.TimeInterval", "up.model.BoolExpression"],
                     NumericConstant,
                 ] = {}
-                for (t, g), v in qm.goals.items():
+                for (i, g), v in qm.goals.items():
                     new_goal = self._goals_without_disjunctions_adding_new_elements(
                         dnf, new_problem, new_to_old, new_fluents, [g]
                     )
-                    new_temporal_oversubscription[(t, new_goal)] = v
+                    new_temporal_oversubscription[(i, new_goal)] = v
                 new_problem.add_quality_metric(
                     TemporalOversubscription(
                         new_temporal_oversubscription,

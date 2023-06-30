@@ -43,6 +43,7 @@ class TestPartialOrderPlan(TestCase):
                         self.assertEqual(
                             up.engines.ValidationResultStatus.VALID,
                             validation_result.status,
+                            msg=f"\n{problem}\n{sorted_plan}",
                         )
 
     @skipIfNoOneshotPlannerForProblemKind(basic_classical_kind.union(hierarchical_kind))
