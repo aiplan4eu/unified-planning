@@ -649,3 +649,9 @@ class TestANMLReader(TestCase):
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
         self.assertEqual(problem, problem_2)
+
+    def test_safe_road_reader(self):
+        reader = ANMLReader()
+        problem_filename = os.path.join(ANML_FILES_PATH, "safe_road.anml")
+        problem = reader.parse_problem(problem_filename)
+        print(problem)
