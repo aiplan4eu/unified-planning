@@ -406,7 +406,7 @@ class TestProtobufProblems(unittest_TestCase):
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
-            self.assertEqual(problem, problem_up)
+            self.assertEqual(problem, problem_up, name)
             self.assertEqual(
                 hash(problem),
                 hash(problem_up),

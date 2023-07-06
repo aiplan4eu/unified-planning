@@ -175,10 +175,7 @@ class MAPDDLWriter:
                     out.write(" :disjunctive-preconditions")
                 if self.problem_kind.has_equalities():
                     out.write(" :equality")
-                if (
-                    self.problem_kind.has_continuous_numbers()
-                    or self.problem_kind.has_discrete_numbers()
-                ):
+                if self.problem_kind.has_numeric_fluents():
                     out.write(" :numeric-fluents")
                 if self.problem_kind.has_conditional_effects():
                     out.write(" :conditional-effects")

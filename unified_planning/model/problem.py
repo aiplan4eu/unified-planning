@@ -668,7 +668,12 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
-        for effect_list in self._timed_effects.values():
+        for t, effect_list in self._timed_effects.items():
+            if t.delay != 0:
+                if isinstance(t.delay, int):
+                    factory.kind.set_numbers("DISCRETE_NUMBERS")
+                else:
+                    factory.kind.set_numbers("CONTINUOUS_NUMBERS")
             for effect in effect_list:
                 factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
@@ -679,7 +684,13 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("STATE_INVARIANTS")
             else:
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-        for goal_list in self._timed_goals.values():
+        for i, goal_list in self._timed_goals.items():
+            for t in [i.lower, i.upper]:
+                if t.delay != 0:
+                    if isinstance(t.delay, int):
+                        factory.kind.set_numbers("DISCRETE_NUMBERS")
+                    else:
+                        factory.kind.set_numbers("CONTINUOUS_NUMBERS")
             for goal in goal_list:
                 factory.update_problem_kind_expression(goal)
         for goal in self._goals:
@@ -754,10 +765,7 @@ class _KindFactory:
 
     def finalize(self) -> "up.model.ProblemKind":
         """Once all features have been added, remove unnecessary features that were added preventively."""
-        if (
-            not self.kind.has_continuous_numbers()
-            and not self.kind.has_discrete_numbers()
-        ):
+        if not self.kind.has_numeric_fluents():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         else:
             if not self.kind.has_simple_numeric_planning():
@@ -934,6 +942,8 @@ class _KindFactory:
 
     def update_action_duration(self, duration: "up.model.DurationInterval"):
         lower, upper = duration.lower, duration.upper
+        self.update_problem_kind_type(lower.type)
+        self.update_problem_kind_type(upper.type)
         if lower != upper:
             self.kind.set_time("DURATION_INEQUALITIES")
         free_vars = self.environment.free_vars_extractor.get(
@@ -955,6 +965,11 @@ class _KindFactory:
     ):
         if span.lower.delay != 0 or span.upper.delay != 0:
             for t in [span.lower, span.upper]:
+                if t.delay != 0:
+                    if isinstance(t.delay, int):
+                        self.kind.set_numbers("DISCRETE_NUMBERS")
+                    else:
+                        self.kind.set_numbers("CONTINUOUS_NUMBERS")
                 if (t.is_from_start() and t.delay > 0) or (
                     t.is_from_end() and t.delay < 0
                 ):
@@ -965,6 +980,10 @@ class _KindFactory:
 
     def update_action_timed_effect(self, t: "up.model.Timing", eff: "up.model.Effect"):
         if t.delay != 0:
+            if isinstance(t.delay, int):
+                self.kind.set_numbers("DISCRETE_NUMBERS")
+            else:
+                self.kind.set_numbers("CONTINUOUS_NUMBERS")
             if (t.is_from_start() and t.delay > 0) or (t.is_from_end() and t.delay < 0):
                 self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
             else:
