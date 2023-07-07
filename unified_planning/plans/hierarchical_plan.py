@@ -170,7 +170,7 @@ class HierarchicalPlan(Plan):
         )
 
     def __str__(self) -> str:
-        return "Hiearchical " + str(self.action_plan)
+        return "Hierarchical " + str(self.action_plan)
 
     @property
     def decomposition(self) -> Decomposition:
