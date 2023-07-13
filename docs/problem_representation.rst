@@ -213,7 +213,7 @@ In all the examples below all the shortcuts must be imported, with the command:
 
 Classical and Numeric Example
 -----------------------------
-The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification. A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Unified_Planning_Basics.ipynb>`_ Python notebook where we document and explain all the different classes and their semantics.
+The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification. A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-basic-example.ipynb>`_ Python notebook where we document and explain all the different classes and their semantics.
 
 .. literalinclude:: ./code_snippets/robot_battery.py
     :lines: 3-38
@@ -226,6 +226,7 @@ Temporal Example
 ----------------
 Temporal planning is the problem of finding a plan for a planning problem involving durative actions and/or temporal constraints.
 This means that it is possible to model actions having:
+
 * duration constrained by a (possibly state-based) lower and and upper bound
 * conditions or effects expressed at specific instant of the action, in particular at times start+delay or end+delay, where start refers to the starting time of the action, end to the ending time and delay is a real constant (positive or negative).
 * durative conditions to be maintained within sub-intervals, delimited by the same time-point used for instantaneous conditions.
