@@ -25,7 +25,7 @@ setup(
         "tarski": ["tarski[arithmetic]"],
         "pyperplan": ["up-pyperplan==1.0.0"],
         "tamer": ["up-tamer==1.0.0"],
-        "enhsp": ["up-enhsp==0.0.15"],
+        "enhsp": ["up-enhsp==0.0.16"],
         "fast-downward": ["up-fast-downward==0.2.3"],
         "lpg": ["up-lpg==0.0.7"],
         "fmap": ["up-fmap==0.0.7"],
