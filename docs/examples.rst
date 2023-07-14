@@ -28,6 +28,26 @@ In particular we will go through the following steps:
 * call multiple planners in parallel.
 
 
+
+Numeric Planning
+----------------
+
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-numeric-planning.ipynb
+   :alt: Open In GitHub
+
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-numeric-planning.ipynb
+   :alt: Open In Colab
+
+
+In this notebook we show how to model a numeric problem.
+
+We will define a simple problem with counters that must be incremented.
+
+
 Optimal Planning
 ----------------
 

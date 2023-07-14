@@ -11,6 +11,7 @@ env:
   up_tamer_commit: "ddcb02f3457b097965d9d4596a972b5bf8f495ff"
   up_pyperplan_commit: "124482387cdc5c7a5673ac6ab47002b4ae2fd682"
   up_fast_downward_commit: "99dd5bce8f996a9557296644de38bdf94f1dbed8"
+  up_enhsp_commit: "963701090b637adb10dd6a569350ce8aa74b8e17"
   up_fmap_commit: "d0e3c0c920b3a515486ae7526c0fba51c75361e1"
 
 jobs:
@@ -418,6 +419,22 @@ jobs:
 
       - name: Install up-fast-downward
         run: python3 -m pip install up-fast-downward/
+
+      - name: Setup java for ENHSP
+        uses: actions/setup-java@v2
+        with:
+          distribution: "microsoft"
+          java-version: "17"
+
+      - name: Checkout up-enhsp
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-enhsp
+          path: up-enhsp
+          ref: ${{env.up_enhsp_commit}}
+
+      - name: Install up-enhsp
+        run: python3 -m pip install up-enhsp/
 
       - name: Install up-aries
         run: pip3 install up-aries
