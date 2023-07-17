@@ -112,6 +112,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.ma_conditional_effects_remover",
         "MAConditionalEffectsRemover",
     ),
+    "up_ma_quantifiers_remover": (
+        "unified_planning.engines.compilers.ma_quantifiers_remover",
+        "MAQuantifiersRemover",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -143,6 +147,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_disjunctive_conditions_remover",
     "up_ma_disjunctive_conditions_remover",
     "up_ma_conditional_effects_remover",
+    "up_ma_quantifiers_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "up_state_invariants_remover",
