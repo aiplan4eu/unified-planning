@@ -20,6 +20,9 @@ Classical Planning
 
 Numeric Planning
 ----------------
+- In this notebook we show how to model a numeric problem:
+
+  [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](../01-numeric-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-numeric-planning.ipynb)
 
 
 Temporal Planning
