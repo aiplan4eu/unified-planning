@@ -47,6 +47,7 @@ from typing import Dict, List, Optional, Tuple
 from functools import partial
 import copy
 
+
 class MAQuantifiersRemover(engines.engine.Engine, CompilerMixin):
     """
     Quantifiers remover class: this class offers the capability
@@ -135,8 +136,10 @@ class MAQuantifiersRemover(engines.engine.Engine, CompilerMixin):
                     for p in a.preconditions:
                         original_action.add_precondition(p)
                     for effect in a.effects:
-                        original_action.add_effect(effect.fluent, effect.value, effect.condition, effect.forall)
-                    #original_action = ag.action(a.name)
+                        original_action.add_effect(
+                            effect.fluent, effect.value, effect.condition, effect.forall
+                        )
+                    # original_action = ag.action(a.name)
                     assert isinstance(original_action, InstantaneousAction)
                     a.clear_preconditions()
                     for p in original_action.preconditions:
