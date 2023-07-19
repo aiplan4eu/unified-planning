@@ -33,6 +33,11 @@ class CompilationKind(Enum):
     USERTYPE_FLUENTS_REMOVING = auto()
     BOUNDED_TYPES_REMOVING = auto()
     STATE_INVARIANTS_REMOVING = auto()
+    MA_SINGLE_AGENT_PROJECTION = auto()
+    MA_CENTRALIZATION = auto()
+    MA_SL_ROBUSTNESS_VERIFICATION = auto()
+    MA_SL_SOCIAL_LAW = auto()
+    SA_MA_CONVERSION = auto()
 
 
 class CompilerMixin(ABC):

@@ -94,6 +94,17 @@ The “Compiler” OM defines a transformation of an `AbstractProblem` into anot
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | BOUNDED_TYPES_REMOVING          | Rewrites a problem into an equivalent one where all numeric types are unbounded and the bounds constraints are preserved only by actions and effects (pre)conditions. |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_SINGLE_AGENT_PROJECTION      | Takes a multi-agent planning problem and one of the agents in the problem, and creates the single-agent planning problem that agent is facing alone                   |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_CENTRALIZATION               | Takes a multi-agent planning problem and creates a single-agent planning problem in which the planners controls all agents in a centralized manner                    |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
+| MA_SL_ROBUSTNESS_VERIFICATION   | Takes a multi-agent planning problem and creates a single-agent planning problem such that the resulting problem is unsolvable iff the original problem is robust.    |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
+| MA_SL_SOCIAL_LAW                | Applies a social law to a multi-agent planning problem.                                                                                                               |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
+| SA_MA_CONVERSION                | Takes a single-agent planning problem and a specification of which object types constitute agents, and tries to create a corresponding multi-agnet planning problem   |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
+
 
 Also the ``Compiler`` OM can be used either by specifying a certain engine by name or by letting the UP to pick a suitable implementation; in addition, the user has to specify the ``compilation_kind`` to indicate which kind of transformation is needed.
 
