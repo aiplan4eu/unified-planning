@@ -21,7 +21,7 @@ from unified_planning.io.anml_grammar import (
     TK_ALL,
     TK_AND,
     TK_ASSIGN,
-    TK_DECREASE,
+    TKS_DECREASE,
     TK_DIV,
     TK_DURATION,
     TK_END,
@@ -32,7 +32,7 @@ from unified_planning.io.anml_grammar import (
     TK_GE,
     TK_GT,
     TK_IMPLIES,
-    TK_INCREASE,
+    TKS_INCREASE,
     TK_L_BRACKET,
     TK_L_PARENTHESIS,
     TK_LE,
@@ -52,6 +52,7 @@ from unified_planning.io.anml_grammar import (
     ANMLGrammar,
     TK_BOOLEAN,
     TK_INTEGER,
+    TK_INFINITY,
     TK_FLOAT,
 )
 from unified_planning.environment import Environment, get_environment
@@ -95,6 +96,9 @@ class ANMLReader:
         All the other ways to define the duration of an Action are not supported.
     #. Statements containing both conditions and effects are **not** supported ( ``(at(l_from) == true) := false);`` or ``(at(l_from) == true) and (at(l_from) := false);`` ).
     #. Quantifier body does not support intervals, they can only be defined outside.
+    #. Forall over the assignments are not nested.
+    #. Only one effect can be specified in a forall over assignments.
+    #. No conditions can be specified ina  forall over assignments, 2 different foralls must be specified.
     #. Conditional effects are not supported inside an expression block.
     """
 
@@ -143,6 +147,18 @@ class ANMLReader:
             initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
         types_map: Dict[str, "up.model.Type"] = self._create_types_map(grammar.types)
+
+        self._constant_fluents: Set["up.model.Fluent"] = set()
+
+        for fluent_res in grammar.constant_fluents:
+            (up_fluent, initial_default) = self._parse_fluent(fluent_res, types_map)
+            if initial_default is not None:
+                self._problem.add_fluent(
+                    up_fluent, default_initial_value=initial_default
+                )
+            else:
+                self._problem.add_fluent(up_fluent)
+            self._constant_fluents.add(up_fluent)
 
         for fluent_res in grammar.fluents:
             (up_fluent, initial_default) = self._parse_fluent(fluent_res, types_map)
@@ -194,6 +210,13 @@ class ANMLReader:
                     types_map,
                     global_start,
                     global_end,
+                )
+        # check that every fluent defined as a constant is a static fluent
+        static_fluents = self._problem.get_static_fluents()
+        for constant_fluent in self._constant_fluents:
+            if constant_fluent not in static_fluents:
+                raise ANMLSyntaxError(
+                    f"The constant {constant_fluent} is modified in the problem."
                 )
         return self._problem
 
@@ -296,26 +319,33 @@ class ANMLReader:
         global_start: "Timing",
         global_end: "Timing",
     ):
-        relevant_words = {TK_DURATION, TK_ASSIGN, TK_INCREASE, TK_DECREASE, TK_WHEN}
+        relevant_words = {TK_DURATION, TK_ASSIGN, *TKS_INCREASE, *TKS_DECREASE, TK_WHEN}
         found_words = find_strings(expression, relevant_words)
         f_duration = TK_DURATION in found_words
         f_when = TK_WHEN in found_words
         f_assign = TK_ASSIGN in found_words
-        f_increase = TK_INCREASE in found_words
-        f_decrease = TK_DECREASE in found_words
+        f_increase = any(tk_increase in found_words for tk_increase in TKS_INCREASE)
+        f_decrease = any(tk_decrease in found_words for tk_decrease in TKS_DECREASE)
         if f_duration:
             raise ANMLSyntaxError("duration keyword can't be used outside of an action")
         if f_when or f_assign or f_increase or f_decrease:  # effect
             interval_and_exp = ParseResults([interval, expression])
             up_timing, up_effect = self._parse_assignment(
-                interval_and_exp, parameters, types_map, is_global=True
+                interval_and_exp,
+                parameters,
+                types_map,
+                is_global=True,
             )
             if (
                 up_timing == global_start
                 and not up_effect.is_conditional()
                 and up_effect.is_assignment()
             ):
-                self._problem.set_initial_value(up_effect.fluent, up_effect.value)
+                if up_effect.is_forall():
+                    for e in up_effect.expand_effect(self._problem):
+                        self._problem.set_initial_value(e.fluent, e.value)
+                else:
+                    self._problem.set_initial_value(up_effect.fluent, up_effect.value)
             else:
                 self._problem._add_effect_instance(up_timing, up_effect)
         else:  # condition
@@ -340,25 +370,34 @@ class ANMLReader:
             if len(type_res) == 2:
                 _p: Dict[str, "up.model.Parameter"] = {}
                 interval = type_res[1]
-                lower_bound_exp = self._parse_expression(
-                    interval[0], parameters=_p, types_map=types_map
-                )
-                upper_bound_exp = self._parse_expression(
-                    interval[1], parameters=_p, types_map=types_map
-                )
-                if (
-                    lower_bound_exp.is_int_constant()
-                    or lower_bound_exp.is_real_constant()
-                ) and (
-                    upper_bound_exp.is_int_constant()
-                    or upper_bound_exp.is_real_constant()
-                ):
-                    lower_bound = lower_bound_exp.constant_value()
-                    upper_bound = upper_bound_exp.constant_value()
-                else:
-                    raise ANMLSyntaxError(
-                        f"bounds of type {type_res} must be integer of real constants"
+                lb_exp = interval[0]
+                if lb_exp != TK_INFINITY:
+                    lower_bound_exp = self._parse_expression(
+                        lb_exp, parameters=_p, types_map=types_map
                     )
+                    if (
+                        lower_bound_exp.is_int_constant()
+                        or lower_bound_exp.is_real_constant()
+                    ):
+                        lower_bound = lower_bound_exp.constant_value()
+                    else:
+                        raise ANMLSyntaxError(
+                            f"bounds of type {type_res} must be integer or real constants"
+                        )
+                ub_exp = interval[1]
+                if ub_exp != TK_INFINITY:
+                    upper_bound_exp = self._parse_expression(
+                        ub_exp, parameters=_p, types_map=types_map
+                    )
+                    if (
+                        upper_bound_exp.is_int_constant()
+                        or upper_bound_exp.is_real_constant()
+                    ):
+                        upper_bound = upper_bound_exp.constant_value()
+                    else:
+                        raise ANMLSyntaxError(
+                            f"bounds of type {type_res} must be integer or real constants"
+                        )
             else:
                 assert len(type_res) == 1, "Parse error"
             if name == TK_INTEGER:
@@ -434,13 +473,19 @@ class ANMLReader:
         types_map: Dict[str, "Type"],
     ) -> None:
         for interval_and_exp in action_body_res:
-            relevant_words = {TK_DURATION, TK_ASSIGN, TK_INCREASE, TK_DECREASE, TK_WHEN}
+            relevant_words = {
+                TK_DURATION,
+                TK_ASSIGN,
+                *TKS_INCREASE,
+                *TKS_DECREASE,
+                TK_WHEN,
+            }
             found_words = find_strings(interval_and_exp, relevant_words)
             f_duration = TK_DURATION in found_words
             f_when = TK_WHEN in found_words
             f_assign = TK_ASSIGN in found_words
-            f_increase = TK_INCREASE in found_words
-            f_decrease = TK_DECREASE in found_words
+            f_increase = any(tk_increase in found_words for tk_increase in TKS_INCREASE)
+            f_decrease = any(tk_decrease in found_words for tk_decrease in TKS_DECREASE)
 
             if f_duration:  # handle duration
                 if f_when:
@@ -567,9 +612,12 @@ class ANMLReader:
         parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
+        is_constant: bool = False,
     ) -> Union["Timing", "TimeInterval"]:
         if len(interval_res) == 0:
             if is_global:
+                if is_constant:
+                    return GlobalStartTiming()
                 raise UPUnsupportedProblemTypeError(
                     "ANML constant initialization is currently not supported."
                 )
@@ -691,6 +739,40 @@ class ANMLReader:
                 f" {TK_START} + constant, {TK_END} - constant or just a constant",
             )
 
+    def _check_conditional_intervals(
+        self,
+        interval_res: ParseResults,
+        condition_interval: ParseResults,
+        effect_interval: ParseResults,
+    ) -> ParseResults:
+        # interval_res is the interval defined outside the conditional block
+        # condition_interval is the interval defined before the condition
+        # effect_interval is the interval defined before the effect
+        res = None
+        if interval_res:
+            res = interval_res
+        if condition_interval and res is not None:
+            if str(condition_interval) != str(res):
+                raise UPUnsupportedProblemTypeError(
+                    "In conditional effect parsing the "
+                    + "condition time interval and the time interval outside the block are different, "
+                    + "this is not supported by the UP."
+                )
+        elif condition_interval:
+            res = condition_interval
+        if effect_interval and res is not None:
+            if str(effect_interval) != str(res):
+                raise UPUnsupportedProblemTypeError(
+                    "In conditional effect parsing the "
+                    + "condition time interval and the time interval outside the block are different, "
+                    + "this is not supported by the UP."
+                )
+        elif effect_interval:
+            res = effect_interval
+        if res is None:
+            return interval_res
+        return res
+
     def _parse_assignment(
         self,
         interval_and_effect: ParseResults,
@@ -705,36 +787,61 @@ class ANMLReader:
             condition_exp_res = effect_res[1][1]
             effect_interval = effect_res[2][0]
             effect_exp = effect_res[2][1][0]
-            if str(condition_interval) != str(effect_interval):
-                raise UPUnsupportedProblemTypeError(
-                    "In conditional effect parsing the "
-                    + "condition time interval and the effect time interval are different, "
-                    + "this is not supported by the UP."
-                )
-            if len(interval_res) > 0:
-                raise ANMLSyntaxError(
-                    "A conditional effect can not have an interval specified before the when keyword."
-                )
             condition = self._parse_expression(condition_exp_res, parameters, types_map)
-            interval_res = condition_interval
+            interval_res = self._check_conditional_intervals(
+                interval_res, condition_interval, effect_interval
+            )
         else:
             condition = self._em.TRUE()
             effect_exp = effect_res[0]
-        up_interval = self._parse_interval(
-            interval_res, parameters, types_map, is_global
-        )
+        variables: Dict[str, "up.model.Variable"] = {}
+        if effect_exp[0] == TK_FORALL:  # Forall assignment
+            variables = dict(
+                (
+                    (n, Variable(n, t))
+                    for n, t in self._parse_parameters_def(
+                        effect_exp["quantifier_variables"], types_map
+                    ).items()
+                )
+            )
+            effect_exp = effect_exp[2]
+            if effect_exp[0] == TK_WHEN:  # Conditional effect
+                assert len(effect_exp) == 3, "Multiple expressions in forall assignment"
+                condition_interval = effect_exp[1][0]
+                condition_exp_res = effect_exp[1][1]
+                effect_interval = effect_exp[2][0]
+                effect_exp = effect_exp[2][1][0]
+                interval_res = self._check_conditional_intervals(
+                    interval_res, condition_interval, effect_interval
+                )
+                condition = self._em.And(
+                    self._parse_expression(
+                        condition_exp_res, parameters, types_map, variables=variables
+                    ),
+                    condition,
+                )
+            else:
+                effect_exp = effect_exp[0]
         fluent_ref = effect_exp[0]
         assignment_operator = effect_exp[1]
         assigned_expression = effect_exp[2]
-        up_fluent = self._parse_expression(fluent_ref, parameters, types_map)
+        up_fluent = self._parse_expression(
+            fluent_ref, parameters, types_map, variables=variables
+        )
         if not up_fluent.is_fluent_exp():
             raise ANMLSyntaxError("left side of the assignment is not a valid fluent")
-        up_value = self._parse_expression(assigned_expression, parameters, types_map)
+        is_constant = up_fluent.fluent() in self._constant_fluents
+        up_interval = self._parse_interval(
+            interval_res, parameters, types_map, is_global, is_constant
+        )
+        up_value = self._parse_expression(
+            assigned_expression, parameters, types_map, variables=variables
+        )
         if assignment_operator == TK_ASSIGN:
             kind = EffectKind.ASSIGN
-        elif assignment_operator == TK_INCREASE:
+        elif assignment_operator in TKS_INCREASE:
             kind = EffectKind.INCREASE
-        elif assignment_operator == TK_DECREASE:
+        elif assignment_operator in TKS_DECREASE:
             kind = EffectKind.DECREASE
         else:
             raise NotImplementedError(
@@ -744,7 +851,12 @@ class ANMLReader:
             raise UPUnsupportedProblemTypeError(
                 "An effect with a durative interval is not supported"
             )
-        return (up_interval, Effect(up_fluent, up_value, condition, kind=kind))
+        return (
+            up_interval,
+            Effect(
+                up_fluent, up_value, condition, kind=kind, forall=variables.values()
+            ),
+        )
 
     def _parse_expression(
         self,
@@ -752,14 +864,16 @@ class ANMLReader:
         parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
         is_global: Optional[bool] = None,
+        variables: Optional[Dict[str, "up.model.Variable"]] = None,
     ) -> "up.model.FNode":
         # A string here means it is a number or a boolean token. To avoid code duplication, just
         # wrap it in a temporary list and let the stack management handle it.
         if isinstance(expression, str):
             expression = [expression]
-        stack: List[Tuple[Union[ParseResults, List], bool, Dict[str, "Variable"]]] = [
-            (expression, False, {})
-        ]
+        vars = {} if variables is None else variables
+        stack: List[
+            Tuple[Union[ParseResults, List, str], bool, Dict[str, "Variable"]]
+        ] = [(expression, False, vars)]
         solved: List[FNode] = []
         while len(stack) > 0:
             exp, already_expanded, vars = stack.pop()
@@ -821,10 +935,8 @@ class ANMLReader:
                         TK_FORALL,
                         TK_EXISTS,
                     ):
-                        assert isinstance(exp, ParseResults)
-                        quantified_expressions = [
-                            solved.pop() for _ in exp["quantifier_body"]
-                        ]
+                        assert isinstance(exp, ParseResults) or isinstance(exp, list)
+                        quantified_expressions = [solved.pop() for _ in exp[2]]
                         solved.append(
                             self._operators[first_token](
                                 self._em.And(quantified_expressions), *vars.values()
@@ -874,15 +986,15 @@ class ANMLReader:
                         TK_FORALL,
                         TK_EXISTS,
                     ):  # quantifier
-                        assert isinstance(exp, ParseResults)
-                        name_type = self._parse_parameters_def(
-                            exp["quantifier_variables"], types_map
-                        )
+                        assert isinstance(exp, ParseResults) or isinstance(
+                            exp, list
+                        ), f"{exp} <- {expression}, {type(exp)}"
+                        name_type = self._parse_parameters_def(exp[1], types_map)
                         new_vars = {n: Variable(n, t) for n, t in name_type.items()}
                         stack.append((exp, True, new_vars))
                         all_vars = vars.copy()
                         all_vars.update(new_vars)
-                        for e in exp["quantifier_body"]:
+                        for e in exp[2]:
                             stack.append((e, False, all_vars))
                     else:
                         stack.append((exp, True, vars))
@@ -890,16 +1002,26 @@ class ANMLReader:
                             if not isinstance(e, str):  # nested structure
                                 if len(e) > 0:
                                     stack.append((e, False, vars))
-                            elif e.isnumeric():  # int
-                                solved.append(self._em.Int(int(e)))
-                            elif is_float(e):  # float
-                                solved.append(self._em.Real(Fraction(float(e))))
-                            elif e == TK_TRUE:  # true
-                                solved.append(self._em.TRUE())
-                            elif e == TK_FALSE:  # false
-                                solved.append(self._em.FALSE())
+                            else:
+                                assert isinstance(e, str)
+                                if (
+                                    e.isnumeric()
+                                    or is_float(e)
+                                    or e == TK_TRUE
+                                    or e == TK_FALSE
+                                ):
+                                    stack.append((e, False, vars))
                 elif isinstance(exp, str):
-                    assert False, "problem, should not have strings here"
+                    if exp.isnumeric():  # int
+                        solved.append(self._em.Int(int(exp)))
+                    elif is_float(exp):  # float
+                        solved.append(self._em.Real(Fraction(float(exp))))
+                    elif exp == TK_TRUE:  # true
+                        solved.append(self._em.TRUE())
+                    elif exp == TK_FALSE:  # false
+                        solved.append(self._em.FALSE())
+                    else:
+                        raise ANMLSyntaxError(f"Unable to solve {exp}")
                 else:
                     raise NotImplementedError
         assert len(stack) == 0

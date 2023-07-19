@@ -1,0 +1,36 @@
+type location;
+
+fluent boolean safe(location l1_0, location l2_0);
+fluent boolean disaster_happened;
+
+action check(location l1_0, location l2_0) {
+   [ start ] (not safe(l1_0, l2_0));
+   [ start ] safe(l1_0, l2_0) := true;
+};
+
+action natural_disaster() {
+   [ end ] forall (location l1_1, location l2_1){
+      safe(l1_1, l2_1) := false;
+   };
+   [ start ] disaster_happened := true;
+};
+
+instance location l1, l2, l3;
+
+[ start ] disaster_happened := false;
+[ start ] safe(l1, l1) := true;
+[ start ] safe(l2, l2) := true;
+[ start ] safe(l3, l3) := true;
+[ start ] safe(l2, l1) := false;
+[ start ] safe(l3, l1) := false;
+[ start ] safe(l1, l2) := false;
+[ start ] safe(l3, l2) := false;
+[ start ] safe(l1, l3) := false;
+[ start ] safe(l2, l3) := false;
+
+goal [ end ] {
+   forall (location l1_1, location l2_1){
+      safe(l1_1, l2_1);
+   };
+   disaster_happened;
+};
