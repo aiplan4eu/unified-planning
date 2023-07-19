@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,8 +100,11 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -518,6 +521,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         em.TRUE(),
                         positive_condition,
                         effect.kind,
+                        effect.forall,
                     )
                     if effect not in returned_effects:
                         yield effect
@@ -537,6 +541,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         em.FALSE(),
                         negative_condition,
                         effect.kind,
+                        effect.forall,
                     )
                     if effect not in returned_effects:
                         yield effect
@@ -551,6 +556,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         resulting_effect_value,
                         subbed_cond,
                         effect.kind,
+                        effect.forall,
                     )
                     if effect not in returned_effects:
                         yield effect

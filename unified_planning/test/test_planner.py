@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -190,6 +190,7 @@ class TestPlanner(TestCase):
                 plan = final_report.plan.replace_action_instances(
                     res.map_back_action_instance
                 )
+
                 self.assertEqual(
                     final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
                 )
@@ -308,6 +309,15 @@ class TestPlanner(TestCase):
             planner.skip_checks = True
             plan = planner.solve(problem).plan
             self.assertIsNotNone(plan)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_safe_road(self):
+        problem = self.problems["safe_road"].problem
+        with OneshotPlanner(name="opt-pddl-planner") as planner:
+            self.assertTrue(planner.supports(problem.kind))
+            res = planner.solve(problem)
+            plan = res.plan
+            self.assertEqual(len(plan.actions), 10)
 
     def test_engine_class(self):
         with self.assertRaises(TypeError):

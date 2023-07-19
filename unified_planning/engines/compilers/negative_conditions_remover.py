@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,8 +128,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -320,6 +323,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                                 simplified_not_v,
                                 e.condition,
                                 e.kind,
+                                e.forall,
                             )
                         )
                 for ne in new_effects:
@@ -347,6 +351,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                                     simplified_not_v,
                                     e.condition,
                                     e.kind,
+                                    e.forall,
                                 ),
                             )
                 new_problem.add_action(new_durative_action)
@@ -369,6 +374,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                             simplified_not_v,
                             e.condition,
                             e.kind,
+                            e.forall,
                         ),
                     )
 

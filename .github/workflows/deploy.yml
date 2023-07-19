@@ -1,0 +1,30 @@
+name: deploy
+
+on:
+  workflow_call
+
+jobs:
+  deploy-pypi:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.8"
+
+      - name: Make distrib
+        run: |
+          python3 -m pip install wheel
+          bash scripts/make_distrib.sh
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

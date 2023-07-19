@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ else:
     AnyBaseClass = object
 
 
-VERSION: Tuple[Union[int, str], ...] = (0, 6, 0)
+VERSION: Tuple[Union[int, str], ...] = (1, 0, 0)
 __version__ = ".".join(str(x) for x in VERSION)
 
 # Try to provide human-readable version of latest commit for dev versions

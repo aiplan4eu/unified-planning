@@ -1,5 +1,23 @@
-from typing import Optional
+# Copyright 2021-2023 AIPlan4EU project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
+from typing import Optional, Union
+
+from unified_planning.model.expression import NumericExpression
+
+from unified_planning.model.fnode import FNode
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
@@ -14,27 +32,25 @@ from unified_planning.model.scheduling.chronicle import Chronicle
 
 
 class Activity(Chronicle):
-    """Activity is essentially an interval with start and end timing that facilitates defining constraints in the
-    associated SchedulingProblem"""
+    """Activity is essentially an interval with start and end timepoint that facilitates defining constraints in the
+    associated :class:`SchedulingProblem`"""
 
     def __init__(
         self, name: str, duration: int = 0, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
-        start_tp = Timepoint(TimepointKind.START, container=name)
-        end_tp = Timepoint(TimepointKind.END, container=name)
-        self._start = Timing(0, start_tp)
-        self._end = Timing(0, end_tp)
+        self._start = Timepoint(TimepointKind.START, container=name)
+        self._end = Timepoint(TimepointKind.END, container=name)
 
         self.set_fixed_duration(duration)
 
     @property
-    def start(self) -> Timing:
+    def start(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._start
 
     @property
-    def end(self) -> Timing:
+    def end(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._end
 
@@ -97,18 +113,38 @@ class Activity(Chronicle):
             )
         self._duration = duration
 
-    def uses(self, resource: Fluent, amount: NumericConstant = 1):
+    def uses(self, resource: Union[Fluent, FNode], amount: NumericExpression = 1):
         """Asserts that the activity borrows a given amount (1 by default) of the resource.
         The borrowed resources will be reusable by another activity at the time epoch immediately
-         succeeding the activity end.
+        succeeding the activity end.
+
+        :param resource: Fluent expression that denotes the resource taht is used.
+        :param amount: Quantity of the resource that is borrowed over the course of the activity.
         """
         self.add_decrease_effect(self.start, resource, amount)
         self.add_increase_effect(self.end, resource, amount)
 
-    def set_release_date(self, date: int):
-        """Set the earliest date at which the activity can be started."""
+    def add_release_date(self, date: NumericExpression):
+        """Sets the earliest date at which the activity can be started."""
         self.add_constraint(get_environment().expression_manager.LE(date, self.start))
 
-    def set_deadline(self, date: int):
-        """Set the latest date at which the activity might end."""
+    def add_deadline(self, date: NumericExpression):
+        """Sets the latest date at which the activity might end."""
         self.add_constraint(get_environment().expression_manager.LE(self.end, date))
+
+    def clone(self):
+        """Generates a copy of this activity."""
+        new = Activity(self.name, _env=self._environment)
+        self._clone_to(new)
+        new._duration = self._duration
+        return new
+
+    def __hash__(self):
+        return Chronicle.__hash__(self) + hash(self._duration)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Activity)
+            and Chronicle.__eq__(self, other)
+            and self._duration == other._duration
+        )

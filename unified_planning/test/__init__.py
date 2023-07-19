@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ from unified_planning.environment import get_environment
 from unified_planning.model import ProblemKind
 from unified_planning.test.pddl import enhsp
 from typing import Optional
-import unified_planning.test.scheduling
 
 
 skipIf = unittest.skipIf

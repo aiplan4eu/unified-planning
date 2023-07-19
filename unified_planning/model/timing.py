@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,11 @@
 
 from unified_planning.environment import Environment
 from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.expression import (
+    NumericConstant,
+    uniform_numeric_constant,
+    TimeExpression,
+)
 from abc import ABC
 from enum import Enum, auto
 from fractions import Fraction
@@ -40,11 +44,17 @@ class TimepointKind(Enum):
 
 
 class Timepoint:
-    """Class used to define the point in the time from which a :class:`~unified_planning.model.Timing` is considered."""
+    """Temporal point of interest, one of:
+
+     - global start: temporal origin (time 0) at which the initial state is defined
+     - global end: plan horizon, at which the plan goals must hold.
+     - start time or end time of an action, activity or task/method.
+
+    Used to define the point in the time from which a :class:`~unified_planning.model.timing.Timing` is considered."""
 
     def __init__(self, kind: TimepointKind, container: Optional[str] = None):
         """
-        Creates a new `Timepoint`.
+        Creates a new :class:`Timepoint`.
 
         It is typically used to refer to:
          - the start/end of the containing action or method, or
@@ -92,7 +102,7 @@ class Timepoint:
 
     @property
     def kind(self) -> TimepointKind:
-        """Returns the `kind` of this `Timepoint`; the `kind` defines the semantic of the `Timepoint`."""
+        """Returns the `kind` of this :class:`Timepoint`; the `kind` defines the semantic of the `Timepoint`."""
         return self._kind
 
     @property
@@ -102,11 +112,12 @@ class Timepoint:
 
 
 class Timing:
-    """
-    Class that used a :class:`~unified_planning.model.Timepoint` to define from when this `Timing` is considered and a :func:`delay <unified_planning.model.Timing.delay>`,
+    """Time defined relatively to a :class:`Timepoint`.
+
+    Class that used a :class:`~unified_planning.model.timing.Timepoint` to define from when this `Timing` is considered and a :func:`delay <unified_planning.model.Timing.delay>`,
     representing the distance from the given `Timepoint`.
-    For example:
-    A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the start of the `Plan`.
+    For instance:
+    A `GLOBAL_START Timepoint` with a `delay` of `5` means `5` units of time after the initial state.
     """
 
     def __init__(self, delay: NumericConstant, timepoint: Timepoint):
@@ -116,6 +127,8 @@ class Timing:
     def __repr__(self):
         if self._delay == 0:
             return f"{self._timepoint}"
+        elif self._delay < 0:
+            return f"{self._timepoint} - {-self._delay}"
         else:
             return f"{self._timepoint} + {self._delay}"
 
@@ -164,6 +177,21 @@ class Timing:
     def is_from_end(self) -> bool:
         """Returns `True` if this `Timing` is from the end, `False` if it is from the start."""
         return not self.is_from_start()
+
+    @staticmethod
+    def from_time(time: TimeExpression) -> "Timing":
+        """Converts any supported time expression into its canonical Timing representation."""
+        if (
+            isinstance(time, int)
+            or isinstance(time, float)
+            or isinstance(time, Fraction)
+        ):
+            return GlobalStartTiming() + time
+        elif isinstance(time, Timepoint):
+            return Timing(timepoint=time, delay=0)
+        else:
+            assert isinstance(time, Timing)
+            return time
 
 
 def StartTiming(delay: NumericConstant = 0, container: Optional[str] = None) -> Timing:

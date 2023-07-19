@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ from warnings import warn
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Optional, List, Dict, Union, Iterable
+from typing import Optional, List, Dict, Union, Iterable, Set
 
 
 class FluentsSetMixin:
@@ -194,3 +194,19 @@ class FluentsSetMixin:
         other._fluents = self._fluents.copy()
         other._initial_defaults = self._initial_defaults.copy()
         other._fluents_defaults = self._fluents_defaults.copy()
+
+    def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
+        """
+        Returns the set of the `static fluents`.
+
+        `Static fluents` are those who can't change their values because they never
+        appear in the :func:`fluent <unified_planning.model.Effect.fluent>` field of an `Effect`, therefore there are no :func:`Actions <unified_planning.model.Problem.actions>`
+        in the `Problem` that can change their value.
+        """
+        return set()  # conservative default, should be overriden
+
+    def get_unused_fluents(self) -> Set["up.model.fluent.Fluent"]:
+        """
+        Returns the set of `fluents` that are never used in the problem.
+        """
+        return set()  # conservative default, should be overriden

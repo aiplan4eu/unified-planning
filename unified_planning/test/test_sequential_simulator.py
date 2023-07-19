@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ class TestSimulator(TestCase):
             _ = simulator.apply(state, move, (ts_1, block_3, block_2))
         with self.assertRaises(UPUsageError):
             ai = ActionInstance(
-                move, (ObjectExp(ts_1), ObjectExp(block_3), ObjectExp(block_2))
+                move, (ObjectExp(block_3), ObjectExp(ts_1), ObjectExp(block_2))
             )
             _ = simulator.apply(state, ai, (ts_1, block_3, block_2))
 

@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ from typing import Callable, Dict, Optional, List, Union
 
 class ValidationResultStatus(Enum):
     """
-    Enum representing the 2 possible values in the `status` field of a :class:`~unified_planning.engines.ValidationResult`:
-    VALID or INVALID.
+    Enum representing the 3 possible values in the `status` field of a :class:`~unified_planning.engines.ValidationResult`:
+    VALID, INVALID or UNKNOWN.
     """
 
     VALID = (
@@ -37,6 +37,9 @@ class ValidationResultStatus(Enum):
     INVALID = (
         auto()
     )  # The plan is invalid for the problem, it does not satisfy all the hard constraints
+    UNKNOWN = (
+        auto()
+    )  # The planner can't tell if the plan is valid or invalid for the given problem
 
     def __bool__(self):
         if self == ValidationResultStatus.VALID:
@@ -297,10 +300,7 @@ class ValidationResult(Result):
         return True
 
     def __bool__(self):
-        if self.status == ValidationResultStatus.VALID:
-            return True
-        else:
-            return False
+        return bool(self.status)
 
 
 @dataclass

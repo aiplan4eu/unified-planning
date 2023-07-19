@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,8 +54,11 @@ FEATURES = {
         "DECREASE_EFFECTS",
         "STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
         "STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS",
+        "STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS",
         "FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
         "FLUENTS_IN_NUMERIC_ASSIGNMENTS",
+        "FLUENTS_IN_OBJECT_ASSIGNMENTS",
+        "FORALL_EFFECTS",
     ],
     "TYPING": ["FLAT_TYPING", "HIERARCHICAL_TYPING"],
     "PARAMETERS": [
@@ -126,7 +129,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     The `ProblemKind` of a `Problem` is calculated by it's :func:`kind <unified_planning.model.Problem.kind>` property.
     """
 
-    def __init__(self, features: Set[str] = set()):
+    def __init__(self, features: Set[str] = set(), version=None):
         self._features: Set[str] = set(features)
 
     def __repr__(self) -> str:
@@ -162,6 +165,10 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         if not isinstance(oth, ProblemKind):
             raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
         return self._features.issubset(oth._features)
+
+    def get_version(self):
+        """Currently an empty placeholder, intended to support backward compatible problem kind extensions."""
+        return None
 
     @property
     def features(self) -> Set[str]:

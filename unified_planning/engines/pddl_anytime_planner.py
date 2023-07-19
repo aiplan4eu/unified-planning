@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -171,6 +171,46 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         """
         raise NotImplementedError
 
+    def _generate_last_result(
+        self,
+        solve_result: PlanGenerationResult,
+        last_result: Optional[PlanGenerationResult],
+    ) -> PlanGenerationResult:
+        """
+        IMPORTANT FOR ENGINES IMPLEMENTING THIS CLASS
+
+        This method takes the result returned by the _solve method, the last_plan_found
+        by the engine  and the status of the last plan and returns a new PlanGenerationResult.
+        If the engine writes his last plan to a file there is no need to overwrite this method;
+        but if the engine does not write the last plan on a file or if the last result returned
+        is not correct for some reason; this method allows an easy modification.
+
+        :param solve_result: The PlanGenerationResult returned by the solve method.
+        :param last_plan_found: The last plan found by the engine; obtained parsing the planner's
+            output.
+        :param last_status: The correct status of the last plan returned.
+        :return: The PlanGenerationResult compatible with the engine semantic; defaults to the
+            solve_result given in input.
+        """
+        if last_result is None or solve_result.plan is not None:
+            return solve_result
+
+        if solve_result.status in (
+            PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
+            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+        ):
+            new_status = PlanGenerationResultStatus.SOLVED_SATISFICING
+        else:
+            new_status = solve_result.status
+        res = PlanGenerationResult(
+            new_status,
+            last_result.plan,
+            solve_result.engine_name,
+            solve_result.metrics,
+            solve_result.log_messages,
+        )
+        return res
+
     def _get_solutions(
         self,
         problem: "up.model.AbstractProblem",
@@ -192,18 +232,14 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             t = threading.Thread(target=run, daemon=True)
             t.start()
             status = PlanGenerationResultStatus.INTERMEDIATE
+            last_res: Optional[PlanGenerationResult] = None
             while status == PlanGenerationResultStatus.INTERMEDIATE:
                 res = q.get()
                 status = res.status
-                # If there is a timeout return the last plan found
-                if status == PlanGenerationResultStatus.TIMEOUT and res.plan is None:
-                    res = PlanGenerationResult(
-                        status,
-                        cast(Writer, writer).last_plan_found,
-                        res.engine_name,
-                        res.metrics,
-                        res.log_messages,
-                    )
+                if status != PlanGenerationResultStatus.INTERMEDIATE:
+                    res = self._generate_last_result(res, last_res)
+                else:
+                    last_res = res
                 yield res
         finally:
             if self._process is not None:

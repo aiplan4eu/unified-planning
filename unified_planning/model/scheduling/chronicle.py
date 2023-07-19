@@ -1,5 +1,21 @@
+# Copyright 2021-2023 AIPlan4EU project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from typing import Optional, List, OrderedDict, Union
 
+from unified_planning.model.fnode import FNode
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.model import Parameter
@@ -8,7 +24,7 @@ from unified_planning.model.types import Type
 
 
 class Chronicle(TimedCondsEffs):
-    """Core structure to represent a set of timed conditions and effects."""
+    """Core structure to represent a set of variables, constraints, timed conditions and effects in scheduling problems."""
 
     def __init__(
         self,
@@ -45,17 +61,11 @@ class Chronicle(TimedCondsEffs):
     def __repr__(self) -> str:
         s = []
         s.append(f"{self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
+        if len(self.parameters) > 0:
+            s += ["(", ", ".join(map(str, self.parameters)), ")"]
         s.append(" {\n")
+        if hasattr(self, "duration"):
+            s.append(f"    duration = {str(self.duration)}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
             for c in self._constraints:
@@ -105,11 +115,14 @@ class Chronicle(TimedCondsEffs):
         """Returns the `Chronicle` `name`."""
         return self._name
 
+    def _clone_to(self, other: "Chronicle"):  # type: ignore[override]
+        other._parameters = self._parameters.copy()
+        other._constraints = self._constraints.copy()
+        TimedCondsEffs._clone_to(self, other)
+
     def clone(self):
         new = Chronicle(self._name, _env=self._environment)
-        new._parameters = self._parameters.copy()
-        new._constraints = self._constraints.copy()
-        TimedCondsEffs._clone_to(self, new)
+        self._clone_to(new)
         return new
 
     def add_parameter(self, name: str, tpe: Type) -> Parameter:
@@ -117,13 +130,25 @@ class Chronicle(TimedCondsEffs):
         The resulting parameter's identifier will be prefixed with the activity's name but may be
         used outside the activity itself. For instance, it could appear in global constraints or
         constraints involving more than one activity."""
-        assert ":" not in name, f"Usage of ':' is forbidden in names: {name}"
-        scoped_name = f"{self.name}:{name}"
+        assert "." not in name, f"Usage of '.' is forbidden in names: {name}"
+        assert name not in [
+            "start",
+            "end",
+        ], f"Usage of parameter name {name} is reserved"
+        scoped_name = f"{self.name}.{name}"
         if name in self._parameters:
             raise ValueError(f"Name '{name}' already used in chronicle '{self.name}'")
         param = Parameter(scoped_name, tpe)
         self._parameters[name] = param
         return param
+
+    def get_parameter(self, name: str) -> Parameter:
+        """Returns the parameter with the given name."""
+        if name not in self._parameters:
+            raise ValueError(
+                f"Unknown parameter '{name}. Available parameters: {list(self._parameters.keys())}"
+            )
+        return self._parameters[name]
 
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:
@@ -148,3 +173,7 @@ class Chronicle(TimedCondsEffs):
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
         if constraint_exp not in self._constraints:
             self._constraints.append(constraint_exp)
+
+    @property
+    def constraints(self) -> List[FNode]:
+        return self._constraints

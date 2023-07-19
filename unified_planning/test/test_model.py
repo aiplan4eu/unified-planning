@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,6 +62,8 @@ class TestModel(TestCase):
 
     def test_clone_problem_and_action(self):
         for _, (problem, _) in self.problems.items():
+            if problem.kind.has_scheduling():
+                continue
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
             for action_1, action_2 in zip(

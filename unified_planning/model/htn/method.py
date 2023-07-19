@@ -1,4 +1,4 @@
-# Copyright 2022 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ class ParameterizedTask:
         return self._task
 
     @property
-    def parameters(self) -> List[up.model.parameter.Parameter]:
+    def parameters(self) -> List["up.model.parameter.Parameter"]:
         return self._params
 
 

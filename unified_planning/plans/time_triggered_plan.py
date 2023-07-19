@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,10 +73,10 @@ class TimeTriggeredPlan(plans.plan.Plan):
             if dur is None:
                 return f"    {float(start)}: {ai}"
             else:
-                return f"    {float(start)}: {ai}: {float(dur)}"
+                return f"    {float(start)}: {ai} [{float(dur)}]"
 
         ret = ["TimeTriggeredPlan:"]
-        ret.extend(map(convert_ai, sorted(self._actions)))
+        ret.extend(map(convert_ai, sorted(self._actions, key=lambda x: x[0])))
         return "\n".join(ret)
 
     def __eq__(self, oth: object) -> bool:
@@ -115,6 +115,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
     ) -> List[Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]]:
         """
         Returns the sequence of tuples (`start`, `action_instance`, `duration`) where:
+
         - `start` is when the `ActionInstance` starts;
         - `action_instance` is the `grounded Action` applied;
         - `duration` is the (optional) duration of the `ActionInstance`.

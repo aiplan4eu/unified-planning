@@ -20,6 +20,7 @@ Welcome to Unified-Planning documentation!
    problem_representation
    operation_modes
    interoperability
+   plot_package
 
 .. toctree::
    :maxdepth: 2
@@ -30,8 +31,8 @@ Welcome to Unified-Planning documentation!
    engines
    optimality
    examples
-   getting_involved
+   notebooks/engines/README
    contributions
    issue_tracking
    release_notes
-   api-ref
+   api/index

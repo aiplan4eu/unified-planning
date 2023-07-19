@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -219,3 +219,64 @@ class TestQuantifiersRemover(TestCase):
         self.assertTrue(problem.kind.has_universal_conditions())
         self.assertFalse(unq_problem.kind.has_existential_conditions())
         self.assertFalse(unq_problem.kind.has_universal_conditions())
+
+    def test_forall_effects_removing(self):
+        Obj = UserType("Obj")
+        Obj_son = UserType("Obj_son", Obj)
+
+        Obj_objects = list(Object(f"o{i}", Obj) for i in range(3))
+        son_objects = list(Object(f"s{i}", Obj_son) for i in range(2))
+
+        o0, o1, o2 = Obj_objects
+        s0, s1 = son_objects
+
+        x = Fluent("x", Obj, p1=Obj)
+        y = Fluent("y", Obj, p1=Obj, p2=Obj_son)
+
+        v0, v1 = Variable("v0", Obj), Variable("v1", Obj_son)
+        a = InstantaneousAction("a")
+        a.add_effect(x(v0), y(v0, s0), forall=[v0])
+        b = DurativeAction("b")
+        b.add_effect(StartTiming(), y(v0, v1), x(v1), forall=[v0, v1])
+
+        problem = Problem("forall_effects")
+        problem.add_objects(Obj_objects)
+        problem.add_objects(son_objects)
+        problem.add_actions((a, b))
+        qr = QuantifiersRemover()
+        res = qr.compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
+        unq_problem = res.problem
+        assert isinstance(unq_problem, Problem)
+        expected_effects = {
+            a: [
+                (x(o0), y(o0, s0)),
+                (x(o1), y(o1, s0)),
+                (x(o2), y(o2, s0)),
+                (x(s0), y(s0, s0)),
+                (x(s1), y(s1, s0)),
+            ],
+            b: [
+                (y(o0, s0), x(s0)),
+                (y(o0, s1), x(s1)),
+                (y(o1, s0), x(s0)),
+                (y(o1, s1), x(s1)),
+                (y(o2, s0), x(s0)),
+                (y(o2, s1), x(s1)),
+                (y(s0, s0), x(s0)),
+                (y(s0, s1), x(s1)),
+                (y(s1, s0), x(s0)),
+                (y(s1, s1), x(s1)),
+            ],
+        }
+        for action, assignments in expected_effects.items():
+            unq_action = unq_problem.action(action.name)
+            if isinstance(unq_action, InstantaneousAction):
+                effects = unq_action.effects
+            else:
+                assert isinstance(unq_action, DurativeAction)
+                effects = unq_action.effects[StartTiming()]
+            self.assertEqual(len(assignments), len(effects))
+            for fluent, value in assignments:
+                self.assertTrue(
+                    any(e.fluent == fluent and e.value == value for e in effects)
+                )

@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
 #
 """This module defines the engine interface."""
 
-from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.engines.credits import Credits
 from abc import ABCMeta, abstractmethod, ABC
 from enum import Enum

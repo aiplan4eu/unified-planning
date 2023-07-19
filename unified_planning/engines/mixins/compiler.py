@@ -1,4 +1,4 @@
-# Copyright 2022 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,6 +33,11 @@ class CompilationKind(Enum):
     USERTYPE_FLUENTS_REMOVING = auto()
     BOUNDED_TYPES_REMOVING = auto()
     STATE_INVARIANTS_REMOVING = auto()
+    MA_SINGLE_AGENT_PROJECTION = auto()
+    MA_CENTRALIZATION = auto()
+    MA_SL_ROBUSTNESS_VERIFICATION = auto()
+    MA_SL_SOCIAL_LAW = auto()
+    SA_MA_CONVERSION = auto()
 
 
 class CompilerMixin(ABC):

@@ -20,7 +20,12 @@ import requests
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)  # root directory
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # current directory
+
+import generate_api_doc
 
 # TODO: Remove the below configs one done with the docs
 nbsphinx_allow_errors = True
@@ -360,3 +365,5 @@ for i, (name, source) in enumerate(engines.items()):
             f.write(response.text)
         else:
             Warning(f"Error getting source for planning engine {name}")
+
+generate_api_doc.generate()

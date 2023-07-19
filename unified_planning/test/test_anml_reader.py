@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,11 +13,13 @@
 # limitations under the License.
 
 
+import tempfile
 from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.model import DurativeAction
 from unified_planning.test import TestCase
-from unified_planning.io import ANMLReader
+from unified_planning.io import ANMLReader, ANMLWriter
+from unified_planning.test.examples import get_example_problems
 import os
 
 
@@ -28,6 +30,7 @@ ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")
 class TestANMLReader(TestCase):
     def setUp(self):
         TestCase.setUp(self)
+        self.problems = get_example_problems()
         self.start_timing = StartTiming()
         self.start_interval = TimePointInterval(self.start_timing)
         self.end_timing = EndTiming()
@@ -649,3 +652,87 @@ class TestANMLReader(TestCase):
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
         self.assertEqual(problem, problem_2)
+
+    def test_safe_road_reader(self):
+        reader = ANMLReader()
+        problem_filename = os.path.join(ANML_FILES_PATH, "safe_road.anml")
+        problem = reader.parse_problem(problem_filename)
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 2)
+        self.assertEqual(len(problem.actions), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+        self.assertEqual(len(problem.goals), 2)
+        self.assertEqual(len(problem.timed_goals), 0)
+        self.assertEqual(len(problem.timed_effects), 0)
+
+        check = cast(DurativeAction, problem.action("check"))
+        for interval, cond_list in check.conditions.items():
+            self.assertEqual(interval, self.start_interval)
+            self.assertEqual(len(cond_list), 1)
+        for timing, effect_list in check.effects.items():
+            self.assertEqual(timing, self.start_timing)
+            self.assertEqual(len(effect_list), 1)
+
+        nd = cast(DurativeAction, problem.action("natural_disaster"))
+        self.assertEqual(len(nd.conditions), 0)
+        for timing, effect_list in nd.effects.items():
+            if timing == self.start_timing:
+                self.assertEqual(len(effect_list), 1)
+                self.assertFalse(effect_list[0].is_forall())
+            elif timing == self.end_timing:
+                self.assertEqual(len(effect_list), 1)
+                self.assertTrue(effect_list[0].is_forall())
+            else:
+                self.assertTrue(False)
+
+        with open(problem_filename, "r", encoding="utf-8") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(problem_str, problem_filename)
+        self.assertEqual(problem, problem_2)
+
+    def test_anml_io(self):
+        for example in self.problems.values():
+            problem = example.problem
+            problems_to_skip = []
+            if problem.name in problems_to_skip:
+                continue
+            kind = problem.kind
+            if not kind.has_action_based():
+                continue
+            with tempfile.TemporaryDirectory() as tempdir:
+                problem_filename = os.path.join(tempdir, "problem.anml")
+
+                w = ANMLWriter(problem)
+                w.write_problem(problem_filename)
+                reader = ANMLReader()
+                parsed_problem = reader.parse_problem(problem_filename)
+            self.assertEqual(len(problem.user_types), len(parsed_problem.user_types))
+            self.assertEqual(len(problem.actions), len(parsed_problem.actions))
+            for act, parsed_act in zip(problem.actions, parsed_problem.actions):
+                if isinstance(act, InstantaneousAction):
+                    conditions = (
+                        {TimePointInterval(StartTiming()): act.preconditions}
+                        if act.preconditions
+                        else {}
+                    )
+                    effects = {StartTiming(): act.effects} if act.effects else {}
+                else:
+                    assert isinstance(act, DurativeAction)
+                    conditions = act.conditions
+                    effects = act.effects
+                assert isinstance(parsed_act, DurativeAction)
+                if conditions != parsed_act.conditions:
+                    for i, cl in conditions.items():
+                        parsed_cl = parsed_act.conditions[i]
+                        self.assertEqual(len(cl), len(parsed_cl))
+                if effects != parsed_act.effects:
+                    for t, el in effects.items():
+                        parsed_el = parsed_act.effects[t]
+                        self.assertEqual(len(el), len(parsed_el))
+                        for eff, parsed_eff in zip(el, parsed_el):
+                            self.assertTrue(
+                                eff.is_conditional() == parsed_eff.is_conditional()
+                            )
+                            self.assertTrue(eff.is_forall() == parsed_eff.is_forall())

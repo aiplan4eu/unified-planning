@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,9 @@ import unified_planning.test.examples.minimals as minimals
 import unified_planning.test.examples.realistic as realistic
 import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.hierarchical as hierarchical
+import unified_planning.test.examples.scheduling as scheduling
 
 
 def get_example_problems():
-    sub_modules = [minimals, realistic, testing_variants, hierarchical]
+    sub_modules = [minimals, realistic, testing_variants, hierarchical, scheduling]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())

@@ -71,11 +71,12 @@ load.add_effect(is_package_at(load.location, load.package), False)
 load.add_effect(is_package_at(loader_plate, load.package), True)
 load.add_effect(loader_free, False)
 
-unload = InstantaneousAction("unload", package=Package)
+unload = InstantaneousAction("unload", package=Package, location=Location)
 unload.add_precondition(is_package_at(loader_plate, unload.package))
+unload.add_precondition(loader_at.Equals(unload.location))
 unload.add_effect(loader_free, True)
 unload.add_effect(is_package_at(loader_plate, unload.package), False)
-unload.add_effect(is_package_at(loader_at, unload.package), False)
+unload.add_effect(is_package_at(unload.location, unload.package), True)
 
 problem.add_actions([sense_package, move_loader, load, unload])
 

@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -528,12 +528,19 @@ class TestProblem(TestCase):
             "basic_int_fluent_param",
             "basic_bounded_int_action_param",
             "basic_unbounded_int_action_param",
+            "sched:basic",
+            "sched:resource_set",
+            "sched:jobshop-ft06-operators",
         ]
         for problem, _ in self.problems.values():
             if problem.name in names_of_SNP_problems:
-                self.assertTrue(problem.kind.has_simple_numeric_planning())
+                self.assertTrue(
+                    problem.kind.has_simple_numeric_planning(), problem.name
+                )
             else:
-                self.assertFalse(problem.kind.has_simple_numeric_planning())
+                self.assertFalse(
+                    problem.kind.has_simple_numeric_planning(), problem.name
+                )
 
     def test_simple_numeric_planning_ad_hoc_1(self):
         problem = Problem("ad_hoc_1")

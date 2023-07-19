@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@ from unified_planning.plans.plan import Plan, ActionInstance, PlanKind
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
-from unified_planning.plans.contingent_plan import ContingentPlan
+from unified_planning.plans.contingent_plan import ContingentPlanNode, ContingentPlan
 from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 from unified_planning.plans.hierarchical_plan import HierarchicalPlan
+from unified_planning.plans.schedule import Schedule
 
 __all__ = [
     "Plan",
@@ -28,8 +29,10 @@ __all__ = [
     "SequentialPlan",
     "TimeTriggeredPlan",
     "PartialOrderPlan",
+    "ContingentPlanNode",
     "ContingentPlan",
     "STNPlanNode",
     "STNPlan",
     "HierarchicalPlan",
+    "Schedule",
 ]

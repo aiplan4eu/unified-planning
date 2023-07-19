@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ from unified_planning.model import (
     MaximizeExpressionOnFinalState,
     Oversubscription,
     TemporalOversubscription,
+    AbstractProblem,
 )
 from unified_planning.plans import ActionInstance
 from typing import (
@@ -57,7 +58,7 @@ from typing import (
 
 
 def check_and_simplify_conditions(
-    problem: Problem, action: DurativeAction, simplifier
+    problem: AbstractProblem, action: DurativeAction, simplifier
 ) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
     """
     Simplifies conditions and if it is False (a contraddiction)
@@ -94,7 +95,7 @@ def check_and_simplify_conditions(
 
 
 def check_and_simplify_preconditions(
-    problem: Problem, action: InstantaneousAction, simplifier
+    problem: AbstractProblem, action: InstantaneousAction, simplifier
 ) -> Tuple[bool, List[FNode]]:
     """
     Simplifies preconditions and if it is False (a contraddiction)
@@ -141,7 +142,9 @@ def create_effect_with_given_subs(
     if new_condition == problem.environment.expression_manager.FALSE():
         return None
     else:
-        return Effect(new_fluent, new_value, new_condition, old_effect.kind)
+        return Effect(
+            new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
+        )
 
 
 def create_action_with_given_subs(
@@ -251,7 +254,9 @@ def create_action_with_given_subs(
 
 
 def get_fresh_name(
-    problem: Problem, original_name: str, parameters_names: Sequence[str] = tuple()
+    problem: AbstractProblem,
+    original_name: str,
+    parameters_names: Sequence[str] = tuple(),
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]
@@ -470,11 +475,13 @@ def add_invariant_condition_apply_function_to_problem_expressions(
 def _apply_function_to_effect(
     effect: Effect, function: Callable[[FNode], FNode]
 ) -> Effect:
+    auto_promote = effect.environment.expression_manager.auto_promote
     return Effect(
         function(effect.fluent),
         function(effect.value),
         function(effect.condition),
         effect.kind,
+        tuple((exp.variable() for exp in auto_promote(effect.forall))),
     )
 
 

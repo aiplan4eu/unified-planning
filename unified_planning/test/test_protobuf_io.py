@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,7 +131,7 @@ class TestProtobufIO(TestCase):
         problem_up = self.pb_reader.convert(problem_pb)
 
         pb_features = set(
-            [up_pb2.Feature.Name(feature) for feature in problem_pb.features]
+            [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
         )
         self.assertEqual(set(problem.kind.features), pb_features)
         self.assertEqual(problem, problem_up)
@@ -278,7 +278,7 @@ class TestProtobufIO(TestCase):
     def test_timing_expressions(self):
         def build(
             timing: Timing, action: Union[Action, None] = None
-        ) -> proto.Expression:
+        ) -> proto.Expression:  # type: ignore[name-defined]
             problem = Problem("test timing")
             if action is not None:
                 problem.add_action(action)
@@ -289,7 +289,7 @@ class TestProtobufIO(TestCase):
             return node_pb
 
         def check(  # pylint: disable = too-many-arguments
-            expr: proto.Expression,
+            expr: proto.Expression,  # type: ignore[name-defined]
             kind: int,
             tpe: str = "",
             length: Union[int, None] = None,
@@ -302,18 +302,18 @@ class TestProtobufIO(TestCase):
             if length is not None:
                 self.assertEqual(len(expr.list), length)
             if integer is not None:
-                self.assertEqual(expr.atom, proto.Atom(int=integer))
+                self.assertEqual(expr.atom, proto.Atom(int=integer))  # type: ignore[attr-defined]
             if real is not None:
-                _pr = proto.Real(numerator=real.numerator, denominator=real.denominator)
-                self.assertEqual(expr.atom, proto.Atom(real=_pr))
+                _pr = proto.Real(numerator=real.numerator, denominator=real.denominator)  # type: ignore[attr-defined]
+                self.assertEqual(expr.atom, proto.Atom(real=_pr))  # type: ignore[attr-defined]
             if symbol is not None:
-                self.assertEqual(expr.atom, proto.Atom(symbol=symbol))
+                self.assertEqual(expr.atom, proto.Atom(symbol=symbol))  # type: ignore[attr-defined]
 
         # pylint: disable = invalid-name
-        cont_kind = proto.ExpressionKind.Value("CONTAINER_ID")
-        const_kind = proto.ExpressionKind.Value("CONSTANT")
-        fun_app_kind = proto.ExpressionKind.Value("FUNCTION_APPLICATION")
-        fun_sym_kind = proto.ExpressionKind.Value("FUNCTION_SYMBOL")
+        cont_kind = proto.ExpressionKind.Value("CONTAINER_ID")  # type: ignore[attr-defined]
+        const_kind = proto.ExpressionKind.Value("CONSTANT")  # type: ignore[attr-defined]
+        fun_app_kind = proto.ExpressionKind.Value("FUNCTION_APPLICATION")  # type: ignore[attr-defined]
+        fun_sym_kind = proto.ExpressionKind.Value("FUNCTION_SYMBOL")  # type: ignore[attr-defined]
         cont_type = "up:container"
         int_type = "up:integer"
         real_type = "up:real"
@@ -402,6 +402,7 @@ class TestProtobufProblems(TestCase):
     def test_all_problems(self):
         for name, example in self.problems.items():
             problem = example.problem
+            kind = problem.kind
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
@@ -411,11 +412,27 @@ class TestProtobufProblems(TestCase):
                 hash(problem_up),
                 f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
             )
+            if kind.has_continuous_time():
+                problem = problem.clone()
+                problem.epsilon = "2"
+                problem.self_overlapping = True
+                problem.discrete_time = True
+                problem_pb = self.pb_writer.convert(problem)
+                problem_up = self.pb_reader.convert(problem_pb)
+
+                self.assertEqual(problem, problem_up)
+                self.assertEqual(
+                    hash(problem),
+                    hash(problem_up),
+                    f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
+                )
 
     def test_all_plans(self):
         for name, example in self.problems.items():
             problem = example.problem
             plan = example.plan
+            if plan is None:
+                continue
             plan_pb = self.pb_writer.convert(plan)
             plan_up = self.pb_reader.convert(plan_pb, problem)
 

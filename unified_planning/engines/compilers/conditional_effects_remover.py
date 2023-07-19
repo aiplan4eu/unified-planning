@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,14 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPConflictingEffectsException,
 )
-from unified_planning.model import Problem, ProblemKind
+from unified_planning.model import (
+    Problem,
+    ProblemKind,
+    Action,
+    InstantaneousAction,
+    DurativeAction,
+    AbstractProblem,
+)
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     check_and_simplify_preconditions,
@@ -32,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
 )
 from unified_planning.utils import powerset
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Iterator
 from functools import partial
 
 
@@ -93,8 +100,11 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -166,113 +176,22 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                         raise UPProblemDefinitionError(
                             f"The condition of effect: {e}\ncould not be removed without changing the problem."
                         )
-                    else:
-                        em = env.expression_manager
-                        c = e.condition
-                        nv = simplifier.simplify(
-                            em.Or(em.And(c, v), em.And(em.Not(c), f))
-                        )
-                        new_problem.add_timed_effect(t, e.fluent, nv)
+                    em = env.expression_manager
+                    c = e.condition
+                    nv = simplifier.simplify(em.Or(em.And(c, v), em.And(em.Not(c), f)))
+                    new_problem.add_timed_effect(t, e.fluent, nv, forall=e.forall)
                 else:
                     new_problem._add_effect_instance(t, e.clone())
+
         new_problem.clear_actions()
         for ua in problem.unconditional_actions:
             new_uncond_action = ua.clone()
             new_problem.add_action(new_uncond_action)
             new_to_old[new_uncond_action] = ua
         for action in problem.conditional_actions:
-            if isinstance(action, up.model.InstantaneousAction):
-                cond_effects = action.conditional_effects
-                for p in powerset(range(len(cond_effects))):
-                    new_action = action.clone()
-                    new_action.name = get_fresh_name(new_problem, action.name)
-                    new_action.clear_effects()
-                    for e in action.unconditional_effects:
-                        new_action._add_effect_instance(e.clone())
-                    for i, e in enumerate(cond_effects):
-                        if i in p:
-                            # positive precondition
-                            new_action.add_precondition(e.condition)
-                            ne = up.model.Effect(
-                                e.fluent,
-                                e.value,
-                                env.expression_manager.TRUE(),
-                                e.kind,
-                            )
-                            # We try to add the new effect, but it might be in conflict with exising effects,
-                            # so the action is not added to the problem
-                            try:
-                                new_action._add_effect_instance(ne)
-                            except UPConflictingEffectsException:
-                                continue
-                        else:
-                            # negative precondition
-                            new_action.add_precondition(
-                                env.expression_manager.Not(e.condition)
-                            )
-                    # new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(new_action.effects) > 0:
-                        (
-                            action_is_feasible,
-                            simplified_preconditions,
-                        ) = check_and_simplify_preconditions(
-                            new_problem, new_action, simplifier
-                        )
-                        if action_is_feasible:
-                            new_action._set_preconditions(simplified_preconditions)
-                            new_to_old[new_action] = action
-                            new_problem.add_action(new_action)
-            elif isinstance(action, up.model.DurativeAction):
-                timing_cond_effects: Dict[
-                    "up.model.Timing", List["up.model.Effect"]
-                ] = action.conditional_effects
-                cond_effects_timing: List[
-                    Tuple["up.model.Effect", "up.model.Timing"]
-                ] = [(e, t) for t, el in timing_cond_effects.items() for e in el]
-                for p in powerset(range(len(cond_effects_timing))):
-                    new_action = action.clone()
-                    new_action.name = get_fresh_name(new_problem, action.name)
-                    new_action.clear_effects()
-                    for t, el in action.unconditional_effects.items():
-                        for e in el:
-                            new_action._add_effect_instance(t, e.clone())
-                    for i, (e, t) in enumerate(cond_effects_timing):
-                        if i in p:
-                            # positive precondition
-                            new_action.add_condition(t, e.condition)
-                            ne = up.model.Effect(
-                                e.fluent,
-                                e.value,
-                                env.expression_manager.TRUE(),
-                                e.kind,
-                            )
-                            # We try to add the new effect, but it might be in conflict with exising effects,
-                            # so the action is not added to the problem
-                            try:
-                                new_action._add_effect_instance(t, ne)
-                            except UPConflictingEffectsException:
-                                continue
-                        else:
-                            # negative precondition
-                            new_action.add_condition(
-                                t, env.expression_manager.Not(e.condition)
-                            )
-                    # new action is created, then is checked if it has any impact and if it can be simplified
-                    if len(new_action.effects) > 0:
-                        (
-                            action_is_feasible,
-                            simplified_conditions,
-                        ) = check_and_simplify_conditions(
-                            new_problem, new_action, simplifier
-                        )
-                        if action_is_feasible:
-                            new_action.clear_conditions()
-                            for interval, c in simplified_conditions:
-                                new_action.add_condition(interval, c)
-                            new_to_old[new_action] = action
-                            new_problem.add_action(new_action)
-            else:
-                raise NotImplementedError
+            for new_action in self._create_unconditional_actions(action, new_problem):
+                new_to_old[new_action] = action
+                new_problem.add_action(new_action)
 
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
@@ -288,3 +207,107 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
+
+    def _create_unconditional_actions(
+        self, action: Action, new_problem: AbstractProblem
+    ) -> Iterator[Action]:
+        # Takes an action and the new problem and returns a sequence of actions
+        # that must be added to the problem in order to maintain the same semantic
+        # removing the conditional effects.
+        assert (
+            action.is_conditional()
+        ), "This method must be called only on conditional actions"
+        env = new_problem.environment
+        simplifier = env.simplifier
+        if isinstance(action, up.model.InstantaneousAction):
+            cond_effects = action.conditional_effects
+            for p in powerset(range(len(cond_effects))):
+                new_action = action.clone()
+                new_action.name = get_fresh_name(new_problem, action.name)
+                new_action.clear_effects()
+                for e in action.unconditional_effects:
+                    new_action._add_effect_instance(e.clone())
+                for i, e in enumerate(cond_effects):
+                    if i in p:
+                        # positive precondition
+                        new_action.add_precondition(e.condition)
+                        ne = up.model.Effect(
+                            e.fluent,
+                            e.value,
+                            env.expression_manager.TRUE(),
+                            e.kind,
+                            e.forall,
+                        )
+                        # We try to add the new effect, but it might be in conflict with exising effects,
+                        # so the action is not added to the problem
+                        try:
+                            new_action._add_effect_instance(ne)
+                        except UPConflictingEffectsException:
+                            continue
+                    else:
+                        # negative precondition
+                        new_action.add_precondition(
+                            env.expression_manager.Not(e.condition)
+                        )
+                # new action is created, then is checked if it has any impact and if it can be simplified
+                if len(new_action.effects) > 0:
+                    (
+                        action_is_feasible,
+                        simplified_preconditions,
+                    ) = check_and_simplify_preconditions(
+                        new_problem, new_action, simplifier
+                    )
+                    if action_is_feasible:
+                        new_action._set_preconditions(simplified_preconditions)
+                        yield new_action
+        elif isinstance(action, up.model.DurativeAction):
+            timing_cond_effects: Dict[
+                "up.model.Timing", List["up.model.Effect"]
+            ] = action.conditional_effects
+            cond_effects_timing: List[Tuple["up.model.Effect", "up.model.Timing"]] = [
+                (e, t) for t, el in timing_cond_effects.items() for e in el
+            ]
+            for p in powerset(range(len(cond_effects_timing))):
+                new_action = action.clone()
+                new_action.name = get_fresh_name(new_problem, action.name)
+                new_action.clear_effects()
+                for t, el in action.unconditional_effects.items():
+                    for e in el:
+                        new_action._add_effect_instance(t, e.clone())
+                for i, (e, t) in enumerate(cond_effects_timing):
+                    if i in p:
+                        # positive precondition
+                        new_action.add_condition(t, e.condition)
+                        ne = up.model.Effect(
+                            e.fluent,
+                            e.value,
+                            env.expression_manager.TRUE(),
+                            e.kind,
+                            e.forall,
+                        )
+                        # We try to add the new effect, but it might be in conflict with exising effects,
+                        # so the action is not added to the problem
+                        try:
+                            new_action._add_effect_instance(t, ne)
+                        except UPConflictingEffectsException:
+                            continue
+                    else:
+                        # negative precondition
+                        new_action.add_condition(
+                            t, env.expression_manager.Not(e.condition)
+                        )
+                # new action is created, then is checked if it has any impact and if it can be simplified
+                if len(new_action.effects) > 0:
+                    (
+                        action_is_feasible,
+                        simplified_conditions,
+                    ) = check_and_simplify_conditions(
+                        new_problem, new_action, simplifier
+                    )
+                    if action_is_feasible:
+                        new_action.clear_conditions()
+                        for interval, c in simplified_conditions:
+                            new_action.add_condition(interval, c)
+                        yield new_action
+        else:
+            raise NotImplementedError

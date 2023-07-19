@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,14 +38,21 @@ BoolExpression = Union[
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
-NumericExpression = Union["up.model.fnode.FNode", NumericConstant]
+NumericExpression = Union[NumericConstant, "up.model.fnode.FNode"]
 ConstantExpression = Union[
     NumericExpression,
     "up.model.object.Object",
     bool,
 ]
-Expression = Union[
+TimeExpression = Union[
     "up.model.timing.Timing",
+    "up.model.timing.Timepoint",
+    int,
+    float,
+    Fraction,
+]
+Expression = Union[
+    TimeExpression,
     BoolExpression,
     ConstantExpression,
 ]
@@ -134,6 +141,8 @@ class ExpressionManager(object):
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
+            elif isinstance(e, up.model.timing.Timepoint):
+                res.append(self.TimingExp(up.model.timing.Timing(delay=0, timepoint=e)))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             elif (
@@ -166,7 +175,7 @@ class ExpressionManager(object):
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
                 "up.model.timing.Timing",
-                "up.model.multi_agent.Agent",
+                str,
                 bool,
                 int,
                 Fraction,
@@ -210,7 +219,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be ``boolean``.
 
-        :param \*args: Either an ``Iterable`` of ``boolean`` expressions, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean`` expressions, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The ``AND`` expression created.
         """
@@ -235,7 +244,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be ``boolean``
 
-        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The ``OR`` expression created.
         """
@@ -260,7 +269,7 @@ class ExpressionManager(object):
 
         | Restriction: Arguments must be boolean
 
-        :param \*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of ``boolean expressions``, like ``[a, b, c]``, or an unpacked version
             of it, like ``a, b, c``.
         :return: The exclusive disjunction in CNF form.
         """
@@ -338,7 +347,7 @@ class ExpressionManager(object):
 
         :param expression: The main expression of the ``existential``. The expression should contain
             the given ``variables``.
-        :param \*vars: All the ``Variables`` appearing in the ``existential`` expression.
+        :param \\*vars: All the ``Variables`` appearing in the ``existential`` expression.
         :return: The created ``Existential`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
@@ -364,7 +373,7 @@ class ExpressionManager(object):
 
         :param expression: The main expression of the ``universal`` quantifier. The expression should contain
             the given ``variables``.
-        :param \*vars: All the ``Variables`` appearing in the ``universal`` expression.
+        :param \\*vars: All the ``Variables`` appearing in the ``universal`` expression.
         :return: The created ``Forall`` expression.
         """
         expressions = tuple(self.auto_promote(expression))
@@ -470,19 +479,29 @@ class ExpressionManager(object):
 
     def Dot(
         self,
-        agent: "up.model.multi_agent.Agent",
+        agent: Union["up.model.multi_agent.Agent", str],
         fluent_exp: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression for the given ``agent`` and ``fluent_exp``.
-        Restriction: agent must be of ``agent type`` and fluent_exp must be of ``fluentExp type``
+        Restriction: agent must be of ``agent type`` or the name of an agent and
+        fluent_exp must be of ``fluentExp type``
 
         :param agent: The ``Agent`` that will be set as the ``payload`` of this expression.
         :param fluent_exp: The ``Fluent_exp`` that will be set as the ``args`` of this expression.
         :return: The created ``Dot`` Expression.
         """
-        assert agent.environment == self.environment
         (fluent_exp,) = self.auto_promote(fluent_exp)
+        assert fluent_exp.is_fluent_exp()
+        if not isinstance(agent, str):
+            assert isinstance(agent, up.model.multi_agent.Agent), "Typing not respected"
+            assert agent.environment == self.environment
+            if fluent_exp.fluent() not in agent.fluents:
+                raise UPExpressionDefinitionError(
+                    f"Fluent {fluent_exp.fluent()} does not belong to agent {agent.name}"
+                )
+            agent = agent.name
+        assert isinstance(agent, str)
         return self.create_node(
             node_type=OperatorKind.DOT, args=(fluent_exp,), payload=agent
         )
@@ -591,7 +610,7 @@ class ExpressionManager(object):
         Creates an expression of the form:
             ``args[0] + ... + args[n]``
 
-        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
             of it, like ``a, b, 3``.
         :return: The ``PLUS`` expression created. (like ``a + b + 3``)
         """
@@ -622,7 +641,7 @@ class ExpressionManager(object):
         Creates an expression of the form:
             ``args[0] * ... * args[n]``
 
-        :param \*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
+        :param \\*args: Either an ``Iterable`` of expressions, like ``[a, b, 3]``, or an unpacked version
             of it, like ``a, b, 3``.
         :return: The ``TIMES`` expression created. (like ``a * b * 3``)
         """

@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,12 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.types import _UserType
+from unified_planning.plans import (
+    SequentialPlan,
+    TimeTriggeredPlan,
+    Plan,
+    ActionInstance,
+)
 from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
@@ -177,6 +183,7 @@ class ConverterToPDDLString(walkers.DagWalker):
                     "up.model.Action",
                     "up.model.Fluent",
                     "up.model.Object",
+                    "up.model.multi_agent.Agent",
                 ]
             ],
             str,
@@ -345,6 +352,7 @@ class PDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
             str,
         ] = {}
@@ -358,6 +366,7 @@ class PDDLWriter:
                 "up.model.Object",
                 "up.model.Parameter",
                 "up.model.Variable",
+                "up.model.multi_agent.Agent",
             ],
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
@@ -540,9 +549,14 @@ class PDDLWriter:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
                 if len(a.preconditions) > 0:
-                    out.write(
-                        f'\n  :precondition (and {" ".join([converter.convert(p) for p in (c.simplify() for c in a.preconditions) if not p.is_true()])})'
-                    )
+                    precond_str: List[str] = []
+                    for p in (c.simplify() for c in a.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
@@ -552,6 +566,7 @@ class PDDLWriter:
                             out,
                             converter,
                             self.rewrite_bool_assignments,
+                            self._get_mangled_name,
                         )
 
                     if a in costs:
@@ -617,6 +632,7 @@ class PDDLWriter:
                                 out,
                                 converter,
                                 self.rewrite_bool_assignments,
+                                self._get_mangled_name,
                             )
                     if a in costs:
                         out.write(
@@ -672,9 +688,13 @@ class PDDLWriter:
         if self.problem.kind.has_actions_cost():
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
-        out.write(
-            f' (:goal (and {" ".join([converter.convert(p) for p in self.problem.goals])}))\n'
-        )
+        goals_str: List[str] = []
+        for g in (c.simplify() for c in self.problem.goals):
+            if g.is_and():
+                goals_str.extend(map(converter.convert, g.args))
+            else:
+                goals_str.append(converter.convert(g))
+        out.write(f' (:goal (and {" ".join(goals_str)}))\n')
         if len(self.problem.trajectory_constraints) > 0:
             out.write(
                 f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
@@ -709,6 +729,27 @@ class PDDLWriter:
             )
         out.write(")\n")
 
+    def _write_plan(self, plan: Plan, out: IO[str]):
+        def _format_action_instance(action_instance: ActionInstance) -> str:
+            param_str = ""
+            if action_instance.actual_parameters:
+                param_str = f" {' '.join((p.object().name for p in action_instance.actual_parameters))}"
+            return f"({action_instance.action.name}{param_str})"
+
+        if isinstance(plan, SequentialPlan):
+            for ai in plan.actions:
+                out.write(f"{_format_action_instance(ai)}\n")
+        elif isinstance(plan, TimeTriggeredPlan):
+            for s, ai, dur in plan.timed_actions:
+                start = s.numerator if s.denominator == 1 else float(s)
+                out.write(f"{start}: {_format_action_instance(ai)}")
+                if dur is not None:
+                    duration = dur.numerator if dur.denominator == 1 else float(dur)
+                    out.write(f"[{duration}]")
+                out.write("\n")
+        else:
+            raise NotImplementedError
+
     def print_domain(self):
         """Prints to std output the `PDDL` domain."""
         self._write_domain(sys.stdout)
@@ -716,6 +757,10 @@ class PDDLWriter:
     def print_problem(self):
         """Prints to std output the `PDDL` problem."""
         self._write_problem(sys.stdout)
+
+    def print_plan(self, plan: Plan):
+        """Prints to std output the `PDDL` plan."""
+        self._write_plan(plan, sys.stdout)
 
     def get_domain(self) -> str:
         """Returns the `PDDL` domain."""
@@ -729,6 +774,12 @@ class PDDLWriter:
         self._write_problem(out)
         return out.getvalue()
 
+    def get_plan(self, plan: Plan) -> str:
+        """Returns the `PDDL` plan."""
+        out = StringIO()
+        self._write_plan(plan, out)
+        return out.getvalue()
+
     def write_domain(self, filename: str):
         """Dumps to file the `PDDL` domain."""
         with open(filename, "w") as f:
@@ -739,6 +790,11 @@ class PDDLWriter:
         with open(filename, "w") as f:
             self._write_problem(f)
 
+    def write_plan(self, plan: Plan, filename: str):
+        """Dumps to file the `PDDL` plan."""
+        with open(filename, "w") as f:
+            self._write_plan(plan, f)
+
     def _get_mangled_name(
         self,
         item: Union[
@@ -748,6 +804,7 @@ class PDDLWriter:
             "up.model.Object",
             "up.model.Parameter",
             "up.model.Variable",
+            "up.model.multi_agent.Agent",
         ],
     ) -> str:
         """This function returns a valid and unique PDDL name."""
@@ -793,6 +850,7 @@ class PDDLWriter:
         "up.model.Object",
         "up.model.Parameter",
         "up.model.Variable",
+        "up.model.multi_agent.Agent",
     ]:
         """
         Since `PDDL` has a stricter set of possible naming compared to the `unified_planning`, when writing
@@ -875,6 +933,7 @@ def _get_pddl_name(
         "up.model.Parameter",
         "up.model.Variable",
         "up.model.Problem",
+        "up.model.multi_agent.Agent",
     ]
 ) -> str:
     """This function returns a pddl name for the chosen item"""
@@ -912,6 +971,20 @@ def _write_effect(
     out: IO[str],
     converter: ConverterToPDDLString,
     rewrite_bool_assignments: bool,
+    get_mangled_name: Callable[
+        [
+            Union[
+                "up.model.Type",
+                "up.model.Action",
+                "up.model.Fluent",
+                "up.model.Object",
+                "up.model.Parameter",
+                "up.model.Variable",
+                "up.model.multi_agent.Agent",
+            ]
+        ],
+        str,
+    ],
 ):
     simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
@@ -927,11 +1000,21 @@ def _write_effect(
             "semantic. To enable this feature, set the flag rewrite_bool_assignments",
             " to True in the PDDLWriter constructor.",
         )
+    forall_str = ""
+    if effect.is_forall():
+        mid_str = " ".join(
+            (
+                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
+                for v in effect.forall
+            )
+        )
+        forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
     if non_const_bool_ass:
         assert effect.is_assignment()
         positive_cond = (simplified_cond & effect.value).simplify()
         if not positive_cond.is_false():
+            out.write(forall_str)
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -945,8 +1028,11 @@ def _write_effect(
                 )
             if timing is not None:
                 out.write(")")
+            if effect.is_forall():
+                out.write(")")
         negative_cond = (simplified_cond & effect.value.Not()).simplify()
         if not negative_cond.is_false():
+            out.write(forall_str)
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -960,10 +1046,13 @@ def _write_effect(
                 )
             if timing is not None:
                 out.write(")")
+            if effect.is_forall():
+                out.write(")")
         return
 
     if simplified_cond.is_false():
         return
+    out.write(forall_str)
     if timing is not None:
         if timing.is_from_start():
             out.write(f" (at start")
@@ -991,4 +1080,6 @@ def _write_effect(
     if not simplified_cond.is_true():
         out.write(")")
     if timing is not None:
+        out.write(")")
+    if effect.is_forall():
         out.write(")")

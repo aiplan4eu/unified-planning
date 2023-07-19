@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ DEFAULT_ENGINES = {
     "bfgp": ("up_bfgp", "BestFirstGeneralizedPlanner"),
     "pyperplan": ("up_pyperplan.engine", "EngineImpl"),
     "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
-    "enhsp": ("up_enhsp.enhsp_planner", "ENHSPSatEngine"),
+    "enhsp": ("up_enhsp.enhsp_planner", "ENHSPEngine"),
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
     "enhsp-any": ("up_enhsp.enhsp_planner", "ENHSPAnytimeEngine"),
     "tamer": ("up_tamer.engine", "EngineImpl"),
@@ -106,6 +106,14 @@ DEFAULT_ENGINES = {
         "FastDownwardReachabilityGrounder",
     ),
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
+    "up_ma_disjunctive_conditions_remover": (
+        "unified_planning.engines.compilers.ma_disjunctive_conditions_remover",
+        "MADisjunctiveConditionsRemover",
+    ),
+    "up_ma_conditional_effects_remover": (
+        "unified_planning.engines.compilers.ma_conditional_effects_remover",
+        "MAConditionalEffectsRemover",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -136,6 +144,8 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
+    "up_ma_disjunctive_conditions_remover",
+    "up_ma_conditional_effects_remover",
     "up_negative_conditions_remover",
     "up_quantifiers_remover",
     "up_state_invariants_remover",
@@ -1063,8 +1073,10 @@ class Factory:
             ):
                 continue
             credits = Engine.get_credits() if show_credits else None
-            stream.write("---------------------------------------\n")
-            stream.write(f"Engine's factory name: {engine_name}\n")
+            engine_name_str = f"Engine's factory name: {engine_name}\n\n"
+            stream.write("-" * (len(engine_name_str) - 2))
+            stream.write("\n")
+            stream.write(engine_name_str)
             if credits is not None:
                 credits.write_credits(stream, full_credits)
             supported_operation_modes = [
@@ -1075,7 +1087,7 @@ class Factory:
             stream.write("\n")
             if show_supported_kind:
                 stream.write(
-                    f"This engine supports the following features:\n{str(Engine.supported_kind())}\n"
+                    f"\nThis engine supports the following features:\n{str(Engine.supported_kind())}\n"
                 )
             stream.write("\n")
 

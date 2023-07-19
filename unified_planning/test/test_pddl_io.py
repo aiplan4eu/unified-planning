@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -482,6 +482,7 @@ class TestPddlIO(TestCase):
                 or kind.has_bounded_int_action_parameters()
                 or kind.has_unbounded_int_action_parameters()
                 or kind.has_real_action_parameters()
+                or kind.has_scheduling()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:
@@ -754,8 +755,8 @@ class TestPddlIO(TestCase):
         self.assertEqual(len(problem.actions), 2)
         natural_disaster = problem.action("natural_disaster")
         assert isinstance(natural_disaster, InstantaneousAction)
-        # 9 effects because the forall is expanded in 3 * 3 possible locations instantiations
-        self.assertEqual(len(natural_disaster.effects), 9)
+        self.assertEqual(len(natural_disaster.effects), 1)
+        self.assertTrue(natural_disaster.effects[0].is_forall())
         self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
 
     @skipIfNoOneshotPlannerForProblemKind(
@@ -793,6 +794,31 @@ class TestPddlIO(TestCase):
             ) as planner:
                 plan = planner.solve(problem).plan
                 self.assertEqual(len(plan.actions), expected_plan_length)
+
+    def test_writer_nested_and(self):
+        x, y, z = Fluent("x"), Fluent("y"), Fluent("z")
+        goals: List[FNode] = [
+            And(x, y),
+            And(x, And(y, z)),
+            And(Or(x, y), And(y, z)),
+        ]
+        expected_goals: List[str] = [
+            "(:goal (and (x) (y)))\n",
+            "(:goal (and (x) (y) (z)))\n",
+            "(:goal (and (or (x) (y)) (y) (z)))\n",
+        ]
+        assert len(goals) == len(
+            expected_goals
+        ), "goals and expected_goals must have the same length"
+        for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
+            problem = Problem(f"test_{i}")
+            problem.add_fluent(x, default_initial_value=False)
+            problem.add_fluent(y, default_initial_value=False)
+            problem.add_fluent(z, default_initial_value=False)
+            problem.add_goal(goal)
+            writer = PDDLWriter(problem)
+            pddl_problem = writer.get_problem()
+            self.assertIn(expected_goal, pddl_problem)
 
 
 def _have_same_user_types_considering_renamings(

@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ from unified_planning.model.mixins import (
 )
 from typing import Optional, List, Union, Iterable
 from unified_planning.model.expression import ConstantExpression
+from unified_planning.exceptions import UPUsageError
 
 
 class Agent(
@@ -85,6 +86,10 @@ class Agent(
         """Returns the `Agent` `name`."""
         return self._name
 
+    @name.setter
+    def name(self, new_value: str):
+        raise UPUsageError("The name of an Agent is immutable.")
+
     @property
     def environment(self) -> "up.Environment":
         """Returns this `Agent` `Environment`."""
@@ -100,6 +105,7 @@ class Agent(
     ) -> "up.model.fluent.Fluent":
         """Adds the given `public fluent` to the `problem`.
         If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
+
         :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
         :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
@@ -126,6 +132,7 @@ class Agent(
     ) -> "up.model.fluent.Fluent":
         """Adds the given `private fluent` to the `problem`.
         If the first parameter is not a `Fluent`, the parameters will be passed to the `Fluent` constructor to create it.
+
         :param fluent_or_name: `Fluent` instance or `name` of the `fluent` to be constructed.
         :param typename: If only the `name` of the `fluent` is given, this is the `fluent's type` (passed to the `Fluent` constructor).
         :param default_initial_value: If provided, defines the default value taken in initial state by
@@ -143,6 +150,7 @@ class Agent(
     def add_public_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
         Adds the given `public fluents` to the `problem`.
+
         :param fluents: The `public fluents` that must be added to the `problem`.
         """
         for fluent in fluents:
@@ -151,6 +159,7 @@ class Agent(
     def add_private_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
         Adds the given `private fluents` to the `problem`.
+
         :param fluents: The `private fluents` that must be added to the `problem`.
         """
         for fluent in fluents:

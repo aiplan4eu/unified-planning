@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,13 +124,21 @@ class ConverterToANMLString(walkers.DagWalker):
             self.simplifier.simplify(expression)
         )  # NOTE maybe the converter could remove the first and last char, if they are '(' and ')'
 
+    def convert_forall_variables(self, vars):
+        """Converts the given variables to a ANML string."""
+        vars_string_gen = (
+            f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
+            for v in vars
+        )
+        return f"{', '.join(vars_string_gen)}"
+
     def walk_exists(self, expression, args):
         assert len(args) == 1
         vars_string_gen = (
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
             for v in expression.variables()
         )
-        return f'(exists({", ".join(vars_string_gen)}) {{ {args[0]} }})'
+        return f'(exists({", ".join(vars_string_gen)}) {{ {args[0]}; }})'
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
@@ -138,7 +146,7 @@ class ConverterToANMLString(walkers.DagWalker):
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
             for v in expression.variables()
         )
-        return f'(forall({", ".join(vars_string_gen)}) {{ {args[0]} }})'
+        return f'(forall({", ".join(vars_string_gen)}) {{ {args[0]}; }})'
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -162,7 +170,7 @@ class ConverterToANMLString(walkers.DagWalker):
 
     def walk_iff(self, expression, args):
         assert len(args) == 2
-        return f"({args[0]} iff {args[1]})"
+        return f"({args[0]} == {args[1]})"
 
     def walk_fluent_exp(self, expression, args):
         if len(args) == 0:
@@ -398,11 +406,16 @@ class ANMLWriter:
         anml_timing = (
             self._convert_anml_timing(timing) if timing is not None else "start"
         )
-        if effect.is_conditional():
-            results.append(
-                f'when [ {anml_timing} ] {converter.convert(effect.condition)}\n{spaces_from_left*" "}{{'
-            )
         results.append(f"[ {anml_timing} ] ")
+        if effect.is_forall():
+            vars = converter.convert_forall_variables(effect.forall)
+            spaces_from_left += 3
+            results.append(f'forall ({vars}){{\n{spaces_from_left*" "}')
+        if effect.is_conditional():
+            spaces_from_left += 3
+            results.append(
+                f'when {converter.convert(effect.condition)}\n{spaces_from_left*" "}{{'
+            )
         results.append(converter.convert(effect.fluent))
         if effect.is_assignment():
             results.append(" := ")
@@ -414,7 +427,11 @@ class ANMLWriter:
             raise NotImplementedError
         results.append(f"{converter.convert(effect.value)};\n")
         if effect.is_conditional():
-            results.append(f'{spaces_from_left*" "}}}\n')
+            results.append(f'{spaces_from_left*" "}}};\n')
+            spaces_from_left -= 3
+        if effect.is_forall():
+            spaces_from_left -= 3
+            results.append(f'{spaces_from_left*" "}}};\n')
         return "".join(results)
 
     def _convert_anml_timing(self, timing: "up.model.Timing") -> str:

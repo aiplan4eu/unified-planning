@@ -1,4 +1,4 @@
-# Copyright 2021 AIPlan4EU project
+# Copyright 2021-2023 AIPlan4EU project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 """This module defines the quantifiers remover class."""
 
 
+from itertools import product
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -27,6 +28,10 @@ from unified_planning.model import (
     ProblemKind,
     Oversubscription,
     TemporalOversubscription,
+    Object,
+    Variable,
+    Expression,
+    Effect,
 )
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 from unified_planning.engines.compilers.utils import (
@@ -34,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
     updated_minimize_action_costs,
 )
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 from functools import partial
 
 
@@ -95,8 +100,11 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -133,6 +141,9 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         new_kind = ProblemKind(problem_kind.features)
         new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
         new_kind.unset_conditions_kind("UNIVERSAL_CONDITIONS")
+        new_kind.unset_effects_kind("FORALL_EFFECTS")
+        if problem_kind.has_existential_conditions():
+            new_kind.set_conditions("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -168,29 +179,32 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             if isinstance(action, InstantaneousAction):
                 original_action = problem.action(action.name)
                 assert isinstance(original_action, InstantaneousAction)
-                action.name = get_fresh_name(new_problem, action.name)
                 action.clear_preconditions()
                 for p in original_action.preconditions:
                     action.add_precondition(
                         expression_quantifier_remover.remove_quantifiers(p, problem)
                     )
-                for e in action.effects:
-                    if e.is_conditional():
-                        e.set_condition(
+                original_effects = action.effects
+                action.clear_effects()
+                for effect in original_effects:
+                    for e in effect.expand_effect(new_problem):
+                        if e.is_conditional():
+                            e.set_condition(
+                                expression_quantifier_remover.remove_quantifiers(
+                                    e.condition, problem
+                                ).simplify()
+                            )
+                        e.set_value(
                             expression_quantifier_remover.remove_quantifiers(
-                                e.condition, problem
+                                e.value, problem
                             )
                         )
-                    e.set_value(
-                        expression_quantifier_remover.remove_quantifiers(
-                            e.value, problem
-                        )
-                    )
+                        if not e.condition.is_false():
+                            action._add_effect_instance(e)
                 new_to_old[action] = original_action
             elif isinstance(action, DurativeAction):
                 original_action = problem.action(action.name)
                 assert isinstance(original_action, DurativeAction)
-                action.name = get_fresh_name(new_problem, action.name)
                 action.clear_conditions()
                 for i, cl in original_action.conditions.items():
                     for c in cl:
@@ -200,33 +214,45 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
                                 c, problem
                             ),
                         )
-                for t, el in action.effects.items():
-                    for e in el:
-                        if e.is_conditional():
-                            e.set_condition(
+                original_durative_effects = action.effects
+                action.clear_effects()
+                for t, el in original_durative_effects.items():
+                    for effect in el:
+                        for e in effect.expand_effect(new_problem):
+                            if e.is_conditional():
+                                e.set_condition(
+                                    expression_quantifier_remover.remove_quantifiers(
+                                        e.condition, problem
+                                    ).simplify()
+                                )
+                            e.set_value(
                                 expression_quantifier_remover.remove_quantifiers(
-                                    e.condition, problem
+                                    e.value, problem
                                 )
                             )
-                        e.set_value(
-                            expression_quantifier_remover.remove_quantifiers(
-                                e.value, problem
-                            )
-                        )
+                            if not e.condition.is_false():
+                                action._add_effect_instance(t, e)
                 new_to_old[action] = original_action
             else:
                 raise NotImplementedError
-        for el in new_problem.timed_effects.values():
-            for e in el:
-                if e.is_conditional():
-                    e.set_condition(
+        problem_timed_effects = new_problem.timed_effects
+        new_problem.clear_timed_effects()
+        for t, el in problem_timed_effects.items():
+            for effect in el:
+                for e in effect.expand_effect(new_problem):
+                    if e.is_conditional():
+                        e.set_condition(
+                            expression_quantifier_remover.remove_quantifiers(
+                                e.condition, problem
+                            ).simplify()
+                        )
+                    e.set_value(
                         expression_quantifier_remover.remove_quantifiers(
-                            e.condition, problem
+                            e.value, problem
                         )
                     )
-                e.set_value(
-                    expression_quantifier_remover.remove_quantifiers(e.value, problem)
-                )
+                    if not e.condition.is_false():
+                        new_problem._add_effect_instance(t, e)
         for i, gl in problem.timed_goals.items():
             for g in gl:
                 ng = expression_quantifier_remover.remove_quantifiers(g, problem)

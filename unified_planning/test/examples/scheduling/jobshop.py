@@ -1,4 +1,17 @@
-import unified_planning.test.scheduling.examples
+# Copyright 2021-2023 AIPlan4EU project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 from typing import List
@@ -23,7 +36,7 @@ Machines
 """
 
 
-def parse(instance: str, instance_name: str):
+def parse(instance: str, instance_name: str) -> SchedulingProblem:
     """Parses a job instance and return the corresponding JobShop with 3 operators instance."""
     lines = instance.splitlines()
 
@@ -49,10 +62,10 @@ def parse(instance: str, instance_name: str):
     # print("Machines: ", machines)
 
     problem = unified_planning.model.scheduling.SchedulingProblem(
-        f"sched:jobshop-{instance_name}"
+        f"sched:jobshop-{instance_name}-operators"
     )
     machine_objects = [
-        problem.add_resource(f"m{i}") for i in range(1, num_machines + 1)
+        problem.add_resource(f"m{i}", capacity=1) for i in range(1, num_machines + 1)
     ]
 
     # use the jobshop with operators extension: each activity requires an operator
@@ -70,8 +83,14 @@ def parse(instance: str, instance_name: str):
             act.uses(operators, amount=1)
 
             if prev_in_job is not None:
-                act.add_constraint(LE(prev_in_job.end, act.start))
+                problem.add_constraint(LE(prev_in_job.end, act.start))
             prev_in_job = act
 
     problem.add_quality_metric(unified_planning.model.metrics.MinimizeMakespan())
     return problem
+
+
+if __name__ == "__main__":
+    pb = parse(FT06, "ft06-operators")
+    print(pb)
+    print(pb.kind)
