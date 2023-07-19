@@ -29,6 +29,7 @@ from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimePlannerMixin
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
+from unified_planning.engines.mixins.fewshot_planner import FewshotPlannerMixin
 from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 from unified_planning.engines.mixins.replanner import ReplannerMixin
@@ -46,6 +47,7 @@ DEFAULT_ENGINES = {
     "fast-downward-opt": ("up_fast_downward", "FastDownwardOptimalPDDLPlanner"),
     "symk": ("up_symk", "SymKPDDLPlanner"),
     "symk-opt": ("up_symk", "SymKOptimalPDDLPlanner"),
+    "bfgp": ("up_bfgp", "BestFirstGeneralizedPlanner"),
     "pyperplan": ("up_pyperplan.engine", "EngineImpl"),
     "pyperplan-opt": ("up_pyperplan.engine", "OptEngineImpl"),
     "enhsp": ("up_enhsp.enhsp_planner", "ENHSPEngine"),
@@ -130,6 +132,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward-opt",
     "symk",
     "symk-opt",
+    "bfgp",
     "pyperplan",
     "pyperplan-opt",
     "enhsp",
@@ -430,11 +433,13 @@ class Factory:
             return False
         if (
             operation_mode == OperationMode.ONESHOT_PLANNER
+            or operation_mode == OperationMode.FEWSHOT_PLANNER
             or operation_mode == OperationMode.REPLANNER
             or operation_mode == OperationMode.PORTFOLIO_SELECTOR
         ):
             assert (
                 issubclass(EngineClass, OneshotPlannerMixin)
+                or issubclass(EngineClass, FewshotPlannerMixin)
                 or issubclass(EngineClass, ReplannerMixin)
                 or issubclass(EngineClass, PortfolioSelectorMixin)
             )
@@ -688,12 +693,14 @@ class Factory:
                     res.default = compilation_kind
             elif (
                 operation_mode == OperationMode.ONESHOT_PLANNER
+                or operation_mode == OperationMode.FEWSHOT_PLANNER
                 or operation_mode == OperationMode.PLAN_REPAIRER
                 or operation_mode == OperationMode.PORTFOLIO_SELECTOR
             ):
                 res = EngineClass(**params)
                 assert (
                     isinstance(res, OneshotPlannerMixin)
+                    or issubclass(EngineClass, FewshotPlannerMixin)
                     or isinstance(res, PortfolioSelectorMixin)
                     or isinstance(res, PlanRepairerMixin)
                 )
@@ -751,6 +758,29 @@ class Factory:
             problem_kind,
             optimality_guarantee,
         )
+
+
+    def FewshotPlanner(
+        self,
+        *,
+        name: Optional[str] = None,
+        names: Optional[Sequence[str]] = None,
+        params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
+        problem_kind: ProblemKind = ProblemKind(),
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a fewshot planner. The next is an example to call this method:
+        *   | using ``name`` (the name of a specific GP planner) and ``params`` (GP planner dependent options).
+            | e.g. ``FewshotPlanner(name='bfgp', params={'program_lines': 15})``
+        """
+        return self._get_engine(
+            OperationMode.FEWSHOT_PLANNER,
+            name,
+            names,
+            params,
+            problem_kind,
+        )
+
 
     def AnytimePlanner(
         self,

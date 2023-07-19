@@ -30,6 +30,7 @@ setup(
         "lpg": ["up-lpg==0.0.7"],
         "fmap": ["up-fmap==0.0.7"],
         "aries": ["up-aries>=0.0.8"],
+        "bfgp": ["up-bfgp==0.0.1"],
         "symk": ["up-symk>=0.0.3"],
         "engines": [
             "tarski[arithmetic]",
@@ -40,6 +41,7 @@ setup(
             "up-lpg==0.0.7",
             "up-fmap==0.0.7",
             "up-aries>=0.0.8",
+            "up-bfgp==0.0.1",
             "up-symk>=0.0.3",
         ],
         "plot": ["plotly", "matplotlib", "kaleido", "pygraphviz", "pandas"],
