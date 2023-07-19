@@ -820,6 +820,24 @@ class TestPddlIO(TestCase):
             pddl_problem = writer.get_problem()
             self.assertIn(expected_goal, pddl_problem)
 
+    def test_grounding_tpp_metric(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "tpp_metric", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "tpp_metric", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertIsNotNone(problem)
+
+        with Compiler(
+            name="up_grounder", compilation_kind=CompilationKind.GROUNDING
+        ) as grounder:
+            grounded_problem = grounder.compile(
+                problem, compilation_kind=CompilationKind.GROUNDING
+            ).problem
+        self.assertEqual(40, len(grounded_problem.actions))
+        self.assertEqual(3, len(problem.actions))
+
 
 def _have_same_user_types_considering_renamings(
     original_problem: unified_planning.model.Problem,
