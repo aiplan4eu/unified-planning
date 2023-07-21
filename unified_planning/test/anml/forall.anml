@@ -21,9 +21,7 @@ action visit(Location to_visit) {
 
 instance Location l1, l2, l3;
 
-[start] visited(l1) := false;
-[start] visited(l2) := false;
-[start] visited(l3) := false;
+[start] forall(Location lx) {visited(lx) := false;};
 
 [start] precedes(l1, l2) := true;
 [start] precedes(l1, l3) := true;

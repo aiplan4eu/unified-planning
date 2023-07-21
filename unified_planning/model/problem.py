@@ -391,8 +391,8 @@ class Problem(  # type: ignore[misc]
         ), "timed_goal does not have the same environment of the problem"
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
-        if (interval.lower.is_from_end() and interval.lower.delay > 0) or (
-            interval.upper.is_from_end() and interval.upper.delay > 0
+        if (interval.lower.is_from_end() and interval.lower.delay != 0) or (
+            interval.upper.is_from_end() and interval.upper.delay != 0
         ):
             raise UPProblemDefinitionError(
                 "Problem timing can not be `end - k` with k > 0."

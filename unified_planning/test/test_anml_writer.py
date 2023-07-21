@@ -16,7 +16,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
-from unified_planning.io import ANMLWriter
+from unified_planning.io import ANMLWriter, PDDLReader
 import tempfile
 import os
 
@@ -107,8 +107,8 @@ action move(Location l_from, Location l_to) {
    duration >= 6 and duration <= 6;
    [ start, start ] is_at(l_from);
    [ start, start ] (not is_at(l_to));
-   [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
-   [ start, end ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))) });
+   [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))); });
+   [ start, end ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))); });
    [ start + 1 ] is_at(l_from) := false;
    [ end - 5 ] is_at(l_to) := true;
 };
@@ -250,12 +250,48 @@ instance Location l1, l2;
         expected_result = """type when_;
 fluent boolean f_4ction;
 action variable_(when_ fluent_) {
-   when [ start ] (fluent_ == predicate_)
-   {[ start ] f_4ction := true;
-   }
+   [ start ] when (fluent_ == predicate_)
+      {f_4ction := true;
+      };
 };
 instance when_ predicate_;
 [ start ] f_4ction := false;
+"""
+        self.assertEqual(anml_problem, expected_result)
+
+    def test_forall_effects(self):
+        FILE_PATH = os.path.dirname(os.path.abspath(__file__))
+        PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
+        reader = PDDLReader()
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "problem.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        aw = ANMLWriter(problem)
+        anml_problem = aw.get_problem()
+
+        expected_result = """type location;
+fluent boolean safe(location l1_0, location l2_0);
+action check(location l1_0, location l2_0) {
+   [ start ] (not safe(l1_0, l2_0));
+   [ start ] safe(l1_0, l2_0) := true;
+};
+action natural_disaster() {
+   [ start ] forall (location l1_1, location l2_1){
+      when safe(l1_1, l2_1)
+         {safe(l1_1, l2_1) := false;
+         };
+   };
+};
+instance location l1, l2, l3;
+[ start ] safe(l1, l1) := true;
+[ start ] safe(l2, l2) := true;
+[ start ] safe(l3, l3) := true;
+[ start ] safe(l2, l1) := false;
+[ start ] safe(l3, l1) := false;
+[ start ] safe(l1, l2) := false;
+[ start ] safe(l3, l2) := false;
+[ start ] safe(l1, l3) := false;
+[ start ] safe(l2, l3) := false;
 """
         self.assertEqual(anml_problem, expected_result)
 

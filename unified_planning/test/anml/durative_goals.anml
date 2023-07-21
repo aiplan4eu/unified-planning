@@ -12,6 +12,6 @@ action a() {
 
 [10] x := true;
 
-[end - 15, end - 10] not y;
+[start + 10, start +15] not y;
 
 [end] y;

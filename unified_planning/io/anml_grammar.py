@@ -44,8 +44,8 @@ TK_COMMA = ","
 TK_SEMI = ";"
 TK_COLON = ":"
 TK_ASSIGN = ":="
-TK_INCREASE = ":+="
-TK_DECREASE = ":-="
+TKS_INCREASE = (":+=", ":increase")
+TKS_DECREASE = (":-=", ":decrease")
 TK_IN_ASSIGN = ":in"
 TK_ANNOTATION = "::"
 TK_L_BRACE = "{"
@@ -100,6 +100,7 @@ TK_TRUE = "true"
 TK_FALSE = "false"
 TK_COMMENT = "//"
 TK_WHEN = "when"
+TK_INFINITY = "infinity"
 
 
 class ANMLGrammar:
@@ -112,6 +113,7 @@ class ANMLGrammar:
 
         # Data structures to populate while parsing
         self.types: List[ParseResults] = []
+        self.constant_fluents: List[ParseResults] = []
         self.fluents: List[ParseResults] = []
         self.actions: List[ParseResults] = []
         self.objects: List[ParseResults] = []
@@ -170,8 +172,9 @@ class ANMLGrammar:
             [
                 (TK_NOT, 1, OpAssoc.RIGHT),
                 (one_of([TK_AND, TK_OR, TK_XOR]), 2, OpAssoc.LEFT, group_binary),
+                (TK_IMPLIES, 2, OpAssoc.RIGHT, group_binary),
                 (
-                    one_of([TK_ASSIGN, TK_INCREASE, TK_DECREASE]),
+                    one_of([TK_ASSIGN, *TKS_INCREASE, *TKS_DECREASE]),
                     2,
                     OpAssoc.LEFT,
                     group_binary,
@@ -236,11 +239,28 @@ class ANMLGrammar:
                 set_results_name(Literal(TK_INTEGER), "name")
                 - Optional(
                     Group(
-                        Suppress(TK_L_BRACKET)
-                        - set_results_name(integer, "left_bound")
+                        (
+                            (
+                                Suppress(TK_L_BRACKET)
+                                - set_results_name(integer, "left_bound")
+                            )
+                            | (
+                                Suppress(TK_L_PARENTHESIS)
+                                - Suppress("-")
+                                - set_results_name(Literal(TK_INFINITY), "left_bound")
+                            )
+                        )
                         - Suppress(TK_COMMA)
-                        - set_results_name(integer, "right_bound")
-                        - Suppress(TK_R_BRACKET)
+                        - (
+                            (
+                                set_results_name(integer, "right_bound")
+                                - Suppress(TK_R_BRACKET)
+                            )
+                            | (
+                                set_results_name(Literal(TK_INFINITY), "right_bound")
+                                - Suppress(TK_R_PARENTHESIS)
+                            )
+                        )
                     )
                 )
             )
@@ -268,8 +288,27 @@ class ANMLGrammar:
         parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
+        constant_decl = (
+            Suppress(TK_CONSTANT)
+            - set_results_name(type_ref, "type")
+            - set_results_name(identifier, "name")
+            - set_results_name(
+                Group(
+                    Optional(
+                        Suppress(TK_L_PARENTHESIS)
+                        - parameter_list
+                        - Suppress(TK_R_PARENTHESIS)
+                    )
+                ),
+                "parameters",
+            )
+            - set_results_name(
+                Optional(Suppress(TK_ASSIGN) - Group(expression)), "init"
+            )
+        )
+        set_parse_action(constant_decl, self.constant_fluents.append)
         fluent_decl = (
-            Suppress(one_of([TK_FLUENT, TK_CONSTANT]))
+            Suppress(TK_FLUENT)
             - set_results_name(type_ref, "type")
             - set_results_name(identifier, "name")
             - set_results_name(
@@ -308,18 +347,19 @@ class ANMLGrammar:
             )
             + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
         )
-        quantified_expression <<= Group(
+        quantified_expression_def = Group(
             one_of([TK_FORALL, TK_EXISTS])
             - Suppress(TK_L_PARENTHESIS)
             - set_results_name(Group(parameter_list), "quantifier_variables")
             - Suppress(TK_R_PARENTHESIS)
             - Suppress(TK_L_BRACE)
             - set_results_name(
-                Group(OneOrMore(boolean_expression - Suppress(TK_SEMI))),
+                Group(OneOrMore(expression - Suppress(TK_SEMI))),
                 "quantifier_body",
             )
             - Suppress(TK_R_BRACE)
         )
+        quantified_expression <<= infix_notation(quantified_expression_def, [])
 
         # Standalone expressions are defined to handle differently expressions
         # defined inside an action from the expressions defined outside an action
@@ -344,6 +384,7 @@ class ANMLGrammar:
         anml_stmt = (
             instance_decl
             | type_decl
+            | constant_decl
             | fluent_decl
             | action_decl
             | standalone_expression_block
