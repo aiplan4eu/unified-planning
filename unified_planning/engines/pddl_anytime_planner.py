@@ -132,7 +132,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         for l in planner_output.splitlines():
             if self._starting_plan_str() in l:
                 writer.storing = True
-            elif self._ending_plan_str() in l:
+            elif writer.storing and self._ending_plan_str() in l:
                 plan_str = "\n".join(writer.current_plan)
                 plan = self._plan_from_str(
                     writer.problem, plan_str, self._writer.get_item_named

@@ -18,7 +18,7 @@ from fractions import Fraction
 import unified_planning.model.types
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
-from unified_planning.model.types import BOOL, TIME, _IntType, _RealType
+from unified_planning.model.types import BOOL, TIME, _UserType
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import UPTypeError
@@ -359,7 +359,13 @@ class TypeChecker(walkers.dag.DagWalker):
                 and not t.is_compatible(x)
                 and not x.is_compatible(t)
             ):
-                return None
+                # check if t and x have at least one common ancestor
+                t = cast(_UserType, t)
+                if x.is_user_type():
+                    x = cast(_UserType, x)
+                    x_ancestors = set(x.ancestors)
+                    if all(t_ancestor not in x_ancestors for t_ancestor in t.ancestors):
+                        return None
             elif (t.is_int_type() or t.is_real_type()) and not (
                 x.is_int_type() or x.is_real_type()
             ):

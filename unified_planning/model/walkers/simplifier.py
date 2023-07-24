@@ -15,11 +15,12 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union, cast
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
+from unified_planning.model.types import _UserType
 import unified_planning.model.operators as op
 
 
@@ -284,8 +285,11 @@ class Simplifier(walkers.dag.DagWalker):
             return self.manager.Bool(l == r)
         elif sl == sr:
             return self.manager.TRUE()
-        else:
-            return self.manager.Equals(sl, sr)
+        elif sl.type.is_user_type() and sr.type.is_user_type():
+            slt, srt = cast(_UserType, sl.type), cast(_UserType, sr.type)
+            if not slt.is_compatible(srt) and not srt.is_compatible(slt):
+                return self.manager.FALSE()
+        return self.manager.Equals(sl, sr)
 
     def walk_le(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
