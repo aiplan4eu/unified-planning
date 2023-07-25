@@ -22,6 +22,8 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.sequential_plan import SequentialPlan
 from typing import Callable, Dict, Iterator, List, Optional
+from unified_planning.model.multi_agent.agent import Agent
+import random
 
 
 class PartialOrderPlan(plans.plan.Plan):
@@ -242,26 +244,122 @@ class PartialOrderPlan(plans.plan.Plan):
             )
         return retval
 
-    def create_graphviz_output(
-        self,
-        adjacency_list: Dict[
-            "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
-        ],
-    ) -> str:
-        graphviz_out = ""
-        graphviz_out += "digraph {\n"
-        for start, end_list in adjacency_list.items():
-            for end in end_list:
-                graphviz_out += f'\t"{start}" -> "{end}"\n'
-        graphviz_out += "}"
-        return graphviz_out
-
     def get_graph_file(self, file_name: str) -> str:
         adjacency_list = self.get_adjacency_list
-        graphviz_out = self.create_graphviz_output(adjacency_list)
+        graphviz_out = self.GraphvizGenerator.create_graphviz_output(adjacency_list)
         with open(f"{file_name}.dot", "w") as f:
             f.write(graphviz_out)
         return graphviz_out
+
+    class GraphvizGenerator:
+        available_colors = [
+            "firebrick2",
+            "gold2",
+            "cornflowerblue",
+            "darkorange1",
+            "darkgreen",
+            "coral4",
+            "darkviolet",
+            "deeppink1",
+            "deepskyblue4",
+            "burlywood4",
+            "gray32",
+            "lightsteelblue4",
+        ]
+        random_color_counter = 0
+
+        @classmethod
+        def get_next_agent_color(cls) -> str:
+            if cls.random_color_counter < len(cls.available_colors):
+                color = cls.available_colors[cls.random_color_counter]
+                cls.random_color_counter += 1
+            else:
+                # Se gli available_colors sono esauriti, genera un colore casuale
+                color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            return color
+
+        @classmethod
+        def create_graphviz_output(
+            cls,
+            adjacency_list: Dict[
+                "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
+            ],
+        ) -> str:
+            """
+            Creates Graphviz output with colors for agents if present, otherwise without colors.
+
+            :param adjacency_list: The adjacency list representing the partial order plan.
+            :return: The Graphviz representation as a string.
+            """
+            for action_instance, _ in adjacency_list.items():
+                if action_instance.agent is not None:
+                    return cls._create_graphviz_output_with_agents(adjacency_list)
+            return cls._create_graphviz_output_simple(adjacency_list)
+
+        @classmethod
+        def _create_graphviz_output_with_agents(
+            cls,
+            adjacency_list: Dict[
+                "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
+            ],
+        ) -> str:
+            agent_colors = {}
+            graphviz_out = ""
+            graphviz_out += "digraph {\n"
+
+            # Scansione della adjacency_list per identificare gli agenti
+            for start, end_list in adjacency_list.items():
+                agent_name = start.agent
+                if agent_name not in agent_colors:
+                    # Generazione di un colore per l'agente
+                    color = cls.get_next_agent_color()
+                    agent_colors[agent_name] = color
+
+            # Creazione del grafo con colori degli agenti
+            for start, end_list in adjacency_list.items():
+                agent_name = start.agent
+                agent_color = agent_colors.get(agent_name, "black")
+                graphviz_out += f'\t"{start}" [color="{agent_color}"]\n'
+                for end in end_list:
+                    graphviz_out += f'\t"{start}" -> "{end}"\n'
+
+            # Creazione della legenda
+            graphviz_out += "\t// Legenda\n"
+            graphviz_out += "\t{\n"
+            graphviz_out += "\t\trank = max;\n"
+            graphviz_out += '\t\tlabel="Legenda";\n'
+            graphviz_out += '\t\tlabelloc="b";\n'
+            graphviz_out += '\t\trankdir="LR";\n'
+
+            for agent_name, agent_color in agent_colors.items():
+                if agent_name is not None and isinstance(agent_name, Agent):
+                    graphviz_out += f'\t\t"{agent_name.name}" [shape=none, margin=0, label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD WIDTH="30" HEIGHT="30" ALIGN="CENTER" BGCOLOR="{agent_color}"></TD><TD>{agent_name.name}</TD></TR></TABLE>>];\n'
+
+            graphviz_out += "\t}\n"
+            graphviz_out += "}"
+
+            return graphviz_out
+
+        @classmethod
+        def _create_graphviz_output_simple(
+            cls,
+            adjacency_list: Dict[
+                "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
+            ],
+        ) -> str:
+            """
+            Creates Graphviz output without agents.
+
+            :param adjacency_list: The adjacency list representing the partial order plan.
+            :return: The Graphviz representation as a string.
+            """
+            graphviz_out = ""
+            graphviz_out += "digraph {\n"
+            for start, end_list in adjacency_list.items():
+                for end in end_list:
+                    graphviz_out += f'\t"{start}" -> "{end}"\n'
+            graphviz_out += "}"
+            return graphviz_out
 
 
 def _semantically_equivalent_action_instances(
