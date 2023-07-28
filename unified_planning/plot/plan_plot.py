@@ -68,8 +68,10 @@ from typing import (
     Callable,
 )
 from unified_planning.model.multi_agent.agent import Agent
-import graphviz
+from unified_planning.plans import plan
+import graphviz  # type: ignore[import]
 import tempfile
+import random
 import os
 
 
@@ -786,6 +788,7 @@ def _plot_expressions(
 
 
 class GraphvizGenerator:
+
     available_colors = [
         "firebrick2",
         "gold2",
@@ -815,9 +818,7 @@ class GraphvizGenerator:
     @classmethod
     def create_graphviz_output(
         cls,
-        adjacency_list: Dict[
-            "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
-        ],
+        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
     ) -> str:
         """
         Creates Graphviz output with colors for agents if present, otherwise without colors.
@@ -833,9 +834,7 @@ class GraphvizGenerator:
     @classmethod
     def _create_graphviz_output_with_agents(
         cls,
-        adjacency_list: Dict[
-            "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
-        ],
+        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
     ) -> str:
         agent_colors = {}
         graphviz_out = ""
@@ -877,9 +876,7 @@ class GraphvizGenerator:
     @classmethod
     def _create_graphviz_output_simple(
         cls,
-        adjacency_list: Dict[
-            "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
-        ],
+        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
     ) -> str:
         """
         Creates Graphviz output without agents.

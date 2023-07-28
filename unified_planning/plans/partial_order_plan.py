@@ -23,7 +23,6 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.sequential_plan import SequentialPlan
 from typing import Callable, Dict, Iterator, List, Optional
 from unified_planning.model.multi_agent.agent import Agent
-from unified_planning.plans import graphviz_partial_order_plan
 
 
 class PartialOrderPlan(plans.plan.Plan):
