@@ -150,7 +150,8 @@ class MultiAgentProblem(  # type: ignore[misc]
             new_ag._public_fluents = ag._public_fluents.copy()
             new_ag._fluents = ag._fluents.copy()
             new_ag._fluents_defaults = ag._fluents_defaults.copy()
-            new_ag._goals = ag._goals.copy()
+            new_ag._private_goals = ag._private_goals.copy()
+            new_ag._public_goals = ag._public_goals.copy()
             for a in ag.actions:
                 new_ag.add_action(a.clone())
             new_p.add_agent(new_ag)
@@ -421,12 +422,13 @@ class MultiAgentProblem(  # type: ignore[misc]
             raise NotImplementedError
 
     def _update_agent_goal_kind(self, agent: "up.model.multi_agent.Agent"):
-        if agent.public_goals:
-            self._kind.set_multi_agent("AGENT_SPECIFIC_PUBLIC_GOAL")
-        if agent.private_goals:
-            self._kind.set_multi_agent("AGENT_SPECIFIC_PRIVATE_GOAL")
-        for goal in agent.private_goals + agent.public_goals:
-            self._update_problem_kind_condition(goal)
+        if isinstance(agent, up.model.multi_agent.Agent):
+            if agent.public_goals:
+                self._kind.set_multi_agent("AGENT_SPECIFIC_PUBLIC_GOAL")
+            if agent.private_goals:
+                self._kind.set_multi_agent("AGENT_SPECIFIC_PRIVATE_GOAL")
+            for goal in agent.private_goals + agent.public_goals:
+                self._update_problem_kind_condition(goal)
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """
