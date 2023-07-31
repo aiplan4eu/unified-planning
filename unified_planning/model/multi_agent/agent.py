@@ -187,9 +187,10 @@ class Agent(
         Adds the given `goal` to the specified `goal_list` of the `Agent`.
 
         :param goal: The expression added to the `Agent` goals.
-        :param goal_list: The list where the goal will be added (public or private goals).
+        :param is_private_goal: A boolean flag indicating whether the goal should be added as a private goal.
         :return: The expression of the goal added.
         """
+
         assert (
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
@@ -215,6 +216,9 @@ class Agent(
 
         :param goal: The expression added to the `Agent` private goals.
         :return: The expression of the private goal added.
+
+        Note:
+        - Private-specific goals are; individual agent goals (not coalition goals) unknown to other agents.
         """
         return self._add_goal(goal, is_private_goal=True)
 
@@ -226,6 +230,9 @@ class Agent(
 
         :param goal: The expression added to the `Agent` public goals.
         :return: The expression of the public goal added.
+
+        Note:
+        - Public-specific goals are; individual agent goals (not coalition goals) known to other agents.
         """
         return self._add_goal(goal, is_private_goal=False)
 
