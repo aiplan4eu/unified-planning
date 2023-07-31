@@ -47,6 +47,7 @@ class Agent(
         ActionsSetMixin.__init__(
             self, ma_problem.environment, ma_problem._add_user_type, self.has_name
         )
+        self._ma_problem = ma_problem
         self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
@@ -180,7 +181,7 @@ class Agent(
     def _add_goal(
         self,
         goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool],
-        goal_list: List["up.model.fnode.FNode"],
+        is_private_goal: bool,
     ) -> "up.model.fnode.FNode":
         """
         Adds the given `goal` to the specified `goal_list` of the `Agent`.
@@ -198,6 +199,8 @@ class Agent(
             goal_exp
         ).is_bool_type(), "A goal must be a boolean expression"
 
+        goal_list = self._private_goals if is_private_goal else self._public_goals
+
         if goal_exp != self._env.expression_manager.TRUE():
             if goal_exp not in goal_list:
                 goal_list.append(goal_exp)
@@ -213,7 +216,7 @@ class Agent(
         :param goal: The expression added to the `Agent` private goals.
         :return: The expression of the private goal added.
         """
-        return self._add_goal(goal, self._private_goals)
+        return self._add_goal(goal, is_private_goal=True)
 
     def add_public_goal(
         self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
@@ -224,7 +227,7 @@ class Agent(
         :param goal: The expression added to the `Agent` public goals.
         :return: The expression of the public goal added.
         """
-        return self._add_goal(goal, self._public_goals)
+        return self._add_goal(goal, is_private_goal=False)
 
     @property
     def public_goals(self) -> List["up.model.fnode.FNode"]:
@@ -237,8 +240,9 @@ class Agent(
         return self._private_goals
 
     def clear_goals(self):
-        """Removes all the `goals` from the `MultiAgentProblem`."""
-        self._goals = []
+        """Removes all the `goals` from the `Agent`."""
+        self._private_goals = []
+        self._public_goals = []
 
     def __repr__(self) -> str:
         s = []
@@ -295,3 +299,14 @@ class Agent(
         for g in self._public_goals:
             res += hash(g)
         return res
+
+    def clone(self):
+        new_ag = Agent(self.name, self._ma_problem)
+        new_ag._public_fluents = self._public_fluents.copy()
+        new_ag._fluents = self._fluents.copy()
+        new_ag._fluents_defaults = self._fluents_defaults.copy()
+        new_ag._private_goals = self._private_goals.copy()
+        new_ag._public_goals = self._public_goals.copy()
+        for a in self.actions:
+            new_ag.add_action(a.clone())
+        return new_ag
