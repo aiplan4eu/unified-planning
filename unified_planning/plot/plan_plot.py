@@ -815,7 +815,7 @@ class GraphvizGenerator:
     @classmethod
     def create_graphviz_output(
         cls,
-        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
+        adjacency_list: Dict["ActionInstance", List["ActionInstance"]],
     ) -> str:
         """
         Creates Graphviz output with colors for agents if present, otherwise without colors.
@@ -831,7 +831,7 @@ class GraphvizGenerator:
     @classmethod
     def _create_graphviz_output_with_agents(
         cls,
-        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
+        adjacency_list: Dict["ActionInstance", List["ActionInstance"]],
     ) -> str:
         agent_colors = {}
         graphviz_out = ""
@@ -873,7 +873,7 @@ class GraphvizGenerator:
     @classmethod
     def _create_graphviz_output_simple(
         cls,
-        adjacency_list: Dict["plan.ActionInstance", List["plan.ActionInstance"]],
+        adjacency_list: Dict["ActionInstance", List["ActionInstance"]],
     ) -> str:
         """
         Creates Graphviz output without agents.
