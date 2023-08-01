@@ -446,7 +446,10 @@ class ANMLWriter:
     def _convert_anml_interval(self, interval: "up.model.TimeInterval") -> str:
         left_bracket = "(" if interval.is_left_open() else "["
         right_bracket = ")" if interval.is_left_open() else "]"
-        return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
+        if interval.lower == interval.upper:
+            return f"{left_bracket} {self._convert_anml_timing(interval.lower)} {right_bracket}"
+        else:
+            return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
 
 
 def _is_valid_anml_name(name: str) -> bool:
