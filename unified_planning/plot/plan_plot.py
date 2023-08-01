@@ -68,10 +68,8 @@ from typing import (
     Callable,
 )
 from unified_planning.model.multi_agent.agent import Agent
-from unified_planning.plans import plan
 import tempfile
 import random
-import os
 
 
 def plot_plan(

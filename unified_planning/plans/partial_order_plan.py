@@ -22,7 +22,6 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.sequential_plan import SequentialPlan
 from typing import Callable, Dict, Iterator, List, Optional
-from unified_planning.model.multi_agent.agent import Agent
 
 
 class PartialOrderPlan(plans.plan.Plan):
