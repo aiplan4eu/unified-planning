@@ -20,6 +20,6 @@ from unified_planning.plot.plan_plot import (
     plot_contingent_plan,
     plot_partial_order_plan,
     plot_time_triggered_plan,
-    graphviz_partial_order_plan,
+    show_partial_order_plan,
 )
 from unified_planning.plot.causal_graph_plot import plot_causal_graph

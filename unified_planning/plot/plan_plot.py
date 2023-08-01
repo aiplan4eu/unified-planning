@@ -69,7 +69,6 @@ from typing import (
 )
 from unified_planning.model.multi_agent.agent import Agent
 from unified_planning.plans import plan
-import graphviz  # type: ignore[import]
 import tempfile
 import random
 import os
@@ -893,9 +892,8 @@ class GraphvizGenerator:
         return graphviz_out
 
 
-def graphviz_partial_order_plan(
-    plan: "PartialOrderPlan", filename: Optional[str] = None
-):
+def show_partial_order_plan(plan: "PartialOrderPlan", filename: Optional[str] = None):
+    import graphviz  # type: ignore[import]
 
     graphviz_out = GraphvizGenerator.create_graphviz_output(plan.get_adjacency_list)
     graph = graphviz.Source(graphviz_out)
