@@ -47,7 +47,6 @@ class Agent(
         ActionsSetMixin.__init__(
             self, ma_problem.environment, ma_problem._add_user_type, self.has_name
         )
-        self._ma_problem = ma_problem
         self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
@@ -307,8 +306,14 @@ class Agent(
             res += hash(g)
         return res
 
-    def clone(self):
-        new_ag = Agent(self.name, self._ma_problem)
+    def clone(
+        self,
+        ma_problem: "up.model.multi_agent.ma_problem.MultiAgentProblem",
+        name: Optional[str] = None,
+    ):
+        if name is None:
+            name = self.name
+        new_ag = Agent(name, ma_problem)
         new_ag._public_fluents = self._public_fluents.copy()
         new_ag._fluents = self._fluents.copy()
         new_ag._fluents_defaults = self._fluents_defaults.copy()

@@ -146,7 +146,7 @@ class MultiAgentProblem(  # type: ignore[misc]
         new_p.ma_environment._fluents_defaults = (
             self.ma_environment._fluents_defaults.copy()
         )
-        new_p._agents = [ag.clone() for ag in self._agents]
+        new_p._agents = [ag.clone(new_p) for ag in self._agents]
         new_p._user_types = self._user_types[:]
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
