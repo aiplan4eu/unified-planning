@@ -105,9 +105,9 @@ fluent boolean is_at(Location position);
 constant boolean is_connected(Location location_1, Location location_2);
 action move(Location l_from, Location l_to) {
    duration >= 6 and duration <= 6;
-   [ start, start ] is_at(l_from);
-   [ start, start ] (not is_at(l_to));
-   [ start, start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))); });
+   [ start ] is_at(l_from);
+   [ start ] (not is_at(l_to));
+   [ start ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))); });
    [ start, end ] (exists(Location mid_loc) { ((not ((mid_loc == l_from) or (mid_loc == l_to))) and (is_connected(l_from, mid_loc) or is_connected(mid_loc, l_from)) and (is_connected(l_to, mid_loc) or is_connected(mid_loc, l_to))); });
    [ start + 1 ] is_at(l_from) := false;
    [ end - 5 ] is_at(l_to) := true;
@@ -159,14 +159,14 @@ fluent boolean match_used(Match match);
 fluent boolean fuse_mended(Fuse fuse);
 action light_match(Match m) {
    duration >= 6 and duration <= 6;
-   [ start, start ] (not match_used(m));
+   [ start ] (not match_used(m));
    [ start ] match_used(m) := true;
    [ start ] light := true;
    [ end ] light := false;
 };
 action mend_fuse(Fuse f) {
    duration >= 5 and duration <= 5;
-   [ start, start ] handfree;
+   [ start ] handfree;
    [ start, end ] light;
    [ start ] handfree := false;
    [ end ] fuse_mended(f) := true;
