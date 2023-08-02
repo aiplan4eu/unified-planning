@@ -450,7 +450,10 @@ jobs:
         run: python3 -m pip install up-fmap/
 
       - name: Install jupyter and ipython3
-        run: sudo apt install jupyter; sudo apt install ipython3
+        run:  |
+          sudo apt-get update
+          sudo apt install jupyter
+          sudo apt install ipython3
 
       - name: Run colabs
         run: bash scripts/test_colab.sh
