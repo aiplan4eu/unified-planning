@@ -242,27 +242,6 @@ class PartialOrderPlan(plans.plan.Plan):
             )
         return retval
 
-    def create_graphviz_output(
-        self,
-        adjacency_list: Dict[
-            "plans.plan.ActionInstance", List["plans.plan.ActionInstance"]
-        ],
-    ) -> str:
-        graphviz_out = ""
-        graphviz_out += "digraph {\n"
-        for start, end_list in adjacency_list.items():
-            for end in end_list:
-                graphviz_out += f'\t"{start}" -> "{end}"\n'
-        graphviz_out += "}"
-        return graphviz_out
-
-    def get_graph_file(self, file_name: str) -> str:
-        adjacency_list = self.get_adjacency_list
-        graphviz_out = self.create_graphviz_output(adjacency_list)
-        with open(f"{file_name}.dot", "w") as f:
-            f.write(graphviz_out)
-        return graphviz_out
-
 
 def _semantically_equivalent_action_instances(
     action_instance_1: ActionInstance, action_instance_2: ActionInstance
