@@ -42,7 +42,7 @@ setup(
             "up-aries>=0.0.8",
             "up-symk>=0.0.3",
         ],
-        "plot": ["plotly", "matplotlib", "kaleido", "pygraphviz", "pandas"],
+        "plot": ["plotly", "matplotlib", "kaleido", "pygraphviz", "graphviz", "pandas"],
     },
     license="APACHE",
     keywords="planning logic STRIPS RDDL",

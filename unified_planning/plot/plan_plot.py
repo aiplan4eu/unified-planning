@@ -808,7 +808,7 @@ class GraphvizGenerator:
             color = cls.available_colors[cls.random_color_counter]
             cls.random_color_counter += 1
         else:
-            # Se gli available_colors sono esauriti, genera un colore casuale
+            # If available_colors run out, generate a random color
             color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
         return color
 
@@ -837,15 +837,15 @@ class GraphvizGenerator:
         graphviz_out = ""
         graphviz_out += "digraph {\n"
 
-        # Scansione della adjacency_list per identificare gli agenti
+        # Iteration of the adjacency_list to identify agents
         for start, end_list in adjacency_list.items():
             agent_name = start.agent
             if agent_name not in agent_colors:
-                # Generazione di un colore per l'agente
+                # Get a new color for the agent
                 color = cls.get_next_agent_color()
                 agent_colors[agent_name] = color
 
-        # Creazione del grafo con colori degli agenti
+        # Creation of the graph
         for start, end_list in adjacency_list.items():
             agent_name = start.agent
             agent_color = agent_colors.get(agent_name, "black")
@@ -853,7 +853,7 @@ class GraphvizGenerator:
             for end in end_list:
                 graphviz_out += f'\t"{start}" -> "{end}"\n'
 
-        # Creazione della legenda
+        # Creation of the legenda
         graphviz_out += "\t// Legenda\n"
         graphviz_out += "\t{\n"
         graphviz_out += "\t\trank = max;\n"
