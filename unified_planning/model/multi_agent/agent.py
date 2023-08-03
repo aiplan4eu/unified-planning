@@ -50,6 +50,8 @@ class Agent(
         self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
+        self._private_goals: List["up.model.fnode.FNode"] = list()
+        self._public_goals: List["up.model.fnode.FNode"] = list()
         self._ma_problem_has_name_not_in_agents = ma_problem.has_name_not_in_agents
 
     def __getstate__(self):
@@ -175,6 +177,79 @@ class Agent(
         """Returns the `fluents` currently in the `problem`."""
         return [f for f in self._fluents if f not in self._public_fluents]
 
+    def _add_goal(
+        self,
+        goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool],
+        is_private_goal: bool,
+    ) -> "up.model.fnode.FNode":
+        """
+        Adds the given `goal` to the specified `goal_list` of the `Agent`.
+
+        :param goal: The expression added to the `Agent` goals.
+        :param is_private_goal: A boolean flag indicating whether the goal should be added as a private goal.
+        :return: The expression of the goal added.
+        """
+
+        assert (
+            isinstance(goal, bool) or goal.environment == self._env
+        ), "goal does not have the same environment of the problem"
+
+        (goal_exp,) = self._env.expression_manager.auto_promote(goal)
+        assert self._env.type_checker.get_type(
+            goal_exp
+        ).is_bool_type(), "A goal must be a boolean expression"
+
+        goal_list = self._private_goals if is_private_goal else self._public_goals
+
+        if goal_exp != self._env.expression_manager.TRUE():
+            if goal_exp not in goal_list:
+                goal_list.append(goal_exp)
+
+        return goal_exp
+
+    def add_private_goal(
+        self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
+    ) -> "up.model.fnode.FNode":
+        """
+        Adds the given `goal` to the `Agent` as a private goal.
+
+        :param goal: The expression added to the `Agent` private goals.
+        :return: The expression of the private goal added.
+
+        Note:
+        - Private-specific goals are; individual agent goals (not coalition goals) unknown to other agents.
+        """
+        return self._add_goal(goal, is_private_goal=True)
+
+    def add_public_goal(
+        self, goal: Union["up.model.fnode.FNode", "up.model.fluent.Fluent", bool]
+    ) -> "up.model.fnode.FNode":
+        """
+        Adds the given `goal` to the `Agent` as a public goal.
+
+        :param goal: The expression added to the `Agent` public goals.
+        :return: The expression of the public goal added.
+
+        Note:
+        - Public-specific goals are; individual agent goals (not coalition goals) known to other agents.
+        """
+        return self._add_goal(goal, is_private_goal=False)
+
+    @property
+    def public_goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `public goals` currently in the `agent`."""
+        return self._public_goals
+
+    @property
+    def private_goals(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `private goals` currently in the `agent`."""
+        return self._private_goals
+
+    def clear_goals(self):
+        """Removes all the `goals` from the `Agent`."""
+        self._private_goals = []
+        self._public_goals = []
+
     def __repr__(self) -> str:
         s = []
         s.append(f"Agent name = {str(self._name)}\n\n")
@@ -190,6 +265,14 @@ class Agent(
         for a in self._actions:
             s.append(f" {str(a)}\n")
         s.append("]\n\n")
+        s.append("private goals = [\n")
+        for g in self.private_goals:
+            s.append(f" {str(g)}\n")
+        s.append("]\n\n")
+        s.append("public goals = [\n")
+        for g in self._public_goals:
+            s.append(f" {str(g)}\n")
+        s.append("]\n\n")
         return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
@@ -203,6 +286,10 @@ class Agent(
             return False
         if set(self._actions) != set(oth._actions):
             return False
+        if set(self._private_goals) != set(oth._private_goals):
+            return False
+        if set(self._public_goals) != set(oth._public_goals):
+            return False
         return True
 
     def __hash__(self) -> int:
@@ -213,4 +300,25 @@ class Agent(
             res += hash(f)
         for a in self._actions:
             res += hash(a)
+        for g in self._private_goals:
+            res += hash(g)
+        for g in self._public_goals:
+            res += hash(g)
         return res
+
+    def clone(
+        self,
+        ma_problem: "up.model.multi_agent.ma_problem.MultiAgentProblem",
+        name: Optional[str] = None,
+    ):
+        if name is None:
+            name = self.name
+        new_ag = Agent(name, ma_problem)
+        new_ag._public_fluents = self._public_fluents.copy()
+        new_ag._fluents = self._fluents.copy()
+        new_ag._fluents_defaults = self._fluents_defaults.copy()
+        new_ag._private_goals = self._private_goals.copy()
+        new_ag._public_goals = self._public_goals.copy()
+        for a in self.actions:
+            new_ag.add_action(a.clone())
+        return new_ag

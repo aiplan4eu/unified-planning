@@ -89,6 +89,10 @@ FEATURES = {
         "TASK_ORDER_PARTIAL",
         "TASK_ORDER_TEMPORAL",
     ],
+    "MULTI_AGENT": [
+        "AGENT_SPECIFIC_PRIVATE_GOAL",
+        "AGENT_SPECIFIC_PUBLIC_GOAL",
+    ],
 }
 
 
@@ -282,3 +286,5 @@ multi_agent_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 multi_agent_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 multi_agent_kind.set_fluents_type("NUMERIC_FLUENTS")
 multi_agent_kind.set_fluents_type("OBJECT_FLUENTS")
+multi_agent_kind.set_multi_agent("AGENT_SPECIFIC_PRIVATE_GOAL")
+multi_agent_kind.set_multi_agent("AGENT_SPECIFIC_PUBLIC_GOAL")
