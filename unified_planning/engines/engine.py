@@ -17,6 +17,7 @@
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.engines.credits import Credits
 from abc import ABCMeta, abstractmethod, ABC
+from ConfigSpace import ConfigurationSpace
 from enum import Enum
 from typing import Optional
 
@@ -147,6 +148,16 @@ class Engine(metaclass=EngineMeta):
         the specific options for this `Engine` instance.
         """
         return None
+
+    @staticmethod
+    def get_configuration_space(**kwargs) -> ConfigurationSpace:
+        """
+        This method returns the `ConfigurationSpace` for this `Engine`.
+
+        A configuration space organizes all hyperparameters and its conditions as well as its forbidden clauses.
+        All hyperparameters defined in the configuration space must be accepted by the constructor.
+        """
+        return ConfigurationSpace()
 
     def destroy(self):
         pass
