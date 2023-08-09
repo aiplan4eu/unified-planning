@@ -33,8 +33,8 @@ setup(
         "symk": ["up-symk>=0.0.3"],
         "engines": [
             "tarski[arithmetic]",
-            "up-pyperplan==1.0.0",
-            "up-tamer==1.0.0",
+            "up-pyperplan==1.0.0.1.dev1",
+            "up-tamer==1.0.0.1.dev1",
             "up-enhsp==0.0.17",
             "up-fast-downward==0.2.3",
             "up-lpg==0.0.7",
