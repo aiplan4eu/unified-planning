@@ -405,6 +405,8 @@ class PDDLWriter:
                 or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
+            if self.problem_kind.has_derived_fluents():
+                out.write(" :derived-predicates")
             if self.problem_kind.has_conditional_effects():
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
@@ -532,6 +534,31 @@ class PDDLWriter:
             raise up.exceptions.UPUnsupportedProblemTypeError(
                 "Only one metric is supported!"
             )
+
+        for a in self.problem.axioms:
+            out.write(f" (:derived ")
+
+            # print head
+            f = a.head()
+            assert f.type.is_bool_type()
+            params = []
+            for param in f.signature:
+                if param.type.is_user_type():
+                    params.append(
+                        f" {self._get_mangled_name(param)} - {self._get_mangled_name(param.type)}"
+                    )
+                else:
+                    raise UPTypeError("PDDL supports only user type parameters")
+            out.write(f'({self._get_mangled_name(f)}{"".join(params)})\n')
+
+            # print body
+            b = a.body().simplify()
+            body_str = "(and )"
+            if not b.is_true():
+                body_str = converter.convert(b)
+            out.write(f'  {body_str}\n')
+
+            out.write(f" )\n")
 
         em = self.problem.environment.expression_manager
         for a in self.problem.actions:

@@ -101,7 +101,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :derived-predicates"
                 )
             )
             + Suppress(")")
@@ -168,6 +168,14 @@ class PDDLGrammar:
             + Suppress(")")
         )
 
+        axiom_def = Group(
+           Suppress("(")
+           + ":derived"
+           - set_results_name(predicate, "head")
+           - set_results_name(nested_expr(), "body")
+           + Suppress(")")
+        )   
+
         parameters = set_results_name(
             ZeroOrMore(
                 Group(
@@ -176,6 +184,7 @@ class PDDLGrammar:
             ),
             "params",
         )
+
         action_def = Group(
             Suppress("(")
             + ":action"
@@ -255,6 +264,7 @@ class PDDLGrammar:
             + Optional(constants_def)
             + Optional(predicates_def)
             + Optional(functions_def)
+            + set_results_name(Group(ZeroOrMore(axiom_def)), "axioms")
             + set_results_name(Group(ZeroOrMore(task_def)), "tasks")
             + set_results_name(Group(ZeroOrMore(method_def)), "methods")
             + set_results_name(
@@ -1042,8 +1052,9 @@ class PDDLReader:
 
         has_actions_cost = False
 
-        for p in domain_res.get("predicates", []):
-            n = p[0]
+        def get_fluent_params(
+            p: ParseResults
+        ) -> OrderedDict():
             params = OrderedDict()
             for g in p[1]:
                 try:
@@ -1061,6 +1072,11 @@ class PDDLReader:
                     )
                 for param_name in g.value[0]:
                     params[param_name] = param_type
+            return params
+
+        for p in domain_res.get("predicates", []):
+            n = p[0]
+            params = get_fluent_params(p)
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
@@ -1141,6 +1157,28 @@ class PDDLReader:
                     task_params[p] = t
             task = htn.Task(name, task_params)
             problem.add_task(task)
+
+        for a in domain_res.get("axioms", []):
+            # Head is a single predicate
+            assert len(a["head"]) == 1, "Only one predicate in head of axiom allowed"
+            p = a["head"][0]
+            n = p[0]
+            params = get_fluent_params(p)
+            head = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
+
+            # Body is a condition
+            assert len(a["body"]) == 1, "Only one condition in body of axiom allowed"
+            act = up.model.InstantaneousAction("dummy", params, self._env)
+            body = self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            {},
+                            CustomParseResults(a["body"][0]),
+                            domain_str,
+                        )
+            axiom = unified_planning.model.Axiom(head, body, self._env)
+            problem.add_axiom(axiom)
 
         for a in domain_res.get("actions", []):
             n = a["name"]
