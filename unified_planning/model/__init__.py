@@ -30,6 +30,7 @@ from unified_planning.model.natural_transition import (
 from unified_planning.model.transition import (
     Transition,
 )
+from unified_planning.model.axiom import Axiom
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
@@ -150,4 +151,5 @@ __all__ = [
     "Oversubscription",
     "TemporalOversubscription",
     "DeltaSimpleTemporalNetwork",
+    "Axiom",
 ]
