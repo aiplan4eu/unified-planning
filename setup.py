@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.8",
-    install_requires=["pyparsing", "networkx"],
+    install_requires=["pyparsing", "networkx", "ConfigSpace"],
     extras_require={
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],
@@ -33,8 +33,8 @@ setup(
         "symk": ["up-symk>=0.0.3"],
         "engines": [
             "tarski[arithmetic]",
-            "up-pyperplan==1.0.0",
-            "up-tamer==1.0.0",
+            "up-pyperplan==1.0.0.1.dev1",
+            "up-tamer==1.0.0.1.dev1",
             "up-enhsp==0.0.17",
             "up-fast-downward==0.2.3",
             "up-lpg==0.0.7",
