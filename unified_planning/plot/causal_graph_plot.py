@@ -22,8 +22,7 @@ from unified_planning.model import (
     Problem,
     FNode,
     Action,
-    InstantaneousAction,
-    DurativeAction,
+    generate_causal_graph,
 )
 from unified_planning.plot.utils import (
     ARROWSIZE,
@@ -36,6 +35,7 @@ from unified_planning.plot.utils import (
     draw_base_graph,
 )
 from unified_planning.engines import CompilationKind
+
 
 from itertools import chain, product
 import networkx as nx
@@ -126,107 +126,11 @@ def plot_causal_graph(
     if generate_node_label is None:
         generate_node_label = str
 
-    if not problem.actions:
-        raise UPUsageError("Can't plot the causal graph of a Problem without actions")
-    to_ground = any(a.parameters for a in problem.actions)
-    actions_mapping: Dict[Action, Tuple[Action, Tuple[FNode, ...]]] = {}
-    grounded_problem = problem
-    if to_ground:
-        try:
-            with problem.environment.factory.Compiler(
-                problem_kind=problem.kind, compilation_kind=CompilationKind.GROUNDING
-            ) as grounder:
-                res = grounder.compile(problem)
-                grounded_problem = res.problem
-                ai_mapping = res.map_back_action_instance
-                for ga in grounded_problem.actions:
-                    lifted_ai = ai_mapping(ga())
-                    actions_mapping[ga] = (
-                        lifted_ai.action,
-                        lifted_ai.actual_parameters,
-                    )
-        except UPNoSuitableEngineAvailableException as ex:
-            raise UPUsageError(
-                "To plot the causal graph of a problem, the problem must be grounder or a grounder capable of handling the given problem must be installed.\n"
-                + str(ex)
-            )
+    graph, edge_actions = generate_causal_graph(problem)
+    edge_labels_set: Dict[Tuple[FNode, FNode], Set[str]] = {
+        k: set(edge_label_function(*e) for e in v) for k, v in edge_actions.items()
+    }
 
-    # Populate 2 maps:
-    #  one from a fluent to all the actions reading that fluent
-    #  one from a fluent to all the actions writing that fluent
-    fluents_red: Dict[FNode, Set[Action]] = {}
-    fluents_written: Dict[FNode, Set[Action]] = {}
-
-    fve = problem.environment.free_vars_extractor
-    for action in grounded_problem.actions:
-        assert not action.parameters
-        if isinstance(action, InstantaneousAction):
-            for p in action.preconditions:
-                for fluent in fve.get(p):
-                    if any(map(fve.get, fluent.args)):
-                        raise UPUnsupportedProblemTypeError(
-                            f"Fluent {fluent} contains other fluents. Causal can't be plotted with nested fluents."
-                        )
-                    fluents_red.setdefault(fluent, set()).add(action)
-            for e in action.effects:
-                fluent = e.fluent
-                assert fluent.is_fluent_exp()
-                assert not any(map(fve.get, fluent.args)), "Error in effect definition"
-                fluents_written.setdefault(fluent, set()).add(action)
-                for fluent in chain(fve.get(e.value), fve.get(e.condition)):
-                    if any(map(fve.get, fluent.args)):
-                        raise NotImplementedError(
-                            "nested fluents still are not implemented"
-                        )
-                    fluents_red.setdefault(fluent, set()).add(action)
-        elif isinstance(action, DurativeAction):
-            for p in chain(*action.conditions.values()):
-                for fluent in fve.get(p):
-                    if any(map(fve.get, fluent.args)):
-                        raise UPUnsupportedProblemTypeError(
-                            f"Fluent {fluent} contains other fluents. Causal can't be plotted with nested fluents."
-                        )
-                    fluents_red.setdefault(fluent, set()).add(action)
-            for e in chain(*action.effects.values()):
-                fluent = e.fluent
-                assert fluent.is_fluent_exp()
-                if any(map(fve.get, fluent.args)):
-                    raise NotImplementedError(
-                        "nested fluents still are not implemented"
-                    )
-                fluents_written.setdefault(fluent, set()).add(action)
-                for fluent in chain(fve.get(e.value), fve.get(e.condition)):
-                    if any(map(fve.get, fluent.args)):
-                        raise NotImplementedError(
-                            "nested fluents still are not implemented"
-                        )
-                    fluents_red.setdefault(fluent, set()).add(action)
-        else:
-            raise NotImplementedError
-    edge_labels_set: Dict[Tuple[FNode, FNode], Set[str]] = {}
-    graph = nx.DiGraph()
-    all_fluents = set(chain(fluents_red.keys(), fluents_written.keys()))
-    # Add an edge if a fluent that is red or written and it's in the same action of a written fluent
-    empty_set: Set[FNode] = set()
-    for left_node, right_node in product(all_fluents, fluents_written.keys()):
-        rn_actions = fluents_written.get(right_node, empty_set)
-        if left_node != right_node and rn_actions:
-            label = edge_labels_set.setdefault((left_node, right_node), set())
-            edge_created = False
-            for ln_action in chain(
-                fluents_red.get(left_node, empty_set),
-                fluents_written.get(left_node, empty_set),
-            ):
-                assert isinstance(ln_action, Action)
-                if ln_action in rn_actions:
-                    if not edge_created:
-                        edge_created = True
-                        graph.add_edge(left_node, right_node)
-                    label.add(
-                        edge_label_function(
-                            *actions_mapping.get(ln_action, (ln_action, tuple()))
-                        )
-                    )
     edge_labels: Dict[Tuple[FNode, FNode], str] = {
         edge: ", ".join(labels) for edge, labels in edge_labels_set.items() if labels
     }
