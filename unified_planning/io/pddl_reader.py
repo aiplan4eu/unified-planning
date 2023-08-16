@@ -243,6 +243,12 @@ class PDDLGrammar:
             + Suppress(")")
         )
 
+        predicates_and_functions_def = (
+            (predicates_def + functions_def)
+            | (functions_def + predicates_def)
+            | predicates_def
+            | functions_def
+        )
         domain = (
             Suppress("(")
             + "define"
@@ -253,8 +259,7 @@ class PDDLGrammar:
             + set_results_name(Optional(require_def), "features")
             + Optional(types_def)
             + Optional(constants_def)
-            + Optional(predicates_def)
-            + Optional(functions_def)
+            + Optional(predicates_and_functions_def)
             + set_results_name(Group(ZeroOrMore(task_def)), "tasks")
             + set_results_name(Group(ZeroOrMore(method_def)), "methods")
             + set_results_name(
