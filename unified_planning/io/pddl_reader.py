@@ -243,11 +243,8 @@ class PDDLGrammar:
             + Suppress(")")
         )
 
-        predicates_and_functions_def = (
-            (predicates_def + functions_def)
-            | (functions_def + predicates_def)
-            | predicates_def
-            | functions_def
+        predicates_and_functions_def = (predicates_def + Optional(functions_def)) | (
+            functions_def + Optional(predicates_def)
         )
         domain = (
             Suppress("(")
