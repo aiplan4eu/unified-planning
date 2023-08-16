@@ -23,6 +23,7 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.exceptions import UPUsageError
 from typing import Type, IO, Callable, Optional, Union, List, Tuple
 from fractions import Fraction
 
@@ -108,9 +109,16 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         (goal_exp,) = self._problem.environment.expression_manager.auto_promote(goal)
         goals = self._problem.goals
         self._problem.clear_goals()
+        removed = False
         for g in goals:
             if not g is goal_exp:
                 self._problem.add_goal(g)
+            else:
+                removed = True
+        if not removed:
+            raise UPUsageError(
+                f"goal to remove: {goal_exp} not found inside the problem goals: {goals}"
+            )
 
     def _add_action(self, action: "up.model.action.Action"):
         assert isinstance(self._problem, up.model.Problem)
@@ -120,6 +128,13 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         assert isinstance(self._problem, up.model.Problem)
         actions = self._problem.actions
         self._problem.clear_actions()
+        removed = False
         for a in actions:
             if a.name != name:
                 self._problem.add_action(a)
+            else:
+                removed = True
+        if not removed:
+            raise UPUsageError(
+                f"action to remove: {name} not found inside the problem actions: {list(map(lambda a: a.name, actions))}"
+            )

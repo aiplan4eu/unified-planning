@@ -18,6 +18,7 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.engines.results import POSITIVE_OUTCOMES, NEGATIVE_OUTCOMES
+from unified_planning.exceptions import UPUsageError
 from unified_planning.test import TestCase, main
 from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
@@ -66,6 +67,14 @@ class TestReplanner(TestCase):
             replanner.add_action(a)
             res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)
+
+            with self.assertRaises(UPUsageError):
+                replanner.remove_action("b")
+
+            with self.assertRaises(UPUsageError):
+                y = Fluent("y")
+                problem.add_fluent(y, default_initial_value=False)
+                replanner.remove_goal(y)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_robot(self):
