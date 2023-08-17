@@ -1006,12 +1006,25 @@ class _KindFactory:
 def generate_causal_graph(
     problem: Problem,
 ) -> Tuple[
-    nx.Graph,
+    nx.DiGraph,
     Dict[
-        Tuple["up.model.fnode.Fnode", "up.model.fnode.Fnode"],
-        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.Fnode", ...]]],
+        Tuple["up.model.fnode.FNode", "up.model.fnode.FNode"],
+        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.FNode", ...]]],
     ],
 ]:
+    """
+    This method generates the causal graph of the given problem. The causal graph is a directed
+    graph where the nodes are the fluents of the problem (instantiated to objects) and there is
+    an edge from node A to node B if an action (instantiated to objects) reads/writes A and
+    writes B. This means that somehow the A and B fluents are related trough that action.
+
+    :param problem: The problem to compute the causal graph.
+    :return: The tuple where the first element is the causal graph and the second element is the
+        mapping from the pairs of nodes connected in the graph to the set of actions that link
+        the first node to the second; every element of the set is composed by 2 elements, the
+        first one is the lifted action, the second one is the tuple of parameters used to ground
+        the action.
+    """
     if isinstance(
         problem, (up.model.htn.HierarchicalProblem, up.model.ContingentProblem)
     ):
@@ -1042,7 +1055,7 @@ def generate_causal_graph(
                     )
         except UPNoSuitableEngineAvailableException as ex:
             raise UPUsageError(
-                "To plot the causal graph of a problem, the problem must be grounder or a grounder capable of handling the given problem must be installed.\n"
+                "To plot the causal graph of a problem, the problem must be grounded or a grounder capable of handling the given problem must be installed.\n"
                 + str(ex)
             )
 
@@ -1086,21 +1099,17 @@ def generate_causal_graph(
                 fluent = e.fluent
                 assert fluent.is_fluent_exp()
                 if any(map(fve.get, fluent.args)):
-                    raise NotImplementedError(
-                        "nested fluents still are not implemented"
-                    )
+                    raise NotImplementedError("nested fluents are not implemented")
                 fluents_written.setdefault(fluent, set()).add(action)
                 for fluent in chain(fve.get(e.value), fve.get(e.condition)):
                     if any(map(fve.get, fluent.args)):
-                        raise NotImplementedError(
-                            "nested fluents still are not implemented"
-                        )
+                        raise NotImplementedError("nested fluents are not implemented")
                     fluents_red.setdefault(fluent, set()).add(action)
         else:
             raise NotImplementedError
-    edge_actions_set: Dict[
+    edge_actions_map: Dict[
         Tuple["up.model.fnode.FNode", "up.model.fnode.FNode"],
-        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.Fnode", ...]]],
+        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.FNode", ...]]],
     ] = {}
     graph = nx.DiGraph()
     all_fluents = chain(fluents_red.keys(), fluents_written.keys())
@@ -1109,7 +1118,7 @@ def generate_causal_graph(
     for left_node, right_node in product(all_fluents, fluents_written.keys()):
         rn_actions = fluents_written.get(right_node, empty_set)
         if left_node != right_node and rn_actions:
-            actions = edge_actions_set.setdefault((left_node, right_node), set())
+            actions = edge_actions_map.setdefault((left_node, right_node), set())
             edge_created = False
             for ln_action in chain(
                 fluents_red.get(left_node, empty_set),
@@ -1121,4 +1130,4 @@ def generate_causal_graph(
                         edge_created = True
                         graph.add_edge(left_node, right_node)
                     actions.add(actions_mapping.get(ln_action, (ln_action, tuple())))
-    return graph, edge_actions_set
+    return graph, edge_actions_map
