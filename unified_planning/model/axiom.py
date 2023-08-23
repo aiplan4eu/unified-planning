@@ -20,19 +20,24 @@ An `Axiom' has a `head' which is a single `Parameter' and a `body' which is a si
 import copy
 import unified_planning as up
 from unified_planning.environment import get_environment, Environment
-from typing import Optional
+from typing import Optional, Union
 
 
 class Axiom:
     def __init__(
         self,
         _head: "up.model.fluent.Fluent",
-        _body: "up.model.FNode",
+        _body: Union[
+            "up.model.fnode.FNode",
+            "up.model.fluent.Fluent",
+            "up.model.parameter.Parameter",
+            bool,
+        ],
         _env: Optional[Environment] = None,
     ):
-        self._head = _head
-        self._body = _body
         self._environment = get_environment(_env)
+        self._head = _head
+        self._body = self._environment.expression_manager.auto_promote(_body)[0]
 
     def __repr__(self) -> str:
         s = []
@@ -49,20 +54,20 @@ class Axiom:
             and self._head == oth._head
             and self._body == oth._body
         )
-    
+
     def __hash__(self) -> int:
         return hash(self._head) + hash(self._body)
-    
+
     @property
     def environment(self) -> Environment:
         """Returns this `Axiom` `Environment`."""
         return self._environment
-    
+
     def head(self) -> "up.model.fluent.Fluent":
         """Returns this `Axiom` `Head`."""
         return self._head
 
-    def body(self) -> "up.model.FNode":
+    def body(self) -> "up.model.fnode.FNode":
         """Returns this `Axiom` `Body`."""
         return self._body
 
