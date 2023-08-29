@@ -95,7 +95,7 @@ def non_numeric():
     pb.add_constraint(LE(b.end, a.start))
 
     sol = unified_planning.plans.Schedule(
-        [a, b], {a.start: 0, a.end: 5, b.start: 5, b.end: 9}
+        [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
     )
 
     return Example(pb, sol)
