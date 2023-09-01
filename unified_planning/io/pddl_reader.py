@@ -1164,7 +1164,8 @@ class PDDLReader:
             p = a["head"][0]
             n = p[0]
             params = get_fluent_params(p)
-            head = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
+            head = problem.fluent(n)
+            head._typename = self._tm.DerivedBoolType()
 
             # Body is a condition
             assert len(a["body"]) == 1, "Only one condition in body of axiom allowed"

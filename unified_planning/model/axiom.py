@@ -17,9 +17,9 @@ This module defines the base class `Axiom'.
 An `Axiom' has a `head' which is a single `Parameter' and a `body' which is a single `Condition'.
 """
 
-import copy
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import UPTypeError
 from typing import Optional, Union
 
 
@@ -35,6 +35,8 @@ class Axiom:
         ],
         _env: Optional[Environment] = None,
     ):
+        if not _head.type.is_derived_bool_type():
+            raise UPTypeError("The head of an axiom must be of type DerivedBoolType!")
         self._environment = get_environment(_env)
         self._head = _head
         self._body = self._environment.expression_manager.auto_promote(_body)[0]

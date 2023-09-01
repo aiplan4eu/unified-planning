@@ -590,7 +590,10 @@ class Problem(  # type: ignore[misc]
             isinstance(goal, bool) or goal.environment == self._env
         ), "goal does not have the same environment of the problem"
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(goal_exp).is_bool_type()
+        assert (
+            self._env.type_checker.get_type(goal_exp).is_bool_type()
+            or self._env.type_checker.get_type(goal_exp).is_derived_bool_type()
+        )
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 

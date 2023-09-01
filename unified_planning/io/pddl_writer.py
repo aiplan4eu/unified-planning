@@ -479,7 +479,7 @@ class PDDLWriter:
         predicates = []
         functions = []
         for f in self.problem.fluents:
-            if f.type.is_bool_type():
+            if f.type.is_bool_type() or f.type.is_derived_bool_type():
                 params = []
                 i = 0
                 for param in f.signature:
@@ -540,7 +540,7 @@ class PDDLWriter:
 
             # print head
             f = a.head()
-            assert f.type.is_bool_type()
+            assert f.type.is_derived_bool_type()
             params = []
             for param in f.signature:
                 if param.type.is_user_type():
