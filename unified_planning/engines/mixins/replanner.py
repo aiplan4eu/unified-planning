@@ -24,7 +24,9 @@ class ReplannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `Replanner`."""
 
     def __init__(
-        self, problem: "up.model.AbstractProblem", error_on_failed_checks: bool
+        self,
+        problem: "up.model.AbstractProblem",
+        error_on_failed_checks: "bool",
     ):
         self._problem = problem.clone()
         self_class = type(self)

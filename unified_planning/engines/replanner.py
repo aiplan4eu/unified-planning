@@ -27,7 +27,7 @@ from typing import Type, IO, Callable, Optional, Union, List, Tuple
 from fractions import Fraction
 
 
-class Replanner(MetaEngine, mixins.ReplannerMixin):
+class Replanner(MetaEngine, mixins.ReplannerMixin):  # type: ignore[misc]
     """
     This :class:`~unified_planning.engines.MetaEngine` implements the :func:`~unified_planning.engines.Factory.Replanner>` operation mode starting
     a new oneshot planning query with the updated :class:`~unified_planning.model.AbstractProblem` instance.
@@ -36,12 +36,14 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
     def __init__(
         self,
         problem: "up.model.AbstractProblem",
-        error_on_failed_checks: bool,
+        error_on_failed_checks: "bool",
         *args,
         **kwargs,
     ):
         MetaEngine.__init__(self, *args, **kwargs)
-        mixins.ReplannerMixin.__init__(self, problem, error_on_failed_checks)
+        mixins.ReplannerMixin.__init__(
+            self, problem=problem, error_on_failed_checks=error_on_failed_checks
+        )
 
     @property
     def name(self) -> str:

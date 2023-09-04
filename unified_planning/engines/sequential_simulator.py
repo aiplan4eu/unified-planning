@@ -82,7 +82,7 @@ class InapplicabilityReasons(Enum):
     VIOLATES_STATE_INVARIANTS = auto()
 
 
-class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
+class UPSequentialSimulator(Engine, SequentialSimulatorMixin):  # type: ignore[misc]
     """
     Sequential SequentialSimulatorMixin implementation.
 
@@ -94,7 +94,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs
     ):
         Engine.__init__(self)
-        SequentialSimulatorMixin.__init__(self, problem, error_on_failed_checks)
+        SequentialSimulatorMixin.__init__(self, problem, error_on_failed_checks)  # type: ignore
         pk = problem.kind
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
