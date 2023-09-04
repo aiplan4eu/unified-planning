@@ -33,9 +33,15 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
     a new oneshot planning query with the updated :class:`~unified_planning.model.AbstractProblem` instance.
     """
 
-    def __init__(self, problem: "up.model.AbstractProblem", *args, **kwargs):
+    def __init__(
+        self,
+        problem: "up.model.AbstractProblem",
+        error_on_failed_checks: bool,
+        *args,
+        **kwargs,
+    ):
         MetaEngine.__init__(self, *args, **kwargs)
-        mixins.ReplannerMixin.__init__(self, problem)
+        mixins.ReplannerMixin.__init__(self, problem, error_on_failed_checks)
 
     @property
     def name(self) -> str:

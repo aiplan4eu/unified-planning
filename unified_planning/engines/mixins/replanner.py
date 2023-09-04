@@ -23,11 +23,14 @@ from warnings import warn
 class ReplannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `Replanner`."""
 
-    def __init__(self, problem: "up.model.AbstractProblem"):
+    def __init__(
+        self, problem: "up.model.AbstractProblem", error_on_failed_checks: bool
+    ):
         self._problem = problem.clone()
         self_class = type(self)
         assert issubclass(self_class, up.engines.engine.Engine)
         assert isinstance(self, up.engines.engine.Engine)
+        self.error_on_failed_checks = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
