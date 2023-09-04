@@ -147,7 +147,7 @@ def plot_causal_graph(
         font_size=font_size,
         font_color=font_color,
         draw_networkx_kwargs=draw_networkx_kwargs,
-        prog="neato",
+        prog="dot",
     )
     nx.draw_networkx_edge_labels(
         graph,

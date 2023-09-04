@@ -1112,7 +1112,7 @@ def generate_causal_graph(
         Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.FNode", ...]]],
     ] = {}
     graph = nx.DiGraph()
-    all_fluents = chain(fluents_red.keys(), fluents_written.keys())
+    all_fluents = set(chain(fluents_red.keys(), fluents_written.keys()))
     # Add an edge if a fluent that is red or written and it's in the same action of a written fluent
     empty_set: Set["up.model.fnode.FNode"] = set()
     for left_node, right_node in product(all_fluents, fluents_written.keys()):
