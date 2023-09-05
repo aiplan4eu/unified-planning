@@ -111,6 +111,10 @@ class ReplannerMixin(ABC):
         Removes the given goal.
 
         :param goal: the goal to remove to the problem.
+        :raises UPUsageError: If the goal is not found in the problem.
+            This works only if the checks are enabled (flag ``skip_checks``).
+            Based on the ``error_on_failed_checks`` this cna be an exception or a
+            warning.
         """
         return self._remove_goal(goal)
 
@@ -127,6 +131,10 @@ class ReplannerMixin(ABC):
         Removes the given action.
 
         :param action: the action to remove to the problem.
+        :raises UPUsageError: If the action is not found in the problem.
+            This works only if the checks are enabled (flag ``skip_checks``).
+            Based on the ``error_on_failed_checks`` this cna be an exception or a
+            warning.
         """
         return self._remove_action(name)
 
