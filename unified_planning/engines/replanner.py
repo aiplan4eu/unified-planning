@@ -27,7 +27,7 @@ from typing import Type, IO, Callable, Optional, Union, List, Tuple
 from fractions import Fraction
 
 
-class Replanner(MetaEngine, mixins.ReplannerMixin):  # type: ignore[misc]
+class Replanner(MetaEngine, mixins.ReplannerMixin):
     """
     This :class:`~unified_planning.engines.MetaEngine` implements the :func:`~unified_planning.engines.Factory.Replanner>` operation mode starting
     a new oneshot planning query with the updated :class:`~unified_planning.model.AbstractProblem` instance.

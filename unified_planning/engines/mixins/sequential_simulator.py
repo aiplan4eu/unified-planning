@@ -45,7 +45,7 @@ class SequentialSimulatorMixin(ABC):
             self_class, up.engines.engine.Engine
         ), "SequentialSimulatorMixin does not implement the up.engines.Engine class"
         assert isinstance(self, up.engines.engine.Engine)
-        self.error_on_failed_checks = error_on_failed_checks
+        self._error_on_failed_checks: bool = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
