@@ -94,8 +94,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self, problem: "up.model.Problem", error_on_failed_checks: bool = True, **kwargs
     ):
         Engine.__init__(self)
-        self.error_on_failed_checks = error_on_failed_checks
-        SequentialSimulatorMixin.__init__(self, problem)
+        SequentialSimulatorMixin.__init__(self, problem, error_on_failed_checks)
         pk = problem.kind
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
