@@ -52,8 +52,7 @@ def resource_set():
     def create_resource_set(name: str, capacity: int):
         # create n objects: one for each element in the resource set
         rtype = UserType(f"rset_{name}")
-        for i in range(capacity):
-            pb.add_object(f"{name}{i}", rtype)
+        objects = [pb.add_object(f"{name}{i}", rtype) for i in range(capacity)]
         # create a fluent that will create a state-variable in [0,1] for each resource object
         fluent = pb.add_fluent(
             f"rset_{name}",
@@ -61,7 +60,7 @@ def resource_set():
             resource=rtype,
             default_initial_value=1,
         )
-        return fluent, rtype
+        return fluent, rtype, objects
 
     def use_resource_set(activity, resource_fluent, resource_object_type):
         # create a variable whose value will identify the resource object to use
@@ -71,11 +70,20 @@ def resource_set():
         activity.add_increase_effect(activity.end, resource_fluent(var), 1)
 
     pb = SchedulingProblem(name="sched:resource_set")
-    resource_set_fluent, resource_set_parameter_type = create_resource_set("R", 4)
+    (rset_fluent, rset_parameter_type, rset_objects) = create_resource_set("R", 4)
     act = pb.add_activity("a", duration=10)
-    use_resource_set(act, resource_set_fluent, resource_set_parameter_type)
+    use_resource_set(act, rset_fluent, rset_parameter_type)
 
-    return Example(pb, None)
+    sol = unified_planning.plans.Schedule(
+        [act],
+        {
+            act.start: 0,
+            act.end: 10,
+            act.get_parameter("used_resource_instance"): rset_objects[0],
+        },
+    )
+
+    return Example(pb, sol)
 
 
 def non_numeric():
