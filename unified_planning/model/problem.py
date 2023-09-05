@@ -1009,7 +1009,7 @@ def generate_causal_graph(
     nx.DiGraph,
     Dict[
         Tuple["up.model.fnode.FNode", "up.model.fnode.FNode"],
-        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.FNode", ...]]],
+        Set["up.plans.ActionInstance"],
     ],
 ]:
     """
@@ -1109,7 +1109,7 @@ def generate_causal_graph(
             raise NotImplementedError
     edge_actions_map: Dict[
         Tuple["up.model.fnode.FNode", "up.model.fnode.FNode"],
-        Set[Tuple["up.model.action.Action", Tuple["up.model.fnode.FNode", ...]]],
+        Set["up.plans.ActionInstance"],
     ] = {}
     graph = nx.DiGraph()
     all_fluents = set(chain(fluents_red.keys(), fluents_written.keys()))
@@ -1129,5 +1129,9 @@ def generate_causal_graph(
                     if not edge_created:
                         edge_created = True
                         graph.add_edge(left_node, right_node)
-                    actions.add(actions_mapping.get(ln_action, (ln_action, tuple())))
+                    actions.add(
+                        up.plans.ActionInstance(
+                            *actions_mapping.get(ln_action, (ln_action, tuple()))
+                        )
+                    )
     return graph, edge_actions_map
