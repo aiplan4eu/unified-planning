@@ -63,6 +63,7 @@ def draw_base_graph(
     font_size: int = FONT_SIZE,
     font_color: str = FONT_COLOR,
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
+    prog: str = "dot",
 ):
     import matplotlib.pyplot as plt  # type: ignore[import]
 
@@ -92,7 +93,7 @@ def draw_base_graph(
     fig = plt.figure(figsize=figsize)
     ax = fig.add_subplot()
 
-    pos = _generate_positions(graph, prog="dot", top_bottom=top_bottom)
+    pos = _generate_positions(graph, prog=prog, top_bottom=top_bottom)
 
     nx.draw_networkx(
         graph,
