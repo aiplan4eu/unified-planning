@@ -240,15 +240,15 @@ class PDDLGrammar:
         set_parse_action(method_def, self.methods.append)
 
         domain_stmt = (
-            domain_require_def
-            | types_def
-            | constants_def
-            | predicates_def
-            | functions_def
+            action_def
+            | dur_action_def
             | task_def
             | method_def
-            | action_def
-            | dur_action_def
+            | types_def
+            | predicates_def
+            | functions_def
+            | constants_def
+            | domain_require_def
         )
         domain = (
             Suppress("(")
