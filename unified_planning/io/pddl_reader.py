@@ -1132,6 +1132,7 @@ class PDDLReader:
             tasknet = grammar.htn
             if tasknet is not None:
                 tasknet = tasknet[0]
+                assert tasknet is not None
                 assert isinstance(problem, htn.HierarchicalProblem)
 
                 for tn_variables in tasknet.get("params", []):
