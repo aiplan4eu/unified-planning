@@ -30,6 +30,7 @@ from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
 from unified_planning.io.utils import parse_string, set_results_name, Located
+from unified_planning.io.pddl_grammar import PDDLGrammar
 
 import pyparsing
 from pyparsing import ParseResults
@@ -91,259 +92,6 @@ def nested_expr():
     return nested
 
 
-class PDDLGrammar:
-    def __init__(self):
-        name = Word(alphas, alphanums + "_" + "-")
-        variable = Suppress("?") + name
-
-        require_def = (
-            Suppress("(")
-            + ":requirements"
-            + OneOrMore(
-                one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
-                )
-            )
-            + Suppress(")")
-        )
-
-        types_def = (
-            Suppress("(")
-            + ":types"
-            - set_results_name(
-                OneOrMore(
-                    Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-                ),
-                "types",
-            )
-            + Suppress(")")
-        )
-
-        constants_def = (
-            Suppress("(")
-            + ":constants"
-            - set_results_name(
-                ZeroOrMore(
-                    Group(
-                        Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-                    )
-                ),
-                "constants",
-            )
-            + Suppress(")")
-        )
-
-        predicate = (
-            Suppress("(")
-            + Group(
-                name
-                + Group(
-                    ZeroOrMore(
-                        Group(
-                            Located(
-                                Group(OneOrMore(variable))
-                                + Optional(Suppress("-") + name)
-                            )
-                        )
-                    )
-                )
-            )
-            + Suppress(")")
-        )
-
-        predicates_def = (
-            Suppress("(")
-            + ":predicates"
-            - set_results_name(Group(OneOrMore(predicate)), "predicates")
-            + Suppress(")")
-        )
-
-        functions_def = (
-            Suppress("(")
-            + ":functions"
-            - set_results_name(
-                Group(OneOrMore(predicate + Optional(Suppress("- number")))),
-                "functions",
-            )
-            + Suppress(")")
-        )
-
-        parameters = set_results_name(
-            ZeroOrMore(
-                Group(
-                    Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name))
-                )
-            ),
-            "params",
-        )
-        action_def = Group(
-            Suppress("(")
-            + ":action"
-            - set_results_name(name, "name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
-            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
-            + Optional(":observe" - set_results_name(nested_expr(), "obs"))
-            + Suppress(")")
-        )
-
-        dur_action_def = Group(
-            Suppress("(")
-            + ":durative-action"
-            - set_results_name(name, "name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + ":duration"
-            - set_results_name(nested_expr(), "duration")
-            + ":condition"
-            - set_results_name(nested_expr(), "cond")
-            + ":effect"
-            - set_results_name(nested_expr(), "eff")
-            + Suppress(")")
-        )
-
-        task_def = Group(
-            Suppress("(")
-            + ":task"
-            - set_results_name(name, "name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Suppress(")")
-        )
-
-        method_def = Group(
-            Suppress("(")
-            + ":method"
-            - set_results_name(name, "name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + ":task"
-            - set_results_name(nested_expr(), "task")
-            + Optional(
-                ":precondition" - set_results_name(nested_expr(), "precondition")
-            )
-            + Optional(
-                one_of(":ordered-subtasks :ordered-tasks")
-                - set_results_name(nested_expr(), "ordered-subtasks")
-            )
-            + Optional(
-                one_of(":subtasks :tasks") - set_results_name(nested_expr(), "subtasks")
-            )
-            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
-            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
-            + Suppress(")")
-        )
-
-        predicates_and_functions_def = (predicates_def + Optional(functions_def)) | (
-            functions_def + Optional(predicates_def)
-        )
-        domain = (
-            Suppress("(")
-            + "define"
-            + Suppress("(")
-            + "domain"
-            + set_results_name(name, "name")
-            + Suppress(")")
-            + set_results_name(Optional(require_def), "features")
-            + Optional(types_def)
-            + Optional(constants_def)
-            + Optional(predicates_and_functions_def)
-            + set_results_name(Group(ZeroOrMore(task_def)), "tasks")
-            + set_results_name(Group(ZeroOrMore(method_def)), "methods")
-            + set_results_name(
-                Group(ZeroOrMore(action_def | dur_action_def)), "actions"
-            )
-            + Suppress(")")
-        )
-
-        objects = set_results_name(
-            ZeroOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))),
-            "objects",
-        )
-
-        htn_def = Group(
-            Suppress("(")
-            + ":htn"
-            - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
-            + Optional(
-                one_of(":ordered-tasks :ordered-subtasks")
-                - set_results_name(nested_expr(), "ordered-tasks")
-            )
-            + Optional(
-                one_of(":tasks :subtasks") - set_results_name(nested_expr(), "tasks")
-            )
-            + Optional(":ordering" - set_results_name(nested_expr(), "ordering"))
-            + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
-            + Suppress(")")
-        )
-
-        metric = set_results_name(
-            (Keyword("minimize") | Keyword("maximize")), "optimization"
-        ) + set_results_name((name | nested_expr()), "metric")
-
-        problem = (
-            Suppress("(")
-            + "define"
-            + Suppress("(")
-            + "problem"
-            + set_results_name(name, "name")
-            + Suppress(")")
-            + Suppress("(")
-            + ":domain"
-            + name
-            + Suppress(")")
-            + Optional(require_def)
-            + Optional(Suppress("(") + ":objects" + objects + Suppress(")"))
-            + Optional(set_results_name(htn_def, "htn"))
-            + Suppress("(")
-            + ":init"
-            + set_results_name(ZeroOrMore(nested_expr()), "init")
-            + Suppress(")")
-            + Optional(
-                Suppress("(")
-                + ":goal"
-                + set_results_name(nested_expr(), "goal")
-                + Suppress(")")
-            )
-            + Optional(
-                Suppress("(")
-                + ":constraints"
-                + set_results_name(OneOrMore(nested_expr()), "constraints")
-                + Suppress(")")
-            )
-            + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
-            + Suppress(")")
-        )
-
-        domain.ignore(";" + rest_of_line)
-        problem.ignore(";" + rest_of_line)
-
-        self._domain = domain
-        self._problem = problem
-        self._parameters = parameters
-
-    @property
-    def domain(self):
-        return self._domain
-
-    @property
-    def problem(self):
-        return self._problem
-
-    @property
-    def parameters(self):
-        return self._parameters
-
-
 class PDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
@@ -379,12 +127,9 @@ class PDDLReader:
             "sometime-after": self._em.SometimeAfter,
             "at-most-once": self._em.AtMostOnce,
         }
-        grammar = PDDLGrammar()
-        self._pp_domain = grammar.domain
-        self._pp_problem = grammar.problem
-        self._pp_parameters = grammar.parameters
         self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
+        self._pp_parameters = up.io.pddl_grammar.PARAMETERS
 
     def _parse_exp(
         self,
@@ -880,19 +625,31 @@ class PDDLReader:
                 f"Could not parse the subtasks list: {e}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
             )
 
-    def _check_if_object_type_is_needed(self, domain_res) -> bool:
-        for p in domain_res.get("predicates", []):
+    def _check_if_object_type_is_needed(self, domain_res, grammar: PDDLGrammar) -> bool:
+        empty_parse_res = ParseResults()
+        predicates = (
+            grammar.predicates[0] if grammar.predicates is not None else empty_parse_res
+        )
+        for p in predicates:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
-        for p in domain_res.get("functions", []):
+        functions = (
+            grammar.functions[0] if grammar.functions is not None else empty_parse_res
+        )
+        for p in functions:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
-        for g in domain_res.get("constants", []):
+        constants = (
+            grammar.constants if grammar.constants is not None else empty_parse_res
+        )
+        for g in constants:
             if len(g.value) <= 1 or g.value[1] == Object:
                 return True
-        for a in domain_res.get("actions", []):
+        actions = grammar.actions if grammar.actions is not None else empty_parse_res
+        for a in actions:
+            a = a[0]
             for g in a.get("params", []):
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
@@ -964,19 +721,23 @@ class PDDLReader:
 
     def _parse_problem(
         self,
+        grammar: PDDLGrammar,
         domain_res: ParseResults,
         domain_str: str,
         problem_res: typing.Optional[ParseResults],
         problem_str=typing.Optional[str],
     ) -> "up.model.Problem":
         problem: up.model.Problem
-        if ":hierarchy" in set(domain_res.get("features", [])):
+        requirements = (
+            set(grammar.requirements) if grammar.requirements is not None else set()
+        )
+        if ":hierarchy" in requirements:
             problem = htn.HierarchicalProblem(
                 domain_res["name"],
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
-        elif ":contingent" in set(domain_res.get("features", [])):
+        elif ":contingent" in requirements:
             problem = up.model.ContingentProblem(
                 domain_res["name"],
                 self._env,
@@ -990,11 +751,17 @@ class PDDLReader:
             )
 
         types_map: TypesMap = {}
-        object_type_needed: bool = self._check_if_object_type_is_needed(domain_res)
+        object_type_needed: bool = self._check_if_object_type_is_needed(
+            domain_res, grammar
+        )
+        empty_parse_res = ParseResults()
 
         # extract all type declarations into a dictionary
         type_declarations: Dict[str, typing.Optional[str]] = {}
-        for type_line in domain_res.get("types", []):
+        types: ParseResults = (
+            grammar.types if grammar.types is not None else empty_parse_res
+        )
+        for type_line in types:
             father_name = None if len(type_line) <= 1 else str(type_line[1])
             if father_name is None and object_type_needed:
                 father_name = Object
@@ -1044,7 +811,10 @@ class PDDLReader:
 
         has_actions_cost = False
 
-        for p in domain_res.get("predicates", []):
+        predicates = (
+            grammar.predicates[0] if grammar.predicates is not None else empty_parse_res
+        )
+        for p in predicates:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
@@ -1066,7 +836,10 @@ class PDDLReader:
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
-        for p in domain_res.get("functions", []):
+        functions = (
+            grammar.functions[0] if grammar.functions is not None else empty_parse_res
+        )
+        for p in functions:
             n = p[0]
             params = OrderedDict()
             for g in p[1]:
@@ -1104,7 +877,10 @@ class PDDLReader:
                 self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
             problem.add_fluent(f)
 
-        for g in domain_res.get("constants", []):
+        constants = (
+            grammar.constants if grammar.constants is not None else empty_parse_res
+        )
+        for g in constants:
             try:
                 t = types_map[g.value[1] if len(g.value) > 1 else Object]
             except KeyError:
@@ -1121,7 +897,9 @@ class PDDLReader:
             for o in g.value[0]:
                 problem.add_object(up.model.Object(o, t, problem.environment))
 
-        for task in domain_res.get("tasks", []):
+        tasks = grammar.tasks if grammar.tasks is not None else empty_parse_res
+        for task in tasks:
+            task = task[0]
             assert isinstance(problem, htn.HierarchicalProblem)
             name = task["name"]
             task_params = OrderedDict()
@@ -1141,10 +919,13 @@ class PDDLReader:
                     )
                 for p in g.value[0]:
                     task_params[p] = t
-            task = htn.Task(name, task_params)
-            problem.add_task(task)
+            parsed_task = htn.Task(name, task_params)
+            problem.add_task(parsed_task)
 
-        for a in domain_res.get("actions", []):
+        actions = grammar.actions if grammar.actions is not None else empty_parse_res
+
+        for a in actions:
+            a = a[0]
             n = a["name"]
             a_params = OrderedDict()
             for g in a.get("params", []):
@@ -1260,8 +1041,10 @@ class PDDLReader:
                     has_actions_cost and self._instantaneous_action_has_cost(act)
                 )
 
-        for m in domain_res.get("methods", []):
+        methods = grammar.methods if grammar.methods is not None else empty_parse_res
+        for m in methods:
             assert isinstance(problem, htn.HierarchicalProblem)
+            m = m[0]
             name = m["name"]
             method_params = OrderedDict()
             for g in m.get("params", []):
@@ -1338,13 +1121,17 @@ class PDDLReader:
             assert problem_str is not None
             problem.name = problem_res["name"]
 
-            for g in problem_res.get("objects", []):
+            objects = (
+                grammar.objects if grammar.objects is not None else empty_parse_res
+            )
+            for g in objects:
                 t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.environment))
 
-            tasknet = problem_res.get("htn", None)
+            tasknet = grammar.htn
             if tasknet is not None:
+                tasknet = tasknet[0]
                 assert isinstance(problem, htn.HierarchicalProblem)
 
                 for tn_variables in tasknet.get("params", []):
@@ -1363,8 +1150,8 @@ class PDDLReader:
                         types_map,
                         problem_str,
                     )
-                    for task in subtasks:
-                        problem.task_network.add_subtask(task)
+                    for subtask in subtasks:
+                        problem.task_network.add_subtask(subtask)
 
                 ot = tasknet.get("ordered-tasks", None)
                 if ot:
@@ -1376,8 +1163,8 @@ class PDDLReader:
                         problem_str,
                     )
                     prev = None
-                    for task in subtasks:
-                        cur = problem.task_network.add_subtask(task)
+                    for subtask in subtasks:
+                        cur = problem.task_network.add_subtask(subtask)
                         if prev is not None:
                             problem.task_network.set_strictly_before(prev, cur)
                         prev = cur
@@ -1425,7 +1212,7 @@ class PDDLReader:
                             )
                         )
 
-            init_list = problem_res.get("init", [])
+            init_list = grammar.init[0] if grammar.init is not None else empty_parse_res
             if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
                 init_list = init_list[0].value[1:]
             for j in init_list:
@@ -1519,22 +1306,25 @@ class PDDLReader:
                             f"In init expected (not predicate), found {exp}\n"
                             + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
-            if "goal" in problem_res:
+
+            goal = grammar.goal
+            if goal is not None:
                 problem.add_goal(
                     self._parse_exp(
                         problem,
                         None,
                         types_map,
                         {},
-                        CustomParseResults(problem_res["goal"][0]),
+                        CustomParseResults(goal[0]),
                         problem_str,
                     )
                 )
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
-            if "constraints" in problem_res:
-                for tc in problem_res["constraints"]:
+            traj_constraints = grammar.constraints
+            if traj_constraints is not None:
+                for tc in traj_constraints:
                     problem.add_trajectory_constraint(
                         self._parse_exp(
                             problem,
@@ -1549,8 +1339,16 @@ class PDDLReader:
             has_actions_cost = has_actions_cost and self._problem_has_actions_cost(
                 problem
             )
-            optimization = problem_res.get("optimization", None)
-            m = problem_res.get("metric", None)
+            optimization = (
+                grammar.metric.get("optimization", None)
+                if grammar.metric is not None
+                else None
+            )
+            m = (
+                grammar.metric.get("metric", None)
+                if grammar.metric is not None
+                else None
+            )
 
             if m is not None:
                 metric = CustomParseResults(m[0])
@@ -1569,20 +1367,20 @@ class PDDLReader:
                         and optimization == "minimize"
                         and metric_exp == self._totalcost
                     ):
-                        costs = {}
+                        costs: Dict["up.model.Action", "up.model.Expression"] = {}
                         problem._fluents.remove(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
                         use_plan_length = all(False for _ in problem.durative_actions)
-                        for a in problem.instantaneous_actions:
+                        for action in problem.instantaneous_actions:
                             cost = None
-                            for e in a.effects:
+                            for e in action.effects:
                                 if e.fluent == self._totalcost:
                                     cost = e
                                     break
                             if cost is not None:
-                                costs[a] = cost.value
-                                a._effects.remove(cost)
+                                costs[action] = cost.value
+                                action._effects.remove(cost)
                                 if cost.value != 1:
                                     use_plan_length = False
                             else:
@@ -1656,16 +1454,19 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
+        grammar = PDDLGrammar()
         domain_str = domain_str.replace("\t", " ").lower()
-        domain_res = parse_string(self._pp_domain, domain_str, parse_all=True)
+        domain_res = parse_string(grammar.domain, domain_str, parse_all=True)
 
         if problem_str is not None:
             problem_str = problem_str.replace("\t", " ").lower()
-            problem_res = parse_string(self._pp_problem, problem_str, parse_all=True)
+            problem_res = parse_string(grammar.problem, problem_str, parse_all=True)
         else:
             problem_res = None
 
-        return self._parse_problem(domain_res, domain_str, problem_res, problem_str)
+        return self._parse_problem(
+            grammar, domain_res, domain_str, problem_res, problem_str
+        )
 
     def parse_plan(
         self,
