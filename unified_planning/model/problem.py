@@ -792,6 +792,9 @@ class _KindFactory:
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
+            t = e.fluent.type
+            if t.is_int_type() or t.is_real_type():
+                self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         if e.is_forall():
             self.kind.set_effects_kind("FORALL_EFFECTS")
         if e.is_increase():
