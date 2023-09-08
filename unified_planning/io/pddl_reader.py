@@ -881,8 +881,7 @@ class PDDLReader:
             for o in g.value[0]:
                 problem.add_object(up.model.Object(o, t, problem.environment))
 
-        tasks = grammar.tasks if grammar.tasks else empty_parse_res
-        for task in tasks:
+        for task in grammar.tasks:
             task = task[0]
             assert isinstance(problem, htn.HierarchicalProblem)
             name = task["name"]
