@@ -4,13 +4,13 @@
           boat -object
           person -object
      )
+     (:predicates
+          (saved ?t -person)
+     )
      (:functions
           (x ?b -boat)
           (y ?b -boat)
           (d ?t -person)
-     )
-     (:predicates
-          (saved ?t -person)
      )
      (:action go_north_east
           :parameters (?b -boat)
