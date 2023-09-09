@@ -1688,7 +1688,7 @@ class PDDLReader:
         Takes a problem, a filename and optionally a map of renaming and returns the plan parsed from the file.
 
         The format of the file must be:
-         ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
         ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
         where ``[duration]`` is optional and not specified for InstantaneousActions.
 
@@ -1725,7 +1725,7 @@ class PDDLReader:
         Takes a problem, a string and optionally a map of renaming and returns the plan parsed from the string.
 
         The format of the file must be:
-         ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
         ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
         where ``[duration]`` is optional and not specified for InstantaneousActions.
 
