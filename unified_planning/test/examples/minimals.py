@@ -394,7 +394,7 @@ def get_example_problems():
     task = InstantaneousAction("task")
     task.add_precondition(Equals(value, 1))
     task.add_effect(value, 2)
-    problem = Problem("test")
+    problem = Problem("basic_numeric")
     problem.add_fluent(value)
     problem.add_action(task)
     problem.set_initial_value(value, 1)
