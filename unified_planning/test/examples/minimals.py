@@ -389,4 +389,17 @@ def get_example_problems():
     basic_with_object_constant = Example(problem=problem, plan=plan)
     problems["basic_with_object_constant"] = basic_with_object_constant
 
+    # basic numeric
+    value = Fluent("value", IntType())
+    task = InstantaneousAction("task")
+    task.add_precondition(Equals(value, 1))
+    task.add_effect(value, 2)
+    problem = Problem("test")
+    problem.add_fluent(value)
+    problem.add_action(task)
+    problem.set_initial_value(value, 1)
+    problem.add_goal(Equals(value, 2))
+    plan = up.plans.SequentialPlan([up.plans.ActionInstance(task)])
+    problems["basic_numeric"] = Example(problem=problem, plan=plan)
+
     return problems
