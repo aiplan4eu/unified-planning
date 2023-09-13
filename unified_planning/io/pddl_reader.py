@@ -613,17 +613,17 @@ class PDDLReader:
 
     def _check_if_object_type_is_needed(self, domain_res, grammar: PDDLGrammar) -> bool:
         empty_parse_res = ParseResults()
-        predicates = grammar.predicates[0] if grammar.predicates else empty_parse_res
+        predicates = grammar.predicates if grammar.predicates else empty_parse_res
         for p in predicates:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
-        functions = grammar.functions[0] if grammar.functions else empty_parse_res
+        functions = grammar.functions if grammar.functions else empty_parse_res
         for p in functions:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
-        constants = grammar.constants[0] if grammar.constants else empty_parse_res
+        constants = grammar.constants if grammar.constants else empty_parse_res
         for g in constants:
             if len(g.value) <= 1 or g.value[1] == Object:
                 return True
@@ -708,7 +708,7 @@ class PDDLReader:
         problem_str=typing.Optional[str],
     ) -> "up.model.Problem":
         problem: up.model.Problem
-        requirements = set(grammar.requirements[0]) if grammar.requirements else set()
+        requirements = set(grammar.requirements) if grammar.requirements else set()
         if ":hierarchy" in requirements:
             problem = htn.HierarchicalProblem(
                 domain_res["name"],
@@ -736,7 +736,7 @@ class PDDLReader:
 
         # extract all type declarations into a dictionary
         type_declarations: Dict[str, typing.Optional[str]] = {}
-        types: ParseResults = grammar.types[0] if grammar.types else empty_parse_res
+        types: ParseResults = grammar.types if grammar.types else empty_parse_res
         for type_line in types:
             father_name = None if len(type_line) <= 1 else str(type_line[1])
             if father_name is None and object_type_needed:
@@ -787,7 +787,7 @@ class PDDLReader:
 
         has_actions_cost = False
 
-        predicates = grammar.predicates[0] if grammar.predicates else empty_parse_res
+        predicates = grammar.predicates if grammar.predicates else empty_parse_res
         for p in predicates:
             n = p[0]
             params = OrderedDict()
@@ -810,7 +810,7 @@ class PDDLReader:
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
-        functions = grammar.functions[0] if grammar.functions else empty_parse_res
+        functions = grammar.functions if grammar.functions else empty_parse_res
         for p in functions:
             n = p[0]
             params = OrderedDict()
@@ -849,7 +849,7 @@ class PDDLReader:
                 self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
             problem.add_fluent(f)
 
-        constants = grammar.constants[0] if grammar.constants else empty_parse_res
+        constants = grammar.constants if grammar.constants else empty_parse_res
         for g in constants:
             try:
                 t = types_map[g.value[1] if len(g.value) > 1 else Object]
@@ -1087,15 +1087,14 @@ class PDDLReader:
             assert problem_str is not None
             problem.name = problem_res["name"]
 
-            objects = grammar.objects[0] if grammar.objects else empty_parse_res
+            objects = grammar.objects if grammar.objects else empty_parse_res
             for g in objects:
                 t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.environment))
 
-            tasknet = grammar.htn[0] if grammar.htn else None
+            tasknet = grammar.htn if grammar.htn else None
             if tasknet is not None:
-                tasknet = tasknet[0]
                 assert tasknet is not None
                 assert isinstance(problem, htn.HierarchicalProblem)
 
@@ -1177,7 +1176,7 @@ class PDDLReader:
                             )
                         )
 
-            init_list = grammar.init[0] if grammar.init else empty_parse_res
+            init_list = grammar.init if grammar.init else empty_parse_res
             if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
                 init_list = init_list[0].value[1:]
             for j in init_list:
@@ -1272,7 +1271,7 @@ class PDDLReader:
                             + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
 
-            goal = grammar.goal[0] if grammar.goal else None
+            goal = grammar.goal if grammar.goal else None
             if goal is not None:
                 problem.add_goal(
                     self._parse_exp(
@@ -1287,7 +1286,7 @@ class PDDLReader:
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
-            traj_constraints = grammar.constraints[0] if grammar.constraints else None
+            traj_constraints = grammar.constraints
             if traj_constraints is not None:
                 for tc in traj_constraints:
                     problem.add_trajectory_constraint(
@@ -1306,9 +1305,9 @@ class PDDLReader:
             )
 
             optimization = (
-                grammar.metric[0].get("optimization", None) if grammar.metric else None
+                grammar.metric.get("optimization", None) if grammar.metric else None
             )
-            m = grammar.metric[0].get("metric", None) if grammar.metric else None
+            m = grammar.metric.get("metric", None) if grammar.metric else None
 
             if m is not None:
                 metric = CustomParseResults(m[0])
