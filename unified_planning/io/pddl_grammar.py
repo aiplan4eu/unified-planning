@@ -78,23 +78,23 @@ class PDDLGrammar:
     def __init__(self):
         # Domain data structures to populate while parsing
         self.name: str = ""
-        self.requirements: Optional[ParseResults] = None
-        self.types: Optional[ParseResults] = None
-        self.constants: Optional[ParseResults] = None
-        self.predicates: Optional[ParseResults] = None
-        self.functions: Optional[ParseResults] = None
+        self.requirements: typing.Optional[ParseResults] = None
+        self.types: typing.Optional[ParseResults] = None
+        self.constants: typing.Optional[ParseResults] = None
+        self.predicates: typing.Optional[ParseResults] = None
+        self.functions: typing.Optional[ParseResults] = None
         self.tasks: List[ParseResults] = []
         self.methods: List[ParseResults] = []
         self.actions: List[ParseResults] = []
 
         # Problem data structures to populate while parsing
-        self.htn: Optional[ParseResults] = None
-        self.problem_requirements: Optional[ParseResults] = None
-        self.objects: Optional[ParseResults] = None
-        self.init: Optional[ParseResults] = None
-        self.goal: Optional[ParseResults] = None
-        self.constraints: Optional[ParseResults] = None
-        self.metric: Optional[ParseResults] = None
+        self.htn: typing.Optional[ParseResults] = None
+        self.problem_requirements: typing.Optional[ParseResults] = None
+        self.objects: typing.Optional[ParseResults] = None
+        self.init: typing.Optional[ParseResults] = None
+        self.goal: typing.Optional[ParseResults] = None
+        self.constraints: typing.Optional[ParseResults] = None
+        self.metric: typing.Optional[ParseResults] = None
 
         name = NAME
         variable = VARIABLE
