@@ -448,12 +448,12 @@ class TestProblem(unittest_TestCase):
                 if j == i + 1:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(10)),
+                        Int(10),
                     )
                 else:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(-1)),
+                        Int(-1),
                     )
 
     def test_problem_defaults(self):
@@ -580,11 +580,11 @@ class TestProblem(unittest_TestCase):
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
 
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), 2.0)
+            problem.set_initial_value(distance(l2, l1), 2.1)
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "2.0")
+            problem.set_initial_value(distance(l2, l1), "2.1")
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "4/2")
+            problem.set_initial_value(distance(l2, l1), "3/2")
         with self.assertRaises(UPTypeError):
             problem.set_initial_value(distance(l2, l1), Div(4, 2))
         problem.set_initial_value(distance(l2, l1), "20")
