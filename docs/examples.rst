@@ -245,6 +245,23 @@ In this notebook we show how to parse a problem from PDDL in the unified_plannin
 a unified_planning problem in PDDL.
 
 
+Plan Parsing and Conversion
+---------------------------
+
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/12-plan-parsing-conversion.ipynb
+   :alt: Open In GitHub
+
+
+.. image:: https://colab.research.google.com/assets/colab-badge.svg
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/12-plan-parsing-conversion.ipynb
+   :alt: Open In Colab
+
+
+In this notebook we show how to parse a plan from a file (or a string) and how to convert a plan from a format to another.
+
+
 MA-PDDL Writer
 --------------
 
