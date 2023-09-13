@@ -53,6 +53,15 @@ def nested_expr():
     return nested
 
 
+def append_unique(empty_list, name, obj):
+    """
+    Appends an object to the list, if the list is empty, otherwise raises an exception.
+    """
+    if empty_list:
+        raise SyntaxError(f":{name} defined more than once in the pddl files.")
+    empty_list.append(obj)
+
+
 NAME = Word(alphas, alphanums + "_" + "-")
 VARIABLE = Suppress("?") + NAME
 PARAMETERS = set_results_name(
@@ -99,7 +108,10 @@ class PDDLGrammar:
             + Suppress(")")
         )
         domain_require_def = require_def.copy()
-        set_parse_action(domain_require_def, self.requirements.append)
+        set_parse_action(
+            domain_require_def,
+            partial(append_unique, self.requirements, "requirements"),
+        )
 
         types_def = (
             Suppress("(")
@@ -107,7 +119,7 @@ class PDDLGrammar:
             - OneOrMore(Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name)))
             + Suppress(")")
         )
-        set_parse_action(types_def, self.types.append)
+        set_parse_action(types_def, partial(append_unique, self.types, "types"))
 
         constants_def = (
             Suppress("(")
@@ -117,7 +129,9 @@ class PDDLGrammar:
             )
             + Suppress(")")
         )
-        set_parse_action(constants_def, self.constants.append)
+        set_parse_action(
+            constants_def, partial(append_unique, self.constants, "constants")
+        )
 
         predicate = (
             Suppress("(")
@@ -140,18 +154,22 @@ class PDDLGrammar:
         predicates_def = (
             Suppress("(")
             + Suppress(":predicates")
-            - Group(OneOrMore(predicate))
+            - OneOrMore(predicate)
             + Suppress(")")
         )
-        set_parse_action(predicates_def, self.predicates.append)
+        set_parse_action(
+            predicates_def, partial(append_unique, self.predicates, "predicates")
+        )
 
         functions_def = (
             Suppress("(")
             + Suppress(":functions")
-            - Group(OneOrMore(predicate + Optional(Suppress("- number"))))
+            - OneOrMore(predicate + Optional(Suppress("- number")))
             + Suppress(")")
         )
-        set_parse_action(functions_def, self.functions.append)
+        set_parse_action(
+            functions_def, partial(append_unique, self.functions, "functions")
+        )
 
         parameters = PARAMETERS
         action_def = Group(
@@ -187,7 +205,7 @@ class PDDLGrammar:
         )
         set_parse_action(dur_action_def, self.actions.append)
 
-        task_def = Group(
+        task_def = (
             Suppress("(")
             + ":task"
             - set_results_name(name, "name")
@@ -199,7 +217,7 @@ class PDDLGrammar:
         )
         set_parse_action(task_def, self.tasks.append)
 
-        method_def = Group(
+        method_def = (
             Suppress("(")
             + ":method"
             - set_results_name(name, "name")
@@ -248,7 +266,10 @@ class PDDLGrammar:
         )
 
         problem_require_def = require_def.copy()
-        set_parse_action(problem_require_def, self.problem_requirements.append)
+        set_parse_action(
+            problem_require_def,
+            partial(append_unique, self.problem_requirements, "requirements"),
+        )
 
         objects = ZeroOrMore(
             Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
@@ -259,7 +280,7 @@ class PDDLGrammar:
             + set_results_name(objects, "objects")
             + Suppress(")")
         )
-        set_parse_action(objects_def, self.objects.append)
+        set_parse_action(objects_def, partial(append_unique, self.objects, "objects"))
 
         htn_def = Group(
             Suppress("(")
@@ -276,18 +297,18 @@ class PDDLGrammar:
             + Optional(":constraints" - set_results_name(nested_expr(), "constraints"))
             + Suppress(")")
         )
-        set_parse_action(htn_def, self.htn.append)
+        set_parse_action(htn_def, partial(append_unique, self.htn, "htn"))
 
         init_def = (
             Suppress("(")
             + Suppress(":init")
-            + Group(ZeroOrMore(nested_expr()))
+            + ZeroOrMore(nested_expr())
             + Suppress(")")
         )
-        set_parse_action(init_def, self.init.append)
+        set_parse_action(init_def, partial(append_unique, self.init, "init"))
 
         goal_def = Suppress("(") + Suppress(":goal") + nested_expr() + Suppress(")")
-        set_parse_action(goal_def, self.goal.append)
+        set_parse_action(goal_def, partial(append_unique, self.goal, "goal"))
 
         constraints_def = (
             Suppress("(")
@@ -295,14 +316,16 @@ class PDDLGrammar:
             + OneOrMore(nested_expr())
             + Suppress(")")
         )
-        set_parse_action(constraints_def, self.constraints.append)
+        set_parse_action(
+            constraints_def, partial(append_unique, self.constraints, "constraints")
+        )
 
         metric = set_results_name(
             one_of(("minimize", "maximize")), "optimization"
         ) + set_results_name((name | nested_expr()), "metric")
 
         metric_def = Suppress("(") + Suppress(":metric") + metric + Suppress(")")
-        set_parse_action(metric_def, self.metric.append)
+        set_parse_action(metric_def, partial(append_unique, self.metric, "metric"))
 
         problem_stmt = (
             problem_require_def

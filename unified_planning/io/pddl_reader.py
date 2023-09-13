@@ -78,20 +78,6 @@ Object = "object"
 TypesMap = Dict[str, unified_planning.model.Type]
 
 
-def nested_expr():
-    """
-    A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
-    """
-    cnt = Empty() + CharsNotIn("() \n\t\r")
-    nested = Forward()
-    nested <<= Group(
-        Located(
-            Suppress("(") + ZeroOrMore(Group(Located(cnt)) | nested) + Suppress(")")
-        )
-    )
-    return nested
-
-
 class PDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
@@ -627,12 +613,12 @@ class PDDLReader:
 
     def _check_if_object_type_is_needed(self, domain_res, grammar: PDDLGrammar) -> bool:
         empty_parse_res = ParseResults()
-        predicates = grammar.predicates[0][0] if grammar.predicates else empty_parse_res
+        predicates = grammar.predicates[0] if grammar.predicates else empty_parse_res
         for p in predicates:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
-        functions = grammar.functions[0][0] if grammar.functions else empty_parse_res
+        functions = grammar.functions[0] if grammar.functions else empty_parse_res
         for p in functions:
             for g in p[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
@@ -723,10 +709,6 @@ class PDDLReader:
     ) -> "up.model.Problem":
         problem: up.model.Problem
         requirements = set(grammar.requirements[0]) if grammar.requirements else set()
-        if len(grammar.requirements) > 1:
-            raise SyntaxError(
-                "The :requirements in the domain are defined more than once"
-            )
         if ":hierarchy" in requirements:
             problem = htn.HierarchicalProblem(
                 domain_res["name"],
@@ -755,8 +737,6 @@ class PDDLReader:
         # extract all type declarations into a dictionary
         type_declarations: Dict[str, typing.Optional[str]] = {}
         types: ParseResults = grammar.types[0] if grammar.types else empty_parse_res
-        if len(grammar.types) > 1:
-            raise SyntaxError("The :types in the domain are defined more than once")
         for type_line in types:
             father_name = None if len(type_line) <= 1 else str(type_line[1])
             if father_name is None and object_type_needed:
@@ -807,11 +787,7 @@ class PDDLReader:
 
         has_actions_cost = False
 
-        predicates = grammar.predicates[0][0] if grammar.predicates else empty_parse_res
-        if len(grammar.predicates) > 1:
-            raise SyntaxError(
-                "The :predicates in the domain are defined more than once"
-            )
+        predicates = grammar.predicates[0] if grammar.predicates else empty_parse_res
         for p in predicates:
             n = p[0]
             params = OrderedDict()
@@ -834,9 +810,7 @@ class PDDLReader:
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
-        functions = grammar.functions[0][0] if grammar.functions else empty_parse_res
-        if len(grammar.functions) > 1:
-            raise SyntaxError("The :functions in the domain are defined more than once")
+        functions = grammar.functions[0] if grammar.functions else empty_parse_res
         for p in functions:
             n = p[0]
             params = OrderedDict()
@@ -876,8 +850,6 @@ class PDDLReader:
             problem.add_fluent(f)
 
         constants = grammar.constants[0] if grammar.constants else empty_parse_res
-        if len(grammar.constants) > 1:
-            raise SyntaxError("The :constants in the domain are defined more than once")
         for g in constants:
             try:
                 t = types_map[g.value[1] if len(g.value) > 1 else Object]
@@ -896,7 +868,6 @@ class PDDLReader:
                 problem.add_object(up.model.Object(o, t, problem.environment))
 
         for task in grammar.tasks:
-            task = task[0]
             assert isinstance(problem, htn.HierarchicalProblem)
             name = task["name"]
             task_params = OrderedDict()
@@ -1040,7 +1011,6 @@ class PDDLReader:
 
         for m in grammar.methods:
             assert isinstance(problem, htn.HierarchicalProblem)
-            m = m[0]
             name = m["name"]
             method_params = OrderedDict()
             for g in m.get("params", []):
@@ -1117,18 +1087,12 @@ class PDDLReader:
             assert problem_str is not None
             problem.name = problem_res["name"]
 
-            if len(grammar.objects) > 1:
-                raise SyntaxError(
-                    "The :objects in the problem are defined more than once"
-                )
             objects = grammar.objects[0] if grammar.objects else empty_parse_res
             for g in objects:
                 t = types_map[g[1] if len(g) > 1 else Object]
                 for o in g[0]:
                     problem.add_object(up.model.Object(o, t, problem.environment))
 
-            if len(grammar.htn) > 1:
-                raise SyntaxError("The :htn in the problem is defined more than once")
             tasknet = grammar.htn[0] if grammar.htn else None
             if tasknet is not None:
                 tasknet = tasknet[0]
@@ -1213,9 +1177,7 @@ class PDDLReader:
                             )
                         )
 
-            if len(grammar.init) > 1:
-                raise SyntaxError("The :init in the problem are defined more than once")
-            init_list = grammar.init[0][0] if grammar.init else empty_parse_res
+            init_list = grammar.init[0] if grammar.init else empty_parse_res
             if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
                 init_list = init_list[0].value[1:]
             for j in init_list:
@@ -1310,8 +1272,6 @@ class PDDLReader:
                             + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
 
-            if len(grammar.goal) > 1:
-                raise SyntaxError("The :goal in the problem is defined more than once")
             goal = grammar.goal[0] if grammar.goal else None
             if goal is not None:
                 problem.add_goal(
@@ -1327,10 +1287,6 @@ class PDDLReader:
             elif not isinstance(problem, htn.HierarchicalProblem):
                 raise SyntaxError("Missing goal section in problem file.")
 
-            if len(grammar.constraints) > 1:
-                raise SyntaxError(
-                    "The :constraints in the problem are defined more than once"
-                )
             traj_constraints = grammar.constraints[0] if grammar.constraints else None
             if traj_constraints is not None:
                 for tc in traj_constraints:
@@ -1349,10 +1305,6 @@ class PDDLReader:
                 problem
             )
 
-            if len(grammar.metric) > 1:
-                raise SyntaxError(
-                    "The :metric in the problem are defined more than once"
-                )
             optimization = (
                 grammar.metric[0].get("optimization", None) if grammar.metric else None
             )
