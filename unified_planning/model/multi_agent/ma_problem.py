@@ -377,9 +377,9 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_typing("FLAT_TYPING")
             if cast(up.model.types._UserType, type).father is not None:
                 self._kind.set_typing("HIERARCHICAL_TYPING")
-        elif type.is_int_type():
+        elif type.is_int_type():  # TODO find equivalent kind
             self._kind.set_numbers("DISCRETE_NUMBERS")
-        elif type.is_real_type():
+        elif type.is_real_type():  # TODO find equivalent kind
             self._kind.set_numbers("CONTINUOUS_NUMBERS")
 
     def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
@@ -393,7 +393,9 @@ class MultiAgentProblem(  # type: ignore[misc]
                 numeric_type.lower_bound is not None
                 or numeric_type.upper_bound is not None
             ):
-                self._kind.set_numbers("BOUNDED_TYPES")
+                self._kind.set_numbers(
+                    "BOUNDED_TYPES"
+                )  # TODO add INT_FLUENT or REAL_FLUENT based on fluent's type
             self._kind.set_fluents_type("NUMERIC_FLUENTS")
         elif fluent.type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")

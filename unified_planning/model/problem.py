@@ -668,14 +668,8 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
-        for t, effect_list in self._timed_effects.items():
-            if t.delay != 0:
-                if isinstance(t.delay, int):
-                    factory.kind.set_numbers("DISCRETE_NUMBERS")
-                else:
-                    factory.kind.set_numbers("CONTINUOUS_NUMBERS")
-            for effect in effect_list:
-                factory.update_problem_kind_effect(effect)
+        for effect in chain(*self._timed_effects.values()):
+            factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
             factory.kind.set_time("TIMED_GOALS")
             factory.kind.set_time("CONTINUOUS_TIME")
@@ -684,16 +678,7 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("STATE_INVARIANTS")
             else:
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-        for i, goal_list in self._timed_goals.items():
-            for t in [i.lower, i.upper]:
-                if t.delay != 0:
-                    if isinstance(t.delay, int):
-                        factory.kind.set_numbers("DISCRETE_NUMBERS")
-                    else:
-                        factory.kind.set_numbers("CONTINUOUS_NUMBERS")
-            for goal in goal_list:
-                factory.update_problem_kind_expression(goal)
-        for goal in self._goals:
+        for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
 
         return factory
@@ -765,11 +750,10 @@ class _KindFactory:
 
     def finalize(self) -> "up.model.ProblemKind":
         """Once all features have been added, remove unnecessary features that were added preventively."""
-        if not self.kind.has_numeric_fluents():
+        if not self.kind.has_real_fluents() or not self.kind.has_int_fluents():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-        else:
-            if not self.kind.has_simple_numeric_planning():
-                self.kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        elif not self.kind.has_simple_numeric_planning():
+            self.kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         if self.kind.has_continuous_time() and self.pb.discrete_time:
             self.kind.set_time("DISCRETE_TIME")
             self.kind.unset_time("CONTINUOUS_TIME")
@@ -784,9 +768,9 @@ class _KindFactory:
             self.kind.set_typing("FLAT_TYPING")
             if cast(up.model.types._UserType, type).father is not None:
                 self.kind.set_typing("HIERARCHICAL_TYPING")
-        elif type.is_int_type():
+        elif type.is_int_type():  # TODO find equivalent kind
             self.kind.set_numbers("DISCRETE_NUMBERS")
-        elif type.is_real_type():
+        elif type.is_real_type():  # TODO find equivalent kind
             self.kind.set_numbers("CONTINUOUS_NUMBERS")
 
     def update_problem_kind_effect(
@@ -902,7 +886,7 @@ class _KindFactory:
             not type.is_int_type() and not type.is_real_type()
         ):
             self.update_problem_kind_type(type)
-        if fluent.type.is_int_type() or type.is_real_type():
+        if type.is_int_type() or type.is_real_type():
             numeric_type = type
             assert isinstance(
                 numeric_type, (up.model.types._RealType, up.model.types._IntType)
@@ -913,7 +897,11 @@ class _KindFactory:
             ):
                 self.kind.set_numbers("BOUNDED_TYPES")
             if fluent not in self.unused_fluents:
-                self.kind.set_fluents_type("NUMERIC_FLUENTS")
+                if type.is_int_type():
+                    self.kind.set_fluents_type("INT_FLUENTS")
+                else:
+                    assert type.is_real_type()
+                    self.kind.set_fluents_type("REAL_FLUENTS")
         elif type.is_user_type():
             self.kind.set_fluents_type("OBJECT_FLUENTS")
         for param in fluent.signature:
@@ -942,8 +930,13 @@ class _KindFactory:
 
     def update_action_duration(self, duration: "up.model.DurationInterval"):
         lower, upper = duration.lower, duration.upper
-        self.update_problem_kind_type(lower.type)
-        self.update_problem_kind_type(upper.type)
+        for dur_bound in (lower, upper):
+            if dur_bound.type.is_int_type():
+                self.kind.set_expression_duration("INT_TYPE_DURATIONS")
+            else:
+                assert dur_bound.type.is_real_type()
+                self.kind.set_expression_duration("REAL_TYPE_DURATIONS")
+
         if lower != upper:
             self.kind.set_time("DURATION_INEQUALITIES")
         free_vars = self.environment.free_vars_extractor.get(
@@ -965,11 +958,6 @@ class _KindFactory:
     ):
         if span.lower.delay != 0 or span.upper.delay != 0:
             for t in [span.lower, span.upper]:
-                if t.delay != 0:
-                    if isinstance(t.delay, int):
-                        self.kind.set_numbers("DISCRETE_NUMBERS")
-                    else:
-                        self.kind.set_numbers("CONTINUOUS_NUMBERS")
                 if (t.is_from_start() and t.delay > 0) or (
                     t.is_from_end() and t.delay < 0
                 ):
@@ -980,10 +968,6 @@ class _KindFactory:
 
     def update_action_timed_effect(self, t: "up.model.Timing", eff: "up.model.Effect"):
         if t.delay != 0:
-            if isinstance(t.delay, int):
-                self.kind.set_numbers("DISCRETE_NUMBERS")
-            else:
-                self.kind.set_numbers("CONTINUOUS_NUMBERS")
             if (t.is_from_start() and t.delay > 0) or (t.is_from_end() and t.delay < 0):
                 self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
             else:

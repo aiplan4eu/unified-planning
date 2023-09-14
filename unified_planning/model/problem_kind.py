@@ -15,6 +15,7 @@
 
 from functools import partialmethod, total_ordering
 from typing import Dict, List, Set
+from warnings import warn
 import unified_planning as up
 
 
@@ -39,8 +40,17 @@ FEATURES = {
         "DURATION_INEQUALITIES",
         "SELF_OVERLAPPING",
     ],
-    "EXPRESSION_DURATION": ["STATIC_FLUENTS_IN_DURATIONS", "FLUENTS_IN_DURATIONS"],
-    "NUMBERS": ["CONTINUOUS_NUMBERS", "DISCRETE_NUMBERS", "BOUNDED_TYPES"],
+    "EXPRESSION_DURATION": [
+        "STATIC_FLUENTS_IN_DURATIONS",
+        "FLUENTS_IN_DURATIONS",
+        "REAL_TYPE_DURATIONS",
+        "INT_TYPE_DURATIONS",
+    ],
+    "NUMBERS": [
+        "BOUNDED_TYPES",
+        "CONTINUOUS_NUMBERS",  # TODO deprecated
+        "DISCRETE_NUMBERS",  # TODO deprecated
+    ],
     "CONDITIONS_KIND": [
         "NEGATIVE_CONDITIONS",
         "DISJUNCTIVE_CONDITIONS",
@@ -69,7 +79,12 @@ FEATURES = {
         "UNBOUNDED_INT_ACTION_PARAMETERS",
         "REAL_ACTION_PARAMETERS",
     ],
-    "FLUENTS_TYPE": ["NUMERIC_FLUENTS", "OBJECT_FLUENTS"],
+    "FLUENTS_TYPE": [
+        "REAL_FLUENTS",
+        "INT_FLUENTS",
+        "OBJECT_FLUENTS",
+        "NUMERIC_FLUENTS",  # TODO deprecated
+    ],
     "QUALITY_METRICS": [
         "ACTIONS_COST",
         "FINAL_VALUE",
@@ -78,7 +93,16 @@ FEATURES = {
         "OVERSUBSCRIPTION",
         "TEMPORAL_OVERSUBSCRIPTION",
     ],
-    "ACTIONS_COST_KIND": ["STATIC_FLUENTS_IN_ACTIONS_COST", "FLUENTS_IN_ACTIONS_COST"],
+    "ACTIONS_COST_KIND": [
+        "STATIC_FLUENTS_IN_ACTIONS_COST",
+        "FLUENTS_IN_ACTIONS_COST",
+        "REAL_NUMBERS_IN_ACTIONS_COST",
+        "INT_NUMBERS_IN_ACTIONS_COST",
+    ],
+    "OVERSUBSCRIPTION_KIND": [
+        "REAL_NUMBERS_IN_OVERSUBSCRIPTION",
+        "INT_NUMBERS_IN_OVERSUBSCRIPTION",
+    ],
     "SIMULATED_ENTITIES": ["SIMULATED_EFFECTS"],
     "CONSTRAINTS_KIND": ["TRAJECTORY_CONSTRAINTS", "STATE_INVARIANTS"],
     "HIERARCHICAL": [
@@ -95,6 +119,42 @@ FEATURES = {
     ],
 }
 
+DEPRECATED_FEATURES = {
+    "NUMBERS": [
+        "CONTINUOUS_NUMBERS",
+        "DISCRETE_NUMBERS",
+    ],
+    "FLUENTS_TYPE": [
+        "NUMERIC_FLUENTS",
+    ],
+}
+
+# Version changes:
+# Version 2: Added granularity to the numeric side in different part of the problem
+#            and deprecated the version 1 way of describing it.
+# Added:
+# REAL_FLUENTS
+# INT_FLUENTS
+# REAL_TYPE_DURATIONS
+# INT_TYPE_DURATIONS
+# REAL_NUMBERS_IN_ACTIONS_COST
+# INT_NUMBERS_IN_ACTIONS_COST
+# REAL_NUMBERS_IN_OVERSUBSCRIPTION
+# INT_NUMBERS_IN_OVERSUBSCRIPTION
+# Note: INT_* is a special case of REAL_*, so if REAL_* is supported, also
+#       INT_* should be specified as supported.
+# Deprecated:
+# CONTINUOUS_NUMBERS
+# DISCRETE_NUMBERS
+# NUMERIC_FLUENTS
+
+
+def downgrade_2_1(version_2_features: Set[str]) -> Set[str]:
+    """
+    Method to downgrade the features of a ProblemKind of version 2 to the features
+    of a ProblemKind of version 1.
+    """
+
 
 class ProblemKindMeta(type):
     """Meta class used to interpret the nodehandler decorator."""
@@ -102,6 +162,13 @@ class ProblemKindMeta(type):
     def __new__(cls, name, bases, dct):
         def _set(self, feature, possible_features):
             assert feature in possible_features
+            for deprecated_features in DEPRECATED_FEATURES.values():
+                if feature in deprecated_features:
+                    warn(
+                        f"ProblemKind feature {feature} is deprecated.",
+                        DeprecationWarning,
+                        stacklevel=2,
+                    )
             self._features.add(feature)
 
         def _unset(self, feature, possible_features):

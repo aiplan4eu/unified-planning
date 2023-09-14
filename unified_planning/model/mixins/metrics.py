@@ -90,17 +90,14 @@ class MetricsMixin:
         fluents_to_only_increase = set()
         fluents_to_only_decrease = set()
         fve = self._env.free_vars_extractor
+        # A list that stores all the goals of the problem metrics and is computed
+        oversub_gains: List[Iterator[Union[int, Fraction]]] = []
         for metric in self._metrics:
             if metric.is_minimize_expression_on_final_state():
                 assert isinstance(
                     metric, up.model.metrics.MinimizeExpressionOnFinalState
                 )
                 kind.set_quality_metrics("FINAL_VALUE")
-                t = metric.expression.type
-                if t.is_int_type():
-                    kind.set_numbers("DISCRETE_NUMBERS")
-                elif t.is_real_type():
-                    kind.set_numbers("CONTINUOUS_NUMBERS")
                 (
                     is_linear,
                     fnode_to_only_increase,  # positive fluents in minimize can only be increased
@@ -120,11 +117,6 @@ class MetricsMixin:
                     metric, up.model.metrics.MaximizeExpressionOnFinalState
                 )
                 kind.set_quality_metrics("FINAL_VALUE")
-                t = metric.expression.type
-                if t.is_int_type():
-                    kind.set_numbers("DISCRETE_NUMBERS")
-                elif t.is_real_type():
-                    kind.set_numbers("CONTINUOUS_NUMBERS")
                 (
                     is_linear,
                     fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
@@ -142,23 +134,17 @@ class MetricsMixin:
             elif metric.is_minimize_action_costs():
                 assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 kind.set_quality_metrics("ACTIONS_COST")
-                if metric.default is not None:
-                    t = metric.default.type
-                    if t.is_int_type():
-                        kind.set_numbers("DISCRETE_NUMBERS")
-                    elif t.is_real_type():
-                        kind.set_numbers("CONTINUOUS_NUMBERS")
-                    for f in fve.get(metric.default):
-                        if f.fluent() in static_fluents:
-                            kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
-                        else:
-                            kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
-                for cost in metric.costs.values():
+                costs = (
+                    metric.costs.values()
+                    if metric.default is None
+                    else chain(metric.costs.values(), [metric.default])
+                )
+                for cost in costs:
                     t = cost.type
                     if t.is_int_type():
-                        kind.set_numbers("DISCRETE_NUMBERS")
+                        kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTION_COSTS")
                     elif t.is_real_type():
-                        kind.set_numbers("CONTINUOUS_NUMBERS")
+                        kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTION_COSTS")
                     if cost is None:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."
@@ -175,19 +161,16 @@ class MetricsMixin:
             elif metric.is_oversubscription():
                 assert isinstance(metric, up.model.metrics.Oversubscription)
                 kind.set_quality_metrics("OVERSUBSCRIPTION")
-                for c in metric.goals.values():
-                    if isinstance(c, int):
-                        kind.set_numbers("DISCRETE_NUMBERS")
-                    else:
-                        kind.set_numbers("CONTINUOUS_NUMBERS")
+                oversub_gains.append(metric.goals.values())
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.metrics.TemporalOversubscription)
                 kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                for c in metric.goals.values():
-                    if isinstance(c, int):
-                        kind.set_numbers("DISCRETE_NUMBERS")
-                    else:
-                        kind.set_numbers("CONTINUOUS_NUMBERS")
+                oversub_gains.append(metric.goals.values())
             else:
                 assert False, "Unknown quality metric"
+        for oversub_gain in chain(*oversub_gains):
+            if isinstance(oversub_gain, int):
+                kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
+            else:
+                kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
         return fluents_to_only_increase, fluents_to_only_decrease
