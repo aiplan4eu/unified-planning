@@ -316,7 +316,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        return ProblemKind(problem_kind.features)
+        return ProblemKind(problem_kind.features, problem_kind.get_version())
 
     def _compile(
         self,
