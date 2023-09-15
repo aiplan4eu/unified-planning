@@ -91,7 +91,7 @@ class MetricsMixin:
         fluents_to_only_decrease = set()
         fve = self._env.free_vars_extractor
         # A list that stores all the goals of the problem metrics and is computed
-        oversub_gains: List[Iterator[Union[int, Fraction]]] = []
+        oversub_gains: List[Any] = []
         for metric in self._metrics:
             if metric.is_minimize_expression_on_final_state():
                 assert isinstance(
@@ -142,9 +142,9 @@ class MetricsMixin:
                 for cost in costs:
                     t = cost.type
                     if t.is_int_type():
-                        kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTION_COSTS")
+                        kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
                     elif t.is_real_type():
-                        kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTION_COSTS")
+                        kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
                     if cost is None:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."

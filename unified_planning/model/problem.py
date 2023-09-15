@@ -31,6 +31,7 @@ from unified_planning.model.mixins import (
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import _IntType
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
@@ -717,7 +718,9 @@ class _KindFactory:
         self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
 
         self.environment: unified_planning.Environment = environment
-        self.kind: up.model.ProblemKind = up.model.ProblemKind()
+        self.kind: up.model.ProblemKind = up.model.ProblemKind(
+            version=LATEST_PROBLEM_KIND_VERSION
+        )
 
         self.kind.set_problem_class(problem_class)
 
@@ -750,7 +753,7 @@ class _KindFactory:
 
     def finalize(self) -> "up.model.ProblemKind":
         """Once all features have been added, remove unnecessary features that were added preventively."""
-        if not self.kind.has_real_fluents() or not self.kind.has_int_fluents():
+        if not self.kind.has_real_fluents() and not self.kind.has_int_fluents():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif not self.kind.has_simple_numeric_planning():
             self.kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
@@ -768,10 +771,6 @@ class _KindFactory:
             self.kind.set_typing("FLAT_TYPING")
             if cast(up.model.types._UserType, type).father is not None:
                 self.kind.set_typing("HIERARCHICAL_TYPING")
-        elif type.is_int_type():  # TODO find equivalent kind
-            self.kind.set_numbers("DISCRETE_NUMBERS")
-        elif type.is_real_type():  # TODO find equivalent kind
-            self.kind.set_numbers("CONTINUOUS_NUMBERS")
 
     def update_problem_kind_effect(
         self,

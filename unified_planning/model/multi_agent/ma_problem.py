@@ -17,8 +17,9 @@
 import unified_planning as up
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.expression import ConstantExpression
-from unified_planning.model.operators import OperatorKind
 from unified_planning.model.fluent import get_all_fluent_exp
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
@@ -30,7 +31,6 @@ from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
     AgentsSetMixin,
-    InitialStateMixin,
 )
 from fractions import Fraction
 from itertools import chain
@@ -333,7 +333,9 @@ class MultiAgentProblem(  # type: ignore[misc]
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible.
         """
-        self._kind = up.model.problem_kind.ProblemKind()
+        self._kind = up.model.problem_kind.ProblemKind(
+            version=LATEST_PROBLEM_KIND_VERSION
+        )
         self._kind.set_problem_class("ACTION_BASED_MULTI_AGENT")
         for ag in self.agents:
             for fluent in ag.fluents:
@@ -377,10 +379,6 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_typing("FLAT_TYPING")
             if cast(up.model.types._UserType, type).father is not None:
                 self._kind.set_typing("HIERARCHICAL_TYPING")
-        elif type.is_int_type():  # TODO find equivalent kind
-            self._kind.set_numbers("DISCRETE_NUMBERS")
-        elif type.is_real_type():  # TODO find equivalent kind
-            self._kind.set_numbers("CONTINUOUS_NUMBERS")
 
     def _update_problem_kind_fluent(self, fluent: "up.model.fluent.Fluent"):
         self._update_problem_kind_type(fluent.type)
@@ -393,10 +391,12 @@ class MultiAgentProblem(  # type: ignore[misc]
                 numeric_type.lower_bound is not None
                 or numeric_type.upper_bound is not None
             ):
-                self._kind.set_numbers(
-                    "BOUNDED_TYPES"
-                )  # TODO add INT_FLUENT or REAL_FLUENT based on fluent's type
-            self._kind.set_fluents_type("NUMERIC_FLUENTS")
+                self._kind.set_numbers("BOUNDED_TYPES")
+            if fluent.type.is_int_type():
+                self.kind.set_fluents_type("INT_FLUENTS")
+            else:
+                assert fluent.type.is_real_type()
+                self.kind.set_fluents_type("REAL_FLUENTS")
         elif fluent.type.is_user_type():
             self._kind.set_fluents_type("OBJECT_FLUENTS")
         for p in fluent.signature:

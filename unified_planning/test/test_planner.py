@@ -293,6 +293,8 @@ class TestPlanner(unittest_TestCase):
 
             # By default, when getting an Engine by name, we get a warning if the problem is not
             # supported
+            print(planner.supported_kind())
+            print(problem.kind)
             with warnings.catch_warnings(record=True) as w:
                 plan = planner.solve(problem).plan
                 self.assertIsNotNone(plan)

@@ -22,6 +22,7 @@ import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.model import Action, FNode, Problem, ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.engine import Engine, Credits
 from unified_planning.engines.results import CompilerResult
@@ -64,7 +65,7 @@ class TarskiGrounder(Engine, CompilerMixin):
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        supported_kind = ProblemKind()
+        supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
@@ -81,6 +82,10 @@ class TarskiGrounder(Engine, CompilerMixin):
         supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
+        supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
         return supported_kind
 
     @staticmethod
@@ -95,7 +100,7 @@ class TarskiGrounder(Engine, CompilerMixin):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        return ProblemKind(problem_kind.features)
+        return ProblemKind(problem_kind.features, problem_kind.get_version())
 
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: "CompilationKind"

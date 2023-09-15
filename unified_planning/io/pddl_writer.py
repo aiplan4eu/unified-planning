@@ -400,7 +400,8 @@ class PDDLWriter:
             if self.problem_kind.has_equalities():
                 out.write(" :equality")
             if (
-                self.problem_kind.has_numeric_fluents()
+                self.problem_kind.has_int_fluents()
+                or self.problem_kind.has_real_fluents()
                 or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
