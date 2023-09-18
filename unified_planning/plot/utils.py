@@ -31,7 +31,7 @@ from typing import (
 )
 
 # Defaults
-FIGSIZE = (13, 8)
+FIGSIZE = (13.0, 8.0)
 ARROWSIZE = 20
 MIN_NODE_SIZE = 4000
 NODE_COLOR = "#1f78b4"
@@ -46,7 +46,7 @@ FIGSIZE_SCALE_FACTOR = 65  # A scale factor from the figure size of plotly vs ma
 def draw_base_graph(
     graph: nx.DiGraph,
     *,
-    figsize: Optional[Sequence[float]] = None,
+    figsize: Optional[Tuple[float, float]] = None,
     top_bottom: bool = False,
     generate_node_label: Optional[
         Union[
