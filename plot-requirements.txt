@@ -1,6 +1,6 @@
 -r requirements.txt
 plotly
-matplotlib
+matplotlib==3.7.3
 kaleido
 pandas
 pygraphviz
