@@ -10,7 +10,7 @@ on:
 env:
   up_tamer_commit: "c48db20ea5b532437781fd5a539f8d6f830efe2d"
   up_pyperplan_commit: "23639395b661a768ba78832c0750ce417c7dc16a"
-  up_fast_downward_commit: "99dd5bce8f996a9557296644de38bdf94f1dbed8"
+  up_fast_downward_commit: "a5d2e211c95aba896c03aa3499a4961f3e1956cf"
   up_enhsp_commit: "10e2d8451c24114be4f98e96ac2e6dbaafeb00a6"
   up_fmap_commit: "d0e3c0c920b3a515486ae7526c0fba51c75361e1"
 
