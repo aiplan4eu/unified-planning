@@ -11,7 +11,7 @@ Optimality
 Quality Metrics
 ===============
 
-The UP library defines a set of "Quality Metrics" to express the objective functions to be optimized. Such metrics are defined in the `unified_planning.model.metrics` package and are described below.
+The UP library defines a set of "Quality Metrics" to express the objective functions to be optimized. Such metrics are defined in the `unified_planning.model.metrics` file and are described below.
 
 - **MinimizeSequentialPlanLength** is used to optimize the number of steps in the resulting plans.
 

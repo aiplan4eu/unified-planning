@@ -1687,6 +1687,11 @@ class PDDLReader:
         """
         Takes a problem, a filename and optionally a map of renaming and returns the plan parsed from the file.
 
+        The format of the file must be:
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
+        where ``[duration]`` is optional and not specified for InstantaneousActions.
+
         :param problem: The up.model.problem.Problem instance for which the plan is generated.
         :param plan_filename: The path of the file in which the plan is written.
         :param get_item_named: A function that takes a name and returns the original up.model element instance
@@ -1718,6 +1723,11 @@ class PDDLReader:
     ) -> "up.plans.Plan":
         """
         Takes a problem, a string and optionally a map of renaming and returns the plan parsed from the string.
+
+        The format of the file must be:
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
+        where ``[duration]`` is optional and not specified for InstantaneousActions.
 
         :param problem: The up.model.problem.Problem instance for which the plan is generated.
         :param plan_str: The plan in string.
