@@ -74,8 +74,6 @@ A good bug report shouldn't leave others needing to chase you up for more inform
 <!-- omit in toc -->
 #### How Do I Submit a Good Bug Report?
 
-> You should never report security related issues, vulnerabilities or bugs including sensitive information to the issue tracker, or elsewhere in public. Instead sensitive bugs should be sent by email to <unified-planning-maintainers@googlegroups.com>.
-
 We use GitHub issues to track bugs and errors. If you run into an issue with the project:
 
 - Open an [Issue](https://github.com/aiplan4eu/unified-planning/issues/new). (Since we can't be sure at this point whether it is a bug or not, we ask you not to talk about a bug yet and not to label the issue.)
@@ -113,26 +111,29 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/aiplan
 - **Explain why this enhancement would be useful** to most Unified Planning Library users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
 
 
-### Your First Code Contribution
-<!-- TODO
-include Setup of env, IDE and typical getting started instructions?
+### Code Contribution
 
--->
+Before start coding, open an issue or a discussion on the project [GitHub space]((https://github.com/aiplan4eu/unified-planning) or get in contact with a maintainer (you can use the project mailing list: unified-planning@googlegroups.com)! It is possible that someone else is already working on the same or a related fix or feature!
+
+Moreover, we have to keep a reasonable project scope, so if your contribution is wildly beyond the current capabilities of the library, it is better to discuss the idea with the community and the maintainers to avoid unpleasant situations where we have to reject your code.
+
+When contributing new code to the library, you have to follow the development practices both in terms of code style and practices (Static checks, type annotations, unit testing and continuous integration). Again, get in contact with a maintainer and frequently push your code on a Pull-Request (in draft mode) so that the community can give you early feedback and support.
+
+Remember to sign-off (https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff) every commit to signal your acceptance of the [Developer Certificate of Origin](/DCO.txt).
+
 
 ### Improving The Documentation
-<!-- TODO
-Updating, improving and correcting the documentation
 
--->
+We warmly welcome improvements to our documentation (which is kept alongside the code in the main repository). Both stylistic/grammatical fixes and new content are welcome contribution, but please make sure to maintain a professional tone and ensure that the information you provide in the docs is accurate and up-to-date with the current development branch.
 
-## Styleguides
-### Commit Messages
-<!-- TODO
-
--->
 
 ## Join The Project Team
-<!-- TODO -->
+
+Everyone is welcome to contribute to join our project! Have a look at the [GOVERNANCE.md](/GOVERNANCE.md) file to understand the project roles and the governance mechanism we established.
+
+In order to become a Contributor, please get in contact with a Maintainer: we are happy to give direct writing access to the project repository to simplify the development of frequent contributors.
+
+Maintainers are selected by the Board of Maintainers from active Contributors, but you can ask the current maintainers to be evaluated by sending a (private) email to the Board of Maintainers mailing list (unified-planning-maintainers@googlegroups.com).
 
 <!-- omit in toc -->
 ## Attribution

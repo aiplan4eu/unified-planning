@@ -23,7 +23,7 @@ Subsequently, the library received significant contributions from LAAS-CNRS (Art
 
 Up to June 30th 2023, the development of the library has been coordinated by Andrea Micheli (in the role of work-package leader in the AIPlan4EU project), discussing with the AIPlan4EU project partners the technical and design choices in a bi-weekly remote meeting.
 
-Starting from July 1st 2023, the UP project is ruled according to the prescriptions in this document.
+Starting from November 1st 2023, the UP project is ruled according to the prescriptions in this document.
 
 
 # General Governance Spirit
@@ -49,45 +49,46 @@ The **Board of Maintainers** is the main decision body of the UP project and is 
 
 # Communication Channels
 
-We establish two official communication channels for the UP project.
+We establish two official communication channels for the UP project in addition to the GitHub facilities (issues, discussions, PRs).
 
 - The **Maintainers Mailing List** (unified-planning-maintainers@googlegroups.com): all and only the active Maintainers are part of this list. The mailing list is not publicly readable but anyone can send messages to it. It is the main and official communication channel among maintainers and to communicate to the board of maintainers.
 
-- The **Public Mailing List** (unified-planning@googlegroups.com): is a general-purpose communication channel to be used for both technical matters and public announcements. the list is publicly readable and anyone can join it. All decisions and votes of the Board of Maintainers are publicly communicated through this list.
+- The **Public Mailing List** (unified-planning@googlegroups.com): is a general-purpose communication channel to be used for both technical matters and public announcements. The list is publicly readable and anyone can join it. The outcome of all the votes of the Board of Maintainers (required for the situations indicated in the following) are publicly communicated through this list.
 
-On these channels, as well as in any other virtual space associated with the library, the code of conduct of the UP project applies.
+On these channels, as well as in any other virtual space associated with the library, the [Unified Planning Library Code of Conduct](/CODE_OF_CONDUCT.md)  applies.
 
 
 # Technical Rules
 
 The following rules apply for the technical day-to-day governance of the project.
 
-- Any Maintainer can approve and commit to "master" a Pull-Request from any Committer, External Contribution or **another** Maintainer.
+1. Any Maintainer can approve and commit to "master" a Pull-Request from any Committer, External Contribution or **another** Maintainer.
 
-- It is forbidden to anyone to self-approve and commit a Pull-Request.
+2. It is forbidden to anyone to self-approve and commit a Pull-Request.
 
-- It is mandatory for any commit pushed to master (after June 30th 2023) to be signed off to signal the acceptance of the Developer Certificate of Origin (DCO) rules.
+3. Any Maintainer can reject a Pull-Request from any Committer or External Contribution or Maintainer by publicly motivating the reason in the PR discussion page. Reasons should be of technical nature or concerning the scope of the library and any effort should be made to not waste anybody's work in a constructive manner.
 
-- It is forbidden to anyone to modify this document, unless **all** the Maintainers approve the Pull-Request.
+4. If a Maintainer disagrees with another Maintainer decision of accepting or rejecting a Pull-Request, he/she can uphold the final decision to a simple majority vote of the  Board of Maintainers.
 
-- Any Maintainer can make new releases (on GitHub and PyPI) of the UP library (taking the code of the "master" branch) autonomously, but must inform all the other Maintainers and Committers through the public mailing list.
+5. It is mandatory for any commit pushed to master (after October 31st 2023) to be signed off to signal the acceptance of the [Developer Certificate of Origin (DCO)](/DCO.txt) rules.
 
-- Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can change the name, web address or digital identity of the UP project.
+6. It is forbidden to anyone to modify this document, unless **all** the Maintainers approve the Pull-Request.
+
+7. Any Maintainer can make new releases (on GitHub and PyPI) of the UP library (taking the code of the "master" branch) autonomously, but must inform all the other Maintainers and Committers through the public mailing list.
+
+8. Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can change the name (currently, "Unified Planning"), web address (currently, https://github.com/aiplan4eu/unified-planning) or digital identity of the UP project.
 
 
 # Membership Rules
 
 The following rules govern the promotion and demotion of Committers and Maintainers.
 
-- Any Maintainer can autonomously nominate (and give the needed permissions) any number of Committers. (The rationale is that being a Committer does not grant any specific power over the project, but simplifies the work for people who often contribute to the library).
+9.  Any Maintainer can autonomously nominate (and give the needed permissions) any number of Committers. (The rationale is that being a Committer does not grant any specific power over the project, but simplifies the work for people who often contribute to the library).
 
-- Any Maintainer can step down (effective immediately) from being a Maintainer by informing the Board of Maintainers.
+10. Any Maintainer can step down (effective immediately) from being a Maintainer by informing the Board of Maintainers.
 
-- Only a majority vote of the Board of Maintainers can nominate new Maintainers. The number of Maintainers is not fixed.
+11. Only a majority vote of the Board of Maintainers can nominate new Maintainers. The number of Maintainers is not fixed.
 
-- Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can modify the governance rules layed out in this document.
+12. Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can modify the governance rules layed out in this document.
 
-- In order to remove an Maintainer unwilling to leave his/her position, a 75% majority vote of the other Maintainers is needed.
-
-
-
+13. In order to remove an Maintainer unwilling to leave his/her position, a 75% majority vote of the other Maintainers is needed.
