@@ -772,7 +772,7 @@ def get_all_applicable_engines(
     :param compilation_kind: An engine is returned only if it is able to handle this ``compilation_kind``. This
         parameter can be specified only if the ``operation_mode`` is ``COMPILER``.
     :return: The list of engines names that satisfy all the given requirements.
-    """  # TODO here check how to handle not latest version ProblemKind
+    """
     return get_environment().factory.get_all_applicable_engines(
         problem_kind,
         operation_mode,

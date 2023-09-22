@@ -526,7 +526,7 @@ class Factory:
                 x = [name] + [
                     str(
                         EngineClass.supports(
-                            ProblemKind({f}, version=LATEST_PROBLEM_KIND_VERSION)
+                            ProblemKind({f}, version=problem_kind.get_version())
                         )
                     )
                     for f in problem_features
