@@ -30,7 +30,9 @@ class SequentialSimulatorMixin(ABC):
     Important NOTE: The `AbstractProblem` instance is given at the constructor.
     """
 
-    def __init__(self, problem: "up.model.AbstractProblem") -> None:
+    def __init__(
+        self, problem: "up.model.AbstractProblem", error_on_failed_checks: bool
+    ) -> None:
         """
         Takes an instance of a `problem` and eventually some parameters, that represent
         some specific settings of the `SequentialSimulatorMixin`.
@@ -43,6 +45,7 @@ class SequentialSimulatorMixin(ABC):
             self_class, up.engines.engine.Engine
         ), "SequentialSimulatorMixin does not implement the up.engines.Engine class"
         assert isinstance(self, up.engines.engine.Engine)
+        self._error_on_failed_checks: bool = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
