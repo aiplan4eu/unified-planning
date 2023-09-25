@@ -539,7 +539,6 @@ class TestProblem(TestCase):
                     problem.kind.has_simple_numeric_planning(), problem.name
                 )
             else:
-                print(problem.name)
                 self.assertFalse(
                     problem.kind.has_simple_numeric_planning(), problem.name
                 )
