@@ -91,4 +91,4 @@ The following rules govern the promotion and demotion of Committers and Maintain
 
 12. Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can modify the governance rules layed out in this document.
 
-13. In order to remove an Maintainer unwilling to leave his/her position, a 75% majority vote of the other Maintainers is needed.
+13. In order to remove an Maintainer unwilling to leave his/her position, a majority vote of the Board of Maintainers with at lest 75% of the other Maintainers in favor is needed.
