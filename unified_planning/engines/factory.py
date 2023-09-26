@@ -56,6 +56,7 @@ DEFAULT_ENGINES = {
     "lpg-anytime": ("up_lpg.lpg_planner", "LPGAnytimeEngine"),
     "lpg-repairer": ("up_lpg.lpg_planner", "LPGPlanRepairer"),
     "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
+    "ma_bfws": ("up_ma_bfws.ma_bfws_planner", "MA_BFWSsolver"),
     "aries": ("up_aries", "Aries"),
     "aries-val": ("up_aries", "AriesVal"),
     "sequential_plan_validator": (
@@ -155,6 +156,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "lpg-anytime",
     "lpg-repairer",
     "fmap",
+    "ma_bfws",
     "aries",
     "aries-val",
 ]
