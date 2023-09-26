@@ -453,6 +453,7 @@ def BoolType() -> unified_planning.model.types.Type:
     """Returns the global environment's boolean type."""
     return get_environment().type_manager.BoolType()
 
+
 def DerivedBoolType() -> unified_planning.model.types.Type:
     """Returns the global environment's boolean type."""
     return get_environment().type_manager.DerivedBoolType()

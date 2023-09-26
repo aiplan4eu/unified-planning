@@ -27,7 +27,7 @@ class Type(ABC):
     def is_bool_type(self) -> bool:
         """Returns `True` iff is `boolean Type`."""
         return False
-    
+
     def is_derived_bool_type(self) -> bool:
         """Returns `True` iff is `derived bool Type`."""
         return False
@@ -77,7 +77,8 @@ class _BoolType(Type):
     def is_bool_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
-    
+
+
 class _DerivedBoolType(Type):
     """Represents the derived bool type."""
 

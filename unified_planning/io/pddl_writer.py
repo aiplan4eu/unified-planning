@@ -556,7 +556,7 @@ class PDDLWriter:
             body_str = "(and )"
             if not b.is_true():
                 body_str = converter.convert(b)
-            out.write(f'  {body_str}\n')
+            out.write(f"  {body_str}\n")
 
             out.write(f" )\n")
 

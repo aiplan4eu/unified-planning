@@ -86,7 +86,7 @@ class TypeManager:
     def BoolType(self) -> Type:
         """Returns this `Environment's` boolean `Type`."""
         return self._bool
-    
+
     def DerivedBoolType(self) -> Type:
         """Returns this `Environment's` derived boolean `Type`."""
         return self._derived_bool
@@ -158,7 +158,8 @@ class TypeManager:
                     for ancestor in father.ancestors
                 ):
                     raise UPTypeError(
-                        f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
+                        f"The name: {name} is already used. A UserType and one of his"
+                        " ancestors can not share the name."
                     )
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
@@ -183,7 +184,8 @@ class TypeManager:
                     for ancestor in father.ancestors
                 ):
                     raise UPTypeError(
-                        f"The name: {name} is already used. A MovableType and one of his ancestors can not share the name."
+                        f"The name: {name} is already used. A MovableType and one of"
+                        " his ancestors can not share the name."
                     )
             mt = _MovableType(name, father)
             self._movable_types[(name, father)] = mt

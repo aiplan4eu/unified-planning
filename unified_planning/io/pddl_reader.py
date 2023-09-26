@@ -169,12 +169,12 @@ class PDDLGrammar:
         )
 
         axiom_def = Group(
-           Suppress("(")
-           + ":derived"
-           - set_results_name(predicate, "head")
-           - set_results_name(nested_expr(), "body")
-           + Suppress(")")
-        )   
+            Suppress("(")
+            + ":derived"
+            - set_results_name(predicate, "head")
+            - set_results_name(nested_expr(), "body")
+            + Suppress(")")
+        )
 
         parameters = set_results_name(
             ZeroOrMore(
@@ -1052,9 +1052,7 @@ class PDDLReader:
 
         has_actions_cost = False
 
-        def get_fluent_params(
-            p: ParseResults
-        ) -> OrderedDict():
+        def get_fluent_params(p: ParseResults) -> OrderedDict():
             params = OrderedDict()
             for g in p[1]:
                 try:
@@ -1171,13 +1169,13 @@ class PDDLReader:
             assert len(a["body"]) == 1, "Only one condition in body of axiom allowed"
             act = up.model.InstantaneousAction("dummy", params, self._env)
             body = self._parse_exp(
-                            problem,
-                            act,
-                            types_map,
-                            {},
-                            CustomParseResults(a["body"][0]),
-                            domain_str,
-                        )
+                problem,
+                act,
+                types_map,
+                {},
+                CustomParseResults(a["body"][0]),
+                domain_str,
+            )
             axiom = unified_planning.model.Axiom(head, body, self._env)
             problem.add_axiom(axiom)
 
