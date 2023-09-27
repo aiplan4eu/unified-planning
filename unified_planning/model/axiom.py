@@ -32,7 +32,6 @@ class Axiom(InstantaneousAction):
         InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
 
     def set_head(self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]):
-        print(f"TOSET: {fluent}")
         if not fluent.type.is_derived_bool_type():
             raise UPTypeError("The head of an axiom must be of type DerivedBoolType!")
 
@@ -70,27 +69,24 @@ class Axiom(InstantaneousAction):
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
 
         if not fluent_exp.is_fluent_exp():
-            raise UPUsageError(
-                "head/effect of an axiom must be a fluent expression"
-            )
+            raise UPUsageError("head/effect of an axiom must be a fluent expression")
 
         fluent_exp_params = [p.parameter() for p in fluent_exp.args]
         if self.parameters != fluent_exp_params:
             raise UPUsageError(
                 f"parameters of axiom and this fluent expression do not match: {self.parameters} vs. {fluent_exp_params}"
             )
-        
+
         self.clear_effects()
         self._add_effect_instance(
             up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
         )
 
-
     @property
     def head(self) -> List["up.model.fluent.Fluent"]:
         """Returns the `head` of the `Axiom`."""
         return self._effects[0]
-    
+
     @property
     def body(self) -> List["up.model.fnode.FNode"]:
         """Returns the `list` of the `Axiom` `body`."""
