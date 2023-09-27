@@ -528,6 +528,7 @@ class TestProblem(TestCase):
             "basic_int_fluent_param",
             "basic_bounded_int_action_param",
             "basic_unbounded_int_action_param",
+            "basic_numeric",
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
