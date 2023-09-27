@@ -17,63 +17,96 @@ This module defines the base class `Axiom'.
 An `Axiom' has a `head' which is a single `Parameter' and a `body' which is a single `Condition'.
 """
 
-import unified_planning as up
-from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import UPTypeError
-from typing import Optional, Union
+from unified_planning.model.action import *
+from unified_planning.environment import get_environment, Environment
 
 
-class Axiom:
+class Axiom(InstantaneousAction):
     def __init__(
         self,
-        _head: "up.model.fluent.Fluent",
-        _body: Union[
+        _name: str,
+        _parameters: Optional["OrderedDict[str, up.model.types.Type]"] = None,
+        _env: Optional[Environment] = None,
+        **kwargs: "up.model.types.Type",
+    ):
+        InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
+
+    def set_head(self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]):
+        if not fluent.type.is_derived_bool_type():
+            raise UPTypeError("The head of an axiom must be of type DerivedBoolType!")
+
+        self.add_effect(fluent)
+
+    def add_body_condition(
+        self,
+        precondition: Union[
             "up.model.fnode.FNode",
             "up.model.fluent.Fluent",
             "up.model.parameter.Parameter",
             bool,
         ],
-        _env: Optional[Environment] = None,
     ):
-        if not _head.type.is_derived_bool_type():
-            raise UPTypeError("The head of an axiom must be of type DerivedBoolType!")
-        self._environment = get_environment(_env)
-        self._head = _head
-        self._body = self._environment.expression_manager.auto_promote(_body)[0]
+        super().add_precondition(precondition)
+
+    def add_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression" = True,
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        if value != True:
+            raise UPUsageError("value can only be true for an axiom")
+        if condition != True:
+            raise UPUsageError("the effect of an axiom can not include a condition")
+        if len(forall) > 0:
+            raise UPUsageError("the effect of an axiom can not a forall")
+
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError("head/effect of an axiom must be a fluent expression")
+
+        fluent_exp_params = [p.parameter() for p in fluent_exp.args]
+        if self.parameters != fluent_exp_params:
+            raise UPUsageError(
+                f"parameters of axiom and this fluent expression do not match: {self.parameters} vs. {fluent_exp_params}"
+            )
+
+        self.clear_effects()
+        self._add_effect_instance(
+            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
+        )
+
+    @property
+    def head(self) -> List["up.model.fluent.Fluent"]:
+        """Returns the `head` of the `Axiom`."""
+        return self._effects[0]
+
+    @property
+    def body(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` of the `Axiom` `body`."""
+        return self._preconditions
 
     def __repr__(self) -> str:
         s = []
-        s.append("axiom { \n")
-        s.append(f"   head = {self._head}\n")
-        s.append(f"   body = {self._body}\n")
+        s.append(f"axiom {self.name}")
+        first = True
+        for p in self.parameters:
+            if first:
+                s.append("(")
+                first = False
+            else:
+                s.append(", ")
+            s.append(str(p))
+        if not first:
+            s.append(")")
+        s.append("{\n")
+        s.append(f"   head = {self.head}\n")
+        s.append(f"   body = {self.body}\n")
         s.append("  }")
         return "".join(s)
-
-    def __eq__(self, oth: object) -> bool:
-        return (
-            isinstance(oth, Axiom)
-            and self._environment == oth._environment
-            and self._head == oth._head
-            and self._body == oth._body
-        )
-
-    def __hash__(self) -> int:
-        return hash(self._head) + hash(self._body)
-
-    @property
-    def environment(self) -> Environment:
-        """Returns this `Axiom` `Environment`."""
-        return self._environment
-
-    def head(self) -> "up.model.fluent.Fluent":
-        """Returns this `Axiom` `Head`."""
-        return self._head
-
-    def body(self) -> "up.model.fnode.FNode":
-        """Returns this `Axiom` `Body`."""
-        return self._body
-
-    def clone(self):
-        new_head = copy.copy(self._head)
-        new_body = copy.copy(self._body)
-        return Axiom(new_head, new_body, self._environment)

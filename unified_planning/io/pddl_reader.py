@@ -397,7 +397,9 @@ class PDDLReader:
     def _parse_exp(
         self,
         problem: up.model.Problem,
-        act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
+        act: typing.Optional[
+            Union[up.model.Action, up.model.Axiom, htn.Method, htn.TaskNetwork]
+        ],
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: CustomParseResults,
@@ -1156,27 +1158,55 @@ class PDDLReader:
             task = htn.Task(name, task_params)
             problem.add_task(task)
 
-        for a in domain_res.get("axioms", []):
-            # Head is a single predicate
-            assert len(a["head"]) == 1, "Only one predicate in head of axiom allowed"
-            p = a["head"][0]
-            n = p[0]
-            params = get_fluent_params(p)
-            head = problem.fluent(n)
-            head._typename = self._tm.DerivedBoolType()
+        for axiom_entry in domain_res.get("axioms", []):
+            # Each axiom should have only one predicate in the head
+            assert (
+                len(axiom_entry["head"]) == 1
+            ), "Only one predicate in head of axiom allowed"
 
-            # Body is a condition
-            assert len(a["body"]) == 1, "Only one condition in body of axiom allowed"
-            act = up.model.InstantaneousAction("dummy", params, self._env)
-            body = self._parse_exp(
+            # Extract the fluent name from the axiom's head
+            fluent_name = axiom_entry["head"][0][0]
+
+            # Set the fluent's type to DerivedBoolType
+            problem.fluent(fluent_name)._typename = self._tm.DerivedBoolType()
+
+            # Extract and organize the axiom's parameters
+            axiom_params = OrderedDict()
+            for param_entry in axiom_entry["head"][0][1]:
+                param_name, param_type = param_entry[1][0][0], param_entry[1][1]
+                axiom_params[param_name] = types_map[
+                    param_type if len(param_entry[1]) > 1 else Object
+                ]
+
+            # Create an Axiom object with the parameters
+            axiom = unified_planning.model.Axiom("", axiom_params)
+
+            # Retrieve the current fluent
+            this_fluent = problem.fluent(fluent_name)
+
+            # Create an effect using the axiom's parameters and set it as the axiom's head
+            effect = this_fluent(*axiom.parameters)
+            axiom.set_head(effect)
+
+            # Ensure there's only one condition in the body of the axiom
+            assert (
+                len(axiom_entry["body"]) == 1
+            ), "Only one condition in body of axiom allowed"
+
+            # Parse the condition and add it to the axiom's body
+            body_condition = self._parse_exp(
                 problem,
-                act,
+                axiom,
                 types_map,
                 {},
-                CustomParseResults(a["body"][0]),
+                CustomParseResults(axiom_entry["body"][0]),
                 domain_str,
             )
-            axiom = unified_planning.model.Axiom(head, body, self._env)
+
+            # Add the parsed body condition to the axiom
+            axiom.add_body_condition(body_condition)
+
+            # Add the axiom to the problem
             problem.add_axiom(axiom)
 
         for a in domain_res.get("actions", []):
