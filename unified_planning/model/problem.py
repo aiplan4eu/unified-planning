@@ -241,8 +241,8 @@ class Problem(  # type: ignore[misc]
         res += InitialStateMixin.__hash__(self)
         res += MetricsMixin.__hash__(self)
 
-        for a in self._axioms:
-            res += hash(a)
+        for ax in self._axioms:
+            res += hash(ax)
         for a in self._actions:
             res += hash(a)
         for c in self._trajectory_constraints:

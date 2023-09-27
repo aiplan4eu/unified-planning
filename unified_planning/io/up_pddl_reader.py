@@ -1451,7 +1451,9 @@ class UPPDDLReader:
 
         has_actions_cost = False
 
-        def get_fluent_params(p: ParseResults) -> OrderedDict():
+        def get_fluent_params(
+            p: ParseResults,
+        ) -> "OrderedDict[str, up.model.types.Type]":
             params = OrderedDict()
             for g in p[1]:
                 try:
@@ -1569,30 +1571,50 @@ class UPPDDLReader:
             task = htn.Task(name, task_params)
             problem.add_task(task)
 
-        for a in domain_res.get("axioms", []):
-            # Head is a single predicate
-            assert len(a["head"]) == 1, "Only one predicate in head of axiom allowed"
-            head_str = a["head"][0]
-            fluent_name = a["head"][0][0]
-            ax_params = get_fluent_params(head_str)
+        for axiom_entry in domain_res.get("axioms", []):
+            # Each axiom should have only one predicate in the head
+            assert (
+                len(axiom_entry["head"]) == 1
+            ), "Only one predicate in head of axiom allowed"
+
+            # Extract the fluent name from the axiom's head
+            fluent_name = axiom_entry["head"][0][0]
+
+            # Set the fluent's type to DerivedBoolType
             problem.fluent(fluent_name)._typename = self._tm.DerivedBoolType()
 
-            ###### SOMEHOW ADD FLUENTS as effect (no clue how this is possible...)
-            axiom = up.model.Axiom("", ax_params)
-            print(CustomParseResults(head_str))
+            # Extract and organize the axiom's parameters
+            axiom_params = get_fluent_params(axiom_entry["head"][0])
 
-            # Body is a condition
-            assert len(a["body"]) == 1, "Only one condition in body of axiom allowed"
-            axiom.add_body_condition(
-                self._parse_exp(
-                    problem,
-                    axiom,
-                    types_map,
-                    {},
-                    CustomParseResults(a["body"][0]),
-                    domain_str,
-                )
+            # Create an Axiom object with the parameters
+            axiom = up.model.Axiom("", axiom_params)
+
+            # Retrieve the current fluent
+            this_fluent = problem.fluent(fluent_name)
+
+            # Create an effect using the axiom's parameters and set it as the axiom's head
+            effect = this_fluent(*axiom.parameters)
+            axiom.set_head(effect)
+
+            # Ensure there's only one condition in the body of the axiom
+            assert (
+                len(axiom_entry["body"]) == 1
+            ), "Only one condition in body of axiom allowed"
+
+            # Parse the condition and add it to the axiom's body
+            body_condition = self._parse_exp(
+                problem,
+                axiom,
+                types_map,
+                {},
+                CustomParseResults(axiom_entry["body"][0]),
+                domain_str,
             )
+
+            # Add the parsed body condition to the axiom
+            axiom.add_body_condition(body_condition)
+
+            # Add the axiom to the problem
             problem.add_axiom(axiom)
 
         for a in domain_res.get("processes", []):

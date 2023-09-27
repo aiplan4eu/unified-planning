@@ -552,8 +552,8 @@ class PDDLWriter:
 
         for a in self.problem.axioms:
             if any(p.simplify().is_false() for p in a.preconditions):
-                    continue
-            out.write(f" (:derived ({a.head._fluent.fluent().name}")
+                continue
+            out.write(f" (:derived ({self._get_mangled_name(a.head._fluent.fluent())}")
             for ap in a.parameters:
                 if ap.type.is_user_type():
                     out.write(
@@ -607,7 +607,7 @@ class PDDLWriter:
                     f"\n  :task ({self._get_mangled_name(m.achieved_task.task)} {params_str})"
                 )
                 if len(m.preconditions) > 0:
-                    precond_str: List[str] = []
+                    precond_str = []
                     for p in (c.simplify() for c in m.preconditions):
                         if not p.is_true():
                             if p.is_and():

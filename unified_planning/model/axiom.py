@@ -32,7 +32,6 @@ class Axiom(InstantaneousAction):
         InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
 
     def set_head(self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]):
-        print(f"TOSET: {fluent}")
         if not fluent.type.is_derived_bool_type():
             raise UPTypeError("The head of an axiom must be of type DerivedBoolType!")
 
@@ -60,7 +59,7 @@ class Axiom(InstantaneousAction):
             raise UPUsageError("value can only be true for an axiom")
         if condition != True:
             raise UPUsageError("the effect of an axiom can not include a condition")
-        if len(forall) > 0:
+        if len(tuple(forall)) > 0:
             raise UPUsageError("the effect of an axiom can not a forall")
 
         (
@@ -70,27 +69,36 @@ class Axiom(InstantaneousAction):
         ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
 
         if not fluent_exp.is_fluent_exp():
-            raise UPUsageError(
-                "head/effect of an axiom must be a fluent expression"
-            )
+            raise UPUsageError("head/effect of an axiom must be a fluent expression")
 
         fluent_exp_params = [p.parameter() for p in fluent_exp.args]
         if self.parameters != fluent_exp_params:
             raise UPUsageError(
                 f"parameters of axiom and this fluent expression do not match: {self.parameters} vs. {fluent_exp_params}"
             )
-        
+
         self.clear_effects()
         self._add_effect_instance(
             up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
         )
 
+    def clone(self):
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
+        new_axiom = Axiom(self._name, new_params, self._environment)
+        new_axiom._preconditions = self._preconditions[:]
+        new_axiom._effects = [e.clone() for e in self._effects]
+        new_axiom._fluents_assigned = self._fluents_assigned.copy()
+        new_axiom._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_axiom._simulated_effect = self._simulated_effect
+        return new_axiom
 
     @property
-    def head(self) -> List["up.model.fluent.Fluent"]:
+    def head(self) -> "up.model.effect.Effect":
         """Returns the `head` of the `Axiom`."""
         return self._effects[0]
-    
+
     @property
     def body(self) -> List["up.model.fnode.FNode"]:
         """Returns the `list` of the `Axiom` `body`."""
