@@ -597,7 +597,7 @@ class MAPDDLWriter:
 
             out.write("\n )\n")
             converter = ConverterToMAPDDLString(
-                self.problem, self._get_mangled_name, ag, self.unfactored == False
+                self.problem, self._get_mangled_name, ag
             )
             out.write(" (:init")
 
