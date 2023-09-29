@@ -33,6 +33,7 @@ from unified_planning.model.mixins import (
     InitialStateMixin,
 )
 from fractions import Fraction
+from itertools import chain
 
 
 class MultiAgentProblem(  # type: ignore[misc]
@@ -145,14 +146,7 @@ class MultiAgentProblem(  # type: ignore[misc]
         new_p.ma_environment._fluents_defaults = (
             self.ma_environment._fluents_defaults.copy()
         )
-        for ag in self.agents:
-            new_ag = up.model.multi_agent.Agent(ag.name, self)
-            new_ag._public_fluents = ag._public_fluents.copy()
-            new_ag._fluents = ag._fluents.copy()
-            new_ag._fluents_defaults = ag._fluents_defaults.copy()
-            for a in ag.actions:
-                new_ag.add_action(a.clone())
-            new_p.add_agent(new_ag)
+        new_p._agents = [ag.clone(new_p) for ag in self._agents]
         new_p._user_types = self._user_types[:]
         new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
         new_p._objects = self._objects[:]
@@ -347,6 +341,7 @@ class MultiAgentProblem(  # type: ignore[misc]
         for fluent in self.ma_environment.fluents:
             self._update_problem_kind_fluent(fluent)
         for ag in self.agents:
+            self._update_agent_goal_kind(ag)
             for action in ag.actions:
                 self._update_problem_kind_action(action)
         for goal in self._goals:
@@ -417,6 +412,15 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def _update_agent_goal_kind(self, agent: "up.model.multi_agent.Agent"):
+        if isinstance(agent, up.model.multi_agent.Agent):
+            if agent.public_goals:
+                self._kind.set_multi_agent("AGENT_SPECIFIC_PUBLIC_GOAL")
+            if agent.private_goals:
+                self._kind.set_multi_agent("AGENT_SPECIFIC_PRIVATE_GOAL")
+            for goal in chain(agent.private_goals, agent.public_goals):
+                self._update_problem_kind_condition(goal)
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":
         """

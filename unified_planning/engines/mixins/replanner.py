@@ -23,11 +23,16 @@ from warnings import warn
 class ReplannerMixin(ABC):
     """Base class that must be extended by an :class:`~unified_planning.engines.Engine` that is also a `Replanner`."""
 
-    def __init__(self, problem: "up.model.AbstractProblem"):
+    def __init__(
+        self,
+        problem: "up.model.AbstractProblem",
+        error_on_failed_checks: bool,
+    ):
         self._problem = problem.clone()
         self_class = type(self)
         assert issubclass(self_class, up.engines.engine.Engine)
         assert isinstance(self, up.engines.engine.Engine)
+        self._error_on_failed_checks: bool = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
@@ -106,6 +111,10 @@ class ReplannerMixin(ABC):
         Removes the given goal.
 
         :param goal: the goal to remove to the problem.
+        :raises UPUsageError: If the goal is not found in the problem.
+            This works only if the checks are enabled (flag ``skip_checks``).
+            Based on the ``error_on_failed_checks`` this cna be an exception or a
+            warning.
         """
         return self._remove_goal(goal)
 
@@ -122,6 +131,10 @@ class ReplannerMixin(ABC):
         Removes the given action.
 
         :param action: the action to remove to the problem.
+        :raises UPUsageError: If the action is not found in the problem.
+            This works only if the checks are enabled (flag ``skip_checks``).
+            Based on the ``error_on_failed_checks`` this cna be an exception or a
+            warning.
         """
         return self._remove_action(name)
 

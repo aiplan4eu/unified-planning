@@ -44,7 +44,7 @@ class UserTypesSetMixin:
         if type not in self._user_types:
             ut = cast(_UserType, type)
             if self._has_name_method(ut.name):
-                msg = f"The type name {ut.name} is already used in the problem! Different elements of a problem can have the same name if the environment flag error_used_named is disabled."
+                msg = f"The type name {ut.name} is already used in the problem! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
                 if self._env.error_used_name or any(
                     ut.name == cast(_UserType, t).name for t in self._user_types
                 ):

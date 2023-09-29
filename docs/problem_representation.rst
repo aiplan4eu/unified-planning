@@ -198,8 +198,12 @@ Problem Kinds
    * -
      - TASK_ORDER_TEMPORAL
      - Task networks may be subject to arbitrary temporal constraints (e.g. simple temporal constraints or disjunctive temporal constraints).
-
-
+   * - MULTI_AGENT
+     - AGENT_SPECIFIC_PRIVATE_GOAL
+     - At least one agent has at least one private specific goal. Private-specific goals are; individual agent goals (not coalition goals) unknown to other agents.
+   * -
+     - AGENT_SPECIFIC_PUBLIC_GOAL
+     - At least one agent has at least one public-specific goal. Public-specific goals are; individual agent goals (not coalition goals) known to other agents.
 
 The API provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
 The functionalities for creating model objects and to manipulate them are collected in the unified_planning.model package of the library.

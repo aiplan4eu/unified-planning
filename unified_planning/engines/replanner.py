@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from warnings import warn
 import unified_planning as up
 import unified_planning.engines.mixins as mixins
 from unified_planning.model import ProblemKind
@@ -23,6 +24,7 @@ from unified_planning.engines.results import (
     PlanGenerationResult,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.exceptions import UPUsageError
 from typing import Type, IO, Callable, Optional, Union, List, Tuple
 from fractions import Fraction
 
@@ -33,9 +35,17 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
     a new oneshot planning query with the updated :class:`~unified_planning.model.AbstractProblem` instance.
     """
 
-    def __init__(self, problem: "up.model.AbstractProblem", *args, **kwargs):
+    def __init__(
+        self,
+        problem: "up.model.AbstractProblem",
+        error_on_failed_checks: "bool",
+        *args,
+        **kwargs,
+    ):
         MetaEngine.__init__(self, *args, **kwargs)
-        mixins.ReplannerMixin.__init__(self, problem)
+        mixins.ReplannerMixin.__init__(
+            self, problem=problem, error_on_failed_checks=error_on_failed_checks
+        )
 
     @property
     def name(self) -> str:
@@ -100,9 +110,18 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         (goal_exp,) = self._problem.environment.expression_manager.auto_promote(goal)
         goals = self._problem.goals
         self._problem.clear_goals()
+        removed = False
         for g in goals:
             if not g is goal_exp:
                 self._problem.add_goal(g)
+            else:
+                removed = True
+        if not self._skip_checks and not removed:
+            msg = f"goal to remove: {goal_exp} not found inside the problem goals: {goals}"
+            if self._error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)
 
     def _add_action(self, action: "up.model.action.Action"):
         assert isinstance(self._problem, up.model.Problem)
@@ -112,6 +131,15 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         assert isinstance(self._problem, up.model.Problem)
         actions = self._problem.actions
         self._problem.clear_actions()
+        removed = False
         for a in actions:
             if a.name != name:
                 self._problem.add_action(a)
+            else:
+                removed = True
+        if not self._skip_checks and not removed:
+            msg = f"action to remove: {name} not found inside the problem actions: {list(map(lambda a: a.name, actions))}"
+            if self._error_on_failed_checks:
+                raise UPUsageError(msg)
+            else:
+                warn(msg)

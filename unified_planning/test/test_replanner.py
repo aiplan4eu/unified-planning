@@ -12,12 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.engines.results import POSITIVE_OUTCOMES, NEGATIVE_OUTCOMES
+from unified_planning.exceptions import UPUsageError
 from unified_planning.test import TestCase, main
-from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import (
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfEngineNotAvailable,
+)
 from unified_planning.test.examples import get_example_problems
 
 
@@ -61,3 +67,24 @@ class TestReplanner(TestCase):
             replanner.add_action(a)
             res = replanner.resolve()
             self.assertIn(res.status, POSITIVE_OUTCOMES)
+
+            with self.assertRaises(UPUsageError):
+                replanner.remove_action("b")
+
+            with self.assertRaises(UPUsageError):
+                y = Fluent("y")
+                problem.add_fluent(y, default_initial_value=False)
+                replanner.remove_goal(y)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_robot(self):
+        problem = self.problems["robot"].problem
+
+        warn_str = "We cannot establish whether ENHSP can solve this problem!"
+        with pytest.warns(UserWarning, match=warn_str) as warns:
+            with OneshotPlanner(name="opt-pddl-planner") as planner:
+                res = planner.solve(problem)
+
+        with pytest.warns(UserWarning, match=warn_str) as warns:
+            with Replanner(problem, name="replanner[opt-pddl-planner]") as replanner:
+                res = replanner.resolve()

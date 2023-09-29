@@ -36,7 +36,7 @@ class Activity(Chronicle):
     associated :class:`SchedulingProblem`"""
 
     def __init__(
-        self, name: str, duration: int = 0, _env: Optional[Environment] = None
+        self, name: str, duration: int = 1, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
         self._start = Timepoint(TimepointKind.START, container=name)

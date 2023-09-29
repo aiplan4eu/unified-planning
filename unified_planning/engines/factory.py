@@ -677,7 +677,12 @@ class Factory:
                 ):
                     msg = f"The problem has no quality metrics but the engine is required to be optimal!"
                     raise up.exceptions.UPUsageError(msg)
-                res = EngineClass(problem=problem, **params)
+                res = EngineClass(
+                    problem=problem,
+                    error_on_failed_checks=error_failed_checks,
+                    **params,
+                )
+                assert isinstance(res, ReplannerMixin)
             elif operation_mode == OperationMode.SEQUENTIAL_SIMULATOR:
                 assert problem is not None
                 res = EngineClass(

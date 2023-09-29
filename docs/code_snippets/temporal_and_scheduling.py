@@ -62,6 +62,6 @@ a2.uses(machine2)
 
 problem.add_constraint(LT(a2.end, a1.start))
 
-# One worker is unavailable over [17, 25]
+# One worker is unavailable over [16, 25)
 problem.add_decrease_effect(16, workers, 1)
 problem.add_increase_effect(25, workers, 1)
