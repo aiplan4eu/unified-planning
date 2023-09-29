@@ -69,21 +69,30 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
             str,
         ],
         agent: Optional["up.model.multi_agent.Agent"],
+        unfactored: Optional[bool] = False,
     ):
         ConverterToPDDLString.__init__(self, problem.environment, get_mangled_name)
         self._problem = problem
         self._agent = agent
+        self._unfactored = unfactored
 
     def walk_dot(self, expression, args):
         agent = self._problem.agent(expression.agent())
         fluent = expression.args[0].fluent()
         objects = expression.args[0].args
-        return f'(a_{self.get_mangled_name(fluent)} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
+        if not self._unfactored:
+            return f'(a_{self.get_mangled_name(fluent)} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
+        else:
+            return f'(a_{self.get_mangled_name(fluent)} {"a"} {" ".join([self.convert(obj) for obj in objects])})'
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
+        if not self._unfactored:
+            agent_name = self._agent.name
+        else:
+            agent_name = "a"
         if self._agent is not None and fluent in self._agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{agent_name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
@@ -101,6 +110,7 @@ class MAPDDLWriter:
         self,
         problem: "up.model.multi_agent.MultiAgentProblem",
         explicit_false_initial_states: Optional[bool] = False,
+        unfactored: Optional[bool] = False,
         needs_requirements: bool = True,
         rewrite_bool_assignments: bool = False,
     ):
@@ -108,6 +118,7 @@ class MAPDDLWriter:
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.explicit_false_initial_states = explicit_false_initial_states
+        self.unfactored = unfactored
         self.needs_requirements = needs_requirements
         self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
@@ -165,8 +176,11 @@ class MAPDDLWriter:
             out.write(f"(domain {name}-domain)\n")
 
             if self.needs_requirements:
-                out.write(" (:requirements :factored-privacy")
-                # out.write(" (:requirements :strips")
+                out.write(" (:requirements :multi-agent")
+                if self.unfactored == False:
+                    out.write(" :factored-privacy")
+                else:
+                    out.write(" :unfactored-privacy")
                 if self.problem_kind.has_flat_typing():
                     out.write(" :typing")
                 if self.problem_kind.has_negative_conditions():
@@ -414,16 +428,21 @@ class MAPDDLWriter:
             )
 
             converter = ConverterToMAPDDLString(
-                self.problem, self._get_mangled_name, ag
+                self.problem, self._get_mangled_name, ag, self.unfactored
             )
             costs: dict = {}
             for a in ag.actions:
                 if isinstance(a, up.model.InstantaneousAction):
                     out.write(f" (:action {self._get_mangled_name(a)}")
+                    if self.unfactored:
+                        out.write(f'\n  :agent {"?a - ag"}')
+
                     out.write(f"\n  :parameters (")
-                    out.write(
-                        f' ?{self._get_mangled_name(ag)} - {self._get_mangled_name(ag) +"_type"}'
-                    )
+
+                    if not self.unfactored:
+                        out.write(
+                            f' ?{self._get_mangled_name(ag)} - {self._get_mangled_name(ag) +"_type"}'
+                        )
                     for ap in a.parameters:
                         if ap.type.is_user_type():
                             out.write(
@@ -528,6 +547,8 @@ class MAPDDLWriter:
             self.domain_objects = None
             self.domain_objects_agents = {}
             # self.all_public_fluents = []
+            if self.unfactored:
+                break
 
         return ag_domains
 
@@ -576,7 +597,7 @@ class MAPDDLWriter:
 
             out.write("\n )\n")
             converter = ConverterToMAPDDLString(
-                self.problem, self._get_mangled_name, ag
+                self.problem, self._get_mangled_name, ag, self.unfactored == False
             )
             out.write(" (:init")
 
@@ -634,6 +655,8 @@ class MAPDDLWriter:
             self.domain_objects = None
             self.domain_objects_agents = {}
             # self.all_public_fluents = []
+            if self.unfactored:
+                break
         return ag_problems
 
     def print_ma_domain_agent(self, agent_name):
@@ -676,7 +699,11 @@ class MAPDDLWriter:
         outdir_ma_pddl = "ma_pddl_" + directory_name
         osy.makedirs(outdir_ma_pddl, exist_ok=True)
         for ag, domain in ag_domains.items():
-            path_ma_pddl = osy.path.join(outdir_ma_pddl, ag + "_domain.pddl")
+            if not self.unfactored:
+                name_domain = ag
+            else:
+                name_domain = _get_pddl_name(self.problem)
+            path_ma_pddl = osy.path.join(outdir_ma_pddl, name_domain + "_domain.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(domain)
 
@@ -686,7 +713,11 @@ class MAPDDLWriter:
         outdir_ma_pddl = "ma_pddl_" + directory_name
         osy.makedirs(outdir_ma_pddl, exist_ok=True)
         for ag, problem in ag_problems.items():
-            path_ma_pddl = osy.path.join(outdir_ma_pddl, ag + "_problem.pddl")
+            if not self.unfactored:
+                name_problem = ag
+            else:
+                name_problem = _get_pddl_name(self.problem)
+            path_ma_pddl = osy.path.join(outdir_ma_pddl, name_problem + "_problem.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(problem)
 
