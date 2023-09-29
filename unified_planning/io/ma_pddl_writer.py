@@ -87,7 +87,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        if not self._unfactored:
+        if not self._unfactored and self._agent is not None:
             agent_name = self._agent.name
         else:
             agent_name = "a"
