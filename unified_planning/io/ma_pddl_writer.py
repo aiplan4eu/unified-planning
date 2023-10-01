@@ -80,25 +80,25 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent = self._problem.agent(expression.agent())
         fluent = expression.args[0].fluent()
         objects = expression.args[0].args
-        if self._unfactored:
-            if fluent not in self._agent.public_fluents:
-                agent_name = f"_{self.get_mangled_name(agent)}"
-            else:
-                agent_name = ""
-        else:
-            agent_name = ""
+        agent_name = ""
+        if (
+            self._unfactored
+            and self._agent is not None
+            and fluent not in self._agent.public_fluents
+        ):
+            agent_name = f"_{self.get_mangled_name(agent)}"
 
         return f'(a_{self.get_mangled_name(fluent)}{agent_name} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        if self._unfactored:
-            if fluent not in self._agent.public_fluents:
-                agent_name = f"_{self._agent.name}"
-            else:
-                agent_name = ""
-        else:
-            agent_name = ""
+        agent_name = ""
+        if (
+            self._unfactored
+            and self._agent is not None
+            and fluent not in self._agent.public_fluents
+        ):
+            agent_name = f"_{self._agent.name}"
 
         if self._agent is not None and fluent in self._agent.fluents:
             return f'(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
