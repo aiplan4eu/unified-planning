@@ -80,21 +80,12 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent = self._problem.agent(expression.agent())
         fluent = expression.args[0].fluent()
         objects = expression.args[0].args
-        """if not self._unfactored:
-            return f'(a_{self.get_mangled_name(fluent)} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
-        else:
-            return f'(a_{self.get_mangled_name(fluent)} {"a"} {" ".join([self.convert(obj) for obj in objects])})'"""
         return f'(a_{self.get_mangled_name(fluent)} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        """if not self._unfactored and self._agent is not None:
-            agent_name = self._agent.name
-        else:
-            agent_name = "a" """
-        agent_name = self._agent.name
         if self._agent is not None and fluent in self._agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{agent_name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)} ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
