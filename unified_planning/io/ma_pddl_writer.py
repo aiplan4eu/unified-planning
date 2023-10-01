@@ -80,12 +80,28 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         agent = self._problem.agent(expression.agent())
         fluent = expression.args[0].fluent()
         objects = expression.args[0].args
-        return f'(a_{self.get_mangled_name(fluent)} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
+        if self._unfactored:
+            if fluent not in self._agent.public_fluents:
+                agent_name = f"_{self.get_mangled_name(agent)}"
+            else:
+                agent_name = ""
+        else:
+            agent_name = ""
+
+        return f'(a_{self.get_mangled_name(fluent)}{agent_name} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
+        if self._unfactored:
+            if fluent not in self._agent.public_fluents:
+                agent_name = f"_{self._agent.name}"
+            else:
+                agent_name = ""
+        else:
+            agent_name = ""
+
         if self._agent is not None and fluent in self._agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)} ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f'(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
         else:
             return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
 
@@ -444,7 +460,7 @@ class MAPDDLWriter:
 
             def write_action(ag):
                 converter = ConverterToMAPDDLString(
-                    self.problem, self._get_mangled_name, ag, self.unfactored
+                    self.problem, self._get_mangled_name, ag, unfactored=self.unfactored
                 )
                 for a in ag.actions:
                     if isinstance(a, up.model.InstantaneousAction):
@@ -634,7 +650,7 @@ class MAPDDLWriter:
 
             out.write("\n )\n")
             converter = ConverterToMAPDDLString(
-                self.problem, self._get_mangled_name, ag
+                self.problem, self._get_mangled_name, ag, unfactored=self.unfactored
             )
             out.write(" (:init")
 
@@ -643,16 +659,22 @@ class MAPDDLWriter:
                     if f.is_dot():
                         fluent = f.args[0].fluent()
                         args = f.args
-                        if (
-                            fluent in self.all_public_fluents
-                            or fluent in ag.fluents
-                            and f.agent() == ag.name
-                        ):
-                            out.write(f"\n  {converter.convert(f)}")
-                        elif f.agent() != ag.name and fluent in self.all_public_fluents:
-                            out.write(f"\n  {converter.convert(f)}")
+                        if not self.unfactored:
+                            if (
+                                fluent in self.all_public_fluents
+                                or fluent in ag.fluents
+                                and f.agent() == ag.name
+                            ):
+                                out.write(f"\n  {converter.convert(f)}")
+                            elif (
+                                f.agent() != ag.name
+                                and fluent in self.all_public_fluents
+                            ):
+                                out.write(f"\n  {converter.convert(f)}")
+                            else:
+                                out.write(f"")
                         else:
-                            out.write(f"")
+                            out.write(f"\n  {converter.convert(f)}")
                     else:
                         out.write(f"\n  {converter.convert(f)}")
                 elif v.is_false():
@@ -660,19 +682,22 @@ class MAPDDLWriter:
                         if f.is_dot():
                             fluent = f.args[0].fluent()
                             args = f.args
-                            if (
-                                fluent in self.all_public_fluents
-                                or fluent in ag.fluents
-                                and f.agent() == ag.name
-                            ):
-                                out.write(f"\n  (not {converter.convert(f)})")
-                            elif (
-                                f.agent() != ag.name
-                                and fluent in self.all_public_fluents
-                            ):
-                                out.write(f"\n  (not {converter.convert(f)})")
+                            if not self.unfactored:
+                                if (
+                                    fluent in self.all_public_fluents
+                                    or fluent in ag.fluents
+                                    and f.agent() == ag.name
+                                ):
+                                    out.write(f"\n  (not {converter.convert(f)})")
+                                elif (
+                                    f.agent() != ag.name
+                                    and fluent in self.all_public_fluents
+                                ):
+                                    out.write(f"\n  (not {converter.convert(f)})")
+                                else:
+                                    out.write(f"")
                             else:
-                                out.write(f"")
+                                out.write(f"\n  (not {converter.convert(f)})")
                         else:
                             out.write(f"\n  (not {converter.convert(f)})")
                     else:
@@ -787,7 +812,7 @@ class MAPDDLWriter:
                     raise UPTypeError("MA-PDDL supports only user type parameters")
             if isinstance(obj, up.model.multi_agent.Agent):
                 if self.unfactored:
-                    expression = f'({prefix}{self._get_mangled_name(f)} ?agent - {obj.name + "_type"}{"".join(params)})'
+                    expression = f'({prefix}{self._get_mangled_name(f)}_{obj.name} ?agent - {obj.name + "_type"}{"".join(params)})'
                 else:
                     expression = f'({prefix}{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
             else:
