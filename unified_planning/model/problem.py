@@ -1020,6 +1020,7 @@ class _KindFactory:
                     metric, up.model.metrics.MinimizeExpressionOnFinalState
                 )
                 self.kind.set_quality_metrics("FINAL_VALUE")
+                self.update_problem_kind_expression(metric.expression)
                 (
                     is_linear,
                     fnode_to_only_increase,  # positive fluents in minimize can only be increased
@@ -1039,6 +1040,7 @@ class _KindFactory:
                     metric, up.model.metrics.MaximizeExpressionOnFinalState
                 )
                 self.kind.set_quality_metrics("FINAL_VALUE")
+                self.update_problem_kind_expression(metric.expression)
                 (
                     is_linear,
                     fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
