@@ -13,14 +13,11 @@
 # limitations under the License.
 #
 
-from typing import Dict, Iterable, Iterator, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 
 import unified_planning as up
 from unified_planning.model.metrics import PlanQualityMetric
-from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.mixins import ActionsSetMixin
-from unified_planning.model.fnode import FNode
-from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class MetricsMixin:
