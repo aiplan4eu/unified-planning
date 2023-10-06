@@ -742,9 +742,7 @@ class _KindFactory:
         (
             fluents_to_only_increase,
             fluents_to_only_decrease,
-        ) = self.pb._update_kind_metric(
-            self.kind, self.linear_checker, self.static_fluents
-        )
+        ) = self.update_problem_kind_metric()
         # fluents that can only be increased (resp. decreased) for the problem to be SIMPLE_NUMERIC_PLANNING
         self.fluents_to_only_increase: Set[Fluent] = fluents_to_only_increase
         self.fluents_to_only_decrease: Set[Fluent] = fluents_to_only_decrease
@@ -1004,6 +1002,101 @@ class _KindFactory:
             self.kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def update_problem_kind_metric(
+        self,
+    ) -> Tuple[Set["up.model.Fluent"], Set["up.model.Fluent"]]:
+        """Updates the kind object passed as parameter to account for given metrics.
+        Return a pair for fluent sets that should respectively be only increased/decreased
+        (necessary for checking numeric problem kind properties).
+        """
+        fluents_to_only_increase = set()
+        fluents_to_only_decrease = set()
+        fve = self.pb.environment.free_vars_extractor
+        for metric in self.pb.quality_metrics:
+            ovsb_goals: Iterable["up.model.fnode.FNode"] = tuple()
+            if metric.is_minimize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MinimizeExpressionOnFinalState
+                )
+                self.kind.set_quality_metrics("FINAL_VALUE")
+                self.update_problem_kind_expression(metric.expression)
+                (
+                    is_linear,
+                    fnode_to_only_increase,  # positive fluents in minimize can only be increased
+                    fnode_to_only_decrease,  # negative fluents in minimize can only be decreased
+                ) = self.linear_checker.get_fluents(metric.expression)
+                if is_linear:
+                    fluents_to_only_increase = {
+                        e.fluent() for e in fnode_to_only_increase
+                    }
+                    fluents_to_only_decrease = {
+                        e.fluent() for e in fnode_to_only_decrease
+                    }
+                else:
+                    self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            elif metric.is_maximize_expression_on_final_state():
+                assert isinstance(
+                    metric, up.model.metrics.MaximizeExpressionOnFinalState
+                )
+                self.kind.set_quality_metrics("FINAL_VALUE")
+                self.update_problem_kind_expression(metric.expression)
+                (
+                    is_linear,
+                    fnode_to_only_decrease,  # positive fluents in maximize can only be decreased
+                    fnode_to_only_increase,  # negative fluents in maximize can only be increased
+                ) = self.linear_checker.get_fluents(metric.expression)
+                if is_linear:
+                    fluents_to_only_increase = {
+                        e.fluent() for e in fnode_to_only_increase
+                    }
+                    fluents_to_only_decrease = {
+                        e.fluent() for e in fnode_to_only_decrease
+                    }
+                else:
+                    self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            elif metric.is_minimize_action_costs():
+                assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
+                self.kind.set_quality_metrics("ACTIONS_COST")
+                for cost in metric.costs.values():
+                    if cost is None:
+                        raise UPProblemDefinitionError(
+                            "The cost of an Action can't be None."
+                        )
+                    if metric.default is not None:
+                        for f in fve.get(metric.default):
+                            if f.fluent() in self.static_fluents:
+                                self.kind.set_actions_cost_kind(
+                                    "STATIC_FLUENTS_IN_ACTIONS_COST"
+                                )
+                            else:
+                                self.kind.set_actions_cost_kind(
+                                    "FLUENTS_IN_ACTIONS_COST"
+                                )
+                    for f in fve.get(cost):
+                        if f.fluent() in self.static_fluents:
+                            self.kind.set_actions_cost_kind(
+                                "STATIC_FLUENTS_IN_ACTIONS_COST"
+                            )
+                        else:
+                            self.kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+            elif metric.is_minimize_makespan():
+                self.kind.set_quality_metrics("MAKESPAN")
+            elif metric.is_minimize_sequential_plan_length():
+                self.kind.set_quality_metrics("PLAN_LENGTH")
+            elif metric.is_oversubscription():
+                assert isinstance(metric, up.model.Oversubscription)
+                self.kind.set_quality_metrics("OVERSUBSCRIPTION")
+                ovsb_goals = metric.goals.keys()
+            elif metric.is_temporal_oversubscription():
+                assert isinstance(metric, up.model.TemporalOversubscription)
+                self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
+                ovsb_goals = map(lambda x: x[1], metric.goals.keys())
+            else:
+                assert False, "Unknown quality metric"
+            for goal in ovsb_goals:
+                self.update_problem_kind_expression(goal)
+        return fluents_to_only_increase, fluents_to_only_decrease
 
 
 def generate_causal_graph(
