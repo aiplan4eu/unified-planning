@@ -15,14 +15,14 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.environment import get_environment
 from unified_planning.model.walkers import Dnf, Nnf, Substituter
 
 
-class TestDnf(TestCase):
+class TestDnf(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.sub = Substituter(get_environment())
         self.simp = get_environment().simplifier
 

@@ -18,15 +18,15 @@ from io import StringIO
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.engines import PlanGenerationResultStatus
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 
 VERYSMALL_TIMEOUT = 0.0001
 
 
-class TestPDDLPlanner(TestCase):
+class TestPDDLPlanner(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
@@ -181,7 +181,7 @@ class TestPDDLPlanner(TestCase):
     def test_robot_loader_adv_with_timeout(self):
         problem, right_plan = (
             self.problems["robot_loader_adv"].problem,
-            self.problems["robot_loader_adv"].plan,
+            self.problems["robot_loader_adv"].valid_plans[0],
         )
         with OneshotPlanner(name="opt-pddl-planner") as planner:
             self.assertNotEqual(planner, None)
@@ -305,7 +305,7 @@ class TestPDDLPlanner(TestCase):
     def test_robot_loader_adv_with_short_timeout_and_output_stream(self):
         problem, right_plan = (
             self.problems["robot_loader_adv"].problem,
-            self.problems["robot_loader_adv"].plan,
+            self.problems["robot_loader_adv"].valid_plans[0],
         )
         output_stream = StringIO()
         with OneshotPlanner(name="opt-pddl-planner") as planner:

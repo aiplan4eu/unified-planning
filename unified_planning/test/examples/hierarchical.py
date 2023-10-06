@@ -20,10 +20,8 @@ from unified_planning.plans.hierarchical_plan import (
 )
 from unified_planning.shortcuts import *
 from unified_planning.model.htn import *
-from collections import namedtuple
+from unified_planning.test import TestCase
 from typing import List
-
-Example = namedtuple("Example", ["problem", "plan"])
 
 
 def get_example_problems():
@@ -125,7 +123,7 @@ def get_example_problems():
         ),
     )
 
-    htn_go = Example(problem=htn, plan=plan)
+    htn_go = TestCase(problem=htn, solvable=True, valid_plans=[plan])
     problems["htn-go"] = htn_go
 
     # basic temporal
@@ -237,7 +235,7 @@ def get_example_problems():
         ),
     )
 
-    htn_go_temporal = Example(problem=htn_temporal, plan=plan)
+    htn_go_temporal = TestCase(problem=htn_temporal, solvable=True, valid_plans=[plan])
     problems["htn-go-temporal"] = htn_go_temporal
 
     return problems

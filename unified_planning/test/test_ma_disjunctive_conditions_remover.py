@@ -16,16 +16,16 @@
 import unified_planning
 from unified_planning.model.multi_agent import *
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.ma_disjunctive_conditions_remover import (
     MADisjunctiveConditionsRemover,
 )
 
 
-class TestMADisjunctiveConditionsRemover(TestCase):
+class TestMADisjunctiveConditionsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_ad_hoc_1(self):
         # mockup problem

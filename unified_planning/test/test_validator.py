@@ -21,18 +21,23 @@ from unified_planning.model.problem_kind import (
     general_numeric_kind,
     bounded_types_kind,
 )
-from unified_planning.test import TestCase, main, skipIfNoPlanValidatorForProblemKind
+from unified_planning.test import (
+    unittest_TestCase,
+    main,
+    skipIfNoPlanValidatorForProblemKind,
+)
 from unified_planning.test.examples import get_example_problems
 
 
-class TestPlanValidator(TestCase):
+class TestPlanValidator(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_basic(self):
-        problem, plan = self.problems["basic"]
+        example = self.problems["basic"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
@@ -48,7 +53,8 @@ class TestPlanValidator(TestCase):
         classical_kind.union(general_numeric_kind).union(bounded_types_kind)
     )
     def test_robot(self):
-        problem, plan = self.problems["robot"]
+        example = self.problems["robot"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
@@ -62,7 +68,8 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader(self):
-        problem, plan = self.problems["robot_loader"]
+        example = self.problems["robot_loader"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
@@ -76,7 +83,8 @@ class TestPlanValidator(TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(classical_kind)
     def test_robot_loader_adv(self):
-        problem, plan = self.problems["robot_loader_adv"]
+        example = self.problems["robot_loader_adv"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             self.assertNotEqual(validator, None)
@@ -89,7 +97,8 @@ class TestPlanValidator(TestCase):
             self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
     def test_invalid_report(self):
-        problem, plan = self.problems["travel"]
+        example = self.problems["travel"]
+        problem, plan = example.problem, example.valid_plans[0]
         up_validator = SequentialPlanValidator()
 
         # without the last action the goal fails.

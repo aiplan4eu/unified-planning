@@ -19,14 +19,14 @@ from unified_planning.io import PDDLReader
 from unified_planning.model.htn import TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, examples
+from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class TestScheduling(TestCase):
+class TestScheduling(unittest_TestCase):
     def test_load_all(self):
         problems = up.test.examples.scheduling.get_example_problems()
         for name, test_case in problems.items():

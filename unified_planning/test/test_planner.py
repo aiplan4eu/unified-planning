@@ -25,7 +25,7 @@ from unified_planning.model.problem_kind import (
     quality_metrics_kind,
     oversubscription_kind,
 )
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
@@ -35,9 +35,9 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
 
-class TestPlanner(TestCase):
+class TestPlanner(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("tamer")
@@ -203,7 +203,7 @@ class TestPlanner(TestCase):
     )
     def test_actions_cost(self):
         problem = self.problems["basic_with_costs"].problem
-        opt_plan = self.problems["basic_with_costs"].plan
+        opt_plan = self.problems["basic_with_costs"].valid_plans[0]
         with OneshotPlanner(
             problem_kind=problem.kind,
             optimality_guarantee=OptimalityGuarantee.SOLVED_OPTIMALLY,

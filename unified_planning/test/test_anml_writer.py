@@ -14,16 +14,16 @@
 
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLWriter, PDDLReader
 import tempfile
 import os
 
 
-class TestANMLWriter(TestCase):
+class TestANMLWriter(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_basic(self):

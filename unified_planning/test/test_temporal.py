@@ -20,13 +20,17 @@ from unified_planning.model.problem_kind import (
     classical_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
-from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import (
+    unittest_TestCase,
+    main,
+    skipIfNoOneshotPlannerForProblemKind,
+)
 from unified_planning.test.examples import get_example_problems
 
 
-class TestTemporalPlanner(TestCase):
+class TestTemporalPlanner(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind.union(classical_kind))

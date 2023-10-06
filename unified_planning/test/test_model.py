@@ -21,12 +21,12 @@ from unified_planning.exceptions import (
     UPConflictingEffectsException,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 
 
-class TestModel(TestCase):
+class TestModel(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_expression(self):
@@ -61,7 +61,8 @@ class TestModel(TestCase):
         )
 
     def test_clone_problem_and_action(self):
-        for _, (problem, _) in self.problems.items():
+        for example in self.problems.values():
+            problem = example.problem
             if problem.kind.has_scheduling():
                 continue
             problem_clone_1 = problem.clone()

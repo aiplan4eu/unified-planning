@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from collections import namedtuple
 
 import unified_planning.plans
 from unified_planning.plans import Schedule
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
-
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 
 def basic():
@@ -45,7 +42,7 @@ def basic():
     assignment = {a1.start: 0, a1.end: 20, a2.start: 17, a2.end: 37}
     solution = Schedule(assignment=assignment, activities=[a1, a2])  # type: ignore[arg-type]
 
-    return Example(pb, solution)
+    return TestCase(pb, solution)
 
 
 def resource_set():
@@ -83,7 +80,7 @@ def resource_set():
         },
     )
 
-    return Example(pb, sol)
+    return TestCase(pb, sol)
 
 
 def non_numeric():
@@ -106,7 +103,7 @@ def non_numeric():
         [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
     )
 
-    return Example(pb, sol)
+    return TestCase(pb, sol)
 
 
 if __name__ == "__main__":

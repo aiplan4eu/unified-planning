@@ -22,14 +22,14 @@ from unified_planning.shortcuts import *
 from unified_planning.engines import UPSequentialSimulator, SequentialSimulatorMixin
 from unified_planning.model import State
 from unified_planning.plans import ActionInstance
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPUsageError
 
 
-class TestSimulator(TestCase):
+class TestSimulator(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def simulate_on_hierarchical_blocks_world(
@@ -227,7 +227,8 @@ class TestSimulator(TestCase):
 
     def test_parameters_type(self):
         # Test that the simulator correctly handles fluents with bool parameters
-        problem, plan = self.problems["basic_bool_fluent_param"]
+        example = self.problems["basic_bool_fluent_param"]
+        problem, plan = example.problem, example.valid_plans[0]
         simulator = UPSequentialSimulator(problem)
         state: Optional[State] = simulator.get_initial_state()
         for ai in plan.actions:
@@ -236,7 +237,8 @@ class TestSimulator(TestCase):
         self.assertTrue(simulator.is_goal(cast(State, state)))
 
         # Test that the simulator correctly handles fluents with integer parameters
-        problem, plan = self.problems["basic_int_fluent_param"]
+        example = self.problems["basic_int_fluent_param"]
+        problem, plan = example.problem, example.valid_plans[0]
         simulator = UPSequentialSimulator(problem)
         state = simulator.get_initial_state()
         for ai in plan.actions:
@@ -245,7 +247,8 @@ class TestSimulator(TestCase):
         self.assertTrue(simulator.is_goal(cast(State, state)))
 
         # Test that the simulator correctly handles actions with bounded integer parameters
-        problem, plan = self.problems["basic_bounded_int_action_param"]
+        example = self.problems["basic_bounded_int_action_param"]
+        problem, plan = example.problem, example.valid_plans[0]
         simulator = UPSequentialSimulator(problem)
         state = simulator.get_initial_state()
         self.assertEqual(4, len(tuple(simulator.get_applicable_actions(state))))
@@ -255,7 +258,8 @@ class TestSimulator(TestCase):
         self.assertTrue(simulator.is_goal(cast(State, state)))
 
         # Test that the simulator correctly handles actions with bounded integer parameters
-        problem, plan = self.problems["basic_unbounded_int_action_param"]
+        example = self.problems["basic_unbounded_int_action_param"]
+        problem, plan = example.problem, example.valid_plans[0]
         with warnings.catch_warnings(record=True) as _:
             simulator = UPSequentialSimulator(problem, error_on_failed_checks=False)
         state = simulator.get_initial_state()
