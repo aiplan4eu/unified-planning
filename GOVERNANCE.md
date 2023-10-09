@@ -68,7 +68,7 @@ The following rules apply for the technical day-to-day governance of the project
 
 3. Any Maintainer can reject a Pull-Request from any Committer or External Contribution or Maintainer by publicly motivating the reason in the PR discussion page. Reasons should be of technical nature or concerning the scope of the library and any effort should be made to not waste anybody's work in a constructive manner.
 
-4. If a Maintainer disagrees with another Maintainer decision of accepting or rejecting a Pull-Request, he/she can uphold the final decision to a simple majority vote of the  Board of Maintainers.
+4. If a Maintainer disagrees with another Maintainer decision of accepting or rejecting a Pull-Request, he/she can uphold the final decision to a simple majority vote of the  Board of Maintainers. The decision of the Board of Maintainers can therefore restore or revert a closed or merged Pull-Request.
 
 5. It is mandatory for any commit pushed to master (after October 31st 2023) to be signed off to signal the acceptance of the [Developer Certificate of Origin (DCO)](/DCO.txt) rules.
 
