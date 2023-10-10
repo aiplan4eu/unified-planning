@@ -27,13 +27,13 @@ def base():
 def add_method(pb, name, task, *subtasks):
     m = Method(name)
     m.set_task(task)
-    subtasks = [m.add_subtask(st) for st in subtasks]
-    m.set_ordered(*subtasks)
+    s_tasks = [m.add_subtask(st) for st in subtasks]
+    m.set_ordered(*s_tasks)
     pb.add_method(m)
 
 
 def set_costs(pb, *costs):
-    cost_map = {}
+    cost_map: Dict[Action, Expression] = {}
     for action, cost in zip(actions, costs):
         cost_map[action] = Int(cost)
     pb.add_quality_metric(up.model.metrics.MinimizeActionCosts(cost_map))
@@ -41,7 +41,7 @@ def set_costs(pb, *costs):
 
 def get_test_cases():
     """Generates deterministically a set of non-recursive HTN problems with known optimum."""
-    res = {}
+    res: Dict[str, TestCase] = {}
 
     def export(pb, optimum, *costs):
         clone = pb.clone()

@@ -43,7 +43,12 @@ def get_test_cases():
     # cheap expensive action_costs
     action_costs_problem = base_problem.clone()
     action_costs_problem.name = "cheap expensive action_costs"
-    costs = {a_exp: Int(5), a_cheap_1: Int(1), a_cheap_2: Int(1), a_cheap_3: Int(2)}
+    costs: Dict[Action, Expression] = {
+        a_exp: Int(5),
+        a_cheap_1: Int(1),
+        a_cheap_2: Int(1),
+        a_cheap_3: Int(2),
+    }
     action_costs_problem.add_quality_metric(MinimizeActionCosts(costs, 1))
 
     # TODO add plans

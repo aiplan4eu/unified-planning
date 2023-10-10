@@ -19,6 +19,7 @@ def get_test_cases():
     # TODO add plans
     res[problem.name] = TestCase(problem=problem, solvable=True)
 
+    x = Fluent("x", RealType())
     y = Fluent("y", RealType())
     a = InstantaneousAction("action1")
     a.add_effect(x, Div(x, Times(y, y)))

@@ -42,7 +42,7 @@ def basic():
     assignment = {a1.start: 0, a1.end: 20, a2.start: 17, a2.end: 37}
     solution = Schedule(assignment=assignment, activities=[a1, a2])  # type: ignore[arg-type]
 
-    return TestCase(pb, solution)
+    return TestCase(problem=pb, solvable=True, valid_plans=[solution])
 
 
 def resource_set():
@@ -80,7 +80,7 @@ def resource_set():
         },
     )
 
-    return TestCase(pb, sol)
+    return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
 
 def non_numeric():
@@ -103,7 +103,7 @@ def non_numeric():
         [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
     )
 
-    return TestCase(pb, sol)
+    return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
 
 if __name__ == "__main__":

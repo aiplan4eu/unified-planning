@@ -1,5 +1,5 @@
 import unified_planning
-from unified_planning.plans import SequentialPlan, ActionInstance
+from unified_planning.plans import SequentialPlan, ActionInstance, Plan
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 
@@ -50,11 +50,11 @@ def get_test_cases():
     problem.set_initial_value(y, False)
     problem.add_goal(y)
 
-    valid_plans = [
+    valid_plans: List[Plan] = [
         SequentialPlan([ActionInstance(a), ActionInstance(b)]),
         SequentialPlan([ActionInstance(a), ActionInstance(b), ActionInstance(a)]),
     ]
-    invalid_plans = [
+    invalid_plans: List[Plan] = [
         SequentialPlan([ActionInstance(b), ActionInstance(a)]),
         SequentialPlan([ActionInstance(b), ActionInstance(a), ActionInstance(b)]),
     ]
@@ -65,3 +65,5 @@ def get_test_cases():
         valid_plans=valid_plans,
         invalid_plans=invalid_plans,
     )
+
+    return test_cases

@@ -20,7 +20,7 @@ from functools import wraps
 from importlib.util import find_spec
 from unified_planning.engines import OperationMode
 from unified_planning.environment import get_environment
-from unified_planning.model import ProblemKind, Problem
+from unified_planning.model import ProblemKind, Problem, AbstractProblem
 from unified_planning.plans import Plan
 from unified_planning.test.pddl import enhsp
 from typing import Optional, Union, List
@@ -163,7 +163,7 @@ main = unittest.main
 class TestCase:
     def __init__(
         self,
-        problem: Problem,
+        problem: AbstractProblem,
         solvable: bool,
         optimum: Optional[Union[int, Fraction]] = None,
         valid_plans: Optional[List[Plan]] = None,
@@ -177,7 +177,7 @@ class TestCase:
         self._invalid_plans = invalid_plans if invalid_plans is not None else []
 
     @property
-    def problem(self) -> Problem:
+    def problem(self) -> AbstractProblem:
         return self._problem
 
     @property

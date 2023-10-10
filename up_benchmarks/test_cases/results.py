@@ -1,4 +1,5 @@
 from typing import List
+from abc import ABC, abstractmethod
 
 
 class bcolors:
@@ -15,7 +16,8 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-class ResultSet:
+class ResultSet(ABC):
+    @abstractmethod
     def ok(self) -> bool:
         pass
 
