@@ -85,9 +85,7 @@ def up_tests():
 def validate_plan(plan: Plan, problem: AbstractProblem) -> ResultSet:
     """Validates a plan produced by a planner."""
     try:
-        with PlanValidator(problem_kind=problem.kind) as validator:
-            if not validator.supports_plan(plan.kind):
-                return Warn(f"Validator {validator.name} does not support plan")
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             check = validator.validate(problem, plan)
             if check.status is ValidationResultStatus.VALID:
                 return Ok("Valid")
@@ -269,14 +267,15 @@ def run_anytime(
                 print("|  ", planner_id.ljust(40), end="")
                 start = time.time()
                 try:
+                    outcome = Void()
                     assert isinstance(
                         planner, AnytimePlannerMixin
                     ), "Error in Anytime selection"
                     for result in planner.get_solutions(pb, timeout=timeout):
                         status = str(result.status.name).ljust(25)
-                        outcome = check_result(test_case, result, planner)
-                        if not outcome.ok():
-                            errors.append((planner_id, name))
+                        outcome += check_result(test_case, result, planner)
+                    if not outcome.ok():
+                        errors.append((planner_id, name))
                     end = time.time()
                     runtime = "{:.3f}s".format(end - start).ljust(10)
                     print(status, "    ", runtime, outcome)

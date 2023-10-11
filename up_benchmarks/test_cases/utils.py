@@ -20,9 +20,10 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
         if current_package_name != package_name:
             try:
                 to_add = module.get_test_cases()
-                if to_add is None:
-                    print(current_package_name)
-                    assert False
+                if not isinstance(to_add, dict):
+                    assert (
+                        False
+                    ), f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
             except AttributeError:
                 to_expand = is_folder
         else:
