@@ -45,9 +45,9 @@ Multi-agent Planning
 
 Refinement Planning
 -------------------
-- In this notebook, we show how to use unified planning library to define hierrachical planning problem.
+- In this notebook, we show how to use unified planning library to define hierarchical planning problem.
 
-  [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierrachical-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierrachical-planning.ipynb)
+  [![Open In GitHub](https://img.shields.io/badge/see-Github-579aca?logo=github)](https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierarchical-planning.ipynb) [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierarchical-planning.ipynb)
 
 
 Combined Task and Motion Planning
