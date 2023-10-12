@@ -31,14 +31,6 @@ from unified_planning.test import TestCase
 
 from utils import Ok, Err, ResultSet, Warn, bcolors, Void, get_report_parser, _get_test_cases  # type: ignore
 
-USAGE = """Validates the results of solvers on a set of planning problems.
-Usage (default operation mode: oneshot):
- - python report.py                          # will run all solvers on all problems
- - python report.py aries tamer              # will run aries an tamer on all problems they support
- - python report.py aries --prefix up:basic  # will run aries on all problems whose name starts with "up:basic"
-
-The test operation can be changed with `--mode plan-validation`, `--mode oneshot`, `--mode anytime`, `--mode grounding` and `--mode all` that reports all the previous modes.
-"""
 
 get_environment().credits_stream = None  # silence credits
 
