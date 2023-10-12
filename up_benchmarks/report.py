@@ -1,3 +1,4 @@
+from functools import partial
 from itertools import chain
 import typing
 import test_cases  # type: ignore
@@ -5,7 +6,7 @@ from test_cases import get_test_cases
 import os
 import sys
 import time
-from typing import Tuple
+from typing import Set, Tuple
 
 from unified_planning.engines import (
     CompilerResult,
@@ -28,7 +29,7 @@ from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPNoSuitableEngineAvailableException
 from unified_planning.test import TestCase
 
-from test_cases.results import Ok, Err, ResultSet, Warn, bcolors, Void  # type: ignore
+from utils import Ok, Err, ResultSet, Warn, bcolors, Void, get_report_parser, _get_test_cases  # type: ignore
 
 USAGE = """Validates the results of solvers on a set of planning problems.
 Usage (default operation mode: oneshot):
@@ -42,44 +43,25 @@ The test operation can be changed with `--mode plan-validation`, `--mode oneshot
 get_environment().credits_stream = None  # silence credits
 
 
-def all_test_cases():
-    """Returns all test cases of this repository"""
-    res = up_tests()
-    res.update(test_cases.get_test_cases())
+def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
+    res = {}
+
+    for package in packages:
+        if hasattr(package, "get_test_cases"):
+            to_add = package.get_test_cases
+        else:
+            # If the package does not have a top-level get_test_cases method, run the "discover" method on the whole package
+            package_get_test_cases = partial(_get_test_cases, package)
+            to_add = package_get_test_cases()
+        for test_case_name, test_case in to_add.items():
+            test_case_name = f"{package}:{test_case_name}"
+            count = 0
+            # If the name is already in the results, add a counter to guarantee unicity
+            while test_case_name in res:
+                test_case_name = f"{test_case_name}_{count}"
+                count += 1
+            res[test_case_name] = test_case
     return res
-
-
-def engines() -> List[Tuple[str, typing.Type[Engine]]]:
-    """Returns all available engines."""
-    factory = get_environment().factory
-    return [(name, factory.engine(name)) for name in factory.engines]
-
-
-def oneshot_planners():
-    """All available oneshot planners."""
-    return [t for t, e in engines() if e.is_oneshot_planner()]  # type: ignore [attr-defined]
-
-
-def anytime_planners():
-    """All available anytime planners."""
-    return [t for t, e in engines() if e.is_anytime_planner()]  # type: ignore [attr-defined]
-
-
-def validators():
-    """All available plan validators"""
-    return [t for t, e in engines() if e.is_plan_validator()]  # type: ignore [attr-defined]
-
-
-def grounders():
-    """All available grounders"""
-    return [t for t, e in engines() if e.is_compiler() and e.supports_compilation(CompilationKind.GROUNDING)]  # type: ignore [attr-defined]
-
-
-def up_tests():
-    """All test cases defined in the `unified_planning.test` module. All are assumed to be solvable."""
-    from unified_planning.test.examples import get_example_problems
-
-    return get_example_problems()
 
 
 def validate_plan(plan: Plan, problem: AbstractProblem) -> ResultSet:
@@ -211,9 +193,15 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
     return output
 
 
-def run_oneshot(
-    planners: Iterable[str], problems: Dict[str, TestCase], timeout=1
+def report_oneshot(
+    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
 ) -> List[Tuple[str, str]]:
+    """Run all oneshot planners on all the given problems"""
+
+    factory = get_environment().factory
+    # filter OneshotPlanners
+    planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined]
+
     errors = []
     for test_case in problems.values():
         print()
@@ -248,9 +236,15 @@ def run_oneshot(
     return errors
 
 
-def run_anytime(
-    planners: Iterable[str], problems: Dict[str, TestCase], timeout=10
+def report_anytime(
+    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
 ) -> List[Tuple[str, str]]:
+    """Run all anytime planners on all problems that start with the given prefix"""
+
+    factory = get_environment().factory
+    # filter AnytimePlanners
+    planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined]
+
     errors = []
     for test_case in problems.values():
         print()
@@ -286,98 +280,22 @@ def run_anytime(
     return errors
 
 
-def run_grounding(
-    engines: Iterable[str], problems: Dict[str, TestCase], timeout=1
+def report_validation(
+    engines: List[str], problems: Dict[str, TestCase]
 ) -> List[Tuple[str, str]]:
-    errors: List[Tuple[str, str]] = []
-    for test_case in problems.values():
-        pb = test_case.problem
-        kind = pb.kind
-        # if the problem is not action based or has no parameters in the actions, skip it
-        if not kind.has_action_based() or not any(a.parameters for a in pb.actions):  # type: ignore [attr-defined] # If the kind has action_based, the pb.actions is defined
-            continue
-        print()
-        name = pb.name
-        if name is None:
-            name = "None"
-        print(name.ljust(40), end="\n")
-
-        for engine_id in engines:
-            compiler = Compiler(name=engine_id)
-            if compiler.supports(kind):
-
-                print("|  ", engine_id.ljust(40), end="")
-                start = time.time()
-                try:
-                    assert isinstance(compiler, CompilerMixin)
-                    result = compiler.compile(
-                        pb, compilation_kind=CompilationKind.GROUNDING
-                    )
-                    end = time.time()
-                    status = str("COMPILED").ljust(25)
-                    outcome = check_grounding_result(test_case, result)
-                    if not outcome.ok():
-                        errors.append((engine_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
-                    print(status, "    ", runtime, outcome)
-
-                except Exception as e:
-                    print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
-                    errors.append((engine_id, name))
-    return errors
-
-
-def report_oneshot(*planners: str, problem_prefix: str = "", silent: bool = False):
-    """Run all oneshot planners on all problems that start with the given prefix"""
-
-    if len(planners) == 0:
-        planners = oneshot_planners()
-
-    problems = all_test_cases()
-    problems = dict(
-        (name, tc) for name, tc in problems.items() if name.startswith(problem_prefix)
-    )
-
-    errors = run_oneshot(planners, problems)
-    if len(errors) > 0 and not silent:
-        print("Errors:\n ", "\n  ".join(map(str, errors)))
-    return errors
-
-
-def report_anytime(*planners: str, problem_prefix: str = "", silent: bool = False):
-    """Run all anytime planners on all problems that start with the given prefix"""
-
-    if len(planners) == 0:
-        planners = anytime_planners()
-
-    problems = all_test_cases()
-    problems = dict(
-        (name, tc) for name, tc in problems.items() if name.startswith(problem_prefix)
-    )
-
-    errors = run_anytime(planners, problems)
-    if len(errors) > 0 and not silent:
-        print("Errors:\n ", "\n  ".join(map(str, errors)))
-    return errors
-
-
-def report_validation(*engines: str, problem_prefix: str = "", silent: bool = False):
     """Checks that all given plan validators produce the correct output on test-cases."""
     errors: List[Tuple[str, str]] = []  # all errors encountered
-    if len(engines) == 0:
-        engines = validators()
-    test_cases = all_test_cases()
-    test_cases = dict(
-        (name, tc) for name, tc in test_cases.items() if name.startswith(problem_prefix)
-    )
+    factory = get_environment().factory
+    # filter PlanValidators
+    validators = list(filter(lambda name: factory.engine(name).is_plan_validator(), engines))  # type: ignore [attr-defined]
 
     def applicable_validators(pb, plan):
-        vals = [PlanValidator(name=validator_name) for validator_name in engines]
+        vals = [PlanValidator(name=validator_name) for validator_name in validators]
         return filter(
             lambda e: e.supports(pb.kind) and e.supports_plan(plan.kind), vals
         )
 
-    for test_case in test_cases.values():
+    for test_case in problems.values():
         result: ValidationResult
         for i, valid_plan in enumerate(test_case.valid_plans):
             print()
@@ -402,78 +320,121 @@ def report_validation(*engines: str, problem_prefix: str = "", silent: bool = Fa
                 else:
                     print(Err(f"Incorrectly flagged as {result.status.name}"))
                     errors.append((test_case.problem.name, validator.name))
-
-    if len(errors) > 0 and not silent:
-        print("Errors:\n ", "\n  ".join(map(str, errors)))
     return errors
 
 
-def report_grounding(*engines: str, problem_prefix: str = "", silent: bool = False):
+def report_grounding(
+    engines: List[str], problems: Dict[str, TestCase]
+) -> List[Tuple[str, str]]:
     """Checks that all given grounders produce the correct output on test-cases."""
-    if len(engines) == 0:
-        engines = grounders()
+    factory = get_environment().factory
 
-    problems = all_test_cases()
-    problems = dict(
-        (name, tc) for name, tc in problems.items() if name.startswith(problem_prefix)
-    )
+    # filter grounders
+    def is_grounder(engine_name):
+        e = factory.engine(engine_name)
+        return e.is_compiler() and e.supports_compilation(CompilationKind.GROUNDING)  # type: ignore [attr-defined]
 
-    errors = run_grounding(engines, problems)
-    if len(errors) > 0 and not silent:
-        print("Errors:\n ", "\n  ".join(map(str, errors)))
+    grounders = list(filter(is_grounder, engines))
+
+    errors: List[Tuple[str, str]] = []
+    for test_case in problems.values():
+        pb = test_case.problem
+        kind = pb.kind
+        # if the problem is not action based or has no parameters in the actions, skip it
+        if not kind.has_action_based() or not any(a.parameters for a in pb.actions):  # type: ignore [attr-defined] # If the kind has action_based, the pb.actions is defined
+            continue
+        print()
+        name = pb.name
+        if name is None:
+            name = "None"
+        print(name.ljust(40), end="\n")
+
+        for engine_id in grounders:
+            compiler = Compiler(name=engine_id)
+            if compiler.supports(kind):
+
+                print("|  ", engine_id.ljust(40), end="")
+                start = time.time()
+                try:
+                    assert isinstance(compiler, CompilerMixin)
+                    result = compiler.compile(
+                        pb, compilation_kind=CompilationKind.GROUNDING
+                    )
+                    end = time.time()
+                    status = str("COMPILED").ljust(25)
+                    outcome = check_grounding_result(test_case, result)
+                    if not outcome.ok():
+                        errors.append((engine_id, name))
+                    runtime = "{:.3f}s".format(end - start).ljust(10)
+                    print(status, "    ", runtime, outcome)
+
+                except Exception as e:
+                    print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
+                    errors.append((engine_id, name))
     return errors
 
 
-if __name__ == "__main__":
-    print(USAGE)
-    planners = sys.argv[1:]
-    try:  # extract "--prefix PREFIX"
-        prefix_opt = planners.index("--prefix")
-        planners.pop(prefix_opt)
-        prefix = planners.pop(prefix_opt)
-    except ValueError:
-        prefix = ""
-    try:  # extract "--mode MODE"
-        prefix_opt = planners.index("--mode")
-        planners.pop(prefix_opt)
-        mode = planners.pop(prefix_opt).lower()
-    except ValueError:
-        mode = "oneshot"  # default mode is oneshot
+def main(args=None):
+    if args is None:
+        args = sys.argv[1:]
+    parser = get_report_parser()
+    parsed_args = parser.parse_args(args)
+    engines = parsed_args.engines
+    if not engines:
+        engines = get_environment().factory.engines
 
-    if mode == "oneshot":
-        errors = report_oneshot(*planners, problem_prefix=prefix)
-    elif mode in ["val", "plan-validation", "validation"]:
-        errors = report_validation(*planners, problem_prefix=prefix)
-    elif mode in ["anytime", "anytime-planning", "anytime_planning"]:
-        errors = report_anytime(*planners, problem_prefix=prefix)
-    elif mode in ["grounding", "ground"]:
-        errors = report_grounding(*planners, problem_prefix=prefix)
-    elif mode == "all":
-        oneshot_errors = report_oneshot(*planners, problem_prefix=prefix, silent=True)
-        validation_errors = report_validation(
-            *planners, problem_prefix=prefix, silent=True
-        )
-        anytime_errors = report_anytime(*planners, problem_prefix=prefix, silent=True)
-        grounding_errors = report_grounding(
-            *planners, problem_prefix=prefix, silent=True
-        )
-
-        print()
-        if len(oneshot_errors) > 0:
-            print("Oneshot errors:\n ", "\n  ".join(map(str, oneshot_errors)))
-        if len(validation_errors) > 0:
-            print("Validation errors:\n ", "\n  ".join(map(str, validation_errors)))
-        if len(anytime_errors) > 0:
-            print("Anytime errors:\n ", "\n  ".join(map(str, anytime_errors)))
-        if len(grounding_errors) > 0:
-            print("Grounding errors:\n ", "\n  ".join(map(str, grounding_errors)))
-        errors = list(
-            chain(oneshot_errors, validation_errors, anytime_errors, grounding_errors)
-        )
-
+    if parsed_args.packages:
+        packages = parsed_args.packages
     else:
-        print(f"Unrecognized operation mode {mode}")
-        sys.exit(1)
+        packages = ["test_cases", "unified_planning.test"]
+        packages.extend(parsed_args.extra_packages)
+
+    problem_test_cases = get_test_cases_from_packages(packages)
+    prefixes = parsed_args.prefixes
+    if prefixes:
+        # Filter only the names that have at least one of the prefixes in them
+        problem_test_cases = dict(
+            filter(
+                lambda name_value: any(p in name_value[0] for p in prefixes),
+                problem_test_cases.items(),
+            )
+        )
+
+    timeout: Optional[float] = parsed_args.timeout
+    if timeout <= 0:
+        timeout = None
+
+    modes = parsed_args.modes
+    oneshot_errors = []
+    validation_errors = []
+    anytime_errors = []
+    grounding_errors = []
+
+    if "oneshot" in modes:
+        oneshot_errors = report_oneshot(engines, problem_test_cases, timeout)
+    if "anytime" in modes:
+        anytime_errors = report_anytime(engines, problem_test_cases, timeout)
+    if "validation" in modes:
+        validation_errors = report_validation(engines, problem_test_cases)
+    if "grounding" in modes:
+        grounding_errors = report_grounding(engines, problem_test_cases)
+
+    print()
+    if oneshot_errors:
+        print("Oneshot errors:\n ", "\n  ".join(map(str, oneshot_errors)))
+    if anytime_errors:
+        print("Anytime errors:\n ", "\n  ".join(map(str, anytime_errors)))
+    if validation_errors:
+        print("Validation errors:\n ", "\n  ".join(map(str, validation_errors)))
+    if grounding_errors:
+        print("Grounding errors:\n ", "\n  ".join(map(str, grounding_errors)))
+    errors = list(
+        chain(oneshot_errors, validation_errors, anytime_errors, grounding_errors)
+    )
 
     if len(errors) > 0:
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

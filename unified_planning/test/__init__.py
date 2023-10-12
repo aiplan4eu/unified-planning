@@ -201,3 +201,13 @@ class TestCase:
     @property
     def invalid_plans(self) -> List[Plan]:
         return self._invalid_plans
+
+
+def get_test_cases():
+
+    prefix = "unified_planning:test:"
+    res = {}
+    for name, tc in up.test.examples.get_example_problems().items():
+        res[f"{prefix}{name}"] = tc
+
+    return res
