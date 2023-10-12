@@ -200,7 +200,7 @@ def report_oneshot(
 
     factory = get_environment().factory
     # filter OneshotPlanners
-    planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined]
+    planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
     errors = []
     for test_case in problems.values():
@@ -243,7 +243,7 @@ def report_anytime(
 
     factory = get_environment().factory
     # filter AnytimePlanners
-    planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined]
+    planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
     errors = []
     for test_case in problems.values():
@@ -287,7 +287,7 @@ def report_validation(
     errors: List[Tuple[str, str]] = []  # all errors encountered
     factory = get_environment().factory
     # filter PlanValidators
-    validators = list(filter(lambda name: factory.engine(name).is_plan_validator(), engines))  # type: ignore [attr-defined]
+    validators = list(filter(lambda name: factory.engine(name).is_plan_validator(), engines))  # type: ignore [attr-defined, arg-type]
 
     def applicable_validators(pb, plan):
         vals = [PlanValidator(name=validator_name) for validator_name in validators]
@@ -296,10 +296,11 @@ def report_validation(
         )
 
     for test_case in problems.values():
+        name = str(test_case.problem.name)
         result: ValidationResult
         for i, valid_plan in enumerate(test_case.valid_plans):
             print()
-            print(f"{test_case.problem.name} valid[{i}]".ljust(40), end="\n")
+            print(f"{name} valid[{i}]".ljust(40), end="\n")
             for validator in applicable_validators(test_case.problem, valid_plan):
                 print("|  ", validator.name.ljust(40), end="")
                 result = validator.validate(test_case.problem, valid_plan)
@@ -307,11 +308,11 @@ def report_validation(
                     print(Ok("Valid"))
                 else:
                     print(Err(f"Incorrectly flagged as {result.status.name}"))
-                    errors.append((test_case.problem.name, validator.name))
+                    errors.append((name, validator.name))
 
         for i, invalid_plan in enumerate(test_case.invalid_plans):
             print()
-            print(f"{test_case.problem.name} invalid[{i}]".ljust(40), end="\n")
+            print(f"{name} invalid[{i}]".ljust(40), end="\n")
             for validator in applicable_validators(test_case.problem, invalid_plan):
                 print("|  ", validator.name.ljust(40), end="")
                 result = validator.validate(test_case.problem, invalid_plan)
@@ -319,7 +320,7 @@ def report_validation(
                     print(Ok("Invalid"))
                 else:
                     print(Err(f"Incorrectly flagged as {result.status.name}"))
-                    errors.append((test_case.problem.name, validator.name))
+                    errors.append((name, validator.name))
     return errors
 
 
@@ -401,6 +402,7 @@ def main(args=None):
         )
 
     timeout: Optional[float] = parsed_args.timeout
+    assert timeout is not None
     if timeout <= 0:
         timeout = None
 

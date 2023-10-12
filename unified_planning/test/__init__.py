@@ -207,7 +207,7 @@ def get_test_cases():
 
     prefix = "unified_planning:test:"
     res = {}
-    for name, tc in up.test.examples.get_example_problems().items():
+    for name, tc in up.test.examples.get_example_problems().items():  # type: ignore [attr-defined]
         res[f"{prefix}{name}"] = tc
 
     return res
