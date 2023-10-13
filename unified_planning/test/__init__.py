@@ -205,9 +205,12 @@ class TestCase:
 
 def get_test_cases():
 
-    prefix = "unified_planning:test:"
+    # import unified_planning.test.examples as examples
+    from unified_planning.test import examples
+
+    prefix = "test:"
     res = {}
-    for name, tc in up.test.examples.get_example_problems().items():  # type: ignore [attr-defined]
+    for name, tc in examples.get_example_problems().items():  # type: ignore [attr-defined]
         res[f"{prefix}{name}"] = tc
 
     return res

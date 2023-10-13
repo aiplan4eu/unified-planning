@@ -29,7 +29,7 @@ def get_test_cases():
     problem.add_action(a)
     problem.set_initial_value(x, 1)
     problem.set_initial_value(y, 2)
-    problem.add_goal(Equals(x, 0.0625))
+    problem.add_goal(Equals(x, Fraction(625, 10000)))
 
     # TODO add plans
     res[problem.name] = TestCase(problem=problem, solvable=True)

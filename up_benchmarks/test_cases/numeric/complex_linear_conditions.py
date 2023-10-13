@@ -88,13 +88,13 @@ def get_test_cases():
     var1 = Variable("a", type1)
     var2 = Variable("b", type2)
     action.add_precondition(Forall(Exists(GT(fun(var1, var2), 0), var2), var1))
-    action.add_effect(fun(param1, param2), Plus(fun(param1, param2), 1.5))
+    action.add_effect(fun(param1, param2), Plus(fun(param1, param2), Fraction(15, 10)))
     problem.add_action(action)
 
-    problem.set_initial_value(fun(x, z), 0.1)
-    problem.set_initial_value(fun(y, k), 0.1)
+    problem.set_initial_value(fun(x, z), Fraction(1, 10))
+    problem.set_initial_value(fun(y, k), Fraction(1, 10))
 
-    problem.add_goal(Forall(Exists(GT(fun(var1, var2), 1.5), var2), var1))
+    problem.add_goal(Forall(Exists(GT(fun(var1, var2), Fraction(15, 10)), var2), var1))
 
     # TODO add plans
     res[problem.name] = TestCase(problem=problem, solvable=True)

@@ -56,7 +56,7 @@ def get_test_cases():
     ]
     invalid_plans: List[Plan] = [
         SequentialPlan([ActionInstance(b), ActionInstance(a)]),
-        SequentialPlan([ActionInstance(b), ActionInstance(a), ActionInstance(b)]),
+        SequentialPlan([ActionInstance(b), ActionInstance(a), ActionInstance(a)]),
     ]
 
     test_cases[problem.name] = TestCase(

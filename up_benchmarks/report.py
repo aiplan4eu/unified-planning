@@ -1,12 +1,10 @@
-from functools import partial
-from itertools import chain
-import typing
-import test_cases  # type: ignore
-from test_cases import get_test_cases
-import os
+import importlib
 import sys
 import time
-from typing import Set, Tuple
+from functools import partial
+from itertools import chain
+from typing import Tuple
+import warnings
 
 from unified_planning.engines import (
     CompilerResult,
@@ -33,15 +31,27 @@ from utils import Ok, Err, ResultSet, Warn, bcolors, Void, get_report_parser, _g
 
 
 get_environment().credits_stream = None  # silence credits
+factory = get_environment().factory
+# Move the sequential_plan_validator to the top of the list
+preference_list: List[str] = ["sequential_plan_validator"]
+preference_list.extend(
+    filter(lambda name: name != "sequential_plan_validator", factory.preference_list)
+)
+factory.preference_list = preference_list
 
 
 def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
     res = {}
 
     for package in packages:
-        if hasattr(package, "get_test_cases"):
-            to_add = package.get_test_cases
-        else:
+        # if package == "unified_planning":
+        #     to_add = unified_planning.test.get_test_cases()
+        # else:
+        try:
+            module = importlib.import_module(package)
+            to_add = module.get_test_cases()
+        except AttributeError:
+            print(package)
             # If the package does not have a top-level get_test_cases method, run the "discover" method on the whole package
             package_get_test_cases = partial(_get_test_cases, package)
             to_add = package_get_test_cases()
@@ -56,19 +66,21 @@ def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
     return res
 
 
-def validate_plan(plan: Plan, problem: AbstractProblem) -> ResultSet:
+def validate_plan(
+    plan: Plan, problem: AbstractProblem
+) -> Tuple[ResultSet, Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]]:
     """Validates a plan produced by a planner."""
     try:
         with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
             check = validator.validate(problem, plan)
             if check.status is ValidationResultStatus.VALID:
-                return Ok("Valid")
+                return Ok("Valid"), check.metric_evaluations
             else:
-                return Err("INVALID")
+                return Err("Invalid plan generated"), None
     except unified_planning.exceptions.UPNoSuitableEngineAvailableException:
-        return Warn("No validator for problem")
+        return Warn("No validator for problem"), None
     except Exception as e:
-        return Warn(f"Validator crash ({e})")
+        return Warn(f"Validator crash ({e})"), None
 
 
 def verify(cond: bool, error_tag: str, ok_tag: str = "") -> ResultSet:
@@ -79,12 +91,15 @@ def verify(cond: bool, error_tag: str, ok_tag: str = "") -> ResultSet:
         return Err(error_tag)
 
 
-def check_result(test: TestCase, result: PlanGenerationResult, planner) -> ResultSet:
+def check_result(
+    test: TestCase, result: PlanGenerationResult, planner
+) -> Tuple[ResultSet, Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]]:
     output = Void()
     output += verify(
         result.status != PlanGenerationResultStatus.INTERNAL_ERROR,
         "forbidden internal error",
     )
+    metrics_evaluation = None
 
     if result.plan:
         if not test.solvable:
@@ -119,7 +134,8 @@ def check_result(test: TestCase, result: PlanGenerationResult, planner) -> Resul
                     ),
                     "expected SAT/OPT",
                 )
-        output += validate_plan(result.plan, test.problem)
+        validation_res, metrics_evaluation = validate_plan(result.plan, test.problem)
+        output += validation_res
     elif test.solvable:
         output += verify(
             result.status != PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
@@ -148,9 +164,10 @@ def check_result(test: TestCase, result: PlanGenerationResult, planner) -> Resul
                 PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
             ),
             "invalid status",
+            "Invalid",
         )
 
-    return output
+    return output, metrics_evaluation
 
 
 def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
@@ -160,11 +177,6 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
         output += Err("No compiled problem returned")
         return output
     output += verify(all(not a.parameters for a in compiled_problem.actions), "compiled_problem not grounded")  # type: ignore [attr-defined]
-
-    # TODO understand how to handle quality metrics
-    if hasattr(test.problem, "quality_metrics") and test.problem.quality_metrics:  # type: ignore [attr-defined]
-        output += Warn("Still to implemented how to deal with quality metrics")
-        return output
 
     try:
         with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
@@ -178,7 +190,8 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
             original_plan = res.plan.replace_action_instances(
                 result.map_back_action_instance
             )
-            output += validate_plan(original_plan, test.problem)
+            validation_res, _ = validate_plan(original_plan, test.problem)
+            output += validation_res
     else:
         output += verify(not test.solvable, "expected UNSAT")
 
@@ -194,18 +207,21 @@ def report_oneshot(
     # filter OneshotPlanners
     planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
+    print("ONESHOT PLANNING")
     errors = []
-    for test_case in problems.values():
-        print()
-        name = test_case.problem.name
-        if name is None:
-            name = "None"
-        print(name.ljust(40), end="\n")
+    problems_skipped = []
+    for name, test_case in problems.items():
+        name_printed = False
         pb = test_case.problem
 
         for planner_id in planners:
             planner = OneshotPlanner(name=planner_id)
             if planner.supports(pb.kind):
+
+                if not name_printed:
+                    name_printed = True
+                    print()
+                    print(name.ljust(40), end="\n")
 
                 print("|  ", planner_id.ljust(40), end="")
                 start = time.time()
@@ -216,7 +232,27 @@ def report_oneshot(
                     result = planner.solve(pb, timeout=timeout)
                     end = time.time()
                     status = str(result.status.name).ljust(25)
-                    outcome = check_result(test_case, result, planner)
+                    outcome, metrics_evaluation = check_result(
+                        test_case, result, planner
+                    )
+                    if (
+                        result.status is PlanGenerationResultStatus.SOLVED_OPTIMALLY
+                        and metrics_evaluation
+                    ):
+                        assert (
+                            len(metrics_evaluation) == 1
+                        ), "Can't support more than 1 metric in the problem"
+                        value = tuple(metrics_evaluation.values())[0]
+                        expected_value = test_case.optimum
+                        if expected_value is not None:
+                            outcome += verify(
+                                value == expected_value,
+                                f"Expected OPT but metric evaluation = {value} and expected optimum = {expected_value}",
+                            )
+                        else:
+                            outcome += Warn(
+                                "The optimum is not defined in the test_case"
+                            )
                     if not outcome.ok():
                         errors.append((planner_id, name))
                     runtime = "{:.3f}s".format(end - start).ljust(10)
@@ -225,7 +261,53 @@ def report_oneshot(
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
                     errors.append((planner_id, name))
+        if not name_printed:
+            problems_skipped.append(name)
+
+    print("\n\nOneshot problems skipped:")
+    print("   ", "\n    ".join(problems_skipped))
+
     return errors
+
+
+def check_anytime_solution_improvement(
+    problem: AbstractProblem,
+    metrics_evaluations: List[Dict[PlanQualityMetric, Union[int, Fraction]]],
+) -> ResultSet:
+    if not hasattr(problem, "quality_metrics") or not problem.quality_metrics:  # type: ignore [attr-defined]
+        if any(m for m in metrics_evaluations):
+            return Warn(
+                "Validator returned metric evaluations when the problem has no quality metrics"
+            )
+        return Ok()
+    if len(problem.quality_metrics) != 1:
+        return Warn("Problem has more that 1 quality metric")
+    metric_values: Dict[PlanQualityMetric, List[Union[int, Fraction]]] = {}
+
+    for element in metrics_evaluations:
+        for metric, value in element.items():
+            metric_values.setdefault(metric, []).append(value)
+
+    output = Void()
+    for metric, values in metric_values.items():
+        metric_class_name = metric.__class__.__name__.lower()
+        must_be_reversed = "minimize" in metric_class_name
+        if values != sorted(values, reverse=must_be_reversed):
+            output += Err(f"Metric: {metric}, values: {values}")
+    return output
+
+
+def check_all_optimal_solutions(
+    test_case: TestCase,
+    metrics_evaluations: List[Dict[PlanQualityMetric, Union[int, Fraction]]],
+) -> ResultSet:
+    if test_case.optimum is None:
+        return Void()
+    for metrics_evaluation in metrics_evaluations:
+        assert len(metrics_evaluation) == 1, "Multiple metric not implemented"
+        if any(v != test_case.optimum for v in metrics_evaluation.values()):
+            return Err("Non optimal plan returned")
+    return Ok()
 
 
 def report_anytime(
@@ -237,38 +319,67 @@ def report_anytime(
     # filter AnytimePlanners
     planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
+    print("ANYTIME PLANNING")
     errors = []
-    for test_case in problems.values():
-        print()
-        name = test_case.problem.name
-        if name is None:
-            name = "None"
-        print(name.ljust(40), end="\n")
+    problems_skipped = []
+    for name, test_case in problems.items():
+        name_printed = False
         pb = test_case.problem
 
         for planner_id in planners:
             planner = AnytimePlanner(name=planner_id)
             if planner.supports(pb.kind):
 
+                if not name_printed:
+                    name_printed = True
+                    print()
+                    print(name.ljust(40), end="\n")
+
                 print("|  ", planner_id.ljust(40), end="")
                 start = time.time()
                 try:
                     outcome = Void()
+                    metrics_evaluations: List[
+                        Dict[PlanQualityMetric, Union[int, Fraction]]
+                    ] = []
                     assert isinstance(
                         planner, AnytimePlannerMixin
                     ), "Error in Anytime selection"
                     for result in planner.get_solutions(pb, timeout=timeout):
                         status = str(result.status.name).ljust(25)
-                        outcome += check_result(test_case, result, planner)
+                        validity, metrics_evaluation = check_result(
+                            test_case, result, planner
+                        )
+                        outcome += validity
+                        if metrics_evaluation:
+                            metrics_evaluations.append(metrics_evaluation)
                     if not outcome.ok():
                         errors.append((planner_id, name))
                     end = time.time()
+                    if test_case.solvable and planner.ensures(
+                        AnytimeGuarantee.INCREASING_QUALITY
+                    ):
+                        outcome += check_anytime_solution_improvement(
+                            test_case.problem, metrics_evaluations
+                        )
+                    if test_case.solvable and planner.ensures(
+                        AnytimeGuarantee.OPTIMAL_PLANS
+                    ):
+                        outcome += check_all_optimal_solutions(
+                            test_case.optimum, metrics_evaluations
+                        )
                     runtime = "{:.3f}s".format(end - start).ljust(10)
                     print(status, "    ", runtime, outcome)
 
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
                     errors.append((planner_id, name))
+
+        if not name_printed:
+            problems_skipped.append(name)
+    print("\n\nAnytime problems skipped:")
+    print("   ", "\n    ".join(problems_skipped))
+
     return errors
 
 
@@ -276,7 +387,6 @@ def report_validation(
     engines: List[str], problems: Dict[str, TestCase]
 ) -> List[Tuple[str, str]]:
     """Checks that all given plan validators produce the correct output on test-cases."""
-    errors: List[Tuple[str, str]] = []  # all errors encountered
     factory = get_environment().factory
     # filter PlanValidators
     validators = list(filter(lambda name: factory.engine(name).is_plan_validator(), engines))  # type: ignore [attr-defined, arg-type]
@@ -287,8 +397,9 @@ def report_validation(
             lambda e: e.supports(pb.kind) and e.supports_plan(plan.kind), vals
         )
 
-    for test_case in problems.values():
-        name = str(test_case.problem.name)
+    print("VALIDATION")
+    errors: List[Tuple[str, str]] = []  # all errors encountered
+    for name, test_case in problems.items():
         result: ValidationResult
         for i, valid_plan in enumerate(test_case.valid_plans):
             print()
@@ -329,22 +440,26 @@ def report_grounding(
 
     grounders = list(filter(is_grounder, engines))
 
+    print("\n\nGROUNDING\n")
     errors: List[Tuple[str, str]] = []
-    for test_case in problems.values():
+    problems_skipped = []
+    for name, test_case in problems.items():
         pb = test_case.problem
         kind = pb.kind
         # if the problem is not action based or has no parameters in the actions, skip it
         if not kind.has_action_based() or not any(a.parameters for a in pb.actions):  # type: ignore [attr-defined] # If the kind has action_based, the pb.actions is defined
             continue
-        print()
-        name = pb.name
-        if name is None:
-            name = "None"
-        print(name.ljust(40), end="\n")
+
+        name_printed = False
 
         for engine_id in grounders:
             compiler = Compiler(name=engine_id)
             if compiler.supports(kind):
+
+                if not name_printed:
+                    name_printed = True
+                    print()
+                    print(name.ljust(40), end="\n")
 
                 print("|  ", engine_id.ljust(40), end="")
                 start = time.time()
@@ -364,6 +479,12 @@ def report_grounding(
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
                     errors.append((engine_id, name))
+        if not name_printed:
+            problems_skipped.append(name)
+
+    print("\n\nGrounding problems skipped:")
+    print("   ", "\n    ".join(problems_skipped))
+
     return errors
 
 
@@ -404,24 +525,39 @@ def main(args=None):
     anytime_errors = []
     grounding_errors = []
 
-    if "oneshot" in modes:
-        oneshot_errors = report_oneshot(engines, problem_test_cases, timeout)
-    if "anytime" in modes:
-        anytime_errors = report_anytime(engines, problem_test_cases, timeout)
-    if "validation" in modes:
-        validation_errors = report_validation(engines, problem_test_cases)
-    if "grounding" in modes:
-        grounding_errors = report_grounding(engines, problem_test_cases)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+
+        if "oneshot" in modes:
+            oneshot_errors = report_oneshot(engines, problem_test_cases, timeout)
+        if "anytime" in modes:
+            anytime_errors = report_anytime(engines, problem_test_cases, timeout)
+        if "validation" in modes:
+            validation_errors = report_validation(engines, problem_test_cases)
+        if "grounding" in modes:
+            grounding_errors = report_grounding(engines, problem_test_cases)
 
     print()
     if oneshot_errors:
-        print("Oneshot errors:\n ", "\n  ".join(map(str, oneshot_errors)))
+        print(
+            "Oneshot errors:\n   ", "\n    ".join(map(str, oneshot_errors)), end="\n\n"
+        )
     if anytime_errors:
-        print("Anytime errors:\n ", "\n  ".join(map(str, anytime_errors)))
+        print(
+            "Anytime errors:\n   ", "\n    ".join(map(str, anytime_errors)), end="\n\n"
+        )
     if validation_errors:
-        print("Validation errors:\n ", "\n  ".join(map(str, validation_errors)))
+        print(
+            "Validation errors:\n   ",
+            "\n    ".join(map(str, validation_errors)),
+            end="\n\n",
+        )
     if grounding_errors:
-        print("Grounding errors:\n ", "\n  ".join(map(str, grounding_errors)))
+        print(
+            "Grounding errors:\n   ",
+            "\n    ".join(map(str, grounding_errors)),
+            end="\n\n",
+        )
     errors = list(
         chain(oneshot_errors, validation_errors, anytime_errors, grounding_errors)
     )

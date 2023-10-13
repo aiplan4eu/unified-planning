@@ -19,7 +19,6 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
         try:
             module = importlib.import_module(current_package_name)
         except:
-            print(current_package_name)
             assert False
 
         to_expand = False
@@ -32,6 +31,8 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
                     ), f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
             except AttributeError:
                 to_expand = is_folder
+                if current_package_name == "unified_planning.test":
+                    assert False
         else:
             to_add = {}
             to_expand = True
@@ -125,7 +126,7 @@ class ResultList(ResultSet):
         return all(r.ok() for r in self.results)
 
     def __str__(self):
-        return "".join(map(str, self.results))
+        return "".join(set(map(str, self.results)))
 
 
 def get_report_parser() -> argparse.ArgumentParser:

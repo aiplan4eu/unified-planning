@@ -9,12 +9,12 @@ def get_test_cases():
 
     x = Fluent("x", RealType())
     problem = Problem("GT_linear_conditions")
-    problem.set_initial_value(x, 5.1)
+    problem.set_initial_value(x, Fraction(51, 10))
     problem.add_goal(GT(x, 10))
 
     a1 = InstantaneousAction("a1")
-    a1.add_precondition(GT(x, 5.05))
-    a1.add_effect(x, Plus(x, 5.09))
+    a1.add_precondition(GT(x, Fraction(505, 100)))
+    a1.add_effect(x, Plus(x, Fraction(509, 100)))
 
     problem.add_fluent(x)
     problem.add_action(a1)
@@ -23,12 +23,12 @@ def get_test_cases():
     res[problem.name] = TestCase(problem=problem, solvable=True)
 
     problem = Problem("LT_linear_conditions")
-    problem.set_initial_value(x, 5.1)
-    problem.add_goal(LT(x, 0.1))
+    problem.set_initial_value(x, Fraction(51, 10))
+    problem.add_goal(LT(x, Fraction(1, 10)))
 
     a1 = InstantaneousAction("a1")
-    a1.add_precondition(LT(x, 5.15))
-    a1.add_effect(x, Minus(x, 5.01))
+    a1.add_precondition(LT(x, Fraction(515, 100)))
+    a1.add_effect(x, Minus(x, Fraction(501, 100)))
 
     problem.add_fluent(x)
     problem.add_action(a1)

@@ -24,7 +24,9 @@ def get_test_cases():
     problem.name = "disjunctive_nonlinear_conditions"
 
     action = InstantaneousAction("action1")
-    action.add_precondition(Or(Equals(Div(fun(y), fun(x)), 1.5), LT(fun(y), 2)))
+    action.add_precondition(
+        Or(Equals(Div(fun(y), fun(x)), Fraction(15, 10)), LT(fun(y), 2))
+    )
     action.add_effect(fun(y), 10)
     problem.add_action(action)
 
