@@ -40,7 +40,8 @@ setup(
             "up-fast-downward==0.3.1",
             "up-lpg==0.0.7",
             "up-fmap==0.0.7",
-            "up-ma-bfws==0.0.4" "up-aries>=0.0.8",
+            "up-ma-bfws==0.0.4",
+            "up-aries>=0.0.8",
             "up-symk>=0.0.3",
         ],
         "plot": [
