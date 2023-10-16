@@ -18,8 +18,10 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
     stack = [(package_name, True, "")]
     res = {}
     while len(stack) > 0:
+        to_add = {}
 
         current_package_name, is_folder, modname = stack.pop()
+
         try:
             module = importlib.import_module(current_package_name)
         except:
@@ -35,10 +37,7 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
                     ), f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
             except AttributeError:
                 to_expand = is_folder
-                if current_package_name == "unified_planning.test":
-                    assert False
         else:
-            to_add = {}
             to_expand = True
         for test_case_name, test_case in to_add.items():
             test_case_name = f"{modname}:{test_case_name}"
@@ -50,8 +49,9 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
             res[test_case_name] = test_case
 
         if to_expand:
-            for _, modname, ispkg in pkgutil.iter_modules(module.__path__):
-                stack.append((f"{current_package_name}.{modname}", ispkg, modname))
+            for _, pkgname, ispkg in pkgutil.iter_modules(module.__path__):
+                path_name = f"{modname}:{pkgname}" if modname else pkgname
+                stack.append((f"{current_package_name}.{pkgname}", ispkg, path_name))
     return res
 
 
@@ -190,7 +190,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         "--timeout",
         type=float,
         dest="timeout",
-        help="The timeout in seconds for the anytime and oneshot mode, defaults to 1 second. Set a number <= 0 to have no timeout",
+        help=f"The timeout in seconds for the anytime and oneshot mode, defaults to {DEFAULT_TIMEOUT}s. Set a number <= 0 to have no timeout",
         default=DEFAULT_TIMEOUT,
     )
 

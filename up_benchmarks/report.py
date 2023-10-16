@@ -51,7 +51,6 @@ def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
             module = importlib.import_module(package)
             to_add = module.get_test_cases()
         except AttributeError:
-            print(package)
             # If the package does not have a top-level get_test_cases method, run the "discover" method on the whole package
             package_get_test_cases = partial(_get_test_cases, package)
             to_add = package_get_test_cases()
@@ -207,7 +206,7 @@ def report_oneshot(
     # filter OneshotPlanners
     planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
-    print("ONESHOT PLANNING")
+    print("\n\nONESHOT PLANNING\n")
     errors = []
     problems_skipped = []
     for name, test_case in problems.items():
@@ -264,8 +263,9 @@ def report_oneshot(
         if not name_printed:
             problems_skipped.append(name)
 
-    print("\n\nOneshot problems skipped:")
-    print("   ", "\n    ".join(problems_skipped))
+    if problems_skipped:
+        print("\n\nOneshot problems skipped:")
+        print("   ", "\n    ".join(problems_skipped))
 
     return errors
 
@@ -319,7 +319,7 @@ def report_anytime(
     # filter AnytimePlanners
     planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
-    print("ANYTIME PLANNING")
+    print("\n\nANYTIME PLANNING\n")
     errors = []
     problems_skipped = []
     for name, test_case in problems.items():
@@ -377,8 +377,10 @@ def report_anytime(
 
         if not name_printed:
             problems_skipped.append(name)
-    print("\n\nAnytime problems skipped:")
-    print("   ", "\n    ".join(problems_skipped))
+
+    if problems_skipped:
+        print("\n\nAnytime problems skipped:")
+        print("   ", "\n    ".join(problems_skipped))
 
     return errors
 
@@ -397,7 +399,7 @@ def report_validation(
             lambda e: e.supports(pb.kind) and e.supports_plan(plan.kind), vals
         )
 
-    print("VALIDATION")
+    print("\n\nVALIDATION\n")
     errors: List[Tuple[str, str]] = []  # all errors encountered
     problems_skipped = []
     for name, test_case in problems.items():
@@ -411,8 +413,12 @@ def report_validation(
                     print(f"{name} valid[{i}]".ljust(40), end="\n")
 
                 print("|  ", validator.name.ljust(40), end="")
+                start = time.time()
                 result = validator.validate(test_case.problem, valid_plan)
-                print(str(result.status.name).ljust(25), end="")
+                end = time.time()
+                print(str(result.status.name).ljust(25), end="      ")
+                runtime = "{:.3f}s".format(end - start).ljust(10)
+                print(runtime, end="")
                 if result.status == ValidationResultStatus.VALID:
                     print(Ok("Valid"))
                 else:
@@ -430,7 +436,7 @@ def report_validation(
                     print(f"{name} invalid[{i}]".ljust(40), end="\n")
                 print("|  ", validator.name.ljust(40), end="")
                 result = validator.validate(test_case.problem, invalid_plan)
-                print(str(result.status.name).ljust(25), end="")
+                print(str(result.status.name).ljust(25), end="      ")
                 if result.status == ValidationResultStatus.INVALID:
                     print(Ok("Invalid"))
                 else:
@@ -439,11 +445,9 @@ def report_validation(
             if not problem_name_printed:
                 problems_skipped.append(f"{name} invalid[{i}]")
 
-        if not test_case.valid_plans and not test_case.invalid_plans:
-            problems_skipped.append(name)
-
-    print("\n\Validation problems skipped:")
-    print("   ", "\n    ".join(problems_skipped))
+    if problems_skipped:
+        print("\n\Validation test cases skipped:")
+        print("   ", "\n    ".join(problems_skipped))
 
     return errors
 
@@ -503,8 +507,9 @@ def report_grounding(
         if not name_printed:
             problems_skipped.append(name)
 
-    print("\n\nGrounding problems skipped:")
-    print("   ", "\n    ".join(problems_skipped))
+    if problems_skipped:
+        print("\n\nGrounding problems skipped:")
+        print("   ", "\n    ".join(problems_skipped))
 
     return errors
 
@@ -525,6 +530,7 @@ def main(args=None):
         packages.extend(parsed_args.extra_packages)
 
     problem_test_cases = get_test_cases_from_packages(packages)
+
     prefixes = parsed_args.prefixes
     if prefixes:
         # Filter only the names that have at least one of the prefixes in them
