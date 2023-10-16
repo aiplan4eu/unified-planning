@@ -399,31 +399,52 @@ def report_validation(
 
     print("VALIDATION")
     errors: List[Tuple[str, str]] = []  # all errors encountered
+    problems_skipped = []
     for name, test_case in problems.items():
         result: ValidationResult
         for i, valid_plan in enumerate(test_case.valid_plans):
-            print()
-            print(f"{name} valid[{i}]".ljust(40), end="\n")
+            problem_name_printed = False
             for validator in applicable_validators(test_case.problem, valid_plan):
+                if not problem_name_printed:
+                    problem_name_printed = True
+                    print()
+                    print(f"{name} valid[{i}]".ljust(40), end="\n")
+
                 print("|  ", validator.name.ljust(40), end="")
                 result = validator.validate(test_case.problem, valid_plan)
+                print(str(result.status.name).ljust(25), end="")
                 if result.status == ValidationResultStatus.VALID:
                     print(Ok("Valid"))
                 else:
                     print(Err(f"Incorrectly flagged as {result.status.name}"))
                     errors.append((name, validator.name))
+            if not problem_name_printed:
+                problems_skipped.append(f"{name} valid[{i}]")
 
         for i, invalid_plan in enumerate(test_case.invalid_plans):
-            print()
-            print(f"{name} invalid[{i}]".ljust(40), end="\n")
+            problem_name_printed = False
             for validator in applicable_validators(test_case.problem, invalid_plan):
+                if not problem_name_printed:
+                    problem_name_printed = True
+                    print()
+                    print(f"{name} invalid[{i}]".ljust(40), end="\n")
                 print("|  ", validator.name.ljust(40), end="")
                 result = validator.validate(test_case.problem, invalid_plan)
+                print(str(result.status.name).ljust(25), end="")
                 if result.status == ValidationResultStatus.INVALID:
                     print(Ok("Invalid"))
                 else:
                     print(Err(f"Incorrectly flagged as {result.status.name}"))
                     errors.append((name, validator.name))
+            if not problem_name_printed:
+                problems_skipped.append(f"{name} invalid[{i}]")
+
+        if not test_case.valid_plans and not test_case.invalid_plans:
+            problems_skipped.append(name)
+
+    print("\n\Validation problems skipped:")
+    print("   ", "\n    ".join(problems_skipped))
+
     return errors
 
 
