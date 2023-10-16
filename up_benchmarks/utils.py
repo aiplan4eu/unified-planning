@@ -9,6 +9,10 @@ import unified_planning
 from unified_planning.test import TestCase
 
 
+# Define the default timeout for anytime and oneshot
+DEFAULT_TIMEOUT = 3
+
+
 def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
 
     stack = [(package_name, True, "")]
@@ -187,7 +191,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         type=float,
         dest="timeout",
         help="The timeout in seconds for the anytime and oneshot mode, defaults to 1 second. Set a number <= 0 to have no timeout",
-        default=1,
+        default=DEFAULT_TIMEOUT,
     )
 
     return parser
