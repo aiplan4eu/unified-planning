@@ -10,7 +10,7 @@ from unified_planning.test import TestCase
 
 
 # Define the default timeout for anytime and oneshot
-DEFAULT_TIMEOUT = 3
+DEFAULT_TIMEOUT = 3.0
 
 
 def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
@@ -148,6 +148,8 @@ def get_report_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-p",
+        "--prefix",
         "--prefixes",
         type=str,
         nargs="+",
@@ -159,6 +161,7 @@ def get_report_parser() -> argparse.ArgumentParser:
     mutually_exclusive = parser.add_mutually_exclusive_group()
 
     mutually_exclusive.add_argument(
+        "--e-pkgs",
         "--extra-packages",
         type=str,
         nargs="+",
@@ -167,6 +170,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         default=[],
     )
     mutually_exclusive.add_argument(
+        "--pkgs",
         "--packages",
         type=str,
         nargs="+",
@@ -176,6 +180,7 @@ def get_report_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-m",
         "--mode",
         "--modes",
         type=str,
@@ -187,6 +192,7 @@ def get_report_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "-t",
         "--timeout",
         type=float,
         dest="timeout",

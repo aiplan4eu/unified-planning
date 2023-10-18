@@ -148,10 +148,12 @@ def check_result(
                 PlanGenerationResultStatus.MEMOUT,
                 PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
                 PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+                PlanGenerationResultStatus.INTERMEDIATE,
+                PlanGenerationResultStatus.UNSOLVABLE_PROVEN,
             ),
-            "invalid status",
+            f"error status: {result.status.name}",
         )
-        output += Warn(f"Unsolved ({result.status.name})")
+        output += Warn(f"Solvable problem, returned {result.status.name}")
     else:
         output += verify(
             result.status
@@ -435,8 +437,12 @@ def report_validation(
                     print()
                     print(f"{name} invalid[{i}]".ljust(40), end="\n")
                 print("|  ", validator.name.ljust(40), end="")
+                start = time.time()
                 result = validator.validate(test_case.problem, invalid_plan)
+                end = time.time()
                 print(str(result.status.name).ljust(25), end="      ")
+                runtime = "{:.3f}s".format(end - start).ljust(10)
+                print(runtime, end="")
                 if result.status == ValidationResultStatus.INVALID:
                     print(Ok("Invalid"))
                 else:
@@ -446,7 +452,7 @@ def report_validation(
                 problems_skipped.append(f"{name} invalid[{i}]")
 
     if problems_skipped:
-        print("\n\Validation test cases skipped:")
+        print("\n\nValidation test cases skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
     return errors

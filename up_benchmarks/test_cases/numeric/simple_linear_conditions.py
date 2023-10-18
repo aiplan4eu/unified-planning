@@ -7,8 +7,8 @@ from unified_planning.test import TestCase
 def get_test_cases():
     res = {}
 
-    x = Fluent("x", RealType())
     problem = Problem("GT_linear_conditions")
+    x = problem.add_fluent("x", RealType())
     problem.set_initial_value(x, Fraction(51, 10))
     problem.add_goal(GT(x, 10))
 
@@ -16,7 +16,6 @@ def get_test_cases():
     a1.add_precondition(GT(x, Fraction(505, 100)))
     a1.add_effect(x, Plus(x, Fraction(509, 100)))
 
-    problem.add_fluent(x)
     problem.add_action(a1)
 
     # TODO add plans

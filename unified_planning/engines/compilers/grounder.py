@@ -76,6 +76,12 @@ class GrounderHelper:
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
+        if grounding_actions_map is not None:
+            for action, params_list in grounding_actions_map.items():
+                for params in params_list:
+                    assert len(action.parameters) == len(
+                        params
+                    ), f"Action {action.name} has {len(action.parameters)} parameters but {len(params)} are given in the map.\n{action.parameters}\n{params}"
         # grounded_actions is a map from an Action of the original problem and it's parameters
         # to the grounded instance of the Action with the given parameters.
         # When the grounded instance of the Action is None, it means that the resulting grounding
