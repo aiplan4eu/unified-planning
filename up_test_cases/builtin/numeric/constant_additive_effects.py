@@ -10,8 +10,9 @@ def get_test_cases():
     problem = Problem("constant_increase_effect")
 
     x = problem.add_fluent("x", IntType(), default_initial_value=0)
-    a = InstantaneousAction(f"act")
+    a = InstantaneousAction("act")
     a.add_increase_effect(x, 10)
+    problem.add_action(a)
     problem.add_goal(Equals(x, 10))
 
     # TODO add plans
@@ -29,8 +30,9 @@ def get_test_cases():
     problem = Problem("constant_decrease_effect")
 
     x = problem.add_fluent("x", IntType(), default_initial_value=10)
-    a = InstantaneousAction(f"act")
+    a = InstantaneousAction("act")
     a.add_decrease_effect(x, 10)
+    problem.add_action(a)
     problem.add_goal(Equals(x, 0))
 
     # TODO add plans

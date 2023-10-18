@@ -148,20 +148,20 @@ def get_report_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "-p",
-        "--prefix",
-        "--prefixes",
+        "-f",
+        "--filter",
+        "--filters",
         type=str,
         nargs="+",
-        help="Runs only the test that start with one of the given prefixes; if no prefixes are specified, runs the engines on all the problems.",
-        dest="prefixes",
+        help="Runs only the test that contains one of the given filters; if no filters are specified, runs the engines on all the problems.",
+        dest="filters",
         default=[],
     )
 
     mutually_exclusive = parser.add_mutually_exclusive_group()
 
     mutually_exclusive.add_argument(
-        "--e-pkgs",
+        "-e",
         "--extra-packages",
         type=str,
         nargs="+",
@@ -170,7 +170,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         default=[],
     )
     mutually_exclusive.add_argument(
-        "--pkgs",
+        "-p",
         "--packages",
         type=str,
         nargs="+",

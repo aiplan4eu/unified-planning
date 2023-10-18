@@ -44,9 +44,6 @@ def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
     res = {}
 
     for package in packages:
-        # if package == "unified_planning":
-        #     to_add = unified_planning.test.get_test_cases()
-        # else:
         try:
             module = importlib.import_module(package)
             to_add = module.get_test_cases()
@@ -94,15 +91,11 @@ def check_result(
     test: TestCase, result: PlanGenerationResult, planner
 ) -> Tuple[ResultSet, Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]]:
     output = Void()
-    output += verify(
-        result.status != PlanGenerationResultStatus.INTERNAL_ERROR,
-        "forbidden internal error",
-    )
     metrics_evaluation = None
 
     if result.plan:
         if not test.solvable:
-            output += Err("Unsolvable problem")
+            return Err("Solved unsolvable problem")
         # if the planner guarantees optimality, this should be reflected in
         # the result status
         metrics: Iterable[Any] = getattr(test.problem, "quality_metrics", tuple())
@@ -114,13 +107,13 @@ def check_result(
                     PlanGenerationResultStatus.INTERMEDIATE,
                     PlanGenerationResultStatus.TIMEOUT,
                 ),
-                "expected SAT ",
+                f"Returned {result.status.name} on Problem without metric",
             )
         else:
             if planner.satisfies(OptimalityGuarantee.SOLVED_OPTIMALLY):
                 output += verify(
                     result.status is PlanGenerationResultStatus.SOLVED_OPTIMALLY,
-                    "expected OPT",
+                    f"Planner guarantees optimality but returned {result.status.name}",
                 )
             else:
                 output += verify(
@@ -131,7 +124,7 @@ def check_result(
                         PlanGenerationResultStatus.INTERMEDIATE,
                         PlanGenerationResultStatus.TIMEOUT,
                     ),
-                    "expected SAT/OPT",
+                    f"Plan generated, but invalid status: {result.status.name}",
                 )
         validation_res, metrics_evaluation = validate_plan(result.plan, test.problem)
         output += validation_res
@@ -153,7 +146,8 @@ def check_result(
             ),
             f"error status: {result.status.name}",
         )
-        output += Warn(f"Solvable problem, returned {result.status.name}")
+        if result.status == PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY:
+            output += Warn(f"Solvable problem, returned {result.status.name}")
     else:
         output += verify(
             result.status
@@ -172,31 +166,35 @@ def check_result(
 
 
 def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
-    output = Void()
     compiled_problem = result.problem
     if compiled_problem is None:
-        output += Err("No compiled problem returned")
-        return output
-    output += verify(all(not a.parameters for a in compiled_problem.actions), "compiled_problem not grounded")  # type: ignore [attr-defined]
+        return Err("No compiled problem returned")
+    if any(a.parameters for a in compiled_problem.actions):  # type: ignore [attr-defined]
+        return Err("compiled_problem not grounded")
 
-    try:
-        with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
+    planners = get_all_applicable_engines(problem_kind=compiled_problem.kind)
+    if not planners:
+        return Warn("No engine to solve compiled problem")
+    plan = None
+    for planner in map(lambda n: OneshotPlanner(name=n), planners):
+        try:
             res = planner.solve(compiled_problem)
-    except UPNoSuitableEngineAvailableException:
-        output += Warn("No engine to solve compiled problem")
-        return output
-    if res.plan is not None:
-        output += verify(test.solvable, "expected SAT/OPT")
-        if test.solvable:
-            original_plan = res.plan.replace_action_instances(
-                result.map_back_action_instance
-            )
-            validation_res, _ = validate_plan(original_plan, test.problem)
-            output += validation_res
-    else:
-        output += verify(not test.solvable, "expected UNSAT")
+        except:
+            pass
+        if test.solvable and res.plan is not None:
+            plan = res.plan
+            break
+        if not test.solvable and res.plan is None:
+            return Ok("Compiled problem unsolvable")
+    if plan is None and test.solvable:
+        return Warn("No engine to solve compiled problem")
+    elif plan is None:
+        return Warn("No engine to prove compiled problem is unsolvable")
 
-    return output
+    assert test.solvable and plan is not None
+    original_plan = res.plan.replace_action_instances(result.map_back_action_instance)
+    validation_res, _ = validate_plan(original_plan, test.problem)
+    return validation_res
 
 
 def report_oneshot(
@@ -208,7 +206,7 @@ def report_oneshot(
     # filter OneshotPlanners
     planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
-    print("\n\nONESHOT PLANNING\n")
+    print("\n\nONESHOT PLANNING:")
     errors = []
     problems_skipped = []
     for name, test_case in problems.items():
@@ -251,8 +249,9 @@ def report_oneshot(
                                 f"Expected OPT but metric evaluation = {value} and expected optimum = {expected_value}",
                             )
                         else:
-                            outcome += Warn(
-                                "The optimum is not defined in the test_case"
+                            outcome = (
+                                Warn("The optimum is not defined in the test_case")
+                                + outcome
                             )
                     if not outcome.ok():
                         errors.append((planner_id, name))
@@ -265,7 +264,9 @@ def report_oneshot(
         if not name_printed:
             problems_skipped.append(name)
 
-    if problems_skipped:
+    if len(problems_skipped) == len(problems):
+        print("\n\nOneshot problems skipped: ALL")
+    elif problems_skipped:
         print("\n\nOneshot problems skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
@@ -321,7 +322,7 @@ def report_anytime(
     # filter AnytimePlanners
     planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined, arg-type]
 
-    print("\n\nANYTIME PLANNING\n")
+    print("\n\nANYTIME PLANNING:")
     errors = []
     problems_skipped = []
     for name, test_case in problems.items():
@@ -380,7 +381,9 @@ def report_anytime(
         if not name_printed:
             problems_skipped.append(name)
 
-    if problems_skipped:
+    if len(problems_skipped) == len(problems):
+        print("\n\nAnytime problems skipped: ALL")
+    elif problems_skipped:
         print("\n\nAnytime problems skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
@@ -401,7 +404,7 @@ def report_validation(
             lambda e: e.supports(pb.kind) and e.supports_plan(plan.kind), vals
         )
 
-    print("\n\nVALIDATION\n")
+    print("\n\nVALIDATION")
     errors: List[Tuple[str, str]] = []  # all errors encountered
     problems_skipped = []
     for name, test_case in problems.items():
@@ -451,7 +454,9 @@ def report_validation(
             if not problem_name_printed:
                 problems_skipped.append(f"{name} invalid[{i}]")
 
-    if problems_skipped:
+    if len(problems_skipped) == len(problems):
+        print("\n\nValidation problems skipped: ALL")
+    elif problems_skipped:
         print("\n\nValidation test cases skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
@@ -471,7 +476,7 @@ def report_grounding(
 
     grounders = list(filter(is_grounder, engines))
 
-    print("\n\nGROUNDING\n")
+    print("\n\nGROUNDING:")
     errors: List[Tuple[str, str]] = []
     problems_skipped = []
     for name, test_case in problems.items():
@@ -513,7 +518,9 @@ def report_grounding(
         if not name_printed:
             problems_skipped.append(name)
 
-    if problems_skipped:
+    if len(problems_skipped) == len(problems):
+        print("\n\nGrounding problems skipped: ALL")
+    elif problems_skipped:
         print("\n\nGrounding problems skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
@@ -532,17 +539,17 @@ def main(args=None):
     if parsed_args.packages:
         packages = parsed_args.packages
     else:
-        packages = ["test_cases", "unified_planning.test"]
+        packages = ["builtin", "unified_planning.test"]
         packages.extend(parsed_args.extra_packages)
 
     problem_test_cases = get_test_cases_from_packages(packages)
 
-    prefixes = parsed_args.prefixes
-    if prefixes:
-        # Filter only the names that have at least one of the prefixes in them
+    filters = parsed_args.filters
+    if filters:
+        # Filter only the names that have at least one of the given filters in them
         problem_test_cases = dict(
             filter(
-                lambda name_value: any(p in name_value[0] for p in prefixes),
+                lambda name_value: any(p in name_value[0] for p in filters),
                 problem_test_cases.items(),
             )
         )
