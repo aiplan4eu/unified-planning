@@ -1,11 +1,13 @@
+import argparse
 import importlib
 import pkgutil
-import argparse
-from typing import List
+import os
 from abc import ABC, abstractmethod
-from typing import Dict
+from glob import glob
+from typing import Iterable, List, Dict, Optional
 
 import unified_planning
+from unified_planning.io import PDDLReader
 from unified_planning.test import TestCase
 
 
@@ -25,6 +27,7 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
         try:
             module = importlib.import_module(current_package_name)
         except:
+            print(current_package_name)
             assert False
 
         to_expand = False
@@ -52,6 +55,41 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
             for _, pkgname, ispkg in pkgutil.iter_modules(module.__path__):
                 path_name = f"{modname}:{pkgname}" if modname else pkgname
                 stack.append((f"{current_package_name}.{pkgname}", ispkg, path_name))
+    return res
+
+
+def _get_pddl_test_cases(
+    pddl_files_path: str,
+    *,
+    domain_filter: str = "domain",
+    filter: Optional[Iterable[str]] = None,
+    block: Iterable[str] = tuple(),
+) -> Dict[str, TestCase]:
+    pddl_files = glob("*.pddl", root_dir=pddl_files_path)
+    domain_filenames: List[str] = []
+    problem_filenames: List[str] = []
+    for filename in pddl_files:
+        filename = os.path.join(pddl_files_path, filename)
+        if domain_filter in filename:
+            domain_filenames.append(filename)
+        else:
+            if any(b in filename for b in block):
+                continue
+            if filter is None or any(f in filename for f in filter):
+                problem_filenames.append(filename)
+
+    assert (
+        len(domain_filenames) == 1
+    ), f"Detected {len(domain_filenames)} domains, only 1 is accepted"
+    domain_filename = domain_filenames[0]
+    assert problem_filenames, "No problem files detected, check filter and block"
+    res = {}
+    reader = PDDLReader()
+    for problem_filename in problem_filenames:
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        problem.name = os.path.basename(problem_filename)
+        res[problem.name] = TestCase(problem=problem, solvable=True)
+
     return res
 
 
