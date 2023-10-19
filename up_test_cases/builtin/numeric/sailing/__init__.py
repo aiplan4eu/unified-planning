@@ -8,10 +8,7 @@ PDDL_FILES_DIR = os.path.join(FILE_DIR, "pddl_files")
 
 # problems_filenames = ["1_1_1229", "1_2_1229", "1_3_1229", "3_3_1229", "4_10_1229"] # TODO choose which to keep
 
-get_test_cases = partial(_get_pddl_test_cases, PDDL_FILES_DIR, filter=("1_1_1229",))
 # This test is disabled for time execution purposes. It can be enabled at any time!
 TEST_DISABLED = True
-if TEST_DISABLED:
-
-    def get_test_cases():
-        return {}
+if not TEST_DISABLED:
+    get_test_cases = partial(_get_pddl_test_cases, PDDL_FILES_DIR, filter=("1_1_1229",))

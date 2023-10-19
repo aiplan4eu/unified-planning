@@ -177,6 +177,7 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
         return Warn("No engine to solve compiled problem")
     plan = None
     for planner in map(lambda n: OneshotPlanner(name=n), planners):
+        assert isinstance(planner, OneshotPlannerMixin)
         try:
             res = planner.solve(compiled_problem)
         except:
@@ -192,7 +193,10 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
         return Warn("No engine to prove compiled problem is unsolvable")
 
     assert test.solvable and plan is not None
-    original_plan = res.plan.replace_action_instances(result.map_back_action_instance)
+    mbai = result.map_back_action_instance
+    if mbai is None:
+        return Err("The mapping back function is None")
+    original_plan = plan.replace_action_instances(mbai)
     validation_res, _ = validate_plan(original_plan, test.problem)
     return validation_res
 
@@ -369,7 +373,7 @@ def report_anytime(
                         AnytimeGuarantee.OPTIMAL_PLANS
                     ):
                         outcome += check_all_optimal_solutions(
-                            test_case.optimum, metrics_evaluations
+                            test_case, metrics_evaluations
                         )
                     runtime = "{:.3f}s".format(end - start).ljust(10)
                     print(status, "    ", runtime, outcome)
