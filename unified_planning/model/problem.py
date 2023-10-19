@@ -43,7 +43,7 @@ from unified_planning.exceptions import (
 
 import networkx as nx
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast, Iterable
+from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
 
 class Problem(  # type: ignore[misc]
@@ -1016,7 +1016,8 @@ class _KindFactory:
         fluents_to_only_decrease = set()
         fve = self.pb.environment.free_vars_extractor
         for metric in self.pb.quality_metrics:
-            ovsb_goals: Iterable["up.model.fnode.FNode"] = tuple()
+            oversub_gains: Iterable[Any] = []
+            oversub_goals: Iterable["up.model.fnode.FNode"] = []
             if metric.is_minimize_expression_on_final_state():
                 assert isinstance(
                     metric, up.model.metrics.MinimizeExpressionOnFinalState
@@ -1060,21 +1061,21 @@ class _KindFactory:
             elif metric.is_minimize_action_costs():
                 assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 self.kind.set_quality_metrics("ACTIONS_COST")
-                for cost in metric.costs.values():
+                costs = (
+                    metric.costs.values()
+                    if metric.default is None
+                    else chain(metric.costs.values(), [metric.default])
+                )
+                for cost in costs:
                     if cost is None:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."
                         )
-                    if metric.default is not None:
-                        for f in fve.get(metric.default):
-                            if f.fluent() in self.static_fluents:
-                                self.kind.set_actions_cost_kind(
-                                    "STATIC_FLUENTS_IN_ACTIONS_COST"
-                                )
-                            else:
-                                self.kind.set_actions_cost_kind(
-                                    "FLUENTS_IN_ACTIONS_COST"
-                                )
+                    t = cost.type
+                    if t.is_int_type():
+                        self.kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+                    elif t.is_real_type():
+                        self.kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
                     for f in fve.get(cost):
                         if f.fluent() in self.static_fluents:
                             self.kind.set_actions_cost_kind(
@@ -1089,15 +1090,29 @@ class _KindFactory:
             elif metric.is_oversubscription():
                 assert isinstance(metric, up.model.Oversubscription)
                 self.kind.set_quality_metrics("OVERSUBSCRIPTION")
-                ovsb_goals = metric.goals.keys()
+                oversub_goals = metric.goals.keys()
+                oversub_gains = metric.goals.values()
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.TemporalOversubscription)
                 self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                ovsb_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_gains = metric.goals.values()
             else:
                 assert False, "Unknown quality metric"
-            for goal in ovsb_goals:
+            for goal in oversub_goals:
                 self.update_problem_kind_expression(goal)
+            for oversub_gain in oversub_gains:
+                if isinstance(oversub_gain, int):
+                    self.kind.set_oversubscription_kind(
+                        "INT_NUMBERS_IN_OVERSUBSCRIPTION"
+                    )
+                else:
+                    assert isinstance(
+                        oversub_gain, Fraction
+                    ), "Typing error in metric creation"
+                    self.kind.set_oversubscription_kind(
+                        "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
+                    )
         return fluents_to_only_increase, fluents_to_only_decrease
 
 
