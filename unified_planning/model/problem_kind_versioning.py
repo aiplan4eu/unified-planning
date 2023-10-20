@@ -19,15 +19,20 @@ from typing import Set, Tuple
 # up.model.problem_kind.py file
 
 
-# Map of features that are deprecated in the latest version
-DEPRECATED_FEATURES = {
-    "NUMBERS": [
-        "CONTINUOUS_NUMBERS",
-        "DISCRETE_NUMBERS",
-    ],
-    "FLUENTS_TYPE": [
-        "NUMERIC_FLUENTS",
-    ],
+# Mapping from a feature to the  version it was introduced (defaults to 1) and the
+# version it was deprecated (defaults to None, None if it not yet deprecated)
+FEATURES_VERSIONS = {
+    "CONTINUOUS_NUMBERS": (1, 2),
+    "DISCRETE_NUMBERS": (1, 2),
+    "NUMERIC_FLUENTS": (1, 2),
+    "INT_TYPE_DURATIONS": (2, None),
+    "REAL_TYPE_DURATIONS": (2, None),
+    "INT_FLUENTS": (2, None),
+    "REAL_FLUENTS": (2, None),
+    "INT_NUMBERS_IN_ACTIONS_COST": (2, None),
+    "REAL_NUMBERS_IN_ACTIONS_COST": (2, None),
+    "INT_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
+    "REAL_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
 }
 
 LATEST_PROBLEM_KIND_VERSION = 2

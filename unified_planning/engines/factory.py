@@ -523,14 +523,12 @@ class Factory:
                 # The EngineClass satisfies the given OperationMode but does not
                 # satisfy some other features; add it to the error report features if
                 # no NoSuitableEngineAvailable are found.
-                x = [name] + [
-                    str(
-                        EngineClass.supports(
-                            ProblemKind({f}, version=problem_kind.get_version())
-                        )
-                    )
+                x = [name]
+                pk_v = problem_kind.version
+                x.extend(
+                    str(EngineClass.supports(ProblemKind({f}, version=pk_v)))
                     for f in problem_features
-                ]
+                )
                 planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features

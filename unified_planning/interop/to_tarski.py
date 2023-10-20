@@ -306,7 +306,7 @@ def convert_problem_to_tarski(
     """
     features: List[str] = []
     kind = problem.kind
-    assert kind.get_version() == LATEST_PROBLEM_KIND_VERSION
+    assert kind.version == LATEST_PROBLEM_KIND_VERSION
     if kind.has_equalities():
         features.append("equality")
     if kind.has_int_fluents() or kind.has_real_fluents():

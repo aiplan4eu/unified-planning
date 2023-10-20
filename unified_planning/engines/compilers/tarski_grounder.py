@@ -100,7 +100,7 @@ class TarskiGrounder(Engine, CompilerMixin):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        return ProblemKind(problem_kind.features, problem_kind.get_version())
+        return problem_kind.clone()
 
     def _compile(
         self, problem: "up.model.AbstractProblem", compilation_kind: "CompilationKind"

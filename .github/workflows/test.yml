@@ -9,8 +9,8 @@ on:
 
 env:
   up_tamer_commit: "d546b0ca0fa1b3091699fd0877a3af38339ba0fb"
-  up_pyperplan_commit: "5e81aa08ec7970f50b375027f646eec89f124ed4"
-  up_fast_downward_commit: "ad2303085059d3ccff3333ac430552ba6d0905af"
+  up_pyperplan_commit: "fa026fd3b3666d65a34ede06c6978c82c2a88293"
+  up_fast_downward_commit: "cb3fc7ce13ce9f53b4cedb80036d5c1666a4cf27"
   up_enhsp_commit: "7221040a642276f7c45e6d02542a59111233dd37"
   up_fmap_commit: "ff3a0e9d87097f95fec332c292d76f92cbe3bbdf"
 

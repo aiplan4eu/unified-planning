@@ -524,10 +524,6 @@ class TestProblem(unittest_TestCase):
             "robot_decrease",
             "robot_locations_connected",
             "robot_locations_visited",
-            "robot_fluent_of_user_type_with_int_id",
-            "basic_int_fluent_param",
-            "basic_bounded_int_action_param",
-            "basic_unbounded_int_action_param",
             "basic_numeric",
             "sched:basic",
             "sched:resource_set",
@@ -537,7 +533,8 @@ class TestProblem(unittest_TestCase):
             problem = example.problem
             if problem.name in names_of_SNP_problems:
                 self.assertTrue(
-                    problem.kind.has_simple_numeric_planning(), problem.name
+                    problem.kind.has_simple_numeric_planning(),
+                    str(problem.name) + str(problem.kind),
                 )
             else:
                 self.assertFalse(

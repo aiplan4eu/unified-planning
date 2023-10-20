@@ -98,15 +98,16 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         final_supported_kind = supported_kind.intersection(engine.supported_kind())
-        final_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
-        final_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-        final_supported_kind.set_oversubscription_kind(
+        additive_supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+        additive_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        additive_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
+        additive_supported_kind.set_oversubscription_kind(
             "INT_NUMBERS_IN_OVERSUBSCRIPTION"
         )
-        final_supported_kind.set_oversubscription_kind(
+        additive_supported_kind.set_oversubscription_kind(
             "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
         )
-        return final_supported_kind
+        return final_supported_kind.union(additive_supported_kind)
 
     @staticmethod
     def _supports(problem_kind: "ProblemKind", engine: Type[Engine]) -> bool:

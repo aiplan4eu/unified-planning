@@ -139,7 +139,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        new_kind = ProblemKind(problem_kind.features, problem_kind.get_version())
+        new_kind = problem_kind.clone()
         new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 

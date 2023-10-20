@@ -62,9 +62,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> "ProblemKind":
         engine_supported_kind = engine.supported_kind()
-        supported_kind = ProblemKind(
-            engine_supported_kind.features, engine_supported_kind.get_version()
-        )
+        supported_kind = engine_supported_kind.clone()
         supported_kind.unset_problem_class("HIERARCHICAL")
         return supported_kind
 

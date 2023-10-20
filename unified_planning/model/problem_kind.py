@@ -16,11 +16,10 @@
 from functools import partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
-from warnings import warn
 import unified_planning as up
 
 from unified_planning.model.problem_kind_versioning import (
-    DEPRECATED_FEATURES,
+    FEATURES_VERSIONS,
     equalize_versions,
     LATEST_PROBLEM_KIND_VERSION,
 )
@@ -127,19 +126,19 @@ FEATURES = {
 }
 
 
+all_features = set(chain(*FEATURES.values()))
+
+
 class ProblemKindMeta(type):
     """Meta class used to interpret the nodehandler decorator."""
 
     def __new__(cls, name, bases, dct):
         def _set(self, feature, possible_features):
             assert feature in possible_features, str(feature)
-            for deprecated_features in DEPRECATED_FEATURES.values():
-                if feature in deprecated_features:
-                    warn(
-                        f"ProblemKind feature {feature} is deprecated.",
-                        DeprecationWarning,
-                        stacklevel=2,
-                    )
+            added_feature_version, _ = FEATURES_VERSIONS.get(feature, (1, None))
+            assert (
+                self._version is None or added_feature_version <= self._version
+            ), f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
             self._features.add(feature)
 
         def _unset(self, feature, possible_features):
@@ -175,20 +174,18 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         self, features: Optional[Iterable[str]] = None, version: Optional[int] = None
     ):
         self._features: Set[str] = set() if features is None else set(features)
-        for deprecated_feature in chain(*DEPRECATED_FEATURES.values()):
-            if deprecated_feature in self._features:
-                warn(
-                    f"ProblemKind feature {deprecated_feature} is deprecated.",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-        if version is None:
-            self._version = 1
-        else:
-            self._version = version
-        assert self._version > 0 and isinstance(
-            self._version, int
-        ), "Error, the ProblemKind version must be a positive integer"
+        for f in self._features:
+            assert f in all_features, f"Feature {f} not in defined features"
+        self._version = version
+        if self._version is not None:
+            assert self._version > 0 and isinstance(
+                self._version, int
+            ), "Error, the ProblemKind version must be a positive integer"
+            for feature in self._features:
+                added_feature_version, _ = FEATURES_VERSIONS.get(feature, (1, None))
+                assert (
+                    added_feature_version <= self._version
+                ), f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
 
     def __repr__(self) -> str:
         features_gen = (f"'{feature}'" for feature in self._features)
@@ -214,27 +211,40 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
             return False
 
     def __hash__(self) -> int:
-        res = 0
-        for f in self._features:
-            res += hash(f)
-        return res
+        return sum(map(hash, self._features))
 
     def __le__(self, oth: object):
         if not isinstance(oth, ProblemKind):
             raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
         self_feat, oth_feat, _ = equalize_versions(
-            self._features, oth._features, self._version, oth._version
+            self._features, oth._features, self.version, oth.version
         )
         return self_feat.issubset(oth_feat)
 
-    def get_version(self) -> int:
-        """Return the ProblemKind version, intended to support backward compatible problem kind extensions."""
-        return self._version
+    def clone(self) -> "ProblemKind":
+        return ProblemKind(self._features, self._version)
 
     @property
     def features(self) -> Set[str]:
         """Returns the features contained by this `ProblemKind`."""
         return self._features
+
+    @property
+    def version(self) -> int:
+        """
+        Returns the version of this `ProblemKind`. If it was not specified, returns the
+        highest version represented by the features.
+        """
+        if self._version is not None:
+            return self._version
+        max_version = 1
+        for f in self._features:
+            added_feature_version, _ = FEATURES_VERSIONS.get(f, (1, None))
+            max_version = max(max_version, added_feature_version)
+        assert (
+            max_version <= LATEST_PROBLEM_KIND_VERSION
+        ), "Calculated version is > that the LATEST declared version"
+        return max_version
 
     def union(self, oth: "ProblemKind") -> "ProblemKind":
         """
@@ -245,7 +255,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         :return: a new `ProblemKind` that is the union of this `ProblemKind` and `oth`
         """
         self_feat, oth_feat, version = equalize_versions(
-            self._features, oth._features, self._version, oth._version
+            self._features, oth._features, self.version, oth.version
         )
         return ProblemKind(self_feat.union(oth_feat), version=version)
 
@@ -258,7 +268,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         :return: a new `ProblemKind` that is the intersection between this `ProblemKind` and `oth`
         """
         self_feat, oth_feat, version = equalize_versions(
-            self._features, oth._features, self._version, oth._version
+            self._features, oth._features, self.version, oth.version
         )
         return ProblemKind(self_feat.intersection(oth_feat), version=version)
 
