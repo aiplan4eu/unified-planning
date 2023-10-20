@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from functools import partialmethod, total_ordering
+from functools import cache, partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
 import unified_planning as up
@@ -129,6 +129,27 @@ FEATURES = {
 all_features = set(chain(*FEATURES.values()))
 
 
+@cache
+def get_valid_features(version: int) -> Set[str]:
+    """
+    Returns the set of features that are present and not deprecated in the
+    given ProblemKind's version.
+
+    :param version: The ProblemKind's version to extract the valid features from.
+    :return: the set of features that are present and not deprecated in the
+        given ProblemKind's version.
+    """
+    valid_features: Set[str] = set()
+    for f in all_features:
+        added_version, deprecated_version = FEATURES_VERSIONS.get(f, (1, None))
+        if added_version > version:
+            continue
+        if deprecated_version is not None and deprecated_version <= version:
+            continue
+        valid_features.add(f)
+    return valid_features
+
+
 class ProblemKindMeta(type):
     """Meta class used to interpret the nodehandler decorator."""
 
@@ -205,10 +226,19 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         return "\n".join(result_str)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ProblemKind) and self._version == oth._version:
-            return self._features == oth._features
-        else:
-            return False
+        if isinstance(oth, ProblemKind):
+            if (
+                self._version is None
+                or oth._version is None
+                or self._version == oth._version
+            ):
+                if self.version != oth.version:
+                    return False
+                valid_features = get_valid_features(self.version)
+                self_feat = self._features.intersection(valid_features)
+                oth_feat = oth._features.intersection(valid_features)
+                return self_feat == oth_feat
+        return False
 
     def __hash__(self) -> int:
         return sum(map(hash, self._features))
@@ -216,9 +246,12 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
     def __le__(self, oth: object):
         if not isinstance(oth, ProblemKind):
             raise ValueError(f"Unable to compare a ProblemKind with a {type(oth)}")
-        self_feat, oth_feat, _ = equalize_versions(
+        self_feat, oth_feat, version = equalize_versions(
             self._features, oth._features, self.version, oth.version
         )
+        valid_version_features = get_valid_features(version)
+        self_feat.intersection_update(valid_version_features)
+        oth_feat.intersection_update(valid_version_features)
         return self_feat.issubset(oth_feat)
 
     def clone(self) -> "ProblemKind":
