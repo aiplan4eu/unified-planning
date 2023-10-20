@@ -9,14 +9,9 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.model.mixins.timed_conds_effs import *
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
-from unified_planning.plot.plan_plot import plot_partial_order_plan
 
 EPSILON = Fraction(1, 1000)
 MAX_TIME = Fraction(5000, 1)
-
-import operator
-
-ops = {"+": operator.add, "-": operator.sub}
 
 
 def is_time_in_interv(
@@ -26,7 +21,7 @@ def is_time_in_interv(
     interval: "up.model.timing.TimeInterval",
 ) -> bool:
     """
-    Return if the is in the interval.
+    Return if the timepoint is in the interval given.
     """
     time_pt = _absolute_time(timing, start=start, duration=duration)
     upper_time = _absolute_time(interval._upper, start=start, duration=duration)
@@ -56,30 +51,31 @@ class TTP_to_STN:
         ] = {}
         self.events: List[Tuple[Fraction, InstantaneousAction]] = []
         self.events_sorted: List[Tuple[Fraction, InstantaneousAction]] = []
+        self.act_to_time_map: Dict[str, Fraction] = {}
+        self.ai_act_map: Dict[str, ActionInstance] = {}
+        self.action_to_pieces: List[
+            Tuple[ActionInstance, Dict[str, InstantaneousAction]]
+        ] = []
         self.seq_plan: SequentialPlan
         self.partial_order_plan: PartialOrderPlan
         self.stn: nx.DiGraph
 
-    def sort_condition(
+    def get_timepoint_conditions(
         self,
         start: Fraction,
         duration: Fraction,
         conditions: Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]],
-        effect: Tuple["up.model.timing.Timing", List["up.model.effect.Effect"]],
-    ) -> Tuple["up.model.timing.Timing", List["up.model.fnode.FNode"]]:
+        effect_timing: "up.model.timing.Timing",
+    ) -> List["up.model.fnode.FNode"]:
         """
         From the dict of condition get all conditions for the specific timepoint from the couple timepoint effect.
-        Return the coresponding timepoint conditions couple.
+        Return the corresponding timepoint conditions couple.
         """
-        time_point = effect[0]
         cond_result = []
-        for time_interval, condition in conditions.items():
-            if is_time_in_interv(
-                start, duration, time_point, time_interval
-            ):  # Time point in interval
-                cond_result += condition
-        result = (time_point, cond_result)
-        return result
+        for time_interval, cond_list in conditions.items():
+            if is_time_in_interv(start, duration, effect_timing, time_interval):
+                cond_result += cond_list
+        return cond_result
 
     def get_table_event(
         self,
@@ -96,18 +92,24 @@ class TTP_to_STN:
         for start, ai, duration in self.ttp.timed_actions:
             action = ai.action
             action_cpl = (start, ai, duration)
-            self.table[action_cpl] = {}
-            assert isinstance(action, DurativeAction)
+            assert action_cpl not in self.table
+            timing_to_cond_effects: Dict[
+                "up.model.timing.Timing",
+                Tuple[List["up.model.fnode.FNode"], List["up.model.effect.Effect"]],
+            ] = self.table.setdefault(action_cpl, {})
             if duration is None:
                 assert isinstance(
                     ai.action, InstantaneousAction
                 ), "Error, None duration specified for non InstantaneousAction"
                 continue
+            assert isinstance(
+                action, DurativeAction
+            ), "Error, Action is not a DurativeAction nor a InstantaneousAction"
             for effect_time, effects in action.effects.items():
-                pconditions = self.sort_condition(
-                    start, duration, action.conditions, (effect_time, effects)
+                pconditions = self.get_timepoint_conditions(
+                    start, duration, action.conditions, effect_time
                 )
-                self.table[action_cpl].update({effect_time: (pconditions[1], effects)})
+                timing_to_cond_effects[effect_time] = (pconditions, effects)
         return self.table
 
     def table_to_events(self) -> List[Tuple[Fraction, InstantaneousAction]]:
@@ -116,30 +118,28 @@ class TTP_to_STN:
         Each Instantaneous Action is created from preconditions and effects from get_table_event()
         """
         self.get_table_event()
-        for action_cpl, c_e_dict in self.table.items():
-            start = action_cpl[0]
-            duration = action_cpl[2]
-            action = action_cpl[1]
+
+        for (start, ai, duration), c_e_dict in self.table.items():
+            pieces = {}
             if duration is None:
                 assert isinstance(
-                    action.action, InstantaneousAction
+                    ai.action, InstantaneousAction
                 ), "Error, None duration specified for non InstantaneousAction"
+                inst_action = InstantaneousAction(str(ai) + str(start))
+                self.events.append((start, inst_action))
+                pieces.update({"start": inst_action})
                 continue
-            for time_pt, cond_eff_couple in c_e_dict.items():
-
+            for time_pt, (conditions, effects) in c_e_dict.items():
                 time = _absolute_time(time_pt, start, duration)
-                inst_action = InstantaneousAction(str(action) + str(time_pt))
+                inst_action = InstantaneousAction(str(ai) + str(time_pt))
 
-                # set conditions and effects to each Instantaneous Action
-                if len(cond_eff_couple[0]) > 0:
-                    for cond in cond_eff_couple[0]:
-                        inst_action.add_precondition(cond)
-
-                if len(cond_eff_couple[1]) > 0:
-                    for effect in cond_eff_couple[1]:
-                        inst_action.effects.append(effect)
-
-                self.events += [(time, inst_action)]
+                for cond in conditions:
+                    inst_action.add_precondition(cond)
+                for effect in effects:
+                    inst_action._add_effect_instance(effect)
+                self.events.append((time, inst_action))
+                pieces.update({str(time_pt): inst_action})
+            self.action_to_pieces.append((ai, pieces))
         return self.events
 
     def sort_events(self) -> List[Tuple[Fraction, InstantaneousAction]]:
@@ -149,10 +149,10 @@ class TTP_to_STN:
         self.table_to_events()
 
         self.events_sorted = sorted(self.events, key=lambda acts: acts[0])
+        self.act_to_time_map = dict(
+            [(value.name, key) for key, value in self.events_sorted]
+        )
 
-        print("\r\nAFTER SORT")
-        for tim, act in self.events_sorted:
-            print("%s: %s" % (float(tim), act._name))
         return self.events_sorted
 
     def events_to_partial_order_plan(self):
@@ -161,10 +161,10 @@ class TTP_to_STN:
         """
         self.sort_events()
         list_act = [ActionInstance(i[1]) for i in self.events_sorted]
-        seqplan = SequentialPlan(list_act)
-        partial_order_plan = seqplan._to_partial_order_plan(self.problem)
+        self.ai_act_map = dict([(ai.action.name, ai) for ai in list_act])
+        self.seq_plan = SequentialPlan(list_act)
+        partial_order_plan = self.seq_plan._to_partial_order_plan(self.problem)
         self.partial_order_plan = partial_order_plan
-        print("\r\npartial order plan ", partial_order_plan)
         return partial_order_plan
 
     def partial_order_plan_to_stn(self) -> nx.DiGraph:
@@ -175,9 +175,7 @@ class TTP_to_STN:
         graph = self.partial_order_plan._graph
 
         for ai_current, l_next_ai in self.partial_order_plan.get_adjacency_list.items():
-            ai_current_time = [
-                item[0] for item in self.events_sorted if item[1] == ai_current.action
-            ][0]
+            ai_current_time = self.act_to_time_map[ai_current.action.name]
             for ai_next in l_next_ai:
                 name_current = re.findall(
                     r"(.+)(start|end) *(\+|\-)* *(\d*)", str(ai_current.action._name)
@@ -192,13 +190,23 @@ class TTP_to_STN:
                         MAX_TIME,
                     ]
                 else:
-                    ai_next_time = [
-                        item[0]
-                        for item in self.events_sorted
-                        if item[1] == ai_next.action
-                    ][0]
+                    ai_next_time = self.act_to_time_map[ai_next.action.name]
                     time_edge = ai_next_time - ai_current_time
                     graph[ai_current][ai_next]["interval"] = [time_edge, time_edge]
+
+        # Add edges between ActionStart and ActionEnd
+        for action, pieces in self.action_to_pieces:
+            act_start, act_end = pieces["start"], pieces["end"]
+            ai_start, ai_end = (
+                self.ai_act_map[act_start.name],
+                self.ai_act_map[act_end.name],
+            )
+            graph.add_edge(ai_start, ai_end)
+            interval = (
+                self.act_to_time_map[act_end.name]
+                - self.act_to_time_map[act_start.name]
+            )
+            graph[ai_start][ai_end]["interval"] = [interval, interval]
 
         # Add start and end nodes
 
@@ -211,7 +219,7 @@ class TTP_to_STN:
         graph.add_edge(
             start,
             list(self.partial_order_plan.get_adjacency_list.keys())[0],
-            interval=[0.0, 0.0],
+            interval=[Fraction(0, 1), Fraction(0, 1)],
         )
         # Add edge between end and last node
         graph.add_edge(
@@ -223,7 +231,7 @@ class TTP_to_STN:
                 if item.action._name != "START" and item.action._name != "END"
             ][0],
             end,
-            interval=[0.0, 0.0],
+            interval=[Fraction(0, 1), Fraction(0, 1)],
         )
 
         self.stn = graph
