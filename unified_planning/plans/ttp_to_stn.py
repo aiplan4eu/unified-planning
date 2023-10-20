@@ -60,22 +60,26 @@ class TTP_to_STN():
         Return a list where each time is paired with an Instantaneous Action.
         Each Instantaneous Action is created from preconditions and effects from get_table_event()
         """
-        result = {}
-        table = self.get_table_event()
-        for action_cpl, c_e_dict in table:
+        self.get_table_event()
+        for action_cpl, c_e_dict in self.table.items():
             start = action_cpl[0]
             duration = action_cpl[2]
             action = action_cpl[1]
-            for time_pt, cond_eff_couple in c_e_dict:
-                time = 0 #TODO with time_pt start and duration
+
+            for time_pt, cond_eff_couple in c_e_dict.items():
+                time = _absolute_time(time_pt, start, duration)
                 inst_action = InstantaneousAction(str(action)+str(time_pt))
-                #inst_action.preconditions = cond_eff_couple[0]
-                inst_action.effects = cond_eff_couple[1]
-                ## One or another 
-                inst_action.add_precondition(cond_eff_couple[0])
-                #inst_action.add_effect(cond_eff_couple[1]) # does not accept list of effects...
-                result.update({time: inst_action})
-        self.events = result
+
+                #set condition and effect to each instant action
+                if len(cond_eff_couple[0]) > 0:
+                    for cond in cond_eff_couple[0]:
+                        inst_action.add_precondition(cond)
+
+                if len(cond_eff_couple[1]) > 0:
+                    for effect in cond_eff_couple[1]:
+                        inst_action.effects.append(effect)
+                
+                self.events.update({time: inst_action})
     
     def sort_events(self) -> {"up.model.timing.Timepoint": InstantaneousAction}:
         self.table_to_events()
