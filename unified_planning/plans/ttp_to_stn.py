@@ -1,12 +1,17 @@
-from typing import List
+from typing import List, Dict
+import networkx as nx
 import unified_planning as up
 from unified_planning.plans.time_triggered_plan import _absolute_time
 from unified_planning.plans.time_triggered_plan import *
+from unified_planning.plans.plan import ActionInstance
+from unified_planning.model.mixins.timed_conds_effs import *
+from unified_planning.plans.sequential_plan import SequentialPlan
+from unified_planning.plans.partial_order_plan import PartialOrderPlan
 
 
 def is_time_in_interv(
-    start,
-    duration,
+    start: Fraction,
+    duration: Fraction,
     timing: "up.model.timing.Timing",
     interval: "up.model.timing.TimeInterval",
 ) -> bool:
@@ -29,16 +34,27 @@ class TTP_to_STN:
     ):
         self.ttp = plan
         self.problem = problem
-        self.table = {}
-        self.events = {}
+        self.table: Dict[
+            Tuple[Fraction, ActionInstance, Optional[Fraction]],
+            Dict[
+                "up.model.timing.Timing",
+                Tuple["up.model.fnode.FNode", "up.model.effect.Effect"],
+            ],
+        ] = {}
+        self.events: List[Tuple["up.model.timing.Timepoint", InstantaneousAction]] = []
+        self.events_sorted: List[
+            Tuple["up.model.timing.Timepoint", InstantaneousAction]
+        ] = []
+        self.seq_plan: SequentialPlan
+        self.partial_order_plan: "up.plans.partial_order_plan.PartialOrderPlan"
 
     def sort_condition(
         self,
-        start,
-        duration,
-        conditions: {"up.model.timing.TimeInterval", List["up.model.fnode.FNode"]},
-        effect: ("up.model.timing.Timing", List["up.model.effect.Effect"]),
-    ) -> ("up.model.timing.Timing", List["up.model.fnode.FNode"]):
+        start: Fraction,
+        duration: Fraction,
+        conditions: Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]],
+        effect: Tuple["up.model.timing.Timing", List["up.model.effect.Effect"]],
+    ) -> Tuple["up.model.timing.Timing", List["up.model.fnode.FNode"]]:
         """
         From the dict of condition get all conditions for the specific timepoint from the couple timepoint effect.
         Return the coresponding timepoint conditions couple.
@@ -55,23 +71,27 @@ class TTP_to_STN:
 
     def get_table_event(
         self,
-    ) -> {
-        DurativeAction: {
-            "up.model.timing.Timing": ("up.model.fnode.FNode", "up.model.effect.Effect")
-        }
-    }:
+    ) -> Dict[
+        Tuple[Fraction, ActionInstance, Fraction],
+        Dict[
+            "up.model.timing.Timing",
+            Tuple["up.model.fnode.FNode", "up.model.effect.Effect"],
+        ],
+    ]:
         """
         Return table : For each action (the tuple) and each timepoint of this action the couple conditions effects"""
-        for start, action, duration in self.ttp.timed_actions:
-            action_cpl = (start, action, duration)
+        for action_cpl in self.ttp.timed_actions:
+            start, duration = action_cpl[0], action_cpl[2]
+            action: ActionInstance = action_cpl[1]
             self.table[action_cpl] = {}
-            for effect_time, effects in action.action._effects.items():
+            for effect_time, effects in action.action.effects.items():
                 pconditions = self.sort_condition(
-                    start, duration, action.action._conditions, (effect_time, effects)
+                    start, duration, action.action.conditions, (effect_time, effects)
                 )
                 self.table[action_cpl].update({effect_time: (pconditions[1], effects)})
+        return self.table
 
-    def table_to_events(self) -> {"up.model.timing.Timepoint": InstantaneousAction}:
+    def table_to_events(self) -> Dict["up.model.timing.Timepoint", InstantaneousAction]:
         """
         Return a list where each time is paired with an Instantaneous Action.
         Each Instantaneous Action is created from preconditions and effects from get_table_event()
@@ -95,17 +115,37 @@ class TTP_to_STN:
                     for effect in cond_eff_couple[1]:
                         inst_action.effects.append(effect)
 
-                self.events.update({time: inst_action})
+                self.events += [(time, inst_action)]
+        return self.events
 
     def sort_events(self) -> {"up.model.timing.Timepoint": InstantaneousAction}:
         self.table_to_events()
-        return self.events
+        print("BEFORE")
+        for tim, act in self.events:
+            print("%s: %s" % (float(tim), act._name))
+
+        self.events_sorted = sorted(self.events, key=lambda acts: acts[0])
+
+        print("\r\nAFTER")
+        for tim, act in self.events_sorted:
+            print("%s: %s" % (float(tim), act._name))
+        return self.events_sorted
 
     def events_to_partial_order_plan(self):
         self.sort_events()
+        list_act = [ActionInstance(i[1]) for i in self.events_sorted]
+        seqplan = SequentialPlan(list_act)
+        print("\r\nseq plan", seqplan)
+        partial_order_plan = seqplan._to_partial_order_plan(self.problem)
+        self.partial_order_plan = partial_order_plan
+        print("\r\npartial order plan ", partial_order_plan)
+        return partial_order_plan
+
+    def partial_order_plan_to_stn(self) -> nx.DiGraph:
         return
 
     def run(self):
-        self.events_to_partial_order_plan()
         # partial order plan to STN
+        self.events_to_partial_order_plan()
+        self.partial_order_plan_to_stn()
         return
