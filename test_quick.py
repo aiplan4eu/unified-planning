@@ -14,6 +14,5 @@ if __name__ == '__main__':
     with OneshotPlanner(problem_kind=problem.kind) as planner:
         plan = planner.solve(problem).plan
     ttp_to_stn = TTP_to_STN(plan, problem)
-    #ttp_to_stn.get_table_event()
-    ttp_to_stn.table_to_events()
+    ttp_to_stn.get_table_event()
     print("Done...")
