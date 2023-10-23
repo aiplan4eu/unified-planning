@@ -7,6 +7,7 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.model.mixins.timed_conds_effs import *
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.model.action import Action
 
 
 def is_time_in_interv(
@@ -38,13 +39,11 @@ class TTP_to_STN:
             Tuple[Fraction, ActionInstance, Optional[Fraction]],
             Dict[
                 "up.model.timing.Timing",
-                Tuple["up.model.fnode.FNode", "up.model.effect.Effect"],
+                Tuple[List["up.model.fnode.FNode"], List["up.model.effect.Effect"]],
             ],
         ] = {}
-        self.events: List[Tuple["up.model.timing.Timepoint", InstantaneousAction]] = []
-        self.events_sorted: List[
-            Tuple["up.model.timing.Timepoint", InstantaneousAction]
-        ] = []
+        self.events: List[Tuple[Fraction, InstantaneousAction]] = []
+        self.events_sorted: List[Tuple[Fraction, InstantaneousAction]] = []
         self.seq_plan: SequentialPlan
         self.partial_order_plan: "up.plans.partial_order_plan.PartialOrderPlan"
 
@@ -72,26 +71,32 @@ class TTP_to_STN:
     def get_table_event(
         self,
     ) -> Dict[
-        Tuple[Fraction, ActionInstance, Fraction],
+        Tuple[Fraction, ActionInstance, Optional[Fraction]],
         Dict[
             "up.model.timing.Timing",
-            Tuple["up.model.fnode.FNode", "up.model.effect.Effect"],
+            Tuple[List["up.model.fnode.FNode"], List["up.model.effect.Effect"]],
         ],
     ]:
         """
         Return table : For each action (the tuple) and each timepoint of this action the couple conditions effects"""
-        for action_cpl in self.ttp.timed_actions:
-            start, duration = action_cpl[0], action_cpl[2]
-            action: ActionInstance = action_cpl[1]
+        for start, ai, duration in self.ttp.timed_actions:
+            action = ai.action
+            action_cpl = (start, ai, duration)
             self.table[action_cpl] = {}
-            for effect_time, effects in action.action.effects.items():
+            assert isinstance(action, DurativeAction)
+            if duration is None:
+                assert isinstance(
+                    ai.action, InstantaneousAction
+                ), "Error, None duration specified for non InstantaneousAction"
+                continue
+            for effect_time, effects in action.effects.items():
                 pconditions = self.sort_condition(
-                    start, duration, action.action.conditions, (effect_time, effects)
+                    start, duration, action.conditions, (effect_time, effects)
                 )
                 self.table[action_cpl].update({effect_time: (pconditions[1], effects)})
         return self.table
 
-    def table_to_events(self) -> Dict["up.model.timing.Timepoint", InstantaneousAction]:
+    def table_to_events(self) -> List[Tuple[Fraction, InstantaneousAction]]:
         """
         Return a list where each time is paired with an Instantaneous Action.
         Each Instantaneous Action is created from preconditions and effects from get_table_event()
@@ -101,8 +106,13 @@ class TTP_to_STN:
             start = action_cpl[0]
             duration = action_cpl[2]
             action = action_cpl[1]
-
+            if duration is None:
+                assert isinstance(
+                    action.action, InstantaneousAction
+                ), "Error, None duration specified for non InstantaneousAction"
+                continue
             for time_pt, cond_eff_couple in c_e_dict.items():
+
                 time = _absolute_time(time_pt, start, duration)
                 inst_action = InstantaneousAction(str(action) + str(time_pt))
 
@@ -118,7 +128,7 @@ class TTP_to_STN:
                 self.events += [(time, inst_action)]
         return self.events
 
-    def sort_events(self) -> {"up.model.timing.Timepoint": InstantaneousAction}:
+    def sort_events(self) -> List[Tuple[Fraction, InstantaneousAction]]:
         self.table_to_events()
         print("BEFORE")
         for tim, act in self.events:
