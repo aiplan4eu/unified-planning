@@ -9,6 +9,7 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.model.mixins.timed_conds_effs import *
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.model.action import Action
 
 EPSILON = Fraction(1, 1000)
 MAX_TIME = Fraction(5000, 1)
