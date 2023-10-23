@@ -87,7 +87,7 @@ Once it's filed:
 
 ### Suggesting Enhancements
 
-This section guides you through submitting an enhancement suggestion for Unified Planning Library, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
+This section guides you through submitting an enhancement suggestion for the Unified Planning Library, **including completely new features and minor improvements to existing functionality**. Following these guidelines will help maintainers and the community to understand your suggestion and find related suggestions.
 
 <!-- omit in toc -->
 #### Before Submitting an Enhancement
@@ -110,7 +110,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/aiplan
 
 ### Code Contribution
 
-Before start coding, open an issue or a discussion on the project [GitHub space]((https://github.com/aiplan4eu/unified-planning) or get in contact with a maintainer (you can use the project mailing list: unified-planning@googlegroups.com)! It is possible that someone else is already working on the same or a related fix or feature!
+Before you start coding, open an issue or a discussion on the project [GitHub space]((https://github.com/aiplan4eu/unified-planning) or get in contact with a maintainer (you can use the project mailing list: unified-planning@googlegroups.com)! It is possible that someone else is already working on the same or a related fix or feature!
 
 Moreover, we have to keep a reasonable project scope, so if your contribution is wildly beyond the current capabilities of the library, it is better to discuss the idea with the community and the maintainers to avoid unpleasant situations where we have to reject your code.
 

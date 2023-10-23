@@ -74,7 +74,7 @@ The following rules apply for the technical day-to-day governance of the project
 
 6. It is forbidden to anyone to modify this document, unless **all** the Maintainers approve the Pull-Request.
 
-7. A simple majority vote by the Board of Maintainers is needed to make new releases (on GitHub and PyPI) of the UP library (taking the code of the "master" branch), an announcement message must be sent to the public mailing list.
+7. A simple majority vote by the Board of Maintainers is needed to make new releases (on GitHub and PyPI) of the UP library (taking the code of the main branch), an announcement message must be sent to the public mailing list.
 
 8. Only a full consensus vote (meaning that all the Maintainers agree, with no abstentions) of the Board of Maintainers can change the name (currently, "Unified Planning"), web address (currently, https://github.com/aiplan4eu/unified-planning) or digital identity of the UP project.
 
