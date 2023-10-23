@@ -10,7 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (domain mt-plant-watering)
-    (:types thing location - object
+    (:types thing - object
         agent plant tap - thing)
 
 

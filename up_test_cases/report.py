@@ -411,12 +411,14 @@ def report_validation(
     print("\n\nVALIDATION")
     errors: List[Tuple[str, str]] = []  # all errors encountered
     problems_skipped = []
+    problems_run = 0
     for name, test_case in problems.items():
         result: ValidationResult
         for i, valid_plan in enumerate(test_case.valid_plans):
             problem_name_printed = False
             for validator in applicable_validators(test_case.problem, valid_plan):
                 if not problem_name_printed:
+                    problems_run += 1
                     problem_name_printed = True
                     print()
                     print(f"{name} valid[{i}]".ljust(40), end="\n")
@@ -440,6 +442,7 @@ def report_validation(
             problem_name_printed = False
             for validator in applicable_validators(test_case.problem, invalid_plan):
                 if not problem_name_printed:
+                    problems_run += 1
                     problem_name_printed = True
                     print()
                     print(f"{name} invalid[{i}]".ljust(40), end="\n")
@@ -458,7 +461,7 @@ def report_validation(
             if not problem_name_printed:
                 problems_skipped.append(f"{name} invalid[{i}]")
 
-    if len(problems_skipped) == len(problems):
+    if problems_run == 0:
         print("\n\nValidation problems skipped: ALL")
     elif problems_skipped:
         print("\n\nValidation test cases skipped:")
@@ -483,6 +486,7 @@ def report_grounding(
     print("\n\nGROUNDING:")
     errors: List[Tuple[str, str]] = []
     problems_skipped = []
+    problems_run = 0
     for name, test_case in problems.items():
         pb = test_case.problem
         kind = pb.kind
@@ -498,6 +502,7 @@ def report_grounding(
 
                 if not name_printed:
                     name_printed = True
+                    problems_run += 1
                     print()
                     print(name.ljust(40), end="\n")
 
@@ -522,7 +527,7 @@ def report_grounding(
         if not name_printed:
             problems_skipped.append(name)
 
-    if len(problems_skipped) == len(problems):
+    if problems_run == 0:
         print("\n\nGrounding problems skipped: ALL")
     elif problems_skipped:
         print("\n\nGrounding problems skipped:")

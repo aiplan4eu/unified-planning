@@ -1,6 +1,6 @@
 ;; Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
 (define (problem instance_4_3)
-  (:domain mt-plant-watering-constrained)
+  (:domain mt-plant-watering)
   (:objects
     tap1 - tap
 	agent1 - agent
@@ -34,7 +34,7 @@
 	(= (y plant1) 3)
   )
 
-  (:goal (and 
+  (:goal (and
     (= (poured plant1) 10)
 	(= (poured plant2) 5)
 	(= (poured plant3) 7)
@@ -42,8 +42,8 @@
 	(= (total_poured) (+ (+ (+ (poured plant1) (poured plant2)) (poured plant3)) (poured plant4)) )
   ))
 
-  
-  
 
-  
+
+
+
 )

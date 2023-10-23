@@ -43,6 +43,8 @@ def get_test_cases():
     action.add_effect(fun(param), Plus(fun(param), 10))
     problem.add_action(action)
 
+    problem.set_initial_value(fun(y), 11)
+
     problem.add_goal(Exists(Equals(fun(var), 10), var))
 
     # TODO add plans
