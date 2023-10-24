@@ -32,38 +32,52 @@ def get_test_cases():
 
     problem.add_goal(Or(Equals(Times(fun(x), fun(y)), 20), GT(fun(y), 100)))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([action()])]
+    invalid_plans = [SequentialPlan([action(), action()]), SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = base_problem.clone()
     problem.name = "existential_nonlinear_conditions"
 
     action = InstantaneousAction("action1")
     a = Variable("a", Obj)
-    condition = Exists(Equals(Times(fun(a), fun(x)), 6), a)
-
-    action.add_precondition(condition)
+    action.add_precondition(Exists(Equals(Times(fun(a), fun(x)), 6), a))
     action.add_effect(fun(y), 4)
     problem.add_action(action)
 
     problem.add_goal(Exists(Equals(Times(fun(a), fun(x)), 8), a))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([action()])]
+    invalid_plans = [SequentialPlan([action(), action()]), SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = base_problem.clone()
     problem.name = "universal_nonlinear_conditions"
 
     action = InstantaneousAction("action1")
-    condition = Forall(GT(Times(fun(a), fun(a)), 3), a)
-
-    action.add_precondition(condition)
+    action.add_precondition(Forall(GT(Times(fun(a), fun(a)), 3), a))
     action.add_effect(fun(x), 3)
     problem.add_action(action)
 
     problem.add_goal(Forall(Equals(Times(fun(a), fun(a)), 9), a))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([action()]), SequentialPlan([action(), action()])]
+    invalid_plans = [SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

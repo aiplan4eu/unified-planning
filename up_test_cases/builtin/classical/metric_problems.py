@@ -7,6 +7,7 @@ from unified_planning.model.metrics import (
     MinimizeActionCosts,
     MinimizeSequentialPlanLength,
 )
+from unified_planning.plans import SequentialPlan, ActionInstance
 from unified_planning.test import TestCase
 
 
@@ -51,9 +52,10 @@ def get_test_cases():
     }
     action_costs_problem.add_quality_metric(MinimizeActionCosts(costs, 1))
 
-    # TODO add plans
+    create_ai = lambda a: ActionInstance(a)
+    plan = SequentialPlan(list(map(create_ai, (a_cheap_1, a_cheap_2, a_cheap_3))))
     res[action_costs_problem.name] = TestCase(
-        problem=action_costs_problem, solvable=True, optimum=4
+        problem=action_costs_problem, solvable=True, optimum=4, valid_plans=[plan]
     )
 
     # cheap expensive plan_length
@@ -61,7 +63,7 @@ def get_test_cases():
     plan_length_problem.name = "cheap expensive plan_length"
     plan_length_problem.add_quality_metric(MinimizeSequentialPlanLength())
 
-    # TODO add plans
+    plan = SequentialPlan([create_ai(a_exp)])
     res[plan_length_problem.name] = TestCase(
         problem=plan_length_problem, solvable=True, optimum=1
     )

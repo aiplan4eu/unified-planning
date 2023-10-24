@@ -18,8 +18,14 @@ def get_test_cases():
 
     problem.add_action(a1)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a1() for _ in range(i)]) for i in range(7) if i > 0]
+    invalid_plans = [SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = Problem("LT_linear_conditions")
     problem.set_initial_value(x, Fraction(51, 10))
@@ -32,8 +38,14 @@ def get_test_cases():
     problem.add_fluent(x)
     problem.add_action(a1)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a1() for _ in range(i)]) for i in range(7) if i > 0]
+    invalid_plans = [SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = Problem("GTE_LTE_linear_conditions")
     problem.set_initial_value(x, 0)
@@ -52,8 +64,18 @@ def get_test_cases():
     problem.add_action(a1)
     problem.add_action(a2)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a1(), a2()])]
+    invalid_plans = [
+        SequentialPlan([]),
+        SequentialPlan([a1(), a2(), a2()]),
+        SequentialPlan([a1(), a1(), a2()]),
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     a = InstantaneousAction("action1")
     a.add_precondition(Not(Equals(x, 10)))
@@ -64,8 +86,14 @@ def get_test_cases():
     problem.set_initial_value(x, 0)
     problem.add_goal(Not(Equals(x, 0)))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a() for _ in range(i)]) for i in range(7) if i > 0]
+    invalid_plans = [SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     a = InstantaneousAction("action1")
     a.add_effect(x, Minus(x, 10))
@@ -75,7 +103,15 @@ def get_test_cases():
     problem.set_initial_value(x, 10)
     problem.add_goal(Equals(x, 0))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(7) if i != 1
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

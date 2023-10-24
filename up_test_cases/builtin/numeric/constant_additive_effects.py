@@ -15,8 +15,16 @@ def get_test_cases():
     problem.add_action(a)
     problem.add_goal(Equals(x, 10))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(5) if i != 1
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = problem.clone()
     problem.name = "constant_increase_effect_2"
@@ -24,8 +32,16 @@ def get_test_cases():
     problem.clear_goals()
     problem.add_goal(Equals(x, 30))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a(), a(), a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(6) if i != 3
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = Problem("constant_decrease_effect")
 
@@ -35,15 +51,31 @@ def get_test_cases():
     problem.add_action(a)
     problem.add_goal(Equals(x, 0))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(5) if i != 1
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = problem.clone()
     problem.name = "constant_decrease_effect_2"
 
     problem.set_initial_value(x, 30)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a(), a(), a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(6) if i != 3
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

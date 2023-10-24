@@ -16,8 +16,16 @@ def get_test_cases():
     problem.set_initial_value(x, 2)
     problem.add_goal(Equals(x, 10))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(5) if i != 1
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     x = Fluent("x", RealType())
     y = Fluent("y", RealType())
@@ -31,8 +39,16 @@ def get_test_cases():
     problem.set_initial_value(y, 2)
     problem.add_goal(Equals(x, Fraction(625, 10000)))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a(), a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(5) if i != 2
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     a = InstantaneousAction("action1")
     a.add_effect(x, Plus(x, 1), Equals(Times(x, y), Times(x, x)))
@@ -45,7 +61,15 @@ def get_test_cases():
     problem.set_initial_value(y, 1)
     problem.add_goal(Equals(Times(x, y), 25))
 
-    # TODO add plans (5 times a)
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a(), a(), a(), a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(7) if i != 4
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

@@ -21,8 +21,14 @@ def get_test_cases():
 
     problem.add_action(a1)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a1() for _ in range(i)]) for i in range(1, 4)]
+    invalid_plans = [SequentialPlan([])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     problem = Problem("simple_non_linear_LE_Negative_conditions")
     problem.add_fluent(x)
@@ -39,7 +45,15 @@ def get_test_cases():
 
     problem.add_action(a1)
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a1(), a1()])]
+    invalid_plans = [
+        SequentialPlan([a1() for _ in range(i)]) for i in range(7) if i != 2
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

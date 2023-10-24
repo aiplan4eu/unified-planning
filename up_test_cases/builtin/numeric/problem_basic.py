@@ -21,7 +21,15 @@ def get_test_cases():
     problem.set_initial_value(y, 10)
     problem.add_goal(GE(x, 10))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([a()])]
+    invalid_plans = [
+        SequentialPlan([a() for _ in range(i)]) for i in range(4) if i != 1
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

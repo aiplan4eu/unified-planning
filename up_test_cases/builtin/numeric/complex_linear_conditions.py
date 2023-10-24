@@ -29,8 +29,17 @@ def get_test_cases():
     problem.set_initial_value(fun(x), 11)
     problem.add_goal(Or(Equals(fun(y), 10), LT(fun(x), 1)))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plan = SequentialPlan([ActionInstance(action)])
+    invalid_plans = [
+        SequentialPlan([ActionInstance(action), ActionInstance(action)]),
+        SequentialPlan([]),
+    ]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[valid_plan],
+        invalid_plans=invalid_plans,
+    )
 
     # existential_linear_conditions
     problem = base_problem.clone()
@@ -47,8 +56,23 @@ def get_test_cases():
 
     problem.add_goal(Exists(Equals(fun(var), 10), var))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [
+        SequentialPlan([action(x)]),
+        SequentialPlan([action(x), action(y)]),
+        SequentialPlan([action(y), action(x)]),
+    ]
+    invalid_plans = [
+        SequentialPlan([ActionInstance(action(x)), ActionInstance(action(x))]),
+        SequentialPlan([]),
+        SequentialPlan([action(y), action(y)]),
+    ]
+
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     # universal_linear_conditions
     problem = base_problem.clone()
@@ -65,8 +89,14 @@ def get_test_cases():
 
     problem.add_goal(Forall(Equals(fun(var), 5), var))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [SequentialPlan([action1(x, y)]), SequentialPlan([action1(y, x)])]
+    invalid_plans = [SequentialPlan([action1(y, x), action1(y, x)])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     # universal_existential_linear_conditions
 
@@ -98,7 +128,17 @@ def get_test_cases():
 
     problem.add_goal(Forall(Exists(GT(fun(var1, var2), Fraction(15, 10)), var2), var1))
 
-    # TODO add plans
-    res[problem.name] = TestCase(problem=problem, solvable=True)
+    valid_plans = [
+        SequentialPlan([action(x, z), action(y, k)]),
+        SequentialPlan([action(y, k), action(x, z)]),
+        SequentialPlan([action(y, k), action(x, z), action(x, z)]),
+    ]
+    invalid_plans = [SequentialPlan([action(y, k)]), SequentialPlan([action(x, z)])]
+    res[problem.name] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=valid_plans,
+        invalid_plans=invalid_plans,
+    )
 
     return res

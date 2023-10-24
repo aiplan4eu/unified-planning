@@ -108,7 +108,7 @@ def get_test_cases():
                     )
                 )
 
-        # TODO add tests
+        # TODO add plans
         res[problem.name] = TestCase(problem=problem, solvable=True)
 
     return res
