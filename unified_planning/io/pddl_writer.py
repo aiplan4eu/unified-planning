@@ -685,7 +685,7 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
-        if self.problem.kind.has_actions_cost():
+        if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
         goals_str: List[str] = []
