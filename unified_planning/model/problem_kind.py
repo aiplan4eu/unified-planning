@@ -281,7 +281,11 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         return max_version
 
     def get_version(self) -> Optional[int]:
-        warn(DeprecationWarning("Use version property instead."))
+        warn(
+            "This method is deprecated; Use property version instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.version
 
     def union(self, oth: "ProblemKind") -> "ProblemKind":
