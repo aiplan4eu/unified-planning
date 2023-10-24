@@ -16,6 +16,7 @@
 from functools import cache, partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
+from warnings import warn
 import unified_planning as up
 
 from unified_planning.model.problem_kind_versioning import (
@@ -278,6 +279,10 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
             max_version <= LATEST_PROBLEM_KIND_VERSION
         ), "Calculated version is > that the LATEST declared version"
         return max_version
+
+    def get_version(self) -> Optional[int]:
+        warn(DeprecationWarning("Use version property instead."))
+        return self.version
 
     def union(self, oth: "ProblemKind") -> "ProblemKind":
         """
