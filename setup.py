@@ -39,7 +39,7 @@ setup(
             "up-fast-downward==0.3.2",
             "up-lpg==0.0.7",
             "up-fmap==0.0.8",
-            "up-aries>=0.0.8",
+            "up-aries>=0.2.0",
             "up-symk>=0.0.3",
         ],
         "plot": [
