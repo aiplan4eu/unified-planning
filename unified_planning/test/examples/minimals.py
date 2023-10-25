@@ -71,7 +71,7 @@ def get_example_problems():
     problem.add_quality_metric(qm)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
     basic_oversubscription = TestCase(
-        problem=problem, solvable=True, valid_plans=[plan]
+        problem=problem, solvable=True, valid_plans=[plan], optimum=10
     )
     problems["basic_oversubscription"] = basic_oversubscription
 
@@ -321,7 +321,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(act_b), up.plans.ActionInstance(act_c)]
     )
-    basic_with_costs = TestCase(problem=problem, solvable=True, valid_plans=[plan])
+    basic_with_costs = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan], optimum=2
+    )
     problems["basic_with_costs"] = basic_with_costs
 
     # counter

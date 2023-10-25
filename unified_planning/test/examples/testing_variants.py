@@ -821,7 +821,7 @@ def get_example_problems():
         ]
     )
     locations_connected_visited_oversubscription = TestCase(
-        problem=problem, solvable=True, valid_plans=[plan]
+        problem=problem, solvable=True, valid_plans=[plan], optimum=15
     )
     problems[
         "locations_connected_visited_oversubscription"
@@ -893,7 +893,7 @@ def get_example_problems():
         ]
     )
     locations_connected_cost_minimize = TestCase(
-        problem=problem, solvable=True, valid_plans=[plan]
+        problem=problem, solvable=True, valid_plans=[plan], optimum=10
     )
     problems["locations_connected_cost_minimize"] = locations_connected_cost_minimize
 
