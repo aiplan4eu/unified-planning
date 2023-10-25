@@ -167,15 +167,28 @@ class TTP_to_STN:
                     time_edge,
                 ]  # TODO get time with interval correctly
 
-
         # Add start and end nodes
-        
+
         start = ActionInstance(InstantaneousAction("START"))
         end = ActionInstance(InstantaneousAction("END"))
         graph.add_node(start)
         graph.add_node(end)
-        graph.add_edge(start, list(self.partial_order_plan.get_adjacency_list.keys())[0], interval= [0.0,0.0])
-        graph.add_edge([item for item in list(self.partial_order_plan.get_adjacency_list.keys())[::-1] if item.action._name != "START" and item.action._name != "END"][0], end, interval= [0.0,0.0])
+        graph.add_edge(
+            start,
+            list(self.partial_order_plan.get_adjacency_list.keys())[0],
+            interval=[0.0, 0.0],
+        )
+        graph.add_edge(
+            [
+                item
+                for item in list(self.partial_order_plan.get_adjacency_list.keys())[
+                    ::-1
+                ]
+                if item.action._name != "START" and item.action._name != "END"
+            ][0],
+            end,
+            interval=[0.0, 0.0],
+        )
 
         self.stn = graph
         return graph
@@ -210,8 +223,6 @@ class TTP_to_STN:
                     )  # is it usefull ? because delete node at the end
                     graph.remove_node(next_node)
                     to_jump += [item[0] for item in nodes_list if item[0] == next_node]
-        
-
 
     def run(self):
         # partial order plan to STN
