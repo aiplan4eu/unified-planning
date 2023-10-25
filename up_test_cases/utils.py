@@ -65,11 +65,10 @@ def _get_pddl_test_cases(
     filter: Optional[Iterable[str]] = None,
     block: Iterable[str] = tuple(),
 ) -> Dict[str, TestCase]:
-    pddl_files = glob("*.pddl", root_dir=pddl_files_path)
+    pddl_files = glob(os.path.join(pddl_files_path, "*.pddl"))
     domain_filenames: List[str] = []
     problem_filenames: List[str] = []
     for filename in pddl_files:
-        filename = os.path.join(pddl_files_path, filename)
         if domain_filter in filename:
             domain_filenames.append(filename)
         else:
