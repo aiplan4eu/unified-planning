@@ -21,15 +21,32 @@ if __name__ == "__main__":
     graph = ttp_to_stn.run()
 
     options = {
-    'node_color': 'blue',
-    'node_size': 1000,
-    'width': 3,
-}
-    pos=nx.spring_layout(ttp_to_stn.stn)   
-    edge_labels=dict([((u,v,),[float(d['interval'][0]), float(d['interval'][0])])
-                 for u,v,d in ttp_to_stn.stn.edges(data=True)])
+        "node_color": "blue",
+        "node_size": 1000,
+        "width": 3,
+    }
+    pos = nx.spring_layout(ttp_to_stn.stn)
+    edge_labels = dict(
+        [
+            (
+                (
+                    u,
+                    v,
+                ),
+                [float(d["interval"][0]), float(d["interval"][0])],
+            )
+            for u, v, d in ttp_to_stn.stn.edges(data=True)
+        ]
+    )
     nx.draw_networkx_edge_labels(ttp_to_stn.stn, pos, edge_labels=edge_labels)
-    nx.draw_networkx(ttp_to_stn.stn, pos, with_labels = True, arrows=True, **options, edge_cmap=plt.cm.Reds)
+    nx.draw_networkx(
+        ttp_to_stn.stn,
+        pos,
+        with_labels=True,
+        arrows=True,
+        **options,
+        edge_cmap=plt.cm.Reds
+    )
     pylab.show()
 
     print("Done...")
