@@ -62,7 +62,7 @@ def get_test_cases():
         SequentialPlan([action(y), action(x)]),
     ]
     invalid_plans = [
-        SequentialPlan([ActionInstance(action(x)), ActionInstance(action(x))]),
+        SequentialPlan([action(x), action(x)]),
         SequentialPlan([]),
         SequentialPlan([action(y), action(y)]),
     ]
