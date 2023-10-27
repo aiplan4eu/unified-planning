@@ -12,7 +12,7 @@ env:
   up_pyperplan_commit: "fa026fd3b3666d65a34ede06c6978c82c2a88293"
   up_fast_downward_commit: "cb3fc7ce13ce9f53b4cedb80036d5c1666a4cf27"
   up_enhsp_commit: "7221040a642276f7c45e6d02542a59111233dd37"
-  up_fmap_commit: "ff3a0e9d87097f95fec332c292d76f92cbe3bbdf"
+  up_fmap_commit: "3dd40496277e65af574ce24724b573b90a86464f"
 
 jobs:
   basic-check:
