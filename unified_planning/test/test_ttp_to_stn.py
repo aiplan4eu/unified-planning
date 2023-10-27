@@ -1,4 +1,3 @@
-
 from unified_planning.shortcuts import *
 
 from unified_planning.plans.ttp_to_stn import *
@@ -49,6 +48,8 @@ class TestTTPToSTN(TestCase):
             **options,
             edge_cmap=plt.cm.Reds
         )
-        #pylab.show()
+        # pylab.show()
         # Each actions has start and end in the stn plus Start and End's nodes
-        self.assertTrue(len(self.ttp_to_stn.stn) == len(self.plan.timed_actions)*2 + 2)
+        self.assertTrue(
+            len(self.ttp_to_stn.stn) == len(self.plan.timed_actions) * 2 + 2
+        )
