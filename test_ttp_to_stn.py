@@ -33,7 +33,7 @@ if __name__ == "__main__":
                     u,
                     v,
                 ),
-                [float(d["interval"][0]), float(d["interval"][0])],
+                [float(d["interval"][0]), float(d["interval"][1])],
             )
             for u, v, d in ttp_to_stn.stn.edges(data=True)
         ]
