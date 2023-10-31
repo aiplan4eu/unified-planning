@@ -8,10 +8,10 @@ on:
         type: string
 
 env:
-  up_tamer_commit: "d546b0ca0fa1b3091699fd0877a3af38339ba0fb"
-  up_pyperplan_commit: "fa026fd3b3666d65a34ede06c6978c82c2a88293"
-  up_fast_downward_commit: "cb3fc7ce13ce9f53b4cedb80036d5c1666a4cf27"
-  up_enhsp_commit: "7221040a642276f7c45e6d02542a59111233dd37"
+  up_tamer_commit: "db6709d7c465d52db6d1522206b199e30aed23a1"
+  up_pyperplan_commit: "d6d54f8a8b67e7653599e007a8373245fb2fffd3"
+  up_fast_downward_commit: "a5d2e211c95aba896c03aa3499a4961f3e1956cf"
+  up_enhsp_commit: "af93cd799974626ac17b8aaf1a83975f75c073ab"
   up_fmap_commit: "3dd40496277e65af574ce24724b573b90a86464f"
 
 jobs:
