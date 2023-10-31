@@ -15,14 +15,14 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, examples
+from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPTypeError
 
 
-class TestProblem(TestCase):
+class TestProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_problem_kind(self):
@@ -533,7 +533,8 @@ class TestProblem(TestCase):
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
         ]
-        for problem, _ in self.problems.values():
+        for example in self.problems.values():
+            problem = example.problem
             if problem.name in names_of_SNP_problems:
                 self.assertTrue(
                     problem.kind.has_simple_numeric_planning(), problem.name

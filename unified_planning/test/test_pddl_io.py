@@ -18,7 +18,11 @@ from typing import cast
 import pytest
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, skipIfNoOneshotPlannerForProblemKind
+from unified_planning.test import (
+    unittest_TestCase,
+    main,
+    skipIfNoOneshotPlannerForProblemKind,
+)
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPProblemDefinitionError
@@ -31,9 +35,9 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 
 
-class TestPddlIO(TestCase):
+class TestPddlIO(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_basic_writer(self):

@@ -18,7 +18,7 @@ from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import full_classical_kind
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
@@ -30,9 +30,9 @@ from unified_planning.model.types import domain_item, domain_size
 from unified_planning.model.walkers import QuantifierSimplifier
 
 
-class TestUsertypeFLuentsRemover(TestCase):
+class TestUsertypeFLuentsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
@@ -63,7 +63,8 @@ class TestUsertypeFLuentsRemover(TestCase):
                 self.assertTrue(pv.validate(problem, new_plan))
 
     def test_robot_fluent_of_user_type_with_int_id(self):
-        problem, plan = self.problems["robot_fluent_of_user_type_with_int_id"]
+        example = self.problems["robot_fluent_of_user_type_with_int_id"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         with Compiler(
             problem_kind=problem.kind,

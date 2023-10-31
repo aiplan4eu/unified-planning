@@ -17,14 +17,14 @@ from typing import Set, cast, List, Tuple, Dict
 from numbers import Real as RealNumbers
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.plans import *
 from unified_planning.test.examples import get_example_problems
 
 
-class TestSTNPlan(TestCase):
+class TestSTNPlan(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_constraints(self):

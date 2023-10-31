@@ -17,7 +17,7 @@ import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     main,
     skipIfEngineNotAvailable,
     skipIfNoOneshotPlannerForProblemKind,
@@ -25,16 +25,18 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 
 
-class TestPartialOrderPlan(TestCase):
+class TestPartialOrderPlan(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     def test_all(self):
         with PlanValidator(name="sequential_plan_validator") as validator:
             assert validator is not None
-            for problem, plan in self.problems.values():
+            for example in self.problems.values():
+                problem, plans = example.problem, example.valid_plans
+                plan = plans[0] if plans else None
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.convert_to(PlanKind.PARTIAL_ORDER_PLAN, problem)

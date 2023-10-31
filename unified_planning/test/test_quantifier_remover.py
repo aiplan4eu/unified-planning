@@ -25,7 +25,7 @@ from unified_planning.model.problem_kind import (
     bounded_types_kind,
 )
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
 )
@@ -34,9 +34,9 @@ from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import QuantifiersRemover
 
 
-class TestQuantifiersRemover(TestCase):
+class TestQuantifiersRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)

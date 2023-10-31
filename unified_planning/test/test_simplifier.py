@@ -15,16 +15,16 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.walkers import Simplifier, Substituter
 from unified_planning.environment import get_environment
 from fractions import Fraction
 from typing import List
 
 
-class TestBoolOperators(TestCase):
+class TestBoolOperators(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_and_constant(self):
         s = Simplifier(get_environment())
@@ -323,9 +323,9 @@ class TestBoolOperators(TestCase):
         self.assertEqual(r4, t)
 
 
-class TestArithmeticOperators(TestCase):
+class TestArithmeticOperators(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_plus_constant(self):
         # simple plus
@@ -559,9 +559,9 @@ class TestArithmeticOperators(TestCase):
         self.assertEqual(r3, e3.simplify())
 
 
-class TestWithSubstituter(TestCase):
+class TestWithSubstituter(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_and_fluent(self):
         s = get_environment().simplifier

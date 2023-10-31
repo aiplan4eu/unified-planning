@@ -15,9 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from collections import namedtuple
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 
 def get_example_problems():
@@ -34,7 +32,7 @@ def get_example_problems():
     problem.set_initial_value(x, False)
     problem.add_goal(x)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic = Example(problem=problem, plan=plan)
+    basic = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["basic"] = basic
 
     # basic conditional
@@ -57,7 +55,7 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(a_y), up.plans.ActionInstance(a_x)]
     )
-    basic_conditional = Example(problem=problem, plan=plan)
+    basic_conditional = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["basic_conditional"] = basic_conditional
 
     # basic oversubscription
@@ -72,7 +70,9 @@ def get_example_problems():
     qm = up.model.metrics.Oversubscription({FluentExp(x): 10})
     problem.add_quality_metric(qm)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_oversubscription = Example(problem=problem, plan=plan)
+    basic_oversubscription = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan], optimum=10
+    )
     problems["basic_oversubscription"] = basic_oversubscription
 
     # complex conditional
@@ -142,7 +142,7 @@ def get_example_problems():
             up.plans.ActionInstance(a_act),
         ]
     )
-    complex_conditional = Example(problem=problem, plan=plan)
+    complex_conditional = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["complex_conditional"] = complex_conditional
 
     # basic without negative preconditions
@@ -159,7 +159,9 @@ def get_example_problems():
     problem.set_initial_value(y, True)
     problem.add_goal(x)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_without_negative_preconditions = Example(problem=problem, plan=plan)
+    basic_without_negative_preconditions = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems[
         "basic_without_negative_preconditions"
     ] = basic_without_negative_preconditions
@@ -183,7 +185,9 @@ def get_example_problems():
     problem.set_initial_value(k, True)
     problem.add_goal(And(x, And(y, z, And(j, k))))
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_nested_conjunctions = Example(problem=problem, plan=plan)
+    basic_nested_conjunctions = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_nested_conjunctions"] = basic_nested_conjunctions
 
     # basic exists
@@ -207,7 +211,7 @@ def get_example_problems():
     problem.set_initial_value(y(o2), False)
     problem.add_goal(x)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_exists = Example(problem=problem, plan=plan)
+    basic_exists = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["basic_exists"] = basic_exists
 
     # basic forall
@@ -229,7 +233,7 @@ def get_example_problems():
     problem.set_initial_value(y(o2), False)
     problem.add_goal(x)
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_forall = Example(problem=problem, plan=plan)
+    basic_forall = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["basic_forall"] = basic_forall
 
     # temporal conditional
@@ -283,7 +287,9 @@ def get_example_problems():
             ),
         ]
     )
-    temporal_conditional = Example(problem=problem, plan=t_plan)
+    temporal_conditional = TestCase(
+        problem=problem, solvable=True, valid_plans=[t_plan]
+    )
     problems["temporal_conditional"] = temporal_conditional
 
     # basic with actions cost
@@ -315,7 +321,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(act_b), up.plans.ActionInstance(act_c)]
     )
-    basic_with_costs = Example(problem=problem, plan=plan)
+    basic_with_costs = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan], optimum=2
+    )
     problems["basic_with_costs"] = basic_with_costs
 
     # counter
@@ -338,7 +346,7 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(increase), up.plans.ActionInstance(increase)]
     )
-    counter = Example(problem=problem, plan=plan)
+    counter = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["counter"] = counter
 
     # counter to 50
@@ -354,7 +362,7 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(increase) for _ in range(50)]
     )
-    counter_to_50 = Example(problem=problem, plan=plan)
+    counter_to_50 = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["counter_to_50"] = counter_to_50
 
     # basic with object constant
@@ -386,7 +394,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    basic_with_object_constant = Example(problem=problem, plan=plan)
+    basic_with_object_constant = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_with_object_constant"] = basic_with_object_constant
 
     # basic numeric
@@ -400,6 +410,8 @@ def get_example_problems():
     problem.set_initial_value(value, 1)
     problem.add_goal(Equals(value, 2))
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(task)])
-    problems["basic_numeric"] = Example(problem=problem, plan=plan)
+    problems["basic_numeric"] = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
 
     return problems

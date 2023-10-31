@@ -15,13 +15,15 @@
 
 import unittest
 import unified_planning as up
+from fractions import Fraction
 from functools import wraps
 from importlib.util import find_spec
 from unified_planning.engines import OperationMode
 from unified_planning.environment import get_environment
-from unified_planning.model import ProblemKind
+from unified_planning.model import ProblemKind, Problem, AbstractProblem
+from unified_planning.plans import Plan
 from unified_planning.test.pddl import enhsp
-from typing import Optional
+from typing import Optional, Union, List
 
 
 skipIf = unittest.skipIf
@@ -154,5 +156,61 @@ class skipIfModuleNotInstalled(object):
         return wrapper
 
 
-TestCase = unittest.TestCase
+unittest_TestCase = unittest.TestCase
 main = unittest.main
+
+
+class TestCase:
+    def __init__(
+        self,
+        problem: AbstractProblem,
+        solvable: bool,
+        optimum: Optional[Union[int, Fraction]] = None,
+        valid_plans: Optional[List[Plan]] = None,
+        invalid_plans: Optional[List[Plan]] = None,
+    ):
+
+        self._problem = problem
+        self._solvable = solvable
+        self._optimum = optimum
+        self._valid_plans = valid_plans if valid_plans is not None else []
+        self._invalid_plans = invalid_plans if invalid_plans is not None else []
+
+    @property
+    def problem(self) -> AbstractProblem:
+        return self._problem
+
+    @property
+    def solvable(self) -> bool:
+        return self._solvable
+
+    @property
+    def name(self) -> str:
+        n = self.problem.name
+        assert n is not None, "Can't create a TestCase where the Problem has name None"
+        return n
+
+    @property
+    def optimum(self) -> Optional[Union[int, Fraction]]:
+        return self._optimum
+
+    @property
+    def valid_plans(self) -> List[Plan]:
+        return self._valid_plans
+
+    @property
+    def invalid_plans(self) -> List[Plan]:
+        return self._invalid_plans
+
+
+def get_test_cases():
+
+    # import unified_planning.test.examples as examples
+    from unified_planning.test import examples
+
+    prefix = "test:"
+    res = {}
+    for name, tc in examples.get_example_problems().items():  # type: ignore [attr-defined]
+        res[f"{prefix}{name}"] = tc
+
+    return res

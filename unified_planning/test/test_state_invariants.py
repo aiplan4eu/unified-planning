@@ -22,7 +22,7 @@ from unified_planning.model.problem_kind import (
     full_classical_kind,
     basic_temporal_kind,
 )
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
@@ -32,9 +32,9 @@ from unified_planning.engines.compilers import ConditionalEffectsRemover
 from unified_planning.engines import CompilationKind
 
 
-class TestStateInvariantsRemover(TestCase):
+class TestStateInvariantsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_basic_problem(self):

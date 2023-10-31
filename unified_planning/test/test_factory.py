@@ -18,12 +18,12 @@ import tempfile
 import unified_planning
 from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
 
 
-class TestFactory(TestCase):
+class TestFactory(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("pyperplan")

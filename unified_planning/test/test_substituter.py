@@ -14,15 +14,15 @@
 
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.walkers import Substituter
 from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPTypeError
 
 
-class TestSubstituter(TestCase):
+class TestSubstituter(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_id_walker(self):
         s = get_environment().substituter
