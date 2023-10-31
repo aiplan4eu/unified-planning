@@ -20,6 +20,7 @@ from unified_planning.model.action import (
     DurativeAction,
     SensingAction,
 )
+from unified_planning.model.axiom import Axiom
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
@@ -133,4 +134,5 @@ __all__ = [
     "Oversubscription",
     "TemporalOversubscription",
     "DeltaSimpleTemporalNetwork",
+    "Axiom",
 ]

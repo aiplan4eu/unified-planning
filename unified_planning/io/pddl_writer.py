@@ -405,6 +405,8 @@ class PDDLWriter:
                 or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
+            if self.problem_kind.has_derived_fluents():
+                out.write(" :derived-predicates")
             if self.problem_kind.has_conditional_effects():
                 out.write(" :conditional-effects")
             if self.problem_kind.has_existential_conditions():
@@ -477,7 +479,7 @@ class PDDLWriter:
         predicates = []
         functions = []
         for f in self.problem.fluents:
-            if f.type.is_bool_type():
+            if f.type.is_bool_type() or f.type.is_derived_bool_type():
                 params = []
                 i = 0
                 for param in f.signature:
@@ -532,6 +534,29 @@ class PDDLWriter:
             raise up.exceptions.UPUnsupportedProblemTypeError(
                 "Only one metric is supported!"
             )
+
+        for a in self.problem.axioms:
+            if any(p.simplify().is_false() for p in a.preconditions):
+                continue
+            out.write(f" (:derived ({self._get_mangled_name(a.head._fluent.fluent())}")
+            for ap in a.parameters:
+                if ap.type.is_user_type():
+                    out.write(
+                        f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                    )
+                else:
+                    raise UPTypeError("PDDL supports only user type parameters")
+            out.write(")\n")
+            if len(a.preconditions) > 0:
+                precond_str: List[str] = []
+                for p in (c.simplify() for c in a.preconditions):
+                    if not p.is_true():
+                        if p.is_and():
+                            precond_str.extend(map(converter.convert, p.args))
+                        else:
+                            precond_str.append(converter.convert(p))
+            out.write(f'  (and {" ".join(precond_str)})\n')
+            out.write(" )\n")
 
         em = self.problem.environment.expression_manager
         for a in self.problem.actions:
