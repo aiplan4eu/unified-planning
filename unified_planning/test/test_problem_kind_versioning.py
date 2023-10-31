@@ -15,14 +15,14 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, examples
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPTypeError
 
 
-class TestProblemKindVersioning(TestCase):
+class TestProblemKindVersioning(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_version_2_1(self):
