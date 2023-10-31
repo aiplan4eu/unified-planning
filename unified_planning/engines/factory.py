@@ -23,6 +23,7 @@ import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.plans import PlanKind
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
@@ -491,7 +492,7 @@ class Factory:
         self,
         operation_mode: "OperationMode",
         name: Optional[str] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
         plan_kind: Optional["PlanKind"] = None,
@@ -522,10 +523,12 @@ class Factory:
                 # The EngineClass satisfies the given OperationMode but does not
                 # satisfy some other features; add it to the error report features if
                 # no NoSuitableEngineAvailable are found.
-                x = [name] + [
-                    str(EngineClass.supports(ProblemKind({f})))
+                x = [name]
+                pk_v = problem_kind.version
+                x.extend(
+                    str(EngineClass.supports(ProblemKind({f}, version=pk_v)))
                     for f in problem_features
-                ]
+                )
                 planners_features.append(x)
         if len(planners_features) > 0:
             header = ["Engine"] + problem_features
@@ -597,7 +600,7 @@ class Factory:
         name: Optional[str] = None,
         names: Optional[Sequence[str]] = None,
         params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
         compilation_kinds: Optional[Sequence["CompilationKind"]] = None,
@@ -762,7 +765,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         params: Optional[Dict[str, str]] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         anytime_guarantee: Optional[Union["AnytimeGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """
@@ -835,7 +838,7 @@ class Factory:
         name: Optional[str] = None,
         names: Optional[Sequence[str]] = None,
         params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
         compilation_kinds: Optional[Sequence[Union["CompilationKind", str]]] = None,
     ) -> "up.engines.engine.Engine":
@@ -947,7 +950,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         plan_kind: Optional[Union["PlanKind", str]] = None,
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
@@ -985,7 +988,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         params: Optional[Dict[str, Any]] = None,
-        problem_kind: ProblemKind = ProblemKind(),
+        problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
     ) -> "up.engines.engine.Engine":
         """

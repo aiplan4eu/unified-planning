@@ -69,6 +69,9 @@ def uniform_numeric_constant(value: NumericConstant) -> Union[Fraction, int]:
         number = Fraction(value)
     except ValueError:
         raise UPValueError(f"Numeric constant {value} can't be converted to a number")
+    assert isinstance(number, Fraction)
+    if number.denominator == 1:
+        return number.numerator
     return number
 
 

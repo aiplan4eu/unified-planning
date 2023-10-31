@@ -448,12 +448,12 @@ class TestProblem(unittest_TestCase):
                 if j == i + 1:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(10)),
+                        Int(10),
                     )
                 else:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(-1)),
+                        Int(-1),
                     )
 
     def test_problem_defaults(self):
@@ -524,10 +524,6 @@ class TestProblem(unittest_TestCase):
             "robot_decrease",
             "robot_locations_connected",
             "robot_locations_visited",
-            "robot_fluent_of_user_type_with_int_id",
-            "basic_int_fluent_param",
-            "basic_bounded_int_action_param",
-            "basic_unbounded_int_action_param",
             "basic_numeric",
             "sched:basic",
             "sched:resource_set",
@@ -537,7 +533,8 @@ class TestProblem(unittest_TestCase):
             problem = example.problem
             if problem.name in names_of_SNP_problems:
                 self.assertTrue(
-                    problem.kind.has_simple_numeric_planning(), problem.name
+                    problem.kind.has_simple_numeric_planning(),
+                    str(problem.name) + str(problem.kind),
                 )
             else:
                 self.assertFalse(
@@ -580,11 +577,11 @@ class TestProblem(unittest_TestCase):
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
 
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), 2.0)
+            problem.set_initial_value(distance(l2, l1), 2.1)
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "2.0")
+            problem.set_initial_value(distance(l2, l1), "2.1")
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "4/2")
+            problem.set_initial_value(distance(l2, l1), "3/2")
         with self.assertRaises(UPTypeError):
             problem.set_initial_value(distance(l2, l1), Div(4, 2))
         problem.set_initial_value(distance(l2, l1), "20")

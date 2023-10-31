@@ -31,6 +31,7 @@ from unified_planning.model.mixins import (
 )
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import _IntType
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
@@ -42,7 +43,7 @@ from unified_planning.exceptions import (
 
 import networkx as nx
 from fractions import Fraction
-from typing import Optional, List, Dict, Set, Tuple, Union, cast, Iterable
+from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
 
 class Problem(  # type: ignore[misc]
@@ -668,9 +669,8 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
-        for effect_list in self._timed_effects.values():
-            for effect in effect_list:
-                factory.update_problem_kind_effect(effect)
+        for effect in chain(*self._timed_effects.values()):
+            factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
             factory.kind.set_time("TIMED_GOALS")
             factory.kind.set_time("CONTINUOUS_TIME")
@@ -679,10 +679,7 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("STATE_INVARIANTS")
             else:
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-        for goal_list in self._timed_goals.values():
-            for goal in goal_list:
-                factory.update_problem_kind_expression(goal)
-        for goal in self._goals:
+        for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
 
         return factory
@@ -721,7 +718,9 @@ class _KindFactory:
         self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
 
         self.environment: unified_planning.Environment = environment
-        self.kind: up.model.ProblemKind = up.model.ProblemKind()
+        self.kind: up.model.ProblemKind = up.model.ProblemKind(
+            version=LATEST_PROBLEM_KIND_VERSION
+        )
 
         self.kind.set_problem_class(problem_class)
 
@@ -754,14 +753,10 @@ class _KindFactory:
 
     def finalize(self) -> "up.model.ProblemKind":
         """Once all features have been added, remove unnecessary features that were added preventively."""
-        if (
-            not self.kind.has_continuous_numbers()
-            and not self.kind.has_discrete_numbers()
-        ):
+        if not self.kind.has_real_fluents() and not self.kind.has_int_fluents():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-        else:
-            if not self.kind.has_simple_numeric_planning():
-                self.kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        elif not self.kind.has_simple_numeric_planning():
+            self.kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         if self.kind.has_continuous_time() and self.pb.discrete_time:
             self.kind.set_time("DISCRETE_TIME")
             self.kind.unset_time("CONTINUOUS_TIME")
@@ -776,10 +771,6 @@ class _KindFactory:
             self.kind.set_typing("FLAT_TYPING")
             if cast(up.model.types._UserType, type).father is not None:
                 self.kind.set_typing("HIERARCHICAL_TYPING")
-        elif type.is_int_type():
-            self.kind.set_numbers("DISCRETE_NUMBERS")
-        elif type.is_real_type():
-            self.kind.set_numbers("CONTINUOUS_NUMBERS")
 
     def update_problem_kind_effect(
         self,
@@ -894,7 +885,7 @@ class _KindFactory:
             not type.is_int_type() and not type.is_real_type()
         ):
             self.update_problem_kind_type(type)
-        if fluent.type.is_int_type() or type.is_real_type():
+        if type.is_int_type() or type.is_real_type():
             numeric_type = type
             assert isinstance(
                 numeric_type, (up.model.types._RealType, up.model.types._IntType)
@@ -905,7 +896,11 @@ class _KindFactory:
             ):
                 self.kind.set_numbers("BOUNDED_TYPES")
             if fluent not in self.unused_fluents:
-                self.kind.set_fluents_type("NUMERIC_FLUENTS")
+                if type.is_int_type():
+                    self.kind.set_fluents_type("INT_FLUENTS")
+                else:
+                    assert type.is_real_type()
+                    self.kind.set_fluents_type("REAL_FLUENTS")
         elif type.is_user_type():
             self.kind.set_fluents_type("OBJECT_FLUENTS")
         for param in fluent.signature:
@@ -934,6 +929,13 @@ class _KindFactory:
 
     def update_action_duration(self, duration: "up.model.DurationInterval"):
         lower, upper = duration.lower, duration.upper
+        for dur_bound in (lower, upper):
+            if dur_bound.type.is_int_type():
+                self.kind.set_expression_duration("INT_TYPE_DURATIONS")
+            else:
+                assert dur_bound.type.is_real_type()
+                self.kind.set_expression_duration("REAL_TYPE_DURATIONS")
+
         if lower != upper:
             self.kind.set_time("DURATION_INEQUALITIES")
         free_vars = self.environment.free_vars_extractor.get(
@@ -1014,7 +1016,8 @@ class _KindFactory:
         fluents_to_only_decrease = set()
         fve = self.pb.environment.free_vars_extractor
         for metric in self.pb.quality_metrics:
-            ovsb_goals: Iterable["up.model.fnode.FNode"] = tuple()
+            oversub_gains: Iterable[Any] = []
+            oversub_goals: Iterable["up.model.fnode.FNode"] = []
             if metric.is_minimize_expression_on_final_state():
                 assert isinstance(
                     metric, up.model.metrics.MinimizeExpressionOnFinalState
@@ -1058,21 +1061,21 @@ class _KindFactory:
             elif metric.is_minimize_action_costs():
                 assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 self.kind.set_quality_metrics("ACTIONS_COST")
-                for cost in metric.costs.values():
+                costs = (
+                    metric.costs.values()
+                    if metric.default is None
+                    else chain(metric.costs.values(), [metric.default])
+                )
+                for cost in costs:
                     if cost is None:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."
                         )
-                    if metric.default is not None:
-                        for f in fve.get(metric.default):
-                            if f.fluent() in self.static_fluents:
-                                self.kind.set_actions_cost_kind(
-                                    "STATIC_FLUENTS_IN_ACTIONS_COST"
-                                )
-                            else:
-                                self.kind.set_actions_cost_kind(
-                                    "FLUENTS_IN_ACTIONS_COST"
-                                )
+                    t = cost.type
+                    if t.is_int_type():
+                        self.kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+                    elif t.is_real_type():
+                        self.kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
                     for f in fve.get(cost):
                         if f.fluent() in self.static_fluents:
                             self.kind.set_actions_cost_kind(
@@ -1087,15 +1090,29 @@ class _KindFactory:
             elif metric.is_oversubscription():
                 assert isinstance(metric, up.model.Oversubscription)
                 self.kind.set_quality_metrics("OVERSUBSCRIPTION")
-                ovsb_goals = metric.goals.keys()
+                oversub_goals = metric.goals.keys()
+                oversub_gains = metric.goals.values()
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.TemporalOversubscription)
                 self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                ovsb_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_gains = metric.goals.values()
             else:
                 assert False, "Unknown quality metric"
-            for goal in ovsb_goals:
+            for goal in oversub_goals:
                 self.update_problem_kind_expression(goal)
+            for oversub_gain in oversub_gains:
+                if isinstance(oversub_gain, int):
+                    self.kind.set_oversubscription_kind(
+                        "INT_NUMBERS_IN_OVERSUBSCRIPTION"
+                    )
+                else:
+                    assert isinstance(
+                        oversub_gain, Fraction
+                    ), "Typing error in metric creation"
+                    self.kind.set_oversubscription_kind(
+                        "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
+                    )
         return fluents_to_only_increase, fluents_to_only_decrease
 
 
