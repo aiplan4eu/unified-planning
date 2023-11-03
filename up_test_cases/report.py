@@ -3,7 +3,7 @@ import sys
 import time
 from functools import partial
 from itertools import chain
-from typing import Tuple
+from typing import List, Tuple
 import warnings
 
 from unified_planning.engines import (
