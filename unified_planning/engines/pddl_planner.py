@@ -187,6 +187,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 cmd = self._get_anytime_cmd(
                     domain_filename, problem_filename, plan_filename
                 )
+            process_start = time.time()
             if output_stream is None:
                 # If we do not have an output stream to write to, we simply call
                 # a subprocess and retrieve the final output and error with communicate
@@ -229,6 +230,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                         )
                 timeout_occurred, (proc_out, proc_err), retval = exec_res
 
+            process_end = time.time()
             logs.append(up.engines.results.LogMessage(LogLevel.INFO, "".join(proc_out)))
             logs.append(
                 up.engines.results.LogMessage(LogLevel.ERROR, "".join(proc_err))
@@ -237,18 +239,21 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 plan = self._plan_from_file(
                     problem, plan_filename, self._writer.get_item_named
                 )
+            metrics = {}
+            metrics["pddl_planner_subprocess_time"] = str(process_end - process_start)
             if timeout_occurred and retval != 0:
                 return PlanGenerationResult(
                     PlanGenerationResultStatus.TIMEOUT,
                     plan=plan,
-                    log_messages=logs,
                     engine_name=self.name,
+                    metrics=metrics,
+                    log_messages=logs,
                 )
         status: PlanGenerationResultStatus = self._result_status(
             problem, plan, retval, logs
         )
         res = PlanGenerationResult(
-            status, plan, log_messages=logs, engine_name=self.name
+            status, plan, engine_name=self.name, metrics=metrics, log_messages=logs
         )
         problem_kind = problem.kind
         if problem_kind.has_continuous_time() or problem_kind.has_discrete_time():

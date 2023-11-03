@@ -259,8 +259,26 @@ def report_oneshot(
                             )
                     if not outcome.ok():
                         errors.append((planner_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
-                    print(status, "    ", runtime, outcome)
+                    total_execution_time = end - start
+                    subprocess_time_str = None
+                    if result.metrics is not None:
+                        subprocess_time_str = result.metrics.get(
+                            "pddl_planner_subprocess_time", None
+                        )
+                    if subprocess_time_str is not None:
+                        subprocess_time = float(subprocess_time_str)
+                        # overhead_percentage = 1-subprocess_time/total_execution_time
+                        overhead_percentage = (
+                            total_execution_time - subprocess_time
+                        ) / subprocess_time
+                        runtime_report = "{:.3f}s({:.3%})".format(
+                            total_execution_time, overhead_percentage
+                        ).ljust(15)
+                    else:
+                        runtime_report = "{:.3f}s".format(total_execution_time).ljust(
+                            15
+                        )
+                    print(status, "    ", runtime_report, outcome)
 
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
@@ -375,8 +393,26 @@ def report_anytime(
                         outcome += check_all_optimal_solutions(
                             test_case, metrics_evaluations
                         )
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
-                    print(status, "    ", runtime, outcome)
+                    total_execution_time = end - start
+                    subprocess_time_str = None
+                    if result.metrics is not None:
+                        subprocess_time_str = result.metrics.get(
+                            "pddl_planner_subprocess_time", None
+                        )
+                    if subprocess_time_str is not None:
+                        subprocess_time = float(subprocess_time_str)
+                        # overhead_percentage = 1-subprocess_time/total_execution_time
+                        overhead_percentage = (
+                            total_execution_time - subprocess_time
+                        ) / subprocess_time
+                        runtime_report = "{:.3f}s({:.3%})".format(
+                            total_execution_time, overhead_percentage
+                        ).ljust(15)
+                    else:
+                        runtime_report = "{:.3f}s".format(total_execution_time).ljust(
+                            15
+                        )
+                    print(status, "    ", runtime_report, outcome)
 
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
@@ -428,7 +464,7 @@ def report_validation(
                 result = validator.validate(test_case.problem, valid_plan)
                 end = time.time()
                 print(str(result.status.name).ljust(25), end="      ")
-                runtime = "{:.3f}s".format(end - start).ljust(10)
+                runtime = "{:.3f}s".format(end - start).ljust(15)
                 print(runtime, end="")
                 if result.status == ValidationResultStatus.VALID:
                     print(Ok("Valid"))
@@ -451,7 +487,7 @@ def report_validation(
                 result = validator.validate(test_case.problem, invalid_plan)
                 end = time.time()
                 print(str(result.status.name).ljust(25), end="      ")
-                runtime = "{:.3f}s".format(end - start).ljust(10)
+                runtime = "{:.3f}s".format(end - start).ljust(15)
                 print(runtime, end="")
                 if result.status == ValidationResultStatus.INVALID:
                     print(Ok("Invalid"))
@@ -518,7 +554,7 @@ def report_grounding(
                     outcome = check_grounding_result(test_case, result)
                     if not outcome.ok():
                         errors.append((engine_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
+                    runtime = "{:.3f}s".format(end - start).ljust(15)
                     print(status, "    ", runtime, outcome)
 
                 except Exception as e:
