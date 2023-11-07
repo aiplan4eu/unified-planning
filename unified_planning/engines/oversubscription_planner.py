@@ -173,6 +173,7 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     self.name,
                     metrics=res.metrics,
                     log_messages=res.log_messages,
+                    extra_engine_info=res.extra_engine_info,
                 )
             elif res.status == PlanGenerationResultStatus.TIMEOUT:
                 return PlanGenerationResult(

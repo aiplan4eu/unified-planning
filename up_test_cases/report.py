@@ -260,17 +260,17 @@ def report_oneshot(
                     if not outcome.ok():
                         errors.append((planner_id, name))
                     total_execution_time = end - start
-                    subprocess_time_str = None
-                    if result.metrics is not None:
-                        subprocess_time_str = result.metrics.get(
-                            "pddl_planner_subprocess_time", None
+                    internal_time_str = None
+                    if result.extra_engine_info is not None:
+                        internal_time_str = result.extra_engine_info.get(
+                            "internal_time", None
                         )
-                    if subprocess_time_str is not None:
-                        subprocess_time = float(subprocess_time_str)
-                        # overhead_percentage = 1-subprocess_time/total_execution_time
+                    if internal_time_str is not None:
+                        internal_time = float(internal_time_str)
+                        # overhead_percentage = 1-internal_time/total_execution_time
                         overhead_percentage = (
-                            total_execution_time - subprocess_time
-                        ) / subprocess_time
+                            total_execution_time - internal_time
+                        ) / internal_time
                         runtime_report = "{:.3f}s({:.3%})".format(
                             total_execution_time, overhead_percentage
                         ).ljust(15)
@@ -394,18 +394,18 @@ def report_anytime(
                             test_case, metrics_evaluations
                         )
                     total_execution_time = end - start
-                    subprocess_time_str = None
-                    if result.metrics is not None:
-                        subprocess_time_str = result.metrics.get(
-                            "pddl_planner_subprocess_time", None
+                    internal_time_str = None
+                    if result.extra_engine_info is not None:
+                        internal_time_str = result.extra_engine_info.get(
+                            "internal_time", None
                         )
-                    if subprocess_time_str is not None:
-                        subprocess_time = float(subprocess_time_str)
-                        # overhead_percentage = 1-subprocess_time/total_execution_time
+                    if internal_time_str is not None:
+                        internal_time = float(internal_time_str)
+                        # overhead_percentage = 1-internal_time/total_execution_time
                         overhead_percentage = (
-                            total_execution_time - subprocess_time
-                        ) / subprocess_time
-                        runtime_report = "{:.3f}s({:.3%})".format(
+                            total_execution_time - internal_time
+                        ) / internal_time
+                        runtime_report = "{:.3f}s({:.0%})".format(
                             total_execution_time, overhead_percentage
                         ).ljust(15)
                     else:

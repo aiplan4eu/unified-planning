@@ -27,9 +27,9 @@ setup(
         "tamer": ["up-tamer==1.0.0.4.dev1"],
         "enhsp": ["up-enhsp==0.0.21"],
         "fast-downward": ["up-fast-downward==0.4.0"],
-        "lpg": ["up-lpg==0.0.7"],
+        "lpg": ["up-lpg==0.0.8"],
         "fmap": ["up-fmap==0.0.10"],
-        "aries": ["up-aries>=0.2.0"],
+        "aries": ["up-aries>=0.2.1"],
         "symk": ["up-symk>=1.0.1"],
         "engines": [
             "tarski[arithmetic]",
@@ -37,9 +37,9 @@ setup(
             "up-tamer==1.0.0.4.dev1",
             "up-enhsp==0.0.21",
             "up-fast-downward==0.4.0",
-            "up-lpg==0.0.7",
+            "up-lpg==0.0.8",
             "up-fmap==0.0.10",
-            "up-aries>=0.2.0",
+            "up-aries>=0.2.1",
             "up-symk>=1.0.1",
         ],
         "plot": [

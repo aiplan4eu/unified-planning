@@ -145,6 +145,7 @@ class PlanGenerationResult(Result):
     engine_name: str
     metrics: Optional[Dict[str, str]] = field(default=None)
     log_messages: Optional[List[LogMessage]] = field(default=None)
+    extra_engine_info: Optional[Dict[str, str]] = field(default=None)
 
     def __post__init(self):
         # Checks that plan and status are consistent
@@ -235,6 +236,7 @@ def correct_plan_generation_result(
                     result.engine_name,
                     result.metrics,
                     result.log_messages,
+                    result.extra_engine_info,
                 )
     elif problem.epsilon is None or (
         engine_epsilon is not None and problem.epsilon < engine_epsilon
@@ -250,6 +252,7 @@ def correct_plan_generation_result(
                 result.engine_name,
                 result.metrics,
                 result.log_messages,
+                result.extra_engine_info,
             )
         elif result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
             return PlanGenerationResult(
@@ -258,6 +261,7 @@ def correct_plan_generation_result(
                 result.engine_name,
                 result.metrics,
                 result.log_messages,
+                result.extra_engine_info,
             )
     return result
 
@@ -274,6 +278,7 @@ class ValidationResult(Result):
     )
     reason: Optional[FailedValidationReason] = field(default=None)
     inapplicable_action: Optional[up.plans.ActionInstance] = field(default=None)
+    extra_engine_info: Optional[Dict[str, str]] = field(default=None)
 
     def __post_init__(self):
         assert (
@@ -313,6 +318,7 @@ class CompilerResult(Result):
     ]
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
+    extra_engine_info: Optional[Dict[str, str]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance are consistent with each other
