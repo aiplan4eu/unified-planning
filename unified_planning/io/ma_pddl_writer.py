@@ -176,8 +176,8 @@ class MAPDDLWriter:
                 if self.problem_kind.has_equalities():
                     out.write(" :equality")
                 if (
-                    self.problem_kind.has_continuous_numbers()
-                    or self.problem_kind.has_discrete_numbers()
+                    self.problem_kind.has_int_fluents()
+                    or self.problem_kind.has_real_fluents()
                 ):
                     out.write(" :numeric-fluents")
                 if self.problem_kind.has_conditional_effects():

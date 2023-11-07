@@ -15,13 +15,13 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples.multi_agent import get_example_problems
 
 
-class TestProblem(TestCase):
+class TestProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_basic(self):
@@ -143,7 +143,8 @@ class TestProblem(TestCase):
         self.assertEqual(len(problem.goals), 1)
 
     def test_normalize_plan(self):
-        problem, plan = self.problems["ma-loader"]
+        example = self.problems["ma-loader"]
+        problem, plan = example.problem, example.valid_plans[0]
 
         cloned_problem = problem.clone()
         cloned_plan = cloned_problem.normalize_plan(plan)

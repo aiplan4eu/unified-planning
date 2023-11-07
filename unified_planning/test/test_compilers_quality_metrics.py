@@ -19,24 +19,23 @@ from unified_planning.model.problem_kind import (
     actions_cost_kind,
     simple_numeric_kind,
 )
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 
 
-class TestCompilersPipeline(TestCase):
+class TestCompilersPipeline(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(
         basic_classical_kind.union(oversubscription_kind)
     )
     def test_locations_connected_visited_oversubscription(self):
-        problem, test_plan = self.problems[
-            "locations_connected_visited_oversubscription"
-        ]
+        example = self.problems["locations_connected_visited_oversubscription"]
+        problem, test_plan = example.problem, example.valid_plans[0]
         with Compiler(
             problem_kind=problem.kind,
             compilation_kinds=[
@@ -59,7 +58,8 @@ class TestCompilersPipeline(TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(simple_numeric_kind.union(actions_cost_kind))
     def test_locations_connected_cost_minimize(self):
-        problem, test_plan = self.problems["locations_connected_cost_minimize"]
+        example = self.problems["locations_connected_cost_minimize"]
+        problem, test_plan = example.problem, example.valid_plans[0]
         with Compiler(
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.GROUNDING,

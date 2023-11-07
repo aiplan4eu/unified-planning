@@ -71,7 +71,7 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        new_kind = ProblemKind(problem_kind.features)
+        new_kind = problem_kind.clone()
         new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 

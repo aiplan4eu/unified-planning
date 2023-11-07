@@ -15,6 +15,7 @@
 import os
 import unified_planning as up
 from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
@@ -113,10 +114,8 @@ class ENHSP(PDDLAnytimePlanner):
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        supported_kind = ProblemKind()
+        supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
-        supported_kind.set_numbers("DISCRETE_NUMBERS")
-        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
         supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
@@ -134,12 +133,15 @@ class ENHSP(PDDLAnytimePlanner):
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
+        supported_kind.set_fluents_type("INT_FLUENTS")
+        supported_kind.set_fluents_type("REAL_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_quality_metrics("FINAL_VALUE")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         return supported_kind
 
     @staticmethod

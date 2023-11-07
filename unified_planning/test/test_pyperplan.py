@@ -16,20 +16,21 @@ import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.engines.results import POSITIVE_OUTCOMES
-from unified_planning.test import TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.environment import get_environment
 from unified_planning.test.examples import get_example_problems
 
 
-class TestPyperplan(TestCase):
+class TestPyperplan(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.environment = get_environment()
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan(self):
-        problem, plan = self.problems["robot_no_negative_preconditions"]
+        example = self.problems["robot_no_negative_preconditions"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -38,7 +39,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_basic_without_negative_preconditions(self):
-        problem, plan = self.problems["basic_without_negative_preconditions"]
+        example = self.problems["basic_without_negative_preconditions"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -47,7 +49,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_basic_nested_conjunctions(self):
-        problem, plan = self.problems["basic_nested_conjunctions"]
+        example = self.problems["basic_nested_conjunctions"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -56,7 +59,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_hierarchical_blocks_world(self):
-        problem, plan = self.problems["hierarchical_blocks_world"]
+        example = self.problems["hierarchical_blocks_world"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -65,7 +69,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_hierarchical_blocks_world_object_as_root(self):
-        problem, plan = self.problems["hierarchical_blocks_world_object_as_root"]
+        example = self.problems["hierarchical_blocks_world_object_as_root"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -74,7 +79,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_hierarchical_blocks_world_with_object(self):
-        problem, plan = self.problems["hierarchical_blocks_world_with_object"]
+        example = self.problems["hierarchical_blocks_world_with_object"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -83,7 +89,8 @@ class TestPyperplan(TestCase):
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_hierarchical_blocks_world_with_object_with_timeout(self):
-        problem, plan = self.problems["hierarchical_blocks_world_with_object"]
+        example = self.problems["hierarchical_blocks_world_with_object"]
+        problem, plan = example.problem, example.valid_plans[0]
         with OneshotPlanner(name="pyperplan") as planner:
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:

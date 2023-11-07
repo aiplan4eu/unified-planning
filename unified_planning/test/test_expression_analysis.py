@@ -15,10 +15,10 @@ from typing import Callable
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 
 
-class TestExprAnalysis(TestCase):
+class TestExprAnalysis(unittest_TestCase):
     def test_any(self):
         a = FluentExp(Fluent("a"))
         b = FluentExp(Fluent("b"))

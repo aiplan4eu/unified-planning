@@ -16,9 +16,7 @@
 from itertools import product
 import unified_planning as up
 from unified_planning.shortcuts import *
-from collections import namedtuple
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 
 def get_example_problems():
@@ -53,7 +51,7 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot_example = Example(problem=problem, plan=plan)
+    robot_example = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot"] = robot_example
 
     # robot fluent of user_type
@@ -92,7 +90,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_fluent_of_user_type = Example(problem=problem, plan=plan)
+    robot_fluent_of_user_type = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["robot_fluent_of_user_type"] = robot_fluent_of_user_type
 
     # robot no negative preconditions
@@ -117,7 +117,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot_no_negative_preconditions = Example(problem=problem, plan=plan)
+    robot_no_negative_preconditions = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["robot_no_negative_preconditions"] = robot_no_negative_preconditions
 
     # robot decrease
@@ -149,7 +151,7 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot_decrease = Example(problem=problem, plan=plan)
+    robot_decrease = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_decrease"] = robot_decrease
 
     # robot_loader
@@ -204,7 +206,7 @@ def get_example_problems():
             up.plans.ActionInstance(unload, (ObjectExp(l1),)),
         ]
     )
-    robot_loader = Example(problem=problem, plan=plan)
+    robot_loader = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_loader"] = robot_loader
 
     # robot_loader_mod
@@ -260,7 +262,7 @@ def get_example_problems():
             up.plans.ActionInstance(unload, (ObjectExp(l1),)),
         ]
     )
-    robot_loader_mod = Example(problem=problem, plan=plan)
+    robot_loader_mod = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_loader_mod"] = robot_loader_mod
 
     # robot_loader_adv
@@ -342,7 +344,7 @@ def get_example_problems():
             ),
         ]
     )
-    robot_loader_adv = Example(problem=problem, plan=plan)
+    robot_loader_adv = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_loader_adv"] = robot_loader_adv
 
     # robot locations connected
@@ -428,7 +430,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_locations_connected = Example(problem=problem, plan=plan)
+    robot_locations_connected = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["robot_locations_connected"] = robot_locations_connected
 
     # robot locations visited
@@ -527,7 +531,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_locations_visited = Example(problem=problem, plan=plan)
+    robot_locations_visited = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["robot_locations_visited"] = robot_locations_visited
 
     # charger_discharger
@@ -571,7 +577,7 @@ def get_example_problems():
             up.plans.ActionInstance(discharge),
         ]
     )
-    charge_discharge = Example(problem=problem, plan=plan)
+    charge_discharge = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["charge_discharge"] = charge_discharge
 
     # matchcellar
@@ -654,7 +660,7 @@ def get_example_problems():
             ),
         ]
     )
-    matchcellar = Example(problem=problem, plan=t_plan)
+    matchcellar = TestCase(problem=problem, solvable=True, valid_plans=[t_plan])
     problems["matchcellar"] = matchcellar
 
     # timed connected locations
@@ -737,7 +743,9 @@ def get_example_problems():
             ),
         ]
     )
-    timed_connected_locations = Example(problem=problem, plan=t_plan)
+    timed_connected_locations = TestCase(
+        problem=problem, solvable=True, valid_plans=[t_plan]
+    )
     problems["timed_connected_locations"] = timed_connected_locations
 
     # hierarchical blocks world
@@ -804,7 +812,9 @@ def get_example_problems():
             ),
         ]
     )
-    hierarchical_blocks_world = Example(problem=problem, plan=plan)
+    hierarchical_blocks_world = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["hierarchical_blocks_world"] = hierarchical_blocks_world
 
     # robot with action duration expressed using static fluents
@@ -884,7 +894,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_static_fluents_duration = Example(problem=problem, plan=t_plan)
+    robot_static_fluents_duration = TestCase(
+        problem=problem, solvable=True, valid_plans=[t_plan]
+    )
     problems["robot_with_static_fluents_duration"] = robot_static_fluents_duration
 
     # Robot with timed_goals (extension of the previous problem with timed goals)
@@ -892,7 +904,7 @@ def get_example_problems():
     name = "robot_with_static_fluents_duration_timed_goals"
     problem.name = name
     problem.add_timed_goal(GlobalStartTiming() + 50, is_at(l5, r1))
-    problems[name] = Example(problem=problem, plan=t_plan)
+    problems[name] = TestCase(problem=problem, solvable=True, valid_plans=[t_plan])
 
     # travel
     problem = Problem("travel")
@@ -953,7 +965,7 @@ def get_example_problems():
             move(l4, l5),
         ]
     )
-    travel = Example(problem=problem, plan=plan)
+    travel = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["travel"] = travel
 
     # safe_road
@@ -994,7 +1006,7 @@ def get_example_problems():
             yield check(lx, ly)
 
     plan = up.plans.SequentialPlan(list(generate_safe_road_plan()))
-    safe_road = Example(problem=problem, plan=plan)
+    safe_road = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["safe_road"] = safe_road
 
     return problems

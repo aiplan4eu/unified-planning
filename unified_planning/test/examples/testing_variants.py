@@ -16,9 +16,7 @@
 from itertools import product
 import unified_planning
 from unified_planning.shortcuts import *
-from collections import namedtuple
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 
 def get_example_problems():
@@ -35,7 +33,9 @@ def get_example_problems():
     problem.set_initial_value(x(False), True)
     problem.add_goal(And(x(True), x(False)))
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_bool_fluent_param = Example(problem=problem, plan=plan)
+    basic_bool_fluent_param = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_bool_fluent_param"] = basic_bool_fluent_param
 
     # basic_int_fluent_param
@@ -50,7 +50,9 @@ def get_example_problems():
     problem.set_initial_value(x(4), True)
     problem.add_goal(And(x(3), x(4), Not(x(5))))
     plan = up.plans.SequentialPlan([up.plans.ActionInstance(a)])
-    basic_int_fluent_param = Example(problem=problem, plan=plan)
+    basic_int_fluent_param = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_int_fluent_param"] = basic_int_fluent_param
 
     # basic_bounded_int_action_param
@@ -66,7 +68,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(a, (Int(3),)), up.plans.ActionInstance(a, (Int(4),))]
     )
-    basic_bounded_int_action_param = Example(problem=problem, plan=plan)
+    basic_bounded_int_action_param = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_bounded_int_action_param"] = basic_bounded_int_action_param
 
     # basic_unbounded_int_action_param
@@ -83,7 +87,9 @@ def get_example_problems():
     plan = up.plans.SequentialPlan(
         [up.plans.ActionInstance(a, (Int(3),)), up.plans.ActionInstance(a, (Int(4),))]
     )
-    basic_unbounded_int_action_param = Example(problem=problem, plan=plan)
+    basic_unbounded_int_action_param = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["basic_unbounded_int_action_param"] = basic_unbounded_int_action_param
 
     # robot_real_constants
@@ -116,7 +122,7 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot_example = Example(problem=problem, plan=plan)
+    robot_example = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_real_constants"] = robot_example
 
     # robot_int_battery
@@ -149,7 +155,7 @@ def get_example_problems():
     plan = unified_planning.plans.SequentialPlan(
         [unified_planning.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)))]
     )
-    robot_example = Example(problem=problem, plan=plan)
+    robot_example = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["robot_int_battery"] = robot_example
 
     # robot fluent of user_type with int ID
@@ -184,7 +190,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_fluent_of_user_type_with_int_id = Example(problem=problem, plan=plan)
+    robot_fluent_of_user_type_with_int_id = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems[
         "robot_fluent_of_user_type_with_int_id"
     ] = robot_fluent_of_user_type_with_int_id
@@ -265,7 +273,9 @@ def get_example_problems():
             ),
         ]
     )
-    robot_locations_connected_without_battery = Example(problem=problem, plan=plan)
+    robot_locations_connected_without_battery = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems[
         "robot_locations_connected_without_battery"
     ] = robot_locations_connected_without_battery
@@ -354,7 +364,9 @@ def get_example_problems():
             up.plans.ActionInstance(unload, (ObjectExp(l1),)),
         ]
     )
-    robot_loader_weak_bridge = Example(problem=problem, plan=plan)
+    robot_loader_weak_bridge = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["robot_loader_weak_bridge"] = robot_loader_weak_bridge
 
     # hierarchical blocks world exists
@@ -422,7 +434,9 @@ def get_example_problems():
             ),
         ]
     )
-    hierarchical_blocks_world_exists = Example(problem=problem, plan=plan)
+    hierarchical_blocks_world_exists = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["hierarchical_blocks_world_exists"] = hierarchical_blocks_world_exists
 
     # hierarchical blocks world object as root
@@ -490,7 +504,9 @@ def get_example_problems():
             ),
         ]
     )
-    hierarchical_blocks_world_object_as_root = Example(problem=problem, plan=plan)
+    hierarchical_blocks_world_object_as_root = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems[
         "hierarchical_blocks_world_object_as_root"
     ] = hierarchical_blocks_world_object_as_root
@@ -559,7 +575,9 @@ def get_example_problems():
             ),
         ]
     )
-    hierarchical_blocks_world_with_object = Example(problem=problem, plan=plan)
+    hierarchical_blocks_world_with_object = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems[
         "hierarchical_blocks_world_with_object"
     ] = hierarchical_blocks_world_with_object
@@ -641,7 +659,9 @@ def get_example_problems():
             up.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
         ]
     )
-    travel_with_consumptions = Example(problem=problem, plan=plan)
+    travel_with_consumptions = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
     problems["travel_with_consumptions"] = travel_with_consumptions
 
     # matchcellar with static duration
@@ -734,7 +754,9 @@ def get_example_problems():
             ),
         ]
     )
-    matchcellar_static_duration = Example(problem=problem, plan=t_plan)
+    matchcellar_static_duration = TestCase(
+        problem=problem, solvable=True, valid_plans=[t_plan]
+    )
     problems["matchcellar_static_duration"] = matchcellar_static_duration
 
     # locations connected visited oversubscription
@@ -798,7 +820,9 @@ def get_example_problems():
             unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
         ]
     )
-    locations_connected_visited_oversubscription = Example(problem=problem, plan=plan)
+    locations_connected_visited_oversubscription = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan], optimum=15
+    )
     problems[
         "locations_connected_visited_oversubscription"
     ] = locations_connected_visited_oversubscription
@@ -868,7 +892,9 @@ def get_example_problems():
             unified_planning.plans.ActionInstance(move, (ObjectExp(l4), ObjectExp(l5))),
         ]
     )
-    locations_connected_cost_minimize = Example(problem=problem, plan=plan)
+    locations_connected_cost_minimize = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan], optimum=10
+    )
     problems["locations_connected_cost_minimize"] = locations_connected_cost_minimize
 
     return problems

@@ -20,6 +20,6 @@ def get_example_problems():
         examples.basic(),
         examples.resource_set(),
         examples.non_numeric(),
-        examples.Example(jobshop.parse(jobshop.FT06, "ft06"), None),
+        examples.TestCase(jobshop.parse(jobshop.FT06, "ft06"), solvable=True),
     ]
     return dict((instance.problem.name, instance) for instance in instances)

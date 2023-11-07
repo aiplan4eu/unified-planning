@@ -17,7 +17,7 @@ import unified_planning
 
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
     skipIfNoPlanValidatorForProblemKind,
     skipIfEngineNotAvailable,
@@ -31,16 +31,17 @@ from unified_planning.model.problem_kind import (
 )
 
 
-class TestTarskiGrounder(TestCase):
+class TestTarskiGrounder(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(full_classical_kind)
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     @skipIfEngineNotAvailable("tarski_grounder")
     def test_robot_loader(self):
-        problem, plan = self.problems["robot_loader"]
+        example = self.problems["robot_loader"]
+        problem, plan = example.problem, example.valid_plans[0]
         with Compiler(name="tarski_grounder") as grounder:
             ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = (
@@ -67,7 +68,8 @@ class TestTarskiGrounder(TestCase):
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     @skipIfEngineNotAvailable("tarski_grounder")
     def test_robot_locations_connected_without_battery(self):
-        problem, plan = self.problems["robot_locations_connected_without_battery"]
+        example = self.problems["robot_locations_connected_without_battery"]
+        problem, plan = example.problem, example.valid_plans[0]
         with Compiler(name="tarski_grounder") as grounder:
             ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
             grounded_problem, rewrite_back_plan_function = (
@@ -94,7 +96,8 @@ class TestTarskiGrounder(TestCase):
     @skipIfNoPlanValidatorForProblemKind(basic_classical_kind.union(hierarchical_kind))
     @skipIfEngineNotAvailable("tarski_grounder")
     def test_hierarchical_blocks_world(self):
-        problem, plan = self.problems["hierarchical_blocks_world"]
+        example = self.problems["hierarchical_blocks_world"]
+        problem, plan = example.problem, example.valid_plans[0]
         with Compiler(name="tarski_grounder") as grounder:
             self.assertTrue(grounder.is_compiler())
             self.assertTrue(grounder.supports(problem.kind))

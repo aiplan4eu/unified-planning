@@ -15,14 +15,14 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, examples
+from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPTypeError
 
 
-class TestProblem(TestCase):
+class TestProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_problem_kind(self):
@@ -448,12 +448,12 @@ class TestProblem(TestCase):
                 if j == i + 1:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(10)),
+                        Int(10),
                     )
                 else:
                     self.assertEqual(
                         problem.initial_value(distance(locations[i], locations[j])),
-                        Real(Fraction(-1)),
+                        Int(-1),
                     )
 
     def test_problem_defaults(self):
@@ -524,19 +524,17 @@ class TestProblem(TestCase):
             "robot_decrease",
             "robot_locations_connected",
             "robot_locations_visited",
-            "robot_fluent_of_user_type_with_int_id",
-            "basic_int_fluent_param",
-            "basic_bounded_int_action_param",
-            "basic_unbounded_int_action_param",
             "basic_numeric",
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
         ]
-        for problem, _ in self.problems.values():
+        for example in self.problems.values():
+            problem = example.problem
             if problem.name in names_of_SNP_problems:
                 self.assertTrue(
-                    problem.kind.has_simple_numeric_planning(), problem.name
+                    problem.kind.has_simple_numeric_planning(),
+                    str(problem.name) + str(problem.kind),
                 )
             else:
                 self.assertFalse(
@@ -579,11 +577,11 @@ class TestProblem(TestCase):
             self.assertTrue(grounded_problem.kind.has_simple_numeric_planning())
 
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), 2.0)
+            problem.set_initial_value(distance(l2, l1), 2.1)
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "2.0")
+            problem.set_initial_value(distance(l2, l1), "2.1")
         with self.assertRaises(UPTypeError):
-            problem.set_initial_value(distance(l2, l1), "4/2")
+            problem.set_initial_value(distance(l2, l1), "3/2")
         with self.assertRaises(UPTypeError):
             problem.set_initial_value(distance(l2, l1), Div(4, 2))
         problem.set_initial_value(distance(l2, l1), "20")

@@ -48,7 +48,7 @@ def main(args=None):
             show_supported_kind=parsed_args.show_kind,
         )
     else:
-        raise NotImplementedError
+        parser.print_help()
 
 
 def oneshot_planning(

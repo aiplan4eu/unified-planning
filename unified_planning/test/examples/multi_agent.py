@@ -13,9 +13,7 @@
 # limitations under the License.
 from unified_planning.shortcuts import *
 from unified_planning.model.multi_agent import *
-from collections import namedtuple
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 
 def get_example_problems():
@@ -54,7 +52,7 @@ def get_example_problems():
         [up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2)), r)]
     )
 
-    basic = Example(problem=problem, plan=plan)
+    basic = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["ma-basic"] = basic
 
     # Loader multi agent
@@ -139,7 +137,7 @@ def get_example_problems():
             unload(l3, agent=robot2),
         ]
     )
-    ma_loader = Example(problem=problem, plan=plan)
+    ma_loader = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["ma-loader"] = ma_loader
 
     # TYPEs
@@ -375,7 +373,7 @@ def get_example_problems():
             up.plans.ActionInstance(move, (ObjectExp(l2), ObjectExp(l3)), a1),
         ]
     )
-    ma_RM = Example(problem=problem, plan=plan)
+    ma_RM = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["ma_buttons"] = ma_RM
 
     return problems

@@ -21,14 +21,18 @@ from unified_planning.model.problem_kind import (
 )
 from unified_planning.io import PDDLReader
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
-from unified_planning.test import TestCase, main, skipIfNoAnytimePlannerForProblemKind
+from unified_planning.test import (
+    unittest_TestCase,
+    main,
+    skipIfNoAnytimePlannerForProblemKind,
+)
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 
 
-class TestAnytimePlanning(TestCase):
+class TestAnytimePlanning(unittest_TestCase):
     @skipIfNoAnytimePlannerForProblemKind(
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,

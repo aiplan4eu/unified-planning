@@ -17,7 +17,7 @@ import tempfile
 from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.model import DurativeAction
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.io import ANMLReader, ANMLWriter
 from unified_planning.test.examples import get_example_problems
 import os
@@ -27,9 +27,9 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")
 
 
-class TestANMLReader(TestCase):
+class TestANMLReader(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
         self.start_timing = StartTiming()
         self.start_interval = TimePointInterval(self.start_timing)

@@ -15,9 +15,7 @@
 import os
 import math
 from unified_planning.shortcuts import *
-from collections import namedtuple
-
-Example = namedtuple("Example", ["problem", "plan"])
+from unified_planning.test import TestCase
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -216,7 +214,7 @@ def get_example_problems():
 
     plan = up.plans.SequentialPlan([move(r1, c1, c2, motion_paths=motion_paths)])
 
-    tamp_feasible = Example(problem=problem, plan=plan)
+    tamp_feasible = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["tamp_feasible"] = tamp_feasible
 
     return problems

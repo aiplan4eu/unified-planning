@@ -19,16 +19,16 @@ from unified_planning.io import PDDLReader
 from unified_planning.model.htn import TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main, examples
+from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class TestProblem(TestCase):
+class TestProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_htn_problem_creation(self):

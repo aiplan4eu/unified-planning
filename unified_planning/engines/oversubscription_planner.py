@@ -18,6 +18,7 @@ import unified_planning as up
 import unified_planning.engines.mixins as mixins
 import unified_planning.engines.results
 from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.results import (
@@ -55,20 +56,19 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED", "NEGATIVE_CONDITIONS"}))  # type: ignore
+        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED", "NEGATIVE_CONDITIONS"}, version=LATEST_PROBLEM_KIND_VERSION))  # type: ignore
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> "ProblemKind":
-        supported_kind = ProblemKind()
+        supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
-        supported_kind.set_typing("HIERARCHICAL_TYPING")
-        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
-        supported_kind.set_numbers("DISCRETE_NUMBERS")
         supported_kind.set_numbers("BOUNDED_TYPES")
-        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
+        supported_kind.set_typing("HIERARCHICAL_TYPING")
+        supported_kind.set_fluents_type("INT_FLUENTS")
+        supported_kind.set_fluents_type("REAL_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
@@ -94,11 +94,20 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_time("SELF_OVERLAPPING")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
+        supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         final_supported_kind = supported_kind.intersection(engine.supported_kind())
-        final_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
-        final_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-        return final_supported_kind
+        additive_supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+        additive_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
+        additive_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
+        additive_supported_kind.set_oversubscription_kind(
+            "INT_NUMBERS_IN_OVERSUBSCRIPTION"
+        )
+        additive_supported_kind.set_oversubscription_kind(
+            "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
+        )
+        return final_supported_kind.union(additive_supported_kind)
 
     @staticmethod
     def _supports(problem_kind: "ProblemKind", engine: Type[Engine]) -> bool:
@@ -148,7 +157,9 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     goal = g if g in t[1] else em.Not(g)
                     new_problem.add_goal(goal)
             start = time.time()
+
             res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+
             if timeout is not None:
                 timeout -= min(timeout, time.time() - start)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:

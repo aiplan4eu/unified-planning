@@ -20,6 +20,7 @@ from typing import List, Optional, Union, cast
 import unified_planning
 import unified_planning.model
 import unified_planning.model.walkers as walkers
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import (
     _UserType as UT,
     _IntType as IT,
@@ -305,13 +306,10 @@ def convert_problem_to_tarski(
     """
     features: List[str] = []
     kind = problem.kind
+    assert kind.version == LATEST_PROBLEM_KIND_VERSION
     if kind.has_equalities():
         features.append("equality")
-    if (
-        kind.has_continuous_numbers()
-        or kind.has_discrete_numbers()
-        or kind.has_numeric_fluents()
-    ):
+    if kind.has_int_fluents() or kind.has_real_fluents():
         features.append("arithmetic")
     object_freshname = "object_"
     while problem.has_type(object_freshname):

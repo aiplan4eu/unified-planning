@@ -19,7 +19,7 @@ from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.engines.results import POSITIVE_OUTCOMES, NEGATIVE_OUTCOMES
 from unified_planning.exceptions import UPUsageError
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
     skipIfEngineNotAvailable,
@@ -27,9 +27,9 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 
 
-class TestReplanner(TestCase):
+class TestReplanner(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)

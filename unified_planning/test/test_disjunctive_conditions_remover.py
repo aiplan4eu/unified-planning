@@ -24,7 +24,7 @@ from unified_planning.model.problem_kind import (
     basic_temporal_kind,
 )
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
 )
@@ -36,9 +36,9 @@ from unified_planning.engines.compilers import (
 )
 
 
-class TestDisjunctiveConditionsRemover(TestCase):
+class TestDisjunctiveConditionsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(

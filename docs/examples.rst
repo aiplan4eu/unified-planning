@@ -170,21 +170,21 @@ Oversubscription Planning and MetaEngine Usage
 In this notebook we define an oversubscription planning problem and we solve it using a ``MetaEngine``.
 
 
-Hierrachical Planning
+Hierarchical Planning
 ---------------------
 
 
 .. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
-   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierrachical-planning.ipynb
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierarchical-planning.ipynb
    :alt: Open In GitHub
 
 
 .. image:: https://colab.research.google.com/assets/colab-badge.svg
-   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierrachical-planning.ipynb
+   :target: https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/07-hierarchical-planning.ipynb
    :alt: Open In Colab
 
 
-In this notebook, we show how to use unified planning library to define hierrachical planning problem.
+In this notebook, we show how to use unified planning library to define hierarchical planning problem.
 
 
 Sequential Simulator

@@ -17,15 +17,15 @@ import unified_planning
 from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
 
 
-class TestTrajectoryConstraint(TestCase):
+class TestTrajectoryConstraint(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def define_problem(self):
         Location = UserType("Location")
