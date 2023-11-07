@@ -15,15 +15,15 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import SequentialPlanValidator, ValidationResultStatus
 from unified_planning.environment import get_environment
 
 
-class TestProblem(TestCase):
+class TestProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_all(self):
@@ -31,7 +31,7 @@ class TestProblem(TestCase):
         for p in self.problems.values():
             if not pv.supports(p.problem.kind):
                 continue
-            problem, plan = p.problem, p.plan
+            problem, plan = p.problem, p.valid_plans[0]
             if SequentialPlanValidator.supports(problem.kind):
                 validation_result = pv.validate(problem, plan)
                 self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
@@ -42,13 +42,14 @@ class TestProblem(TestCase):
             for p in self.problems.values():
                 if not pv.supports(p.problem.kind):
                     continue
-                problem, plan = p.problem, p.plan
+                problem, plan = p.problem, p.valid_plans[0]
                 validation_result = pv.validate(problem, plan)
                 self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
 
     def test_all_from_factory_with_problem_kind(self):
         for p in self.problems.values():
-            problem, plan = p.problem, p.plan
+            problem, plans = p.problem, p.valid_plans
+            plan = plans[0] if plans else None
             pk = problem.kind
             if SequentialPlanValidator.supports(pk):
                 environment = unified_planning.environment.Environment()
@@ -66,7 +67,8 @@ class TestProblem(TestCase):
 
     def test_quality_metric(self):
         pv = SequentialPlanValidator()
-        problem, plan = self.problems["basic"]
+        example = self.problems["basic"]
+        problem, plan = example.problem, example.valid_plans[0]
         problem = problem.clone()
         problem.add_quality_metric(MinimizeSequentialPlanLength())
         res = pv.validate(problem, plan)
@@ -77,7 +79,8 @@ class TestProblem(TestCase):
             self.assertIsInstance(qm, MinimizeSequentialPlanLength)
             self.assertEqual(val, 1)
 
-        problem, plan = self.problems["locations_connected_visited_oversubscription"]
+        example = self.problems["locations_connected_visited_oversubscription"]
+        problem, plan = example.problem, example.valid_plans[0]
         res = pv.validate(problem, plan)
         me = res.metric_evaluations
         assert me is not None
@@ -86,7 +89,8 @@ class TestProblem(TestCase):
             self.assertIsInstance(qm, Oversubscription)
             self.assertEqual(val, 15)
 
-        problem, plan = self.problems["locations_connected_cost_minimize"]
+        example = self.problems["locations_connected_cost_minimize"]
+        problem, plan = example.problem, example.valid_plans[0]
         res = pv.validate(problem, plan)
         me = res.metric_evaluations
         assert me is not None

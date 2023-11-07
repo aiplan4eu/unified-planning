@@ -25,7 +25,7 @@ from unified_planning.model.problem_kind import (
     hierarchical_kind,
 )
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
     skipIfEngineNotAvailable,
@@ -35,9 +35,9 @@ from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
 
 
-class TestGrounder(TestCase):
+class TestGrounder(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_basic(self):

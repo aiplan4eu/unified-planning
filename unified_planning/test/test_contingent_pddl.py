@@ -15,7 +15,7 @@
 import os
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.io import PDDLReader
 from unified_planning.test.examples import get_example_problems
 
@@ -24,9 +24,9 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 CONTINGENT_PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "contingent_pddl")
 
 
-class TestPddlIO(TestCase):
+class TestPddlIO(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_logistic_conf_reader(self):

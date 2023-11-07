@@ -19,17 +19,17 @@ from unified_planning.engines.results import LogLevel
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfEngineNotAvailable,
     skipIfModuleNotInstalled,
 )
 from unified_planning.test.examples import get_example_problems
 
 
-class TestProtobufIO(TestCase):
+class TestProtobufIO(unittest_TestCase):
     @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
         from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
         from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
@@ -156,7 +156,7 @@ class TestProtobufIO(TestCase):
 
     def test_action_instance(self):
         problem = self.problems["robot"].problem
-        plan = self.problems["robot"].plan
+        plan = self.problems["robot"].valid_plans[0]
         action_instance = plan.actions[0]
 
         action_instance_pb = self.pb_writer.convert(action_instance)
@@ -169,7 +169,7 @@ class TestProtobufIO(TestCase):
 
     def test_plan(self):
         problem = self.problems["robot"].problem
-        plan = self.problems["robot"].plan
+        plan = self.problems["robot"].valid_plans[0]
 
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
@@ -178,7 +178,7 @@ class TestProtobufIO(TestCase):
 
     def test_time_triggered_plan(self):
         problem = self.problems["temporal_conditional"].problem
-        plan = self.problems["temporal_conditional"].plan
+        plan = self.problems["temporal_conditional"].valid_plans[0]
 
         plan_pb = self.pb_writer.convert(plan)
         plan_up = self.pb_reader.convert(plan_pb, problem)
@@ -227,7 +227,7 @@ class TestProtobufIO(TestCase):
             self.assertEqual(final_report, final_report_up)
 
     def test_compiler_result(self):
-        problem, _ = self.problems["hierarchical_blocks_world"]
+        problem = self.problems["hierarchical_blocks_world"].problem
         with Compiler(name="up_grounder") as grounder:
             ground_result = grounder.compile(problem, CompilationKind.GROUNDING)
 
@@ -388,10 +388,10 @@ class TestProtobufIO(TestCase):
                     check(t_pb.list[2], const_kind, tpe=real_type, real=frac_delay)
 
 
-class TestProtobufProblems(TestCase):
+class TestProtobufProblems(unittest_TestCase):
     @skipIfModuleNotInstalled("google.protobuf")
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
         from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
         from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
@@ -406,7 +406,7 @@ class TestProtobufProblems(TestCase):
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
-            self.assertEqual(problem, problem_up)
+            self.assertEqual(problem, problem_up, name)
             self.assertEqual(
                 hash(problem),
                 hash(problem_up),
@@ -430,7 +430,8 @@ class TestProtobufProblems(TestCase):
     def test_all_plans(self):
         for name, example in self.problems.items():
             problem = example.problem
-            plan = example.plan
+            plans = example.valid_plans
+            plan = plans[0] if plans else None
             if plan is None:
                 continue
             plan_pb = self.pb_writer.convert(plan)

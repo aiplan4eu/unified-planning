@@ -69,12 +69,18 @@ Problem Kinds
    * -
      - FLUENTS_IN_DURATION
      - The duration of at least one action is specified using non-static fluents (that might change over the course of a plan).
+   * -
+     - INT_TYPE_DURATIONS
+     - The duration of at least one action is of int type; added in ProblemKind's version 2.
+   * -
+     - REAL_TYPE_DURATIONS
+     - The duration of at least one action is of real type; added in ProblemKind's version 2.
    * - NUMBERS
      - CONTINUOUS_NUMBERS
-     - The problem uses numbers ranging over continuous domains (e.g. reals).
+     - The problem uses numbers ranging over continuous domains (e.g. reals); deprecated in ProblemKind's version 2.
    * -
      - DISCRETE_NUMBERS
-     - The problem uses numbers ranging over discrete domains (e.g. integers).
+     - The problem uses numbers ranging over discrete domains (e.g. integers); deprecated in ProblemKind's version 2.
    * -
      - BOUNDED_TYPES
      - The problem uses bounded-domain numbers.
@@ -149,7 +155,13 @@ Problem Kinds
      - At least one action has a parameter of real type.
    * - FLUENTS_TYPE
      - NUMERIC_FLUENTS
-     - The problem has at least one fluent of numeric type.
+     - The problem has at least one fluent of numeric type; deprecated in ProblemKind's version 2.
+   * -
+     - INT_FLUENTS
+     - The problem has at least one fluent of integer type; added in ProblemKind's version 2.
+   * -
+     - REAL_FLUENTS
+     - The problem has at least one fluent of real type; added in ProblemKind's version 2.
    * -
      - OBJECT_FLUENTS
      - The problem has at least one finite-domain fluent (fluent of user-defined type).
@@ -171,6 +183,24 @@ Problem Kinds
    * -
      - TEMPORAL_OVERSUBSCRIPTION
      - The problem has a quality metric associating a positive value to some optional timed goal and the objective is to find the plan of maximal value.
+   * - ACTIONS_COST_KIND
+     - STATIC_FLUENTS_IN_ACTIONS_COST
+     - There is at least a static fluent in the Action's cost (that may never change).
+   * -
+     - FLUENTS_IN_ACTIONS_COST
+     - There is at least a non-static fluent in the Action's cost (that might change over the course of a plan).
+   * -
+     - INT_NUMBERS_IN_ACTIONS_COST
+     - There is at least one Action's cost in the ACTIONS_COST that is of int type; added in ProblemKind's version 2.
+   * -
+     - REAL_NUMBERS_IN_ACTIONS_COST
+     - There is at least one Action's cost in the ACTIONS_COST that is of real type; added in ProblemKind's version 2.
+   * - OVERSUBSCRIPTION_KIND
+     - INT_NUMBERS_IN_OVERSUBSCRIPTION
+     - There is at least one gain in the Oversubscription (or Temporal Oversubscription) metric that is of int type; added in ProblemKind's version 2.
+   * -
+     - REAL_NUMBERS_IN_OVERSUBSCRIPTION
+     - There is at least one gain in the Oversubscription (or Temporal Oversubscription) metric that is of real type; added in ProblemKind's version 2.
    * - SIMULATED_ENTITIES
      - SIMULATED_EFFECTS
      - The problem uses at least one simulated effect.

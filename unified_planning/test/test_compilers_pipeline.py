@@ -17,7 +17,7 @@ from unified_planning.model.problem_kind import (
     classical_kind,
     full_classical_kind,
 )
-from unified_planning.test import TestCase, main
+from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
@@ -26,9 +26,9 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 
 
-class TestCompilersPipeline(TestCase):
+class TestCompilersPipeline(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)

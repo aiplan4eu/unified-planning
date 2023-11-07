@@ -14,12 +14,12 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
 
 
-class TestSimulatedEffects(TestCase):
+class TestSimulatedEffects(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     @skipIfEngineNotAvailable("tamer")
     def test_basic(self):

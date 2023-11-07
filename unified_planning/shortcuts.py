@@ -24,6 +24,7 @@ import unified_planning.model.multi_agent
 from unified_planning.environment import get_environment
 from unified_planning.model import *
 from unified_planning.model.tamp import *
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines import (
     Engine,
     CompilationKind,
@@ -533,7 +534,7 @@ def OneshotPlanner(
     name: Optional[str] = None,
     names: Optional[Sequence[str]] = None,
     params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     optimality_guarantee: Optional[Union["up.engines.OptimalityGuarantee", str]] = None,
 ) -> Engine:
     """
@@ -579,7 +580,7 @@ def AnytimePlanner(
     *,
     name: Optional[str] = None,
     params: Optional[Dict[str, str]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     anytime_guarantee: Optional[Union["up.engines.AnytimeGuarantee", str]] = None,
 ) -> Engine:
     """
@@ -613,7 +614,7 @@ def PlanValidator(
     name: Optional[str] = None,
     names: Optional[Sequence[str]] = None,
     params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     plan_kind: Optional[Union["up.plans.PlanKind", str]] = None,
 ) -> Engine:
     """
@@ -640,7 +641,7 @@ def Compiler(
     name: Optional[str] = None,
     names: Optional[Sequence[str]] = None,
     params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     compilation_kind: Optional[Union["up.engines.CompilationKind", str]] = None,
     compilation_kinds: Optional[
         Sequence[Union["up.engines.CompilationKind", str]]
@@ -719,7 +720,7 @@ def PlanRepairer(
     *,
     name: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     plan_kind: Optional[Union["PlanKind", str]] = None,
     optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
@@ -744,7 +745,7 @@ def PortfolioSelector(
     *,
     name: Optional[str] = None,
     params: Optional[Dict[str, Any]] = None,
-    problem_kind: ProblemKind = ProblemKind(),
+    problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
     optimality_guarantee: Optional[Union["OptimalityGuarantee", str]] = None,
 ) -> "up.engines.engine.Engine":
     """

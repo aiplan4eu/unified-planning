@@ -17,12 +17,12 @@ import sys
 from io import StringIO
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
 
 
-class TestCredits(TestCase):
+class TestCredits(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     @skipIfEngineNotAvailable("tamer")
     def test_robot_locations_visited(self):

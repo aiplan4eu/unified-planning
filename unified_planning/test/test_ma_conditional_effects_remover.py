@@ -16,7 +16,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.model.multi_agent import *
 import unified_planning
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples.multi_agent import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.ma_conditional_effects_remover import (
@@ -24,9 +24,9 @@ from unified_planning.engines.compilers.ma_conditional_effects_remover import (
 )
 
 
-class TestMAConditionalEffectsRemover(TestCase):
+class TestMAConditionalEffectsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_ma_buttons(self):

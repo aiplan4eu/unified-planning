@@ -400,8 +400,8 @@ class PDDLWriter:
             if self.problem_kind.has_equalities():
                 out.write(" :equality")
             if (
-                self.problem_kind.has_continuous_numbers()
-                or self.problem_kind.has_discrete_numbers()
+                self.problem_kind.has_int_fluents()
+                or self.problem_kind.has_real_fluents()
                 or self.problem_kind.has_fluents_in_actions_cost()
             ):
                 out.write(" :numeric-fluents")
@@ -685,7 +685,7 @@ class PDDLWriter:
                 pass
             else:
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
-        if self.problem.kind.has_actions_cost():
+        if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             out.write(f" (= (total-cost) 0)")
         out.write(")\n")
         goals_str: List[str] = []

@@ -18,12 +18,12 @@ from unified_planning.engines.compilers.trajectory_constraints_remover import (
 )
 from unified_planning.shortcuts import *
 from unified_planning.model.walkers import Simplifier
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 
 
-class TestTrajectoryConstraintsRemoverCase(TestCase):
+class TestTrajectoryConstraintsRemoverCase(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         problem, fluents, actions = self.get_problem()
         self.simplifier = Simplifier(problem.environment)
         self.problem = problem

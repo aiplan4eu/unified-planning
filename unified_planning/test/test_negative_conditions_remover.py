@@ -20,7 +20,7 @@ import unified_planning
 from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     main,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
@@ -40,9 +40,9 @@ from unified_planning.exceptions import (
 )
 
 
-class TestNegativeConditionsRemover(TestCase):
+class TestNegativeConditionsRemover(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.environment = get_environment()
         self.problems = get_example_problems()
 

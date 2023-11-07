@@ -17,7 +17,7 @@ import unified_planning as up
 
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    TestCase,
+    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
     skipIfEngineNotAvailable,
 )
@@ -30,9 +30,9 @@ from unified_planning.plans import SequentialPlan, ActionInstance
 from unified_planning.engines import SequentialPlanValidator
 
 
-class TestTarskiConverter(TestCase):
+class TestTarskiConverter(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("tarski_grounder")
@@ -60,7 +60,8 @@ class TestTarskiConverter(TestCase):
             "robot_locations_visited",
         ]
         for n in problems_to_test:
-            problem, plan = self.problems[n]
+            example = self.problems[n]
+            problem, plan = example.problem, example.valid_plans[0]
             tarski_problem = up.interop.convert_problem_to_tarski(problem)
             new_problem = up.interop.convert_problem_from_tarski(
                 problem.environment, tarski_problem
@@ -72,7 +73,8 @@ class TestTarskiConverter(TestCase):
     @skipIfEngineNotAvailable("tarski_grounder")
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_object_as_root(self):
-        problem, plan = self.problems["hierarchical_blocks_world_object_as_root"]
+        example = self.problems["hierarchical_blocks_world_object_as_root"]
+        problem, plan = example.problem, example.valid_plans[0]
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(
             problem.environment, tarski_problem
@@ -85,7 +87,8 @@ class TestTarskiConverter(TestCase):
     @skipIfEngineNotAvailable("tarski_grounder")
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_with_object(self):
-        problem, plan = self.problems["hierarchical_blocks_world_with_object"]
+        example = self.problems["hierarchical_blocks_world_with_object"]
+        problem, plan = example.problem, example.valid_plans[0]
         tarski_problem = up.interop.convert_problem_to_tarski(problem)
         new_problem = up.interop.convert_problem_from_tarski(
             problem.environment, tarski_problem

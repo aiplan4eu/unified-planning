@@ -14,13 +14,13 @@
 #
 
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples.tamp import get_example_problems
 
 
-class TestTAMPProblem(TestCase):
+class TestTAMPProblem(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
     def test_tamp_problem_creation(self):

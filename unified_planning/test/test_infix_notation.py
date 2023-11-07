@@ -15,13 +15,13 @@
 
 import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 from typing import List, Tuple
 
 
-class TestInfixNotation(TestCase):
+class TestInfixNotation(unittest_TestCase):
     def setUp(self):
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
 
     def test_infix_with_exp(self):
         i_1 = FluentExp(Fluent("i_1", IntType()))
