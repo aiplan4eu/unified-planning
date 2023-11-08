@@ -32,7 +32,7 @@ Welcome to Unified-Planning documentation!
    optimality
    examples
    notebooks/engines/README
-   contributions
-   issue_tracking
+   contributor_guide
    release_notes
+   contributions
    api/index
