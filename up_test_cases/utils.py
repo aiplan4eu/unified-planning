@@ -222,10 +222,10 @@ def get_report_parser() -> argparse.ArgumentParser:
         "--modes",
         type=str,
         nargs="+",
-        choices=["oneshot", "anytime", "validation", "grounding"],
+        choices=["oneshot", "anytime", "validation", "grounding", "repair"],
         help="Performs only the specified modes; if not specified tests all the modes.",
         dest="modes",
-        default=["oneshot", "anytime", "validation", "grounding"],
+        default=["oneshot", "anytime", "validation", "grounding", "repair"],
     )
 
     parser.add_argument(
