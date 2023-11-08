@@ -261,9 +261,9 @@ def report_oneshot(
                         errors.append((planner_id, name))
                     total_execution_time = end - start
                     internal_time_str = None
-                    if result.extra_engine_info is not None:
-                        internal_time_str = result.extra_engine_info.get(
-                            "internal_time", None
+                    if result.metrics is not None:
+                        internal_time_str = result.metrics.get(
+                            "engine_internal_time", None
                         )
                     if internal_time_str is not None:
                         internal_time = float(internal_time_str)
@@ -395,9 +395,9 @@ def report_anytime(
                         )
                     total_execution_time = end - start
                     internal_time_str = None
-                    if result.extra_engine_info is not None:
-                        internal_time_str = result.extra_engine_info.get(
-                            "internal_time", None
+                    if result.metrics is not None:
+                        internal_time_str = result.metrics.get(
+                            "engine_internal_time", None
                         )
                     if internal_time_str is not None:
                         internal_time = float(internal_time_str)

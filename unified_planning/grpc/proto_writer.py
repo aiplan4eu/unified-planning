@@ -980,6 +980,7 @@ class ProtobufWriter(Converter):
         return proto.CompilerResult(
             problem=self.convert(result.problem),
             map_back_plan=map,
+            metrics=result.metrics,
             log_messages=[self.convert(log) for log in log_messages],
             engine=proto.Engine(name=result.engine_name),
         )
@@ -990,6 +991,7 @@ class ProtobufWriter(Converter):
     ) -> proto.ValidationResult:
         return proto.ValidationResult(
             status=self.convert(result.status),
+            metrics=result.metrics,
             log_messages=[self.convert(log) for log in result.log_messages],
             engine=proto.Engine(name=result.engine_name),
         )

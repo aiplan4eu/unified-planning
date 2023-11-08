@@ -208,7 +208,6 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             solve_result.engine_name,
             solve_result.metrics,
             solve_result.log_messages,
-            solve_result.extra_engine_info,
         )
         return res
 

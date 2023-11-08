@@ -239,15 +239,15 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 plan = self._plan_from_file(
                     problem, plan_filename, self._writer.get_item_named
                 )
-            extra_engine_info = {}
-            extra_engine_info["internal_time"] = str(process_end - process_start)
+            metrics = {}
+            metrics["engine_internal_time"] = str(process_end - process_start)
             if timeout_occurred and retval != 0:
                 return PlanGenerationResult(
                     PlanGenerationResultStatus.TIMEOUT,
                     plan=plan,
                     engine_name=self.name,
                     log_messages=logs,
-                    extra_engine_info=extra_engine_info,
+                    metrics=metrics,
                 )
         status: PlanGenerationResultStatus = self._result_status(
             problem, plan, retval, logs
@@ -257,7 +257,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             plan,
             engine_name=self.name,
             log_messages=logs,
-            extra_engine_info=extra_engine_info,
+            metrics=metrics,
         )
         problem_kind = problem.kind
         if problem_kind.has_continuous_time() or problem_kind.has_discrete_time():
