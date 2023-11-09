@@ -7,7 +7,6 @@ import unified_planning.plans as plans
 
 class Parallelizer:
     def __init__(self):
-
         self.problem = None
 
     # generates the adjacency lists needed by 'GeneratePOP' to generate the final POP plan
@@ -47,7 +46,6 @@ class Parallelizer:
 
     # writes in a file .plan the resulting parallelized plan
     def UpdateParallelizedPlan(self, lista, f):
-
         L = len(lista)
 
         if self.actionMovement in str(lista[0]) and L > 1:
@@ -125,7 +123,6 @@ class Parallelizer:
     def initialCheck_applicability(
         self, actCercasi, actStart, actEnd, current_stateOriginal, current_stateBB
     ):
-
         if current_stateBB == []:
             curr_state = current_stateOriginal
         else:
@@ -145,7 +142,6 @@ class Parallelizer:
     def findFirstParallelizableAction(
         self, i, j, durativeAct, start_action, end_action, current_state2, applicability
     ):
-
         while j < self.len_plan and not (applicability):
             cercasi_action = self.seq_plan.actions[j]
 
@@ -211,7 +207,6 @@ class Parallelizer:
         list_acts_TOinsert,
         firstParalActs_list,
     ):
-
         current_stateBIS = current_state
         for act in firstParalActs_list:
             current_stateBIS = self.sim.apply(current_stateBIS, act)
@@ -324,7 +319,6 @@ class Parallelizer:
         fluentWhere,
         actionMovement,
     ):
-
         # parameters:
         # - problem = the compiled problem
         # - seq_plan = sequential plan solution found through a classical solver
@@ -363,7 +357,6 @@ class Parallelizer:
 
         i = 0
         while i < self.len_plan:
-
             GAMMA = (
                 []
             )  # actions that will be inserte in the parallelized plan at the end of the curret iteration
