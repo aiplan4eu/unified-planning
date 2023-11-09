@@ -6,8 +6,11 @@ import unified_planning.plans as plans
 
 
 class Parallelizer:
-    def __init__(self):
-        self.problem = None
+    def __init__(
+        self,
+        _problem: "up.model.abstract_problem.AbstractProblem",
+    ) -> None:
+        self.problem: "up.model.abstract_problem.AbstractProblem" = _problem
 
     # generates the adjacency lists needed by 'GeneratePOP' to generate the final POP plan
     def Update_POPdict(self, POP_dict, GAMMA, lastAct_ins):
@@ -311,14 +314,13 @@ class Parallelizer:
 
     def parallelize(
         self,
-        problem,
         seq_plan,
         LenSeq_daParallelizzare,
         pathFile,
         durativeAct,
         fluentWhere,
         actionMovement,
-    ):
+    ):  # problem, ORA PASSATO ALLA INIT
         # parameters:
         # - problem = the compiled problem
         # - seq_plan = sequential plan solution found through a classical solver
@@ -332,7 +334,7 @@ class Parallelizer:
         # - POP_adjList : adjacency list of the parallelized plan. Used for generating POP_plan
         # - POP_plan : final resuling Partial Order Plan
 
-        self.problem = problem
+        # self.problem = problem
         self.seq_plan = seq_plan
         self.len_plan = len(
             self.seq_plan.actions
