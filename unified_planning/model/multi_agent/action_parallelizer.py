@@ -344,7 +344,9 @@ class Parallelizer:
             self.sim.get_initial_state()
         )  # Initial value of the fluents of the problem
         self.actionMovement = actionMovement
-        self.list_actions_inserted: List[int] = (
+        self.list_actions_inserted: List[
+            int
+        ] = (
             []
         )  # actions of the sequential plan, already inserted in the parallelized plan
         self.N_ACTIONStoPARALLELIZE = LenSeq_daParallelizzare
