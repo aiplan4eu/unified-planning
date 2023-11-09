@@ -16,3 +16,4 @@ In this guide we present the main functionalities offered by the Unified-Plannin
 
    getting_started/installation
    getting_started/quickstart
+   notebooks/tutorial/modeling.ipynb
