@@ -667,6 +667,7 @@ def main():
     validation_errors = []
     anytime_errors = []
     grounding_errors = []
+    repair_errors = []
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
