@@ -4,6 +4,8 @@
 
 This use case centers on the deployment of a decision-making system for the purpose of conducting drone surveys and inspections. It encompasses two distinct scenarios in which one or more drones, each equipped with cameras, are employed to survey an area, identify objects of interest, and closely inspect said objects, all within an energy-constrained context. Comprehensive information pertaining to this use case is available on the [AIOnDemand](https://www.ai4europe.eu/business-and-industry/case-studies/drones-surveillance-and-inspection) platform.
 
+![Drone from LAAS](img/drone_laas.png)
+
 
 ## Planning Problem Description
 
