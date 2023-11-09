@@ -1,0 +1,6 @@
+0.0002: (lift hoist2 crate2 crate1 distributor1) [1.0]
+33.0008: (lift hoist2 crate1 pallet2 distributor1) [1.0]
+33.001: (drive truck0 distributor1 depot0) [3.3333]
+49.7798: (drive truck0 depot0 distributor1) [3.3333]
+54.4469: (unload hoist2 crate0 truck0 distributor1) [10.6667]
+54.4472: (drop hoist2 crate0 pallet2 distributor1) [1.0]

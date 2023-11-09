@@ -66,6 +66,7 @@ def _get_pddl_test_cases(
     block: Iterable[str] = tuple(),
 ) -> Dict[str, TestCase]:
     pddl_files = glob(os.path.join(pddl_files_path, "*.pddl"))
+    plan_files = glob(os.path.join(pddl_files_path, "*.plan"))
     domain_filenames: List[str] = []
     problem_filenames: List[str] = []
     for filename in pddl_files:
@@ -86,8 +87,23 @@ def _get_pddl_test_cases(
     reader = PDDLReader()
     for problem_filename in problem_filenames:
         problem = reader.parse_problem(domain_filename, problem_filename)
-        problem.name = os.path.basename(problem_filename)
-        res[problem.name] = TestCase(problem=problem, solvable=True)
+        problem.name = os.path.basename(problem_filename).split(".")[0]
+        valid_plans = []
+        invalid_plans = []
+        for plan_file in plan_files:
+            if problem.name + "_" not in plan_file:
+                continue
+            plan = reader.parse_plan(problem, plan_file)
+            if "invalid" in plan_file:
+                invalid_plans.append(plan)
+            else:
+                valid_plans.append(plan)
+        res[problem.name] = TestCase(
+            problem=problem,
+            solvable=True,
+            valid_plans=valid_plans,
+            invalid_plans=invalid_plans,
+        )
 
     return res
 
