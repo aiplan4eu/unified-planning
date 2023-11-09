@@ -79,7 +79,7 @@ def report_runtime(
         overhead = (
             Ok(overhead_str)
             if overhead_percentage < max_overhead
-            else Err(overhead_str)
+            else Warn(overhead_str)
         )
         runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
     elif total_time < 1:

@@ -8,4 +8,4 @@ PDDL_FILES_DIR = os.path.join(FILE_DIR, "pddl_files")
 
 # problems_filenames = ["1", "2", "3", "6",] # TODO choose which to keep
 
-get_test_cases = partial(_get_pddl_test_cases, PDDL_FILES_DIR, filter=("1", "2", "3"))
+get_test_cases = partial(_get_pddl_test_cases, PDDL_FILES_DIR, filter=("1"))
