@@ -8,9 +8,9 @@ import unified_planning.plans as plans
 class Parallelizer:
     def __init__(
         self,
-        _problem: "up.model.abstract_problem.AbstractProblem",
+        _problem: "up.model.problem.Problem",
     ) -> None:
-        self.problem: "up.model.abstract_problem.AbstractProblem" = _problem
+        self.problem: "up.model.problem.Problem" = _problem
 
     # generates the adjacency lists needed by 'GeneratePOP' to generate the final POP plan
     def Update_POPdict(self, POP_dict, GAMMA, lastAct_ins):
