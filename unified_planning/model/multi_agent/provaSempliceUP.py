@@ -7,8 +7,8 @@ def greeting(num: int) -> List["up.model.Object"]:
     
     Location = UserType('Location')
 
-    NLOC = 10
-    locations = [up.model.Object('l%s' % i, Location) for i in range(NLOC)]
+    NLOC: int = 10
+    locations: List["up.model.Object"] = [up.model.Object('l%s' % i, Location) for i in range(NLOC)]
     return locations
     
 
