@@ -339,12 +339,12 @@ class Parallelizer:
         self.len_plan = len(
             self.seq_plan.actions
         )  # number of actions in the sequential plan
-        self.sim = SequentialSimulator(problem)
+        self.sim = SequentialSimulator(self.problem)
         self.current_state = (
             self.sim.get_initial_state()
         )  # Initial value of the fluents of the problem
         self.actionMovement = actionMovement
-        self.list_actions_inserted = (
+        self.list_actions_inserted: List[int] = (
             []
         )  # actions of the sequential plan, already inserted in the parallelized plan
         self.N_ACTIONStoPARALLELIZE = LenSeq_daParallelizzare
@@ -355,13 +355,13 @@ class Parallelizer:
 
         # needed in order to create the POP structure
         lastAct_ins = None
-        POP_adjList = {}
+        POP_adjList: Dict[up.model.action.Action, up.model.action.Action] = {}
 
         i = 0
         while i < self.len_plan:
             GAMMA = (
                 []
-            )  # actions that will be inserte in the parallelized plan at the end of the curret iteration
+            )  # actions that will be inserted in the parallelized plan at the end of the curret iteration
             curr_action = seq_plan.actions[i]  # the i-th action of the sequential plan
 
             # case 1: action already inserted in the output parallelizedd plan
@@ -428,7 +428,7 @@ class Parallelizer:
                     # j is the index of the first parallelizable action, if one exists
 
                     if applicability:
-                        list_acts_TOinsert = []
+                        list_acts_TOinsert: List[int] = []
                         GAMMAbis = GAMMA.copy()
 
                         (
