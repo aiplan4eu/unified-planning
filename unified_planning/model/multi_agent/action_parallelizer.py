@@ -3,6 +3,7 @@ from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator as SequentialSimulator,
 )
 import unified_planning.plans as plans
+from typing import List, Dict
 
 
 class Parallelizer:
