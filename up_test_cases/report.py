@@ -441,8 +441,12 @@ def report_anytime(
                     assert isinstance(
                         planner, AnytimePlannerMixin
                     ), "Error in Anytime selection"
+                    results = []
                     start = time.time()
                     for result in planner.get_solutions(pb, timeout=timeout):
+                        results.append(result)
+                    total_execution_time = time.time() - start
+                    for result in results:
                         status = str(result.status.name).ljust(25)
                         validity, metrics_evaluation = check_result(
                             test_case, result, planner
@@ -452,7 +456,6 @@ def report_anytime(
                             metrics_evaluations.append(metrics_evaluation)
                     if not outcome.ok():
                         errors.append((planner_id, name))
-                    total_execution_time = time.time() - start
                     if test_case.solvable and planner.ensures(
                         AnytimeGuarantee.INCREASING_QUALITY
                     ):
