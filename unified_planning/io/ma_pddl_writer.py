@@ -109,10 +109,12 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 class MAPDDLWriter:
     """
     This class can be used to write a :class:`~unified_planning.model.MultiAgentProblem` in `MA-PDDL`.
-    The constructor of this class takes the problem to write and 2 flags:
-    needs_requirements determines if the printed problem must have the :requirements,
-    rewrite_bool_assignments determines if this writer will write
-    non constant boolean assignment as conditional effects.
+    The constructor of this class takes the problem to write and 4 flags:
+
+    * ``explicit_false_initial_states`` determines if this writer includes initially false predicates in the problem ``:init``,
+    * ``unfactored`` when ``False`` this writer prints a domain and a problem for every agent, if ``True`` generates a single domain and a single problem,
+    * ``needs_requirements`` determines if the printed problem must have the :requirements,
+    * ``rewrite_bool_assignments`` determines if this writer will write non constant boolean assignment as conditional effects.
     """
 
     def __init__(
