@@ -2,7 +2,7 @@
 
 ## Context
 
-The ‘Planning for Space’ use-case targets the automation of the tactical planning process in the context of multi-asset human-robotic missions as prepared by the National Space Agencies, the European Commission and the European Space Agency. Typical examples are the ExoMars mission for Mars exploration and the Argonautes mission for moon exploration and exploitation.
+The ‘Planning for Space’ use-case targets the automation of the tactical planning process in the context of multi-asset human-robotic missions as prepared by the National Space Agencies, the European Commission and the European Space Agency. Typical examples are the [ExoMars](https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Exploration/ExoMars/ExoMars_rover) mission for Mars exploration and the Argonautes mission for moon exploration and exploitation.
 
 The objective of the Space domain TSB is to provide an end-to-end system for:
 
@@ -11,6 +11,7 @@ The objective of the Space domain TSB is to provide an end-to-end system for:
 - Integrate the resulting system into the ESA/TRASYS 3DROCS Space Robotics Ground Control Station (GCS),
 - Validate the end-to-end system on real examples as foreseen in the ExoMars mission.
 
+![ExoMars rover](img/rover_exomars.jpg)
 
 ## Planning Problem Description
 
@@ -37,3 +38,8 @@ This software bridge was successfully integrated into an operational environment
 ## Lessons Learned
 
 In solving this use case, we've learned that expressiveness in problem modeling comes at a cost and can slow down the planning process. Keeping things simple and straightforward, striking a balance between detail and simplicity, is a more effective strategy for finding solutions in shorter, more efficient timeframes. This approach has allowed us to enhance the adaptability of the planning system to the needs of the use case.
+
+## Resources
+
+- [Planning for Space page](https://www.ai4europe.eu/business-and-industry/case-studies/planning-space)
+- TSB for the Space Use Case. [Github](https://github.com/aiplan4eu/tsb-space)
