@@ -242,6 +242,7 @@ def get_example_problems():
 
 
 if __name__ == "__main__":
-    for name, problem in get_example_problems().items():
-        print(f"======= {name} ======")
-        print(str(problem))
+    for name, test_case in get_example_problems().items():
+        print(f"\n======= {name} ======\n")
+        print(test_case.problem.kind)
+        print(test_case.problem)
