@@ -137,7 +137,7 @@ with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as validator:
 
 It is also possible to use the `Compiler` operation mode with `compilation_kind=CompilationKind.GROUNDING` to create an equivalent formulation of a problem that does not use parameters for the actions.
 
-For an in-depth tutorial about the `Compiler` operation mode check the [Notebook on Compilers](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/notebooks/Compilers_example.ipynb).
+For an in-depth tutorial about the `Compiler` operation mode check the [Notebook on Compilers](https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/05-compilers.ipynb).
 
 ```python
 with Compiler(problem_kind=problem.kind, compilation_kind=CompilationKind.GROUNDING) as grounder:
