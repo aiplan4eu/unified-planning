@@ -1743,7 +1743,7 @@ class PDDLReader:
             line = line.lower()
             s_ai = re.match(r"^\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*$", line)
             t_ai = re.match(
-                r"^\s*(\d+)\s*:\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*(\[\s*(\d+)\s*\])?\s*$",
+                r"^\s*(\d+\.?\d*)\s*:\s*\(\s*([\w?-]+)((\s+[\w?-]+)*)\s*\)\s*(\[\s*(\d+\.?\d*)\s*\])?\s*$",
                 line,
             )
             if s_ai:

@@ -31,8 +31,8 @@ Welcome to Unified-Planning documentation!
    engines
    optimality
    examples
-   notebooks/engines/README
-   contributions
-   issue_tracking
+   showcases
+   contributor_guide
    release_notes
+   contributions
    api/index

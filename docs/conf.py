@@ -101,7 +101,14 @@ except ImportError:
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", "README.md", "readme.rst"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "README.md",
+    "readme.rst",
+    "notebooks/engines/README.md",
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -336,34 +343,5 @@ autodoc_default_options = {
 autodoc_member_order = "bysource"
 
 
-# -- Generating Planning Engine Scripts -------------------------------------------
-
-engines = {
-    "aries": "https://raw.githubusercontent.com/plaans/aries/master/planning/unified/plugin/README.md",
-    "tamer": "https://raw.githubusercontent.com/aiplan4eu/up-tamer/master/README.md",
-    "enhsp": "https://raw.githubusercontent.com/aiplan4eu/up-enhsp/master/README.md",
-    "spiderplan": "https://raw.githubusercontent.com/aiplan4eu/up-spiderplan/master/README.md",
-    "fmap": "https://raw.githubusercontent.com/aiplan4eu/up-fmap/master/README.md",
-    "lpg": "https://raw.githubusercontent.com/aiplan4eu/up-lpg/master/README.md",
-    "pyperplan": "https://raw.githubusercontent.com/aiplan4eu/up-pyperplan/master/README.md",
-    "fast_downward": "https://raw.githubusercontent.com/aiplan4eu/up-fast-downward/main/README.md",
-}
-
-SKIP_ENGINES = []
-for skipped in SKIP_ENGINES:
-    engines.popitem(skipped)
-engines = dict(sorted(engines.items()))
-ENGINES_DIR = os.path.join(os.path.dirname(__file__), "engines")
-
-if not os.path.exists(ENGINES_DIR):
-    os.makedirs(ENGINES_DIR)
-
-for i, (name, source) in enumerate(engines.items()):
-    with open(f"{ENGINES_DIR}/{i+1}-{name}.md", "w") as f:
-        response = requests.get(source)
-        if response.status_code == 200:
-            f.write(response.text)
-        else:
-            Warning(f"Error getting source for planning engine {name}")
-
+# Create API reference doc
 generate_api_doc.generate()
