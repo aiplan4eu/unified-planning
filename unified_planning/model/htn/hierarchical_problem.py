@@ -130,6 +130,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         minimum time as possible."""
         factory = self._kind_factory()
         factory.kind.set_problem_class("HIERARCHICAL")
+        factory.kind.unset_problem_class("ACTION_BASED")
         (TO, PO, TEMPORAL) = (0, 1, 2)
 
         def lvl(tn: AbstractTaskNetwork):
