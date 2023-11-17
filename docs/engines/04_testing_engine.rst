@@ -1,3 +1,5 @@
+.. _testing_engines:
+
 Testing an Engine Integration
 =============================
 
@@ -6,7 +8,7 @@ The ``report.py`` script in ``unified-planning/up_test_cases`` is used to test a
 Requirements to run the script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To run the script you need to clone the unified-planning repo, get in the unified-planning folder and install the wanted engines, like so::
+To run the script you need to clone the unified-planning repo, get in the ``unified-planning`` folder and install the wanted engines, like so::
 
     git clone https://github.com/aiplan4eu/unified-planning.git
     cd unified-planning

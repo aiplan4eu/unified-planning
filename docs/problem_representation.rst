@@ -1,7 +1,7 @@
 Problem Representation
 ======================
 
-The main functionality offered by the library concerns the specification of a planning problem. In particular, the UP library supports the following classes of planning problems: Classical, Numeric, Temporal, Scheduling, Multi-Agent, Hierarchical, Task and Motion Planning (TAMP) and Conformant. For each of these, we provide a simple description and a reference code at the end of the section.
+The main functionality offered by the library concerns the specification of a planning problem. In particular, the UP library supports the following classes of planning problems: Classical, Numeric, Temporal, Scheduling, Multi-Agent, Hierarchical, Task and Motion Planning (TAMP) and Conformant. For each of these, we provide a short description, a syntax overview and a link to a detailed discussion.
 
 One of the key element of the problem specifications is the ProblemKind class (automatically computed by all the planning problems classes via the kind property), which  is a collection of flags, documented in the table below, that identifies the modeling features used in any problem specification, so that the library can determine the applicability of each engine for a certain query.
 

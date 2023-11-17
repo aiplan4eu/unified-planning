@@ -6,6 +6,11 @@ Available Engines
 
 The tables below give a high-level overview of the planning engines integrated with the UP.
 
+The characterization of the planning systems is deliberately kept very broad and is mainly intended to help identify which planners are relevant for a given class of problem. We redirect you to the specific documentation of each planner for a more in depth characterization of their features and limitations.
+
+In this page only appear solvers that are *officially integrated* in the unified planning library, for which we have reasonable confidence that they will not give you incorrect results (i.e. they successfully pass all :ref:`engine tests <testing_engines>`), now and in the future (i.e. they have a clearly identified maintainer).
+We do mention some solvers whose integration is partial, but that may be nevertheless of interest in some special cases.
+
 Action-Based Planning
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -19,31 +24,31 @@ Action-Based Planning
     - Metrics
   * - `Fast-Downward`_
     - OneShot, Anytime
-    - 🗸
+    - Y
     - 
     - 
     - plan length, action costs
   * - `ENHSP`_
     - OneShot, Anytime
-    - 🗸
-    - 🗸
+    - Y
+    - Y
     -
     - action costs, final value
   * - `Tamer`_
     - OneShot
-    - 🗸
-    - 🗸
-    - 🗸
+    - Y
+    - Y
+    - Y
     - 
   * - `Aries`_ [#aries-actions]_
     - OneShot, Anytime
-    - 🗸
-    - 🗸 (integers)
-    - 🗸
+    - Y
+    - Y (integers)
+    - Y
     - plan length, makespan, action costs
   * - `Pyperplan`_ [#pyperplan-note]_
     - OneShot
-    - 🗸
+    - Y
     - 
     - 
     - 
@@ -64,23 +69,23 @@ Plan Validation
     - Hierarchical
     - Scheduling
   * - `UP (builtin)`
-    - 🗸
-    - 
+    - Y
+    - Y
     - 
     - 
     - 
   * - `Tamer`_
-    - 🗸
-    - 🗸
-    - 🗸
+    - Y
+    - Y
+    - Y
     - 
     - 
   * - `Aries`_
-    - 🗸
-    - 🗸
-    - 🗸
-    - 🗸
-    - 🗸
+    - Y
+    - Y
+    - Y
+    - Y
+    - Y
 
 
 Hierarchical Planning
@@ -97,10 +102,10 @@ Hierarchical Planning
     - Metrics
   * - `Aries`_
     - OneShot, Anytime
-    - 🗸
-    - 🗸 (integers)
-    - 🗸
-    - 🗸
+    - Y
+    - Y (integers)
+    - Y
+    - Y
     - plan length, makespan, action costs
 
 A WIP integration is known for `SIADEX <https://github.com/UGR-IntelligentSystemsGroup/up-siadex/>`_.
