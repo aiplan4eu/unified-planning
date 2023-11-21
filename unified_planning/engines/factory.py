@@ -63,6 +63,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
     ),
+    "up_time_triggered_validator": (
+        "unified_planning.engines.plan_validator",
+        "TimeTriggeredPlanValidator",
+    ),
     "sequential_simulator": (
         "unified_planning.engines.sequential_simulator",
         "UPSequentialSimulator",

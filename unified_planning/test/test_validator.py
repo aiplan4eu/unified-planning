@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import unified_planning as up
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.shortcuts import *
 from unified_planning.engines import SequentialPlanValidator, FailedValidationReason
 from unified_planning.plans import SequentialPlan, ActionInstance
@@ -117,6 +118,26 @@ class TestPlanValidator(unittest_TestCase):
         res = up_validator.validate(problem, invalid_action_plan)
         self.assertEqual(res.reason, FailedValidationReason.INAPPLICABLE_ACTION)
         self.assertEqual(res.inapplicable_action, invalid_action)
+
+    def test_time_triggered(self):
+        example = self.problems["matchcellar"]
+        problem, plan = example.problem, example.valid_plans[0]
+
+        with PlanValidator(
+            name="up_time_triggered_validator",
+            problem_kind=problem.kind,
+            plan_kind=plan.kind,
+        ) as validator:
+            self.assertNotEqual(validator, None)
+
+            res = validator.validate(problem, plan)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.VALID)
+
+            p = list(plan.timed_actions)
+            p[1] = (0, p[1][1], p[1][2])
+            broken_plan = TimeTriggeredPlan(actions=p)
+            res = validator.validate(problem, broken_plan)
+            self.assertEqual(res.status, up.engines.ValidationResultStatus.INVALID)
 
 
 if __name__ == "__main__":
