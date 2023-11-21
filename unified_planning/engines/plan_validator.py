@@ -18,15 +18,16 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Tuple, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
-from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.effect import Effect
 from unified_planning.model.fnode import FNode
+from unified_planning.model.parameter import Parameter
 from unified_planning.model.state import UPState
 from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
 import unified_planning.model.walkers as walkers
@@ -267,16 +268,16 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
     def states_in_interval(
         self,
-        trace: Dict[Fraction, UPState],
+        trace: Dict[Fraction, State],
         start: Fraction,
         end: Fraction,
         open_interval: bool,
-    ) -> UPState:
+    ) -> Generator[Tuple[Fraction, State], None, None]:
         print("*" * 80)
         print(["%.2f" % float(x) for x in trace.keys()])
         print(("%.2f" % start, "%.2f" % end, open_interval))
-        before_time = -1
-        equal_time = -1
+        before_time = Fraction(-1)
+        equal_time = Fraction(-1)
         inside_indexes = []
         for x in trace:
             if x < start and x > before_time:
@@ -299,20 +300,27 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             yield x, trace[x]
 
     def check_condition(
-        self, state: UPState, se: StateEvaluator, condition: FNode
+        self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
         return se.evaluate(condition, state=state).bool_constant_value()
 
     def _instantiate_timing(
-        self, timing: Timing, action_start: Fraction, action_duration: Fraction
+        self,
+        timing: Timing,
+        action_start: Fraction,
+        action_duration: Optional[Fraction],
     ) -> Fraction:
         if timing.is_from_start():
             return action_start + timing.delay
         else:
+            assert action_duration is not None
             return action_start + action_duration + timing.delay
 
     def _instantiate_interval(
-        self, interval: TimeInterval, action_start: Fraction, action_duration: Fraction
+        self,
+        interval: TimeInterval,
+        action_start: Fraction,
+        action_duration: Optional[Fraction],
     ) -> Tuple[Fraction, Fraction, bool]:
         return (
             self._instantiate_timing(interval.lower, action_start, action_duration),
@@ -321,7 +329,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         )
 
     def ground_expression(self, formula: FNode, ai: ActionInstance) -> FNode:
-        params = {}
+        params: Any = {}
         for p, ap in zip(ai.action.parameters, ai.actual_parameters):
             params[p] = ap
         return formula.substitute(params)
@@ -344,15 +352,19 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         se = StateEvaluator(problem=problem)
 
-        start_actions = list(plan.timed_actions)
+        start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
+            plan.timed_actions
+        )
         start_actions.sort(key=lambda x: (x[0], x[2]), reverse=True)
 
-        scheduled_effects = []  # TODO: add TILs
+        scheduled_effects: List[
+            Tuple[Fraction, int, List[Effect], ActionInstance]
+        ] = []  # TODO: add TILs
         durative_conditions = []  # TODO: add Timed Goals
 
-        time = 0
+        time = Fraction(0)
         last_state = UPState(problem.initial_values)
-        trace = {-1: last_state}
+        trace: Dict[Fraction, State] = {Fraction(-1): last_state}
         effect_id = 0
         while len(start_actions) + len(scheduled_effects) > 0:
             if start_actions and (
@@ -360,13 +372,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 or start_actions[-1][0] <= scheduled_effects[0][0]
             ):
                 start_time, ai, duration = start_actions.pop()
-                for timing, event in ai.action.effects.items():
+                da = cast(DurativeAction, ai.action)
+                for timing, event in da.effects.items():
                     real_timing = self._instantiate_timing(timing, start_time, duration)
                     heapq.heappush(
                         scheduled_effects, (real_timing, effect_id, event, ai)
                     )
                     effect_id += 1
-                for interval, conditions in ai.action.conditions.items():
+                for interval, conditions in da.conditions.items():
                     real_interval = self._instantiate_interval(
                         interval, start_time, duration
                     )
@@ -407,7 +420,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     return ValidationResult(
                         status=ValidationResultStatus.INVALID,
                         engine_name=self.name,
-                        log_messages="",
+                        log_messages=None,
                         metric_evaluations=None,
                         reason=FailedValidationReason.INAPPLICABLE_ACTION,
                         inapplicable_action=ai,
@@ -417,7 +430,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         return ValidationResult(
             ValidationResultStatus.VALID,
             self.name,
-            "",
+            None,
             None,
             trace=trace,
         )
