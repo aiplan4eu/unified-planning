@@ -273,9 +273,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         end: Fraction,
         open_interval: bool,
     ) -> Generator[Tuple[Fraction, State], None, None]:
-        print("*" * 80)
-        print(["%.2f" % float(x) for x in trace.keys()])
-        print(("%.2f" % start, "%.2f" % end, open_interval))
         before_time = Fraction(-1)
         equal_time = Fraction(-1)
         inside_indexes = []
@@ -286,11 +283,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 equal_time = x
             if start < x < end:
                 inside_indexes.append(x)
-
-        print(inside_indexes)
-        print(before_time)
-        print(equal_time)
-        print("*" * 80)
 
         if not open_interval:
             yield before_time, trace[before_time]
@@ -401,21 +393,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 while scheduled_effects and scheduled_effects[0][0] == time:
                     _, _, add_effs, ai = heapq.heappop(scheduled_effects)
                     effects.append((add_effs, ai))
-                print("%s -> %s" % (time, effects))
                 new_state = self.apply_effects(last_state, se, effects)
                 trace[time] = new_state
                 last_state = new_state
 
-        print("*" * 80)
-        print(trace)
-
-        print(problem)
-        print(plan)
-
         # Check (durative) conditions
         for (start, end, is_open), _, c, ai in durative_conditions:
             for t, state in self.states_in_interval(trace, start, end, is_open):
-                print((t, state))
                 if not self.check_condition(state=state, se=se, condition=c):
                     return ValidationResult(
                         status=ValidationResultStatus.INVALID,
@@ -426,6 +410,18 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         inapplicable_action=ai,
                         trace=trace,
                     )
+
+        for g in problem.goals:
+            if not self.check_condition(state=last_state, se=se, condition=g):
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=None,
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.UNSATISFIED_GOALS,
+                    inapplicable_action=None,
+                    trace=trace,
+                )
 
         return ValidationResult(
             ValidationResultStatus.VALID,
