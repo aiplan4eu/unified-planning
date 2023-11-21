@@ -64,14 +64,23 @@ def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
 
 
 def report_runtime(
-    metrics: Optional[Dict[str, str]], total_time: float, max_overhead: float
+    metrics: Optional[Dict[str, str]],
+    total_time: float,
+    max_overhead: float,
+    adjust_docker_overhead: bool = True,
 ) -> str:
     internal_time_str = None
     if metrics is not None:
         internal_time_str = metrics.get("engine_internal_time", None)
+        docker_overhead_time_str = metrics.get("docker_overhead_time", None)
     if internal_time_str is not None:
         internal_time = float(internal_time_str)
-        overhead_percentage = (total_time - internal_time) / internal_time
+        docker_overhead_time = 0.0
+        if adjust_docker_overhead and docker_overhead_time_str is not None:
+            docker_overhead_time = float(docker_overhead_time_str)
+        overhead_percentage = (
+            total_time - docker_overhead_time - internal_time
+        ) / internal_time
     else:
         overhead_percentage = None
     if total_time > 1 and overhead_percentage is not None:
