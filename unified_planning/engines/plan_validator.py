@@ -18,14 +18,14 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
 from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import Effect
+from unified_planning.model.effect import Effect, EffectKind
 from unified_planning.model.fnode import FNode
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.state import UPState
@@ -246,27 +246,63 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def supports(problem_kind):
         return problem_kind <= SequentialPlanValidator.supported_kind()
 
-    # TODO: support simulated effects, action parameters and quantifiers
-    def apply_effects(
+    # TODO: support simulated effects
+    def _apply_effects(
         self,
         state: UPState,
         se: StateEvaluator,
         effects: List[Tuple[List[Effect], Optional[ActionInstance]]],
+        problem: Problem,
     ) -> UPState:
         updates: Dict[FNode, FNode] = {}
+        assigned: Set[FNode] = set()
         for effs, ai in effects:
             for eff in effs:
-                if self.check_condition(
-                    state, se, self.ground_expression(eff.condition, ai)
-                ):
-                    g_fluent = self.ground_expression(eff.fluent, ai)
-                    g_value = self.ground_expression(eff.value, ai)
-                    if g_fluent in updates:
-                        raise RuntimeError("Double effect")
-                    updates[g_fluent] = se.evaluate(g_value, state=state)
+                changes = self._apply_effect(state, se, ai, eff, updates, problem)
+                for f, v in changes.items():
+                    if f in assigned or (f in updates and eff.is_assignment()):
+                        if f.type.is_bool_type():
+                            # Handle "delete before add" semantics
+                            if v.bool_constant_value():
+                                updates[f] = v
+                        else:
+                            raise ValueError("Double effect")
+                    else:
+                        updates[f] = v
+                        if eff.is_assignment():
+                            assigned.add(f)
         return state.make_child(updated_values=updates)
 
-    def states_in_interval(
+    def _apply_effect(
+        self,
+        state: State,
+        se: StateEvaluator,
+        ai: Optional[ActionInstance],
+        effect: Effect,
+        updates: Dict[FNode, FNode],
+        problem: Problem,
+    ) -> Dict[FNode, FNode]:
+        result = {}
+        for instantiated_effect in effect.expand_effect(problem):
+            if self._check_condition(
+                state, se, self._ground_expression(instantiated_effect.condition, ai)
+            ):
+                g_fluent = self._ground_expression(instantiated_effect.fluent, ai)
+                g_value = self._ground_expression(instantiated_effect.value, ai)
+                f_value = (
+                    updates[g_fluent]
+                    if g_fluent in updates
+                    else state.get_value(g_fluent)
+                )
+                if instantiated_effect.kind == EffectKind.ASSIGN:
+                    result[g_fluent] = se.evaluate(g_value, state=state)
+                elif instantiated_effect.kind == EffectKind.DECREASE:
+                    result[g_fluent] = se.evaluate(f_value - g_value, state=state)
+                elif instantiated_effect.kind == EffectKind.INCREASE:
+                    result[g_fluent] = se.evaluate(f_value + g_value, state=state)
+        return result
+
+    def _states_in_interval(
         self,
         trace: Dict[Fraction, State],
         start: Fraction,
@@ -291,7 +327,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         for x in inside_indexes:
             yield x, trace[x]
 
-    def check_condition(
+    def _check_condition(
         self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
         return se.evaluate(condition, state=state).bool_constant_value()
@@ -320,7 +356,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             interval.is_left_open(),
         )
 
-    def ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
+    def _ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
         if ai is None:
             return formula
         else:
@@ -422,7 +458,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             (
                                 real_interval,
                                 next_id,
-                                self.ground_expression(formula=c, ai=ai),
+                                self._ground_expression(formula=c, ai=ai),
                                 ai,
                             )
                         )
@@ -435,18 +471,18 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 while scheduled_effects and scheduled_effects[0][0] == time:
                     _, _, add_effs, opt_ai = heapq.heappop(scheduled_effects)
                     now_effects.append((add_effs, opt_ai))
-                new_state = self.apply_effects(
-                    state=last_state, se=se, effects=now_effects
+                new_state = self._apply_effects(
+                    state=last_state, se=se, effects=now_effects, problem=problem
                 )
                 trace[time] = new_state
                 last_state = new_state
 
         # Check (durative) conditions
         for (start, end, is_open), _, c, opt_ai in durative_conditions:
-            for t, state in self.states_in_interval(
+            for t, state in self._states_in_interval(
                 trace=trace, start=start, end=end, open_interval=is_open
             ):
-                if not self.check_condition(state=state, se=se, condition=c):
+                if not self._check_condition(state=state, se=se, condition=c):
                     if opt_ai is not None:
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
@@ -469,7 +505,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         )
 
         for g in problem.goals:
-            if not self.check_condition(state=last_state, se=se, condition=g):
+            if not self._check_condition(state=last_state, se=se, condition=g):
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
