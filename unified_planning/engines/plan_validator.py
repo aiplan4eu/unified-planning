@@ -251,7 +251,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         self,
         state: UPState,
         se: StateEvaluator,
-        effects: List[Tuple[List[Effect], ActionInstance]],
+        effects: List[Tuple[List[Effect], Optional[ActionInstance]]],
     ) -> UPState:
         updates: Dict[FNode, FNode] = {}
         for effs, ai in effects:
@@ -320,11 +320,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             interval.is_left_open(),
         )
 
-    def ground_expression(self, formula: FNode, ai: ActionInstance) -> FNode:
-        params: Any = {}
-        for p, ap in zip(ai.action.parameters, ai.actual_parameters):
-            params[p] = ap
-        return formula.substitute(params)
+    def ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
+        if ai is None:
+            return formula
+        else:
+            params: Any = {}
+            for p, ap in zip(ai.action.parameters, ai.actual_parameters):
+                params[p] = ap
+            return formula.substitute(params)
 
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
@@ -350,14 +353,51 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         start_actions.sort(key=lambda x: (x[0], x[2]), reverse=True)
 
         scheduled_effects: List[
-            Tuple[Fraction, int, List[Effect], ActionInstance]
-        ] = []  # TODO: add TILs
-        durative_conditions = []  # TODO: add Timed Goals
+            Tuple[Fraction, int, List[Effect], Optional[ActionInstance]]
+        ] = []
+        durative_conditions: List[
+            Tuple[Tuple[Fraction, Fraction, bool], int, FNode, Optional[ActionInstance]]
+        ] = []
+
+        plan_duration: Fraction = max(
+            x[0] + (x[2] if x[2] else 0) for x in start_actions
+        )
+
+        next_id = 0
+        for timing, effects in problem.timed_effects.items():
+            scheduled_effects.append(
+                (
+                    self._instantiate_timing(
+                        timing=timing,
+                        action_start=Fraction(0),
+                        action_duration=plan_duration,
+                    ),
+                    next_id,
+                    effects,
+                    None,
+                )
+            )
+            next_id += 1
+
+        for interval, goals in problem.timed_goals.items():
+            for g in goals:
+                durative_conditions.append(
+                    (
+                        self._instantiate_interval(
+                            interval=interval,
+                            action_start=Fraction(0),
+                            action_duration=plan_duration,
+                        ),
+                        next_id,
+                        g,
+                        None,
+                    )
+                )
+                next_id += 1
 
         time = Fraction(0)
         last_state = UPState(problem.initial_values)
         trace: Dict[Fraction, State] = {Fraction(-1): last_state}
-        effect_id = 0
         while len(start_actions) + len(scheduled_effects) > 0:
             if start_actions and (
                 len(scheduled_effects) == 0
@@ -366,50 +406,67 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 start_time, ai, duration = start_actions.pop()
                 da = cast(DurativeAction, ai.action)
                 for timing, event in da.effects.items():
-                    real_timing = self._instantiate_timing(timing, start_time, duration)
-                    heapq.heappush(
-                        scheduled_effects, (real_timing, effect_id, event, ai)
+                    real_timing = self._instantiate_timing(
+                        timing=timing, action_start=start_time, action_duration=duration
                     )
-                    effect_id += 1
+                    heapq.heappush(scheduled_effects, (real_timing, next_id, event, ai))
+                    next_id += 1
                 for interval, conditions in da.conditions.items():
                     real_interval = self._instantiate_interval(
-                        interval, start_time, duration
+                        interval=interval,
+                        action_start=start_time,
+                        action_duration=duration,
                     )
                     for c in conditions:
                         durative_conditions.append(
                             (
                                 real_interval,
-                                effect_id,
-                                self.ground_expression(c, ai),
+                                next_id,
+                                self.ground_expression(formula=c, ai=ai),
                                 ai,
                             )
                         )
-                        effect_id += 1
+                        next_id += 1
                 time = start_time
 
             elif scheduled_effects:
                 time = scheduled_effects[0][0]
-                effects = []
+                now_effects: List[Tuple[List[Effect], Optional[ActionInstance]]] = []
                 while scheduled_effects and scheduled_effects[0][0] == time:
-                    _, _, add_effs, ai = heapq.heappop(scheduled_effects)
-                    effects.append((add_effs, ai))
-                new_state = self.apply_effects(last_state, se, effects)
+                    _, _, add_effs, opt_ai = heapq.heappop(scheduled_effects)
+                    now_effects.append((add_effs, opt_ai))
+                new_state = self.apply_effects(
+                    state=last_state, se=se, effects=now_effects
+                )
                 trace[time] = new_state
                 last_state = new_state
 
         # Check (durative) conditions
-        for (start, end, is_open), _, c, ai in durative_conditions:
-            for t, state in self.states_in_interval(trace, start, end, is_open):
+        for (start, end, is_open), _, c, opt_ai in durative_conditions:
+            for t, state in self.states_in_interval(
+                trace=trace, start=start, end=end, open_interval=is_open
+            ):
                 if not self.check_condition(state=state, se=se, condition=c):
-                    return ValidationResult(
-                        status=ValidationResultStatus.INVALID,
-                        engine_name=self.name,
-                        log_messages=None,
-                        metric_evaluations=None,
-                        reason=FailedValidationReason.INAPPLICABLE_ACTION,
-                        inapplicable_action=ai,
-                        trace=trace,
-                    )
+                    if opt_ai is not None:
+                        return ValidationResult(
+                            status=ValidationResultStatus.INVALID,
+                            engine_name=self.name,
+                            log_messages=None,
+                            metric_evaluations=None,
+                            reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                            inapplicable_action=opt_ai,
+                            trace=trace,
+                        )
+                    else:
+                        return ValidationResult(
+                            status=ValidationResultStatus.INVALID,
+                            engine_name=self.name,
+                            log_messages=None,
+                            metric_evaluations=None,
+                            reason=FailedValidationReason.UNSATISFIED_GOALS,
+                            inapplicable_action=None,
+                            trace=trace,
+                        )
 
         for g in problem.goals:
             if not self.check_condition(state=last_state, se=se, condition=g):
@@ -424,9 +481,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 )
 
         return ValidationResult(
-            ValidationResultStatus.VALID,
-            self.name,
-            None,
-            None,
+            status=ValidationResultStatus.VALID,
+            engine_name=self.name,
+            log_messages=None,
+            metric_evaluations=None,
             trace=trace,
         )
