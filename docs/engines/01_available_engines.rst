@@ -52,6 +52,12 @@ Action-Based Planning
     - 
     - 
     - 
+  * - `fmap`_
+    - OneShot
+    - Y
+    - 
+    - 
+    - 
 
 .. [#aries-actions] Aries' focus is on hierarchical planning and scheduling and is likely not competitive with other planners in action-based planning.
 .. [#pyperplan-note] Pyperplan is mostly intended for education purposes and cannot be expected to scale to non-trivial problems.
