@@ -2,12 +2,12 @@ from unified_planning.shortcuts import *
 
 from unified_planning.plans.ttp_to_stn import *
 from unified_planning.test.examples import get_example_problems
-from unified_planning.test import TestCase
+from unified_planning.test import unittest_TestCase
 
 
-class TestTTPToSTN(TestCase):
+class TestTTPToSTN(unittest_TestCase):
     def setUp(self) -> None:
-        TestCase.setUp(self)
+        unittest_TestCase.setUp(self)
         problems = get_example_problems()
         self.problem = problems["matchcellar"].problem
         with OneshotPlanner(problem_kind=self.problem.kind) as planner:
