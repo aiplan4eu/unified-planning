@@ -125,9 +125,19 @@ Scheduling
 
 The only planner with full support for scheduling is `Aries`_. Integration work is known for the `discrete-optimization suite <https://github.com/aiplan4eu/up-discreteoptimization>`_ and for `PPS <https://github.com/aiplan4eu/up-pps>`_.
 
+Multi-Agent Planning
+^^^^^^^^^^^^^^^^^^^^^
 
+.. list-table:: 
 
-
+  * - Engine
+    - Operation modes
+    - Classical
+    - Partial-Order
+  * - `fmap`_
+    - OneShot
+    - Y
+    - Y
 
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
 .. _`fast-downward`: https://github.com/aiplan4eu/up-fast-downward/blob/main/README.md
