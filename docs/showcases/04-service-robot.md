@@ -3,7 +3,7 @@
 ## Context
 
 This use-case demonstrates sample tasks of the service robot [Mobipick](https://github.com/DFKI-NI/mobipick) that operates in the context of human-robot collaboration.
-Mobipick consists of a MiR base, a UR5 arm and a Robotiq gripper attached to the arm. Mobipick runs ROS as its middleware, and its capabilities and actions are implemented in [ROS](https://ros.org) or use the ROS ecosystem.
+Mobipick consists of a MiR base, a UR5 arm and a Robotiq gripper attached to the arm. Mobipick uses [ROS](https://ros.org) as its middleware, with its capabilities and actions either implemented in ROS or taken from the ROS ecosystem.
 
 ![Mobipick service robot](img/mobipick.jpg)
 
@@ -25,8 +25,8 @@ The resulting plans are sequential as the robot currently does not have actions 
 
 ## Operation Modes and Integration Aspects
 
-The OneShotPlanning operation mode is used for generating plans.
-As the plans should not contain unnecessary actions we set an OptimalityGuarantee to the problem to restrict the planner for creating optimal plans.
+The `OneShotPlanning`` operation mode is used for generating plans.
+As the plans should not contain unnecessary actions we set an `OptimalityGuarantee`` to the problem to require the planner to produce optimal plans.
 
 However, in addition to plan generation, the execution of the plans on the robot is crucial. For this, functionalities for dispatching and monitoring plans were implemented in the ESB and used on the Mobipick. The ESB converts the plans into dependencies graphs that are used for dispatching the actions and for checking their preconditions.
 If an error occurs, re-planning is triggered from the updated state of the robot and its environment.
@@ -37,7 +37,7 @@ During the implementation the use-case we have learned a couple of key lessons:
 
 1. **Efficient Modelling**: When modelling the planning problem it is tempting to use a large number of the domain modelling features that UP is offering. However, this reduces the number of matching planners for the resulting problem kind and this way leads to a high planning time. By limiting the features such that the problem kind was suitable for the planner FastDownward we were able to significantly reduce the planning time.
 
-2. **Optimality required for good robot plans**: It turned out that if we were using Fast-Downward in its standard mode the resulting plans often contained unnecessary actions. Executing such non-optimal plans on a mobile service robot looked strange to the user and increased the overall execution time as well the risk of execution failures. Setting an optimality guarantee the OneShotPlanner operation mode resolved this issue without a too high increase of planning time.
+2. **Optimality required for good robot plans**: It turned out that if we were using Fast-Downward in its standard mode the resulting plans often contained unnecessary actions. Executing such non-optimal plans on a mobile service robot looked strange to the user and increased the overall execution time as well the risk of execution failures. Setting an optimality guarantee the OneShotPlanner operation mode resolved this issue with a reasonable increase in planning time.
 
 ## Resources
 
