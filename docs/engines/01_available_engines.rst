@@ -68,9 +68,11 @@ Plan Validation
     - Temporal
     - Hierarchical
     - Scheduling
+    - Multi-Agent
   * - `UP (builtin)`
     - Y
     - Y
+    - 
     - 
     - 
     - 
@@ -80,13 +82,21 @@ Plan Validation
     - Y
     - 
     - 
+    - 
   * - `Aries`_
     - Y
     - Y
     - Y
     - Y
     - Y
-
+    - 
+  * - `MA-Plan-Validator`_
+    - Y
+    -
+    -
+    -
+    -
+    - Y
 
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
@@ -137,3 +147,4 @@ Multi-Agent Planning
 .. _`fmap`: https://github.com/aiplan4eu/up-fmap/blob/master/README.md
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
+.. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md
