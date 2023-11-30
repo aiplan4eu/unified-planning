@@ -8,7 +8,7 @@ During silage-maize harvest, a non-capacitated harvester harvests the yield from
 
 
 
-<img src="img/fields_and_silo_satellite.jpg" alt="Example fields and silo" title="Example fields and silo" width=30% />
+![Example fields and silo](img/fields_and_silo_satellite.jpg)
 
 
 
@@ -26,7 +26,7 @@ The process can be analyzed from the perspective of the harvesters and the trans
 
     
 
-    <img src="img/state_diagram_harvester.jpg" alt="Harvester state diagram" title="Harvester state diagram" width=60% />
+![Harvester state diagram](img/state_diagram_harvester.jpg)
 
     
 
@@ -51,7 +51,7 @@ The process can be analyzed from the perspective of the harvesters and the trans
 
   
 
-  <img src="img/state_diagram_tv.jpg" alt="Transport vehicle state diagram" title="Transport vehicle state diagram" width=60% />
+  ![Transport vehicle state diagram](img/state_diagram_tv.jpg)
 
   
 
@@ -63,7 +63,7 @@ At the moment, a simplified version of the process at the silo is considered. In
   * Sweep the SAP, transferring yield from the SAP to the silo storage location. 
   * After the sweep, the compactor is free to be used to sweep a SAP. 
 
-  <img src="img/state_diagram_compactor.jpg" alt="Compactor state diagram" title="Compactor state diagram" width=35% />
+  ![Compactor state diagram](img/state_diagram_compactor.jpg)
 
 
 
