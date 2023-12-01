@@ -25,7 +25,7 @@ import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
 from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import Effect, EffectKind
+from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
 from unified_planning.model.fnode import FNode
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.state import UPState
@@ -74,6 +74,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
     def __init__(self, **options):
         engines.engine.Engine.__init__(self)
+        mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
             unified_planning.environment.get_environment(
                 options.get("environment", None)
@@ -217,6 +218,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
     def __init__(self, **options):
         engines.engine.Engine.__init__(self)
+        mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
             unified_planning.environment.get_environment(
                 options.get("environment", None)
@@ -239,38 +241,56 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_time("TIMED_EFFECTS")
         kind.set_time("TIMED_GOALS")
         kind.set_time("DURATION_INEQUALITIES")
+        kind.set_time("SELF_OVERLAPPING")
         kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        kind.set_expression_duration("INT_TYPE_DURATIONS")
+        kind.set_expression_duration("REAL_TYPE_DURATIONS")
+        kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        kind.set_parameters("REAL_ACTION_PARAMETERS")
         return kind
 
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= SequentialPlanValidator.supported_kind()
+        return problem_kind <= TimeTriggeredPlanValidator.supported_kind()
 
-    # TODO: support simulated effects
     def _apply_effects(
         self,
         state: UPState,
         se: StateEvaluator,
-        effects: List[Tuple[List[Effect], Optional[ActionInstance]]],
+        effects: List[
+            Tuple[List[Effect], Optional[SimulatedEffect], Optional[ActionInstance]]
+        ],
         problem: Problem,
     ) -> UPState:
         updates: Dict[FNode, FNode] = {}
         assigned: Set[FNode] = set()
-        for effs, ai in effects:
+        all_changes = []
+        for effs, sim_eff, ai in effects:
             for eff in effs:
                 changes = self._apply_effect(state, se, ai, eff, updates, problem)
-                for f, v in changes.items():
-                    if f in assigned or (f in updates and eff.is_assignment()):
-                        if f.type.is_bool_type():
-                            # Handle "delete before add" semantics
-                            if v.bool_constant_value():
-                                updates[f] = v
-                        else:
-                            raise ValueError("Double effect")
+                all_changes.append(changes)
+            if sim_eff is not None:
+                fluents = sim_eff.fluents
+                values = sim_eff.function(
+                    problem,
+                    state,
+                    dict(zip(ai.action.parameters, ai.actual_parameters)),
+                )
+                all_changes.append(dict(zip(fluents, values)))
+        for changes in all_changes:
+            for f, v in changes.items():
+                if f in assigned or (f in updates and eff.is_assignment()):
+                    if f.type.is_bool_type():
+                        # Handle "delete before add" semantics
+                        if v.bool_constant_value():
+                            updates[f] = v
                     else:
-                        updates[f] = v
-                        if eff.is_assignment():
-                            assigned.add(f)
+                        raise ValueError("Double effect")
+                else:
+                    updates[f] = v
+                    if eff.is_assignment():
+                        assigned.add(f)
         return state.make_child(updated_values=updates)
 
     def _apply_effect(
@@ -297,9 +317,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 if instantiated_effect.kind == EffectKind.ASSIGN:
                     result[g_fluent] = se.evaluate(g_value, state=state)
                 elif instantiated_effect.kind == EffectKind.DECREASE:
-                    result[g_fluent] = se.evaluate(f_value - g_value, state=state)
+                    result[g_fluent] = f_value - se.evaluate(g_value, state=state)
                 elif instantiated_effect.kind == EffectKind.INCREASE:
-                    result[g_fluent] = se.evaluate(f_value + g_value, state=state)
+                    result[g_fluent] = f_value - se.evaluate(g_value, state=state)
         return result
 
     def _states_in_interval(
@@ -381,6 +401,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
 
+        em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
@@ -389,7 +410,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         start_actions.sort(key=lambda x: (x[0], x[2]), reverse=True)
 
         scheduled_effects: List[
-            Tuple[Fraction, int, List[Effect], Optional[ActionInstance]]
+            Tuple[
+                Fraction,
+                int,
+                List[Effect],
+                Optional[SimulatedEffect],
+                Optional[ActionInstance],
+            ]
         ] = []
         durative_conditions: List[
             Tuple[Tuple[Fraction, Fraction, bool], int, FNode, Optional[ActionInstance]]
@@ -406,30 +433,45 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     self._instantiate_timing(
                         timing=timing,
                         action_start=Fraction(0),
-                        action_duration=plan_duration,
+                        action_duration=None,
                     ),
                     next_id,
                     effects,
                     None,
+                    None,
                 )
             )
+            plan_duration = max(plan_duration, scheduled_effects[-1][0])
             next_id += 1
 
         for interval, goals in problem.timed_goals.items():
+            iint = self._instantiate_interval(
+                interval=interval,
+                action_start=Fraction(0),
+                action_duration=None,
+            )
+            plan_duration = max(plan_duration, iint[0], iint[1])
             for g in goals:
                 durative_conditions.append(
                     (
-                        self._instantiate_interval(
-                            interval=interval,
-                            action_start=Fraction(0),
-                            action_duration=plan_duration,
-                        ),
+                        iint,
                         next_id,
                         g,
                         None,
                     )
                 )
                 next_id += 1
+
+        for invariant in problem.state_invariants:
+            durative_conditions.append(
+                (
+                    (0, plan_duration, False),
+                    next_id,
+                    invariant,
+                    None,
+                )
+            )
+            next_id += 1
 
         time = Fraction(0)
         last_state = UPState(problem.initial_values)
@@ -440,37 +482,90 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 or start_actions[-1][0] <= scheduled_effects[0][0]
             ):
                 start_time, ai, duration = start_actions.pop()
-                da = cast(DurativeAction, ai.action)
-                for timing, event in da.effects.items():
-                    real_timing = self._instantiate_timing(
-                        timing=timing, action_start=start_time, action_duration=duration
+                if isinstance(ai.action, DurativeAction):
+                    da = cast(DurativeAction, ai.action)
+                    if da.duration.is_left_open():
+                        lc = em.GT(duration, da.duration.lower)
+                    else:
+                        lc = em.GE(duration, da.duration.lower)
+                    if da.duration.is_right_open():
+                        uc = em.LT(duration, da.duration.upper)
+                    else:
+                        uc = em.LE(duration, da.duration.upper)
+                    durative_conditions.append(
+                        (
+                            (start_time, start_time, False),
+                            next_id,
+                            self._ground_expression(formula=em.And(lc, uc), ai=ai),
+                            ai,
+                        )
                     )
-                    heapq.heappush(scheduled_effects, (real_timing, next_id, event, ai))
                     next_id += 1
-                for interval, conditions in da.conditions.items():
-                    real_interval = self._instantiate_interval(
-                        interval=interval,
-                        action_start=start_time,
-                        action_duration=duration,
+                    for timing, event in da.effects.items():
+                        real_timing = self._instantiate_timing(
+                            timing=timing,
+                            action_start=start_time,
+                            action_duration=duration,
+                        )
+                        heapq.heappush(
+                            scheduled_effects, (real_timing, next_id, event, None, ai)
+                        )
+                        next_id += 1
+                    for timing, event in da.simulated_effects.items():
+                        real_timing = self._instantiate_timing(
+                            timing=timing,
+                            action_start=start_time,
+                            action_duration=duration,
+                        )
+                        heapq.heappush(
+                            scheduled_effects, (real_timing, next_id, [], event, ai)
+                        )
+                        next_id += 1
+                    for interval, conditions in da.conditions.items():
+                        real_interval = self._instantiate_interval(
+                            interval=interval,
+                            action_start=start_time,
+                            action_duration=duration,
+                        )
+                        for c in conditions:
+                            durative_conditions.append(
+                                (
+                                    real_interval,
+                                    next_id,
+                                    self._ground_expression(formula=c, ai=ai),
+                                    ai,
+                                )
+                            )
+                            next_id += 1
+                elif isinstance(InstantaneousAction, ai.action):
+                    a = ai.action
+                    heapq.heappush(
+                        scheduled_effects,
+                        (start_time, next_id, a.effect, a.simulated_effect, ai),
                     )
-                    for c in conditions:
+                    next_id += 1
+                    for c in a.preconditions:
                         durative_conditions.append(
                             (
-                                real_interval,
+                                (start_time, start_time, False),
                                 next_id,
                                 self._ground_expression(formula=c, ai=ai),
                                 ai,
                             )
                         )
                         next_id += 1
+                else:
+                    raise NotImplementedError
                 time = start_time
 
             elif scheduled_effects:
                 time = scheduled_effects[0][0]
                 now_effects: List[Tuple[List[Effect], Optional[ActionInstance]]] = []
                 while scheduled_effects and scheduled_effects[0][0] == time:
-                    _, _, add_effs, opt_ai = heapq.heappop(scheduled_effects)
-                    now_effects.append((add_effs, opt_ai))
+                    _, _, add_effs, add_sim_effs, opt_ai = heapq.heappop(
+                        scheduled_effects
+                    )
+                    now_effects.append((add_effs, add_sim_effs, opt_ai))
                 new_state = self._apply_effects(
                     state=last_state, se=se, effects=now_effects, problem=problem
                 )

@@ -143,6 +143,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
+    "up_time_triggered_validator",
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
