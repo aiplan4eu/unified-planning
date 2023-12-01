@@ -287,7 +287,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         if v.bool_constant_value():
                             updates[f] = v
                     else:
-                        raise ValueError("Double effect")
+                        raise UPConflictingEffectsException("Double effect")
                 else:
                     updates[f] = v
                     if eff.is_assignment():
@@ -575,9 +575,23 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         scheduled_effects
                     )
                     now_effects.append((add_effs, add_sim_effs, opt_ai))
-                new_state = self._apply_effects(
-                    state=last_state, se=se, effects=now_effects, problem=problem
-                )
+                try:
+                    new_state = self._apply_effects(
+                        state=last_state, se=se, effects=now_effects, problem=problem
+                    )
+                except UPConflictingEffectsException as e:
+                    logs = [
+                        LogMessage(LogLevel.INFO, f"Conflicting effects at time {time}")
+                    ]
+                    return ValidationResult(
+                        status=ValidationResultStatus.INVALID,
+                        engine_name=self.name,
+                        log_messages=logs,
+                        metric_evaluations=None,
+                        reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                        inapplicable_action=opt_ai,
+                        trace=trace,
+                    )
                 trace[time] = new_state
                 last_state = new_state
 
@@ -595,7 +609,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             metric_evaluations=None,
                             reason=FailedValidationReason.INAPPLICABLE_ACTION,
                             inapplicable_action=opt_ai,
-                            trace=trace,
+                            trace={k: v for k, v in trace.items() if k <= end},
                         )
                     else:
                         return ValidationResult(
@@ -605,7 +619,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             metric_evaluations=None,
                             reason=FailedValidationReason.UNSATISFIED_GOALS,
                             inapplicable_action=None,
-                            trace=trace,
+                            trace={k: v for k, v in trace.items() if k <= end},
                         )
 
         for g in problem.goals:
