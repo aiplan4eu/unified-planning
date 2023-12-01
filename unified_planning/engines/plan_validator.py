@@ -271,6 +271,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 changes = self._apply_effect(state, se, ai, eff, updates, problem)
                 all_changes.append(changes)
             if sim_eff is not None:
+                assert ai is not None
                 fluents = sim_eff.fluents
                 values = sim_eff.function(
                     problem,
@@ -465,7 +466,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         for invariant in problem.state_invariants:
             durative_conditions.append(
                 (
-                    (0, plan_duration, False),
+                    (Fraction(0), plan_duration, False),
                     next_id,
                     invariant,
                     None,
@@ -484,6 +485,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 start_time, ai, duration = start_actions.pop()
                 if isinstance(ai.action, DurativeAction):
                     da = cast(DurativeAction, ai.action)
+                    assert duration is not None
                     if da.duration.is_left_open():
                         lc = em.GT(duration, da.duration.lower)
                     else:
@@ -511,14 +513,15 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             scheduled_effects, (real_timing, next_id, event, None, ai)
                         )
                         next_id += 1
-                    for timing, event in da.simulated_effects.items():
+                    for timing, sim_eff in da.simulated_effects.items():
                         real_timing = self._instantiate_timing(
                             timing=timing,
                             action_start=start_time,
                             action_duration=duration,
                         )
+                        eff: List[Effect] = []
                         heapq.heappush(
-                            scheduled_effects, (real_timing, next_id, [], event, ai)
+                            scheduled_effects, (real_timing, next_id, eff, sim_eff, ai)
                         )
                         next_id += 1
                     for interval, conditions in da.conditions.items():
@@ -537,11 +540,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                                 )
                             )
                             next_id += 1
-                elif isinstance(InstantaneousAction, ai.action):
-                    a = ai.action
+                elif isinstance(ai.action, InstantaneousAction):
+                    a = cast(InstantaneousAction, ai.action)
                     heapq.heappush(
                         scheduled_effects,
-                        (start_time, next_id, a.effect, a.simulated_effect, ai),
+                        (start_time, next_id, a.effects, a.simulated_effect, ai),
                     )
                     next_id += 1
                     for c in a.preconditions:
@@ -560,7 +563,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
             elif scheduled_effects:
                 time = scheduled_effects[0][0]
-                now_effects: List[Tuple[List[Effect], Optional[ActionInstance]]] = []
+                now_effects: List[
+                    Tuple[
+                        List[Effect],
+                        Optional[SimulatedEffect],
+                        Optional[ActionInstance],
+                    ]
+                ] = []
                 while scheduled_effects and scheduled_effects[0][0] == time:
                     _, _, add_effs, add_sim_effs, opt_ai = heapq.heappop(
                         scheduled_effects
