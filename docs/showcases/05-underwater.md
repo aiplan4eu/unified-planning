@@ -12,7 +12,7 @@ In this context, AI planning techniques may offer solutions to various challenge
 - Exploiting opportunities that may not be considered by standard, rigid plans programmed by humans
 - Help in validating missions proposed/developed by humans
 
-![Hydroner from Saipem](img/hydroner.png)
+![Hydroner from Saipem](img/hydroner_robot.png)
 
 ## Planning Problem Description
 
@@ -32,11 +32,11 @@ Given the set of points to be inspected and the constraints imposed on the missi
 
 Then, we decorate the plan with checkpoints that - during execution - ask the robot to verify whether the real value of a specific resource (e.g., battery level) aligns with the estimated value provided by the checkpoint. To this aim, we use the `SequentialSimulator` to estimate the value of a certain resource at a certain point along the plan.
 
-The decorated plan is translated into a robot-compliant format and sent to the robot for execution. While executing, if a checkpoint is violated because of a contingency (lack of battery) or a new opportunity (battery enough to add other inspection targets), the robot triggers a replan request. We consider the new initial state of the robot, the set of opportunities, and the goals already achieved, and, based on this information, we modify the current planning problem and ask the `Replanner` to find a new solution.
+The decorated plan is translated into a robot-compliant format and sent to the robot for execution. While executing, if a checkpoint is violated because of a contingency (lack of battery) or a new opportunity (battery enough to add other inspection targets), the robot triggers a replan request. We consider the new initial state of the robot, the set of opportunities, and the goals already achieved, and, based on this information, we modify the current planning problem and ask the `Replanner` to find a new solution. 
 
 This software was successfully integrated into the Hydroner architecture, as shown in the following picture.
 
-![Final Architecture](img/hydroner_architecture.png)
+![Final Architecture](img/hydroner_arc.png)
 
 ## Lessons Learned  
 
