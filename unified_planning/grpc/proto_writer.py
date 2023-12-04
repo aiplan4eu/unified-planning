@@ -595,7 +595,7 @@ class ProtobufWriter(Converter):
                 proto.Assignment(fluent=self.convert(x), value=self.convert(v))
                 for (x, v) in problem.initial_values.items()
             ],
-            timed_effects=[self.convert(e) for e in problem.timed_effects],
+            timed_effects=self._convert_timed_effects(problem.timed_effects),
             goals=goals,
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
