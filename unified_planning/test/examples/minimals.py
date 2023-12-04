@@ -75,6 +75,27 @@ def get_example_problems():
     )
     problems["basic_oversubscription"] = basic_oversubscription
 
+    # basic tils
+    x = Fluent("x")
+    a = DurativeAction("a")
+    a.add_effect(EndTiming(), x, True)
+    a.set_fixed_duration(1)
+    problem = Problem("basic_tils")
+    problem.add_fluent(x)
+    problem.add_action(a)
+    problem.set_initial_value(x, False)
+    problem.add_timed_effect(StartTiming(5), x, False)
+    problem.add_goal(x)
+    t_plan = up.plans.TimeTriggeredPlan([(Fraction(5), a(), Fraction(1))])
+    invalid_t_plan = up.plans.TimeTriggeredPlan([(Fraction(3), a(), Fraction(1))])
+    basic_tils = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[t_plan],
+        invalid_plans=[invalid_t_plan],
+    )
+    problems["basic_tils"] = basic_tils
+
     # complex conditional
     fluent_a = Fluent("fluent_a")
     fluent_b = Fluent("fluent_b")
