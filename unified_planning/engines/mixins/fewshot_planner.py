@@ -34,7 +34,7 @@ class FewshotPlannerMixin(ABC):
         output_stream: Optional[IO[str]] = None,
     ) -> List["up.engines.results.PlanGenerationResult"]:
         """
-        This method takes a list of `AbstractProblem`s and returns a `PlanGenerationResult`,
+        This method takes a list of `AbstractProblem`s and returns a list of `PlanGenerationResult`,
         which contains information about the solution to the problems given by the generalized planner.
 
         :param problems: is the list of `AbstractProblem`s to solve.
