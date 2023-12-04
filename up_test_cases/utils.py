@@ -253,4 +253,12 @@ def get_report_parser() -> argparse.ArgumentParser:
         default=DEFAULT_TIMEOUT,
     )
 
+    parser.add_argument(
+        "-d",
+        "--deliverable",
+        action="store_true",
+        dest="deliverable",
+        help=f"Adds information needed in the evaluation report",
+    )
+
     return parser

@@ -68,6 +68,7 @@ def report_runtime(
     total_time: float,
     max_overhead: float,
     adjust_docker_overhead: bool = True,
+    deliverable: bool = False,
 ) -> str:
     internal_time_str = None
     if metrics is not None:
@@ -83,18 +84,26 @@ def report_runtime(
         ) / internal_time
     else:
         overhead_percentage = None
-    if total_time > 1 and overhead_percentage is not None:
-        overhead_str = "{:.0%}".format(overhead_percentage)
-        overhead = (
-            Ok(overhead_str)
-            if overhead_percentage < max_overhead
-            else Warn(overhead_str)
-        )
-        runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
-    elif total_time < 1:
-        runtime_report = "{:.3f}s {}".format(total_time, Ok("<1s")).ljust(30)
+    if deliverable:
+        if total_time > 1 and overhead_percentage is not None:
+            overhead_str = "{:.0%}".format(overhead_percentage)
+            overhead = (
+                Ok(overhead_str)
+                if overhead_percentage < max_overhead
+                else Warn(overhead_str)
+            )
+            runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
+        elif total_time < 1:
+            runtime_report = "{:.3f}s {}".format(total_time, Ok("<1s")).ljust(30)
+        else:
+            runtime_report = "{:.3f}s".format(total_time).ljust(30)
     else:
-        runtime_report = "{:.3f}s".format(total_time).ljust(21)
+        if internal_time_str is not None:
+            runtime_report = "{:.3f}s ({:.3f}s)".format(
+                total_time, internal_time
+            ).ljust(30)
+        else:
+            runtime_report = "{:.3f}s".format(total_time).ljust(30)
     return runtime_report
 
 
@@ -238,7 +247,10 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
 
 
 def report_oneshot(
-    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
+    engines: List[str],
+    problems: Dict[str, TestCase],
+    timeout: Optional[float],
+    deliverable,
 ) -> List[Tuple[str, str]]:
     """Run all oneshot planners on all the given problems"""
 
@@ -296,7 +308,10 @@ def report_oneshot(
                     if not outcome.ok():
                         errors.append((planner_id, name))
                     runtime_report = report_runtime(
-                        result.metrics, total_execution_time, 0.10
+                        result.metrics,
+                        total_execution_time,
+                        0.10,
+                        deliverable=deliverable,
                     )
                     print(status, "    ", runtime_report, outcome)
 
@@ -316,7 +331,7 @@ def report_oneshot(
 
 
 def report_plan_repair(
-    engines: List[str], problems: Dict[str, TestCase]
+    engines: List[str], problems: Dict[str, TestCase], deliverable: bool
 ) -> List[Tuple[str, str]]:
     """Run all plan repairer on all the given problems"""
 
@@ -357,7 +372,10 @@ def report_plan_repair(
                         if not outcome.ok():
                             errors.append((planner_id, f"{name} [{i}]"))
                         runtime_report = report_runtime(
-                            result.metrics, total_execution_time, 0.10
+                            result.metrics,
+                            total_execution_time,
+                            0.10,
+                            deliverable=deliverable,
                         )
                         print(status, "    ", runtime_report, outcome)
 
@@ -417,7 +435,10 @@ def check_all_optimal_solutions(
 
 
 def report_anytime(
-    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
+    engines: List[str],
+    problems: Dict[str, TestCase],
+    timeout: Optional[float],
+    deliverable: bool,
 ) -> List[Tuple[str, str]]:
     """Run all anytime planners on all problems that start with the given prefix"""
 
@@ -478,7 +499,10 @@ def report_anytime(
                             test_case, metrics_evaluations
                         )
                     runtime_report = report_runtime(
-                        result.metrics, total_execution_time, 0.15
+                        result.metrics,
+                        total_execution_time,
+                        0.15,
+                        deliverable=deliverable,
                     )
                     print(status, "    ", runtime_report, outcome)
 
@@ -499,7 +523,7 @@ def report_anytime(
 
 
 def report_validation(
-    engines: List[str], problems: Dict[str, TestCase]
+    engines: List[str], problems: Dict[str, TestCase], deliverable: bool
 ) -> List[Tuple[str, str]]:
     """Checks that all given plan validators produce the correct output on test-cases."""
     factory = get_environment().factory
@@ -533,7 +557,7 @@ def report_validation(
                 total_execution_time = time.time() - start
                 print(str(result.status.name).ljust(25), end="      ")
                 runtime_report = report_runtime(
-                    result.metrics, total_execution_time, 0.05
+                    result.metrics, total_execution_time, 0.05, deliverable=deliverable
                 )
                 print(runtime_report, end="")
                 if result.status == ValidationResultStatus.VALID:
@@ -558,7 +582,7 @@ def report_validation(
                 total_execution_time = time.time() - start
                 print(str(result.status.name).ljust(25), end="      ")
                 runtime_report = report_runtime(
-                    result.metrics, total_execution_time, 0.05
+                    result.metrics, total_execution_time, 0.05, deliverable=deliverable
                 )
                 print(runtime_report, end="")
                 if result.status == ValidationResultStatus.INVALID:
@@ -681,17 +705,25 @@ def main():
     grounding_errors = []
     repair_errors = []
 
+    deliverable = parsed_args.deliverable
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
 
         if "oneshot" in modes:
-            oneshot_errors = report_oneshot(engines, problem_test_cases, timeout)
+            oneshot_errors = report_oneshot(
+                engines, problem_test_cases, timeout, deliverable
+            )
         if "anytime" in modes:
-            anytime_errors = report_anytime(engines, problem_test_cases, timeout)
+            anytime_errors = report_anytime(
+                engines, problem_test_cases, timeout, deliverable
+            )
         if "repair" in modes:
-            repair_errors = report_plan_repair(engines, problem_test_cases)
+            repair_errors = report_plan_repair(engines, problem_test_cases, deliverable)
         if "validation" in modes:
-            validation_errors = report_validation(engines, problem_test_cases)
+            validation_errors = report_validation(
+                engines, problem_test_cases, deliverable
+            )
         if "grounding" in modes:
             grounding_errors = report_grounding(engines, problem_test_cases)
 

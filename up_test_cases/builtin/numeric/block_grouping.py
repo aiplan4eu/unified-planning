@@ -13,11 +13,6 @@ ProblemMetadata = namedtuple(
 
 problems_meta_data = [
     ProblemMetadata(5, 5, 1, 1),
-    # ProblemMetadata(5, 5, 2, 2), # TODO choose which to keep
-    # ProblemMetadata(5, 5, 2, 3),
-    # ProblemMetadata(11, 10, 2, 4),
-    # ProblemMetadata(20, 25, 3, 5),
-    # ProblemMetadata(20, 25, 4, 6),
 ]
 
 
@@ -108,7 +103,6 @@ def get_test_cases():
                     )
                 )
 
-        # TODO add plans
         res[problem.name] = TestCase(problem=problem, solvable=True)
 
     return res
