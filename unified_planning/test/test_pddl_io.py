@@ -479,6 +479,7 @@ class TestPddlIO(unittest_TestCase):
                 kind.has_intermediate_conditions_and_effects()
                 or kind.has_object_fluents()
                 or kind.has_oversubscription()
+                or kind.has_timed_effects()
                 or kind.has_timed_goals()
                 or kind.has_bool_fluent_parameters()
                 or kind.has_bounded_int_fluent_parameters()
