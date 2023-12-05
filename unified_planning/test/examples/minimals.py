@@ -78,29 +78,29 @@ def get_example_problems():
     # basic tils (timed initial literals)
     x = Fluent("x")
     y = Fluent("y")
-    a = DurativeAction("a")
-    a.set_fixed_duration(1)
-    a.add_effect(EndTiming(), x, True)
-    a.add_condition(TimeInterval(StartTiming(), EndTiming()), y)
+    da = DurativeAction("a")
+    da.set_fixed_duration(1)
+    da.add_effect(EndTiming(), x, True)
+    da.add_condition(TimeInterval(StartTiming(), EndTiming()), y)
     problem = Problem("basic_tils")
     problem.add_fluent(x)
-    problem.add_action(a)
+    problem.add_action(da)
     problem.set_initial_value(x, False)
     problem.add_timed_effect(StartTiming(5), x, False)
     problem.set_initial_value(y, False)
     problem.add_timed_effect(StartTiming(2), y, True)
     problem.add_timed_effect(StartTiming(8), y, False)
     problem.add_goal(x)
-    t_plan = up.plans.TimeTriggeredPlan([(Fraction(6), a(), Fraction(1))])
-    invalid_t_plans = [
+    t_plan = up.plans.TimeTriggeredPlan([(Fraction(6), da(), Fraction(1))])
+    invalid_t_plans: List[up.plans.Plan] = [
         # condition not established
-        up.plans.TimeTriggeredPlan([(Fraction(1), a(), Fraction(1))]),
+        up.plans.TimeTriggeredPlan([(Fraction(1), da(), Fraction(1))]),
         # effect would be undone by TIL
-        up.plans.TimeTriggeredPlan([(Fraction(3), a(), Fraction(1))]),
+        up.plans.TimeTriggeredPlan([(Fraction(3), da(), Fraction(1))]),
         # effect would collide with TIL
-        up.plans.TimeTriggeredPlan([(Fraction(4), a(), Fraction(1))]),
+        up.plans.TimeTriggeredPlan([(Fraction(4), da(), Fraction(1))]),
         # condition not established
-        up.plans.TimeTriggeredPlan([(Fraction(9), a(), Fraction(1))]),
+        up.plans.TimeTriggeredPlan([(Fraction(9), da(), Fraction(1))]),
     ]
 
     basic_tils = TestCase(
