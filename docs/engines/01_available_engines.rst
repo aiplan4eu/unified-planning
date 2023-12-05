@@ -40,6 +40,12 @@ Action-Based Planning
     - Y
     - Y
     - 
+  * - `LPG`_
+    - OneShot, Repair, Anytime
+    - Y
+    - Y
+    - Y
+    - plan length, makespan, action costs
   * - `Aries`_ [#aries-actions]_
     - OneShot, Anytime
     - Y
@@ -52,12 +58,7 @@ Action-Based Planning
     - 
     - 
     - 
-  * - `LPG`_
-    - OneShot,PlanRepairer, Anytime
-    - Y
-    - Y
-    - Y
-    - plan length, makespan, action costs
+
 .. [#aries-actions] Aries' focus is on hierarchical planning and scheduling and is likely not competitive with other planners in action-based planning.
 .. [#pyperplan-note] Pyperplan is mostly intended for education purposes and cannot be expected to scale to non-trivial problems.
 
