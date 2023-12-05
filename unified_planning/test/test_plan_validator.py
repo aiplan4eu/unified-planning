@@ -17,7 +17,11 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import SequentialPlanValidator, ValidationResultStatus
+from unified_planning.engines import (
+    SequentialPlanValidator,
+    ValidationResultStatus,
+    TimeTriggeredPlanValidator,
+)
 from unified_planning.environment import get_environment
 
 
@@ -27,14 +31,32 @@ class TestProblem(unittest_TestCase):
         self.problems = get_example_problems()
 
     def test_all(self):
-        pv = SequentialPlanValidator(environment=get_environment())
+        spv = SequentialPlanValidator(environment=get_environment())
+        ttpv = TimeTriggeredPlanValidator(environment=get_environment())
         for p in self.problems.values():
-            if not pv.supports(p.problem.kind):
-                continue
-            problem, plan = p.problem, p.valid_plans[0]
-            if SequentialPlanValidator.supports(problem.kind):
-                validation_result = pv.validate(problem, plan)
-                self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+            problem = p.problem
+            for plan in p.valid_plans:
+                if spv.supports(problem.kind) and spv.supports_plan(plan.kind):
+                    validation_result = spv.validate(problem, plan)
+                    self.assertEqual(
+                        validation_result.status, ValidationResultStatus.VALID
+                    )
+                if ttpv.supports(problem.kind) and ttpv.supports_plan(plan.kind):
+                    validation_result = ttpv.validate(problem, plan)
+                    self.assertEqual(
+                        validation_result.status, ValidationResultStatus.VALID
+                    )
+            for plan in p.invalid_plans:
+                if spv.supports(problem.kind) and spv.supports_plan(plan.kind):
+                    validation_result = spv.validate(problem, plan)
+                    self.assertEqual(
+                        validation_result.status, ValidationResultStatus.INVALID
+                    )
+                if ttpv.supports(problem.kind) and ttpv.supports_plan(plan.kind):
+                    validation_result = ttpv.validate(problem, plan)
+                    self.assertEqual(
+                        validation_result.status, ValidationResultStatus.INVALID
+                    )
 
     def test_all_from_factory(self):
         with PlanValidator(name="sequential_plan_validator") as pv:
