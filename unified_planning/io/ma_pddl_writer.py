@@ -760,28 +760,26 @@ class MAPDDLWriter:
     def write_ma_domain(self, directory_name):
         """Dumps to file the `MA-PDDL` domains."""
         ag_domains = self._write_domain()
-        outdir_ma_pddl = "ma_pddl_" + directory_name
-        osy.makedirs(outdir_ma_pddl, exist_ok=True)
+        osy.makedirs(directory_name, exist_ok=True)
         for ag, domain in ag_domains.items():
             if not self.unfactored:
-                name_domain = ag
+                name_domain = ag + "_"
             else:
-                name_domain = _get_pddl_name(self.problem)
-            path_ma_pddl = osy.path.join(outdir_ma_pddl, name_domain + "_domain.pddl")
+                name_domain = ""
+            path_ma_pddl = osy.path.join(directory_name, name_domain + "domain.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(domain)
 
     def write_ma_problem(self, directory_name):
         """Dumps to file the `MA-PDDL` problems."""
         ag_problems = self._write_problem()
-        outdir_ma_pddl = "ma_pddl_" + directory_name
-        osy.makedirs(outdir_ma_pddl, exist_ok=True)
+        osy.makedirs(directory_name, exist_ok=True)
         for ag, problem in ag_problems.items():
             if not self.unfactored:
-                name_problem = ag
+                name_problem = ag + "_"
             else:
-                name_problem = _get_pddl_name(self.problem)
-            path_ma_pddl = osy.path.join(outdir_ma_pddl, name_problem + "_problem.pddl")
+                name_problem = ""
+            path_ma_pddl = osy.path.join(directory_name, name_problem + "problem.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(problem)
 

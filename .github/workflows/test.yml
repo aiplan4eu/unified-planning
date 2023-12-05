@@ -8,11 +8,11 @@ on:
         type: string
 
 env:
-  up_tamer_commit: "db6709d7c465d52db6d1522206b199e30aed23a1"
-  up_pyperplan_commit: "d6d54f8a8b67e7653599e007a8373245fb2fffd3"
+  up_tamer_commit: "4d179b5c2722758127bf684d732a6a44431a1732"
+  up_pyperplan_commit: "6cec570b88d62ca5c4b8029a60c704414fe7f6a9"
   up_fast_downward_commit: "090977461c6a55812bc16d5e2df55e556dbbdfb5"
   up_enhsp_commit: "af93cd799974626ac17b8aaf1a83975f75c073ab"
-  up_fmap_commit: "98a837f42b9d8d1aaf4c2afe39c9a78cbd5f4043"
+  up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
 
 jobs:
   basic-check:
