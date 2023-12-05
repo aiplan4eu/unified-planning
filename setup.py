@@ -29,7 +29,7 @@ setup(
         "fast-downward": ["up-fast-downward==0.4.0"],
         "lpg": ["up-lpg==0.0.10"],
         "fmap": ["up-fmap==0.0.12"],
-        "aries": ["up-aries>=0.3.1"],
+        "aries": ["up-aries>=0.3.2"],
         "symk": ["up-symk>=1.0.1"],
         "engines": [
             "tarski[arithmetic]",
@@ -39,7 +39,7 @@ setup(
             "up-fast-downward==0.4.0",
             "up-lpg==0.0.10",
             "up-fmap==0.0.12",
-            "up-aries>=0.3.1",
+            "up-aries>=0.3.2",
             "up-symk>=1.0.1",
         ],
         "plot": [
