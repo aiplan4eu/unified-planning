@@ -40,6 +40,12 @@ Action-Based Planning
     - Y
     - Y
     - 
+  * - `LPG`_
+    - OneShot, Repair, Anytime
+    - Y
+    - Y
+    - Y
+    - plan length, makespan, action costs
   * - `Aries`_ [#aries-actions]_
     - OneShot, Anytime
     - Y
