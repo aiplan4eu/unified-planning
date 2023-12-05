@@ -24,7 +24,7 @@ In the Unified-Planning library, we first define the robot and its resources. To
 
 Once both the system and its resources are defined, we can construct the planning problem we want to solve: the underwater inspection of a set of possibly ordered and prioritized targets with resource consumption optimization (e.g., time, battery, data capacity). That is, a *temporal* planning problem where goals may include makespan minimization and temporal intervals within which inspection targets should be reached. We use *oversubscription* to order goals and mark them as optional, while battery consumption and data storage are numeric resources that can be constrained. In this context, we use `DurativeActions` to account for the time required to accomplish an action (e.g., moving from a start location to a goal one).
   
-With the assumption that the robotic tasks under consideration cannot be executed in parallel,  we model the problem also as a *numeric* planning problem. In this case, we consider `InstantaneousActions` and time is a numeric fluent also constrained. 
+In some cases, the robotic tasks under consideration cannot be executed in parallel. There, we propose an alternative formulation as a *numeric* planning problem. In this case, we consider only `InstantaneousActions` and model time as a numeric fluent (one par agent) updated by the agents' actions.
 
 ## Operation Modes and Integration Aspects
 
@@ -51,4 +51,3 @@ By exploring different experimental setups, we've gained valuable insights regar
 ## Resources
 
 - [Planning for Subsea page](https://www.ai4europe.eu/business-and-industry/case-studies/underwater-operations)
-c
