@@ -84,6 +84,7 @@ def get_example_problems():
     da.add_condition(TimeInterval(StartTiming(), EndTiming()), y)
     problem = Problem("basic_tils")
     problem.add_fluent(x)
+    problem.add_fluent(y)
     problem.add_action(da)
     problem.set_initial_value(x, False)
     problem.add_timed_effect(StartTiming(5), x, False)
