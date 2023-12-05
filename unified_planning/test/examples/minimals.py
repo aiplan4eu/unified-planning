@@ -75,24 +75,39 @@ def get_example_problems():
     )
     problems["basic_oversubscription"] = basic_oversubscription
 
-    # basic tils
+    # basic tils (timed initial literals)
     x = Fluent("x")
+    y = Fluent("y")
     a = DurativeAction("a")
-    a.add_effect(EndTiming(), x, True)
     a.set_fixed_duration(1)
+    a.add_effect(EndTiming(), x, True)
+    a.add_condition(TimeInterval(StartTiming(), EndTiming()), y)
     problem = Problem("basic_tils")
     problem.add_fluent(x)
     problem.add_action(a)
     problem.set_initial_value(x, False)
     problem.add_timed_effect(StartTiming(5), x, False)
+    problem.set_initial_value(y, False)
+    problem.add_timed_effect(StartTiming(2), y, True)
+    problem.add_timed_effect(StartTiming(8), y, False)
     problem.add_goal(x)
-    t_plan = up.plans.TimeTriggeredPlan([(Fraction(5), a(), Fraction(1))])
-    invalid_t_plan = up.plans.TimeTriggeredPlan([(Fraction(3), a(), Fraction(1))])
+    t_plan = up.plans.TimeTriggeredPlan([(Fraction(6), a(), Fraction(1))])
+    invalid_t_plans = [
+        # condition not established
+        up.plans.TimeTriggeredPlan([(Fraction(1), a(), Fraction(1))]),
+        # effect would be undone by TIL
+        up.plans.TimeTriggeredPlan([(Fraction(3), a(), Fraction(1))]),
+        # effect would collide with TIL
+        up.plans.TimeTriggeredPlan([(Fraction(4), a(), Fraction(1))]),
+        # condition not established
+        up.plans.TimeTriggeredPlan([(Fraction(9), a(), Fraction(1))]),
+    ]
+
     basic_tils = TestCase(
         problem=problem,
         solvable=True,
         valid_plans=[t_plan],
-        invalid_plans=[invalid_t_plan],
+        invalid_plans=invalid_t_plans,
     )
     problems["basic_tils"] = basic_tils
 
