@@ -4,7 +4,7 @@
 
 The 'Automated Experiment Design Domain TSB' aims at improving efficiency and flexibility of an industrial scenario at Procter&Gamble, where robots are employed to support people in the development of automated quality tests, considering in particular testing laundry detergent soluble pouches. 
 
-Quality tests consist in measuring certain pouch features, such as weight, dimensions, film elasticity, pouch tightness, pouch strength (resistance to compression), and are typically carried out by a human operator aided by a robotic arm, using different instruments. Since instruments can be operated with several settings (e.g., strength can be tested by applying constant compression force, constant compression rate, a mix of the two, etc.) and tests may need different settings, the overall procedure varies in each testing session.
+Quality tests consist in measuring certain pouch features, such as weight, dimensions, film elasticity, tightness, strength (resistance to compression), and are typically carried out by a human operator cooperating with a robotic arm, using different measure instruments. Since instruments can operate with several settings (e.g., strength can be tested by applying constant compression force, constant compression rate, a mix of the two, etc.) and tests may need different settings, the overall procedure varies in each testing session.
 
 The typical operations include:
 - Picking up individual pouches from product containers
@@ -16,14 +16,14 @@ The typical operations include:
 - Recording visual observations, such as possible breakage area or type of failure
 - Disposing the pouch
 
-Manually handling the overall procedure is a very intensive task, which may employ many people for entire days.
+Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. The objective of the Automated Experiment Design Domain is to automatize the test procedures, so as to increase flexibility and efficiency of the system.  In particualar, the TSB aims at:
 
-The main objective of the Automated Experiment Design Domain is to automatize the test procedures. 
+The main goal is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover,  we would like to empower non-robotics-experts (i.e., P&G lab users) to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
 
-- Producing automatically validated Partial Activity Plans from a set of goals provided by the operator,
-- Producing Consolidated Activity Plans to be uploaded to the robotic system for execution. A Consolidated Activity Plan is defined as an aggregation of Partial Activity Plans proposed by geographically distributed teams of engineers and scientists participating in the mission,
-- Integrate the resulting system into the ESA/TRASYS 3DROCS Space Robotics Ground Control Station (GCS),
-- Validate the end-to-end system on real examples as foreseen in the ExoMars mission.
+
+- Increasing flexibility by facilitating the definition of testing procedures without the need for hard-coding them 
+- Reducing time and resources needed for the development of testing procedures, by providing an intuitive platform usable also to non-specialits
+- Facilitating the cooperation of the robotic arm with human operators, during test execution
 
 ![ExoMars rover](img/rover_exomars.jpg)
 
