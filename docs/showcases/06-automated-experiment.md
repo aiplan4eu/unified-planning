@@ -6,7 +6,7 @@ The 'Automated Experiment Design Domain TSB' aims at improving efficiency and fl
 
 Quality tests consist in measuring certain pouch features, such as weight, dimensions, film elasticity, tightness, strength (resistance to compression), and are typically carried out by a human operator cooperating with a robotic arm, using different measure instruments. Since instruments can operate with several settings (e.g., strength can be tested by applying constant compression force, constant compression rate, a mix of the two, etc.) and tests may need different settings, the overall procedure varies in each testing session.
 
-The typical operations include:
+Typical operations include:
 - Picking up individual pouches from product containers
 - Identifying pouches (production codes, production line, etc.) and labeling in the data system
 - Deciding the sequence of tests to carry out, based on pouch type and project
@@ -16,11 +16,12 @@ The typical operations include:
 - Recording visual observations, such as possible breakage area or type of failure
 - Disposing the pouch
 
+<img src='img/automated-experiments.png' width='350'>
+<!--![Automated Experiments](img/automated-experiments.png | width="100")-->
+
 Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. 
 
 The main goal of the 'Automated Experiment Design Domain' TSB is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases, while reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover, the TSB aims at empowering non-robotics-experts to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
-
-![Automated Experiments](img/automated-experiments.png)
 
 ## Planning Problem Description
 
