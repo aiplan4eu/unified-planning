@@ -91,7 +91,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        return UPSequentialSimulator.supported_kind()
+        supported_kind = UPSequentialSimulator.supported_kind()
+        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
+        return supported_kind
 
     @staticmethod
     def supports(problem_kind):
@@ -265,32 +268,39 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     ) -> UPState:
         updates: Dict[FNode, FNode] = {}
         assigned: Set[FNode] = set()
-        all_changes = []
         for effs, sim_eff, ai in effects:
             for eff in effs:
                 changes = self._apply_effect(state, se, ai, eff, updates, problem)
-                all_changes.append(changes)
+                for f, v in changes.items():
+                    if f in assigned or (f in updates and eff.is_assignment()):
+                        if f.type.is_bool_type():
+                            # Handle "delete before add" semantics
+                            if v.bool_constant_value():
+                                updates[f] = v
+                        else:
+                            raise UPConflictingEffectsException("Double effect")
+                    else:
+                        updates[f] = v
+                        if eff.is_assignment():
+                            assigned.add(f)
             if sim_eff is not None:
                 assert ai is not None
-                fluents = sim_eff.fluents
+                fluents = [self._ground_expression(f, ai) for f in sim_eff.fluents]
                 values = sim_eff.function(
                     problem,
                     state,
                     dict(zip(ai.action.parameters, ai.actual_parameters)),
                 )
-                all_changes.append(dict(zip(fluents, values)))
-        for changes in all_changes:
-            for f, v in changes.items():
-                if f in assigned or (f in updates and eff.is_assignment()):
-                    if f.type.is_bool_type():
-                        # Handle "delete before add" semantics
-                        if v.bool_constant_value():
-                            updates[f] = v
+                for f, v in zip(fluents, values):
+                    if f in updates:
+                        if f.type.is_bool_type():
+                            # Handle "delete before add" semantics
+                            if v.bool_constant_value():
+                                updates[f] = v
+                        else:
+                            raise UPConflictingEffectsException("Double effect")
                     else:
-                        raise UPConflictingEffectsException("Double effect")
-                else:
-                    updates[f] = v
-                    if eff.is_assignment():
+                        updates[f] = v
                         assigned.add(f)
         return state.make_child(updated_values=updates)
 
@@ -381,10 +391,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         if ai is None:
             return formula
         else:
-            params: Any = {}
-            for p, ap in zip(ai.action.parameters, ai.actual_parameters):
-                params[p] = ap
-            return formula.substitute(params)
+            return formula.substitute(
+                dict(zip(ai.action.parameters, ai.actual_parameters))
+            )
 
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
