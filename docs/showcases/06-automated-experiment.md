@@ -18,9 +18,9 @@ The typical operations include:
 
 Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. 
 
-The main goal of the Automated Experiment Design Domain TSB is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases, while reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover, the TSB aims at empowering non-robotics-experts to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
+The main goal of the 'Automated Experiment Design Domain' TSB is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases, while reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover, the TSB aims at empowering non-robotics-experts to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
 
-![ExoMars rover](img/rover_exomars.jpg)
+![Automated Experiments](img/automated-experiments.png)
 
 ## Planning Problem Description
 
@@ -28,11 +28,8 @@ The planning problem in question revolves around a rover designed for Mars explo
 
 ## Modeling in UP
 
-The modeling in the unified-planning library of this problem employed all the different types of fluents to accurately represent the rover's state and the status of its subsystems. To capture the state of these subsystems, boolean fluents and user-defined types were used, enabling a precise representation of the robot's condition. Additionally, numeric fluents were employed to represent and manage essential resources, such as battery power and storage space, within the rover. To address the unique nature of the mission's goal, extra fluents were introduced to capture the partial plans that needed to be completed for mission success.
+The problem is modelled using the Unified Planning (UP) framework through the specification of predicates and actions needed to describe the application domain. The level of abstraction of predicates and actions has been tuned with a bottom-up approach, where procedures implementing predicate and action functionalities have been first developed and tested on the real scenario and in the simulator to guarantee applicability and then they have been described as domain and problem specifications using the UP framework. We defined different domains and problems to show the flexibility of the solution and we used both single-agent and multi-agent formalizations in order to improve the effectiveness of the solution.
 
-To provide a flexible and adaptable approach to planning, two planning models were constructed at different levels of abstraction. The more detailed model adopted a temporal planning approach, utilizing DurativeActions to account for the time required for various tasks and actions. This model was subsequently abstracted into a numerical planning model, where all actions were considered instantaneous (InstantaneousAction). This simplification was based on the assumption that, in the current system, robotic tasks could not be effectively parallelized.
-
-In an experimental iteration of the model, SimulatedEffects were explored as a means to represent resources that required external evaluation through a "Rehearsal-As-A-Service" tool. This allowed for a more dynamic representation of resource management within the planning framework, adapting to the complexities and uncertainties of Mars exploration. However, this version turned out to be too computationally expensive.
 
 ## Operation Modes and Integration Aspects
 
