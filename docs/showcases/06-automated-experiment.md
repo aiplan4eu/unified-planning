@@ -31,25 +31,14 @@ The planning problem in question revolves around a rover designed for Mars explo
 The problem is modelled using the Unified Planning (UP) framework through the specification of predicates and actions needed to describe the application domain. The level of abstraction of predicates and actions has been tuned with a bottom-up approach, where procedures implementing predicate and action functionalities have been first developed and tested on the real scenario and in the simulator to guarantee applicability and then they have been described as domain and problem specifications using the UP framework. We defined different domains and problems to show the flexibility of the solution and we used both single-agent and multi-agent formalizations in order to improve the effectiveness of the solution.
 
 Two modeling approaches where considered. One uses Multi-Agent Planning which, by modeling the various measure instruments as distinct agents, 
-naturally enables parallel and independent execution of the measure instruments, which in turn leads to significant saving in execution time, wrt sequential solutions, where instruments run sequentially.  As to the second, in order to further increase the saving in exectuion time, the original problem instance was decomposed into smaller planning instances, which were solved independently and then recomposed to maximize parallelization. The latter approach resulted the most effective.
+naturally enables parallel and independent execution of the measure instruments, which in turn leads to significant saving in execution time, wrt sequential solutions, where instruments run sequentially.  As to the second, called 'post-parallelization' approach, in order to further increase the saving in execution time, instead of solving the original problem instance, a simplified version on a smaller number of pouches was solved, and several replicas of the resulting plan were then combined in parallel, so as to deal with the original number of pouches. This latter approach resulted the most effective.
 
 ## Operation Modes and Integration Aspects
 
-The `OneShotPlanner` mode was used to produce the solution plan. In fact, when the number of pouches to deal with was very high, 
-
-The `Sequential Simulator` mode was uswd to 
-- `Compiler`
+The `OneShotPlanner` mode was used to produce the solution plan. This is the simpolest way to obtain a plan for an input problem instance. 
+The `Sequential Simulator` mode was used for combining and parallelizing the plans that solve the easier problem, in the post-parallelization approach. The `Compiler` mode was used to switch from a multi-agent to a sequential representation of the problem in the post-parallelization approach.
 
 
-
-
-Several Operation Modes were used to facilitate different aspects of the planning and execution process. One such mode is `OneshotPlanning` which serves as the primary approach for generating plans. This mode allows the system to efficiently determine a feasible plan to accomplish specific mission objectives, ensuring that the rover's tasks and actions are executable and optimized.
-
-To further enhance the planning process, the `SequentialSimulator` mode was introduced. This mode was used in an approach where goals are serialized, and the simulator is invoked between calls to the Oneshot Planner. By simulating the outcome of each planning phase, the initial state is updated accordingly for the subsequent call to the planner.
-
-Moreover, the `PlanValidation` was exploited: this operation mode allows for the validation of manually defined plans, ensuring they meet predefined criteria and constraints. Users can leverage this mode to verify that their plans align with mission objectives and do not violate critical constraints, thereby enhancing the overall success and safety of the Mars rover mission.
-
-This software bridge was successfully integrated into an operational environment for supporting the tactical activity planning of rovers targeting robotic planetary exploration. The operation modes were easily wrapped in a service callable by 3DROCS using REST API.
 
 ## Lessons Learned
 
