@@ -42,7 +42,6 @@ The `Sequential Simulator` mode was used for combining and parallelizing the pla
 
 ## Lessons Learned
 
-In solving this use case, we've learned that expressiveness in problem modeling comes at a cost and can slow down the planning process. Keeping things simple and straightforward, striking a balance between detail and simplicity, is a more effective strategy for finding solutions in shorter, more efficient timeframes. This approach has allowed us to enhance the adaptability of the planning system to the needs of the use case.
 
 ## Resources
 
