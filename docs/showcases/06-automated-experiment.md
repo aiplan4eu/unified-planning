@@ -16,14 +16,9 @@ The typical operations include:
 - Recording visual observations, such as possible breakage area or type of failure
 - Disposing the pouch
 
-Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. The objective of the Automated Experiment Design Domain is to automatize the test procedures, so as to increase flexibility and efficiency of the system.  In particualar, the TSB aims at:
+Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. 
 
-The main goal is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover,  we would like to empower non-robotics-experts (i.e., P&G lab users) to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
-
-
-- Increasing flexibility by facilitating the definition of testing procedures without the need for hard-coding them 
-- Reducing time and resources needed for the development of testing procedures, by providing an intuitive platform usable also to non-specialits
-- Facilitating the cooperation of the robotic arm with human operators, during test execution
+The main goal of the Automated Experiment Design Domain TSB is to demonstrate the effectiveness of AI planning technology integrated with robotics solutions in delivering a high number of robotics procedures for the various use-cases, while reducing manual operations and planning that currently limit flexibility and efficiency of the system. Moreover, the TSB aims at empowering non-robotics-experts to be able to customise, adapt, and change the course of the robotics procedures, using natural interfaces.
 
 ![ExoMars rover](img/rover_exomars.jpg)
 
