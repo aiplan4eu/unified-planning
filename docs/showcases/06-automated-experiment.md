@@ -53,6 +53,6 @@ Modularity is a fundamental prerequisite to apply AI planning technology and, in
 
 
 ## Resources
-<!--
-- [Planning for Space page](https://www.ai4europe.eu/business-and-industry/case-studies/planning-space)
-- TSB for the Space Use Case. [Github](https://github.com/aiplan4eu/tsb-space) -->
+- [Automated Experiment Design Page](https://www.ai4europe.eu/business-and-industry/case-studies/automated-experiment-design)
+- [The Automated Experiment Design TSB at Work](https://drive.google.com/file/d/1GtYw0D-mhQpF1wzT9OEC6QrBxynaFU0k/view?usp=drive_link)
+
