@@ -47,8 +47,12 @@ The system needs to interact with the Procter & Gamble data infrastructure to re
 
 ## Lessons Learned
 
+Lessons learned include an approach to apply AI planning techniques to industrial scenarios in which an operational solution is already existing, but is not flexible and easily extensible. For example, it cannot be easily adapted to new situations or to achieve new goals.
+In this context, we applied a methodology based on modularizing the existing solution and building (through an iterative process) an AI planning domain to describe the modules (in terms of actions) and their properties (as predicates and fluents). Such a planning domain can then be used to solve different problems varying initial states and goals, thus overcoming the difficulties arising from a non-flexible and non-modular solution. 
+Modularity is a fundamental prerequisite to apply AI planning technology and, in turn, applying AI planning forces the development of modular domain-specific components.
+
 
 ## Resources
-
+<!--
 - [Planning for Space page](https://www.ai4europe.eu/business-and-industry/case-studies/planning-space)
-- TSB for the Space Use Case. [Github](https://github.com/aiplan4eu/tsb-space)
+- TSB for the Space Use Case. [Github](https://github.com/aiplan4eu/tsb-space) -->
