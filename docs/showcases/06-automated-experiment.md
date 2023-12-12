@@ -16,8 +16,7 @@ Typical operations include:
 - Recording visual observations, such as possible breakage area or type of failure
 - Disposing the pouch
 
-<img src='img/automated-experiments.png' width='350'>
-<!--![Automated Experiments](img/automated-experiments.png | width="100")-->
+![Automated Experiments](img/automated-experiments.png)
 
 Manually handling the overall procedure is a very intensive task, which may employ many people for entire days. Moreover, the robotic arm requires being re-programmed every time a change in the procedure is to be applied. 
 
@@ -40,7 +39,7 @@ The `OneShotPlanner` mode was used to produce the solution plan. This is the sim
 
 The system architecture depicted below has been fully implemented and validated in the real environment with P&G facilities.
 
-<img src='img/pg-architecture.png' width='700'>
+![Automated Experiments Architecture](img/pg-architecture.png)
 
 The system needs to interact with the Procter & Gamble data infrastructure to receive instructions and export generated results. Lab and plant operators enter into the corporate system the identification of all the samples to be measured and which specific measure and sequence need to be executed on each of them, as well as the priority of each sample. The planning system receives this stream of data via a dedicated API. The planning system continuously adapts the testing scheduling according to the received info. To perform the required lab measurements the robotics system interacts with the various instruments present in the testing unit, via an integration layer which has been implemented in ROS. Each instrument is now modelled as a ROS node, and exchanges commands and data via a messaging system. The central controller handles this stream of communication and exports the generated data, linked with the product IDs, to the P&G data systems via API connections. 
 
