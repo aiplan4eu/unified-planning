@@ -14,12 +14,21 @@
 #
 
 
+from itertools import chain
 import unified_planning as up
 import unified_planning.plans as plans
-from unified_planning.model import InstantaneousAction, Timing, DurativeAction, Problem
+from unified_planning.model import (
+    InstantaneousAction,
+    Timing,
+    DurativeAction,
+    Problem,
+    FNode,
+    TimepointKind,
+    Effect,
+)
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-from typing import Callable, Optional, Set, Tuple, List, Union
+from typing import Callable, Dict, Optional, OrderedDict, Set, Tuple, List, Union
 from fractions import Fraction
 
 
@@ -163,6 +172,8 @@ class TimeTriggeredPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
+        elif plan_kind == plans.plan.PlanKind.STN_PLAN:
+            return _convert_to_stn(self, problem)
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
@@ -226,3 +237,192 @@ def _absolute_time(
         return start + relative_time.delay
     else:
         return start + duration + relative_time.delay
+
+
+EPSILON = Fraction(1, 1000)
+MAX_TIME = Fraction(5000, 1)
+
+
+def _convert_to_stn(
+    time_triggered_plan: TimeTriggeredPlan,
+    problem: "up.model.AbstractProblem",
+) -> "plans.stn_plan.STNPlan":
+    from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
+
+    # Constraints that go in the final STNPlan
+    stn_constraints: Dict[
+        STNPlanNode, List[Tuple[Optional[Fraction], Optional[Fraction], STNPlanNode]]
+    ] = {}
+
+    # The event table is the decomposition of an ActionInstance to it's conditions and effects
+    event_table: Dict[
+        Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]],
+        Dict[Timing, Tuple[List[FNode], List[Effect]]],
+    ] = {}
+
+    # Mapping from an ActionInstance Starting STNPlanNodes
+    ai_to_start_node: Dict["plans.plan.ActionInstance", STNPlanNode] = {}
+
+    for start, ai, duration in time_triggered_plan.timed_actions:
+        start_node, end_node = STNPlanNode(TimepointKind.START, ai), None
+        action = ai.action
+        action_cpl = (start, ai, duration)
+        assert action_cpl not in event_table
+        timing_to_cond_effects: Dict[
+            Timing,
+            Tuple[List[FNode], List[Effect]],
+        ] = event_table.setdefault(action_cpl, {})
+        if duration is None:
+            assert isinstance(
+                action, InstantaneousAction
+            ), "Error, None duration specified for non InstantaneousAction"
+        else:
+            assert isinstance(
+                action, DurativeAction
+            ), "Error, Action is not a DurativeAction nor an InstantaneousAction"
+            end_node = STNPlanNode(TimepointKind.END, ai)
+            assert start_node not in stn_constraints
+            stn_constraints[start_node] = [(duration, duration, end_node)]
+            # TODO ALSO CHECK WHEN A CONDITION HOLDS WITHOUT EFFECTS
+            for effect_time, effects in action.effects.items():
+                # pconditions = get_timepoint_conditions(
+                #     start, duration, action.conditions, effect_time
+                # )
+                # timing_to_cond_effects[effect_time] = (pconditions, effects)
+                timing_to_cond_effects[effect_time] = ([], effects)
+
+            for condition_interval, conditions in action.conditions.items():
+                start_timing = (
+                    condition_interval.lower + EPSILON
+                    if condition_interval.is_left_open()
+                    else condition_interval.lower
+                )
+                end_timing = (
+                    condition_interval.upper + EPSILON
+                    if condition_interval.is_right_open()
+                    else condition_interval.upper
+                )
+
+                if _absolute_time(start_timing, start, duration) > _absolute_time(
+                    end_timing, start, duration
+                ):
+                    continue  # Empty interval
+
+                pconditions, effects = timing_to_cond_effects.get(
+                    start_timing, ([], [])
+                )
+                pconditions = list(set(chain(pconditions, conditions)))
+                timing_to_cond_effects[start_timing] = (pconditions, effects)
+
+                pconditions, effects = timing_to_cond_effects.get(end_timing, ([], []))
+                pconditions = list(set(chain(pconditions, conditions)))
+                timing_to_cond_effects[end_timing] = (pconditions, effects)
+
+        ai_to_start_node[ai] = start_node
+
+    # Convert event table to a list of Instantaneous events
+    events: List[Tuple[Fraction, "plans.plan.ActionInstance"]] = []
+    # Mapping from an event to the action (and the relative time) that created it
+    event_creating_ais: Dict[
+        "plans.plan.ActionInstance", List[Tuple["plans.plan.ActionInstance", Fraction]]
+    ] = {}
+    for (start, ai, duration), time_to_cond_eff in event_table.items():
+        if duration is None:
+            assert isinstance(
+                ai.action, InstantaneousAction
+            ), "Error, None duration specified for non InstantaneousAction"
+            events.append((start, ai))
+            event_creating_ais[ai] = [(ai, Fraction(0))]
+            continue
+        for i, (time_pt, (conditions, effects)) in enumerate(time_to_cond_eff.items()):
+            time = _absolute_time(time_pt, start, duration)
+            # inst_action = InstantaneousAction(str(ai) + str(time_pt))
+            inst_action = InstantaneousAction(
+                f"{ai.action.name}_{i}",
+                _parameters=OrderedDict(
+                    ((p.name, p.type) for p in ai.action.parameters)
+                ),
+            )
+            for cond in conditions:
+                inst_action.add_precondition(cond)
+            for effect in effects:
+                inst_action._add_effect_instance(effect)
+            inst_ai = plans.ActionInstance(inst_action, ai.actual_parameters)
+            events.append((time, inst_ai))
+            # TODO here is the place where if 2 events happen at the same time can/should/must be merged
+            event_creating_ais[inst_ai] = [(ai, time - start)]
+
+    # sort events and create a map from action instance to it's time
+    events = sorted(events, key=lambda acts: acts[0])
+
+    act_to_time_map: Dict["plans.plan.ActionInstance", Fraction] = dict(
+        [(value, key) for key, value in events]
+    )
+    # Create the equivalent sequential plan and then deorder it to partial order plan
+    list_act = [ia for _, ia in events]
+    seq_plan = plans.SequentialPlan(list_act)
+    partial_order_plan = seq_plan.convert_to(plans.PlanKind.PARTIAL_ORDER_PLAN, problem)
+    assert isinstance(partial_order_plan, plans.PartialOrderPlan)
+    for ai_current, l_next_ai in partial_order_plan.get_adjacency_list.items():
+        ai_current_time = act_to_time_map[
+            ai_current
+        ]  # TODO consider the case where you have timed_goals/effect
+        # Get the ActionInstance that generated this event and add the constraint between the starting of the action and the start
+        # of the action that generated the other event
+        current_generating_ai, current_skew_time = event_creating_ais[ai_current][
+            0
+        ]  # TODO for now it's a list of only 1 element. When 2 events in the same moment will be merged this needs to change
+        current_start_node = ai_to_start_node[current_generating_ai]
+        for ai_next in l_next_ai:
+            # Time between two differents actions depend on epsilon
+            next_generating_ai, next_skew_time = event_creating_ais[ai_next][
+                0
+            ]  # TODO for now it's a list of only 1 element. When 2 events in the same moment will be merged this needs to change
+            next_start_node = ai_to_start_node[next_generating_ai]
+
+            if current_generating_ai != next_generating_ai:
+                stn_constraints.setdefault(current_start_node, []).append(
+                    (
+                        current_skew_time - next_skew_time + EPSILON,
+                        MAX_TIME,
+                        next_start_node,
+                    )
+                )
+
+    return STNPlan(constraints=stn_constraints)  # type: ignore [arg-type]
+
+
+def get_timepoint_conditions(
+    start: Fraction,
+    duration: Fraction,
+    conditions: Dict["up.model.timing.TimeInterval", List["up.model.fnode.FNode"]],
+    effect_timing: "up.model.timing.Timing",
+) -> List["up.model.fnode.FNode"]:
+    """
+    From the dict of condition get all conditions for the specific timepoint from the couple timepoint effect.
+    Return the corresponding timepoint conditions couple.
+    """
+    cond_result = []
+    for time_interval, cond_list in conditions.items():
+        if is_time_in_interv(start, duration, effect_timing, time_interval):
+            cond_result += cond_list
+    return cond_result
+
+
+def is_time_in_interv(
+    start: Fraction,
+    duration: Fraction,
+    timing: "up.model.timing.Timing",
+    interval: "up.model.timing.TimeInterval",
+) -> bool:
+    """
+    Return if the timepoint is in the interval given.
+    """
+    time_pt = _absolute_time(timing, start=start, duration=duration)
+    upper_time = _absolute_time(interval._upper, start=start, duration=duration)
+    lower_time = _absolute_time(interval._lower, start=start, duration=duration)
+    if (time_pt > lower_time if interval._is_left_open else time_pt >= lower_time) and (
+        time_pt < upper_time if interval._is_right_open else time_pt <= upper_time
+    ):
+        return True
+    return False

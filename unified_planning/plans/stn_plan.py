@@ -224,8 +224,16 @@ class STNPlan(plans.plan.Plan):
             self._stn.insert_interval(a_node, end_plan, left_bound=f0)
             self._stn.insert_interval(start_plan, b_node, left_bound=f0)
             self._stn.insert_interval(b_node, end_plan, left_bound=f0)
-            lb = None if lower_bound is None else Fraction(float(lower_bound))
-            ub = None if upper_bound is None else Fraction(float(upper_bound))
+            lb = None
+            if isinstance(lower_bound, Fraction):
+                lb = lower_bound
+            elif lower_bound is not None:
+                lb = Fraction(float(lower_bound))
+            ub = None
+            if isinstance(upper_bound, Fraction):
+                ub = upper_bound
+            elif upper_bound is not None:
+                ub = Fraction(float(upper_bound))
             self._stn.insert_interval(a_node, b_node, left_bound=lb, right_bound=ub)
 
     def __repr__(self) -> str:
@@ -451,7 +459,7 @@ class STNPlan(plans.plan.Plan):
         if plan_kind == self._kind:
             return self
         elif plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
-            raise NotImplementedError
+            return self._convert_to_time_triggered(problem)
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
@@ -461,3 +469,36 @@ class STNPlan(plans.plan.Plan):
         does not violate any constraint; False otherwise.
         """
         return self._stn.check_stn()
+
+    def _convert_to_time_triggered(
+        self, problem: "up.model.AbstractProblem"
+    ) -> "plans.plan.Plan":
+        # Mapping from an actionInstance to it's starting minimum time and ending maximum time
+        action_instance_map: Dict[
+            ActionInstance, Tuple[Optional[Fraction], Optional[Fraction]]
+        ] = {}
+        for node, time in map(lambda x: (x[0], -x[1]), self._stn.distances.items()):
+            assert time >= 0
+            if time == 0:
+                time = Fraction(0)
+            if node.kind in (TimepointKind.GLOBAL_START, TimepointKind.GLOBAL_END):
+                continue
+            ai = node.action_instance
+            assert ai is not None
+            start, end = action_instance_map.get(ai, (None, None))
+            if node.kind == TimepointKind.START:
+                assert start is None
+                start = time
+            else:
+                assert node.kind == TimepointKind.END
+                assert end is None
+                end = time
+            action_instance_map[ai] = (start, end)
+
+        ttp_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
+        for ai, (start, end) in sorted(action_instance_map.items(), key=lambda x: x[1][0]):  # type: ignore [arg-type, return-value]
+            assert start is not None
+            duration = None if end is None else end - start
+            ttp_actions.append((start, ai, duration))
+
+        return plans.time_triggered_plan.TimeTriggeredPlan(ttp_actions)

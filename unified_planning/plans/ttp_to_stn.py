@@ -14,25 +14,6 @@ EPSILON = Fraction(1, 1000)
 MAX_TIME = Fraction(5000, 1)
 
 
-def is_time_in_interv(
-    start: Fraction,
-    duration: Fraction,
-    timing: "up.model.timing.Timing",
-    interval: "up.model.timing.TimeInterval",
-) -> bool:
-    """
-    Return if the timepoint is in the interval given.
-    """
-    time_pt = _absolute_time(timing, start=start, duration=duration)
-    upper_time = _absolute_time(interval._upper, start=start, duration=duration)
-    lower_time = _absolute_time(interval._lower, start=start, duration=duration)
-    if (time_pt > lower_time if interval._is_left_open else time_pt >= lower_time) and (
-        time_pt < upper_time if interval._is_right_open else time_pt <= upper_time
-    ):
-        return True
-    return False
-
-
 class TTP_to_STN:
 
     """Create a STN from a TimeTriggeredPlan"""
