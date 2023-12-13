@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional
 
 import unified_planning as up
 from unified_planning.exceptions import (
@@ -65,7 +65,7 @@ class InitialStateMixin:
 
     def initial_value(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
-    ) -> "up.model.fnode.FNode":
+    ) -> Optional["up.model.fnode.FNode"]:
         """
         Retrieves the initial value assigned to the given `fluent`.
 
@@ -82,9 +82,11 @@ class InitialStateMixin:
             return self._initial_value[fluent_exp]
         elif fluent_exp.fluent() in self._fluent_set.fluents_defaults:
             return self._fluent_set.fluents_defaults[fluent_exp.fluent()]
+        elif fluent.type.is_int_type() or fluent.type.is_real_type():
+            return None
         else:
             raise UPProblemDefinitionError(
-                f"Initial value not set for fluent: {fluent}"
+                f"Initial value not set for non-numeric fluent: {fluent}"
             )
 
     @property
@@ -98,7 +100,9 @@ class InitialStateMixin:
         res = self._initial_value
         for f in self._fluent_set.fluents:
             for f_exp in get_all_fluent_exp(self._object_set, f):
-                res[f_exp] = self.initial_value(f_exp)
+                init = self.initial_value(f_exp)
+                if init is not None:
+                    res[f_exp] = init
         return res
 
     @property
