@@ -14,16 +14,6 @@ class TestTTPToSTN(unittest_TestCase):
         self.problems = get_example_problems()
 
     def test_matchcellar_to_stn(self):
-        self.ttp_to_stn = TTP_to_STN(self.plan, self.problem)
-
-        self.ttp_to_stn.run()
-
-        # Each actions has start and end in the stn plus Start and End's nodes
-        self.assertTrue(
-            len(self.ttp_to_stn.stn) == len(self.plan.timed_actions) * 2 + 2
-        )
-
-    def test_matchcellar_to_stn(self):
         problem = self.problems["matchcellar"].problem
         with OneshotPlanner(problem_kind=problem.kind) as planner:
             plan = planner.solve(problem).plan
