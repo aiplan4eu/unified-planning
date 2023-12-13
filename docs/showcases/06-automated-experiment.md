@@ -50,7 +50,6 @@ Lessons learned include an approach to apply AI planning techniques to industria
 In this context, we applied a methodology based on modularizing the existing solution and building (through an iterative process) an AI planning domain to describe the modules (in terms of actions) and their properties (as predicates and fluents). Such a planning domain can then be used to solve different problems varying initial states and goals, thus overcoming the difficulties arising from a non-flexible and non-modular solution. 
 Modularity is a fundamental prerequisite to apply AI planning technology and, in turn, applying AI planning forces the development of modular domain-specific components.
 
-
 ## Resources
 - [Automated Experiment Design Page](https://www.ai4europe.eu/business-and-industry/case-studies/automated-experiment-design)
 - Video: [The Automated Experiment Design TSB at Work](https://drive.google.com/file/d/1GtYw0D-mhQpF1wzT9OEC6QrBxynaFU0k/view?usp=drive_link)
