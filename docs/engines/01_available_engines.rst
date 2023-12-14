@@ -133,8 +133,10 @@ The only planner with full support for scheduling is `Aries`_. Integration work 
 
 Multi-Agent Planning
 ^^^^^^^^^^^^^^^^^^^^^
+Task and Motion Planning
+^^^^^^^^^^
 
-.. list-table:: 
+.. list-table::
 
   * - Engine
     - Operation modes
@@ -144,6 +146,8 @@ Multi-Agent Planning
     - OneShot
     - Y
     - Y
+The only planner with support for task and motion planning is `Spiderplan`_.
+
 
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
 .. _`fast-downward`: https://github.com/aiplan4eu/up-fast-downward/blob/main/README.md
