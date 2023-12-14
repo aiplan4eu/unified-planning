@@ -115,8 +115,10 @@ Scheduling
 
 The only planner with full support for scheduling is `Aries`_. Integration work is known for the `discrete-optimization suite <https://github.com/aiplan4eu/up-discreteoptimization>`_ and for `PPS <https://github.com/aiplan4eu/up-pps>`_.
 
+Task and Motion Planning
+^^^^^^^^^^
 
-
+The only planner with support for task and motion planning is `Spiderplan`_. 
 
 
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
@@ -127,3 +129,4 @@ The only planner with full support for scheduling is `Aries`_. Integration work 
 .. _`fmap`: https://github.com/aiplan4eu/up-fmap/blob/master/README.md
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
+.. _`spiderplan`: https://github.com/aiplan4eu/up-spiderplan/blob/master/README.md
