@@ -323,14 +323,14 @@ given a model of the motion that an object is capable of. This is often
 important for cases where we need to make sure a motion required by an action is
 feasible in the real world.
 
-Concretly, the problem is extended by adding an occupancy map with associated
+Concretely, the problem is extended by adding an occupancy map with associated
 configuration types. These types can then be used to add configurations
-(position and orientation) to objects to form wayoints in the corresponding map.
+(position and orientation) to objects to form waypoints in the corresponding map.
 Movable objects contain a footprint and a motion model with its required
 parameters. In the example below, the Reeds Shepp car is used as a motion model.
 An instantaneous motion action allows the addition of motion constraints which
 state that in order to apply the action, a valid path must exist for the movable
-object between a series of waypoints.
+object between a series of waypoints. `[Detailed presentation 🔗]  <notebooks/14-task-and-motion-planning.html>`__
 
 .. literalinclude:: ./code_snippets/tamp_problem.py
     :lines: 5-125     
