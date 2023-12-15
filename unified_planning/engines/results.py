@@ -274,6 +274,7 @@ class ValidationResult(Result):
     )
     reason: Optional[FailedValidationReason] = field(default=None)
     inapplicable_action: Optional[up.plans.ActionInstance] = field(default=None)
+    metrics: Optional[Dict[str, str]] = field(default=None)
 
     def __post_init__(self):
         assert (
@@ -313,6 +314,7 @@ class CompilerResult(Result):
     ]
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
+    metrics: Optional[Dict[str, str]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance are consistent with each other

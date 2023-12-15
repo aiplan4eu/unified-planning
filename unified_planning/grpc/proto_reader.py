@@ -848,10 +848,10 @@ class ProtobufReader(Converter):
             raise UPException(f"Unknown Planner Status: {result.status}")
 
         log_messages = None
-        metrics = None
+        engine_metrics = None
 
         if bool(result.metrics):
-            metrics = dict(result.metrics)
+            engine_metrics = dict(result.metrics)
 
         if len(result.log_messages) > 0:
             log_messages = [self.convert(log) for log in result.log_messages]
@@ -862,7 +862,7 @@ class ProtobufReader(Converter):
             if result.HasField("plan")
             else None,
             engine_name=result.engine.name,
-            metrics=metrics,
+            metrics=engine_metrics,
             log_messages=log_messages,
         )
 
@@ -912,12 +912,16 @@ class ProtobufReader(Converter):
                 original_action_instance.action,
                 original_action_instance.actual_parameters,
             )
+        engine_metrics = None
+        if bool(result.metrics):
+            engine_metrics = dict(result.metrics)
         return unified_planning.engines.CompilerResult(
             problem=problem,
             map_back_action_instance=partial(
                 unified_planning.engines.compilers.utils.lift_action_instance, map=map
             ),
             engine_name=result.engine.name,
+            metrics=engine_metrics,
             log_messages=[self.convert(log) for log in result.log_messages],
         )
 
@@ -939,8 +943,12 @@ class ProtobufReader(Converter):
             r_status = unified_planning.engines.ValidationResultStatus.UNKNOWN
         else:
             raise UPException(f"Unexpected ValidationResult status: {result.status}")
+        engine_metrics = None
+        if bool(result.metrics):
+            engine_metrics = dict(result.metrics)
         return unified_planning.engines.ValidationResult(
             status=r_status,
             engine_name=result.engine.name,
+            metrics=engine_metrics,
             log_messages=[self.convert(log) for log in result.log_messages],
         )

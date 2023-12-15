@@ -1,0 +1,4 @@
+(sample_soil rover0 rover0store waypoint3)
+(sample_rock rover1 rover1store waypoint1)
+(communicate_rock_data rover1 general waypoint1 waypoint1 waypoint2)
+(calibrate rover1 camera0 objective0 waypoint1)

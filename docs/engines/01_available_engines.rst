@@ -40,6 +40,12 @@ Action-Based Planning
     - Y
     - Y
     - 
+  * - `LPG`_
+    - OneShot, Repair, Anytime
+    - Y
+    - Y
+    - Y
+    - plan length, makespan, action costs
   * - `Aries`_ [#aries-actions]_
     - OneShot, Anytime
     - Y
@@ -68,9 +74,11 @@ Plan Validation
     - Temporal
     - Hierarchical
     - Scheduling
+    - Multi-Agent
   * - `UP (builtin)`
     - Y
     - Y
+    - 
     - 
     - 
     - 
@@ -80,13 +88,21 @@ Plan Validation
     - Y
     - 
     - 
+    - 
   * - `Aries`_
     - Y
     - Y
     - Y
     - Y
     - Y
-
+    - 
+  * - `MA-Plan-Validator`_
+    - Y
+    -
+    -
+    -
+    -
+    - Y
 
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
@@ -115,10 +131,24 @@ Scheduling
 
 The only planner with full support for scheduling is `Aries`_. Integration work is known for the `discrete-optimization suite <https://github.com/aiplan4eu/up-discreteoptimization>`_ and for `PPS <https://github.com/aiplan4eu/up-pps>`_.
 
-Task and Motion Planning
-^^^^^^^^^^
+Multi-Agent Planning
+^^^^^^^^^^^^^^^^^^^^
 
-The only planner with support for task and motion planning is `Spiderplan`_. 
+.. list-table::
+
+  * - Engine
+    - Operation modes
+    - Classical
+    - Partial-Order
+  * - `fmap`_
+    - OneShot
+    - Y
+    - Y
+
+Task and Motion Planning
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for task and motion planning is currently provided by the `Spiderplan`_ engine.
 
 
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
@@ -129,4 +159,5 @@ The only planner with support for task and motion planning is `Spiderplan`_.
 .. _`fmap`: https://github.com/aiplan4eu/up-fmap/blob/master/README.md
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
-.. _`spiderplan`: https://github.com/aiplan4eu/up-spiderplan/blob/master/README.md
+.. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md
+

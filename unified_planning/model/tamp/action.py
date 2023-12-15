@@ -19,7 +19,7 @@ from unified_planning.environment import Environment, get_environment
 from unified_planning.model import InstantaneousAction
 from unified_planning.exceptions import UPTypeError
 from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable
+from typing import Optional, List, Iterable, Dict
 from collections import OrderedDict
 
 
@@ -57,6 +57,9 @@ class Waypoints(MotionConstraint):
         movable: "up.model.expression.Expression",
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
+        obstacles: Optional[
+            Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
+        ] = None,
         environment: Optional[Environment] = None,
     ):
         super().__init__(environment)
@@ -87,6 +90,7 @@ class Waypoints(MotionConstraint):
         self._movable = movable_exp
         self._starting = starting_exp
         self._waypoints = waypoints_exp
+        self._obstacles = obstacles
 
     def __eq__(self, oth) -> bool:
         if not isinstance(oth, Waypoints) or self._environment != oth._environment:
@@ -128,6 +132,13 @@ class Waypoints(MotionConstraint):
     def waypoints(self) -> List["up.model.fnode.FNode"]:
         """Returns the `list` of `FNode` representing the set of waypoints that the involved movable object should traverse."""
         return self._waypoints
+
+    @property
+    def obstacles(
+        self,
+    ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
+        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration."""
+        return self._obstacles
 
 
 class InstantaneousMotionAction(InstantaneousAction):

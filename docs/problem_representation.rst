@@ -286,6 +286,7 @@ Multi-Agent Planning
 
 Multi-agent Planning lifts planning to a context where many agents operate in a common environment, each with its own view of the domain. The objective is to produce a set of plans, one for each agent, which allows the agents to achieve their goals.
 The problem comes in several variants, depending on various features. Specifically, multi-agent planning can be competitive, meaning that the agents compete against each other in order to achieve their goal, or cooperative, which refers to the case where the agents collaborate towards a common goal. Another distinction is based on whether planning is performed in a centralized or distributed manner. In the former case, the planning responsibility is assigned to a single entity, which produces a plan consisting of actions, each to be delegated to some agent, while in the latter, the responsibility is distributed to the participating agents, each of which plans at a local level, by possibly exchanging information with the others; in this variant, each agent comes up with a local plan, and the execution of all plans must be appropriately coordinated at runtime. Finally, the setting may or may not require privacy-preservation, which refers to the requirement that every agent might decide not to disclose some information (consequently affecting the space of admissible solutions).
+`[Detailed presentation 🔗] <notebooks/10-multiagent-planning.html>`__
 
 .. literalinclude:: ./code_snippets/multi_agent_and_contingent.py
     :lines: 3-41
@@ -314,7 +315,7 @@ We can represent a generic scheduling problem using the SchedulingProblem class 
 
 
 Combined Task and Motion Planning Example
---------------------
+-----------------------------------------
 
 A combined Task and Motion Planning (TAMP) problem allows adding constraints
 that require that a valid path exists in a map between a series of waypoints
@@ -333,3 +334,4 @@ object between a series of waypoints.
 
 .. literalinclude:: ./code_snippets/tamp_problem.py
     :lines: 5-125     
+

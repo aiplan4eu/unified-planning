@@ -1,0 +1,8 @@
+(increment c2)
+(increment c3)
+(increment c2)
+(increment c1)
+(decrement c2)
+(increment c2)
+(increment c2)
+(decrement c2)

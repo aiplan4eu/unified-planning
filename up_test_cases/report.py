@@ -18,6 +18,7 @@ from unified_planning.engines.mixins import (
     AnytimePlannerMixin,
     PlanValidatorMixin,
     OneshotPlannerMixin,
+    PlanRepairerMixin,
 )
 
 from unified_planning.plans import Plan
@@ -60,6 +61,50 @@ def get_test_cases_from_packages(packages: List[str]) -> Dict[str, TestCase]:
                 count += 1
             res[test_case_name] = test_case
     return res
+
+
+def report_runtime(
+    metrics: Optional[Dict[str, str]],
+    total_time: float,
+    max_overhead: float,
+    adjust_docker_overhead: bool = True,
+    deliverable: bool = False,
+) -> str:
+    internal_time_str = None
+    if metrics is not None:
+        internal_time_str = metrics.get("engine_internal_time", None)
+        docker_overhead_time_str = metrics.get("docker_overhead_time", None)
+    if internal_time_str is not None:
+        internal_time = float(internal_time_str)
+        docker_overhead_time = 0.0
+        if adjust_docker_overhead and docker_overhead_time_str is not None:
+            docker_overhead_time = float(docker_overhead_time_str)
+        overhead_percentage = (
+            total_time - docker_overhead_time - internal_time
+        ) / internal_time
+    else:
+        overhead_percentage = None
+    if deliverable:
+        if total_time > 1 and overhead_percentage is not None:
+            overhead_str = "{:.0%}".format(overhead_percentage)
+            overhead = (
+                Ok(overhead_str)
+                if overhead_percentage < max_overhead
+                else Warn(overhead_str)
+            )
+            runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
+        elif total_time < 1:
+            runtime_report = "{:.3f}s {}".format(total_time, Ok("<1s")).ljust(30)
+        else:
+            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+    else:
+        if internal_time_str is not None:
+            runtime_report = "{:.3f}s ({:.3f}s)".format(
+                total_time, internal_time
+            ).ljust(30)
+        else:
+            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+    return runtime_report
 
 
 def validate_plan(
@@ -202,7 +247,10 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
 
 
 def report_oneshot(
-    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
+    engines: List[str],
+    problems: Dict[str, TestCase],
+    timeout: Optional[float],
+    deliverable,
 ) -> List[Tuple[str, str]]:
     """Run all oneshot planners on all the given problems"""
 
@@ -227,13 +275,13 @@ def report_oneshot(
                     print(name.ljust(40), end="\n")
 
                 print("|  ", planner_id.ljust(40), end="")
-                start = time.time()
                 try:
                     assert isinstance(
                         planner, OneshotPlannerMixin
                     ), "Error in oneshot planners selection"
+                    start = time.time()
                     result = planner.solve(pb, timeout=timeout)
-                    end = time.time()
+                    total_execution_time = time.time() - start
                     status = str(result.status.name).ljust(25)
                     outcome, metrics_evaluation = check_result(
                         test_case, result, planner
@@ -259,8 +307,13 @@ def report_oneshot(
                             )
                     if not outcome.ok():
                         errors.append((planner_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
-                    print(status, "    ", runtime, outcome)
+                    runtime_report = report_runtime(
+                        result.metrics,
+                        total_execution_time,
+                        0.10,
+                        deliverable=deliverable,
+                    )
+                    print(status, "    ", runtime_report, outcome)
 
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
@@ -272,6 +325,70 @@ def report_oneshot(
         print("\n\nOneshot problems skipped: ALL")
     elif problems_skipped:
         print("\n\nOneshot problems skipped:")
+        print("   ", "\n    ".join(problems_skipped))
+
+    return errors
+
+
+def report_plan_repair(
+    engines: List[str], problems: Dict[str, TestCase], deliverable: bool
+) -> List[Tuple[str, str]]:
+    """Run all plan repairer on all the given problems"""
+
+    factory = get_environment().factory
+    # filter PlanRepairer
+    planners = list(filter(lambda name: factory.engine(name).is_plan_repairer(), engines))  # type: ignore [attr-defined, arg-type]
+
+    print("\n\nPLAN REPAIR:")
+    errors = []
+    problems_skipped = []
+    problems_run = 0
+    for name, test_case in problems.items():
+        pb = test_case.problem
+        for i, plan in enumerate(test_case.invalid_plans):
+            name_printed = False
+            for planner_id in planners:
+                planner = PlanRepairer(name=planner_id)
+                if planner.supports(pb.kind) and planner.supports_plan(plan.kind):
+
+                    if not name_printed:
+                        problems_run += 1
+                        name_printed = True
+                        print()
+                        print(f"{name} [{i}]".ljust(40), end="\n")
+
+                    print("|  ", planner_id.ljust(40), end="")
+                    try:
+                        assert isinstance(
+                            planner, PlanRepairerMixin
+                        ), "Error in plan repairer selection"
+                        start = time.time()
+                        result = planner.repair(pb, plan)
+                        total_execution_time = time.time() - start
+                        status = str(result.status.name).ljust(25)
+                        outcome, metrics_evaluation = check_result(
+                            test_case, result, planner
+                        )
+                        if not outcome.ok():
+                            errors.append((planner_id, f"{name} [{i}]"))
+                        runtime_report = report_runtime(
+                            result.metrics,
+                            total_execution_time,
+                            0.10,
+                            deliverable=deliverable,
+                        )
+                        print(status, "    ", runtime_report, outcome)
+
+                    except Exception as e:
+                        print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
+                        errors.append((planner_id, f"{name} [{i}]"))
+            if not name_printed:
+                problems_skipped.append(f"{name} [{i}]")
+
+    if problems_run == 0:
+        print("\n\nPlan Repair problems skipped: ALL")
+    elif problems_skipped:
+        print("\n\nPlan Repair problems skipped:")
         print("   ", "\n    ".join(problems_skipped))
 
     return errors
@@ -318,7 +435,10 @@ def check_all_optimal_solutions(
 
 
 def report_anytime(
-    engines: List[str], problems: Dict[str, TestCase], timeout: Optional[float]
+    engines: List[str],
+    problems: Dict[str, TestCase],
+    timeout: Optional[float],
+    deliverable: bool,
 ) -> List[Tuple[str, str]]:
     """Run all anytime planners on all problems that start with the given prefix"""
 
@@ -343,7 +463,6 @@ def report_anytime(
                     print(name.ljust(40), end="\n")
 
                 print("|  ", planner_id.ljust(40), end="")
-                start = time.time()
                 try:
                     outcome = Void()
                     metrics_evaluations: List[
@@ -352,7 +471,12 @@ def report_anytime(
                     assert isinstance(
                         planner, AnytimePlannerMixin
                     ), "Error in Anytime selection"
+                    results = []
+                    start = time.time()
                     for result in planner.get_solutions(pb, timeout=timeout):
+                        results.append(result)
+                    total_execution_time = time.time() - start
+                    for result in results:
                         status = str(result.status.name).ljust(25)
                         validity, metrics_evaluation = check_result(
                             test_case, result, planner
@@ -362,7 +486,6 @@ def report_anytime(
                             metrics_evaluations.append(metrics_evaluation)
                     if not outcome.ok():
                         errors.append((planner_id, name))
-                    end = time.time()
                     if test_case.solvable and planner.ensures(
                         AnytimeGuarantee.INCREASING_QUALITY
                     ):
@@ -375,8 +498,13 @@ def report_anytime(
                         outcome += check_all_optimal_solutions(
                             test_case, metrics_evaluations
                         )
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
-                    print(status, "    ", runtime, outcome)
+                    runtime_report = report_runtime(
+                        result.metrics,
+                        total_execution_time,
+                        0.15,
+                        deliverable=deliverable,
+                    )
+                    print(status, "    ", runtime_report, outcome)
 
                 except Exception as e:
                     print(f"{bcolors.ERR}CRASH{bcolors.ENDC}", e)
@@ -395,7 +523,7 @@ def report_anytime(
 
 
 def report_validation(
-    engines: List[str], problems: Dict[str, TestCase]
+    engines: List[str], problems: Dict[str, TestCase], deliverable: bool
 ) -> List[Tuple[str, str]]:
     """Checks that all given plan validators produce the correct output on test-cases."""
     factory = get_environment().factory
@@ -426,10 +554,12 @@ def report_validation(
                 print("|  ", validator.name.ljust(40), end="")
                 start = time.time()
                 result = validator.validate(test_case.problem, valid_plan)
-                end = time.time()
+                total_execution_time = time.time() - start
                 print(str(result.status.name).ljust(25), end="      ")
-                runtime = "{:.3f}s".format(end - start).ljust(10)
-                print(runtime, end="")
+                runtime_report = report_runtime(
+                    result.metrics, total_execution_time, 0.05, deliverable=deliverable
+                )
+                print(runtime_report, end="")
                 if result.status == ValidationResultStatus.VALID:
                     print(Ok("Valid"))
                 else:
@@ -449,10 +579,12 @@ def report_validation(
                 print("|  ", validator.name.ljust(40), end="")
                 start = time.time()
                 result = validator.validate(test_case.problem, invalid_plan)
-                end = time.time()
+                total_execution_time = time.time() - start
                 print(str(result.status.name).ljust(25), end="      ")
-                runtime = "{:.3f}s".format(end - start).ljust(10)
-                print(runtime, end="")
+                runtime_report = report_runtime(
+                    result.metrics, total_execution_time, 0.05, deliverable=deliverable
+                )
+                print(runtime_report, end="")
                 if result.status == ValidationResultStatus.INVALID:
                     print(Ok("Invalid"))
                 else:
@@ -518,7 +650,7 @@ def report_grounding(
                     outcome = check_grounding_result(test_case, result)
                     if not outcome.ok():
                         errors.append((engine_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(10)
+                    runtime = "{:.3f}s".format(end - start).ljust(15)
                     print(status, "    ", runtime, outcome)
 
                 except Exception as e:
@@ -536,11 +668,9 @@ def report_grounding(
     return errors
 
 
-def main(args=None):
-    if args is None:
-        args = sys.argv[1:]
+def main():
     parser = get_report_parser()
-    parsed_args = parser.parse_args(args)
+    parsed_args = parser.parse_args()
     engines = parsed_args.engines
     if not engines:
         engines = get_environment().factory.engines
@@ -573,16 +703,27 @@ def main(args=None):
     validation_errors = []
     anytime_errors = []
     grounding_errors = []
+    repair_errors = []
+
+    deliverable = parsed_args.deliverable
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
 
         if "oneshot" in modes:
-            oneshot_errors = report_oneshot(engines, problem_test_cases, timeout)
+            oneshot_errors = report_oneshot(
+                engines, problem_test_cases, timeout, deliverable
+            )
         if "anytime" in modes:
-            anytime_errors = report_anytime(engines, problem_test_cases, timeout)
+            anytime_errors = report_anytime(
+                engines, problem_test_cases, timeout, deliverable
+            )
+        if "repair" in modes:
+            repair_errors = report_plan_repair(engines, problem_test_cases, deliverable)
         if "validation" in modes:
-            validation_errors = report_validation(engines, problem_test_cases)
+            validation_errors = report_validation(
+                engines, problem_test_cases, deliverable
+            )
         if "grounding" in modes:
             grounding_errors = report_grounding(engines, problem_test_cases)
 
@@ -594,6 +735,12 @@ def main(args=None):
     if anytime_errors:
         print(
             "Anytime errors:\n   ", "\n    ".join(map(str, anytime_errors)), end="\n\n"
+        )
+    if repair_errors:
+        print(
+            "Plan Repair errors:\n   ",
+            "\n    ".join(map(str, repair_errors)),
+            end="\n\n",
         )
     if validation_errors:
         print(
@@ -608,7 +755,13 @@ def main(args=None):
             end="\n\n",
         )
     errors = list(
-        chain(oneshot_errors, validation_errors, anytime_errors, grounding_errors)
+        chain(
+            oneshot_errors,
+            validation_errors,
+            anytime_errors,
+            repair_errors,
+            grounding_errors,
+        )
     )
 
     if len(errors) > 0:
@@ -616,4 +769,4 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
