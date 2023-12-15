@@ -314,8 +314,8 @@ We can represent a generic scheduling problem using the SchedulingProblem class 
     :caption: Syntax Overview
 
 
-Combined Task and Motion Planning Example
------------------------------------------
+Combined Task and Motion Planning
+---------------------------------
 
 A combined Task and Motion Planning (TAMP) problem allows adding constraints
 that require that a valid path exists in a map between a series of waypoints
@@ -327,11 +327,11 @@ Concretely, the problem is extended by adding an occupancy map with associated
 configuration types. These types can then be used to add configurations
 (position and orientation) to objects to form waypoints in the corresponding map.
 Movable objects contain a footprint and a motion model with its required
-parameters. In the example below, the Reeds Shepp car is used as a motion model.
+parameters. In the example below, the `Reeds Shepp <https://en.wikipedia.org/wiki/Dubins_path>`_ car is used as a motion model.
 An instantaneous motion action allows the addition of motion constraints which
 state that in order to apply the action, a valid path must exist for the movable
 object between a series of waypoints. `[Detailed presentation 🔗]  <notebooks/14-task-and-motion-planning.html>`__
 
 .. literalinclude:: ./code_snippets/tamp_problem.py
-    :lines: 5-125     
+    :lines: 5-116
 

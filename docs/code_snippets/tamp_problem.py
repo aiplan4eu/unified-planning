@@ -74,7 +74,6 @@ pick.add_effect(carries(pick_robot, pick_parcel), True)
 pick.add_effect(parcel_at(pick_parcel, pick_loc), False)
 pick.add_effect(carries(pick_robot, nothing), False)
 
-
 place = InstantaneousMotionAction(
     "place", robot=t_robot, loc=t_robot_config, parcel=t_parcel
 )
@@ -89,7 +88,6 @@ place.add_effect(carries(place_robot, place_parcel), False)
 place.add_effect(carries(place_robot, nothing), True)
 place.add_effect(parcel_at(place_parcel, place_loc), True)
 
-
 problem = Problem("tamp")
 problem.add_fluent(robot_at, default_initial_value=False)
 problem.add_fluent(parcel_at, default_initial_value=False)
@@ -98,23 +96,12 @@ problem.add_action(move)
 problem.add_action(pick)
 problem.add_action(place)
 
-problem.add_object(park1)
-problem.add_object(park2)
-problem.add_object(office1)
-problem.add_object(office2)
-problem.add_object(office3)
-problem.add_object(office4)
-problem.add_object(office5)
-problem.add_object(office6)
-problem.add_object(office7)
-problem.add_object(office8)
-
-problem.add_object(r1)
-problem.add_object(r2)
-
+problem.add_objects([park1, park2])
+problem.add_objects([office1, office2, office3, office4])
+problem.add_objects([office5, office6, office7, office8])
+problem.add_objects([r1, r2])
 problem.add_object(nothing)
-problem.add_object(p1)
-problem.add_object(p2)
+problem.add_objects([p1, p2])
 
 problem.set_initial_value(carries(r1, nothing), True)
 problem.set_initial_value(carries(r2, nothing), True)
