@@ -13,7 +13,8 @@ deployed.
 In this use case, we employ planning to find execution traces in behavior trees
 that violate data assumptions. If a plan is found, it indicates a way to execute
 the behavior tree that would crash the system.
-Hence, each plan found is a counter-example that indicates a bug in the behavior-tree, with the action sequence giving the recipe of how to reproduce it.
+Hence, each plan found is a counter-example that indicates a bug in the behavior-tree, with 
+the action sequence giving the recipe of how to reproduce it.
 
 
 ## Planning Problem Description
@@ -49,10 +50,15 @@ As a single counter-example plan is sufficient to highlight a problem in the beh
 Integration with the rest of the system required three components:
 
 - **domain encoder:** The domain is defined as the set of operators needed to specify the possible
-executions of each node type.
+executions of each node type. 
 - **problem encoder:** Our behavior trees are defined in a proprietary JSON format, that specifies both
 the structure of the tree (parent / children), the type of the nodes and the
-inputs / outputs of each node.
+inputs / outputs of each node. These trees are converted into the AI Domain Definition Language (AIDDL)
+which is used to first prune the behavior tree and then translate the tree and its data dependencies into a
+planning problem where the state represents the structure of the tree, the execution state of its nodes, and
+information to navigate control flow nodes. Goals are generated for each data requirement in an attempt to find
+a plan that proves that the data requirement can be violated (meaning: reach a node in the tree without the required
+data bein available). As a result, the problem encoder creates one planning problem for each data requirement. 
 - **solution decoder:** For visualization purposes, the planner's result is parsed and a human-friendly
 message is produced (showing the execution sequence and the return values of the
 nodes being executed that lead to the violation of the constraints).
@@ -78,4 +84,5 @@ nodes being executed that lead to the violation of the constraints).
     649-658. [🔗](https://doi.org/10.1609/icaps.v33i1.27247)
 - [AI on Demand use case](https://www.ai4europe.eu/business-and-industry/case-studies/planning-logistics-automation)
 - [Overview video](https://www.youtube.com/watch?v=2wfQFq5DrtQ)
+- [AI Domain Definition Language & Framework](https://aiddl.org)
 
