@@ -132,9 +132,7 @@ Scheduling
 The only planner with full support for scheduling is `Aries`_. Integration work is known for the `discrete-optimization suite <https://github.com/aiplan4eu/up-discreteoptimization>`_ and for `PPS <https://github.com/aiplan4eu/up-pps>`_.
 
 Multi-Agent Planning
-^^^^^^^^^^^^^^^^^^^^^
-Task and Motion Planning
-^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
 .. list-table::
 
@@ -146,7 +144,11 @@ Task and Motion Planning
     - OneShot
     - Y
     - Y
-The only planner with support for task and motion planning is `Spiderplan`_.
+
+Task and Motion Planning
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for task and motion planning is currently provided by the `Spiderplan`_ engine.
 
 
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
