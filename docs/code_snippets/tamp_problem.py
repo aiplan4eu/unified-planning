@@ -4,7 +4,9 @@ from unified_planning.shortcuts import *
 
 t_robot = MovableType("robot")
 
-occ_map = OccupancyMap(os.path.join("../notebooks", "maps", "office-map-1.yaml"), (0, 0))
+occ_map = OccupancyMap(
+    os.path.join("../notebooks", "maps", "office-map-1.yaml"), (0, 0)
+)
 
 t_robot_config = ConfigurationType("robot_config", occ_map, 3)
 t_parcel = UserType("parcel")

@@ -46,6 +46,7 @@ from unified_planning import plot
 from functools import partial
 import os, uuid, tempfile as tf
 
+
 # Define the function that will be executed instead
 def _function(original_function, *args, **kwargs):
     try:
