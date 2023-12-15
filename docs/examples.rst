@@ -278,6 +278,19 @@ MA-PDDL Writer
 
 In this notebook we show how to write a unified_planning problem in MA-PDDL.
 
+Task and Motion Planning
+------------------------
+
+In this notebook we show how to create a Task and Motion Planning (TAMP) problem
+that includes a map, configurations, and movable objects that are used to impose
+motion constraints in TAMP operators. (Note: this example does not work in Colab
+because the engine uses Docker itself.)
+
+.. image:: https://img.shields.io/badge/see-Github-579aca?logo=github
+   :target: https:///github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/io/14-task-and-motion-planning.ipynb
+   :alt: Open In GitHub
+
+
 .. toctree::
    :maxdepth: 2
    :numbered:

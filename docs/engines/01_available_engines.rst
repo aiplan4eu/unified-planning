@@ -132,9 +132,9 @@ Scheduling
 The only planner with full support for scheduling is `Aries`_. Integration work is known for the `discrete-optimization suite <https://github.com/aiplan4eu/up-discreteoptimization>`_ and for `PPS <https://github.com/aiplan4eu/up-pps>`_.
 
 Multi-Agent Planning
-^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^
 
-.. list-table:: 
+.. list-table::
 
   * - Engine
     - Operation modes
@@ -145,6 +145,12 @@ Multi-Agent Planning
     - Y
     - Y
 
+Task and Motion Planning
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+Support for task and motion planning is currently provided by the `Spiderplan`_ engine.
+
+
 .. _`aries`: https://github.com/plaans/aries/blob/master/planning/unified/plugin/README.md
 .. _`fast-downward`: https://github.com/aiplan4eu/up-fast-downward/blob/main/README.md
 .. _`tamer`: https://github.com/aiplan4eu/up-tamer/blob/master/README.md
@@ -154,3 +160,4 @@ Multi-Agent Planning
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
 .. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md
+
