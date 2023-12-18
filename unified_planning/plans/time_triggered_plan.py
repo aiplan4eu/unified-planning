@@ -25,6 +25,9 @@ from unified_planning.model import (
     FNode,
     TimepointKind,
     Effect,
+    TimeInterval,
+    Timepoint,
+    SimulatedEffect,
 )
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
@@ -249,6 +252,16 @@ def _convert_to_stn(
 ) -> "plans.stn_plan.STNPlan":
     from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 
+    assert isinstance(problem, Problem), "This algorithm works only for Problem"
+
+    # TODO add support for timed_effects in problem and support for 2 events to happen in the same moment
+    # - timed effects
+    # - timed goals
+    # - 2 events in the same moment (merge them or keep splitted)
+    # - simulated effects
+    # - understand if the way durative conditions are handled is OK (by "sampling" only start and end as events with no effects)
+    # - eventually: support for task ordering
+
     # Constraints that go in the final STNPlan
     stn_constraints: Dict[
         STNPlanNode, List[Tuple[Optional[Fraction], Optional[Fraction], STNPlanNode]]
@@ -257,20 +270,54 @@ def _convert_to_stn(
     # The event table is the decomposition of an ActionInstance to it's conditions and effects
     event_table: Dict[
         Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]],
-        Dict[Timing, Tuple[List[FNode], List[Effect]]],
+        Dict[Timing, Tuple[List[FNode], List[Effect], Optional[SimulatedEffect]]],
     ] = {}
 
     # Mapping from an ActionInstance Starting STNPlanNodes
     ai_to_start_node: Dict["plans.plan.ActionInstance", STNPlanNode] = {}
 
-    for start, ai, duration in time_triggered_plan.timed_actions:
-        start_node, end_node = STNPlanNode(TimepointKind.START, ai), None
+    # create a mockup durative action that contains the problem's timed_effects and conditions
+    mockup_action = DurativeAction("mockup_action")
+    for interval, cl in problem.timed_goals.items():
+        start_timepoint = Timepoint(
+            TimepointKind.START if interval.lower.is_from_start() else TimepointKind.END
+        )
+        start_timing = Timing(interval.lower.delay, start_timepoint)
+        end_timepoint = Timepoint(
+            TimepointKind.START if interval.upper.is_from_start() else TimepointKind.END
+        )
+        end_timing = Timing(interval.lower.delay, end_timepoint)
+        relative_interval = TimeInterval(
+            start_timing, end_timing, interval.is_left_open(), interval.is_right_open()
+        )
+        mockup_action._set_conditions(relative_interval, cl)
+
+    for absolute_timing, el in problem.timed_effects.items():
+        timepoint = Timepoint(
+            TimepointKind.START
+            if absolute_timing.is_from_start()
+            else TimepointKind.END
+        )
+        relative_timing = Timing(absolute_timing.delay, timepoint)
+        for e in el:
+            mockup_action._add_effect_instance(relative_timing, e)
+
+    mockup_action_instance = plans.ActionInstance(mockup_action)
+
+    for start, ai, duration in chain(
+        [(Fraction(0), mockup_action_instance, Fraction(-1))],
+        time_triggered_plan.timed_actions,
+    ):
+        if ai == mockup_action_instance:
+            start_node, end_node = STNPlanNode(TimepointKind.GLOBAL_START, None), None
+        else:
+            start_node, end_node = STNPlanNode(TimepointKind.START, ai), None
         action = ai.action
         action_cpl = (start, ai, duration)
         assert action_cpl not in event_table
         timing_to_cond_effects: Dict[
             Timing,
-            Tuple[List[FNode], List[Effect]],
+            Tuple[List[FNode], List[Effect], Optional[SimulatedEffect]],
         ] = event_table.setdefault(action_cpl, {})
         if duration is None:
             assert isinstance(
@@ -280,16 +327,25 @@ def _convert_to_stn(
             assert isinstance(
                 action, DurativeAction
             ), "Error, Action is not a DurativeAction nor an InstantaneousAction"
-            end_node = STNPlanNode(TimepointKind.END, ai)
-            assert start_node not in stn_constraints
-            stn_constraints[start_node] = [(duration, duration, end_node)]
-            # TODO ALSO CHECK WHEN A CONDITION HOLDS WITHOUT EFFECTS
             for effect_time, effects in action.effects.items():
-                # pconditions = get_timepoint_conditions(
-                #     start, duration, action.conditions, effect_time
-                # )
-                # timing_to_cond_effects[effect_time] = (pconditions, effects)
-                timing_to_cond_effects[effect_time] = ([], effects)
+                pconditions = get_timepoint_conditions(
+                    start, duration, action.conditions, effect_time
+                )
+                timing_to_cond_effects[effect_time] = (pconditions, effects, None)
+
+            for effect_time, simulated_effect in action.simulated_effects.items():
+                pconditions, effects, _ = timing_to_cond_effects.get(
+                    effect_time, ([], [], None)
+                )
+                if not pconditions:
+                    pconditions = get_timepoint_conditions(
+                        start, duration, action.conditions, effect_time
+                    )
+                timing_to_cond_effects[effect_time] = (
+                    pconditions,
+                    effects,
+                    simulated_effect,
+                )
 
             for condition_interval, conditions in action.conditions.items():
                 start_timing = (
@@ -303,21 +359,40 @@ def _convert_to_stn(
                     else condition_interval.upper
                 )
 
-                if _absolute_time(start_timing, start, duration) > _absolute_time(
-                    end_timing, start, duration
-                ):
+                if duration != Fraction(-1) and _absolute_time(
+                    start_timing, start, duration
+                ) > _absolute_time(end_timing, start, duration):
                     continue  # Empty interval
+                elif duration == Fraction(-1):
+                    if start_timing.is_from_end():
+                        continue  # Interval starts from the end of the plan
+                    elif (
+                        end_timing.is_from_start()
+                        and start_timing.delay > end_timing.delay
+                    ):
+                        continue  # Empty interval
 
-                pconditions, effects = timing_to_cond_effects.get(
-                    start_timing, ([], [])
+                # TODO understand the edge case where a condition ends with an end open interval
+                # Add the conditions only if they are not part of the mockup action or they are not at the end of the plan
+                pconditions, effects, sim_eff = timing_to_cond_effects.get(
+                    start_timing, ([], [], None)
                 )
                 pconditions = list(set(chain(pconditions, conditions)))
-                timing_to_cond_effects[start_timing] = (pconditions, effects)
+                timing_to_cond_effects[start_timing] = (pconditions, effects, sim_eff)
 
-                pconditions, effects = timing_to_cond_effects.get(end_timing, ([], []))
-                pconditions = list(set(chain(pconditions, conditions)))
-                timing_to_cond_effects[end_timing] = (pconditions, effects)
+                # Add the ending condition only if they are not part of the mockup action or they are not at the end of the plan
+                if duration != Fraction(-1) or end_timing.is_from_start():
+                    pconditions, effects, sim_eff = timing_to_cond_effects.get(
+                        end_timing, ([], [], None)
+                    )
+                    pconditions = list(set(chain(pconditions, conditions)))
+                    timing_to_cond_effects[end_timing] = (pconditions, effects, sim_eff)
 
+            # Don't add the mockup action to the stn.
+            if duration != Fraction(-1):
+                end_node = STNPlanNode(TimepointKind.END, ai)
+                assert start_node not in stn_constraints
+                stn_constraints[start_node] = [(duration, duration, end_node)]
         ai_to_start_node[ai] = start_node
 
     # Convert event table to a list of Instantaneous events
@@ -326,6 +401,7 @@ def _convert_to_stn(
     event_creating_ais: Dict[
         "plans.plan.ActionInstance", List[Tuple["plans.plan.ActionInstance", Fraction]]
     ] = {}
+
     for (start, ai, duration), time_to_cond_eff in event_table.items():
         if duration is None:
             assert isinstance(
@@ -334,7 +410,9 @@ def _convert_to_stn(
             events.append((start, ai))
             event_creating_ais[ai] = [(ai, Fraction(0))]
             continue
-        for i, (time_pt, (conditions, effects)) in enumerate(time_to_cond_eff.items()):
+        for i, (time_pt, (conditions, effects, sim_eff)) in enumerate(
+            time_to_cond_eff.items()
+        ):
             time = _absolute_time(time_pt, start, duration)
             # inst_action = InstantaneousAction(str(ai) + str(time_pt))
             inst_action = InstantaneousAction(
@@ -347,6 +425,8 @@ def _convert_to_stn(
                 inst_action.add_precondition(cond)
             for effect in effects:
                 inst_action._add_effect_instance(effect)
+            if sim_eff is not None:
+                inst_action.set_simulated_effect(sim_eff)
             inst_ai = plans.ActionInstance(inst_action, ai.actual_parameters)
             events.append((time, inst_ai))
             # TODO here is the place where if 2 events happen at the same time can/should/must be merged
@@ -373,6 +453,7 @@ def _convert_to_stn(
             0
         ]  # TODO for now it's a list of only 1 element. When 2 events in the same moment will be merged this needs to change
         current_start_node = ai_to_start_node[current_generating_ai]
+
         for ai_next in l_next_ai:
             # Time between two differents actions depend on epsilon
             next_generating_ai, next_skew_time = event_creating_ais[ai_next][

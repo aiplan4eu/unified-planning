@@ -38,9 +38,14 @@ class TestTTPToSTN(unittest_TestCase):
         self.assertTrue(len(ttp_to_stn.stn) == len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
+        from unified_planning.plot import plot_stn_plan
+
         for name, tc in self.problems.items():
             for valid_plan in tc.valid_plans:
                 if valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN:
+                    if not tc.problem.timed_effects:
+                        continue
+                    print(name)
                     stn_plan = valid_plan.convert_to(PlanKind.STN_PLAN, tc.problem)
                     tt_plan = stn_plan.convert_to(
                         PlanKind.TIME_TRIGGERED_PLAN, tc.problem
@@ -53,3 +58,10 @@ class TestTTPToSTN(unittest_TestCase):
                             self.assertTrue(val_res)
                     except up.exceptions.UPNoSuitableEngineAvailableException as e:
                         pass
+                    print(tc.problem)
+                    print(valid_plan)
+                    print(stn_plan)
+                    plot_stn_plan(stn_plan)
+                    print("----------------------------------------------\n\n")
+
+        assert False
