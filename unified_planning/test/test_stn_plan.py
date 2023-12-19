@@ -74,7 +74,7 @@ class TestSTNPlan(unittest_TestCase):
         # constraints (ai_1_e and ai_3_e), end_plan is linked to himself in it's
         # constraints (the 1)
         expected_len: Dict[STNPlanNode, int] = {
-            start_plan: 8,
+            start_plan: 7,
             ai_1_s: len(constraints[ai_1_s]) + 1,
             ai_2_s: len(constraints[ai_2_s]) + 1,
             ai_3_s: len(constraints[ai_3_s]) + 1,
