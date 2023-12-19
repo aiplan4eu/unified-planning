@@ -14,7 +14,7 @@
 #
 
 
-from itertools import product
+from itertools import chain, product
 from numbers import Real
 import unified_planning as up
 import unified_planning.plans as plans
@@ -198,9 +198,6 @@ class STNPlan(plans.plan.Plan):
 
         # Create and populate the DeltaSTN
         self._stn = DeltaSimpleTemporalNetwork()
-        start_plan = STNPlanNode(TimepointKind.GLOBAL_START)
-        end_plan = STNPlanNode(TimepointKind.GLOBAL_END)
-        self._stn.insert_interval(start_plan, end_plan, left_bound=Fraction(0))
         if isinstance(constraints, List):
             gen: Iterator[
                 Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]
@@ -208,7 +205,11 @@ class STNPlan(plans.plan.Plan):
         else:
             assert isinstance(constraints, Dict), "Typing not respected"
             gen = flatten_dict_structure(constraints)
+        start_plan = STNPlanNode(TimepointKind.GLOBAL_START)
+        end_plan = STNPlanNode(TimepointKind.GLOBAL_END)
+        assert start_plan is not None and end_plan is not None
         f0 = Fraction(0)
+        self._stn.insert_interval(start_plan, end_plan, left_bound=f0)
         for a_node, lower_bound, upper_bound, b_node in gen:
             if (
                 a_node.environment is not None
@@ -220,10 +221,14 @@ class STNPlan(plans.plan.Plan):
                 raise UPUsageError(
                     "Different environments given inside the same STNPlan!"
                 )
-            self._stn.insert_interval(start_plan, a_node, left_bound=f0)
-            self._stn.insert_interval(a_node, end_plan, left_bound=f0)
-            self._stn.insert_interval(start_plan, b_node, left_bound=f0)
-            self._stn.insert_interval(b_node, end_plan, left_bound=f0)
+            if a_node != start_plan:
+                self._stn.insert_interval(start_plan, a_node, left_bound=f0)
+            if a_node != end_plan:
+                self._stn.insert_interval(a_node, end_plan, left_bound=f0)
+            if b_node != start_plan:
+                self._stn.insert_interval(start_plan, b_node, left_bound=f0)
+            if b_node != end_plan:
+                self._stn.insert_interval(b_node, end_plan, left_bound=f0)
             lb = None
             if isinstance(lower_bound, Fraction):
                 lb = lower_bound

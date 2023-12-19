@@ -243,24 +243,19 @@ def _absolute_time(
 
 
 EPSILON = Fraction(1, 1000)
-MAX_TIME = Fraction(5000, 1)
 
 
 def _convert_to_stn(
     time_triggered_plan: TimeTriggeredPlan,
     problem: "up.model.AbstractProblem",
 ) -> "plans.stn_plan.STNPlan":
+    # This algorithm takes the TimeTriggeredPlan and converts it to an STNPlan, by
+    # removing the temporal dimension, creating a SequentialPlan, then de-ordering the
+    # SequentialPlan creating a PartialOrderPlan and re-adding the temporal dimension,
+    # getting an STNPlan in the end.
     from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 
     assert isinstance(problem, Problem), "This algorithm works only for Problem"
-
-    # TODO add support for timed_effects in problem and support for 2 events to happen in the same moment
-    # - timed effects
-    # - timed goals
-    # - 2 events in the same moment (merge them or keep splitted)
-    # - simulated effects
-    # - understand if the way durative conditions are handled is OK (by "sampling" only start and end as events with no effects)
-    # - eventually: support for task ordering
 
     # Constraints that go in the final STNPlan
     stn_constraints: Dict[
@@ -273,7 +268,7 @@ def _convert_to_stn(
         Dict[Timing, Tuple[List[FNode], List[Effect], Optional[SimulatedEffect]]],
     ] = {}
 
-    # Mapping from an ActionInstance Starting STNPlanNodes
+    # Mapping from an ActionInstance to it's Starting STNPlanNodes
     ai_to_start_node: Dict["plans.plan.ActionInstance", STNPlanNode] = {}
 
     # create a mockup durative action that contains the problem's timed_effects and conditions
@@ -286,7 +281,7 @@ def _convert_to_stn(
         end_timepoint = Timepoint(
             TimepointKind.START if interval.upper.is_from_start() else TimepointKind.END
         )
-        end_timing = Timing(interval.lower.delay, end_timepoint)
+        end_timing = Timing(interval.upper.delay, end_timepoint)
         relative_interval = TimeInterval(
             start_timing, end_timing, interval.is_left_open(), interval.is_right_open()
         )
@@ -304,14 +299,18 @@ def _convert_to_stn(
 
     mockup_action_instance = plans.ActionInstance(mockup_action)
 
+    # Iterate over all the actions of the plan + the mockup action
+    # For each action create the starting node, split it into events
+    # and populate the events_table
     for start, ai, duration in chain(
         [(Fraction(0), mockup_action_instance, Fraction(-1))],
         time_triggered_plan.timed_actions,
     ):
         if ai == mockup_action_instance:
-            start_node, end_node = STNPlanNode(TimepointKind.GLOBAL_START, None), None
+            start_node = STNPlanNode(TimepointKind.GLOBAL_START, None)
         else:
-            start_node, end_node = STNPlanNode(TimepointKind.START, ai), None
+            start_node = STNPlanNode(TimepointKind.START, ai)
+        end_node = None
         action = ai.action
         action_cpl = (start, ai, duration)
         assert action_cpl not in event_table
@@ -372,7 +371,6 @@ def _convert_to_stn(
                     ):
                         continue  # Empty interval
 
-                # TODO understand the edge case where a condition ends with an end open interval
                 # Add the conditions only if they are not part of the mockup action or they are not at the end of the plan
                 pconditions, effects, sim_eff = timing_to_cond_effects.get(
                     start_timing, ([], [], None)
@@ -395,11 +393,12 @@ def _convert_to_stn(
                 stn_constraints[start_node] = [(duration, duration, end_node)]
         ai_to_start_node[ai] = start_node
 
-    # Convert event table to a list of Instantaneous events
-    events: List[Tuple[Fraction, "plans.plan.ActionInstance"]] = []
-    # Mapping from an event to the action (and the relative time) that created it
+    # Convert event table to a map from time to simultaneous events
+    events: Dict[Fraction, List["plans.plan.ActionInstance"]] = {}
+
+    # Mapping from an event to the action and the relative time that created it
     event_creating_ais: Dict[
-        "plans.plan.ActionInstance", List[Tuple["plans.plan.ActionInstance", Fraction]]
+        "plans.plan.ActionInstance", Tuple["plans.plan.ActionInstance", Fraction]
     ] = {}
 
     for (start, ai, duration), time_to_cond_eff in event_table.items():
@@ -407,14 +406,13 @@ def _convert_to_stn(
             assert isinstance(
                 ai.action, InstantaneousAction
             ), "Error, None duration specified for non InstantaneousAction"
-            events.append((start, ai))
-            event_creating_ais[ai] = [(ai, Fraction(0))]
+            events.setdefault(start, []).append(ai)
+            event_creating_ais[ai] = (ai, Fraction(0))
             continue
         for i, (time_pt, (conditions, effects, sim_eff)) in enumerate(
             time_to_cond_eff.items()
         ):
             time = _absolute_time(time_pt, start, duration)
-            # inst_action = InstantaneousAction(str(ai) + str(time_pt))
             inst_action = InstantaneousAction(
                 f"{ai.action.name}_{i}",
                 _parameters=OrderedDict(
@@ -428,44 +426,54 @@ def _convert_to_stn(
             if sim_eff is not None:
                 inst_action.set_simulated_effect(sim_eff)
             inst_ai = plans.ActionInstance(inst_action, ai.actual_parameters)
-            events.append((time, inst_ai))
-            # TODO here is the place where if 2 events happen at the same time can/should/must be merged
-            event_creating_ais[inst_ai] = [(ai, time - start)]
+            events.setdefault(time, []).append(inst_ai)
+            event_creating_ais[inst_ai] = (ai, time - start)
 
-    # sort events and create a map from action instance to it's time
-    events = sorted(events, key=lambda acts: acts[0])
+    simultaneous_events: List[Set["plans.plan.ActionInstance"]] = [
+        set(l) for l in events.values() if len(l) > 1
+    ]
 
-    act_to_time_map: Dict["plans.plan.ActionInstance", Fraction] = dict(
-        [(value, key) for key, value in events]
-    )
+    sorted_events = sorted(events.items(), key=lambda acts: acts[0])
+
     # Create the equivalent sequential plan and then deorder it to partial order plan
-    list_act = [ia for _, ia in events]
+    list_act = [ia for _, se in sorted_events for ia in se]
     seq_plan = plans.SequentialPlan(list_act)
     partial_order_plan = seq_plan.convert_to(plans.PlanKind.PARTIAL_ORDER_PLAN, problem)
     assert isinstance(partial_order_plan, plans.PartialOrderPlan)
+
     for ai_current, l_next_ai in partial_order_plan.get_adjacency_list.items():
-        ai_current_time = act_to_time_map[
-            ai_current
-        ]  # TODO consider the case where you have timed_goals/effect
         # Get the ActionInstance that generated this event and add the constraint between the starting of the action and the start
-        # of the action that generated the other event
-        current_generating_ai, current_skew_time = event_creating_ais[ai_current][
-            0
-        ]  # TODO for now it's a list of only 1 element. When 2 events in the same moment will be merged this needs to change
+        # of the action that generated the other event.
+        # If the 2 events were simultaneous and have a constraint, they are forced to happen together, otherwise the event
+        # that is scheduled later in the original plan is forced to happen later also in the STN (later by an EPSILON > 0)
+        current_generating_ai, current_skew_time = event_creating_ais[ai_current]
         current_start_node = ai_to_start_node[current_generating_ai]
 
+        current_simultaneous_events = None
+        for se in simultaneous_events:
+            if ai_current in se:
+                current_simultaneous_events = se
+                break
+
         for ai_next in l_next_ai:
-            # Time between two differents actions depend on epsilon
-            next_generating_ai, next_skew_time = event_creating_ais[ai_next][
-                0
-            ]  # TODO for now it's a list of only 1 element. When 2 events in the same moment will be merged this needs to change
+            next_generating_ai, next_skew_time = event_creating_ais[ai_next]
             next_start_node = ai_to_start_node[next_generating_ai]
 
             if current_generating_ai != next_generating_ai:
+                upper_bound = None
+                if (
+                    current_simultaneous_events is not None
+                    and ai_next in current_simultaneous_events
+                ):
+                    lower_bound = current_skew_time - next_skew_time
+                    upper_bound = lower_bound
+                else:
+                    lower_bound = current_skew_time - next_skew_time + EPSILON
+
                 stn_constraints.setdefault(current_start_node, []).append(
                     (
-                        current_skew_time - next_skew_time + EPSILON,
-                        MAX_TIME,
+                        lower_bound,
+                        upper_bound,
                         next_start_node,
                     )
                 )
@@ -500,10 +508,10 @@ def is_time_in_interv(
     Return if the timepoint is in the interval given.
     """
     time_pt = _absolute_time(timing, start=start, duration=duration)
-    upper_time = _absolute_time(interval._upper, start=start, duration=duration)
-    lower_time = _absolute_time(interval._lower, start=start, duration=duration)
-    if (time_pt > lower_time if interval._is_left_open else time_pt >= lower_time) and (
-        time_pt < upper_time if interval._is_right_open else time_pt <= upper_time
-    ):
+    upper_time = _absolute_time(interval.upper, start=start, duration=duration)
+    lower_time = _absolute_time(interval.lower, start=start, duration=duration)
+    if (
+        time_pt > lower_time if interval.is_left_open() else time_pt >= lower_time
+    ) and (time_pt < upper_time if interval.is_right_open() else time_pt <= upper_time):
         return True
     return False
