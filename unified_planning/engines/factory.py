@@ -531,8 +531,14 @@ class Factory:
                 )
                 planners_features.append(x)
         if len(planners_features) > 0:
+            if optimality_guarantee is not None:
+                starting_line = f"No available engine supports all the problem features with optimality_guarantee: {optimality_guarantee.name}:"
+            elif anytime_guarantee is not None:
+                starting_line = f"No available engine supports all the problem features with anytime_guarantee: {anytime_guarantee.name}:"
+            else:
+                starting_line = "No available engine supports all the problem features:"
             header = ["Engine"] + problem_features
-            msg = f"No available engine supports all the problem features:\n{format_table(header, planners_features)}"
+            msg = f"{starting_line}\n{format_table(header, planners_features)}"
         elif compilation_kind is not None:
             msg = f"No available engine supports {compilation_kind}"
         elif plan_kind is not None:

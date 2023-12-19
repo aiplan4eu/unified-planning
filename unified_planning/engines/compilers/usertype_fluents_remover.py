@@ -147,7 +147,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        if new_kind.has_fluents_type("OBJECT_FLUENTS"):
+        if new_kind.has_object_fluents():
             new_kind.unset_fluents_type("OBJECT_FLUENTS")
             new_kind.set_effects_kind("CONDITIONAL_EFFECTS")
             new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
