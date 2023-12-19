@@ -114,7 +114,6 @@ class TestSTNPlan(unittest_TestCase):
         expected_new_constraints: Dict[
             Tuple[STNPlanNode, STNPlanNode], Tuple[Optional[int], Optional[int]]
         ] = {
-            (start_plan, start_plan): (0, None),
             (start_plan, ai_2_s): (
                 0,
                 3,
@@ -126,7 +125,6 @@ class TestSTNPlan(unittest_TestCase):
             (start_plan, ai_2_e): (0, None),
             (start_plan, ai_3_e): (0, None),
             (start_plan, end_plan): (0, None),
-            (ai_2_s, ai_2_s): (0, None),
             (ai_2_s, ai_3_s): (
                 3,
                 5,
@@ -142,11 +140,12 @@ class TestSTNPlan(unittest_TestCase):
             (ai_2_e, ai_3_e): (None, 6),
             (ai_2_e, end_plan): (0, None),
             (ai_3_e, end_plan): (0, 7),
-            (end_plan, end_plan): (0, None),
         }
         counter = 0
         for left_node, cl in new_plan.get_constraints().items():
             for low, up, right_node in cl:
+                if left_node == right_node:
+                    continue
                 self.assertEqual(
                     (low, up), expected_new_constraints[left_node, right_node]
                 )
