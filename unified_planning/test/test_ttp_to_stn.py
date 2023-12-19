@@ -79,7 +79,6 @@ class TestTTPToSTN(unittest_TestCase):
         self.assertTrue(len(ttp_to_stn.stn) == len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
-        from unified_planning.plot import plot_stn_plan
 
         for name, tc in self.problems.items():
             for valid_plan in tc.valid_plans:

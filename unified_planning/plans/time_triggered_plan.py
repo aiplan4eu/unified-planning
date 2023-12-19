@@ -334,7 +334,7 @@ def _convert_to_stn(
 
             for effect_time, simulated_effect in action.simulated_effects.items():
                 pconditions, effects, _ = timing_to_cond_effects.get(
-                    effect_time, ([], [], None)
+                    effect_time, ([], [], None)  # type: ignore [arg-type]
                 )
                 if not pconditions:
                     pconditions = get_timepoint_conditions(
