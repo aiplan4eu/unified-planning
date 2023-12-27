@@ -75,6 +75,43 @@ def get_example_problems():
     )
     problems["basic_oversubscription"] = basic_oversubscription
 
+    # basic tils (timed initial literals)
+    x = Fluent("x")
+    y = Fluent("y")
+    da = DurativeAction("a")
+    da.set_fixed_duration(1)
+    da.add_effect(EndTiming(), x, True)
+    da.add_condition(TimeInterval(StartTiming(), EndTiming()), y)
+    problem = Problem("basic_tils")
+    problem.add_fluent(x)
+    problem.add_fluent(y)
+    problem.add_action(da)
+    problem.set_initial_value(x, False)
+    problem.add_timed_effect(StartTiming(5), x, False)
+    problem.set_initial_value(y, False)
+    problem.add_timed_effect(StartTiming(2), y, True)
+    problem.add_timed_effect(StartTiming(8), y, False)
+    problem.add_goal(x)
+    t_plan = up.plans.TimeTriggeredPlan([(Fraction(6), da(), Fraction(1))])
+    invalid_t_plans: List[up.plans.Plan] = [
+        # condition not established
+        up.plans.TimeTriggeredPlan([(Fraction(1), da(), Fraction(1))]),
+        # effect would be undone by TIL
+        up.plans.TimeTriggeredPlan([(Fraction(3), da(), Fraction(1))]),
+        # effect would collide with TIL
+        up.plans.TimeTriggeredPlan([(Fraction(4), da(), Fraction(1))]),
+        # condition not established
+        up.plans.TimeTriggeredPlan([(Fraction(9), da(), Fraction(1))]),
+    ]
+
+    basic_tils = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[t_plan],
+        invalid_plans=invalid_t_plans,
+    )
+    problems["basic_tils"] = basic_tils
+
     # complex conditional
     fluent_a = Fluent("fluent_a")
     fluent_b = Fluent("fluent_b")

@@ -66,6 +66,7 @@ def _get_pddl_test_cases(
     block: Iterable[str] = tuple(),
 ) -> Dict[str, TestCase]:
     pddl_files = glob(os.path.join(pddl_files_path, "*.pddl"))
+    plan_files = glob(os.path.join(pddl_files_path, "*.plan"))
     domain_filenames: List[str] = []
     problem_filenames: List[str] = []
     for filename in pddl_files:
@@ -86,8 +87,23 @@ def _get_pddl_test_cases(
     reader = PDDLReader()
     for problem_filename in problem_filenames:
         problem = reader.parse_problem(domain_filename, problem_filename)
-        problem.name = os.path.basename(problem_filename)
-        res[problem.name] = TestCase(problem=problem, solvable=True)
+        problem.name = os.path.basename(problem_filename).split(".")[0]
+        valid_plans = []
+        invalid_plans = []
+        for plan_file in plan_files:
+            if problem.name + "_" not in plan_file:
+                continue
+            plan = reader.parse_plan(problem, plan_file)
+            if "invalid" in plan_file:
+                invalid_plans.append(plan)
+            else:
+                valid_plans.append(plan)
+        res[problem.name] = TestCase(
+            problem=problem,
+            solvable=True,
+            valid_plans=valid_plans,
+            invalid_plans=invalid_plans,
+        )
 
     return res
 
@@ -222,10 +238,10 @@ def get_report_parser() -> argparse.ArgumentParser:
         "--modes",
         type=str,
         nargs="+",
-        choices=["oneshot", "anytime", "validation", "grounding"],
+        choices=["oneshot", "anytime", "validation", "grounding", "repair"],
         help="Performs only the specified modes; if not specified tests all the modes.",
         dest="modes",
-        default=["oneshot", "anytime", "validation", "grounding"],
+        default=["oneshot", "anytime", "validation", "grounding", "repair"],
     )
 
     parser.add_argument(
@@ -235,6 +251,14 @@ def get_report_parser() -> argparse.ArgumentParser:
         dest="timeout",
         help=f"The timeout in seconds for the anytime and oneshot mode, defaults to {DEFAULT_TIMEOUT}s. Set a number <= 0 to have no timeout",
         default=DEFAULT_TIMEOUT,
+    )
+
+    parser.add_argument(
+        "-d",
+        "--deliverable",
+        action="store_true",
+        dest="deliverable",
+        help=f"Adds information needed in the evaluation report",
     )
 
     return parser

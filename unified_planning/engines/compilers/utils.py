@@ -294,7 +294,12 @@ def replace_action(
             "The Action of the given ActionInstance does not have a valid replacement."
         )
     if replaced_action is not None:
-        return ActionInstance(replaced_action, action_instance.actual_parameters)
+        return ActionInstance(
+            replaced_action,
+            action_instance.actual_parameters,
+            action_instance.agent,
+            action_instance.motion_paths,
+        )
     else:
         return None
 

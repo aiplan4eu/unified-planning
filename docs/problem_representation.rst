@@ -247,14 +247,24 @@ In all the examples below all the shortcuts must be imported, with the command:
 
 Classical and Numeric Planning
 ------------------------------
-The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery. The example shows the basic functionalities and objects needed to declare the problem specification. A more detailed presentation of the different objects is available on the `Google Colab <https://colab.research.google.com/github/aiplan4eu/unified-planning/blob/master/docs/notebooks/01-basic-example.ipynb>`_ Python notebook where we document and explain all the different classes and their semantics.
+
+Classical and Numeric planning are the most common problems and the building blocks of most other planning problems.
+At their root, they allow the definition of instantaneous that provide:
+
+- preconditions that allow to check whether the action is applicable in a given state, and
+- effects that allow the computation of the resulting state after the action is executed.
+
+The classical and numeric planning only differ in that classical planning does not allow to referring to numeric variables in the state.
+The following example shows a simple robotic planning problem modeling a robot moving between locations while consuming battery.
+The example shows the basic functionalities and objects needed to declare the problem specification.
+`[Classical detailed presentation 🔗]  <notebooks/01-basic-example.html>`__
+`[Numeric detailed presentation 🔗]  <notebooks/01-numeric-planning.html>`__
 
 .. literalinclude:: ./code_snippets/robot_battery.py
     :lines: 3-38
-
+    :caption: Syntax Overview
 
 In the current version, the Unified-Planning library allows the specification of classical, numerical and temporal planning problems. In order to support the latitude expressiveness levels we have operators for arithmetic such as plus minus times and division and specific temporal operators to attach conditions and effects to specific timings within the duration of an action. The library :ref:`documentation <api-reference>` provides examples and describes the use of these functionalities.
-
 
 Temporal Planning
 -----------------
@@ -266,9 +276,11 @@ This means that it is possible to model actions having:
 * conditions or effects expressed at specific instant of the action, in particular at times start+delay or end+delay, where start refers to the starting time of the action, end to the ending time and delay is a real constant (positive or negative).
 * durative conditions to be maintained within sub-intervals, delimited by the same time-point used for instantaneous conditions.
 
+`[Detailed presentation 🔗] <notebooks/03-temporal-planning.html>`__
+
 .. literalinclude:: ./code_snippets/temporal_and_scheduling.py
     :lines: 3-44
-
+    :caption: Syntax Overview
 
 Hierarchical Planning
 ---------------------
@@ -290,7 +302,7 @@ The problem comes in several variants, depending on various features. Specifical
 
 .. literalinclude:: ./code_snippets/multi_agent_and_contingent.py
     :lines: 3-41
-
+    :caption: Syntax Overview
 
 Contingent Planning
 -------------------
@@ -298,7 +310,7 @@ A contingent planning problem represents an action-based problem in which the ex
 
 .. literalinclude:: ./code_snippets/multi_agent_and_contingent.py
     :lines: 44-95
-
+    :caption: Syntax Overview
 
 Scheduling
 ----------
@@ -311,5 +323,28 @@ We can represent a generic scheduling problem using the SchedulingProblem class 
 
 .. literalinclude:: ./code_snippets/temporal_and_scheduling.py
     :lines: 47-67
+    :caption: Syntax Overview
+
+
+Combined Task and Motion Planning
+---------------------------------
+
+A combined Task and Motion Planning (TAMP) problem allows adding constraints
+that require that a valid path exists in a map between a series of waypoints
+given a model of the motion that an object is capable of. This is often
+important for cases where we need to make sure a motion required by an action is
+feasible in the real world.
+
+Concretely, the problem is extended by adding an occupancy map with associated
+configuration types. These types can then be used to add configurations
+(position and orientation) to objects to form waypoints in the corresponding map.
+Movable objects contain a footprint and a motion model with its required
+parameters. In the example below, the `Reeds Shepp <https://en.wikipedia.org/wiki/Dubins_path>`_ car is used as a motion model.
+An instantaneous motion action allows the addition of motion constraints which
+state that in order to apply the action, a valid path must exist for the movable
+object between a series of waypoints. `[Detailed presentation 🔗]  <notebooks/14-task-and-motion-planning.html>`__
+
+.. literalinclude:: ./code_snippets/tamp_problem.py
+    :lines: 5-116
     :caption: Syntax Overview
 

@@ -844,6 +844,9 @@ message ValidationResult {
     }
     ValidationResultStatus status = 1;
 
+    // A set of engine specific values that can be reported
+    map<string, string> metrics = 4;
+
     // Optional. Information given by the engine to the user.
     repeated LogMessage log_messages = 2;
 
@@ -860,6 +863,9 @@ message CompilerResult {
     // The map_back_plan field is a map from the ActionInstance of the
     // compiled problem to the original ActionInstance.
     map<string, ActionInstance> map_back_plan = 2;
+
+    // A set of engine specific values that can be reported
+    map<string, string> metrics = 5;
 
     // Optional. Information given by the engine to the user.
     repeated LogMessage log_messages = 3;

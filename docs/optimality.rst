@@ -1,8 +1,8 @@
 .. _engines:
 
-==========
-Optimality
-==========
+======================
+Metrics & Plan Quality
+======================
 
 .. contents::
    :local:
@@ -28,19 +28,39 @@ The UP library defines a set of "Quality Metrics" to express the objective funct
 Creating quality metrics amounts to instantiate the corresponding object and adding it to one or more `Problem` instances. See the `Optimal Planning Notebook <https://github.com/aiplan4eu/unified-planning/blob/master/docs/notebooks/02-optimal-planning.ipynb>`_ for an example.
 
 
-Optimal and Satisficing Planning
-================================
+Optimal, Anytime and Satisficing Planning
+=========================================
 
-Some planning engines can guarantee to find the optimal solution for some kinds of quality metrics, others can only apply a best-effort approach to find good-quality solutions without optimality guarantees. The UP allows the user to explicitly define the desired optimality guarantees as parameters of the operative modes.
+When dealing with quality metrics, it is useful to keep the following in mind:
 
-If a planning engine is able to generate a solution result it could be either marked as `SOLVED_OPTIMALLY` or `SOLVED_SATISFICING` to indicate whether the produced solution is guaranteed to be optimal or not.
+- A **satisficing** planner will return the first plan found, regardless of its quality.
+- An **optimal** planner will only return a provably optimal plan.
+- An **anytime** planner will return a series of plan of increasing quality until it runs out of time or is no longer able to improve its last solution.
 
+.. code-block::
+
+    # By default, Oneshot planner will return the first available solver (typically a satisficing one)
+    with OneshotPlanner(problem_kind=problem.kind) as planner:
+      res = planner.solve(utr_problem)
+
+    # An optimal solver can be explicitly required with the optimality_guarantee parameter
+    with OneshotPlanner(problem_kind=problem.kind,
+                        optimality_guarantee=PlanGenerationResultStatus.SOLVED_OPTIMALLY) as optimal_planner:
+      res = optimal_planner.solve(utr_problem)
+
+    # An anytime planner can be requested with the AnytimePlanning operation mode
+    with AnytimePlanner(problem_kind=problem.kind) as planner:
+      for res in planner.get_solutions(problem):
+        print(res)
+
+Proving the optimality of plan can be very time-consuming and orders of magnitude longer than finding it.
+Indeed, it requires the planner to prove that all potential alternative plans are of lower quality.
+As a rule of thumb, if you are interested in finding high quality solutions but do not care about optimality you should use an anytime planner.
+Its runtime can be capped with the ``timeout`` parameter of ``get_solutions()`` or may just break out of the loop when your happy with the returned solution.
 
 Notes
 -----
 
-If a planning problem without optimality metrics is required to be solved optimally, an exception is thrown.
-
-If a planning problem without optimality metrics is solved by a planning engine capable of guaranteeing some optimality, it is anyway marked as `SOLVED_SATISFICING`.
-
-The UP currently supports only 1 metric in each problem, therefore multi-objective optimization is not possible.
+- If a planning problem without optimality metrics is required to be solved optimally, an exception is thrown.
+- If a planning problem without optimality metrics is solved by a planning engine capable of guaranteeing some optimality, it is anyway marked as `SOLVED_SATISFICING`.
+- The UP currently supports only 1 metric in each problem, therefore multi-objective optimization is not possible.

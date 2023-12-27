@@ -584,6 +584,16 @@ class ProtobufWriter(Converter):
         if isinstance(problem, model.htn.HierarchicalProblem):
             hierarchy = self._build_hierarchy(problem)
 
+        timed_effects = []
+        for timing, eff_l in problem.timed_effects.items():
+            proto_timing = self.convert(timing)
+            for eff in eff_l:
+                timed_effects.append(
+                    proto.TimedEffect(
+                        effect=self.convert(eff), occurrence_time=proto_timing
+                    )
+                )
+
         return proto.Problem(
             domain_name=problem_name + "_domain",
             problem_name=problem_name,
@@ -595,7 +605,7 @@ class ProtobufWriter(Converter):
                 proto.Assignment(fluent=self.convert(x), value=self.convert(v))
                 for (x, v) in problem.initial_values.items()
             ],
-            timed_effects=[self.convert(e) for e in problem.timed_effects],
+            timed_effects=timed_effects,
             goals=goals,
             features=[map_feature(feature) for feature in problem.kind.features],
             metrics=[self.convert(m) for m in problem.quality_metrics],
@@ -980,6 +990,7 @@ class ProtobufWriter(Converter):
         return proto.CompilerResult(
             problem=self.convert(result.problem),
             map_back_plan=map,
+            metrics=result.metrics,
             log_messages=[self.convert(log) for log in log_messages],
             engine=proto.Engine(name=result.engine_name),
         )
@@ -990,6 +1001,7 @@ class ProtobufWriter(Converter):
     ) -> proto.ValidationResult:
         return proto.ValidationResult(
             status=self.convert(result.status),
+            metrics=result.metrics,
             log_messages=[self.convert(log) for log in result.log_messages],
             engine=proto.Engine(name=result.engine_name),
         )
