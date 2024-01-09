@@ -507,6 +507,7 @@ class Factory:
         planners_features = []
         # Make sure that optimality guarantees and compilation kind are mutually exclusive
         assert optimality_guarantee is None or compilation_kind is None
+
         for name in self._preference_list:
             EngineClass = self._engines[name]
             if self._engine_satisfies_conditions(
@@ -529,6 +530,13 @@ class Factory:
                     str(EngineClass.supports(ProblemKind({f}, version=pk_v)))
                     for f in problem_features
                 )
+                if optimality_guarantee is not None:
+                    assert issubclass(EngineClass, OneshotPlannerMixin)
+                    x.append(str(EngineClass.guarantees(optimality_guarantee)))
+                elif anytime_guarantee is not None:
+                    assert issubclass(EngineClass, AnytimePlannerMixin)
+                    x.append(EngineClass.ensures(anytime_guarantee))
+
                 planners_features.append(x)
         if len(planners_features) > 0:
             if optimality_guarantee is not None:
@@ -538,6 +546,10 @@ class Factory:
             else:
                 starting_line = "No available engine supports all the problem features:"
             header = ["Engine"] + problem_features
+            if optimality_guarantee is not None:
+                header.append(optimality_guarantee.name)
+            elif anytime_guarantee is not None:
+                header.append(anytime_guarantee.name)
             msg = f"{starting_line}\n{format_table(header, planners_features)}"
         elif compilation_kind is not None:
             msg = f"No available engine supports {compilation_kind}"
