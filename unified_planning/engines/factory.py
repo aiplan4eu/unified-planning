@@ -532,10 +532,10 @@ class Factory:
                 )
                 if optimality_guarantee is not None:
                     assert issubclass(EngineClass, OneshotPlannerMixin)
-                    x.append(str(EngineClass.guarantees(optimality_guarantee)))
+                    x.append(str(EngineClass.satisfies(optimality_guarantee)))
                 elif anytime_guarantee is not None:
                     assert issubclass(EngineClass, AnytimePlannerMixin)
-                    x.append(EngineClass.ensures(anytime_guarantee))
+                    x.append(str(EngineClass.ensures(anytime_guarantee)))
 
                 planners_features.append(x)
         if len(planners_features) > 0:
