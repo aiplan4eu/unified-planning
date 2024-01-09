@@ -120,6 +120,7 @@ PDDL_KEYWORDS = {
     "durative-actions",
     "derived-predicates",
     "timed-initial-literals",
+    "timed-effects",
     "preferences",
     "contingent",
 }
@@ -196,6 +197,18 @@ class ConverterToPDDLString(walkers.DagWalker):
     def convert(self, expression):
         """Converts the given expression to a PDDL string."""
         return self.walk(self.simplifier.simplify(expression))
+
+    def convert_fraction(self, frac):
+        with localcontext() as ctx:
+            ctx.prec = self.DECIMAL_PRECISION
+            dec = frac.numerator / Decimal(frac.denominator, ctx)
+
+            if Fraction(dec) != frac:
+                warn(
+                    "The PDDL printer cannot exactly represent the real constant '%s'"
+                    % frac
+                )
+            return float(dec)
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
@@ -279,17 +292,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
         frac = expression.constant_value()
-
-        with localcontext() as ctx:
-            ctx.prec = self.DECIMAL_PRECISION
-            dec = frac.numerator / Decimal(frac.denominator, ctx)
-
-            if Fraction(dec) != frac:
-                warn(
-                    "The PDDL printer cannot exactly represent the real constant '%s'"
-                    % frac
-                )
-            return str(dec)
+        return str(self.convert_fraction(frac))
 
     def walk_int_constant(self, expression, args):
         assert len(args) == 0
@@ -427,7 +430,15 @@ class PDDLWriter:
             ):
                 out.write(" :action-costs")
             if self.problem_kind.has_timed_effects():
-                out.write(" :timed-initial-literals")
+                only_bool = True
+                for le in self.problem.timed_effects.values():
+                    for e in le:
+                        if not e.fluent.type.is_bool_type():
+                            only_bool = False
+                if not only_bool:
+                    out.write(" :timed-effects")
+                else:
+                    out.write(" :timed-initial-literals")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -689,7 +700,7 @@ class PDDLWriter:
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
-                out.write(f" (at {tm.delay}")
+                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
                 _write_effect(
                     e,
                     None,
@@ -697,7 +708,6 @@ class PDDLWriter:
                     converter,
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
-                    True,
                 )
                 out.write(")")
         out.write(")\n")
@@ -998,7 +1008,6 @@ def _write_effect(
         ],
         str,
     ],
-    initial: bool = False,
 ):
     simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
@@ -1080,13 +1089,6 @@ def _write_effect(
         out.write(f" {fluent}")
     elif simplified_value.is_false():
         out.write(f" (not {fluent})")
-    elif initial:
-        value = converter.convert(simplified_value)
-        if effect.is_increase():
-            value = f"(+ {fluent} {value})"
-        elif effect.is_decrease():
-            value = f"(- {fluent} {value})"
-        out.write(f" (= {fluent} {value})")
     elif effect.is_increase():
         out.write(f" (increase {fluent} {converter.convert(simplified_value)})")
     elif effect.is_decrease():
