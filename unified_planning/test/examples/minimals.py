@@ -462,11 +462,11 @@ def get_example_problems():
     problem.set_initial_value(value, 1)
     problem.add_goal(Equals(value, 2))
     problem.add_timed_effect(StartTiming(1), value, 1)
-    plan = up.plans.TimeTriggeredPlan(
+    t_plan = up.plans.TimeTriggeredPlan(
         [(Fraction(2), up.plans.ActionInstance(task), None)]
     )
     problems["basic_numeric_with_timed_effect"] = TestCase(
-        problem=problem, solvable=True, valid_plans=[plan]
+        problem=problem, solvable=True, valid_plans=[t_plan]
     )
 
     return problems
