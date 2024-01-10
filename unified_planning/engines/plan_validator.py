@@ -486,6 +486,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         time = Fraction(0)
         last_state = UPState(problem.initial_values)
         trace: Dict[Fraction, State] = {Fraction(-1): last_state}
+        scheduled_effects = sorted(scheduled_effects, key=lambda x: x[0])
         while len(start_actions) + len(scheduled_effects) > 0:
             if start_actions and (
                 len(scheduled_effects) == 0
