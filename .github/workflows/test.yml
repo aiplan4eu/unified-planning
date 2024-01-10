@@ -11,7 +11,7 @@ env:
   up_tamer_commit: "1b543623ad2ebd9795529abe812352db8f4ec014"
   up_pyperplan_commit: "6cec570b88d62ca5c4b8029a60c704414fe7f6a9"
   up_fast_downward_commit: "c60b6ab82cb8c3046cfd4782afe4d4c6071c4109"
-  up_enhsp_commit: "af93cd799974626ac17b8aaf1a83975f75c073ab"
+  up_enhsp_commit: "4caa34c996b58693e3356ac06942675949aea949"
   up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
 
 jobs:
@@ -140,7 +140,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.10.0; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.12.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
@@ -208,7 +208,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.10.0; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.12.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Test code-snippets
@@ -276,7 +276,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.10.0; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.12.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
@@ -337,7 +337,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.10.0; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.12.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
