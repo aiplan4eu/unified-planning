@@ -60,6 +60,7 @@ templates_path = ["_templates"]
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
+    ".ipynb": "jupyter_notebook",
 }
 
 # The encoding of source files.
