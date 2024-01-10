@@ -267,13 +267,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         problem: Problem,
     ) -> UPState:
         updates: Dict[FNode, FNode] = {}
-        assigned: Set[FNode] = set()
+        assigned: Dict[FNode, Optional[ActionInstance]] = {}
         for effs, sim_eff, ai in effects:
             for eff in effs:
                 changes = self._apply_effect(state, se, ai, eff, updates, problem)
                 for f, v in changes.items():
                     if f in assigned or (f in updates and eff.is_assignment()):
-                        if f.type.is_bool_type():
+                        if f.type.is_bool_type() and assigned[f] == ai:
                             # Handle "delete before add" semantics
                             if v.bool_constant_value():
                                 updates[f] = v
@@ -282,7 +282,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     else:
                         updates[f] = v
                         if eff.is_assignment():
-                            assigned.add(f)
+                            assigned[f] = ai
             if sim_eff is not None:
                 assert ai is not None
                 fluents = [self._ground_expression(f, ai) for f in sim_eff.fluents]
@@ -293,7 +293,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 )
                 for f, v in zip(fluents, values):
                     if f in updates:
-                        if f.type.is_bool_type():
+                        if f.type.is_bool_type() and assigned[f] == ai:
                             # Handle "delete before add" semantics
                             if v.bool_constant_value():
                                 updates[f] = v
@@ -301,7 +301,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             raise UPConflictingEffectsException("Double effect")
                     else:
                         updates[f] = v
-                        assigned.add(f)
+                        assigned[f] = ai
         return state.make_child(updated_values=updates)
 
     def _apply_effect(
