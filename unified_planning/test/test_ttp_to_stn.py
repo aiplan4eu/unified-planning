@@ -1,7 +1,6 @@
 from itertools import chain
 from unified_planning.shortcuts import *
-
-from unified_planning.plans.ttp_to_stn import *
+from unified_planning.plans import TimeTriggeredPlan
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase
 from unified_planning.test import skipIfNoPlanValidatorForProblemKind
@@ -69,14 +68,6 @@ class TestTTPToSTN(unittest_TestCase):
             )
         )
         self.assertEqual(len(total_stn_nodes), len(plan.timed_actions) * 2 + 2)
-
-        ## TEST of the old version:
-        ttp_to_stn = TTP_to_STN(plan, problem)
-
-        ttp_to_stn.run()
-
-        # Each actions has start and end in the stn plus Start and End's nodes
-        self.assertTrue(len(ttp_to_stn.stn) == len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
 
