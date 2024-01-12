@@ -1107,7 +1107,7 @@ def get_example_problems():
                 None,
             ),
             (
-                Fraction(2002, 100),
+                Fraction(2003, 100),
                 move(r2, l4, l3),
                 Fraction(6, 1),
             ),
@@ -1122,23 +1122,94 @@ def get_example_problems():
                 Fraction(10, 1),
             ),
             (
-                Fraction(2603, 100),
+                Fraction(2604, 100),
                 load(p1, r2, l3),
                 None,
             ),
             (
-                Fraction(2603, 100),
+                Fraction(2604, 100),
                 move(r2, l3, l4),
-                Fraction(5, 1),
+                Fraction(6, 1),
             ),
             (
-                Fraction(3104, 100),
+                Fraction(3205, 100),
                 unload(p1, r2, l4),
                 None,
             ),
         ]
     )
-    logistic = TestCase(problem=problem, solvable=True, valid_plans=[plan])
+    inv_t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (
+                Fraction(0),
+                load(p1, r1, l1),
+                None,
+            ),
+            (
+                Fraction(0),
+                load(p2, r2, l1),
+                None,
+            ),
+            (
+                Fraction(0),
+                move(r1, l1, l2),
+                Fraction(16, 1),
+            ),
+            (
+                Fraction(0),
+                move(r2, l1, l2),
+                Fraction(8, 1),
+            ),
+            (
+                Fraction(801, 100),
+                move(r2, l2, l3),
+                Fraction(5, 1),
+            ),
+            (
+                Fraction(1302, 100),
+                move(r2, l3, l4),
+                Fraction(6, 1),
+            ),
+            (
+                Fraction(1601, 100),
+                move(r1, l2, l3),
+                Fraction(10, 1),
+            ),
+            (
+                Fraction(1903, 100),
+                unload(p2, r2, l4),
+                None,
+            ),
+            (
+                Fraction(2003, 100),
+                move(r2, l4, l3),
+                Fraction(6, 1),
+            ),
+            (
+                Fraction(2602, 100),
+                unload(p1, r1, l3),
+                None,
+            ),
+            (
+                Fraction(2604, 100),
+                load(p1, r2, l3),
+                None,
+            ),
+            (
+                Fraction(2604, 100),
+                move(r2, l3, l4),
+                Fraction(6, 1),
+            ),
+            (
+                Fraction(3205, 100),
+                unload(p1, r2, l4),
+                None,
+            ),
+        ]
+    )
+    logistic = TestCase(
+        problem=problem, solvable=True, valid_plans=[t_plan], invalid_plans=[inv_t_plan]
+    )
     problems["logistic"] = logistic
 
     # safe_road
