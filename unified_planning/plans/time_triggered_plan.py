@@ -216,13 +216,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
             times.add(start + duration)
             action = ai.action
             assert isinstance(action, DurativeAction)
-            for t in action.effects.keys():
-                times.add(_absolute_time(t, start, duration))
-            for t in action.simulated_effects.keys():
-                times.add(_absolute_time(t, start, duration))
-            for i in action.conditions.keys():
-                times.add(_absolute_time(i.lower, start, duration))
-                times.add(_absolute_time(i.upper, start, duration))
+            times.update(extract_action_timings(action, start, duration))
 
         sorted_times: List[Fraction] = sorted(times)
         epsilon = sorted_times[-1]
@@ -253,9 +247,6 @@ def _absolute_time(
         return start + duration + relative_time.delay
 
 
-EPSILON = Fraction(1, 1000)
-
-
 def _convert_to_stn(
     time_triggered_plan: TimeTriggeredPlan,
     problem: "up.model.AbstractProblem",
@@ -272,6 +263,15 @@ def _convert_to_stn(
         raise NotImplementedError(
             "Currently the algorithm does not support external conditions and effects"
         )
+
+    epsilon = problem.epsilon
+    if epsilon is None:
+        epsilon = time_triggered_plan.extract_epsilon(problem)
+        if epsilon is None:
+            epsilon = Fraction(1, 1000)
+        else:
+            epsilon = min(epsilon / 10, Fraction(1, 1000))
+    assert epsilon is not None
 
     # Constraints that go in the final STNPlan
     stn_constraints: Dict[
@@ -342,7 +342,7 @@ def _convert_to_stn(
             ), "Error, Action is not a DurativeAction nor an InstantaneousAction"
 
             for absolute_timing, inst_action in extract_instantenous_actions(
-                action, start, duration
+                action, start, duration, epsilon
             ):
                 if absolute_timing < 0:
                     continue
@@ -375,7 +375,7 @@ def _convert_to_stn(
         # Get the ActionInstance that generated this event and add the constraint between the starting of the action and the start
         # of the action that generated the other event.
         # If the 2 events were simultaneous and have a constraint, they are forced to happen together, otherwise the event
-        # that is scheduled later in the original plan is forced to happen later also in the STN (later by an EPSILON > 0)
+        # that is scheduled later in the original plan is forced to happen later also in the STN (later by an epsilon > 0)
         current_generating_ai, current_skew_time = event_creating_ais[ai_current]
         current_start_node = ai_to_start_node[current_generating_ai]
 
@@ -398,7 +398,7 @@ def _convert_to_stn(
                     lower_bound = current_skew_time - next_skew_time
                     upper_bound = lower_bound
                 else:
-                    lower_bound = current_skew_time - next_skew_time + EPSILON
+                    lower_bound = current_skew_time - next_skew_time + epsilon
 
                 stn_constraints.setdefault(current_start_node, []).append(
                     (
@@ -458,7 +458,10 @@ def get_timepoint_simulated_effects(
 
 
 def extract_action_timings(
-    action: DurativeAction, start: Fraction, duration: Fraction
+    action: DurativeAction,
+    start: Fraction,
+    duration: Fraction,
+    epsilon: Fraction = Fraction(0),
 ) -> Set[Fraction]:
     timings: Set[Fraction] = set()
 
@@ -466,9 +469,9 @@ def extract_action_timings(
     timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
 
     for interval in action.conditions.keys():
-        lower_increment: Fraction = EPSILON if interval.is_left_open() else Fraction(0)
+        lower_increment: Fraction = epsilon if interval.is_left_open() else Fraction(0)
         upper_increment: Fraction = (
-            -EPSILON if interval.is_right_open() else Fraction(0)
+            -epsilon if interval.is_right_open() else Fraction(0)
         )
         timings.add(_absolute_time(interval.lower, start, duration) + lower_increment)
         timings.add(_absolute_time(interval.upper, start, duration) + upper_increment)
@@ -477,10 +480,12 @@ def extract_action_timings(
 
 
 def extract_instantenous_actions(
-    action: DurativeAction, start: Fraction, duration: Fraction
+    action: DurativeAction, start: Fraction, duration: Fraction, epsilon: Fraction
 ) -> Iterator[Tuple[Fraction, InstantaneousAction]]:
 
-    for i, timing in enumerate(extract_action_timings(action, start, duration)):
+    for i, timing in enumerate(
+        extract_action_timings(action, start, duration, epsilon)
+    ):
 
         inst_action = InstantaneousAction(
             f"{action.name}_{i}",
