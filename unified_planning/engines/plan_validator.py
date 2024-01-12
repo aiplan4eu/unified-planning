@@ -417,7 +417,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
         )
-        start_actions.sort(key=lambda x: (x[0], x[2]), reverse=True)
+        start_actions.sort(key=lambda x: x[0], reverse=True)
 
         scheduled_effects: List[
             Tuple[
@@ -486,7 +486,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         time = Fraction(0)
         last_state = UPState(problem.initial_values)
         trace: Dict[Fraction, State] = {Fraction(-1): last_state}
-        scheduled_effects = sorted(scheduled_effects, key=lambda x: x[0])
+        scheduled_effects.sort(key=lambda x: x[0])
         while len(start_actions) + len(scheduled_effects) > 0:
             if start_actions and (
                 len(scheduled_effects) == 0
