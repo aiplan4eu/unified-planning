@@ -120,7 +120,7 @@ PDDL_KEYWORDS = {
     "durative-actions",
     "derived-predicates",
     "timed-initial-literals",
-    "timed-effects",
+    "timed-initial-effects",
     "preferences",
     "contingent",
 }
@@ -436,7 +436,7 @@ class PDDLWriter:
                         if not e.fluent.type.is_bool_type():
                             only_bool = False
                 if not only_bool:
-                    out.write(" :timed-effects")
+                    out.write(" :timed-initial-effects")
                 else:
                     out.write(" :timed-initial-literals")
             out.write(")\n")
