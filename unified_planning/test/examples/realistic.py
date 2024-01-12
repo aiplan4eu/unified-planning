@@ -13,7 +13,7 @@
 # limitations under the License.
 
 
-from itertools import product
+from itertools import chain, product
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -967,6 +967,179 @@ def get_example_problems():
     )
     travel = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["travel"] = travel
+
+    # logistic
+    problem = Problem("logistic")
+
+    Location = UserType("Location")
+    Robot = UserType("Robot")
+    Package = UserType("Package")
+
+    robot_at = Fluent("robot_at", robot=Robot, position=Location)
+    package_at = Fluent("package_at", package=Package, position=Location)
+    package_loaded = Fluent("package_loaded", package=Package, robot=Robot)
+    is_connected = Fluent("is_connected", l_from=Location, l_to=Location)
+    distance = Fluent("distance", IntType(0, 500), l_from=Location, l_to=Location)
+    velocity = Fluent("velocity", RealType(), robot=Robot)
+
+    problem.add_fluent(robot_at, default_initial_value=False)
+    problem.add_fluent(package_at, default_initial_value=False)
+    problem.add_fluent(package_loaded, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(distance, default_initial_value=500)
+    problem.add_fluent(velocity, default_initial_value=Fraction(1))
+
+    n_robots = 2
+    robots = [Object(f"r{i}", Robot) for i in range(1, n_robots + 1)]
+    n_packages = 2
+    packages = [Object(f"p{i}", Package) for i in range(1, n_packages + 1)]
+    n_locations = 4
+    locations = [Object(f"l{i}", Location) for i in range(1, n_locations + 1)]
+    problem.add_objects(chain(robots, packages, locations))
+
+    distances = [8, 5, 6]
+    assert distances  # avoid infinite loop below
+    while len(distances) < n_locations - 1:
+        distances.extend(distances)
+
+    velocities = [Fraction(1, 2), Fraction(1)]
+    assert velocities  # avoid infinite loop below
+    while len(velocities) < n_robots:
+        velocities.extend(velocities)
+
+    at_start = StartTiming()
+    at_end = EndTiming()
+    overall = ClosedTimeInterval(at_start, at_end)
+
+    move = DurativeAction("move", robot=Robot, l_from=Location, l_to=Location)
+    robot = move.parameter("robot")
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_condition(at_start, robot_at(robot, l_from))
+    move.add_condition(overall, is_connected(l_from, l_to))
+    for r in robots:
+        move.add_condition(at_end, Not(robot_at(r, l_to)))
+    move.add_effect(at_start, robot_at(robot, l_from), False)
+    move.add_effect(at_end, robot_at(robot, l_to), True)
+    move.set_fixed_duration(distance(l_from, l_to) / velocity(robot))
+    problem.add_action(move)
+
+    load = InstantaneousAction("load", package=Package, robot=Robot, position=Location)
+    load.add_precondition(package_at(load.package, load.position))
+    load.add_precondition(robot_at(load.robot, load.position))
+    for p in packages:
+        load.add_precondition(Not(package_loaded(p, load.robot)))
+    load.add_effect(package_at(load.package, load.position), False)
+    load.add_effect(package_loaded(load.package, load.robot), True)
+    problem.add_action(load)
+
+    unload = InstantaneousAction(
+        "unload", package=Package, robot=Robot, position=Location
+    )
+    unload.add_precondition(package_loaded(unload.package, unload.robot))
+    unload.add_precondition(robot_at(unload.robot, unload.position))
+    is_last_position = Equals(unload.position, locations[-1])
+    for p in packages:
+        unload.add_precondition(
+            Or(is_last_position, Not(package_at(p, unload.position)))
+        )
+    unload.add_effect(package_loaded(unload.package, unload.robot), False)
+    unload.add_effect(package_at(unload.package, unload.position), True)
+    problem.add_action(unload)
+
+    for r, v in zip(robots, velocities):
+        problem.set_initial_value(robot_at(r, locations[0]), True)
+        problem.set_initial_value(velocity(r), v)
+    for p in packages:
+        problem.set_initial_value(package_at(p, locations[0]), True)
+    for l1, l2, d in zip(locations[:-1], locations[1:], distances):
+        problem.set_initial_value(is_connected(l1, l2), True)
+        problem.set_initial_value(is_connected(l2, l1), True)
+        problem.set_initial_value(distance(l1, l2), d)
+        problem.set_initial_value(distance(l2, l1), d)
+
+    for p in packages:
+        problem.add_goal(package_at(p, locations[-1]))
+
+    r1, r2 = robots
+    l1, l2, l3, l4 = locations
+    p1, p2 = packages
+    t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (
+                Fraction(0),
+                load(p1, r1, l1),
+                None,
+            ),
+            (
+                Fraction(0),
+                load(p2, r2, l1),
+                None,
+            ),
+            (
+                Fraction(0),
+                move(r1, l1, l2),
+                Fraction(16, 1),
+            ),
+            (
+                Fraction(0),
+                move(r2, l1, l2),
+                Fraction(8, 1),
+            ),
+            (
+                Fraction(801, 100),
+                move(r2, l2, l3),
+                Fraction(5, 1),
+            ),
+            (
+                Fraction(1302, 100),
+                move(r2, l3, l4),
+                Fraction(6, 1),
+            ),
+            (
+                Fraction(1601, 100),
+                move(r1, l2, l3),
+                Fraction(10, 1),
+            ),
+            (
+                Fraction(1903, 100),
+                unload(p2, r2, l4),
+                None,
+            ),
+            (
+                Fraction(2002, 100),
+                move(r2, l4, l3),
+                Fraction(6, 1),
+            ),
+            (
+                Fraction(2602, 100),
+                unload(p1, r1, l3),
+                None,
+            ),
+            (
+                Fraction(2602, 100),
+                move(r1, l3, l2),
+                Fraction(10, 1),
+            ),
+            (
+                Fraction(2603, 100),
+                load(p1, r2, l3),
+                None,
+            ),
+            (
+                Fraction(2603, 100),
+                move(r2, l3, l4),
+                Fraction(5, 1),
+            ),
+            (
+                Fraction(3104, 100),
+                unload(p1, r2, l4),
+                None,
+            ),
+        ]
+    )
+    logistic = TestCase(problem=problem, solvable=True, valid_plans=[plan])
+    problems["logistic"] = logistic
 
     # safe_road
     problem = Problem("safe_road")
