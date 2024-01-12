@@ -100,7 +100,7 @@ class GrounderHelper:
         if prune_actions:
             self._simplifier = Simplifier(env, problem)
         else:
-            self._simplifier = Simplifier(env)
+            self._simplifier = env.simplifier
 
     @property
     def simplifier(self) -> Simplifier:
