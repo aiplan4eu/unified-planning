@@ -259,11 +259,6 @@ def _convert_to_stn(
 
     assert isinstance(problem, Problem), "This algorithm works only for Problem"
 
-    if problem.kind.has_external_conditions_and_effects():
-        raise NotImplementedError(
-            "Currently the algorithm does not support external conditions and effects"
-        )
-
     epsilon = problem.epsilon
     if epsilon is None:
         epsilon = time_triggered_plan.extract_epsilon(problem)
@@ -350,7 +345,6 @@ def _convert_to_stn(
                 events.setdefault(absolute_timing, []).append(inst_ai)
 
                 relative_timing = absolute_timing - start
-                assert relative_timing >= 0
                 event_creating_ais[inst_ai] = (ai, relative_timing)
 
             if ai != mockup_action_instance:
