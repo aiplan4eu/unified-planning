@@ -26,7 +26,10 @@ def get_example_problems():
     Location = UserType("Location")
     robot_at = Fluent("robot_at", BoolType(), position=Location)
     battery_charge = Fluent("battery_charge", RealType(0, 100))
-    move = InstantaneousAction("move", l_from=Location, l_to=Location)
+    move: Union[InstantaneousAction, DurativeAction] = InstantaneousAction(
+        "move", l_from=Location, l_to=Location
+    )
+    assert isinstance(move, InstantaneousAction)
     l_from = move.parameter("l_from")
     l_to = move.parameter("l_to")
     move.add_precondition(GE(battery_charge, 10))
@@ -1012,13 +1015,14 @@ def get_example_problems():
     overall = ClosedTimeInterval(at_start, at_end)
 
     move = DurativeAction("move", robot=Robot, l_from=Location, l_to=Location)
+    assert isinstance(move, DurativeAction)
     robot = move.parameter("robot")
     l_from = move.parameter("l_from")
     l_to = move.parameter("l_to")
     move.add_condition(at_start, robot_at(robot, l_from))
     move.add_condition(overall, is_connected(l_from, l_to))
-    for r in robots:
-        move.add_condition(at_end, Not(robot_at(r, l_to)))
+    for rob in robots:
+        move.add_condition(at_end, Not(robot_at(rob, l_to)))
     move.add_effect(at_start, robot_at(robot, l_from), False)
     move.add_effect(at_end, robot_at(robot, l_to), True)
     move.set_fixed_duration(distance(l_from, l_to) / velocity(robot))
@@ -1047,9 +1051,9 @@ def get_example_problems():
     unload.add_effect(package_at(unload.package, unload.position), True)
     problem.add_action(unload)
 
-    for r, v in zip(robots, velocities):
-        problem.set_initial_value(robot_at(r, locations[0]), True)
-        problem.set_initial_value(velocity(r), v)
+    for rob, v in zip(robots, velocities):
+        problem.set_initial_value(robot_at(rob, locations[0]), True)
+        problem.set_initial_value(velocity(rob), v)
     for p in packages:
         problem.set_initial_value(package_at(p, locations[0]), True)
     for l1, l2, d in zip(locations[:-1], locations[1:], distances):
@@ -1238,7 +1242,7 @@ def get_example_problems():
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
     l3 = Object("l3", Location)
-    locations = (l1, l2, l3)
+    locations = [l1, l2, l3]
     problem.add_objects(locations)
 
     problem.add_goal(disaster_happened)
