@@ -411,8 +411,10 @@ def _get_timepoint_conditions(
     start: Fraction,
     duration: Fraction,
 ) -> List[FNode]:
-    # Returns the List of conditions of the given action in the given timing
-    # start and duration are the start and duration of the given action
+    """
+    Returns the List of conditions of the given action in the given timing.
+    start and duration are the start and duration of the given action
+    """
     timepoint_conditions: List[FNode] = []
     for time_interval, cond_list in action.conditions.items():
         if _is_time_in_interv(start, duration, timing, time_interval):
@@ -426,8 +428,10 @@ def _get_timepoint_effects(
     start: Fraction,
     duration: Fraction,
 ) -> List[Effect]:
-    # Returns the List of effects of the given action in the given timing
-    # start and duration are the start and duration of the given action
+    """
+    Returns the List of effects of the given action in the given timing.
+    start and duration are the start and duration of the given action
+    """
     timepoint_effects = []
     for effects_timing, el in action.effects.items():
         absolute_effect_time = _absolute_time(effects_timing, start, duration)
@@ -442,8 +446,10 @@ def _get_timepoint_simulated_effects(
     start: Fraction,
     duration: Fraction,
 ) -> Optional[SimulatedEffect]:
-    # Returns the simulated effect of the given action in the given timing
-    # start and duration are the start and duration of the given action
+    """
+    Returns the simulated effect of the given action in the given timing.
+    start and duration are the start and duration of the given action
+    """
     sim_eff: Optional[SimulatedEffect] = None
     for se_timing, se in action.simulated_effects.items():
         absolute_effect_time = _absolute_time(se_timing, start, duration)
@@ -463,10 +469,12 @@ def _extract_action_timings(
     duration: Fraction,
     epsilon: Fraction = Fraction(0),
 ) -> Set[Fraction]:
-    # Extracts all the interesting timings of the action. So timings where:
-    # - a condition start/ends
-    # - an effect takes place
-    # - a simulated effects takes place
+    """
+    Extracts all the interesting timings of the action. So timings where:
+    - a condition start/ends
+    - an effect takes place
+    - a simulated effects takes place
+    """
     timings: Set[Fraction] = set()
 
     absolute_time = lambda timing: _absolute_time(timing, start, duration)
@@ -486,10 +494,12 @@ def _extract_action_timings(
 def _extract_instantenous_actions(
     action: DurativeAction, start: Fraction, duration: Fraction, epsilon: Fraction
 ) -> Iterator[Tuple[Fraction, InstantaneousAction]]:
-    # Splits a DurativeAction into one the InstantaneousActions that compose the DurativeAction.
-    # For example, an action that has an effect at start and one at the end, will be split into 2
-    # InstantaneousActions, the first one representing the start and the last one representing the
-    # end. This method creates an Action for every timing returned by "_extract_action_timings"
+    """
+    Splits a DurativeAction into the InstantaneousActions that compose the DurativeAction.
+    For example, an action that has an effect at start and one at the end, will be split into 2
+    InstantaneousActions, the first one representing the start and the last one representing the
+    end. This method creates an Action for every timing returned by "_extract_action_timings"
+    """
     for i, timing in enumerate(
         _extract_action_timings(action, start, duration, epsilon)
     ):
