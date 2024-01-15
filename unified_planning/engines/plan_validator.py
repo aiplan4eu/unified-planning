@@ -150,12 +150,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+                else:
+                    next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
-            except UPInvalidActionError as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
-            try:
-                next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
             except UPConflictingEffectsException as e:
