@@ -275,6 +275,10 @@ class ValidationResult(Result):
     reason: Optional[FailedValidationReason] = field(default=None)
     inapplicable_action: Optional[up.plans.ActionInstance] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
+    # The trace is either the sequences of states until the first validation error or a map from time to state for each event up to the first validation error
+    trace: Optional[
+        Union[List[up.model.State], Dict[Fraction, up.model.State]]
+    ] = field(default=None)
 
     def __post_init__(self):
         assert (

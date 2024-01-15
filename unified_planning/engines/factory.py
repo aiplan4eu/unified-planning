@@ -63,6 +63,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
     ),
+    "up_time_triggered_validator": (
+        "unified_planning.engines.plan_validator",
+        "TimeTriggeredPlanValidator",
+    ),
     "sequential_simulator": (
         "unified_planning.engines.sequential_simulator",
         "UPSequentialSimulator",
@@ -139,6 +143,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
+    "up_time_triggered_validator",
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
     "up_disjunctive_conditions_remover",
