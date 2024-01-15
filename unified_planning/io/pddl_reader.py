@@ -101,7 +101,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
                 )
             )
             + Suppress(")")
@@ -1455,20 +1455,32 @@ class PDDLReader:
                         raise SyntaxError(
                             f"Expected number, found {init[1].value} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
-                    va = self._parse_exp(
-                        problem, None, types_map, {}, init[2], problem_str
-                    )
-                    if va.is_fluent_exp():
-                        problem.add_timed_effect(ti, va, self._em.TRUE())
-                    elif va.is_not():
-                        problem.add_timed_effect(ti, va.arg(0), self._em.FALSE())
-                    elif va.is_equals():
-                        problem.add_timed_effect(ti, va.arg(0), va.arg(1))
-                    else:
-                        raise SyntaxError(
-                            f"Not able to handle this TIL {init}"
-                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                    if init[2][0].value in ["assign", "increase", "decrease"]:
+                        fe = self._parse_exp(
+                            problem, None, types_map, {}, init[2][1], problem_str
                         )
+                        va = self._parse_exp(
+                            problem, None, types_map, {}, init[2][2], problem_str
+                        )
+                        if init[2][0].value == "assign":
+                            problem.add_timed_effect(ti, fe, va)
+                        elif init[2][0].value == "increase":
+                            problem.add_increase_effect(ti, fe, va)
+                        elif init[2][0].value == "decrease":
+                            problem.add_decrease_effect(ti, fe, va)
+                    else:
+                        va = self._parse_exp(
+                            problem, None, types_map, {}, init[2], problem_str
+                        )
+                        if va.is_fluent_exp():
+                            problem.add_timed_effect(ti, va, self._em.TRUE())
+                        elif va.is_not():
+                            problem.add_timed_effect(ti, va.arg(0), self._em.FALSE())
+                        else:
+                            raise SyntaxError(
+                                f"Not able to handle this TIL {init}"
+                                + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            )
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
                     fluents = [

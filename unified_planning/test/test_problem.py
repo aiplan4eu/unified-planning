@@ -525,6 +525,7 @@ class TestProblem(unittest_TestCase):
             "robot_locations_connected",
             "robot_locations_visited",
             "basic_numeric",
+            "basic_numeric_with_timed_effect",
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",

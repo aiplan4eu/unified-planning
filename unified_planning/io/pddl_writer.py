@@ -120,6 +120,7 @@ PDDL_KEYWORDS = {
     "durative-actions",
     "derived-predicates",
     "timed-initial-literals",
+    "timed-initial-effects",
     "preferences",
     "contingent",
 }
@@ -196,6 +197,18 @@ class ConverterToPDDLString(walkers.DagWalker):
     def convert(self, expression):
         """Converts the given expression to a PDDL string."""
         return self.walk(self.simplifier.simplify(expression))
+
+    def convert_fraction(self, frac):
+        with localcontext() as ctx:
+            ctx.prec = self.DECIMAL_PRECISION
+            dec = frac.numerator / Decimal(frac.denominator, ctx)
+
+            if Fraction(dec) != frac:
+                warn(
+                    "The PDDL printer cannot exactly represent the real constant '%s'"
+                    % frac
+                )
+            return float(dec)
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
@@ -279,17 +292,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
         frac = expression.constant_value()
-
-        with localcontext() as ctx:
-            ctx.prec = self.DECIMAL_PRECISION
-            dec = frac.numerator / Decimal(frac.denominator, ctx)
-
-            if Fraction(dec) != frac:
-                warn(
-                    "The PDDL printer cannot exactly represent the real constant '%s'"
-                    % frac
-                )
-            return str(dec)
+        return str(self.convert_fraction(frac))
 
     def walk_int_constant(self, expression, args):
         assert len(args) == 0
@@ -375,12 +378,10 @@ class PDDLWriter:
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError(
-                "PDDL2.1 does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0)."
+                "PDDL does not support ICE.\nICE are Intermediate Conditions and Effects therefore when an Effect (or Condition) are not at StartTIming(0) or EndTIming(0)."
             )
-        if self.problem_kind.has_timed_effects() or self.problem_kind.has_timed_goals():
-            raise UPProblemDefinitionError(
-                "PDDL2.1 does not support timed effects or timed goals."
-            )
+        if self.problem_kind.has_timed_goals():
+            raise UPProblemDefinitionError("PDDL does not support timed goals.")
         obe = ObjectsExtractor()
         out.write("(define ")
         if self.problem.name is None:
@@ -428,6 +429,16 @@ class PDDLWriter:
                 or self.problem_kind.has_plan_length()
             ):
                 out.write(" :action-costs")
+            if self.problem_kind.has_timed_effects():
+                only_bool = True
+                for le in self.problem.timed_effects.values():
+                    for e in le:
+                        if not e.fluent.type.is_bool_type():
+                            only_bool = False
+                if not only_bool:
+                    out.write(" :timed-initial-effects")
+                else:
+                    out.write(" :timed-initial-literals")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -686,7 +697,19 @@ class PDDLWriter:
             else:
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
-            out.write(f" (= (total-cost) 0)")
+            out.write(" (= (total-cost) 0)")
+        for tm, le in self.problem.timed_effects.items():
+            for e in le:
+                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
+                _write_effect(
+                    e,
+                    None,
+                    out,
+                    converter,
+                    self.rewrite_bool_assignments,
+                    self._get_mangled_name,
+                )
+                out.write(")")
         out.write(")\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
@@ -1061,22 +1084,17 @@ def _write_effect(
     if not simplified_cond.is_true():
         out.write(f" (when {converter.convert(effect.condition)}")
     simplified_value = effect.value.simplify()
+    fluent = converter.convert(effect.fluent)
     if simplified_value.is_true():
-        out.write(f" {converter.convert(effect.fluent)}")
+        out.write(f" {fluent}")
     elif simplified_value.is_false():
-        out.write(f" (not {converter.convert(effect.fluent)})")
+        out.write(f" (not {fluent})")
     elif effect.is_increase():
-        out.write(
-            f" (increase {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
-        )
+        out.write(f" (increase {fluent} {converter.convert(simplified_value)})")
     elif effect.is_decrease():
-        out.write(
-            f" (decrease {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
-        )
+        out.write(f" (decrease {fluent} {converter.convert(simplified_value)})")
     else:
-        out.write(
-            f" (assign {converter.convert(effect.fluent)} {converter.convert(simplified_value)})"
-        )
+        out.write(f" (assign {fluent} {converter.convert(simplified_value)})")
     if not simplified_cond.is_true():
         out.write(")")
     if timing is not None:
