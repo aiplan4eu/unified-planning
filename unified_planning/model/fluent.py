@@ -250,9 +250,8 @@ class Fluent:
 
 
 def get_ith_fluent_exp(
-    objects_set: "up.model.mixins.ObjectsSetMixin",
     fluent: "up.model.fluent.Fluent",
-    domain_sizes: List[int],
+    domains: List[List["up.model.FNode"]],
     idx: int,
 ) -> "up.model.fnode.FNode":
     """Returns the ith ground fluent expression."""
@@ -260,10 +259,10 @@ def get_ith_fluent_exp(
     rem = 0
     actual_parameters = []
     for i, p in enumerate(fluent.signature):
-        ds = domain_sizes[i]
+        ds = len(domains[i])
         rem = quot % ds
         quot //= ds
-        v = domain_item(objects_set, p.type, rem)
+        v = domains[i][rem]
         actual_parameters.append(v)
     return fluent(*actual_parameters)
 
@@ -276,10 +275,11 @@ def get_all_fluent_exp(
         yield fluent.environment.expression_manager.FluentExp(fluent)
     else:
         ground_size = 1
-        domain_sizes = []
+        domains = []
         for p in fluent.signature:
             ds = domain_size(objects_set, p.type)
-            domain_sizes.append(ds)
+            domain = [domain_item(objects_set, p.type, i) for i in range(ds)]
+            domains.append(domain)
             ground_size *= ds
         for i in range(ground_size):
-            yield get_ith_fluent_exp(objects_set, fluent, domain_sizes, i)
+            yield get_ith_fluent_exp(fluent, domains, i)
