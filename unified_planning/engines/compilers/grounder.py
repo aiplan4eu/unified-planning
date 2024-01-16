@@ -59,6 +59,7 @@ class GrounderHelper:
         self,
         problem: Problem,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
+        prune_actions: bool = True,
     ):
         """
         Creates an instance of the GrounderHelper.
@@ -73,6 +74,7 @@ class GrounderHelper:
             * `b (o3)`
             * `b (o4)`
             If this map is `None`, the `unified_planning` grounding algorithm is applied.
+        :param prune_actions: If true, the grounder prunes actions exploiting the simplification of static fluents.
         """
         assert isinstance(problem, Problem)
         self._problem = problem
@@ -95,7 +97,10 @@ class GrounderHelper:
             Tuple[Action, Tuple[FNode, ...]], Optional[Action]
         ] = {}
         env = problem.environment
-        self._simplifier = Simplifier(env, problem)
+        if prune_actions:
+            self._simplifier = Simplifier(env, problem)
+        else:
+            self._simplifier = env.simplifier
 
     @property
     def simplifier(self) -> Simplifier:
@@ -228,6 +233,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     it will be used for grounding instead of the implemented algorithm; the use of this parameter is mainly created to easily support
     the integration of external grounders inside the library. To see a practical example, checkout the :class:`~unified_planning.engines.compilers.TarskiGrounder` `_compile`
     implementation.
+    The Grounder class can also optionally take a flag prune_actions to enable/disable the pruning of actions exploiting the simplification of static fluents.
 
     This `Compiler` supports only the the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
     """
@@ -235,10 +241,12 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     def __init__(
         self,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
+        prune_actions: bool = True,
     ):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         self._grounding_actions_map = grounding_actions_map
+        self._prune_actions = prune_actions
 
     @property
     def name(self):
@@ -335,7 +343,9 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         assert isinstance(
             problem, Problem
         ), "The given problem is not a class supported by the Grounder"
-        grounder_helper = GrounderHelper(problem, self._grounding_actions_map)
+        grounder_helper = GrounderHelper(
+            problem, self._grounding_actions_map, self._prune_actions
+        )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
 
         new_problem = problem.clone()
