@@ -363,6 +363,31 @@ def get_example_problems():
     )
     problems["basic_with_costs"] = basic_with_costs
 
+    # basic with defaults
+    problem = Problem("basic_with_default_values")
+    object = UserType("object")
+    objects = [problem.add_object(f"o{i}", object) for i in range(0, 5)]
+    available = Fluent("available", BoolType(), a=object)
+
+    on = Fluent("on", object, a=object)
+    problem.add_fluent(available, default_initial_value=True)
+    problem.add_fluent(on, default_initial_value=objects[0])
+    goal = problem.add_fluent("g", default_initial_value=False)
+    for i in [0, 1, 3, 4]:  # override default for all but objects[2]
+        problem.set_initial_value(on(objects[i]), objects[4])
+    act_a = InstantaneousAction("a", obj=object)
+    act_a.add_precondition(available(objects[0]))
+    act_a.add_precondition(Equals(on(act_a.obj), objects[0]))
+    act_a.add_effect(goal, True)
+    problem.add_action(act_a)
+    problem.add_goal(goal)
+
+    problems["basic_with_default_values"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[up.plans.SequentialPlan([act_a(objects[2])])],
+    )
+
     # counter
     counter_1 = Fluent("counter_1", IntType(0, 10))
     counter_2 = Fluent("counter_2", IntType(0, 10))
