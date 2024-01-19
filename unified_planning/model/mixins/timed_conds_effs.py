@@ -36,6 +36,9 @@ class TimedCondsEffs:
         self._simulated_effects: Dict[
             "up.model.timing.Timing", "up.model.effect.SimulatedEffect"
         ] = {}
+        self._continuous_effects: Dict[
+            "up.model.timing.Timing", List["up.model.effect.Effect"]
+        ] = {}
         self._fluents_assigned: Dict[
             "up.model.timing.Timing",
             Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
@@ -121,13 +124,18 @@ class TimedCondsEffs:
         self._conditions = {}
 
     @property
-    def effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+    def effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]: #DOVREI METTERE TUTTI GLI EFFETTI CHE NON SONO CONTINUI
         """
         Returns the all the `action's effects`; a map from `Timing` to `list` of `Effects`
         indicating that, when the action is applied, all the `Effects` must be applied at the
         `Timing` set as `key` in the map.
         """
         return self._effects
+    
+
+    #DOVREI AGGIUNGERE QUALCOSA DEL TIPO
+    # @property
+    # def continuous_effects(self)     E QUI METTERE TUTTI QUELLI CON EFFECT_KIND GIUSTO
 
     def clear_effects(self):
         """Removes all `effects` from the `Action`."""
@@ -135,6 +143,7 @@ class TimedCondsEffs:
         self._fluents_assigned = {}
         self._fluents_inc_dec = {}
         self._simulated_effects = {}
+        self._continuous_effects = {}
 
     @property
     def conditional_effects(
@@ -397,3 +406,70 @@ class TimedCondsEffs:
                 "The added SimulatedEffect does not have the same environment of the Action"
             )
         self._simulated_effects[timing] = simulated_effect
+
+
+    @property
+    def continuous_effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
+        """
+        Returns the all the `action's effects`; a map from `Timing` to `list` of `continuous effects`
+        indicating that, when the action is applied, all the `continuous effects` must be applied at the
+        `Timing` set as `key` in the map.
+        """
+        return self._continuous_effects
+
+
+    def add_increase_continuous_effect(
+        self,
+        timing: "up.model.expression.TimeExpression",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        rhs: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        At the given time, adds the given `increment` to the `action's effects`.
+
+        :param timing: The exact time in which the increment is applied.
+        :param fluent: The `fluent` which value is incremented by the added `effect`.
+        :param value: The given `fluent` is incremented by the given `value`.
+        :param condition: The `condition` in which this effect is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            rhs_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, rhs, condition)
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp"
+            )
+        if not condition_exp.type.is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(rhs_exp.type):
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {rhs_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Increase effects can be created only on numeric types!")
+        self._add_effect_instance(
+            timing,
+            up.model.effect.Effect(
+                fluent_exp,
+                rhs_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
+                forall=forall,
+            ),
+        )
+
+
+
+
+
+
+
+
+
