@@ -38,16 +38,21 @@ class EffectKind(Enum):
     `ASSIGN`   => `if C then F <= V`
     `INCREASE` => `if C then F <= F + V`
     `DECREASE` => `if C then F <= F - V`
+    For continuous effects with fluent `F`, expression `RHS` and condition `C`:
+    `CONTINUOUS_INCREASE` => `if C then F changes according to `dF/dt = RHS`
+    `CONTINUOUS_DECREASE` => `if C then F changes according to `dF/dt = -RHS`
     """
 
     ASSIGN = auto()
     INCREASE = auto()
     DECREASE = auto()
+    CONTINUOUS_INCREASE = auto()
+    CONTINUOUS_DECREASE = auto()
 
 
 class Effect:
     """
-    This class represent an effect. It has a :class:`~unified_planning.model.Fluent`, modified by this effect, a value
+    This class represents an effect. It has a :class:`~unified_planning.model.Fluent`, modified by this effect, a value
     that determines how the `Fluent` is modified, a `condition` that determines if the `Effect`
     is actually applied or not and an `EffectKind` that determines the semantic of the `Effect`.
     """
@@ -116,6 +121,10 @@ class Effect:
             s.append("+=")
         elif self.is_decrease():
             s.append("-=")
+        elif self.is_continuous_increase():
+            s.append("#+=")
+        elif self.is_continuous_decrease():
+            s.append("#-=")
         s.append(f"{str(self._value)}")
         return " ".join(s)
 
@@ -243,7 +252,16 @@ class Effect:
 
     def is_decrease(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
-        return self._kind == EffectKind.DECREASE
+        return self._kind == EffectKind.DECREASE        
+
+    def is_continuous_increase(self) -> bool:
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `continuous_increase`, `False` otherwise."""
+        return self._kind == EffectKind.CONTINUOUS_INCREASE
+
+    def is_continuous_decrease(self) -> bool:
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `continuous_decrease`, `False` otherwise."""
+        return self._kind == EffectKind.CONTINUOUS_DECREASE
+
 
 
 class SimulatedEffect:
