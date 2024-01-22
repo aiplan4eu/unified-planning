@@ -69,6 +69,8 @@ FEATURES = {
         "CONDITIONAL_EFFECTS",
         "INCREASE_EFFECTS",
         "DECREASE_EFFECTS",
+        "INCREASE_CONTINUOUS_EFFECTS",
+        "DECREASE_CONTINUOUS_EFFECTS",
         "STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
         "STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS",
         "STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS",
@@ -375,6 +377,8 @@ temporal_kind.set_time("TIMED_EFFECTS")
 temporal_kind.set_time("TIMED_GOALS")
 temporal_kind.set_time("DURATION_INEQUALITIES")
 temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+temporal_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+temporal_kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
 
 int_duration_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 int_duration_kind.set_expression_duration("INT_TYPE_DURATIONS")
