@@ -502,6 +502,9 @@ class DurativeAction(Action, TimedCondsEffs):
         self._duration: "up.model.timing.DurationInterval" = (
             up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
         )
+        self._continuous_effects: Dict[
+            "up.model.timing.Timing", List["up.model.effect.Effect"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -529,6 +532,12 @@ class DurativeAction(Action, TimedCondsEffs):
             s.append(f"      {str(t)}:\n")
             for e in el:
                 s.append(f"        {str(e)}:\n")
+        s.append("    ]\n")
+        s.append("    continuous effects = [\n")
+        for t, el in self._continuous_effects.items():
+            s.append(f"      {str(t)}:\n")
+            for t, ce in self._continuous_effects.items():
+                 s.append(f"       {str(ce)}\n")
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():
@@ -691,6 +700,130 @@ class DurativeAction(Action, TimedCondsEffs):
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
+    
+    def add_increase_continuous_effect(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        At the given time, adds the given `increment` to the `action's effects`.
+
+        :param interval: The interval in which the `increment` is applied.
+        :param fluent: The `fluent` which value is incremented by the added effect.
+        :param value: The given `fluent` is incremented by the given `value`.
+        :param condition: The `condition` in which this effect is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_continuous_effect must be a Fluent or a FluentExp"
+            )
+        if not condition_exp.type.is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Increase continuous effects can be created only on numeric types!")
+        self._add_continuous_effect_instance(
+            interval,
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
+                forall=forall,
+            ),
+        )  
+
+    def add_decrease_continuous_effect(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        At the given time, adds the given `decrement` to the `action's effects`.
+
+        :param interval: The interval in which the `decrement` is applied.
+        :param fluent: The `fluent` which value is decremented by the added effect.
+        :param value: The given `fluent` is decremented by the given `value`.
+        :param condition: The `condition` in which this effect is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_decrease_continuous_effect must be a Fluent or a FluentExp"
+            )
+        if not condition_exp.type.is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease continuous effects can be created only on numeric types!")
+        self._add_continuous_effect_instance(
+            interval,
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.CONTINUOUS_DECREASE,
+                forall=forall,
+            ),
+        )
+
+    def _add_continuous_effect_instance(
+        self,
+        interval: "up.model.expression.Interval",
+        continuous_effect: "up.model.effect.Effect",
+    ):
+        #timing = Timing.from_time(timing)
+        assert (
+            self._environment == continuous_effect.environment
+        ), "effect does not have the same environment of the action"
+        # fluents_assigned = self._fluents_assigned.setdefault(interval, {})
+        # fluents_inc_dec = self._fluents_inc_dec.setdefault(interval, set())
+        # simulated_effect = self._simulated_effects.get(interval, None)
+        # up.model.continuous_effect.check_conflicting_effects(
+        #     continuous_effect,
+        #     interval,
+        #     simulated_effect,
+        #     fluents_assigned,
+        #     fluents_inc_dec,
+        #     f"action or problem: {self.name}",  # type: ignore[attr-defined]
+        # )
+        self._continuous_effects.setdefault(interval, []).append(continuous_effect)
+
+    # def clear_effects(self):
+    #     """Removes all `effects` from the `Action`."""
+    #     self._effects = {}
+    #     self._fluents_assigned = {}
+    #     self._fluents_inc_dec = {}
+    #     self._simulated_effects = {}
+    #     self._continuous_effects = {}
 
 
 class SensingAction(InstantaneousAction):
