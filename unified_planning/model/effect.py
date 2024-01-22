@@ -124,7 +124,7 @@ class Effect:
         elif self.is_continuous_increase():
             s.append("#+=")
         elif self.is_continuous_decrease():
-            s.append("#-=")
+            s.append(f":  d({str(self._fluent)})/dt = -")
         s.append(f"{str(self._value)}")
         return " ".join(s)
 
