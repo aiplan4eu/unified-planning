@@ -503,7 +503,7 @@ class DurativeAction(Action, TimedCondsEffs):
             up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
         )
         self._continuous_effects: Dict[
-            "up.model.timing.Timing", List["up.model.effect.Effect"]
+            "up.model.timing.TimeInterval", List["up.model.effect.Effect"]
         ] = {}
 
     def __repr__(self) -> str:
@@ -700,6 +700,15 @@ class DurativeAction(Action, TimedCondsEffs):
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
+    
+    @property
+    def continuous_effects(self) -> Dict["up.model.timing.TimeInterval", List["up.model.effect.Effect"]]: 
+        """
+        Returns the all the `continuous action's effects`; a map from `TimeInterval` to `list` of `Effects`
+        indicating that, when the action is applied, all the continuous effects must be applied at the
+        `TimeInterval` set as `key` in the map.
+        """
+        return self._continuous_effects
     
     def add_increase_continuous_effect(
         self,
