@@ -937,10 +937,10 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-            if e.is_continuous_increase():
-                self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
-            if e.is_continuous_decrease():
-                self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
+        elif e.is_continuous_increase():
+            self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+        elif e.is_continuous_decrease():
+            self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
         elif e.is_assignment():
             value_type = value.type
             if (
