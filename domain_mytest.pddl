@@ -11,9 +11,10 @@
                 (at start (not (loc_empty ?l_to))) 
                 (at start (not (robot_at ?l_from ?r))) 
                 (at end (robot_at ?l_to ?r)) 
-                (at end (loc_empty ?l_from)) ;) 
-                (decrease (battery_level) (* #t (* 10 (battery_level))))
+                (at end (loc_empty ?l_from)) 
+                (decrease (battery_level) (* #t (* 10 (battery_level))))  
           )
+ )
  (:durative-action load
   :parameters ( ?r - robot ?loc - location ?p - package)
   :duration (= ?duration 2)
