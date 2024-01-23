@@ -33,7 +33,7 @@ from unified_planning.model import (
     Object,
     Effect,
     Timing,
-    TimeInterval
+    TimeInterval,
 )
 from unified_planning.exceptions import (
     UPTypeError,
@@ -412,8 +412,11 @@ class PDDLWriter:
                 out.write(" :durative-actions")
             if self.problem_kind.has_duration_inequalities():
                 out.write(" :duration-inequalities")
-            # if self.problem_kind.has_continuous_effects():
-            #     out.write(" :continuous-effects")
+            if (
+                self.problem_kind.has_increase_continuous_effects()
+                or self.problem_kind.has_decrease_continuous_effects()
+            ):
+                out.write(" :continuous-effects")
             if (
                 self.problem_kind.has_actions_cost()
                 or self.problem_kind.has_plan_length()
@@ -670,9 +673,9 @@ class PDDLWriter:
                                 if not interval.is_right_open():
                                     out.write(f"(at end {converter.convert(c)})")
                     out.write(")")
-                if len(a.effects)+len(a.continuous_effects) > 0:
+                if len(a.effects) + len(a.continuous_effects) > 0 or a in costs:
+                    out.write("\n  :effect (and")
                     if len(a.effects) > 0:
-                        out.write("\n  :effect (and")
                         for t, el in a.effects.items():
                             for e in el:
                                 _write_effect(
@@ -683,12 +686,11 @@ class PDDLWriter:
                                     self.rewrite_bool_assignments,
                                     self._get_mangled_name,
                                 )
-                        if a in costs:
-                            out.write(
-                                f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
-                            )
-                        out.write(")")
-                    if len(a.continuous_effects)>0:
+                    if a in costs:
+                        out.write(
+                            f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
+                        )
+                    if len(a.continuous_effects) > 0:
                         for t, el in a.continuous_effects.items():
                             for ce in el:
                                 _write_effect(
@@ -699,7 +701,7 @@ class PDDLWriter:
                                     self.rewrite_bool_assignments,
                                     self._get_mangled_name,
                                 )
-                        #costo di un'azione durativa?
+                    out.write(")")
                 out.write(")\n")
             else:
                 raise NotImplementedError
