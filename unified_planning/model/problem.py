@@ -971,12 +971,19 @@ class _KindFactory:
                     self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_expression(cond)
 
-    def update_action_timed_effect(self, t: "up.model.Timing", eff: "up.model.Effect"):
-        if t.delay != 0:
-            if (t.is_from_start() and t.delay > 0) or (t.is_from_end() and t.delay < 0):
-                self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-            else:
-                self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+    def update_action_timed_effect(
+        self,
+        t: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
+        eff: "up.model.effect.Effect",
+    ):
+        if isinstance(t, up.model.timing.Timing):
+            if t.delay != 0:
+                if (t.is_from_start() and t.delay > 0) or (
+                    t.is_from_end() and t.delay < 0
+                ):
+                    self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                else:
+                    self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_effect(eff)
 
     def update_problem_kind_action(
@@ -1005,6 +1012,9 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            for i, le in action.continuous_effects.items():
+                for ce in le:
+                    self.update_action_timed_effect(i, ce)
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")

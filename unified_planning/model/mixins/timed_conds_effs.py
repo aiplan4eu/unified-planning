@@ -121,7 +121,7 @@ class TimedCondsEffs:
         self._conditions = {}
 
     @property
-    def effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]: 
+    def effects(self) -> Dict["up.model.timing.Timing", List["up.model.effect.Effect"]]:
         """
         Returns the all the `action's effects`; a map from `Timing` to `list` of `Effects`
         indicating that, when the action is applied, all the `Effects` must be applied at the
@@ -300,7 +300,7 @@ class TimedCondsEffs:
 
     def add_decrease_effect(
         self,
-        timing: "up.model.timing.TimeInterval",
+        timing: "up.model.expression.TimeExpression",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
@@ -344,6 +344,7 @@ class TimedCondsEffs:
                 forall=forall,
             ),
         )
+
     def _add_effect_instance(
         self,
         timing: "up.model.expression.TimeExpression",
