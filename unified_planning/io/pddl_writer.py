@@ -701,7 +701,7 @@ class PDDLWriter:
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
                     if len(a.continuous_effects) > 0:
-                        for t, el in a.continuous_effects.items():
+                        for interval, el in a.continuous_effects.items():
                             for ce in el:
                                 _write_effect(
                                     ce,

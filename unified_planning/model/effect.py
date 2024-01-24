@@ -114,7 +114,8 @@ class Effect:
             s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
             s.append(f"if {str(self._condition)} then")
-        s.append(f"{str(self._fluent)}")
+        if not self.is_continuous_increase() and not self.is_continuous_decrease():
+            s.append(f"{str(self._fluent)}")
         if self.is_assignment():
             s.append(":=")
         elif self.is_increase():
@@ -122,9 +123,9 @@ class Effect:
         elif self.is_decrease():
             s.append("-=")
         elif self.is_continuous_increase():
-            s.append("#+=")
+            s.append(f"  d({str(self._fluent)})/dt = -")
         elif self.is_continuous_decrease():
-            s.append(f":  d({str(self._fluent)})/dt = -")
+            s.append(f"  d({str(self._fluent)})/dt = -")
         s.append(f"{str(self._value)}")
         return " ".join(s)
 
@@ -252,7 +253,7 @@ class Effect:
 
     def is_decrease(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
-        return self._kind == EffectKind.DECREASE        
+        return self._kind == EffectKind.DECREASE
 
     def is_continuous_increase(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `continuous_increase`, `False` otherwise."""
@@ -261,7 +262,6 @@ class Effect:
     def is_continuous_decrease(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `continuous_decrease`, `False` otherwise."""
         return self._kind == EffectKind.CONTINUOUS_DECREASE
-
 
 
 class SimulatedEffect:

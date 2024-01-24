@@ -531,13 +531,13 @@ class DurativeAction(Action, TimedCondsEffs):
         for t, el in self.effects.items():
             s.append(f"      {str(t)}:\n")
             for e in el:
-                s.append(f"        {str(e)}:\n")
+                s.append(f"        {str(e)}\n")
         s.append("    ]\n")
         s.append("    continuous effects = [\n")
-        for t, el in self._continuous_effects.items():
-            s.append(f"      {str(t)}:\n")
-            for t, ce in self._continuous_effects.items():
-                 s.append(f"       {str(ce)}\n")
+        for i, el in self.continuous_effects.items():
+            s.append(f"      {str(i)}:\n")
+            for ce in el:
+                s.append(f"       {str(ce)}\n")
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():
@@ -700,16 +700,18 @@ class DurativeAction(Action, TimedCondsEffs):
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
-    
+
     @property
-    def continuous_effects(self) -> Dict["up.model.timing.TimeInterval", List["up.model.effect.Effect"]]: 
+    def continuous_effects(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List["up.model.effect.Effect"]]:
         """
         Returns the all the `continuous action's effects`; a map from `TimeInterval` to `list` of `Effects`
         indicating that, when the action is applied, all the continuous effects must be applied at the
         `TimeInterval` set as `key` in the map.
         """
         return self._continuous_effects
-    
+
     def add_increase_continuous_effect(
         self,
         interval: "up.model.timing.TimeInterval",
@@ -745,7 +747,9 @@ class DurativeAction(Action, TimedCondsEffs):
                 f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
-            raise UPTypeError("Increase continuous effects can be created only on numeric types!")
+            raise UPTypeError(
+                "Increase continuous effects can be created only on numeric types!"
+            )
         self._add_continuous_effect_instance(
             interval,
             up.model.effect.Effect(
@@ -755,7 +759,7 @@ class DurativeAction(Action, TimedCondsEffs):
                 kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
                 forall=forall,
             ),
-        )  
+        )
 
     def add_decrease_continuous_effect(
         self,
@@ -792,7 +796,9 @@ class DurativeAction(Action, TimedCondsEffs):
                 f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
-            raise UPTypeError("Decrease continuous effects can be created only on numeric types!")
+            raise UPTypeError(
+                "Decrease continuous effects can be created only on numeric types!"
+            )
         self._add_continuous_effect_instance(
             interval,
             up.model.effect.Effect(
@@ -806,10 +812,10 @@ class DurativeAction(Action, TimedCondsEffs):
 
     def _add_continuous_effect_instance(
         self,
-        interval: "up.model.expression.Interval",
+        interval: "up.model.timing.TimeInterval",
         continuous_effect: "up.model.effect.Effect",
     ):
-        #timing = Timing.from_time(timing)
+        # timing = Timing.from_time(timing)
         assert (
             self._environment == continuous_effect.environment
         ), "effect does not have the same environment of the action"
@@ -824,7 +830,7 @@ class DurativeAction(Action, TimedCondsEffs):
         #     fluents_inc_dec,
         #     f"action or problem: {self.name}",  # type: ignore[attr-defined]
         # )
-        self._continuous_effects.setdefault(interval, []).append(continuous_effect)
+        self.continuous_effects.setdefault(interval, []).append(continuous_effect)
 
     # def clear_effects(self):
     #     """Removes all `effects` from the `Action`."""
