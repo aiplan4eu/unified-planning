@@ -1,0 +1,8 @@
+;;!domain: robot-domain
+;;!problem: robot-problem
+
+00.0: (move r0 l6 l2) [8.0]
+08.1: (move r0 l2 l3) [5.0]
+13.2: (load r0 l3 p1) [0.2]
+13.5: (move r0 l3 l1) [1.0]
+14.6: (unload r0 l1 p1) [0.2]
