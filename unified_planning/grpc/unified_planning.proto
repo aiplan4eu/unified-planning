@@ -116,7 +116,6 @@ message Fluent {
     // If non-empty, then any state variable using this fluent that is not explicitly given a value in the initial state
     // will be assumed to have this default value.
     // This allows mimicking the closed world assumption by setting a "false" default value to predicates.
-    // Note that in the initial state of the problem message, it is assumed that all default values are set.
     Expression default_value = 4;
 }
 
@@ -539,7 +538,8 @@ message Problem {
     // features: ACTION_BASED
     repeated Action actions = 6;
 
-    // Initial state, including default values of state variables.
+    // Explicit assignments to state variables in the initial state.
+    // State variables not assigned there and will take the default value of their fluent, if any.
     repeated Assignment initial_state = 7;
 
     // Facts and effects that are expected to occur strictly later than the initial state.
