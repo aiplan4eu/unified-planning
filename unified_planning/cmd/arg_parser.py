@@ -108,8 +108,8 @@ def create_up_parser() -> argparse.ArgumentParser:
             dest="anml",
             metavar="ANML_FILENAME",
         )
-        # skip oneshot-planning, defined later mutually exclusive with --engines
-        if sub_parser != oneshot_planning_parser:
+        # skip oneshot-planning and plan-validation defined later mutually exclusive with --engines
+        if sub_parser not in (oneshot_planning_parser, plan_validation_parser):
             sub_parser.add_argument(
                 "--engine",
                 "-e",
@@ -118,21 +118,22 @@ def create_up_parser() -> argparse.ArgumentParser:
                 dest="engine_name",
             )
 
-    mutually_exclusive = oneshot_planning_parser.add_mutually_exclusive_group()
-    mutually_exclusive.add_argument(
-        "--engine",
-        "-e",
-        type=str,
-        help="The name of the engine to use",
-        dest="engine_name",
-    )
-    mutually_exclusive.add_argument(
-        "--engines",
-        type=str,
-        nargs="+",
-        help="The names of the engines to put in parallel",
-        dest="engine_names",
-    )
+    for sub_parser in (oneshot_planning_parser, plan_validation_parser):
+        mutually_exclusive = sub_parser.add_mutually_exclusive_group()
+        mutually_exclusive.add_argument(
+            "--engine",
+            "-e",
+            type=str,
+            help="The name of the engine to use",
+            dest="engine_name",
+        )
+        mutually_exclusive.add_argument(
+            "--engines",
+            type=str,
+            nargs="+",
+            help="The names of the engines to put in parallel",
+            dest="engine_names",
+        )
 
     for sub_parser in (oneshot_planning_parser, anytime_planning_parser):
         sub_parser.add_argument(
