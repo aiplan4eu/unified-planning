@@ -155,7 +155,7 @@ def plan_validation(
     args: argparse.Namespace,
 ):
     problem = parse_problem(parser, args)
-    engine_name, engine_names = args.engine_name, args.engine_names
+    engine_name, engine_names = args.engine_name, None
     plan_filename = args.plan_filename
     if plan_filename is None:
         parser.error("plan-validation mode requires the --plan option")
