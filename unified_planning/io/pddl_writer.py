@@ -517,11 +517,17 @@ class PDDLWriter:
                 raise UPTypeError("PDDL supports only boolean and numerical fluents")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             functions.append("(total-cost)")
+        predicates_string = "\n             ".join(predicates)
         out.write(
-            f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else ""
+            f" (:predicates \n             {predicates_string})\n"
+            if len(predicates) > 0
+            else ""
         )
+        functions_string = "\n             ".join(functions)
         out.write(
-            f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else ""
+            f" (:functions \n             {functions_string})\n"
+            if len(functions) > 0
+            else ""
         )
 
         converter = ConverterToPDDLString(
@@ -610,15 +616,26 @@ class PDDLWriter:
                     for p in (c.simplify() for c in a.preconditions):
                         if not p.is_true():
                             if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
+                                precond_str.extend(
+                                    map(converter.convert, p.args)
+                                )
                             else:
                                 precond_str.append(converter.convert(p))
+<<<<<<< HEAD
                     out.write(f'\n  :precondition (and {" ".join(precond_str)})')
                 elif len(a.preconditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :precondition ()")
+=======
+                    preconditions_string = "\n                    ".join(precond_str)
+                    out.write(
+                        f"\n  :precondition (and \n                    {preconditions_string}"
+                    )
+                    out.write("\n                )")
+>>>>>>> 845cf854 (made some modifications in order to let PDDL domain and problem more readable after dumping. And local testing)
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
+                        out.write(f"\n             ")
                         _write_effect(
                             e,
                             None,
@@ -629,11 +646,12 @@ class PDDLWriter:
                         )
 
                     if a in costs:
+                        out.write(f"\n             ")
                         out.write(
                             f" (increase (total-cost) {converter.convert(costs[a])})"
                         )
-                    out.write(")")
-                out.write(")\n")
+                    out.write(f"\n          )")
+                out.write("\n )\n")
             elif isinstance(a, DurativeAction):
                 if any(
                     c.simplify().is_false() for cl in a.conditions.values() for c in cl
@@ -667,6 +685,7 @@ class PDDLWriter:
                     out.write(f"\n  :condition (and ")
                     for interval, cl in a.conditions.items():
                         for c in (cond.simplify() for cond in cl):
+                            out.write(f"\n                 ")
                             if c.is_true():
                                 continue
                             if interval.lower == interval.upper:
@@ -677,17 +696,18 @@ class PDDLWriter:
                             else:
                                 if not interval.is_left_open():
                                     out.write(f"(at start {converter.convert(c)})")
-                                out.write(f"(over all {converter.convert(c)})")
+                                out.write(f" (over all {converter.convert(c)})")
                                 if not interval.is_right_open():
-                                    out.write(f"(at end {converter.convert(c)})")
-                    out.write(")")
+                                    out.write(f" (at end {converter.convert(c)})")
+                    out.write(f"\n             )")
                 elif len(a.conditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :condition (and )")
                 if len(a.effects) + len(a.continuous_effects) > 0 or a in costs:
-                    out.write("\n  :effect (and")
+                    out.write(f"\n  :effect (and")
                     if len(a.effects) > 0:
                         for t, el in a.effects.items():
                             for e in el:
+                                out.write(f"\n             ")
                                 _write_effect(
                                     e,
                                     t,
@@ -703,6 +723,7 @@ class PDDLWriter:
                     if len(a.continuous_effects) > 0:
                         for interval, el in a.continuous_effects.items():
                             for ce in el:
+                                out.write(f"\n             ")
                                 _write_effect(
                                     ce,
                                     None,
@@ -711,11 +732,11 @@ class PDDLWriter:
                                     self.rewrite_bool_assignments,
                                     self._get_mangled_name,
                                 )
-                    out.write(")")
-                out.write(")\n")
+                    out.write(f"\n          )")
+                out.write(f"\n )\n")
             else:
                 raise NotImplementedError
-        out.write(")\n")
+        out.write(f")\n")
 
     def _write_problem(self, out: IO[str]):
         if self.problem.name is None:
@@ -757,16 +778,20 @@ class PDDLWriter:
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():
+                out.write(f"\n             ")
                 out.write(f" {converter.convert(f)}")
             elif v.is_false():
                 pass
             else:
+                out.write(f"\n             ")
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
+            out.write(f"\n             ")
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
                 out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
+                out.write(f"\n             ")
                 _write_effect(
                     e,
                     None,
@@ -775,19 +800,21 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-                out.write(")")
-        out.write(")\n")
+                out.write(f"\n          )")
+        out.write(f"\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
             if g.is_and():
                 goals_str.extend(map(converter.convert, g.args))
             else:
                 goals_str.append(converter.convert(g))
-        out.write(f' (:goal (and {" ".join(goals_str)}))\n')
+        goals_string = "\n           ".join(goals_str)
+        out.write(f" (:goal (and \n           {goals_string}\n        )\n )\n")
         if len(self.problem.trajectory_constraints) > 0:
-            out.write(
-                f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
+            trajectory_constraints_str = "\n             ".join(
+                [converter.convert(c) for c in self.problem.trajectory_constraints]
             )
+            out.write(f" (:constraints {trajectory_constraints_str})\n")
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
