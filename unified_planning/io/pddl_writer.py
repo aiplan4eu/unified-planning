@@ -519,13 +519,13 @@ class PDDLWriter:
             functions.append("(total-cost)")
         predicates_string = "\n             ".join(predicates)
         out.write(
-            f" (:predicates \n             {predicates_string})\n"
+            f" (:predicates \n             {predicates_string}\n )\n"
             if len(predicates) > 0
             else ""
         )
         functions_string = "\n             ".join(functions)
         out.write(
-            f" (:functions \n             {functions_string})\n"
+            f" (:functions \n             {functions_string}\n )\n"
             if len(functions) > 0
             else ""
         )

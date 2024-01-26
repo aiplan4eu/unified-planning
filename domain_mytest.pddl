@@ -8,11 +8,13 @@
              (loc_empty ?loc - location)
              (pack_empty ?loc - location)
              (robot_carry ?robot - robot ?p - package)
-             (pack_at ?loc - location ?p - package))
+             (pack_at ?loc - location ?p - package)
+ )
  (:functions 
              (cost ?l_from - location ?l_to - location)
              (battery_level)
-             (pack_weight ?p - package))
+             (pack_weight ?p - package)
+ )
  (:durative-action move
   :parameters ( ?r - robot ?l_from - location ?l_to - location)
   :duration (= ?duration (cost ?l_from ?l_to))
