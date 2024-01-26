@@ -603,7 +603,7 @@ class ProtobufWriter(Converter):
             actions=[self.convert(a) for a in problem.actions],
             initial_state=[
                 proto.Assignment(fluent=self.convert(x), value=self.convert(v))
-                for (x, v) in problem.initial_values.items()
+                for (x, v) in problem.explicit_initial_values.items()
             ],
             timed_effects=timed_effects,
             goals=goals,
