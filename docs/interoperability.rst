@@ -8,16 +8,9 @@ PDDL/MAPDDL/HDDL reader and writer
 
 The library offers a comprehensive and well-tested parser for PDDL 2.1 level 3 (i.e. up to temporal planning without continuous change). The parser can be invoked as shown in the example below and can be used either to parse a whole planning instance (i.e. a domain and a problem), or just to parse the domain file, resulting in an incomplete ``Problem`` object that can be completed using the UP API as shown below. This latter use-case allows to model the action schemata using PDDL and then formulate the problem(s) using the UP (possibly using data available at runtime for doing so).
 
-.. code-block::
+.. literalinclude::
     :caption: PDDLReader example
-
-        from unified_planning.io import PDDLReader
-        # ...
-        reader = PDDLReader()
-        # Reader used with both domain and problem file
-        # domain_filename = ... # path of the PDDL domain file
-        # problem_filename = ... # path of the PDDL problem file
-        problem = reader.parse_problem(domain_filename, problem_filename)
+    :lines: 2,11-16
 
 .. literalinclude:: ./code_snippets/pddl_interop.py
     :caption: PDDLReader with domain file and problem populated using UP
