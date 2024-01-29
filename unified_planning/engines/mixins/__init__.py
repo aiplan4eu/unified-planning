@@ -18,6 +18,7 @@ from unified_planning.engines.mixins.oneshot_planner import (
     OneshotPlannerMixin,
     OptimalityGuarantee,
 )
+from unified_planning.engines.mixins.fewshot_planner import FewshotPlannerMixin
 from unified_planning.engines.mixins.anytime_planner import (
     AnytimePlannerMixin,
     AnytimeGuarantee,

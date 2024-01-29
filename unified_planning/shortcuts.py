@@ -556,6 +556,26 @@ def OneshotPlanner(
     )
 
 
+def FewshotPlanner(
+    *,
+    name: Optional[str] = None,
+    names: Optional[Sequence[str]] = None,
+    params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
+    problem_kind: ProblemKind = ProblemKind(),
+) -> Engine:
+    """
+    Returns a fewshot planner. The next is an example to call this method:
+    *   | using ``name`` (the name of a specific GP planner) and ``params`` (GP planner dependent options).
+        | e.g. ``FewshotPlanner(name='bfgp', params={'program_lines': 15})``
+    """
+    return get_environment().factory.FewshotPlanner(
+        name=name,
+        names=names,
+        params=params,
+        problem_kind=problem_kind,
+    )
+
+
 def AnytimePlanner(
     *,
     name: Optional[str] = None,

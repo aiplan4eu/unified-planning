@@ -31,6 +31,7 @@ setup(
         "fmap": ["up-fmap==0.0.13"],
         "aries": ["up-aries>=0.3.3"],
         "symk": ["up-symk>=1.0.1"],
+        "bfgp": ["up-bfgp>=0.2.0"],
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan==1.0.0.6.dev1",
@@ -41,6 +42,7 @@ setup(
             "up-fmap==0.0.13",
             "up-aries>=0.3.2",
             "up-symk>=1.0.1",
+            "up-bfgp>=0.2.0",
         ],
         "plot": [
             "plotly",
