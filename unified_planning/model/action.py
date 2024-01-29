@@ -815,30 +815,14 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         continuous_effect: "up.model.effect.Effect",
     ):
-        # timing = Timing.from_time(timing)
         assert (
             self._environment == continuous_effect.environment
         ), "effect does not have the same environment of the action"
-        # fluents_assigned = self._fluents_assigned.setdefault(interval, {})
-        # fluents_inc_dec = self._fluents_inc_dec.setdefault(interval, set())
-        # simulated_effect = self._simulated_effects.get(interval, None)
-        # up.model.continuous_effect.check_conflicting_effects(
-        #     continuous_effect,
-        #     interval,
-        #     simulated_effect,
-        #     fluents_assigned,
-        #     fluents_inc_dec,
-        #     f"action or problem: {self.name}",  # type: ignore[attr-defined]
-        # )
         self.continuous_effects.setdefault(interval, []).append(continuous_effect)
 
-    # def clear_effects(self):
-    #     """Removes all `effects` from the `Action`."""
-    #     self._effects = {}
-    #     self._fluents_assigned = {}
-    #     self._fluents_inc_dec = {}
-    #     self._simulated_effects = {}
-    #     self._continuous_effects = {}
+    def clear_continuous_effects(self):
+        """Removes all `continuous_effects` from the `Durative_Action`."""
+        self._continuous_effects = {}
 
 
 class SensingAction(InstantaneousAction):
