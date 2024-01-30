@@ -34,6 +34,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
 )
 from unified_planning.model import (
+    Action,
     Fluent,
     FNode,
     ExpressionManager,
@@ -108,6 +109,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
         self._initial_state: Optional[UPState] = None
+        self._grounded_actions: Optional[
+            List[Tuple[Action, Tuple[FNode, ...], Optional[Action]]]
+        ] = None
 
         # Add state invariants without quantifiers to get all the grounded
         # fluent instances that might modify the state invariants
@@ -406,7 +410,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :param state: the `state` where the formulas are evaluated.
         :return: an `Iterator` of applicable actions + parameters.
         """
-        for original_action, params, _ in self._grounder.get_grounded_actions():
+        if self._grounded_actions is None:
+            self._grounded_actions = list(self._grounder.get_grounded_actions())
+        for original_action, params, _ in self._grounded_actions:
             if self._is_applicable(state, original_action, params):
                 yield (original_action, params)
 

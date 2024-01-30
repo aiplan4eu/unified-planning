@@ -13,14 +13,12 @@ def get_test_cases():
     airplane = Agent("airplane", problem)
     object = UserType("object")
     location = UserType("location", object)
-    vehicle = UserType("vehicle", object)
     package = UserType("package", object)
     city = UserType("city", object)
     airport = UserType("airport", location)
 
     pos = Fluent("pos", location=location)
     at = Fluent("at", BoolType(), object=object, location=location)
-    In = Fluent("in", BoolType(), package=package, vehicle=vehicle)
     on = Fluent("on", BoolType(), object=object)
     in_city = Fluent("in_city", BoolType(), location=location, city=city)
 
@@ -33,7 +31,6 @@ def get_test_cases():
     airplane.add_public_fluent(pos, default_initial_value=False)
     airplane.add_public_fluent(on, default_initial_value=False)
     problem.ma_environment.add_fluent(at, default_initial_value=False)
-    problem.ma_environment.add_fluent(In, default_initial_value=False)
 
     load_truck = InstantaneousAction("load_truck", loc=location, obj=package)
     obj = load_truck.parameter("obj")
