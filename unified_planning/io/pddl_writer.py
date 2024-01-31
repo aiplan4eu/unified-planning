@@ -125,6 +125,7 @@ PDDL_KEYWORDS = {
     "timed-initial-effects",
     "preferences",
     "contingent",
+    "continuous-effects",
 }
 
 # The following map is used to mangle the invalid names by their class.
@@ -695,8 +696,8 @@ class PDDLWriter:
                                     out.write(f"(at end {converter.convert(c)})")
                             else:
                                 if not interval.is_left_open():
-                                    out.write(f"(at start {converter.convert(c)})")
-                                out.write(f" (over all {converter.convert(c)})")
+                                    out.write(f"(at start {converter.convert(c)}) ")
+                                out.write(f"(over all {converter.convert(c)})")
                                 if not interval.is_right_open():
                                     out.write(f" (at end {converter.convert(c)})")
                     out.write(f"\n             )")
