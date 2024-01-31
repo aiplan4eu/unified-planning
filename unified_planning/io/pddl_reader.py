@@ -101,7 +101,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :continuous-effects"
                 )
             )
             + Suppress(")")
@@ -384,6 +384,20 @@ class PDDLReader:
         self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
 
+    def _contains(self, exp: CustomParseResults, string: str):
+        stack = [exp]
+        while len(stack) > 0:
+            exp = stack.pop()
+            if isinstance(exp.value, str):
+                if exp.value == string:
+                    return True
+            elif isinstance(exp.value, ParseResults):
+                for e in exp:
+                    stack.append(e)
+            else:
+                raise SyntaxError(f"Not able to handle: {exp}")
+        return False
+
     def _parse_exp(
         self,
         problem: up.model.Problem,
@@ -564,7 +578,9 @@ class PDDLReader:
         exp: CustomParseResults,
         complete_str: str,
         cond: Union[up.model.FNode, bool] = True,
-        timing: typing.Optional[up.model.Timing] = None,
+        timing: typing.Optional[
+            Union[up.model.Timing, up.model.timing.TimeInterval]
+        ] = None,
         forall_variables: typing.Optional[Dict[str, up.model.Variable]] = None,
     ):
         if forall_variables is None:
@@ -610,27 +626,107 @@ class PDDLReader:
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-                act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                if self._contains(exp, "#t"):
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                            cond,
+                        )
+                        act.add_increase_continuous_effect(timing, *eff)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
+                else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-                act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                if self._contains(exp, "#t"):
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                            cond,
+                        )
+                        act.add_decrease_continuous_effect(timing, *eff)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
+                else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -839,6 +935,18 @@ class PDDLReader:
                     eff[2],
                     complete_str,
                     timing=up.model.EndTiming(),
+                    forall_variables=forall_variables,
+                )
+            elif self._contains(eff, "#t"):
+                self._add_effect(
+                    problem,
+                    act,
+                    types_map,
+                    eff,
+                    complete_str,
+                    timing=up.model.timing.ClosedTimeInterval(
+                        up.model.timing.StartTiming(), up.model.timing.EndTiming()
+                    ),
                     forall_variables=forall_variables,
                 )
             elif len(eff) == 3 and op == "forall":
