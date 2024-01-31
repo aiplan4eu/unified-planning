@@ -54,6 +54,10 @@ class CustomParseResults:
         if len(self.value) == 1 and isinstance(self.value[0], str):
             self.value = self.value[0]
 
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
     def __getitem__(self, i):
         return CustomParseResults(self.value[i])
 
@@ -71,6 +75,20 @@ class CustomParseResults:
 
     def col_end(self, complete_str: str) -> int:
         return col(self.locn_end, complete_str)
+
+    def __contains__(self, string: str):
+        stack = [self]
+        while len(stack) > 0:
+            exp = stack.pop()
+            if isinstance(exp.value, str):
+                if exp.value == string:
+                    return True
+            elif isinstance(exp.value, ParseResults):
+                for e in exp:
+                    stack.append(e)
+            else:
+                raise SyntaxError(f"Not able to handle: {exp}")
+        return False
 
 
 Object = "object"
@@ -384,20 +402,6 @@ class PDDLReader:
         self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
 
-    def _contains(self, exp: CustomParseResults, string: str):
-        stack = [exp]
-        while len(stack) > 0:
-            exp = stack.pop()
-            if isinstance(exp.value, str):
-                if exp.value == string:
-                    return True
-            elif isinstance(exp.value, ParseResults):
-                for e in exp:
-                    stack.append(e)
-            else:
-                raise SyntaxError(f"Not able to handle: {exp}")
-        return False
-
     def _parse_exp(
         self,
         problem: up.model.Problem,
@@ -626,7 +630,7 @@ class PDDLReader:
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
-                if self._contains(exp, "#t"):
+                if "#t" in exp:
                     if (
                         len(exp) == 3
                         and len(exp[2]) == 3
@@ -652,7 +656,53 @@ class PDDLReader:
                             ),
                             cond,
                         )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
                         act.add_increase_continuous_effect(timing, *eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        eff_inverted = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                            cond,
+                        )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
+                        act.add_increase_continuous_effect(timing, *eff_inverted)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                            cond,
+                        )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
+                        act.add_increase_continuous_effect(timing, *eff_without)
                     else:
                         raise SyntaxError("Continuous change syntax is not correct!")
                 else:
@@ -677,14 +727,14 @@ class PDDLReader:
                     )
                     act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
-                if self._contains(exp, "#t"):
+                if "#t" in exp:
                     if (
                         len(exp) == 3
                         and len(exp[2]) == 3
                         and exp[2][0].value == "*"
                         and exp[2][1].value == "#t"
                     ):
-                        eff = (
+                        eff_inverted = (
                             self._parse_exp(
                                 problem,
                                 act,
@@ -703,7 +753,53 @@ class PDDLReader:
                             ),
                             cond,
                         )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
+                        act.add_decrease_continuous_effect(timing, *eff_inverted)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                            cond,
+                        )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
                         act.add_decrease_continuous_effect(timing, *eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                            cond,
+                        )
+                        assert isinstance(timing, up.model.TimeInterval)
+                        assert isinstance(act, up.model.DurativeAction)
+                        act.add_decrease_continuous_effect(timing, *eff_without)
                     else:
                         raise SyntaxError("Continuous change syntax is not correct!")
                 else:
@@ -726,6 +822,8 @@ class PDDLReader:
                         ),
                         cond,
                     )
+                    assert isinstance(timing, up.model.TimeInterval)
+                    assert isinstance(act, up.model.DurativeAction)
                     act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
@@ -937,7 +1035,7 @@ class PDDLReader:
                     timing=up.model.EndTiming(),
                     forall_variables=forall_variables,
                 )
-            elif self._contains(eff, "#t"):
+            elif "#t" in eff:
                 self._add_effect(
                     problem,
                     act,
