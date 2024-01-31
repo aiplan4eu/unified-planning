@@ -822,8 +822,6 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    assert isinstance(timing, up.model.TimeInterval)
-                    assert isinstance(act, up.model.DurativeAction)
                     act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
