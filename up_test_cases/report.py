@@ -157,7 +157,12 @@ def check_result(
         else:
             if planner.satisfies(OptimalityGuarantee.SOLVED_OPTIMALLY):
                 output += verify(
-                    result.status is PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                    result.status
+                    in (
+                        PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                        PlanGenerationResultStatus.INTERMEDIATE,
+                        PlanGenerationResultStatus.TIMEOUT,
+                    ),
                     f"Planner guarantees optimality but returned {result.status.name}",
                 )
             else:

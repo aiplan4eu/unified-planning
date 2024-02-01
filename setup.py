@@ -30,6 +30,7 @@ setup(
         "lpg": ["up-lpg==0.0.10"],
         "fmap": ["up-fmap==0.0.13"],
         "aries": ["up-aries>=0.3.3"],
+        "symk": ["up-symk>=1.3.0"],
         "engines": [
             "tarski[arithmetic]",
             "up-pyperplan~=1.1.0",
@@ -39,6 +40,7 @@ setup(
             "up-lpg==0.0.10",
             "up-fmap==0.0.13",
             "up-aries>=0.3.3",
+            "up-symk>=1.3.0",
         ],
         "plot": [
             "plotly",
