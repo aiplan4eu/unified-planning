@@ -417,7 +417,6 @@ class TestPddlIO(unittest_TestCase):
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "sailing", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "sailing", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
-
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 4)
         self.assertEqual(len(problem.actions), 8)
