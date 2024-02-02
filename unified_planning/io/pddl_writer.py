@@ -1137,6 +1137,23 @@ def _write_effect(
         positive_cond = (simplified_cond & effect.value).simplify()
         if not positive_cond.is_false():
             out.write(forall_str)
+            if not positive_cond.is_true():
+                out.write(" (when ")
+                if timing is not None:
+                    if timing.is_from_start():
+                        out.write(f" (at start")
+                    else:
+                        out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+                    out.write(f" (at start")
+                out.write(f"{converter.convert(positive_cond)}")
+                if (
+                    timing is not None
+                    or effect.is_continuous_increase()
+                    or effect.is_continuous_decrease()
+                ):
+                    out.write(")")
+                out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -1144,10 +1161,6 @@ def _write_effect(
                     out.write(f" (at end")
             if positive_cond.is_true():
                 out.write(f" {converter.convert(effect.fluent)}")
-            else:
-                out.write(
-                    f" (when {converter.convert(positive_cond)} {converter.convert(effect.fluent)})"
-                )
             if timing is not None:
                 out.write(")")
             if effect.is_forall():
@@ -1155,6 +1168,23 @@ def _write_effect(
         negative_cond = (simplified_cond & effect.value.Not()).simplify()
         if not negative_cond.is_false():
             out.write(forall_str)
+            if not negative_cond.is_true():
+                out.write(" (when")
+                if timing is not None:
+                    if timing.is_from_start():
+                        out.write(f" (at start")
+                    else:
+                        out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+                    out.write(f" (at start")
+                out.write(f" {converter.convert(negative_cond)}")
+                if (
+                    timing is not None
+                    or effect.is_continuous_increase()
+                    or effect.is_continuous_decrease()
+                ):
+                    out.write(")")
+                out.write(f" not {converter.convert(effect.fluent)}))")
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -1162,11 +1192,7 @@ def _write_effect(
                     out.write(f" (at end")
             if negative_cond.is_true():
                 out.write(f" {converter.convert(effect.fluent)}")
-            else:
-                out.write(
-                    f" (when {converter.convert(negative_cond)} (not {converter.convert(effect.fluent)}))"
-                )
-            if timing is not None:
+            if timing is not None and not negative_cond.is_true():
                 out.write(")")
             if effect.is_forall():
                 out.write(")")
@@ -1175,13 +1201,27 @@ def _write_effect(
     if simplified_cond.is_false():
         return
     out.write(forall_str)
+    if not simplified_cond.is_true():
+        out.write(f" (when")
+        if timing is not None:
+            if timing.is_from_start():
+                out.write(f" (at start")
+            else:
+                out.write(f" (at end")
+        elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+            out.write(f" (at start")
+        out.write(f" {converter.convert(effect.condition)}")
+        if (
+            timing is not None
+            or effect.is_continuous_increase()
+            or effect.is_continuous_decrease()
+        ):
+            out.write(")")
     if timing is not None:
         if timing.is_from_start():
             out.write(f" (at start")
         else:
             out.write(f" (at end")
-    if not simplified_cond.is_true():
-        out.write(f" (when {converter.convert(effect.condition)}")
     simplified_value = effect.value.simplify()
     fluent = converter.convert(effect.fluent)
     if simplified_value.is_true():
