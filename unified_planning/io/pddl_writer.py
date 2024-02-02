@@ -622,17 +622,13 @@ class PDDLWriter:
                                 )
                             else:
                                 precond_str.append(converter.convert(p))
-<<<<<<< HEAD
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(a.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-=======
                     preconditions_string = "\n                    ".join(precond_str)
                     out.write(
                         f"\n  :precondition (and \n                    {preconditions_string}"
                     )
                     out.write("\n                )")
->>>>>>> 845cf854 (made some modifications in order to let PDDL domain and problem more readable after dumping. And local testing)
+                elif len(a.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
@@ -1151,8 +1147,14 @@ def _write_effect(
                         out.write(f" (at start")
                     else:
                         out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+                    out.write(f" (at start")
                 out.write(f"{converter.convert(positive_cond)}")
-                if timing is not None:
+                if (
+                    timing is not None
+                    or effect.is_continuous_increase()
+                    or effect.is_continuous_decrease()
+                ):
                     out.write(")")
                 out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
@@ -1176,11 +1178,16 @@ def _write_effect(
                         out.write(f" (at start")
                     else:
                         out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
                     out.write(f" (at start")
                 out.write(f" {converter.convert(negative_cond)}")
-                if timing is not None:
+                if (
+                    timing is not None
+                    or effect.is_continuous_increase()
+                    or effect.is_continuous_decrease()
+                ):
                     out.write(")")
-                out.write(f" (not {converter.convert(effect.fluent)}))")
+                out.write(f" not {converter.convert(effect.fluent)}))")
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")
@@ -1204,8 +1211,14 @@ def _write_effect(
                 out.write(f" (at start")
             else:
                 out.write(f" (at end")
+        elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+            out.write(f" (at start")
         out.write(f" {converter.convert(effect.condition)}")
-        if timing is not None:
+        if (
+            timing is not None
+            or effect.is_continuous_increase()
+            or effect.is_continuous_decrease()
+        ):
             out.write(")")
     if timing is not None:
         if timing.is_from_start():
