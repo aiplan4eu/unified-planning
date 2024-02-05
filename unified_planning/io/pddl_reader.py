@@ -952,6 +952,82 @@ class PDDLReader:
             if op == "and":
                 for i in range(1, len(eff)):
                     to_add.append((eff[i], forall_variables))
+            elif op == "when":
+                if (
+                    len(eff) == 3
+                    and eff[1][0].value == "at"
+                    and eff[1][1].value == "start"
+                ):
+                    cond = self._parse_exp(
+                        problem,
+                        act,
+                        types_map,
+                        forall_variables,
+                        eff[1][2],
+                        complete_str,
+                    )
+                    if len(eff[2]) == 3 and not "#t" in eff[2] and "start" in eff[2]:
+                        self._add_effect(
+                            problem,
+                            act,
+                            types_map,
+                            eff[2][2],
+                            complete_str,
+                            cond,
+                            timing=up.model.StartTiming(),
+                            forall_variables=forall_variables,
+                        )
+                    elif "#t" in eff[2]:
+                        self._add_effect(
+                            problem,
+                            act,
+                            types_map,
+                            eff[2],
+                            complete_str,
+                            timing=up.model.timing.ClosedTimeInterval(
+                                up.model.timing.StartTiming(),
+                                up.model.timing.EndTiming(),
+                            ),
+                            forall_variables=forall_variables,
+                        )
+                    else:
+                        raise UPUnsupportedProblemTypeError(
+                            "Conditional effects with different timing are not supported."
+                        )
+
+                elif (
+                    len(eff) == 3
+                    and eff[1][0].value == "at"
+                    and eff[1][1].value == "end"
+                ):
+                    cond = self._parse_exp(
+                        problem,
+                        act,
+                        types_map,
+                        forall_variables,
+                        eff[1][2],
+                        complete_str,
+                    )
+                    if len(eff[2]) == 3 and "end" in eff[2]:
+                        self._add_effect(
+                            problem,
+                            act,
+                            types_map,
+                            eff[2][2],
+                            complete_str,
+                            cond,
+                            timing=up.model.EndTiming(),
+                            forall_variables=forall_variables,
+                        )
+                    else:
+                        raise UPUnsupportedProblemTypeError(
+                            "Conditional effects with different timing are not supported."
+                        )
+
+                else:
+                    raise UPUnsupportedProblemTypeError(
+                        "Conditional durative effects syntax is not correct."
+                    )
             elif len(eff) == 3 and op == "at" and eff[1].value == "start":
                 self._add_effect(
                     problem,
