@@ -1187,7 +1187,7 @@ def _write_effect(
                     or effect.is_continuous_decrease()
                 ):
                     out.write(")")
-                out.write(f" not {converter.convert(effect.fluent)}))")
+                out.write(f" (not {converter.convert(effect.fluent)}))")
             if timing is not None:
                 if timing.is_from_start():
                     out.write(f" (at start")

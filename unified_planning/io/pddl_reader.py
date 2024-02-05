@@ -966,7 +966,7 @@ class PDDLReader:
                         eff[1][2],
                         complete_str,
                     )
-                    if len(eff[2]) == 3 and eff[2][1].value == "start":
+                    if len(eff[2]) == 3 and not "#t" in eff[2] and "start" in eff[2]:
                         self._add_effect(
                             problem,
                             act,
@@ -975,6 +975,19 @@ class PDDLReader:
                             complete_str,
                             cond,
                             timing=up.model.StartTiming(),
+                            forall_variables=forall_variables,
+                        )
+                    elif "#t" in eff[2]:
+                        self._add_effect(
+                            problem,
+                            act,
+                            types_map,
+                            eff[2],
+                            complete_str,
+                            timing=up.model.timing.ClosedTimeInterval(
+                                up.model.timing.StartTiming(),
+                                up.model.timing.EndTiming(),
+                            ),
                             forall_variables=forall_variables,
                         )
                     else:
@@ -994,7 +1007,7 @@ class PDDLReader:
                         eff[1][2],
                         complete_str,
                     )
-                    if len(eff[2]) == 3 and eff[2][1].value == "end":
+                    if len(eff[2]) == 3 and "end" in eff[2]:
                         self._add_effect(
                             problem,
                             act,
