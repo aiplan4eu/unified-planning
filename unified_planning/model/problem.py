@@ -1025,9 +1025,9 @@ class _KindFactory:
                     self.update_action_timed_effect(i, ce)
                     continuous_fluents.add(ce.fluent.fluent)
                     rhs = self.simplifier.simplify(ce.value)
-                    for e in self.environment.free_vars_extractor.get(rhs):
-                        if e.is_fluent_exp():
-                            fluents_in_rhs.add(e.fluent)
+                    for var in self.environment.free_vars_extractor.get(rhs):
+                        if var.is_fluent_exp():
+                            fluents_in_rhs.add(var.fluent)
             if any(variable in fluents_in_rhs for variable in continuous_fluents):
                 self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
             if len(action.simulated_effects) > 0:
