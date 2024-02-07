@@ -327,6 +327,10 @@ class Problem(  # type: ignore[misc]
                     for e in el:
                         remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
+                for le in a.continuous_effects.values():
+                    for ce in le:
+                        remove_used_fluents(ce.fluent, ce.value, ce.condition)
+                        static_fluents.discard(ce.fluent.fluent())
                 for se in a.simulated_effects.values():
                     unused_fluents.clear()
                     for f in se.fluents:
@@ -833,6 +837,8 @@ class _KindFactory:
         elif e.is_continuous_increase():
             self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            # if e.fluent in fluents_in_value:
+            #      self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
         elif e.is_continuous_decrease():
             self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
@@ -1012,9 +1018,18 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            continuous_fluents = set()
+            fluents_in_rhs = set()
             for i, le in action.continuous_effects.items():
                 for ce in le:
                     self.update_action_timed_effect(i, ce)
+                    continuous_fluents.add(ce.fluent.fluent)
+                    rhs = self.simplifier.simplify(ce.value)
+                    for e in self.environment.free_vars_extractor.get(rhs):
+                        if e.is_fluent_exp():
+                            fluents_in_rhs.add(e.fluent)
+            if any(variable in fluents_in_rhs for variable in continuous_fluents):
+                self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
