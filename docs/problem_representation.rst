@@ -112,6 +112,15 @@ Problem Kinds
      - DECREASE_EFFECTS
      - At least one effect uses the numeric decrement operator.
    * -
+     - INCREASE_CONTINUOUS_EFFECTS
+     - At least one effect uses the continuous numeric increment operator.
+   * -
+     - DECREASE_CONTINUOUS_EFFECTS
+     - At least one effect uses the continuous numeric decrement operator.
+   * -
+     - NON_LINEAR_CONTINUOUS_EFFECTS
+     - At least one continuous effect is described by a differential equation that depends on a continuous variable.
+   * -
      - STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS
      - At least one effect uses a static fluent in the expression of a boolean assignment.
    * -
