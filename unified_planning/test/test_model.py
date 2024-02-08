@@ -400,6 +400,26 @@ class TestModel(unittest_TestCase):
             "Decrease effects can be created only on numeric types!",
         )
 
+        # test add_increase_continuous_effect exception
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_increase_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), km, 1
+            )
+        self.assertEqual(
+            str(type_error.exception),
+            f"Increase continuous effects can be created only on real type!",
+        )
+
+        # test add_decrease_continuous_effect exception
+        with self.assertRaises(UPTypeError) as type_error:
+            test_exceptions.add_decrease_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), km, 1
+            )
+        self.assertEqual(
+            str(type_error.exception),
+            f"Decrease continuous effects can be created only on real type!",
+        )
+
     def test_problem(self):
         x = Fluent("x")
         y = Fluent("y")
@@ -441,3 +461,28 @@ class TestModel(unittest_TestCase):
         int_5 = IntType(5)
         with self.assertRaises(UPTypeError):
             Fluent("x", p1=int_5)
+
+    def test_continuous_problem_kind(self):
+        problem = self.problems["robot_continuous"].problem
+        self.assertTrue(problem.kind.has_decrease_continuous_effects())
+        self.assertFalse(problem.kind.has_non_linear_continuous_effects())
+        move = problem.actions[0]
+        battery_charge = problem.fluents[2]
+        move.clear_continuous_effects()
+        move.add_increase_continuous_effect(
+            ClosedTimeInterval(StartTiming(), EndTiming()), battery_charge, 1
+        )
+        self.assertTrue(problem.kind.has_increase_continuous_effects())
+        self.assertFalse(problem.kind.has_non_linear_continuous_effects())
+        move.clear_continuous_effects()
+        move.add_decrease_continuous_effect(
+            ClosedTimeInterval(StartTiming(), EndTiming()),
+            battery_charge,
+            0.1 * battery_charge,
+        )
+        self.assertTrue(problem.kind.has_decrease_continuous_effects())
+        self.assertTrue(problem.kind.has_non_linear_continuous_effects())
+
+    def test_non_linear_continuous_problem_kind(self):
+        problem = self.problems["robot_non_linear_continuous_1"].problem
+        self.assertTrue(problem.kind.has_non_linear_continuous_effects())

@@ -235,7 +235,10 @@ class DurativeAction(Action, TimedCondsEffs):
         new_durative_action._duration = self._duration
 
         TimedCondsEffs._clone_to(self, new_durative_action)
-        new_durative_action._continuous_effects = self._continuous_effects
+        new_durative_action._continuous_effects = {
+            t: [e.clone() for e in el] for t, el in self._continuous_effects.items()
+        }
+
         return new_durative_action
 
     @property

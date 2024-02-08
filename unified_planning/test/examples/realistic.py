@@ -1257,4 +1257,45 @@ def get_example_problems():
     safe_road = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["safe_road"] = safe_road
 
+    # robot_continuous
+    Location = UserType("Location")
+    connected = Fluent("connected", BoolType(), l_from=Location, l_to=Location)
+    robot_at = Fluent("robot_at", BoolType(), position=Location)
+    battery_charge = Fluent("battery_charge", RealType(0, 100))
+    move = DurativeAction("move", l_from=Location, l_to=Location)
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.set_fixed_duration(10)
+    move.add_condition(StartTiming(), connected(l_from, l_to))
+    move.add_condition(StartTiming(), robot_at(l_from))
+    move.add_effect(StartTiming(), robot_at(l_from), False)
+    move.add_effect(EndTiming(), robot_at(l_to), True)
+    move.add_decrease_continuous_effect(
+        ClosedTimeInterval(StartTiming(), EndTiming()), battery_charge, 1
+    )
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    problem = Problem("robot_continuous")
+    problem.add_fluent(robot_at, default_initial_value=False)
+    problem.add_fluent(connected, default_initial_value=False)
+    problem.add_fluent(battery_charge, default_initial_value=100)
+    problem.add_action(move)
+    problem.add_object(l1)
+    problem.add_object(l2)
+    problem.set_initial_value(connected(l1, l2), True)
+    problem.set_initial_value(robot_at(l1), True)
+    problem.add_goal(robot_at(l2))
+    problem.add_goal(Equals(battery_charge, 90))
+    t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (
+                Fraction(0, 1),
+                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                Fraction(10, 1),
+            )
+        ]
+    )
+    robot_continuous = TestCase(problem=problem, solvable=True, valid_plans=[t_plan])
+    problems["robot_continuous"] = robot_continuous
+
     return problems

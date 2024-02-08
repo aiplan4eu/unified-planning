@@ -630,7 +630,10 @@ class TestPddlIO(unittest_TestCase):
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
-
+                        for i, ce in a.continuous_effects.items():
+                            self.assertEqual(
+                                len(ce), len(parsed_a.continuous_effects[i])
+                            )
                 self.assertEqual(
                     len(problem.trajectory_constraints),
                     len(parsed_problem.trajectory_constraints),
@@ -950,9 +953,9 @@ class TestPddlIO(unittest_TestCase):
             And(Or(x, y), And(y, z)),
         ]
         expected_goals: List[str] = [
-            "(:goal (and \n           (x)\n           (y)\n        )\n )\n)\n",
-            "(:goal (and \n           (x)\n           (y)\n           (z)\n        )\n )\n)\n",
-            "(:goal (and \n           (or (x) (y))\n           (y)\n           (z)\n        )\n )\n)\n",
+            "(:goal (and (x) (y)))",
+            "(:goal (and (x) (y) (z)))",
+            "(:goal (and (or (x) (y)) (y) (z)))",
         ]
         assert len(goals) == len(
             expected_goals
@@ -964,7 +967,7 @@ class TestPddlIO(unittest_TestCase):
             problem.add_fluent(z, default_initial_value=False)
             problem.add_goal(goal)
             writer = PDDLWriter(problem)
-            pddl_problem = writer.get_problem()
+            pddl_problem = self._normalized_pddl_str(writer.get_problem())
             self.assertIn(expected_goal, pddl_problem)
 
     def test_grounding_tpp_metric(self):
@@ -984,6 +987,33 @@ class TestPddlIO(unittest_TestCase):
             ).problem
         self.assertEqual(40, len(grounded_problem.actions))
         self.assertEqual(3, len(problem.actions))
+
+    def test_robot_continuous(self):
+        problem = self.problems["robot_continuous"].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(:requirements :strips :typing :equality :numeric-fluents :durative-actions :continuous-effects)",
+            pddl_domain,
+        )
+        self.assertIn("(decrease (battery_charge) (* #t 1))", pddl_domain)
+
+    def test_robot_conditional_effects(self):
+        problem = self.problems["robot_conditional_effects"].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(when (at end (<= 10 (battery_charge))) (at end (robot_at ?l_to)))",
+            pddl_domain,
+        )
+        self.assertIn(
+            "(when (at start (<= 10 (battery_charge))) (decrease (battery_charge) (* #t 1)))",
+            pddl_domain,
+        )
 
 
 def _have_same_user_types_considering_renamings(
