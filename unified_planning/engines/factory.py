@@ -165,7 +165,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "aries-val",
 ]
 
-DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription"]
+DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "replanner"]
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:

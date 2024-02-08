@@ -8,10 +8,10 @@ on:
         type: string
 
 env:
-  up_tamer_commit: "1b543623ad2ebd9795529abe812352db8f4ec014"
-  up_pyperplan_commit: "6cec570b88d62ca5c4b8029a60c704414fe7f6a9"
+  up_tamer_commit: "631dfd43a56e7c2dda44fe273ec6f5492e99cfe1"
+  up_pyperplan_commit: "a24854213caf5038e1540e31613d24b93825fbb3"
   up_fast_downward_commit: "c60b6ab82cb8c3046cfd4782afe4d4c6071c4109"
-  up_enhsp_commit: "1ec1086b7dbb67ce4a0bc03f5b71b551ee2168dc"
+  up_enhsp_commit: "78cc3331beb1fcc36380a8f698f49b4312dc411a"
   up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
 
 jobs:
@@ -140,7 +140,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.13.0; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.14.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
@@ -208,7 +208,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.13.0; ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.14.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Test code-snippets
@@ -276,7 +276,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.13.0; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.14.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
@@ -337,7 +337,7 @@ jobs:
       - name: Download and install ENHSP
         run: |
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.13.0; bash ./compile; cd ..
+          cd ENHSP-Public; git checkout enhsp20-0.14.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests

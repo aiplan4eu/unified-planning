@@ -42,7 +42,7 @@ class TestDisjunctiveConditionsRemover(unittest_TestCase):
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     @skipIfNoPlanValidatorForProblemKind(
         full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)

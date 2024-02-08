@@ -46,6 +46,11 @@ The documentation is available [here](https://unified-planning.readthedocs.io/en
 
 More complex examples are available as notebooks [here](https://unified-planning.readthedocs.io/en/latest/examples.html).
 
+## Staying Updated
+
+To stay informed about project updates, announcements, and general discussions, we encourage you to join our public mailing list: (https://groups.google.com/g/unified-planning).
+
+You can subscribe to this list to receive notifications and engage in community discussions.
 
 ## Acknowledgments
 

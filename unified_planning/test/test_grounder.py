@@ -18,6 +18,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     classical_kind,
+    full_classical_kind,
     simple_numeric_kind,
     general_numeric_kind,
     bounded_types_kind,
@@ -83,10 +84,10 @@ class TestGrounder(unittest_TestCase):
                 self.assertTrue(pv.validate(problem, plan))
 
     @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     @skipIfNoPlanValidatorForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     def test_robot_locations_connected(self):
         problem = self.problems["robot_locations_connected"].problem
@@ -110,10 +111,10 @@ class TestGrounder(unittest_TestCase):
                 self.assertTrue(pv.validate(problem, plan))
 
     @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     @skipIfNoPlanValidatorForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     def test_robot_locations_connected_from_factory(self):
         problem = self.problems["robot_locations_connected"].problem
@@ -142,10 +143,10 @@ class TestGrounder(unittest_TestCase):
                     self.assertTrue(pv.validate(problem, plan))
 
     @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     @skipIfNoPlanValidatorForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
     )
     def test_robot_locations_connected_from_factory_with_problem_kind(self):
         problem = self.problems["robot_locations_connected"].problem
