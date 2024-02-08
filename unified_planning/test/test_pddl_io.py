@@ -16,6 +16,9 @@ import os
 import tempfile
 from typing import cast
 import pytest
+from build.lib.unified_planning.test.test_pddl_io import (
+    _have_same_user_types_considering_renamings,
+)
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -29,6 +32,11 @@ from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.types import _UserType
+from unified_planning.exceptions import (
+    UPUsageError,
+    UPTypeError,
+    UPConflictingEffectsException,
+)
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -40,18 +48,15 @@ class TestPddlIO(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def _normalized_pddl_domain_str(self, w):
-        return " ".join((w.get_domain()).split()).replace("( ", "(").replace(" )", ")")
-
-    def _normalized_pddl_problem_str(self, w):
-        return " ".join((w.get_problem()).split()).replace("( ", "(").replace(" )", ")")
+    def _normalized_pddl_str(self, w):
+        return " ".join(w.split()).replace("( ", "(").replace(" )", ")")
 
     def test_basic_writer(self):
         problem = self.problems["basic"].problem
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn("(:requirements :strips :negative-preconditions)", pddl_domain)
         self.assertIn("(:predicates (x))", pddl_domain)
         self.assertIn("(:action a", pddl_domain)
@@ -59,7 +64,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn(":precondition (and (not (x)))", pddl_domain)
         self.assertIn(":effect (and (x))", pddl_domain)
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain basic-domain)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
@@ -77,7 +82,7 @@ class TestPddlIO(unittest_TestCase):
             _ = w.get_domain()
 
         w = PDDLWriter(problem, rewrite_bool_assignments=True)
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn("(:requirements :strips :negative-preconditions)", pddl_domain)
         self.assertIn("(:predicates (x) (y))", pddl_domain)
         self.assertIn("(:action a", pddl_domain)
@@ -87,7 +92,7 @@ class TestPddlIO(unittest_TestCase):
             ":effect (and (when (y) (x)) (when (not (y)) (not (x)))))", pddl_domain
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain basic-domain)", pddl_problem)
         self.assertIn("(:init (y))", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
@@ -100,7 +105,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :negative-preconditions :conditional-effects)",
             pddl_domain,
@@ -115,7 +120,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn(":precondition (and (not (y)))", pddl_domain)
         self.assertIn(":effect (and (y))", pddl_domain)
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain basic_conditional-domain)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
@@ -125,7 +130,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :typing :existential-preconditions)", pddl_domain
         )
@@ -137,7 +142,7 @@ class TestPddlIO(unittest_TestCase):
         )
         self.assertIn(":effect (and (x))", pddl_domain)
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain basic_exists-domain)", pddl_problem)
         self.assertIn("(:objects o1 o2 - semaphore)", pddl_problem)
         self.assertIn("(:init (y o1))", pddl_problem)
@@ -148,7 +153,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)",
             pddl_domain,
@@ -167,7 +172,7 @@ class TestPddlIO(unittest_TestCase):
             pddl_domain,
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain robot-domain)", pddl_problem)
         self.assertIn("(:objects", pddl_problem)
         self.assertIn("l1 l2 - location", pddl_problem)
@@ -179,7 +184,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions :equality :numeric-fluents)",
             pddl_domain,
@@ -198,7 +203,7 @@ class TestPddlIO(unittest_TestCase):
             pddl_domain,
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain robot_decrease-domain)", pddl_problem)
         self.assertIn("(:objects", pddl_problem)
         self.assertIn("l1 l2 - location", pddl_problem)
@@ -210,7 +215,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions :equality)",
             pddl_domain,
@@ -248,7 +253,7 @@ class TestPddlIO(unittest_TestCase):
             ":effect (and (cargo_at ?loc) (not (cargo_mounted)))", pddl_domain
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain robot_loader-domain)", pddl_problem)
         self.assertIn("(:objects", pddl_problem)
         self.assertIn("l1 l2 - location", pddl_problem)
@@ -260,7 +265,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions :equality)",
             pddl_domain,
@@ -304,7 +309,7 @@ class TestPddlIO(unittest_TestCase):
             ":effect (and (cargo_at ?c ?loc) (not (cargo_mounted ?c ?r)))", pddl_domain
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain robot_loader_adv-domain)", pddl_problem)
         self.assertIn("(:objects", pddl_problem)
         self.assertIn("r1 - robot", pddl_problem)
@@ -318,7 +323,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn("(define (domain matchcellar-domain)", pddl_domain)
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions :durative-actions)",
@@ -541,7 +546,10 @@ class TestPddlIO(unittest_TestCase):
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
-
+                        for i, ce in a.continuous_effects.items():
+                            self.assertEqual(
+                                len(ce), len(parsed_a.continuous_effects[i])
+                            )
                 self.assertEqual(
                     len(problem.trajectory_constraints),
                     len(parsed_problem.trajectory_constraints),
@@ -556,7 +564,7 @@ class TestPddlIO(unittest_TestCase):
 
         w = PDDLWriter(problem)
 
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn("(define (domain basic_with_object_constant-domain)", pddl_domain)
         self.assertIn(
             "(:requirements :strips :typing :negative-preconditions)",
@@ -588,7 +596,7 @@ class TestPddlIO(unittest_TestCase):
             pddl_domain,
         )
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:domain basic_with_object_constant-domain)", pddl_problem)
         self.assertIn("(:objects", pddl_problem)
         self.assertIn("l2 - location)", pddl_problem)
@@ -630,7 +638,7 @@ class TestPddlIO(unittest_TestCase):
         problem.add_object(obj_2)
         problem.set_initial_value(fl, False)
         w = PDDLWriter(problem)
-        pddl_domain = self._normalized_pddl_domain_str(w)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
         self.assertIn("(define (domain ad_hoc-domain)", pddl_domain)
         self.assertIn(
             "(:requirements :strips :typing :equality :conditional-effects)",
@@ -643,7 +651,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn(":parameters (?and_ - when_)", pddl_domain)
         self.assertIn(":effect (and (when (= ?and_ obj_1) (f_4ction)))))", pddl_domain)
 
-        pddl_problem = self._normalized_pddl_problem_str(w)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(define (problem ad_hoc-problem)", pddl_problem)
         self.assertIn("(:domain ad_hoc-domain)", pddl_problem)
         self.assertIn("(:objects obj_1_0 - when_)", pddl_problem)
@@ -827,11 +835,7 @@ class TestPddlIO(unittest_TestCase):
             problem.add_fluent(z, default_initial_value=False)
             problem.add_goal(goal)
             writer = PDDLWriter(problem)
-            pddl_problem = (
-                " ".join((writer.get_problem()).split())
-                .replace("( ", "(")
-                .replace(" )", ")")
-            )
+            pddl_problem = self._normalized_pddl_str(writer.get_problem())
             self.assertIn(expected_goal, pddl_problem)
 
     def test_grounding_tpp_metric(self):
@@ -852,16 +856,43 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(40, len(grounded_problem.actions))
         self.assertEqual(3, len(problem.actions))
 
+    def _have_same_user_types_considering_renamings(
+        self,
+        original_problem: unified_planning.model.Problem,
+        tested_problem: unified_planning.model.Problem,
+        get_item_named,
+    ) -> bool:
+        for tested_type in tested_problem.user_types:
+            if (
+                get_item_named(cast(_UserType, tested_type).name)
+                not in original_problem.user_types
+            ):
+                return False
+        return True
 
-def _have_same_user_types_considering_renamings(
-    original_problem: unified_planning.model.Problem,
-    tested_problem: unified_planning.model.Problem,
-    get_item_named,
-) -> bool:
-    for tested_type in tested_problem.user_types:
-        if (
-            get_item_named(cast(_UserType, tested_type).name)
-            not in original_problem.user_types
-        ):
-            return False
-    return True
+    def test_robot_continuous(self):
+        problem = self.problems["robot_continuous"].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(:requirements :strips :typing :equality :numeric-fluents :durative-actions :continuous-effects)",
+            pddl_domain,
+        )
+        self.assertIn("(decrease (battery_charge) (* #t 1))", pddl_domain)
+
+    def test_robot_conditional_effects(self):
+        problem = self.problems["robot_conditional_effects"].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(when (at end (<= 10 (battery_charge))) (at end (robot_at ?l_to)))",
+            pddl_domain,
+        )
+        self.assertIn(
+            "(when (at start (<= 10 (battery_charge))) (decrease (battery_charge) (* #t 1)))",
+            pddl_domain,
+        )
