@@ -903,8 +903,8 @@ def get_example_problems():
     robot_at = Fluent("robot_at", BoolType(), position=Location)
     battery_charge = Fluent("battery_charge", RealType(0, 100))
     move_cond = DurativeAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
+    l_from = move_cond.parameter("l_from")
+    l_to = move_cond.parameter("l_to")
     move_cond.set_fixed_duration(10)
     move_cond.add_condition(StartTiming(), connected(l_from, l_to))
     move_cond.add_condition(StartTiming(), robot_at(l_from))
@@ -933,7 +933,7 @@ def get_example_problems():
         [
             (
                 Fraction(0, 1),
-                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                up.plans.ActionInstance(move_cond, (ObjectExp(l1), ObjectExp(l2))),
                 Fraction(10, 1),
             )
         ]
@@ -949,18 +949,18 @@ def get_example_problems():
     robot_at = Fluent("robot_at", BoolType(), position=Location)
     battery_charge = Fluent("battery_charge", RealType(0, 100))
     derivative = Fluent("derivative", RealType())
-    move_cond = DurativeAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
-    move_cond.set_fixed_duration(10)
-    move_cond.add_condition(StartTiming(), connected(l_from, l_to))
-    move_cond.add_condition(StartTiming(), robot_at(l_from))
-    move_cond.add_effect(StartTiming(), robot_at(l_from), False)
-    move_cond.add_effect(EndTiming(), robot_at(l_to), True)
-    move_cond.add_decrease_continuous_effect(
+    move_non_lin = DurativeAction("move", l_from=Location, l_to=Location)
+    l_from = move_non_lin.parameter("l_from")
+    l_to = move_non_lin.parameter("l_to")
+    move_non_lin.set_fixed_duration(10)
+    move_non_lin.add_condition(StartTiming(), connected(l_from, l_to))
+    move_non_lin.add_condition(StartTiming(), robot_at(l_from))
+    move_non_lin.add_effect(StartTiming(), robot_at(l_from), False)
+    move_non_lin.add_effect(EndTiming(), robot_at(l_to), True)
+    move_non_lin.add_decrease_continuous_effect(
         ClosedTimeInterval(StartTiming(), EndTiming()), battery_charge, derivative
     )
-    move_cond.add_decrease_continuous_effect(
+    move_non_lin.add_increase_continuous_effect(
         ClosedTimeInterval(StartTiming(), EndTiming()), derivative, Fraction(1, 10)
     )
     l1 = Object("l1", Location)
@@ -970,7 +970,7 @@ def get_example_problems():
     problem.add_fluent(connected, default_initial_value=False)
     problem.add_fluent(battery_charge, default_initial_value=100)
     problem.add_fluent(derivative, default_initial_value=0)
-    problem.add_action(move_cond)
+    problem.add_action(move_non_lin)
     problem.add_object(l1)
     problem.add_object(l2)
     problem.set_initial_value(connected(l1, l2), True)
@@ -981,7 +981,7 @@ def get_example_problems():
         [
             (
                 Fraction(0, 1),
-                up.plans.ActionInstance(move, (ObjectExp(l1), ObjectExp(l2))),
+                up.plans.ActionInstance(move_non_lin, (ObjectExp(l1), ObjectExp(l2))),
                 Fraction(10, 1),
             )
         ]
