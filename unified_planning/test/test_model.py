@@ -443,3 +443,5 @@ class TestModel(unittest_TestCase):
     def test_non_linear_continuous_problem_kind(self):
         problem = self.problems["robot_non_linear_continuous_1"].problem
         self.assertTrue(problem.kind.has_non_linear_continuous_effects())
+        self.assertTrue(problem.kind.has_increase_continuous_effects())
+        self.assertTrue(problem.kind.has_decrease_continuous_effects())
