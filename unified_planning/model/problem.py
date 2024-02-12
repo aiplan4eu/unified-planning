@@ -837,8 +837,6 @@ class _KindFactory:
         elif e.is_continuous_increase():
             self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            # if e.fluent in fluents_in_value:
-            #      self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
         elif e.is_continuous_decrease():
             self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")

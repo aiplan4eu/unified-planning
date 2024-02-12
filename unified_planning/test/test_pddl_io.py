@@ -16,9 +16,6 @@ import os
 import tempfile
 from typing import cast
 import pytest
-from build.lib.unified_planning.test.test_pddl_io import (
-    _have_same_user_types_considering_renamings,
-)
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -33,11 +30,6 @@ from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
-from unified_planning.exceptions import (
-    UPUsageError,
-    UPTypeError,
-    UPConflictingEffectsException,
-)
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -878,20 +870,6 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(40, len(grounded_problem.actions))
         self.assertEqual(3, len(problem.actions))
 
-    def _have_same_user_types_considering_renamings(
-        self,
-        original_problem: unified_planning.model.Problem,
-        tested_problem: unified_planning.model.Problem,
-        get_item_named,
-    ) -> bool:
-        for tested_type in tested_problem.user_types:
-            if (
-                get_item_named(cast(_UserType, tested_type).name)
-                not in original_problem.user_types
-            ):
-                return False
-        return True
-
     def test_robot_continuous(self):
         problem = self.problems["robot_continuous"].problem
 
@@ -918,3 +896,17 @@ class TestPddlIO(unittest_TestCase):
             "(when (at start (<= 10 (battery_charge))) (decrease (battery_charge) (* #t 1)))",
             pddl_domain,
         )
+
+
+def _have_same_user_types_considering_renamings(
+    original_problem: unified_planning.model.Problem,
+    tested_problem: unified_planning.model.Problem,
+    get_item_named,
+) -> bool:
+    for tested_type in tested_problem.user_types:
+        if (
+            get_item_named(cast(_UserType, tested_type).name)
+            not in original_problem.user_types
+        ):
+            return False
+    return True
