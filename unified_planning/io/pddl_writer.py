@@ -858,7 +858,7 @@ class PDDLWriter:
                 out.write(f"{start}: {_format_action_instance(ai)}")
                 if dur is not None:
                     duration = dur.numerator if dur.denominator == 1 else float(dur)
-                    out.write(f"[{duration}]")
+                    out.write(f" [{duration}]")
                 out.write("\n")
         else:
             raise NotImplementedError
