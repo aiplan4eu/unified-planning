@@ -440,6 +440,24 @@ def _get_timepoint_effects(
     return timepoint_effects
 
 
+# def _get_timepoint_continuous_effects(
+#     action: DurativeAction,
+#     timing: Fraction,
+#     start: Fraction,
+#     duration: Fraction,
+# ) -> List[Effect]:
+#     """
+#     Returns the List of continuous effects of the given action in the given timing.
+#     start and duration are the start and duration of the given action
+#     """
+#     timepoint_continuous_effects = []
+#     for c_effects_timing, el in action.continuous_effects.items():
+#         absolute_effect_time = _absolute_time(c_effects_timing, start, duration)
+#         if absolute_effect_time == timing:
+#             timepoint_continuous_effects.extend(el)
+#     return timepoint_continuous_effects
+
+
 def _get_timepoint_simulated_effects(
     action: DurativeAction,
     timing: Fraction,
@@ -512,6 +530,7 @@ def _extract_instantenous_actions(
             inst_action.add_precondition(cond)
         for eff in _get_timepoint_effects(action, timing, start, duration):
             inst_action._add_effect_instance(eff)
+        # va aggiunto qualcosa? Come traformo il continuous change in istantenuous action?
         sim_eff = _get_timepoint_simulated_effects(action, timing, start, duration)
         if sim_eff is not None:
             inst_action.set_simulated_effect(sim_eff)
