@@ -186,7 +186,11 @@ class TimeTriggeredPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.STN_PLAN:
+        elif (
+            plan_kind == plans.plan.PlanKind.STN_PLAN
+            and not problem.kind.has_decrease_continuous_effects()
+            and not problem.kind.has_increase_continuous_effects()
+        ):
             return _convert_to_stn(self, problem)
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
@@ -440,24 +444,6 @@ def _get_timepoint_effects(
     return timepoint_effects
 
 
-# def _get_timepoint_continuous_effects(
-#     action: DurativeAction,
-#     timing: Fraction,
-#     start: Fraction,
-#     duration: Fraction,
-# ) -> List[Effect]:
-#     """
-#     Returns the List of continuous effects of the given action in the given timing.
-#     start and duration are the start and duration of the given action
-#     """
-#     timepoint_continuous_effects = []
-#     for c_effects_timing, el in action.continuous_effects.items():
-#         absolute_effect_time = _absolute_time(c_effects_timing, start, duration)
-#         if absolute_effect_time == timing:
-#             timepoint_continuous_effects.extend(el)
-#     return timepoint_continuous_effects
-
-
 def _get_timepoint_simulated_effects(
     action: DurativeAction,
     timing: Fraction,
@@ -496,7 +482,12 @@ def _extract_action_timings(
     timings: Set[Fraction] = set()
 
     absolute_time = lambda timing: _absolute_time(timing, start, duration)
-    timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
+    timings.update(
+        map(
+            absolute_time,
+            chain(action.effects, action.continuous_effects, action.simulated_effects),
+        )
+    )
 
     for interval in action.conditions.keys():
         lower_increment: Fraction = epsilon if interval.is_left_open() else Fraction(0)
@@ -530,7 +521,6 @@ def _extract_instantenous_actions(
             inst_action.add_precondition(cond)
         for eff in _get_timepoint_effects(action, timing, start, duration):
             inst_action._add_effect_instance(eff)
-        # va aggiunto qualcosa? Come traformo il continuous change in istantenuous action?
         sim_eff = _get_timepoint_simulated_effects(action, timing, start, duration)
         if sim_eff is not None:
             inst_action.set_simulated_effect(sim_eff)
