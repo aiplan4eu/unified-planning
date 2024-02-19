@@ -84,7 +84,11 @@ class TestTTPToSTN(unittest_TestCase):
 
         for name, tc in self.problems.items():
             for valid_plan in tc.valid_plans:
-                if valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN:
+                if (
+                    valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN
+                    and not tc.problem.kind.has_decrease_continuous_effects()
+                    and not tc.problem.kind.has_increase_continuous_effects()
+                ):
                     stn_plan = valid_plan.convert_to(PlanKind.STN_PLAN, tc.problem)
                     tt_plan = stn_plan.convert_to(
                         PlanKind.TIME_TRIGGERED_PLAN, tc.problem
