@@ -201,6 +201,8 @@ class SchedulingProblem(  # type: ignore[misc]
             for constraint in act.constraints:
                 factory.update_problem_kind_expression(constraint)
 
+        factory.update_problem_kind_initial_state(self)
+
         return factory.finalize()
 
     def clone(self):

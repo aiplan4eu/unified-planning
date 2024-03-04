@@ -681,6 +681,7 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
+        factory.update_problem_kind_initial_state(self)
 
         return factory
 
@@ -1114,6 +1115,13 @@ class _KindFactory:
                         "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
                     )
         return fluents_to_only_increase, fluents_to_only_decrease
+
+    def update_problem_kind_initial_state(self, init: InitialStateMixin):
+        for fluent in init._fluents_with_undefined_values():
+            if fluent.type.is_int_type() or fluent.type.is_real_type():
+                self.kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
+            else:
+                self.kind.set_initial_state("UNDEFINED_INITIAL_NON_NUMERIC")
 
 
 def generate_causal_graph(
