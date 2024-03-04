@@ -587,6 +587,26 @@ class TestProblem(unittest_TestCase):
             problem.set_initial_value(distance(l2, l1), Div(4, 2))
         problem.set_initial_value(distance(l2, l1), "20")
 
+    def test_undefined_initial_state(self):
+        undefs_num = ["basic_undef_numeric"]
+        undefs_sym = ["basic_undef_bool"]
+        for pb_name in self.problems:
+            problem = self.problems[pb_name].problem
+            assert problem.has_undefined_numeric() == (pb_name in undefs_num)
+            assert problem.has_undefined_non_numeric() == (pb_name in undefs_sym)
+
+            kind = problem.kind
+            self.assertEqual(
+                "UNDEFINED_INITIAL_NUMERIC" in kind.features,
+                pb_name in undefs_num,
+                pb_name,
+            )
+            self.assertEqual(
+                "UNDEFINED_INITIAL_NON_NUMERIC" in kind.features,
+                pb_name in undefs_sym,
+                pb_name,
+            )
+
 
 if __name__ == "__main__":
     main()

@@ -494,4 +494,58 @@ def get_example_problems():
         problem=problem, solvable=True, valid_plans=[t_plan]
     )
 
+    problem = Problem("basic_undef_bool")
+    fluent1 = problem.add_fluent("fluent1", BoolType())
+    problem.set_initial_value(fluent1(), False)
+    fluent2 = problem.add_fluent("fluent2", BoolType())
+    problem.add_goal(fluent1())
+
+    a1 = InstantaneousAction("a1")
+    a1.add_precondition(Not(fluent1()))
+    a1.add_effect(fluent1(), True)
+    problem.add_action(a1)
+    a2 = InstantaneousAction("set_b")
+    a2.add_precondition(
+        Or(Not(fluent1()), Not(fluent2()))
+    )  # never valid as fluent2() is undefined
+    a2.add_effect(fluent1(), True)
+    problem.add_action(a2)
+    problems["basic_undef_bool"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[up.plans.SequentialPlan([a1()])],
+        invalid_plans=[  # invalid plans contain actions that rely on undefined values
+            up.plans.SequentialPlan([a2()]),
+            up.plans.SequentialPlan([a1(), a2()]),
+        ],
+    )
+
+    # basic numeric with timed effect
+    problem = Problem("basic_undef_numeric")
+    object_type = UserType("Obj")
+    o1 = problem.add_object("o1", object_type)
+    o2 = problem.add_object("o2", object_type)
+    value = problem.add_fluent("value", IntType(), o=object_type)
+    problem.set_initial_value(value(o1), 1)  # only value(o1) is defined
+    increase_one = InstantaneousAction("increase_one", o=object_type)
+    increase_one.add_increase_effect(value(increase_one.o), 1)
+    problem.add_action(increase_one)
+
+    increase_both = InstantaneousAction("increase_both")
+    increase_both.add_increase_effect(value(o1), 1)
+    increase_both.add_increase_effect(value(o2), 1)
+    problem.add_action(increase_both)
+
+    problem.add_goal(Equals(value(o1), 1))
+    problems["basic_undef_numeric"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[up.plans.SequentialPlan([increase_one(o1)])],
+        invalid_plans=[  # invalid plans contain actions that rely on undefined values
+            up.plans.SequentialPlan([increase_one(o2)]),
+            up.plans.SequentialPlan([increase_both()]),
+            up.plans.SequentialPlan([increase_one(o1), increase_one(o2)]),
+        ],
+    )
+
     return problems
