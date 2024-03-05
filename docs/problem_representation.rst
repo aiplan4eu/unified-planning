@@ -234,6 +234,12 @@ Problem Kinds
    * -
      - AGENT_SPECIFIC_PUBLIC_GOAL
      - At least one agent has at least one public-specific goal. Public-specific goals are; individual agent goals (not coalition goals) known to other agents.
+   * - INITIAL_STATE
+     - UNDEFINED_INITIAL_SYMBOLIC
+     - At least one symbolic (boolean or user type) state variable has an undefined value in the initial state.
+   * -
+     - UNDEFINED_INITIAL_NUMERIC
+     - At least one numeric state variable has an undefined value in the initial state.
 
 The API provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
 The functionalities for creating model objects and to manipulate them are collected in the unified_planning.model package of the library.
