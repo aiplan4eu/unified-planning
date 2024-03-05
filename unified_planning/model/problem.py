@@ -1121,7 +1121,7 @@ class _KindFactory:
             if fluent.type.is_int_type() or fluent.type.is_real_type():
                 self.kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
             else:
-                self.kind.set_initial_state("UNDEFINED_INITIAL_NON_NUMERIC")
+                self.kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
 
 
 def generate_causal_graph(

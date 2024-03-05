@@ -600,7 +600,7 @@ class TestProblem(unittest_TestCase):
                 pb_name,
             )
             self.assertEqual(
-                "UNDEFINED_INITIAL_NON_NUMERIC" in kind.features,
+                "UNDEFINED_INITIAL_SYMBOLIC" in kind.features,
                 pb_name in undefs_sym,
                 pb_name,
             )

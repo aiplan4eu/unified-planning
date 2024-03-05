@@ -665,7 +665,7 @@ enum Feature {
     TASK_ORDER_TEMPORAL = 37;
     // INITIAL_STATE
     UNDEFINED_INITIAL_NUMERIC = 68;
-    UNDEFINED_INITIAL_NON_NUMERIC = 69;
+    UNDEFINED_INITIAL_SYMBOLIC = 69;
 }
 
 // =================== Plan ================
