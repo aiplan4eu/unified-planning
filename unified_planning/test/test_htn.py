@@ -13,9 +13,10 @@
 # limitations under the License.
 
 import os
+import tempfile
 
 import unified_planning as up
-from unified_planning.io import PDDLReader
+from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.model.htn import TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
@@ -155,3 +156,27 @@ class TestProblem(unittest_TestCase):
                     "TASK_ORDER_PARTIAL" in problem.kind.features
                     or name in TO_instances
                 )
+
+    def test_hddl_writing(self):
+        """Tests that all HDDL benchmarks can be written to HDDL and reparsed."""
+        hddl_dir = os.path.join(FILE_PATH, "hddl")
+        subfolders = [f.path for f in os.scandir(hddl_dir) if f.is_dir()]
+        for id, domain in enumerate(subfolders[:]):
+            name = os.path.basename(domain)
+            print(f"=== [{id}] {name} ===")
+            domain_filename = os.path.join(domain, "domain.hddl")
+            problem_filename = os.path.join(domain, "instance.1.pb.hddl")
+            reader = PDDLReader()
+            problem = reader.parse_problem(domain_filename, problem_filename)
+
+            # print(problem)
+            w = PDDLWriter(problem)
+            with tempfile.TemporaryDirectory() as tempdir:
+                domain_filename = os.path.join(tempdir, "domain.pddl")
+                problem_filename = os.path.join(tempdir, "problem.pddl")
+                w.write_domain(domain_filename)
+                w.write_problem(problem_filename)
+
+                reader = PDDLReader()
+                parsed_problem = reader.parse_problem(domain_filename, problem_filename)
+                self.assertEqual(parsed_problem.kind, problem.kind)

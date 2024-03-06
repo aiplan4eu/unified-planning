@@ -39,6 +39,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPException,
 )
+from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
     SequentialPlan,
@@ -439,6 +440,10 @@ class PDDLWriter:
                     out.write(" :timed-initial-effects")
                 else:
                     out.write(" :timed-initial-literals")
+            if self.problem_kind.has_hierarchical:
+                out.write(" :hierarchy")  # HTN / HDDL
+            if self.problem_kind.has_method_preconditions:
+                out.write(" :method-preconditions")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -543,8 +548,51 @@ class PDDLWriter:
             raise up.exceptions.UPUnsupportedProblemTypeError(
                 "Only one metric is supported!"
             )
-
         em = self.problem.environment.expression_manager
+        if isinstance(self.problem, HierarchicalProblem):
+            for t in self.problem.tasks:
+                out.write(f" (:task {self._get_mangled_name(t)}")
+                out.write(f"\n  :parameters (")
+                for ap in t.parameters:
+                    if ap.type.is_user_type():
+                        out.write(
+                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                        )
+                    else:
+                        raise UPTypeError("PDDL supports only user type parameters")
+                out.write("))\n")
+
+            for m in self.problem.methods:
+                out.write(f" (:method {self._get_mangled_name(m)}")
+                out.write(f"\n  :parameters (")
+                for ap in m.parameters:
+                    if ap.type.is_user_type():
+                        out.write(
+                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                        )
+                    else:
+                        raise UPTypeError("PDDL supports only user type parameters")
+                out.write(")")
+
+                params = " ".join(
+                    converter.convert(em.ParameterExp(p))
+                    for p in m.achieved_task.parameters
+                )
+                out.write(
+                    f"\n  :task ({self._get_mangled_name(m.achieved_task.task)} {params})"
+                )
+                if len(m.preconditions) > 0:
+                    precond_str: List[str] = []
+                    for p in (c.simplify() for c in m.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                self._write_task_network(m, out, converter)
+                out.write(")\n")
+
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 if any(p.simplify().is_false() for p in a.preconditions):
@@ -688,6 +736,10 @@ class PDDLWriter:
         converter = ConverterToPDDLString(
             self.problem.environment, self._get_mangled_name
         )
+        if isinstance(self.problem, up.model.htn.HierarchicalProblem):
+            out.write(" (:htn")
+            self._write_task_network(self.problem.task_network, out, converter)
+            out.write(")\n")
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():
@@ -828,6 +880,7 @@ class PDDLWriter:
             "up.model.Parameter",
             "up.model.Variable",
             "up.model.multi_agent.Agent",
+            "up.model.htn.Task",
         ],
     ) -> str:
         """This function returns a valid and unique PDDL name."""
@@ -945,6 +998,67 @@ class PDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+        if isinstance(self.problem, HierarchicalProblem):
+            for m in self.problem.methods:
+                for p in m.preconditions:
+                    _update_domain_objects(self.domain_objects, obe.get(p))
+                for t in m.subtasks:
+                    for targ in t.parameters:
+                        _update_domain_objects(self.domain_objects, obe.get(targ))
+                for c in m.non_temporal_constraints():
+                    _update_domain_objects(self.domain_objects, obe.get(c))
+
+    def _write_task_network(
+        self,
+        tn: up.model.htn.task_network.AbstractTaskNetwork,
+        out,
+        converter: ConverterToPDDLString,
+    ):
+        def format_subtask(t: up.model.htn.Subtask):
+            return f"({t.identifier} ({self._get_mangled_name(t.task)} {' '.join(map(converter.convert, t.parameters))}))"
+
+        if isinstance(tn, up.model.htn.TaskNetwork) and len(tn.variables) > 0:
+            out.write(f"\n  :parameters (")
+            for ap in tn.variables:
+                if ap.type.is_user_type():
+                    out.write(
+                        f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                    )
+                else:
+                    raise UPTypeError("PDDL supports only user type parameters")
+            out.write(")")
+
+        to = tn.total_order()
+        po = tn.partial_order()
+        if len(tn.subtasks) == 0:
+            pass  # nothing to do
+        elif to is not None:  # subtasks form a total order
+            ordered_tasks = "\n    ".join(
+                format_subtask(tn.get_subtask(id)) for id in to
+            )
+            out.write(f"\n  :ordered-subtasks (and\n    {ordered_tasks})")
+        elif po is not None:  # subtasks for a partial order
+            tasks = "\n    ".join(format_subtask(t) for t in tn.subtasks)
+            out.write(f"\n  :subtasks (and\n    {tasks})")
+            orders = "\n    ".join(f"(< {id1} {id2})" for id1, id2 in po)
+            out.write(f"\n  :ordering (and\n    {orders})")
+        else:
+            raise UPProblemDefinitionError(
+                "HDDL does not support general temporal constraints. From:\n" + str(tn)
+            )
+
+        if len(tn.non_temporal_constraints()) > 0:
+            constraint_str: List[str] = []
+            for p in (c.simplify() for c in tn.non_temporal_constraints()):
+                if not p.is_true():
+                    if p.is_and():
+                        constraint_str.extend(map(converter.convert, p.args))
+                    else:
+                        constraint_str.append(converter.convert(p))
+            out.write(f'\n  :constraints (and {" ".join(constraint_str)})')
+            raise UPProblemDefinitionError(
+                "Task network constraints not supported by HDDL Writer yet"
+            )
 
 
 def _get_pddl_name(
