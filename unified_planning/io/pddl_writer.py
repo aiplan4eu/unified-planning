@@ -426,9 +426,9 @@ class PDDLWriter:
                     out.write(" :timed-initial-effects")
                 else:
                     out.write(" :timed-initial-literals")
-            if self.problem_kind.has_hierarchical:
+            if self.problem_kind.has_hierarchical():
                 out.write(" :hierarchy")  # HTN / HDDL
-            if self.problem_kind.has_method_preconditions:
+            if self.problem_kind.has_method_preconditions():
                 out.write(" :method-preconditions")
             out.write(")\n")
 
