@@ -68,14 +68,39 @@ class UPState(State):
         else:
             self._ancestors = _father._ancestors + 1
 
+    def _condense_state(self):
+        """
+        Important NOTE: This method modifies the internal variables of the state.
+        This method condenses all the ancestors hierarchy into a new dictionary,
+        sets it as the new values of this state, sets the self._father to None
+        and self._ancestors to 0.
+        """
+        if self._father is not None:
+            current_instance: Optional[UPState] = self
+            condensed_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+            while current_instance is not None:
+                for k, v in current_instance._values.items():
+                    condensed_values.setdefault(k, v)
+                current_instance = current_instance._father
+
+            self._values = condensed_values
+            self._ancestors = 0
+            self._father = None
+
     def __repr__(self) -> str:
-        current_instance: Optional[UPState] = self
-        mappings: Dict["up.model.FNode", "up.model.FNode"] = {}
-        while current_instance is not None:
-            for k, v in current_instance._values.items():
-                mappings.setdefault(k, v)
-            current_instance = current_instance._father
-        return str(mappings)
+        self._condense_state()
+        return str(self._values)
+
+    def __hash__(self) -> int:
+        self._condense_state()
+        return sum(map(hash, self._values.items()))
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, UPState):
+            self._condense_state()
+            oth._condense_state()
+            return self._values == oth._values
+        return False
 
     def get_value(self, fluent: "up.model.FNode") -> "up.model.FNode":
         """
