@@ -148,18 +148,18 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
     def _inc_check(self, x: Any, y: Any, b: T) -> bool:
         x_dist = self._distances[x]
         x_plus_b = x_dist + b
-        if x_plus_b < self._distances[y]:
-            self._distances[y] = x_plus_b
+        if x_plus_b < self._distances[y]:  # type: ignore[operator]
+            self._distances[y] = x_plus_b  # type: ignore[assignment]
             queue: Deque[Any] = deque()
             queue.append(y)
             while queue:
                 c = queue.popleft()
                 n = self._constraints[c]
                 while n is not None:
-                    if self._distances[c] + n.bound < self._distances[n.dst]:
-                        if n.dst == y and abs(n.bound - b) <= self._epsilon:
+                    if self._distances[c] + n.bound < self._distances[n.dst]:  # type: ignore[operator]
+                        if n.dst == y and abs(n.bound - b) <= self._epsilon:  # type: ignore[arg-type, operator]
                             return False
-                        self._distances[n.dst] = self._distances[c] + n.bound
+                        self._distances[n.dst] = self._distances[c] + n.bound  # type: ignore[assignment]
                         queue.append(n.dst)
                     n = n.next
         return True
@@ -191,7 +191,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
             to the right_event. If None the maximum length is set to +infinity.
         """
         if left_bound is not None:
-            self.add(left_event, right_event, -left_bound)
+            self.add(left_event, right_event, -left_bound)  # type: ignore[arg-type]
         if right_bound is not None:
             self.add(right_event, left_event, right_bound)
         if left_bound is None and right_bound is None:
