@@ -14,6 +14,8 @@
 #
 
 from abc import ABC, abstractmethod
+from functools import reduce
+from operator import xor
 from typing import Dict, List, Optional, Tuple
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
@@ -67,6 +69,7 @@ class UPState(State):
             self._ancestors = 0
         else:
             self._ancestors = _father._ancestors + 1
+        self._hash: Optional[int] = None
 
     def _condense_state(self):
         """
@@ -93,12 +96,13 @@ class UPState(State):
 
     def __hash__(self) -> int:
         self._condense_state()
-        return sum(map(hash, self._values.items()))
+        if self._hash is None:
+            self._hash = reduce(xor, map(hash, self._values.items()), 0)
+        assert self._hash is not None
+        return self._hash
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, UPState):
-            self._condense_state()
-            oth._condense_state()
+        if isinstance(oth, UPState) and hash(self) == hash(oth):
             return self._values == oth._values
         return False
 
