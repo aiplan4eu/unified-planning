@@ -44,9 +44,10 @@ from io import StringIO
 from unified_planning.io.pddl_writer import (
     ObjectsExtractor,
     ConverterToPDDLString,
-    PDDL_KEYWORDS,
-    INITIAL_LETTER,
+    MangleFunction,
+    WithName,
     _write_effect,
+    _get_pddl_name,
 )
 
 
@@ -56,18 +57,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
     def __init__(
         self,
         problem: MultiAgentProblem,
-        get_mangled_name: Callable[
-            [
-                Union[
-                    "up.model.Type",
-                    "up.model.Action",
-                    "up.model.Fluent",
-                    "up.model.Object",
-                    "up.model.multi_agent.Agent",
-                ]
-            ],
-            str,
-        ],
+        get_mangled_name: MangleFunction,
         agent: Optional["up.model.multi_agent.Agent"],
         unfactored: Optional[bool] = False,
     ):
@@ -134,29 +124,13 @@ class MAPDDLWriter:
         self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            WithName,
             str,
         ] = {}
         # nto represents the new to old renamings
         self.nto_renamings: Dict[
             str,
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            WithName,
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
@@ -827,15 +801,7 @@ class MAPDDLWriter:
 
     def _get_mangled_name(
         self,
-        item: Union[
-            "up.model.Type",
-            "up.model.Action",
-            "up.model.Fluent",
-            "up.model.Object",
-            "up.model.Parameter",
-            "up.model.Variable",
-            "up.model.multi_agent.Agent",
-        ],
+        item: WithName,
     ) -> str:
         """This function returns a valid and unique MA-PDDL name."""
 
@@ -875,17 +841,7 @@ class MAPDDLWriter:
         self.nto_renamings[new_name] = item
         return new_name
 
-    def get_item_named(
-        self, name: str
-    ) -> Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.multi_agent.Agent",
-    ]:
+    def get_item_named(self, name: str) -> WithName:
         """
         Since `MA-PDDL` has a stricter set of possible naming compared to the `unified_planning`, when writing
         a :class:`~unified_planning.model.Problem` it is possible that some things must be renamed. This is why the `MAPDDLWriter`
@@ -976,39 +932,6 @@ class MAPDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
-
-
-def _get_pddl_name(
-    item: Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.Problem",
-        "up.model.multi_agent.MultiAgentProblem",
-        "up.model.multi_agent.Agent",
-    ]
-) -> str:
-    """This function returns a ma-pddl name for the chosen item"""
-    name = item.name  # type: ignore
-    assert name is not None
-    name = name.lower()
-    regex = re.compile(r"^[a-zA-Z]+.*")
-    if (
-        re.match(regex, name) is None
-    ):  # If the name does not start with an alphabetic char, we make it start with one.
-        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
-
-    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
-    while (
-        name in PDDL_KEYWORDS
-    ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
-        name = f"{name}_"
-    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
-        name = f"?{name}"
-    return name
 
 
 def _update_domain_objects(

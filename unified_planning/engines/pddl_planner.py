@@ -110,15 +110,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         plan_filename: str,
         get_item_named: Callable[
             [str],
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            "up.io.pddl_writer.WithName",
         ],
     ) -> "up.plans.Plan":
         """
@@ -138,15 +130,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         plan_str: str,
         get_item_named: Callable[
             [str],
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            "up.io.pddl_writer.WithName",
         ],
     ) -> "up.plans.Plan":
         """

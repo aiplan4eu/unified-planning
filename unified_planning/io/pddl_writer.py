@@ -39,6 +39,7 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPException,
 )
+from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
     SequentialPlan,
@@ -135,6 +136,19 @@ INITIAL_LETTER: Dict[type, str] = {
     Object: "o",
 }
 
+WithName = Union[
+    "up.model.Type",
+    "up.model.Action",
+    "up.model.Fluent",
+    "up.model.Object",
+    "up.model.Parameter",
+    "up.model.Variable",
+    "up.model.multi_agent.Agent",
+    "up.model.htn.Method",
+    "up.model.htn.Task",
+]
+MangleFunction = Callable[[WithName], str]
+
 
 class ObjectsExtractor(walkers.DagWalker):
     """Returns the object instances appearing in the expression."""
@@ -177,18 +191,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def __init__(
         self,
         environment: "up.environment.Environment",
-        get_mangled_name: Callable[
-            [
-                Union[
-                    "up.model.Type",
-                    "up.model.Action",
-                    "up.model.Fluent",
-                    "up.model.Object",
-                    "up.model.multi_agent.Agent",
-                ]
-            ],
-            str,
-        ],
+        get_mangled_name: MangleFunction,
     ):
         walkers.DagWalker.__init__(self)
         self.get_mangled_name = get_mangled_name
@@ -348,29 +351,13 @@ class PDDLWriter:
         self.rewrite_bool_assignments = rewrite_bool_assignments
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            WithName,
             str,
         ] = {}
         # nto represents the new to old renamings
         self.nto_renamings: Dict[
             str,
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ],
+            WithName,
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
@@ -439,6 +426,10 @@ class PDDLWriter:
                     out.write(" :timed-initial-effects")
                 else:
                     out.write(" :timed-initial-literals")
+            if self.problem_kind.has_hierarchical():
+                out.write(" :hierarchy")  # HTN / HDDL
+            if self.problem_kind.has_method_preconditions():
+                out.write(" :method-preconditions")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -543,8 +534,51 @@ class PDDLWriter:
             raise up.exceptions.UPUnsupportedProblemTypeError(
                 "Only one metric is supported!"
             )
-
         em = self.problem.environment.expression_manager
+        if isinstance(self.problem, HierarchicalProblem):
+            for task in self.problem.tasks:
+                out.write(f" (:task {self._get_mangled_name(task)}")
+                out.write(f"\n  :parameters (")
+                for ap in task.parameters:
+                    if ap.type.is_user_type():
+                        out.write(
+                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                        )
+                    else:
+                        raise UPTypeError("PDDL supports only user type parameters")
+                out.write("))\n")
+
+            for m in self.problem.methods:
+                out.write(f" (:method {self._get_mangled_name(m)}")
+                out.write(f"\n  :parameters (")
+                for ap in m.parameters:
+                    if ap.type.is_user_type():
+                        out.write(
+                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                        )
+                    else:
+                        raise UPTypeError("PDDL supports only user type parameters")
+                out.write(")")
+
+                params_str = " ".join(
+                    converter.convert(em.ParameterExp(p))
+                    for p in m.achieved_task.parameters
+                )
+                out.write(
+                    f"\n  :task ({self._get_mangled_name(m.achieved_task.task)} {params_str})"
+                )
+                if len(m.preconditions) > 0:
+                    precond_str: List[str] = []
+                    for p in (c.simplify() for c in m.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                self._write_task_network(m, out, converter)
+                out.write(")\n")
+
         for a in self.problem.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 if any(p.simplify().is_false() for p in a.preconditions):
@@ -560,7 +594,7 @@ class PDDLWriter:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
                 if len(a.preconditions) > 0:
-                    precond_str: List[str] = []
+                    precond_str = []
                     for p in (c.simplify() for c in a.preconditions):
                         if not p.is_true():
                             if p.is_and():
@@ -688,6 +722,10 @@ class PDDLWriter:
         converter = ConverterToPDDLString(
             self.problem.environment, self._get_mangled_name
         )
+        if isinstance(self.problem, up.model.htn.HierarchicalProblem):
+            out.write(" (:htn")
+            self._write_task_network(self.problem.task_network, out, converter)
+            out.write(")\n")
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():
@@ -820,15 +858,7 @@ class PDDLWriter:
 
     def _get_mangled_name(
         self,
-        item: Union[
-            "up.model.Type",
-            "up.model.Action",
-            "up.model.Fluent",
-            "up.model.Object",
-            "up.model.Parameter",
-            "up.model.Variable",
-            "up.model.multi_agent.Agent",
-        ],
+        item: WithName,
     ) -> str:
         """This function returns a valid and unique PDDL name."""
 
@@ -864,17 +894,7 @@ class PDDLWriter:
         self.nto_renamings[new_name] = item
         return new_name
 
-    def get_item_named(
-        self, name: str
-    ) -> Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.multi_agent.Agent",
-    ]:
+    def get_item_named(self, name: str) -> WithName:
         """
         Since `PDDL` has a stricter set of possible naming compared to the `unified_planning`, when writing
         a :class:`~unified_planning.model.Problem` it is possible that some things must be renamed. This is why the `PDDLWriter`
@@ -945,20 +965,70 @@ class PDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+        if isinstance(self.problem, HierarchicalProblem):
+            for m in self.problem.methods:
+                for p in m.preconditions:
+                    _update_domain_objects(self.domain_objects, obe.get(p))
+                for subtask in m.subtasks:
+                    for targ in subtask.parameters:
+                        _update_domain_objects(self.domain_objects, obe.get(targ))
+                for c in m.non_temporal_constraints():
+                    _update_domain_objects(self.domain_objects, obe.get(c))
+
+    def _write_task_network(
+        self,
+        tn: up.model.htn.task_network.AbstractTaskNetwork,
+        out,
+        converter: ConverterToPDDLString,
+    ):
+        def format_subtask(t: up.model.htn.Subtask):
+            return f"({t.identifier} ({self._get_mangled_name(t.task)} {' '.join(map(converter.convert, t.parameters))}))"
+
+        if isinstance(tn, up.model.htn.TaskNetwork) and len(tn.variables) > 0:
+            out.write(f"\n  :parameters (")
+            for ap in tn.variables:
+                if ap.type.is_user_type():
+                    out.write(
+                        f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                    )
+                else:
+                    raise UPTypeError("PDDL supports only user type parameters")
+            out.write(")")
+
+        to = tn.total_order()
+        po = tn.partial_order()
+        if len(tn.subtasks) == 0:
+            pass  # nothing to do
+        elif to is not None:  # subtasks form a total order
+            ordered_tasks = "\n    ".join(
+                format_subtask(tn.get_subtask(id)) for id in to
+            )
+            out.write(f"\n  :ordered-subtasks (and\n    {ordered_tasks})")
+        elif po is not None:  # subtasks for a partial order
+            tasks = "\n    ".join(format_subtask(t) for t in tn.subtasks)
+            out.write(f"\n  :subtasks (and\n    {tasks})")
+            orders = "\n    ".join(f"(< {id1} {id2})" for id1, id2 in po)
+            out.write(f"\n  :ordering (and\n    {orders})")
+        else:
+            raise UPProblemDefinitionError(
+                "HDDL does not support general temporal constraints. From:\n" + str(tn)
+            )
+
+        if len(tn.non_temporal_constraints()) > 0:
+            constraint_str: List[str] = []
+            for p in (c.simplify() for c in tn.non_temporal_constraints()):
+                if not p.is_true():
+                    if p.is_and():
+                        constraint_str.extend(map(converter.convert, p.args))
+                    else:
+                        constraint_str.append(converter.convert(p))
+            out.write(f'\n  :constraints (and {" ".join(constraint_str)})')
+            raise UPProblemDefinitionError(
+                "Task network constraints not supported by HDDL Writer yet"
+            )
 
 
-def _get_pddl_name(
-    item: Union[
-        "up.model.Type",
-        "up.model.Action",
-        "up.model.Fluent",
-        "up.model.Object",
-        "up.model.Parameter",
-        "up.model.Variable",
-        "up.model.Problem",
-        "up.model.multi_agent.Agent",
-    ]
-) -> str:
+def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
     """This function returns a pddl name for the chosen item"""
     name = item.name  # type: ignore
     assert name is not None
@@ -994,20 +1064,7 @@ def _write_effect(
     out: IO[str],
     converter: ConverterToPDDLString,
     rewrite_bool_assignments: bool,
-    get_mangled_name: Callable[
-        [
-            Union[
-                "up.model.Type",
-                "up.model.Action",
-                "up.model.Fluent",
-                "up.model.Object",
-                "up.model.Parameter",
-                "up.model.Variable",
-                "up.model.multi_agent.Agent",
-            ]
-        ],
-        str,
-    ],
+    get_mangled_name: MangleFunction,
 ):
     simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
