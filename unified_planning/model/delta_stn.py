@@ -16,11 +16,11 @@
 
 from collections import deque
 from dataclasses import dataclass
-from numbers import Real
+from fractions import Fraction
 from typing import Deque, Dict, List, Optional, Any, Generic, Set, Tuple, TypeVar, cast
 
 
-T = TypeVar("T", bound=Real)
+T = TypeVar("T", Fraction, float, int)
 
 
 @dataclass
@@ -60,7 +60,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         constraints: Optional[Dict[Any, Optional[DeltaNeighbors[T]]]] = None,
         distances: Optional[Dict[Any, T]] = None,
         is_sat: bool = True,
-        epsilon: T = cast(T, 0),
+        epsilon=cast(T, 0),
     ):
         self._constraints: Dict[Any, Optional[DeltaNeighbors[T]]] = (
             constraints if constraints is not None else {}
