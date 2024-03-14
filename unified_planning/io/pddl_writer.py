@@ -617,9 +617,7 @@ class PDDLWriter:
                     for p in (c.simplify() for c in a.preconditions):
                         if not p.is_true():
                             if p.is_and():
-                                precond_str.extend(
-                                    map(converter.convert, p.args)
-                                )
+                                precond_str.extend(map(converter.convert, p.args))
                             else:
                                 precond_str.append(converter.convert(p))
                     preconditions_string = "\n                    ".join(precond_str)
