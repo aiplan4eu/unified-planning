@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-from typing import Union, Dict, Any
+from collections import Counter
+from typing import Union, Dict, Any, List, Optional
 
 import unified_planning as up
 from unified_planning.exceptions import (
-    UPProblemDefinitionError,
     UPTypeError,
     UPExpressionDefinitionError,
 )
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.mixins import ObjectsSetMixin, FluentsSetMixin
+from unified_planning.model.types import domain_size
 
 
 class InitialStateMixin:
@@ -65,7 +65,7 @@ class InitialStateMixin:
 
     def initial_value(
         self, fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]
-    ) -> "up.model.fnode.FNode":
+    ) -> Optional["up.model.fnode.FNode"]:
         """
         Retrieves the initial value assigned to the given `fluent`.
 
@@ -83,9 +83,7 @@ class InitialStateMixin:
         elif fluent_exp.fluent() in self._fluent_set.fluents_defaults:
             return self._fluent_set.fluents_defaults[fluent_exp.fluent()]
         else:
-            raise UPProblemDefinitionError(
-                f"Initial value not set for fluent: {fluent}"
-            )
+            return None
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -98,7 +96,9 @@ class InitialStateMixin:
         res = self._initial_value
         for f in self._fluent_set.fluents:
             for f_exp in get_all_fluent_exp(self._object_set, f):
-                res[f_exp] = self.initial_value(f_exp)
+                value = self.initial_value(f_exp)
+                if value is not None:
+                    res[f_exp] = value
         return res
 
     @property
@@ -134,3 +134,27 @@ class InitialStateMixin:
 
     def _clone_to(self, other: "InitialStateMixin"):
         other._initial_value = self._initial_value.copy()
+
+    def _fluents_with_undefined_values(self) -> List["up.model.fluent.Fluent"]:
+        """Returns a list of fluents that have at least one undefined value in the initial state"""
+        undef_fluents = []
+        # gather a count of all explicit initial values for each fluent
+        inits = Counter([x.fluent() for x in self.explicit_initial_values])
+        for fluent in self._fluent_set.fluents:
+            if fluent in self._fluent_set.fluents_defaults:
+                continue  # fluent has a default values and thus can not be undefined
+
+            # count the number of state variables associated to the fluent
+            ground_size = 1
+            for p in fluent.signature:
+                ds = domain_size(self._object_set, p.type)
+                ground_size *= ds
+
+            assert (
+                inits.get(fluent, 0) <= ground_size
+            ), "Invariant broken: more initial values than state variables"
+            if ground_size != inits.get(fluent, 0):
+                undef_fluents.append(
+                    fluent
+                )  # at least one state variable has no initial values
+        return undef_fluents
