@@ -49,6 +49,7 @@ class OneshotPlannerMixin(ABC):
         problem: "up.model.AbstractProblem",
         heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
+        memout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         """
@@ -77,7 +78,7 @@ class OneshotPlannerMixin(ABC):
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
-        return self._solve(problem, heuristic, timeout, output_stream)
+        return self._solve(problem, heuristic, timeout, memout, output_stream)
 
     @abstractmethod
     def _solve(
@@ -85,6 +86,7 @@ class OneshotPlannerMixin(ABC):
         problem: "up.model.AbstractProblem",
         heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
+        memout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         """Method called by the OneshotPlannerMixin.solve method."""
