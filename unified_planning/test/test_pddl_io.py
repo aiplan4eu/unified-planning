@@ -344,7 +344,7 @@ class TestPddlIO(unittest_TestCase):
             pddl_domain,
         )
 
-    def test_arenamings(self):
+    def test_renamings(self):
         problem = self.problems["hierarchical_blocks_world"].problem
         problem = problem.clone()
         move = problem.action("move")
