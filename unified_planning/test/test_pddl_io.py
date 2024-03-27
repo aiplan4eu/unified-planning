@@ -26,8 +26,9 @@ from unified_planning.test import (
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
+from unified_planning.plans import SequentialPlan
+from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
 
 
@@ -342,6 +343,27 @@ class TestPddlIO(unittest_TestCase):
             ":effect (and (at start (not (handfree))) (at end (fuse_mended ?f)) (at end (handfree))))",
             pddl_domain,
         )
+
+    def test_renamings(self):
+        problem = self.problems["hierarchical_blocks_world"].problem
+        problem = problem.clone()
+        move = problem.action("move")
+        move.name = "move-move"
+
+        Block = problem.user_type("Block")
+        block_4 = Object("block-4", Block)
+        problem.add_object(block_4)
+
+        w = PDDLWriter(problem)
+        plan = SequentialPlan(
+            [move(block_4, problem.object("block_3"), problem.object("block_2"))]
+        )
+        plan_str = w.get_plan(plan)
+
+        r = PDDLReader()
+        test_plan = r.parse_plan_string(problem, plan_str, w.get_item_named)
+
+        self.assertEqual(plan, test_plan)
 
     def test_depot_reader(self):
         reader = PDDLReader()
