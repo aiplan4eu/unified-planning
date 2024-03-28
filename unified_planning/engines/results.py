@@ -53,6 +53,7 @@ class FailedValidationReason(Enum):
 
     INAPPLICABLE_ACTION = auto()
     UNSATISFIED_GOALS = auto()
+    MUTEX_CONFLICT = auto()
 
 
 class PlanGenerationResultStatus(Enum):
