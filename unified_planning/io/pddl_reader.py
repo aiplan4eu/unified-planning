@@ -1684,15 +1684,7 @@ class PDDLReader:
         get_item_named: typing.Optional[
             Callable[
                 [str],
-                Union[
-                    "up.model.Type",
-                    "up.model.Action",
-                    "up.model.Fluent",
-                    "up.model.Object",
-                    "up.model.Parameter",
-                    "up.model.Variable",
-                    "up.model.multi_agent.Agent",
-                ],
+                "up.io.pddl_writer.WithName",
             ]
         ] = None,
     ) -> "up.plans.Plan":

@@ -794,8 +794,8 @@ class PDDLWriter:
         def _format_action_instance(action_instance: ActionInstance) -> str:
             param_str = ""
             if action_instance.actual_parameters:
-                param_str = f" {' '.join((p.object().name for p in action_instance.actual_parameters))}"
-            return f"({action_instance.action.name}{param_str})"
+                param_str = f" {' '.join((self._get_mangled_name(p.object()) for p in action_instance.actual_parameters))}"
+            return f"({self._get_mangled_name(action_instance.action)}{param_str})"
 
         if isinstance(plan, SequentialPlan):
             for ai in plan.actions:
@@ -914,14 +914,7 @@ class PDDLWriter:
 
     def get_pddl_name(
         self,
-        item: Union[
-            "up.model.Type",
-            "up.model.Action",
-            "up.model.Fluent",
-            "up.model.Object",
-            "up.model.Parameter",
-            "up.model.Variable",
-        ],
+        item: WithName,
     ) -> str:
         """
         This method takes an item in the :class:`~unified_planning.model.Problem` and returns the chosen name for the same item in the `PDDL` problem
