@@ -1106,9 +1106,7 @@ def _write_effect(
                     else:
                         out.write(f" (at end")
                 out.write(f"{converter.convert(positive_cond)}")
-                if (
-                    timing is not None
-                ):
+                if timing is not None:
                     out.write(")")
                 out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
@@ -1134,9 +1132,7 @@ def _write_effect(
                         out.write(f" (at end")
                     out.write(f" (at start")
                 out.write(f" {converter.convert(negative_cond)}")
-                if (
-                    timing is not None
-                ):
+                if timing is not None:
                     out.write(")")
                 out.write(f" (not {converter.convert(effect.fluent)}))")
             if timing is not None:
@@ -1163,9 +1159,7 @@ def _write_effect(
             else:
                 out.write(f" (at end")
         out.write(f" {converter.convert(effect.condition)}")
-        if (
-            timing is not None
-        ):
+        if timing is not None:
             out.write(")")
     if timing is not None:
         if timing.is_from_start():
