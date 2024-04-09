@@ -333,10 +333,12 @@ class ConverterToPDDLString(walkers.DagWalker):
 class PDDLWriter:
     """
     This class can be used to write a :class:`~unified_planning.model.Problem` in `PDDL`.
-    The constructor of this class takes the problem to write and 2 flags:
+    The constructor of this class takes the problem to write and 3 flags:
     needs_requirements determines if the printed problem must have the :requirements,
     rewrite_bool_assignments determines if this writer will write
     non constant boolean assignment as conditional effects.
+    empty_preconditions determines if this writer will write ':precondition ()' in case of an instantenuous
+    action without preconditions instead of writing nothing or similar with conditions in durative actions.
     """
 
     def __init__(
@@ -344,11 +346,13 @@ class PDDLWriter:
         problem: "up.model.Problem",
         needs_requirements: bool = True,
         rewrite_bool_assignments: bool = False,
+        empty_preconditions: bool = False,
     ):
         self.problem = problem
         self.problem_kind = self.problem.kind
         self.needs_requirements = needs_requirements
         self.rewrite_bool_assignments = rewrite_bool_assignments
+        self.empty_preconditions = empty_preconditions
         # otn represents the old to new renamings
         self.otn_renamings: Dict[
             WithName,
@@ -576,6 +580,8 @@ class PDDLWriter:
                             else:
                                 precond_str.append(converter.convert(p))
                     out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                elif len(m.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
                 self._write_task_network(m, out, converter)
                 out.write(")\n")
 
@@ -602,6 +608,8 @@ class PDDLWriter:
                             else:
                                 precond_str.append(converter.convert(p))
                     out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                elif len(a.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for e in a.effects:
@@ -667,6 +675,8 @@ class PDDLWriter:
                                 if not interval.is_right_open():
                                     out.write(f"(at end {converter.convert(c)})")
                     out.write(")")
+                elif len(a.conditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :condition (and )")
                 if len(a.effects) > 0:
                     out.write("\n  :effect (and")
                     for t, el in a.effects.items():
