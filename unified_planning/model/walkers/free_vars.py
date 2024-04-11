@@ -17,7 +17,7 @@ from itertools import chain
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, FrozenSet
+from typing import Iterator, List, FrozenSet
 
 
 class FreeVarsExtractor(walkers.dag.DagWalker):
@@ -39,7 +39,7 @@ class FreeVarsExtractor(walkers.dag.DagWalker):
     def walk_all_types(
         self, expression: FNode, args: List[FrozenSet[FNode]]
     ) -> FrozenSet[FNode]:
-        res_generator = (x for y in args for x in y)
+        res_generator: Iterator[FNode] = (x for y in args for x in y)
         if expression.is_fluent_exp():
             res_generator = chain(res_generator, (expression,))
         return frozenset(res_generator)
