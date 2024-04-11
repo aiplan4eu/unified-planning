@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from itertools import chain
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Set
+from typing import List, FrozenSet
 
 
 class FreeVarsExtractor(walkers.dag.DagWalker):
@@ -25,21 +26,20 @@ class FreeVarsExtractor(walkers.dag.DagWalker):
     def __init__(self):
         walkers.dag.DagWalker.__init__(self)
 
-    def get(self, expression: FNode) -> Set[FNode]:
+    def get(self, expression: FNode) -> FrozenSet[FNode]:
         """
         Returns all the `fluent expressions` in the given expression.
 
         :param expression: The expression containing the `fluent expressions` to be returned.
-        :return: The set of `fluent expressions` appearing in the given expression.
+        :return: The FrozenSet of `fluent expressions` appearing in the given expression.
         """
-        ret = self.walk(expression)
-        return (
-            ret.copy()
-        )  # return a copy, otherwise modifications of the returned set will invalidate memoization
+        return self.walk(expression)
 
     @walkers.handles(OperatorKind)
-    def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:
-        res = set(x for y in args for x in y)
+    def walk_all_types(
+        self, expression: FNode, args: List[FrozenSet[FNode]]
+    ) -> FrozenSet[FNode]:
+        res_generator = (x for y in args for x in y)
         if expression.is_fluent_exp():
-            res |= {expression}
-        return res
+            res_generator = chain(res_generator, (expression,))
+        return frozenset(res_generator)

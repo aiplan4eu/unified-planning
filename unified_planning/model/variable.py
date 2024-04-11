@@ -18,7 +18,7 @@ A Variable has a name and a type.
 """
 
 
-from typing import List, Optional, Set
+from typing import List, Optional, FrozenSet
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
@@ -179,36 +179,36 @@ class FreeVarsOracle(walkers.DagWalker):
     # - Other operators need to return the union of all their sons
     # - Constants have no impact
 
-    def get_free_variables(self, expression: FNode) -> Set[Variable]:
-        """Returns the set of Symbols appearing free in the expression."""
+    def get_free_variables(self, expression: FNode) -> FrozenSet[Variable]:
+        """Returns the FrozenSet of Symbols appearing free in the expression."""
         return self.walk(expression)
 
     @walkers.handles(OperatorKind.VARIABLE_EXP)
     def walk_variable_exp(
-        self, expression: FNode, args: List[Set[Variable]], **kwargs
-    ) -> Set[Variable]:
+        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
-        return {expression.variable()}
+        return frozenset((expression.variable(),))
 
     @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_quantifier(
-        self, expression: FNode, args: List[Set[Variable]], **kwargs
-    ) -> Set[Variable]:
+        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
         return args[0].difference(expression.variables())
 
     @walkers.handles(op.CONSTANTS)
     def walk_constant(
-        self, expression: FNode, args: List[Set[Variable]], **kwargs
-    ) -> Set[Variable]:
+        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
-        return set()
+        return frozenset()
 
     @walkers.handles(
         set(OperatorKind)
         - {OperatorKind.VARIABLE_EXP, OperatorKind.EXISTS, OperatorKind.FORALL}
     )
     def walk_all(
-        self, expression: FNode, args: List[Set[Variable]], **kwargs
-    ) -> Set[Variable]:
-        return {v for s in args for v in s}
+        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+    ) -> FrozenSet[Variable]:
+        return frozenset(v for s in args for v in s)

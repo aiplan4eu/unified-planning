@@ -61,7 +61,7 @@ class Effect:
         forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         fve = fluent.environment.free_vars_extractor
-        fluents_in_fluent = fve.get(fluent)
+        fluents_in_fluent = set(fve.get(fluent))
         fluents_in_fluent.remove(fluent)
         if fluents_in_fluent:
             raise UPProblemDefinitionError(
@@ -72,7 +72,9 @@ class Effect:
         self._condition = condition
         self._kind = kind
         fvo = fluent.environment.free_vars_oracle
-        free_vars: Set["up.model.variable.Variable"] = fvo.get_free_variables(fluent)
+        free_vars: Set["up.model.variable.Variable"] = set(
+            fvo.get_free_variables(fluent)
+        )
         free_vars.update(fvo.get_free_variables(value))
         free_vars.update(fvo.get_free_variables(condition))
 
@@ -80,7 +82,7 @@ class Effect:
             # store seen variables to avoid duplicates
             seen: Set["up.model.variable.Variable"] = set()
             for v in forall:
-                if v in free_vars and not v in seen:
+                if v in free_vars and v not in seen:
                     seen.add(v)
                     assert isinstance(
                         v, up.model.variable.Variable
