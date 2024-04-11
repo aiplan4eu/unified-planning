@@ -866,7 +866,7 @@ class _KindFactory:
             self.kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self.kind.set_conditions_kind("NEGATIVE_CONDITIONS")
-        if OperatorKind.OR in ops:
+        if OperatorKind.OR in ops or OperatorKind.IMPLIES in ops:
             self.kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         if OperatorKind.EXISTS in ops:
             self.kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
