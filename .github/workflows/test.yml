@@ -219,7 +219,7 @@ jobs:
 
       - name: "Upload coverage to Codecov"
         if: ${{ github.repository == 'aiplan4eu/unified-planning' }}
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
