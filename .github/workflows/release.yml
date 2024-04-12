@@ -19,6 +19,8 @@ jobs:
     with:
       python-version: ${{matrix.python-version}}
 
+    secrets: inherit
+
   deploy:
     needs: [test]
     uses: ./.github/workflows/deploy.yml
