@@ -15,7 +15,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import Dict, List, Optional, Set, Union, cast
+from typing import List, Optional, FrozenSet, Union, cast
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
@@ -178,7 +178,7 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set[
+        free_vars: FrozenSet[
             "up.model.variable.Variable"
         ] = self.environment.free_vars_oracle.get_free_variables(args[0])
         vars = set(var for var in expression.variables() if var in free_vars)
@@ -224,7 +224,7 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: Set[
+        free_vars: FrozenSet[
             "up.model.variable.Variable"
         ] = self.environment.free_vars_oracle.get_free_variables(args[0])
         vars = tuple(var for var in expression.variables() if var in free_vars)
