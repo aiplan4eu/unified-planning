@@ -689,11 +689,19 @@ def main():
     problem_test_cases = get_test_cases_from_packages(packages)
 
     filters = parsed_args.filters
+    blocks = parsed_args.blocks
     if filters:
-        # Filter only the names that have at least one of the given filters in them
         problem_test_cases = dict(
             filter(
-                lambda name_value: any(p in name_value[0] for p in filters),
+                lambda name_value: any(p in name_value[0] for p in filters)
+                and all(p not in name_value[0] for p in blocks),
+                problem_test_cases.items(),
+            )
+        )
+    elif blocks:
+        problem_test_cases = dict(
+            filter(
+                lambda name_value: all(p not in name_value[0] for p in blocks),
                 problem_test_cases.items(),
             )
         )
