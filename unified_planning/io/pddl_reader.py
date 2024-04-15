@@ -984,6 +984,7 @@ class PDDLReader:
                             types_map,
                             eff[2],
                             complete_str,
+                            cond,
                             timing=up.model.timing.ClosedTimeInterval(
                                 up.model.timing.StartTiming(),
                                 up.model.timing.EndTiming(),
