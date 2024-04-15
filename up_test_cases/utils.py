@@ -214,6 +214,7 @@ def get_report_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-b",
         "--block",
+        "--blocks",
         type=str,
         nargs="+",
         help="Block all the problems that contain one of the block words; if no blocks are specified, runs the engines on all the problems.",
