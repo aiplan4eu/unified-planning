@@ -64,7 +64,7 @@ class UPState(State):
                 f"The max_ancestor field of a class extending UPState must be > 0 or None: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
             )
         self._father = _father
-        self._values = values
+        self._values = values.copy()
         if _father is None:
             self._ancestors = 0
         else:
