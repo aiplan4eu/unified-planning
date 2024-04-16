@@ -33,7 +33,7 @@ class TestUPState(unittest_TestCase):
         self.assertNotEqual(state_2, state_1)
 
     def test_state(self):
-        fluents = [Fluent(f"{n}", IntType()) for n in "abc"]
+        fluents = [FluentExp(Fluent(f"{n}", IntType())) for n in "abc"]
         a, b, c = fluents
         numbers = [Int(n) for n in range(6)]
         n0, n1, n2, n3, n4, n5 = numbers
