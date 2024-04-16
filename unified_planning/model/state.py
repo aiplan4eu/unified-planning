@@ -14,6 +14,8 @@
 #
 
 from abc import ABC, abstractmethod
+from functools import reduce
+from operator import xor
 from typing import Dict, List, Optional, Tuple
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
@@ -62,20 +64,47 @@ class UPState(State):
                 f"The max_ancestor field of a class extending UPState must be > 0 or None: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
             )
         self._father = _father
-        self._values = values
+        self._values = values.copy()
         if _father is None:
             self._ancestors = 0
         else:
             self._ancestors = _father._ancestors + 1
+        self._hash: Optional[int] = None
+
+    def _condense_state(self):
+        """
+        Important NOTE: This method modifies the internal variables of the state.
+        This method condenses all the ancestors hierarchy into a new dictionary,
+        sets it as the new values of this state, sets the self._father to None
+        and self._ancestors to 0.
+        """
+        if self._father is not None:
+            current_instance: Optional[UPState] = self
+            condensed_values: Dict["up.model.FNode", "up.model.FNode"] = {}
+            while current_instance is not None:
+                for k, v in current_instance._values.items():
+                    condensed_values.setdefault(k, v)
+                current_instance = current_instance._father
+
+            self._values = condensed_values
+            self._ancestors = 0
+            self._father = None
 
     def __repr__(self) -> str:
-        current_instance: Optional[UPState] = self
-        mappings: Dict["up.model.FNode", "up.model.FNode"] = {}
-        while current_instance is not None:
-            for k, v in current_instance._values.items():
-                mappings.setdefault(k, v)
-            current_instance = current_instance._father
-        return str(mappings)
+        self._condense_state()
+        return str(self._values)
+
+    def __hash__(self) -> int:
+        self._condense_state()
+        if self._hash is None:
+            self._hash = reduce(xor, map(hash, self._values.items()), 0)
+        assert self._hash is not None
+        return self._hash
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, UPState) and hash(self) == hash(oth):
+            return self._values == oth._values
+        return False
 
     def get_value(self, fluent: "up.model.FNode") -> "up.model.FNode":
         """
