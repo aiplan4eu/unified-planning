@@ -974,13 +974,16 @@ class PDDLReader:
             for c in cl:
                 if self._totalcost in self._fve.get(c):
                     return False
+        cost_found = False
         for _, el in dur_act.effects.items():
             for e in el:
-                if (
-                    self._totalcost in self._fve.get(e.fluent)
-                    or self._totalcost in self._fve.get(e.value)
-                    or self._totalcost in self._fve.get(e.condition)
-                ):
+                if self._totalcost in self._fve.get(e.fluent):
+                    if cost_found:
+                        return False
+                    cost_found = True
+                if self._totalcost in self._fve.get(
+                    e.value
+                ) or self._totalcost in self._fve.get(e.condition):
                     return False
         return True
 
@@ -1644,20 +1647,44 @@ class PDDLReader:
                         problem._fluents.remove(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
-                        use_plan_length = all(False for _ in problem.durative_actions)
-                        for a in problem.instantaneous_actions:
-                            cost = None
-                            for e in a.effects:
-                                if e.fluent == self._totalcost:
-                                    cost = e
-                                    break
-                            if cost is not None:
-                                costs[a] = cost.value
-                                a._effects.remove(cost)
-                                if cost.value != 1:
+                        # use_plan_length = all(False for _ in problem.durative_actions)
+                        start_timing, end_timing = (
+                            up.model.StartTiming(),
+                            up.model.EndTiming(),
+                        )
+                        for a in problem.actions:
+                            if isinstance(a, up.model.InstantaneousAction):
+                                cost = None
+                                for e in a.effects:
+                                    if e.fluent == self._totalcost:
+                                        cost = e
+                                        break
+                                if cost is not None:
+                                    costs[a] = cost.value
+                                    a._effects.remove(cost)
+                                    if cost.value != 1:
+                                        use_plan_length = False
+                                else:
                                     use_plan_length = False
                             else:
+                                assert isinstance(a, up.model.DurativeAction)
                                 use_plan_length = False
+                                cost, effects_list = None, None
+                                for t, el in a.effects.items():
+                                    if t in (start_timing, end_timing):
+                                        for e in el:
+                                            if e.fluent == self._totalcost:
+                                                if cost is not None:
+                                                    raise UPUnsupportedProblemTypeError(
+                                                        f"Action {a.name} has more than one effect modifying it's cost"
+                                                    )
+                                                cost, effects_list = e, el
+                                                break
+                                if cost is not None:
+                                    costs[a] = cost.value
+                                    effects_list.remove(cost)
+                                else:
+                                    use_plan_length = False
                         if use_plan_length:
                             problem.add_quality_metric(
                                 up.model.metrics.MinimizeSequentialPlanLength()
