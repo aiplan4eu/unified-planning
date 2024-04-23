@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from fractions import Fraction
 import re
-from typing import Dict, Mapping, Union, Callable, List, cast, Tuple
+from typing import Dict, Union, Callable, List, cast, Tuple
 import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
@@ -1647,7 +1647,6 @@ class PDDLReader:
                         problem._fluents.remove(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
-                        # use_plan_length = all(False for _ in problem.durative_actions)
                         start_timing, end_timing = (
                             up.model.StartTiming(),
                             up.model.EndTiming(),
