@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from fractions import Fraction
 import re
-from typing import Dict, Union, Callable, List, cast, Tuple
+from typing import Dict, Mapping, Union, Callable, List, cast, Tuple
 import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
@@ -1643,7 +1643,7 @@ class PDDLReader:
                         and optimization == "minimize"
                         and metric_exp == self._totalcost
                     ):
-                        costs = {}
+                        costs: Dict[up.model.Action, up.model.Expression] = {}
                         problem._fluents.remove(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
@@ -1670,8 +1670,8 @@ class PDDLReader:
                                 assert isinstance(a, up.model.DurativeAction)
                                 use_plan_length = False
                                 cost, effects_list = None, None
-                                for t, el in a.effects.items():
-                                    if t in (start_timing, end_timing):
+                                for timing, el in a.effects.items():
+                                    if timing in (start_timing, end_timing):
                                         for e in el:
                                             if e.fluent == self._totalcost:
                                                 if cost is not None:
@@ -1681,6 +1681,7 @@ class PDDLReader:
                                                 cost, effects_list = e, el
                                                 break
                                 if cost is not None:
+                                    assert effects_list is not None
                                     costs[a] = cost.value
                                     effects_list.remove(cost)
                                 else:
