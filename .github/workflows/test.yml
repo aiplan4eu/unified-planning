@@ -286,7 +286,7 @@ jobs:
         run: bash run_tests.sh
 
   run-tests-macos:
-    runs-on: macos-latest
+    runs-on: macos-13
     needs: [
         basic-check,
         check-protobuf,
