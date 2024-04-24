@@ -30,6 +30,26 @@ class Path(ABC):
 
 
 @dataclass(eq=True, frozen=True)
+class SE2Path(Path):
+    """
+    This class represents an SE2 Path.
+    It is composed of a list of tuple where each element is a waypoint (e.g., pose of the robot in N-d space).
+    """
+
+    path: List[Tuple[float, ...]]
+
+
+@dataclass(eq=True, frozen=True)
+class SE3Path(Path):
+    """
+    This class represents an SE3 Path.
+    It is composed of a list of tuple where each element is a waypoint (e.g., pose of the robot in N-d space).
+    """
+
+    path: List[Tuple[float, ...]]
+
+
+@dataclass(eq=True, frozen=True)
 class ReedsSheppPath(Path):
     """
     This class represents a ReedsShepp Path.
