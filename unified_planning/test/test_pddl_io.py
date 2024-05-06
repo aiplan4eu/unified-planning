@@ -449,6 +449,33 @@ class TestPddlIO(unittest_TestCase):
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self.assertEqual(problem, problem_2)
 
+    def test_parking_reader(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "parking_action_cost", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "parking_action_cost", "problem.pddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertIsNotNone(problem)
+        self.assertEqual(len(problem.fluents), 5)
+        self.assertEqual(len(problem.actions), 4)
+        self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("curb")))), 4)
+        self.assertEqual(len(problem.quality_metrics), 1)
+        self.assertTrue(problem.quality_metrics[0].is_minimize_action_costs())
+
+        with open(domain_filename, "r", encoding="utf-8") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r", encoding="utf-8") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
+
     def _test_htn_transport_reader(self, problem):
         assert isinstance(problem, up.model.htn.HierarchicalProblem)
         self.assertEqual(5, len(problem.fluents))

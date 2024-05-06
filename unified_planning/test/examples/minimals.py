@@ -87,10 +87,10 @@ def get_example_problems():
     problem.add_fluent(y)
     problem.add_action(da)
     problem.set_initial_value(x, False)
-    problem.add_timed_effect(StartTiming(5), x, False)
+    problem.add_timed_effect(GlobalStartTiming(5), x, False)
     problem.set_initial_value(y, False)
-    problem.add_timed_effect(StartTiming(2), y, True)
-    problem.add_timed_effect(StartTiming(8), y, False)
+    problem.add_timed_effect(GlobalStartTiming(2), y, True)
+    problem.add_timed_effect(GlobalStartTiming(8), y, False)
     problem.add_goal(x)
     t_plan = up.plans.TimeTriggeredPlan([(Fraction(6), da(), Fraction(1))])
     invalid_t_plans: List[up.plans.Plan] = [
@@ -486,7 +486,7 @@ def get_example_problems():
     problem.add_action(task)
     problem.set_initial_value(value, 1)
     problem.add_goal(Equals(value, 2))
-    problem.add_timed_effect(StartTiming(1), value, 1)
+    problem.add_timed_effect(GlobalStartTiming(1), value, 1)
     t_plan = up.plans.TimeTriggeredPlan(
         [(Fraction(2), up.plans.ActionInstance(task), None)]
     )
