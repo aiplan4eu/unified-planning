@@ -354,3 +354,10 @@ object between a series of waypoints. `[Detailed presentation 🔗]  <notebooks/
     :lines: 5-116
     :caption: Syntax Overview
 
+
+Semantic clarifications
+-----------------------
+
+Regarding undefined values, the unified planning library generally adheres to the semantics of PDDL. In essence, these state that a solution is ill-defined (and thus invalid) if any expression *to be checked for the validity of such a solution* refers to a state variable whose value is undefined in the state *under evaluation*. Such ill-formed expressions may notably appear in a condition, goal or at the right hand side of an effect.
+
+However, there is no strict enforcement of these semantics in the library to maintain compatibility with existing solvers and tools with different interpretations. In particular, some engines might allow the reference to undefined values in disjunctions where at least one term is true. E.g. these would consider the expression `(true or undefined)` as `true` while the PDDL semantic would consider this expression as ill-formed.
