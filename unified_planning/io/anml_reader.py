@@ -944,8 +944,15 @@ class ANMLReader:
                         )
                     else:
                         operator = exp[1]
-                        if isinstance(operator, List):  # parameters list
-                            assert isinstance(exp[0], List) and isinstance(exp[2], List)
+                        if isinstance(operator, List) or isinstance(
+                            operator, ParseResults
+                        ):  # parameters list
+                            assert isinstance(exp[0], List) or isinstance(
+                                exp[0], ParseResults
+                            )
+                            assert isinstance(exp[2], List) or isinstance(
+                                exp[2], ParseResults
+                            )
                             pass
                         elif isinstance(operator, str):  # binary operator
                             # '==' needs special care, because in ANML it can both mean '==' or 'Iff',
