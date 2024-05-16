@@ -1,0 +1,138 @@
+type Robot;
+type Pallet;
+type Position;
+type Treatment;
+
+fluent boolean robot_at(Robot r, Position p);
+fluent boolean robot_has(Robot r, Pallet b);
+fluent boolean pallet_at(Pallet b, Position p);
+fluent boolean robot_free(Robot r);
+fluent boolean position_free(Position p);
+fluent boolean treated(Pallet b, Treatment t);
+fluent boolean ready(Pallet b, Position p, Treatment t);
+fluent integer battery_level(Robot r);
+
+fluent boolean can_do(Position p, Treatment t);
+fluent boolean is_depot(Position p);
+fluent integer distance(Position from, Position to);
+
+action move(Robot r, Position from, Position to) {
+   duration := 1;
+   [start] not (from == to);
+   [start] robot_at(r, from);
+   [start] battery_level(r) >= distance(from, to);
+   [start] robot_at(r, from) := false;
+   [start] robot_at(r, to) := true;
+   [start] battery_level(r) := battery_level(r) - distance(from, to);
+};
+
+action unload_at_depot(Robot r, Pallet b, Position p) {
+   duration := 1;
+   [start] is_depot(p);
+   [start] robot_has(r, b);
+   [start] robot_at(r, p);
+   [start] pallet_at(b, p) := true;
+   [start] robot_free(r) := true;
+   [start] robot_has(r, b) := false;
+};
+
+action load_at_depot(Robot r, Pallet b, Position p) {
+   duration := 1;
+   [start] is_depot(p);
+   [start] robot_free(r);
+   [start] robot_at(r, p);
+   [start] pallet_at(b, p);
+   [start] robot_free(r) := false;
+   [start] robot_has(r, b) := true;
+   [start] pallet_at(b, p) := false;
+};
+
+action make_treatment(Robot r, Pallet b, Position p, Treatment t) {
+   duration := 20;
+   [start] can_do(p, t);
+   [start] position_free(p);
+   [start] robot_at(r, p);
+   [start] robot_has(r, b);
+   [start] not treated(b, t);
+   [start] position_free(p) := false;
+   [start] robot_has(r, b) := false;
+   [start] pallet_at(b, p) := true;
+   [start] robot_free(r) := true;
+   [start + 10] ready(b, p, t) := true;
+   [end] treated(b, t);
+   [end] position_free(p);
+};
+
+action load(Robot r, Pallet b, Position p, Treatment t) {
+   duration := 1;
+   [start] pallet_at(b, p);
+   [start] robot_free(r);
+   [start] ready(b, p, t);
+   [start] robot_at(r, p);
+   [start] robot_free(r) := false;
+   [start] ready(b, p, t) := false;
+   [start] pallet_at(b, p) := false;
+   [start] robot_has(r, b) := true;
+   [start] treated(b, t) := true;
+   [start] position_free(p) := true;
+};
+
+instance Robot r0, r1, r2;
+instance Pallet b0, b1;
+instance Position p0, p1;
+instance Treatment t0;
+
+[start] battery_level(r0) := 8;
+[start] robot_at(r0, p0) := false;
+[start] robot_at(r0, p1) := true;
+[start] battery_level(r1) := 8;
+[start] robot_at(r1, p0) := false;
+[start] robot_at(r1, p1) := true;
+[start] battery_level(r2) := 8;
+[start] robot_at(r2, p0) := false;
+[start] robot_at(r2, p1) := true;
+
+[start] robot_has(r0, b0) := false;
+[start] robot_has(r0, b1) := false;
+[start] robot_has(r1, b0) := false;
+[start] robot_has(r1, b1) := false;
+[start] robot_has(r2, b0) := false;
+[start] robot_has(r2, b1) := false;
+
+[start] robot_free(r0) := true;
+[start] robot_free(r1) := true;
+[start] robot_free(r2) := true;
+
+[start] pallet_at(b0, p0) := false;
+[start] pallet_at(b0, p1) := true;
+[start] pallet_at(b1, p0) := false;
+[start] pallet_at(b1, p1) := true;
+
+[start] position_free(p0) := true;
+[start] position_free(p1) := true;
+
+[start] treated(b0, t0) := false;
+[start] treated(b1, t0) := false;
+
+[start] ready(b0, p0, t0) := false;
+[start] ready(b0, p1, t0) := false;
+[start] ready(b1, p0, t0) := false;
+[start] ready(b1, p1, t0) := false;
+
+[start] is_depot(p0) := false;
+[start] is_depot(p1) := true;
+
+[start] can_do(p0, t0) := true;
+[start] can_do(p1, t0) := false;
+
+[start] distance(p0, p0) := 0;
+[start] distance(p0, p1) := 1;
+[start] distance(p1, p0) := 1;
+[start] distance(p1, p1) := 0;
+
+[end] treated(b0, t0) == true and treated(b1, t0) == true;
+
+
+
+
+
