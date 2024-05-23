@@ -507,16 +507,18 @@ def get_example_problems():
     a2 = InstantaneousAction("set_b")
     a2.add_precondition(
         Or(Not(fluent1()), Not(fluent2()))
-    )  # never valid as fluent2() is undefined
+    )  # never valid under PDDL semantics as fluent2() is undefined
     a2.add_effect(fluent1(), True)
     problem.add_action(a2)
     problems["basic_undef_bool"] = TestCase(
         problem=problem,
         solvable=True,
         valid_plans=[up.plans.SequentialPlan([a1()])],
-        invalid_plans=[  # invalid plans contain actions that rely on undefined values
-            up.plans.SequentialPlan([a2()]),
-            up.plans.SequentialPlan([a1(), a2()]),
+        invalid_plans=[
+            # Under PDDL semantics, invalid plans contain actions that rely on undefined values
+            # The following are commented out as we do not wish enforce strict PDDL semantics when validating planner integration
+            # up.plans.SequentialPlan([a2()]),
+            # up.plans.SequentialPlan([a1(), a2()]),
         ],
     )
 
