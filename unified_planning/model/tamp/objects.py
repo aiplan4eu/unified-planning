@@ -33,6 +33,7 @@ class MotionModels(Enum):
     REEDSSHEPP = auto()
     SE2 = auto()
     SE3 = auto()
+    SE2Control = auto()
 
 
 class MovableObject(Object):

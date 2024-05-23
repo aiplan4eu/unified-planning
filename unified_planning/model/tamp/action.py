@@ -16,11 +16,13 @@
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
-from unified_planning.model import InstantaneousAction
+from unified_planning.model import InstantaneousAction, DurativeAction
 from unified_planning.exceptions import UPTypeError
 from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable, Dict
+from typing import Optional, List, Iterable, Dict, Union
 from collections import OrderedDict
+
+from unified_planning.model.timing import Timing
 
 
 class MotionConstraint(ABC):
@@ -41,6 +43,11 @@ class MotionConstraint(ABC):
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
+
+    @property
+    def environment(self) -> Environment:
+        """Returns the `Environment` in which this MotionConstraint exists."""
+        return self._environment
 
 
 class Waypoints(MotionConstraint):
@@ -115,6 +122,8 @@ class Waypoints(MotionConstraint):
         s.append(str(self.starting))
         s.append(", ")
         s.append(str(self.waypoints))
+        s.append(", ")
+        s.append(str(self.obstacles))
         s.append(")")
         return "".join(s)
 
@@ -139,6 +148,92 @@ class Waypoints(MotionConstraint):
     ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
         """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration."""
         return self._obstacles
+
+
+class TimedMotionConstraints:
+    """A set of timed motion constraints."""
+
+    def __init__(self, _env: Optional[Environment] = None):
+        self._environment = get_environment(_env)
+        self._timed_motion_constraints: Dict[
+            "up.model.timing.TimeInterval", List[MotionConstraint]
+        ] = {}
+
+    @abstractmethod
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, TimedMotionConstraints):
+            if self._environment != oth._environment:
+                return False
+            if len(self._timed_motion_constraints) != len(
+                oth._timed_motion_constraints
+            ):
+                return False
+            for i, mcl in self._timed_motion_constraints.items():
+                oth_mcl = oth._timed_motion_constraints.get(i, None)
+                if oth_mcl is None:
+                    return False
+                elif set(mcl) != set(oth_mcl):
+                    return False
+            return True
+        else:
+            return False
+
+    @abstractmethod
+    def __hash__(self) -> int:
+        res = 0
+        for i, mcl in self._timed_motion_constraints.items():
+            res += hash(i)
+            for mc in mcl:
+                res += hash(mc)
+        return res
+
+    def clone(self) -> "TimedMotionConstraints":
+        new = TimedMotionConstraints(self._environment)
+        self._clone_to(new)
+        return new
+
+    def _clone_to(self, other: "TimedMotionConstraints"):
+        """Transfers deep copies of all `self` attributes into `other`"""
+        other._timed_motion_constraints = {
+            t: mcl[:] for t, mcl in self._timed_motion_constraints.items()
+        }
+
+    @property
+    def timed_motion_constraints(
+        self,
+    ) -> Dict["up.model.timing.TimeInterval", List[MotionConstraint]]:
+        return self._timed_motion_constraints
+
+    def clear_timed_motion_constraints(self):
+        """Removes all `timed_motion_constraints`."""
+        self._timed_motion_constraints = {}
+
+    def add_timed_motion_constraint(
+        self,
+        interval: Union[
+            "up.model.expression.TimeExpression", "up.model.timing.TimeInterval"
+        ],
+        motion_constraint: MotionConstraint,
+    ):
+        if not isinstance(interval, up.model.TimeInterval):
+            # transform from int/float/timepoint... to Timing
+            timing = Timing.from_time(interval)
+            interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
+        (
+            timed_motion_constraint_exp,
+        ) = self._environment.expression_manager.auto_promote(motion_constraint)
+        timed_motion_constraints = self._timed_motion_constraints.setdefault(
+            interval, []
+        )
+        if timed_motion_constraint_exp not in timed_motion_constraints:
+            timed_motion_constraints.append(timed_motion_constraint_exp)
+
+    def _set_timed_motion_constraints(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        motion_constraints: List[MotionConstraint],
+    ):
+        self._timed_motion_constraints[interval] = motion_constraints
 
 
 class InstantaneousMotionAction(InstantaneousAction):
@@ -214,3 +309,55 @@ class InstantaneousMotionAction(InstantaneousAction):
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
+
+
+class DurativeMotionAction(DurativeAction, TimedMotionConstraints):
+    """This class represents a durative motion action."""
+
+    def __init__(
+        self,
+        _name: str,
+        _parameters: Optional["OrderedDict[str, up.model.types.Type]"] = None,
+        _environment: Optional[Environment] = None,
+        **kwargs: "up.model.types.Type",
+    ):
+        DurativeAction.__init__(self, _name, _parameters, _environment, **kwargs)
+        TimedMotionConstraints.__init__(self, _environment)
+
+    def __eq__(self, oth: object) -> bool:
+        if isinstance(oth, DurativeMotionAction):
+            return super().__eq__(oth) and TimedMotionConstraints.__eq__(self, oth)
+        else:
+            return False
+
+    def __hash__(self) -> int:
+        res = super().__hash__()
+        res += TimedMotionConstraints.__hash__(self)
+        return res
+
+    def __repr__(self) -> str:
+        b = DurativeAction.__repr__(self)[0:-3]
+        s = ["motion-", b]
+
+        s.append("    timed motion constraints = [\n")
+        for i, cl in self.timed_motion_constraints.items():
+            s.append(f"      {str(i)}:\n")
+            for c in cl:
+                s.append(f"        {str(c)}\n")
+        s.append("    ]\n")
+        s.append("  }\n")
+        return "".join(s)
+
+    def clone(self):
+
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
+        new_durative_motion_action = DurativeMotionAction(
+            self._name, new_params, self._environment
+        )
+        new_durative_motion_action._duration = self._duration
+
+        TimedMotionConstraints._clone_to(self, new_durative_motion_action)
+
+        return new_durative_motion_action

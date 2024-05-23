@@ -15,6 +15,7 @@
 
 from unified_planning.model.tamp.action import (
     InstantaneousMotionAction,
+    DurativeMotionAction,
     MotionConstraint,
     Waypoints,
 )
@@ -28,6 +29,7 @@ from unified_planning.model.tamp.path import Path, ReedsSheppPath
 
 __all__ = [
     "InstantaneousMotionAction",
+    "DurativeMotionAction",
     "MotionConstraint",
     "Waypoints",
     "MotionModels",
