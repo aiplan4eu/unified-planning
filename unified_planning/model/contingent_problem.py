@@ -148,18 +148,6 @@ class ContingentProblem(Problem):
         self._or_initial_constraints.append(c)
 
     @property
-    def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
-        """Gets the initial value of the fluents.
-
-        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
-        seldom as possible."""
-        res = self._initial_value
-        for f in self._fluents:
-            for f_exp in get_all_fluent_exp(self, f):
-                res[f_exp] = self.initial_value(f_exp)
-        return res
-
-    @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         """Returns the problem kind of this planning problem.
 

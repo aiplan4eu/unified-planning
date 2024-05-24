@@ -316,16 +316,19 @@ class Simplifier(walkers.dag.DagWalker):
         return self.manager.LT(sl, sr)
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
+        new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
         if expression.fluent() not in self.static_fluents:
-            return self.manager.FluentExp(expression.fluent(), tuple(args))
+            return new_exp
         else:
             assert self.problem is not None
             for a in args:
                 if not a.is_constant():
-                    return self.manager.FluentExp(expression.fluent(), tuple(args))
-            return self.problem.initial_value(
-                self.manager.FluentExp(expression.fluent(), tuple(args))
-            )
+                    return new_exp
+            static_value = self.problem.initial_value(new_exp)
+            if static_value is not None:
+                return static_value
+            else:  # value is static but is not defined in the initial state
+                return new_exp
 
     def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.Dot(expression.agent(), args[0])

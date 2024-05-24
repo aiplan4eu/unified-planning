@@ -526,6 +526,7 @@ class TestProblem(unittest_TestCase):
             "robot_locations_visited",
             "basic_numeric",
             "basic_numeric_with_timed_effect",
+            "basic_undef_numeric",
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
@@ -586,6 +587,23 @@ class TestProblem(unittest_TestCase):
         with self.assertRaises(UPTypeError):
             problem.set_initial_value(distance(l2, l1), Div(4, 2))
         problem.set_initial_value(distance(l2, l1), "20")
+
+    def test_undefined_initial_state(self):
+        undefs_num = ["basic_undef_numeric"]
+        undefs_sym = ["basic_undef_bool"]
+        for pb_name in self.problems:
+            problem = self.problems[pb_name].problem
+            kind = problem.kind
+            self.assertEqual(
+                "UNDEFINED_INITIAL_NUMERIC" in kind.features,
+                pb_name in undefs_num,
+                pb_name,
+            )
+            self.assertEqual(
+                "UNDEFINED_INITIAL_SYMBOLIC" in kind.features,
+                pb_name in undefs_sym,
+                pb_name,
+            )
 
 
 if __name__ == "__main__":
