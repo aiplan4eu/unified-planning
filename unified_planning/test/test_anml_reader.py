@@ -692,6 +692,13 @@ class TestANMLReader(unittest_TestCase):
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
         self.assertEqual(problem, problem_2)
 
+    def test_majsp(self):
+        """This checks that the majsp problem is parsable without error"""
+        reader = ANMLReader()
+        problem_filename = os.path.join(ANML_FILES_PATH, "majsp.anml")
+        reader.parse_problem(problem_filename)
+        _problem = reader.parse_problem(problem_filename)
+
     def test_anml_io(self):
         for example in self.problems.values():
             problem = example.problem
