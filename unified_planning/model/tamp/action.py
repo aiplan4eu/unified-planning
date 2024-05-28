@@ -23,7 +23,7 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Iterable, Dict, Union
 from collections import OrderedDict
 
-from unified_planning.model.timing import Timing
+from unified_planning.model.timing import EndTiming, StartTiming, TimeInterval, Timing
 
 
 class MotionConstraint(ABC):
@@ -306,21 +306,21 @@ class DurativeMotionAction(DurativeAction):
         """Removes all `timed_motion_constraints`."""
         self._timed_motion_constraints = {}
 
-    def add_timed_motion_constraint(
+    def add_motion_constraint(
         self,
-        interval: Union[
-            "up.model.expression.TimeExpression", "up.model.timing.TimeInterval"
-        ],
+        # interval: Union[
+        #    "up.model.expression.TimeExpression", "up.model.timing.TimeInterval"
+        # ],
         motion_constraint: MotionConstraint,
     ):
-        if not isinstance(interval, up.model.TimeInterval):
-            # transform from int/float/timepoint... to Timing
-            timing = Timing.from_time(interval)
-            interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
+        # if not isinstance(interval, up.model.TimeInterval):
+        #    # transform from int/float/timepoint... to Timing
+        #    timing = Timing.from_time(interval)
+        #    interval = up.model.TimePointInterval(timing)  # and from Timing to Interval
 
-            if interval in self._timed_motion_constraints:
-                self._timed_motion_constraints[interval].append(motion_constraint)
-            else:
-                self._timed_motion_constraints[interval] = [motion_constraint]
+        interval = TimeInterval(StartTiming(), EndTiming())
 
-    # def add_timed_motion_constraints()
+        if interval in self._timed_motion_constraints:
+            self._timed_motion_constraints[interval].append(motion_constraint)
+        else:
+            self._timed_motion_constraints[interval] = [motion_constraint]
