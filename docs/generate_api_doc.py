@@ -14,6 +14,8 @@ model.Problem
 model.InstantaneousAction
 model.DurativeAction
 model.Parameter
+model.State
+model.UPState
 model.metrics.PlanQualityMetric
 model.metrics.MinimizeActionCosts
 model.metrics.MinimizeSequentialPlanLength
