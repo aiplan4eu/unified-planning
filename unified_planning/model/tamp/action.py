@@ -65,7 +65,10 @@ class Waypoints(MotionConstraint):
         movable: "up.model.expression.Expression",
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
-        obstacles: Optional[
+        fixed_obstacles: Optional[
+            Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
+        ] = None,
+        moving_obstacles_at_start: Optional[
             Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
         ] = None,
         environment: Optional[Environment] = None,
@@ -98,7 +101,8 @@ class Waypoints(MotionConstraint):
         self._movable = movable_exp
         self._starting = starting_exp
         self._waypoints = waypoints_exp
-        self._obstacles = obstacles
+        self._fixed_obstacles = fixed_obstacles
+        self._moving_obstacles_at_start = moving_obstacles_at_start
 
     def __eq__(self, oth) -> bool:
         if not isinstance(oth, Waypoints) or self._environment != oth._environment:
@@ -124,7 +128,9 @@ class Waypoints(MotionConstraint):
         s.append(", ")
         s.append(str(self.waypoints))
         s.append(", ")
-        s.append(str(self.obstacles))
+        s.append(str(self.fixed_obstacles))
+        s.append(", ")
+        s.append(str(self.moving_obstacles_at_start))
         s.append(")")
         return "".join(s)
 
@@ -144,11 +150,18 @@ class Waypoints(MotionConstraint):
         return self._waypoints
 
     @property
-    def obstacles(
+    def fixed_obstacles(
         self,
     ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
-        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration."""
-        return self._obstacles
+        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration during all the constraint (fixed obstacles)."""
+        return self._fixed_obstacles
+
+    @property
+    def moving_obstacles_at_start(
+        self,
+    ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
+        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration at the beginning of the constraint (possibly moving obstacles)."""
+        return self._moving_obstacles_at_start
 
 
 class InstantaneousMotionAction(InstantaneousAction):
