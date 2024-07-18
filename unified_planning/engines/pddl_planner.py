@@ -183,7 +183,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 proc_err: List[str] = []
                 try:
                     out_err_bytes = process.communicate(timeout=timeout)
-                    proc_out, proc_err = [[x.decode()] for x in out_err_bytes]
+                    proc_out, proc_err = [[x.decode(errors='ignore')] for x in out_err_bytes]
                 except subprocess.TimeoutExpired:
                     timeout_occurred = True
                 retval = process.returncode
