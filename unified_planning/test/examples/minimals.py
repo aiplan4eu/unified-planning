@@ -427,6 +427,31 @@ def get_example_problems():
     counter_to_50 = TestCase(problem=problem, solvable=True, valid_plans=[plan])
     problems["counter_to_50"] = counter_to_50
 
+    # temporal counter
+    counter_f = Fluent("counter", IntType(0, 100))
+    increase = DurativeAction("increase")
+    increase.set_fixed_duration(1)
+    increase.add_condition(StartTiming(), LT(counter_f, 99))
+    increase.add_increase_effect(EndTiming(), counter_f, 2)
+    decrease = DurativeAction("decrease")
+    decrease.set_fixed_duration(1)
+    decrease.add_condition(StartTiming(), GT(counter_f, 0))
+    decrease.add_decrease_effect(EndTiming(), counter_f, 1)
+    problem = Problem("temporal_counter")
+    problem.add_fluent(counter_f)
+    problem.add_action(increase)
+    problem.add_action(decrease)
+    problem.set_initial_value(counter_f, 0)
+    problem.add_goal(Equals(counter_f, 1))
+    plan = up.plans.TimeTriggeredPlan(
+        [
+            (Fraction(0, 1), up.plans.ActionInstance(increase), Fraction(1, 1)),
+            (Fraction(2, 1), up.plans.ActionInstance(decrease), Fraction(1, 1)),
+        ]
+    )
+    t_counter = TestCase(problem=problem, solvable=True, valid_plans=[plan])
+    problems["temporal_counter"] = t_counter
+
     # basic with object constant
     Location = UserType("Location")
     is_at = Fluent("is_at", BoolType(), loc=Location)
