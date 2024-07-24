@@ -198,7 +198,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         fluent_remover = NegativeFluentRemover(problem, env)
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = Problem(f"{self.name}_{problem.name}", env)
         for o in problem.all_objects:

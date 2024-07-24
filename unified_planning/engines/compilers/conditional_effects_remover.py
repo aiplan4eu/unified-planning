@@ -171,7 +171,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         env = problem.environment
         simplifier = env.simplifier
 
-        new_to_old = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"

@@ -174,7 +174,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         tm = env.type_manager
         em = env.expression_manager
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = Problem(f"{self.name}_{problem.name}", env)
         new_problem.add_objects(problem.all_objects)
@@ -305,6 +305,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 assert isinstance(qm, MinimizeActionCosts)
                 new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
                 for new_act, old_act in new_to_old.items():
+                    if old_act is None:
+                        continue
                     cost = qm.get_action_cost(old_act)
                     if cost is not None:
                         cost = utf_remover.remove_usertype_fluents_from_condition(cost)

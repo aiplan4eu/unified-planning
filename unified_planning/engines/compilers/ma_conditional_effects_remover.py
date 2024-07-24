@@ -14,6 +14,7 @@
 #
 """This module defines the multi-agent conditional effects remover class."""
 
+from typing import Dict, Optional
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -26,6 +27,7 @@ from functools import partial
 from unified_planning.engines.compilers.conditional_effects_remover import (
     ConditionalEffectsRemover,
 )
+from unified_planning.model.action import Action
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 
 from unified_planning.model import ProblemKind
@@ -88,7 +90,7 @@ class MAConditionalEffectsRemover(ConditionalEffectsRemover):
         """
         assert isinstance(problem, MultiAgentProblem)
 
-        new_to_old = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"

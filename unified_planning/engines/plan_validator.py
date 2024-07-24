@@ -311,6 +311,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         updates: Dict[FNode, FNode],
         problem: Problem,
     ) -> Dict[FNode, FNode]:
+        em = problem.environment.expression_manager
         result = {}
         for instantiated_effect in effect.expand_effect(problem):
             if self._check_condition(
@@ -326,9 +327,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 if instantiated_effect.kind == EffectKind.ASSIGN:
                     result[g_fluent] = se.evaluate(g_value, state=state)
                 elif instantiated_effect.kind == EffectKind.DECREASE:
-                    result[g_fluent] = f_value - se.evaluate(g_value, state=state)
+                    result[g_fluent] = se.evaluate(
+                        em.Minus(f_value, g_value), state=state
+                    )
                 elif instantiated_effect.kind == EffectKind.INCREASE:
-                    result[g_fluent] = f_value - se.evaluate(g_value, state=state)
+                    result[g_fluent] = se.evaluate(
+                        em.Plus(f_value, g_value), state=state
+                    )
         return result
 
     def _states_in_interval(

@@ -83,6 +83,7 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
             if not engine.supports(new_problem.kind):
                 raise UPUsageError(f"{engine.name} cannot handle this kind of problem!")
             res = engine.compile(new_problem)
+            assert res.map_back_action_instance is not None
             map_back_functions.append(res.map_back_action_instance)
             if res.problem is None:
                 return CompilerResult(None, None, self.name)
@@ -107,10 +108,11 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
 
 def map_back_action_instance(
     action: ActionInstance,
-    map_back_functions: List[Callable[[ActionInstance], ActionInstance]],
+    map_back_functions: List[Callable[[ActionInstance], Optional[ActionInstance]]],
 ) -> Optional[ActionInstance]:
     for f in map_back_functions:
-        action = f(action)
-        if action is None:
-            break
+        new_action = f(action)
+        if new_action is None:
+            return None
+        action = new_action
     return action
