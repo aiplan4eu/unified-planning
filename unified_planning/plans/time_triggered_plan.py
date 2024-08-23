@@ -186,7 +186,11 @@ class TimeTriggeredPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.STN_PLAN:
+        elif (
+            plan_kind == plans.plan.PlanKind.STN_PLAN
+            and not problem.kind.has_decrease_continuous_effects()
+            and not problem.kind.has_increase_continuous_effects()
+        ):
             return _convert_to_stn(self, problem)
         else:
             raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
@@ -478,7 +482,12 @@ def _extract_action_timings(
     timings: Set[Fraction] = set()
 
     absolute_time = lambda timing: _absolute_time(timing, start, duration)
-    timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
+    timings.update(
+        map(
+            absolute_time,
+            chain(action.effects, action.continuous_effects, action.simulated_effects),
+        )
+    )
 
     for interval in action.conditions.keys():
         lower_increment: Fraction = epsilon if interval.is_left_open() else Fraction(0)
