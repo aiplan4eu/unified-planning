@@ -327,11 +327,15 @@ class TestPlanner(unittest_TestCase):
             @property
             def name(self):
                 return "PartialEngine"
-            
-            def supports(self):
+
+            @staticmethod
+            def supports(
+                problem_kind: ProblemKind,
+            ):  # super method requires this to be static with problem_kind as an argument
                 return True
-                
-            def supported_kind(self):
+
+            @staticmethod
+            def supported_kind() -> ProblemKind:  # super method requires this to be static
                 return ProblemKind()
 
         with self.assertRaises(TypeError):
