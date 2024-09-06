@@ -34,6 +34,7 @@ from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
+
 class TestPlanner(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
@@ -327,11 +328,10 @@ class TestPlanner(unittest_TestCase):
             def name(self):
                 return "PartialEngine"
             
-            @staticmethod
-            def supports(problem_kind : ProblemKind):
+            def supports(self):
                 return True
-            @staticmethod
-            def supported_kind() -> ProblemKind:
+                
+            def supported_kind(self):
                 return ProblemKind()
 
         with self.assertRaises(TypeError):
