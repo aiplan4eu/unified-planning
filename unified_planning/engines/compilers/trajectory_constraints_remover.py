@@ -244,7 +244,9 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     for na in new_problem.actions
                 }
                 new_problem.add_quality_metric(
-                    MinimizeActionCosts(new_costs) #, environment=new_problem.environment # add_quality_metric does not get the environment as argument 
+                    MinimizeActionCosts(
+                        new_costs
+                    )  # , environment=new_problem.environment # add_quality_metric does not get the environment as argument
                 )
             else:
                 new_problem.add_quality_metric(qm)
