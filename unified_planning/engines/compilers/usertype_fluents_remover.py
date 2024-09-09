@@ -174,7 +174,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         tm = env.type_manager
         em = env.expression_manager
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = Problem(f"{self.name}_{problem.name}", env)
         new_problem.add_objects(problem.all_objects)

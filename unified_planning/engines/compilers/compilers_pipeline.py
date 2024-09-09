@@ -107,10 +107,11 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
 
 def map_back_action_instance(
     action: ActionInstance,
-    map_back_functions: List[Callable[[ActionInstance], ActionInstance]],
+    map_back_functions: List[Callable[[ActionInstance], Optional[ActionInstance]]],
 ) -> Optional[ActionInstance]:
+    tempAction: Optional[ActionInstance] = action
     for f in map_back_functions:
-        action = f(action)
-        if action is None:
+        tempAction = f(tempAction)
+        if tempAction is None:
             break
-    return action
+    return tempAction

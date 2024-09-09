@@ -309,7 +309,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     new_problem: Problem,
     condition: Optional[FNode] = None,
     function: Optional[Callable[[FNode], FNode]] = None,
-) -> Dict[Action, Action]:
+) -> Dict[Action, Optional[Action]]:
     """
     This function takes the original problem, the new problem and adds to the new problem
     all the fields that involve an expression, applying the given function (the identity if it is None)
@@ -336,7 +336,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     assert condition is not None
     if function is None:
         function = lambda x: x
-    new_to_old: Dict[Action, Action] = {}
+    new_to_old: Dict[Action, Optional[Action]] = {}
 
     for constraint in original_problem.trajectory_constraints:
         new_problem.add_trajectory_constraint(function(constraint))

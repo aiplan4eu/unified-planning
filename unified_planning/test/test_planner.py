@@ -331,11 +331,11 @@ class TestPlanner(unittest_TestCase):
             @staticmethod
             def supports(
                 problem_kind: ProblemKind,
-            ):  # super method requires this to be static with problem_kind as an argument
+            ) -> bool:
                 return True
 
             @staticmethod
-            def supported_kind() -> ProblemKind:  # super method requires this to be static
+            def supported_kind() -> ProblemKind:
                 return ProblemKind()
 
         with self.assertRaises(TypeError):
