@@ -77,13 +77,17 @@ class CompilersPipeline(engines.engine.Engine, CompilerMixin):
                 "Compilers pipeline ignores the compilation_kind parameter"
             )
         new_problem: "up.model.AbstractProblem" = problem
-        map_back_functions = []
+        map_back_functions: List[
+            Callable[[ActionInstance], Optional[ActionInstance]]
+        ] = []
         for engine in self._compilers:
             assert isinstance(engine, CompilerMixin)
             if not engine.supports(new_problem.kind):
                 raise UPUsageError(f"{engine.name} cannot handle this kind of problem!")
             res = engine.compile(new_problem)
-            map_back_functions.append(res.map_back_action_instance)
+            res_action = res.map_back_action_instance
+            if res_action is not None:
+                map_back_functions.append(res_action)
             if res.problem is None:
                 return CompilerResult(None, None, self.name)
             new_problem = res.problem
@@ -109,9 +113,10 @@ def map_back_action_instance(
     action: ActionInstance,
     map_back_functions: List[Callable[[ActionInstance], Optional[ActionInstance]]],
 ) -> Optional[ActionInstance]:
-    tempAction: Optional[ActionInstance] = action
     for f in map_back_functions:
-        tempAction = f(tempAction)
+        tempAction = f(action)
         if tempAction is None:
             break
+        else:
+            action = tempAction
     return tempAction
