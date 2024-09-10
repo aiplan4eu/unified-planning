@@ -28,10 +28,12 @@ from unified_planning.engines.compilers.conditional_effects_remover import (
 )
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 
-from unified_planning.model import ProblemKind
+from unified_planning.model import ProblemKind, Action
 from unified_planning.engines.compilers.utils import (
     replace_action,
 )
+
+from typing import Dict, Optional
 
 
 class MAConditionalEffectsRemover(ConditionalEffectsRemover):
@@ -88,7 +90,7 @@ class MAConditionalEffectsRemover(ConditionalEffectsRemover):
         """
         assert isinstance(problem, MultiAgentProblem)
 
-        new_to_old = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"

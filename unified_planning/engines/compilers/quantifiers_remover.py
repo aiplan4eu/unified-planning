@@ -175,7 +175,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
             problem.environment
         )
 
-        new_to_old: Dict[Action, Action] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"

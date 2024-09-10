@@ -328,10 +328,14 @@ class TestPlanner(unittest_TestCase):
             def name(self):
                 return "PartialEngine"
 
-            def supports(self):
+            @staticmethod
+            def supports(
+                problem_kind: ProblemKind,
+            ) -> bool:
                 return True
 
-            def supported_kind(self):
+            @staticmethod
+            def supported_kind() -> ProblemKind:
                 return ProblemKind()
 
         with self.assertRaises(TypeError):
