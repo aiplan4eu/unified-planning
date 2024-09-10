@@ -142,9 +142,7 @@ class MinimizeActionCosts(PlanQualityMetric):
     def default(self) -> Optional["up.model.FNode"]:
         return self._default
 
-    def get_action_cost(
-        self, action: Optional["up.model.Action"]
-    ) -> Optional["up.model.FNode"]:
+    def get_action_cost(self, action: "up.model.Action") -> Optional["up.model.FNode"]:
         """
         Returns the cost of the given `Action`.
 

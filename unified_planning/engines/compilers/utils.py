@@ -423,6 +423,8 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             assert isinstance(qm, MinimizeActionCosts)
             new_costs: Dict["up.model.Action", "up.model.Expression"] = {}
             for new_a, old_a in new_to_old.items():
+                if old_a is None:
+                    continue
                 cost = qm.get_action_cost(old_a)
                 if cost is not None:
                     cost = function(cost)

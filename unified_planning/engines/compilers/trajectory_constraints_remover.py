@@ -240,15 +240,11 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         for qm in grounded_problem.quality_metrics:
             if qm.is_minimize_action_costs():
                 assert isinstance(qm, MinimizeActionCosts)
-                new_costs: Dict[
-                    Action, up.model.Expression
-                ] = (
-                    {}
-                )  # if cost is None then skip, maybe it should be set to a default value instead
+                new_costs: Dict[Action, up.model.Expression] = {}
                 for na in new_problem.actions:
                     cost = qm.get_action_cost(grounded_problem.action(na.name))
                     if cost is not None:
-                        new_costs.update({na: cost})
+                        new_costs[na] = cost
 
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(new_costs, environment=new_problem.environment)
