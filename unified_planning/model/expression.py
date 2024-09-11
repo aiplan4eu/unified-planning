@@ -480,6 +480,31 @@ class ExpressionManager(object):
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
         )
 
+    def InterpretedFunctionExp(  # not sure this is functional yet
+        self,
+        interpreted_function: "up.model.interpreted_function.InterpretedFunction",
+        params: Sequence[Expression] = tuple(),
+    ) -> "up.model.fnode.FNode":
+        """
+        | Creates an expression for the given ``interpreted_function`` and ``parameters``.
+        | Restriction: ``parameters type`` must be compatible with the ``interpreted_function`` :func:``signature <unified_planning.model.interpreted_function.signature>``
+
+        :param interpreted_function: The ``InterpretedFunction`` that will be set as the ``payload`` of this expression.
+        :param params: The Sequence of expressions acting as ``parameters`` for this ``InterpretedFunction``.
+        :return: The created ``InterpretedFunction`` Expression.
+        """
+        assert interpreted_function.environment == self.environment
+        params_exp = self.auto_promote(params)
+        if interpreted_function.arity != len(params_exp):
+            raise UPExpressionDefinitionError(
+                f"In InterpretedFunctionExp, fluent: {interpreted_function.name} has arity {interpreted_function.arity} but {len(params_exp)} parameters were passed."
+            )
+        return self.create_node(
+            node_type=OperatorKind.FLUENT_EXP,
+            args=tuple(params_exp),
+            payload=interpreted_function,
+        )
+
     def Dot(
         self,
         agent: Union["up.model.multi_agent.Agent", str],
