@@ -35,9 +35,7 @@ class InterpretedFunction:
         _signature: OrderedDict[
             str, "up.model.types.Type"
         ],  # should this only accept bool|int|fraction ?
-        lambda_function: Callable[
-            ...
-        ],  ########################################################################################
+        lambda_function: Callable,  ########################################################################################
         environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
@@ -45,7 +43,7 @@ class InterpretedFunction:
         self._name = name
         self._lambda_function = lambda_function
         if output_type is None:
-            self._output_type = (
+            self._output_type: "up.model.types.Type" = (
                 self._env.type_manager.BoolType()
             )  # remove this part ------------------------------------------------------------------
         else:
@@ -108,7 +106,7 @@ class InterpretedFunction:
             return False
 
     def __hash__(self) -> int:
-        res = hash(self._typename)
+        res = hash(self._output_type)
         for p in self._signature:
             res += hash(p)
         return res ^ hash(self._name)
