@@ -35,10 +35,15 @@ BoolExpression = Union[
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
     "up.model.variable.Variable",
+    "up.model.interpreted_function.InterpretedFunction",  # placeholder to fix mypy errors, not correct place, could cause errors without type checking
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
-NumericExpression = Union[NumericConstant, "up.model.fnode.FNode"]
+NumericExpression = Union[
+    NumericConstant,
+    "up.model.fnode.FNode",
+    "up.model.interpreted_function.InterpretedFunction",
+]  # placeholder to fix mypy errors, not correct place, could cause errors without type checking
 ConstantExpression = Union[
     NumericExpression,
     "up.model.object.Object",
@@ -127,6 +132,11 @@ class ExpressionManager(object):
                     e.environment == self.environment
                 ), "Fluent has a different environment of the expression manager"
                 res.append(self.FluentExp(e))
+            elif isinstance(e, up.model.interpreted_function.InterpretedFunction):
+                assert (
+                    e.environment == self.environment
+                ), "InterpretedFunction has a different environment of the expression manager"
+                res.append(self.InterpretedFunctionExp(e))
             elif isinstance(e, up.model.parameter.Parameter):
                 assert (
                     e.environment == self.environment
@@ -174,6 +184,7 @@ class ExpressionManager(object):
         payload: Optional[
             Union[
                 "up.model.fluent.Fluent",
+                "up.model.interpreted_function.InterpretedFunction",  # not sure this is ok
                 "up.model.object.Object",
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
