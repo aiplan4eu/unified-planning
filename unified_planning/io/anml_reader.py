@@ -144,7 +144,6 @@ class ANMLReader:
         self._problem = up.model.Problem(
             problem_name,
             self._env,
-            initial_defaults={self._tm.BoolType(): self._em.FALSE()},
         )
         types_map: Dict[str, "up.model.Type"] = self._create_types_map(grammar.types)
 
