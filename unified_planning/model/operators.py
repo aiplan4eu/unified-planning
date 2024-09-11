@@ -30,6 +30,7 @@ class OperatorKind(Enum):
     EXISTS = auto()
     FORALL = auto()
     FLUENT_EXP = auto()
+    INTERPRETED_FUNCTION_EXP = auto()
     PARAM_EXP = auto()
     VARIABLE_EXP = auto()
     OBJECT_EXP = auto()

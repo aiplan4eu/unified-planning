@@ -16,6 +16,7 @@
 
 import unified_planning
 import unified_planning.model.fluent
+import unified_planning.model.interpreted_function
 import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
@@ -65,6 +66,10 @@ class FNode(object):
             OperatorKind.INT_CONSTANT: lambda: str(self._content.payload),
             OperatorKind.REAL_CONSTANT: lambda: str(self._content.payload),
             OperatorKind.FLUENT_EXP: lambda: (
+                self._content.payload.name
+                + self.get_nary_expression_string(", ", self.args)
+            ),
+            OperatorKind.INTERPRETED_FUNCTION_EXP: lambda: (
                 self._content.payload.name
                 + self.get_nary_expression_string(", ", self.args)
             ),
@@ -191,6 +196,13 @@ class FNode(object):
     def fluent(self) -> "unified_planning.model.fluent.Fluent":
         """Return the `Fluent` stored in this expression."""
         assert self.is_fluent_exp()
+        return self._content.payload
+
+    def interpreted_function(
+        self,
+    ) -> "unified_planning.model.interpreted_function.InterpretedFunction":
+        """Return the `InterpretedFunction` stored in this expression."""
+        assert self.is_interpreted_function_exp()
         return self._content.payload
 
     def parameter(self) -> "unified_planning.model.parameter.Parameter":
@@ -321,6 +333,10 @@ class FNode(object):
     def is_fluent_exp(self) -> bool:
         """Test whether the node is a :class:`~unified_planning.model.Fluent` Expression."""
         return self.node_type == OperatorKind.FLUENT_EXP
+
+    def is_interpreted_function_exp(self) -> bool:
+        """Test whether the node is a :class:`~unified_planning.model.interpreted_function` Expression."""
+        return self.node_type == OperatorKind.INTERPRETED_FUNCTION_EXP
 
     def is_parameter_exp(self) -> bool:
         """Test whether the node is an :func:`action parameter <unified_planning.model.Action.parameters>`."""
