@@ -520,6 +520,7 @@ class TestProblem(unittest_TestCase):
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
         names_of_SNP_problems = [
+            "temporal_counter",
             "counter_to_50",
             "robot_decrease",
             "robot_locations_connected",
