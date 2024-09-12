@@ -14,20 +14,12 @@
 #
 """
 This module defines the InterpretedFunction class.
-An InterpretedFunction has a name, an output type, a signature
+An InterpretedFunction has a name, a return type, a signature
 that defines the types of its parameters and its code.
 """
 
 import unified_planning as up
-from unified_planning.model.types import (
-    domain_size,
-    domain_item,
-    _IntType,
-    Type,
-    _BoolType,
-    _RealType,
-    _UserType,
-)
+from unified_planning.model.types import domain_size, domain_item, _IntType
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPTypeError
 from typing import List, OrderedDict, Optional, Union, Iterator, cast, Callable
@@ -39,31 +31,20 @@ class InterpretedFunction:
     def __init__(
         self,
         name: str,
-        output_type: Union[
-            _IntType, _BoolType, _UserType, _RealType
-        ],  # was called typename ## should these be optional#####this should only be bool|int|fraction ?
-        _signature: OrderedDict[
-            str, Union[_IntType, _BoolType, _UserType, _RealType]
-        ],  # should this only accept bool|int|fraction ?
-        lambda_function: Callable,  # how should we do type checks for the callable / signature / expected output ???
+        return_type: "up.model.types.Type",
+        _signature: OrderedDict[str, "up.model.types.Type"],
+        function: Callable,
         environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         self._env = get_environment(environment)
         self._name = name
-        self._lambda_function = lambda_function
-        if output_type is None:  #
-            self._output_type: "up.model.types.Type" = (  #
-                self._env.type_manager.BoolType()  #
-            )  # remove this part? ------------------------------------------------------------------
-        else:  #
-            assert self._env.type_manager.has_type(
-                output_type
-            ), "type of parameter does not belong to the same environment of the interpreted function"
-            self._output_type = output_type
-        self._signature: List[
-            "up.model.parameter.Parameter"
-        ] = []  # leaving all these the same, probably something should change
+        self._function = function
+        assert self._env.type_manager.has_type(
+            return_type
+        ), "type of parameter does not belong to the same environment of the interpreted function"
+        self._return_type = return_type
+        self._signature: List["up.model.parameter.Parameter"] = []
         if _signature is not None:
             assert len(kwargs) == 0
             if isinstance(_signature, OrderedDict):
@@ -101,30 +82,30 @@ class InterpretedFunction:
         if self.arity > 0:
             sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
             sign = f'[{", ".join(sign_items)}]'
-        return f"{str(self.output_type)} {self.name}{sign}"
+        return f"{str(self.return_type)} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InterpretedFunction):
             return (
                 self._name == oth._name
-                and self._output_type == oth._output_type
+                and self._return_type == oth._return_type
                 and self._signature == oth._signature
                 and self._env == oth._env
-                and self._lambda_function == oth._lambda_function
+                and self._function == oth._function
             )
         else:
             return False
 
     def __hash__(self) -> int:
-        res = hash(self._output_type)
+        res = hash(self._return_type)
         for p in self._signature:
             res += hash(p)
         return res ^ hash(self._name)
 
     @property
     def lambra_function(self) -> Callable:
-        """Returns the `InterpretedFunction` `lambda_function`."""
-        return self._lambda_function
+        """Returns the `InterpretedFunction` `function`."""
+        return self._function
 
     @property
     def name(self) -> str:
@@ -132,9 +113,9 @@ class InterpretedFunction:
         return self._name
 
     @property
-    def output_type(self) -> "up.model.types.Type":
-        """Returns the `InterpretedFunction` expected output `Type`."""
-        return self._output_type
+    def return_type(self) -> "up.model.types.Type":
+        """Returns the `InterpretedFunction` expected return `Type`."""
+        return self._return_type
 
     @property
     def signature(self) -> List["up.model.parameter.Parameter"]:
@@ -173,7 +154,6 @@ class InterpretedFunction:
     #
     # Infix operators
     #
-    # all left as they are for now
 
     def __add__(self, right):
         return self._env.expression_manager.Plus(self, right)
@@ -267,40 +247,3 @@ class InterpretedFunction:
 
     def Iff(self, right):
         return self._env.expression_manager.Iff(self, right)
-
-
-#
-# def get_ith_fluent_exp(
-#    fluent: "up.model.fluent.Fluent",
-#    domains: List[List["up.model.FNode"]],
-#    idx: int,
-# ) -> "up.model.fnode.FNode":
-#    """Returns the ith ground fluent expression."""
-#    quot = idx
-#    rem = 0
-#    actual_parameters = []
-#    for i, p in enumerate(fluent.signature):
-#        ds = len(domains[i])
-#        rem = quot % ds
-#        quot //= ds
-#        v = domains[i][rem]
-#        actual_parameters.append(v)
-#    return fluent(*actual_parameters)
-
-
-# def get_all_fluent_exp(
-#    objects_set: "up.model.mixins.ObjectsSetMixin",
-#    fluent: "up.model.fluent.Fluent",
-# ) -> Iterator["up.model.fnode.FNode"]:
-#    if fluent.arity == 0:
-#        yield fluent.environment.expression_manager.FluentExp(fluent)
-#    else:
-#        ground_size = 1
-#        domains = []
-#        for p in fluent.signature:
-#            ds = domain_size(objects_set, p.type)
-#            domain = [domain_item(objects_set, p.type, i) for i in range(ds)]
-#            domains.append(domain)
-#            ground_size *= ds
-#        for i in range(ground_size):
-#            yield get_ith_fluent_exp(fluent, domains, i)
