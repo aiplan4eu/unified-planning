@@ -35,15 +35,14 @@ BoolExpression = Union[
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
     "up.model.variable.Variable",
-    "up.model.interpreted_function.InterpretedFunction",  # placeholder to fix mypy errors, not correct place, could cause errors without type checking
+    "up.model.interpreted_function.InterpretedFunction",
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
 NumericExpression = Union[
     NumericConstant,
     "up.model.fnode.FNode",
-    "up.model.interpreted_function.InterpretedFunction",
-]  # placeholder to fix mypy errors, not correct place, could cause errors without type checking
+]
 ConstantExpression = Union[
     NumericExpression,
     "up.model.object.Object",
