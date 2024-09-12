@@ -19,7 +19,15 @@ that defines the types of its parameters and its code.
 """
 
 import unified_planning as up
-from unified_planning.model.types import domain_size, domain_item, _IntType
+from unified_planning.model.types import (
+    domain_size,
+    domain_item,
+    _IntType,
+    Type,
+    _BoolType,
+    _RealType,
+    _UserType,
+)
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPTypeError
 from typing import List, OrderedDict, Optional, Union, Iterator, cast, Callable
@@ -31,22 +39,24 @@ class InterpretedFunction:
     def __init__(
         self,
         name: str,
-        output_type: "up.model.types.Type",  # was called typename ## should these be optional#####this should only be bool|int|fraction ?
+        output_type: Union[
+            _IntType, _BoolType, _UserType, _RealType
+        ],  # was called typename ## should these be optional#####this should only be bool|int|fraction ?
         _signature: OrderedDict[
-            str, "up.model.types.Type"
+            str, Union[_IntType, _BoolType, _UserType, _RealType]
         ],  # should this only accept bool|int|fraction ?
-        lambda_function: Callable,  ########################################################################################
+        lambda_function: Callable,  # how should we do type checks for the callable / signature / expected output ???
         environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
         self._env = get_environment(environment)
         self._name = name
         self._lambda_function = lambda_function
-        if output_type is None:
-            self._output_type: "up.model.types.Type" = (
-                self._env.type_manager.BoolType()
-            )  # remove this part ------------------------------------------------------------------
-        else:
+        if output_type is None:  #
+            self._output_type: "up.model.types.Type" = (  #
+                self._env.type_manager.BoolType()  #
+            )  # remove this part? ------------------------------------------------------------------
+        else:  #
             assert self._env.type_manager.has_type(
                 output_type
             ), "type of parameter does not belong to the same environment of the interpreted function"
@@ -83,7 +93,7 @@ class InterpretedFunction:
                 )
             ):
                 raise UPTypeError(
-                    f"Parameter {param} of interpreted function {name} has type {pt}."  # this should probably be different
+                    f"Parameter {param} of interpreted function {name} has type {pt}; interpreted function parameters must be int|real|bool|userType."  # this should probably be different
                 )
 
     def __repr__(self) -> str:
@@ -91,7 +101,7 @@ class InterpretedFunction:
         if self.arity > 0:
             sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
             sign = f'[{", ".join(sign_items)}]'
-        return f"{str(self.type)} {self.name}{sign}"
+        return f"{str(self.output_type)} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InterpretedFunction):
@@ -112,13 +122,18 @@ class InterpretedFunction:
         return res ^ hash(self._name)
 
     @property
+    def lambra_function(self) -> Callable:
+        """Returns the `InterpretedFunction` `lambda_function`."""
+        return self._lambda_function
+
+    @property
     def name(self) -> str:
         """Returns the `InterpretedFunction` `name`."""
         return self._name
 
     @property
-    def type(self) -> "up.model.types.Type":
-        """Returns the `InterpretedFunction` `Type`."""
+    def output_type(self) -> "up.model.types.Type":
+        """Returns the `InterpretedFunction` expected output `Type`."""
         return self._output_type
 
     @property
@@ -153,9 +168,7 @@ class InterpretedFunction:
         :param args: The expressions used as this interpreted function's parameters in the created expression.
         :return: The created InterpretedFunctionExp.
         """
-        return self._env.expression_manager.InterpretedFunctionExp(
-            self, args
-        )  ## does not exist yet-----------------------
+        return self._env.expression_manager.InterpretedFunctionExp(self, args)
 
     #
     # Infix operators
