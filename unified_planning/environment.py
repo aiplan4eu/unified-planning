@@ -23,8 +23,6 @@ such as the :func:`ExpressionManager <unified_planning.Environment.expression_ma
 import sys
 from typing import IO, Optional
 import unified_planning
-import unified_planning.model.walkers.interpreted_functions_extractor
-import unified_planning.model.walkers.interpreted_functions_extractor
 
 
 class Environment:
@@ -135,8 +133,8 @@ class Environment:
     @property
     def interpreted_function_extractor(
         self,
-    ) -> "unified_planning.model.walkers.InterpretedFunctionExtractor":
-        """Returns the environment's `InterpretedFunctionExtractor`."""
+    ) -> "unified_planning.model.walkers.InterpretedFunctionsExtractor":
+        """Returns the environment's `InterpretedFunctionsExtractor`."""
         return self._interpreted_function_extractor
 
     @property
