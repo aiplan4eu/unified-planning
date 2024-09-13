@@ -23,6 +23,8 @@ such as the :func:`ExpressionManager <unified_planning.Environment.expression_ma
 import sys
 from typing import IO, Optional
 import unified_planning
+import unified_planning.model.walkers.interpreted_functions_extractor
+import unified_planning.model.walkers.interpreted_functions_extractor
 
 
 class Environment:
@@ -49,6 +51,9 @@ class Environment:
         self._simplifier = unified_planning.model.walkers.Simplifier(self)
         self._substituter = unified_planning.model.walkers.Substituter(self)
         self._free_vars_extractor = unified_planning.model.walkers.FreeVarsExtractor()
+        self._interpreted_function_extractor = (
+            unified_planning.model.walkers.InterpretedFunctionsExtractor()
+        )
         self._names_extractor = unified_planning.model.walkers.NamesExtractor()
         self._credits_stream: Optional[IO[str]] = sys.stdout
         self._error_used_name: bool = True
@@ -126,6 +131,13 @@ class Environment:
     def free_vars_extractor(self) -> "unified_planning.model.walkers.FreeVarsExtractor":
         """Returns the environment's `FreeVarsExtractor`."""
         return self._free_vars_extractor
+
+    @property
+    def interpreted_function_extractor(
+        self,
+    ) -> "unified_planning.model.walkers.InterpretedFunctionExtractor":
+        """Returns the environment's `InterpretedFunctionExtractor`."""
+        return self._interpreted_function_extractor
 
     @property
     def names_extractor(self) -> "unified_planning.model.walkers.NamesExtractor":
