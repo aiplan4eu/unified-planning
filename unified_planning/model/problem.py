@@ -43,7 +43,7 @@ from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
 
-import networkx as nx
+import networkx as nx  # type: ignore
 from fractions import Fraction
 from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
@@ -815,6 +815,9 @@ class _KindFactory:
     ):
         value = self.simplifier.simplify(e.value)
         fluents_in_value = self.environment.free_vars_extractor.get(value)
+        interpreted_functions_in_value = (
+            self.environment.interpreted_function_extractor.get(value)
+        )
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
