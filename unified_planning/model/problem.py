@@ -1009,6 +1009,9 @@ class _KindFactory:
         free_vars = self.environment.free_vars_extractor.get(
             lower
         ) | self.environment.free_vars_extractor.get(upper)
+        interpreted_functions = self.environment.interpreted_function_extractor.get(
+            lower
+        ) | self.environment.interpreted_function_extractor.get(upper)
         if len(free_vars) > 0:
             only_static = True
             for fv in free_vars:
@@ -1019,6 +1022,8 @@ class _KindFactory:
                 self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
             else:
                 self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        if len(interpreted_functions) > 0:
+            self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
 
     def update_action_timed_condition(
         self, span: "up.model.TimeInterval", cond: "up.model.FNode"
