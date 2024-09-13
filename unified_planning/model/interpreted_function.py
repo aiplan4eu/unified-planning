@@ -52,11 +52,6 @@ class InterpretedFunction:
                     self._signature.append(
                         up.model.parameter.Parameter(param_name, param_type, self._env)
                     )
-            elif isinstance(_signature, List):
-                assert all(
-                    p.environment == self._env for p in _signature
-                ), "one of the parameters does not belong to the same environment of the interpreted function"
-                self._signature = _signature[:]
             else:
                 raise NotImplementedError
         else:
@@ -64,18 +59,19 @@ class InterpretedFunction:
                 self._signature.append(
                     up.model.parameter.Parameter(param_name, param_type, self._env)
                 )
-        for param in self._signature:
-            pt = param.type
-            if pt.is_real_type() or (
-                pt.is_int_type()
-                and (
-                    cast(_IntType, pt).lower_bound is None
-                    or cast(_IntType, pt).upper_bound is None
-                )
-            ):
-                raise UPTypeError(
-                    f"Parameter {param} of interpreted function {name} has type {pt}; interpreted function parameters must be int|real|bool|userType."  # this should probably be different
-                )
+
+    #        for param in self._signature:
+    #            pt = param.type
+    #            if pt.is_real_type() or (
+    #                pt.is_int_type()
+    #                and (
+    #                    cast(_IntType, pt).lower_bound is None
+    #                    or cast(_IntType, pt).upper_bound is None
+    #                )
+    #            ):
+    #                raise UPTypeError(
+    #                    f"Parameter {param} of interpreted function {name} has type {pt}; interpreted function parameters must be int|real|bool|userType."  # this should probably be different
+    #                )
 
     def __repr__(self) -> str:
         sign = ""
