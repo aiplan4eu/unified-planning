@@ -848,6 +848,10 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if len(interpreted_functions_in_value) != 0:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                    )
         elif e.is_decrease():
             self.kind.set_effects_kind("DECREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
@@ -870,6 +874,10 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if len(interpreted_functions_in_value) != 0:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                    )
         elif e.is_assignment():
             value_type = value.type
             if (
@@ -886,16 +894,28 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+                if len(interpreted_functions_in_value) != 0:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                    )
             elif value.type.is_bool_type():
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+                if len(interpreted_functions_in_value) != 0:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
+                    )
             elif value.type.is_user_type():
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+                if len(interpreted_functions_in_value) != 0:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
+                    )
         elif e.is_continuous_increase():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_continuous_decrease():
