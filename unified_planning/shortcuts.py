@@ -192,7 +192,7 @@ def InterpretedFunctionExp(
     :param params: The Iterable of expressions acting as ``parameters`` for this ``InterpretedFunction``.
     :return: The created ``InterpretedFunction`` Expression.
     """
-    return get_environment().expression_manager.InterpretedFunction(
+    return get_environment().expression_manager.InterpretedFunctionExp(
         interpreted_function, params
     )
 
