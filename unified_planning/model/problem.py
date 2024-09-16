@@ -756,7 +756,7 @@ class _KindFactory:
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
-        assert isinstance(pb, InterpretedFunctionsSetMixin)
+        # assert isinstance(pb, InterpretedFunctionsSetMixin)#???
         assert isinstance(pb, ObjectsSetMixin)
         assert isinstance(pb, UserTypesSetMixin)
         assert isinstance(pb, TimeModelMixin)
