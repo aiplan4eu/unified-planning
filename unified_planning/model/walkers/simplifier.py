@@ -330,6 +330,14 @@ class Simplifier(walkers.dag.DagWalker):
             else:  # value is static but is not defined in the initial state
                 return new_exp
 
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List[FNode]
+    ) -> FNode:
+        new_exp = self.manager.InterpretedFunctionExp(
+            expression.interpreted_function(), tuple(args)
+        )
+        return new_exp
+
     def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.Dot(expression.agent(), args[0])
 
