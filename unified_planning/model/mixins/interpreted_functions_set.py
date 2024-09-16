@@ -40,7 +40,7 @@ class InterpretedFunctionsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._interpreted_functions: List[
-            "up.model.interpreted_funciton.InterpretedFunction"
+            "up.model.interpreted_function.InterpretedFunction"
         ] = []
         self._interpreted_functions_defaults: Dict[
             "up.model.interpreted_function.InterpretedFunction", "up.model.fnode.FNode"
@@ -64,7 +64,9 @@ class InterpretedFunctionsSetMixin:
         """Returns the `interpreted_functions` currently in the `problem`."""
         return self._interpreted_functions
 
-    def interpreted_function(self, name: str) -> "up.model.fluent.Fluent":
+    def interpreted_function(
+        self, name: str
+    ) -> "up.model.interpreted_function.InterpretedFunction":
         """
         Returns the `interpreted_function` with the given name.
 
@@ -148,20 +150,20 @@ class InterpretedFunctionsSetMixin:
             else:
                 warn(msg)
         self._interpreted_functions.append(interpreted_function)
-        if not default_initial_value is None:
-            (v_exp,) = self.environment.expression_manager.auto_promote(
-                default_initial_value
-            )
-            self._interpreted_functions_defaults[interpreted_function] = v_exp
-        elif interpreted_function.type in self._initial_defaults:
-            self._interpreted_functions_defaults[
-                interpreted_function
-            ] = self._initial_defaults[interpreted_function.type]
-        if interpreted_function.type.is_user_type():
-            self._add_user_type_method(interpreted_function.type)
-        for param in interpreted_function.signature:
-            if param.type.is_user_type():
-                self._add_user_type_method(param.type)
+        # if not default_initial_value is None:
+        #    (v_exp,) = self.environment.expression_manager.auto_promote(
+        #        default_initial_value
+        #    )
+        #    self._interpreted_functions_defaults[interpreted_function] = v_exp
+        # elif interpreted_function.type in self._initial_defaults:
+        #    self._interpreted_functions_defaults[
+        #        interpreted_function
+        #    ] = self._initial_defaults[interpreted_function.type]
+        # if interpreted_function.type.is_user_type():
+        #    self._add_user_type_method(interpreted_function.type)
+        # for param in interpreted_function.signature:
+        #    if param.type.is_user_type():
+        #        self._add_user_type_method(param.type)
 
         return interpreted_function
 
@@ -195,7 +197,7 @@ class InterpretedFunctionsSetMixin:
         return True
 
     def __hash__(self):
-        return sum(map(hash, self._fluents))
+        return sum(map(hash, self._interpreted_functions))
 
     def _clone_to(self, other: "InterpretedFunctionsSetMixin"):
         other._interpreted_functions = self._interpreted_functions.copy()
