@@ -26,6 +26,7 @@ from unified_planning.model.mixins import (
     NaturalTransitionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
+    InterpretedFunctionsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
     InitialStateMixin,
@@ -53,6 +54,7 @@ class Problem(  # type: ignore[misc]
     UserTypesSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
+    InterpretedFunctionsSetMixin,
     ActionsSetMixin,
     NaturalTransitionsSetMixin,
     ObjectsSetMixin,
@@ -78,6 +80,9 @@ class Problem(  # type: ignore[misc]
             self, epsilon_default=None, discrete_time=False, self_overlapping=False
         )
         FluentsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name, initial_defaults
+        )
+        InterpretedFunctionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
         ActionsSetMixin.__init__(
@@ -185,6 +190,8 @@ class Problem(  # type: ignore[misc]
             return False
         if not FluentsSetMixin.__eq__(self, oth):
             return False
+        if not InterpretedFunctionsSetMixin.__eq__(self, oth):
+            return False
         if not InitialStateMixin.__eq__(self, oth):
             return False
         if not MetricsMixin.__eq__(self, oth):
@@ -219,6 +226,7 @@ class Problem(  # type: ignore[misc]
         res = hash(self._name)
 
         res += FluentsSetMixin.__hash__(self)
+        res += InterpretedFunctionsSetMixin.__hash__(self)
         res += ObjectsSetMixin.__hash__(self)
         res += UserTypesSetMixin.__hash__(self)
         res += InitialStateMixin.__hash__(self)
@@ -245,6 +253,7 @@ class Problem(  # type: ignore[misc]
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
+        InterpretedFunctionsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         TimeModelMixin._clone_to(self, new_p)
 
@@ -744,6 +753,7 @@ class _KindFactory:
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
+        assert isinstance(pb, InterpretedFunctionsSetMixin)
         assert isinstance(pb, ObjectsSetMixin)
         assert isinstance(pb, UserTypesSetMixin)
         assert isinstance(pb, TimeModelMixin)
