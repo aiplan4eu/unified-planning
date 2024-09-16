@@ -816,6 +816,7 @@ class _KindFactory:
     ):
         value = self.simplifier.simplify(e.value)
         fluents_in_value = self.environment.free_vars_extractor.get(value)
+        ops = self.operators_extractor.get(value)
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -842,6 +843,10 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -864,6 +869,10 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -880,16 +889,28 @@ class _KindFactory:
                     or not value.is_constant()
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type():
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTION_IN_BOOLEAN_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
             elif value.type.is_user_type():
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTION_IN_OBJECT_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
