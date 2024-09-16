@@ -975,6 +975,7 @@ class _KindFactory:
 
     def update_action_duration(self, duration: "up.model.DurationInterval"):
         lower, upper = duration.lower, duration.upper
+
         for dur_bound in (lower, upper):
             if dur_bound.type.is_int_type():
                 self.kind.set_expression_duration("INT_TYPE_DURATIONS")
@@ -987,6 +988,9 @@ class _KindFactory:
         free_vars = self.environment.free_vars_extractor.get(
             lower
         ) | self.environment.free_vars_extractor.get(upper)
+        ops = self.operators_extractor.get(lower) | self.operators_extractor.get(upper)
+        if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+            self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
 
         if len(free_vars) > 0:
             only_static = True
