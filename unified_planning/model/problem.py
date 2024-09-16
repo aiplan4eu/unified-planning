@@ -24,7 +24,6 @@ from unified_planning.model.mixins import (
     ActionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
-    InterpretedFunctionsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
     InitialStateMixin,
@@ -52,7 +51,6 @@ class Problem(  # type: ignore[misc]
     UserTypesSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
-    InterpretedFunctionsSetMixin,
     ActionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
@@ -79,9 +77,7 @@ class Problem(  # type: ignore[misc]
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
-        InterpretedFunctionsSetMixin.__init__(
-            self, self.environment, self._add_user_type, self.has_name, initial_defaults
-        )
+
         ActionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
@@ -118,9 +114,6 @@ class Problem(  # type: ignore[misc]
             s.append(f"types = {str(list(self.user_types))}\n\n")
         s.append("fluents = [\n")
         s.extend(map(custom_str, self.fluents))
-        s.append("]\n\n")
-        s.append("interpreted  functions = [\n")
-        s.extend(map(custom_str, self.interpreted_functions))
         s.append("]\n\n")
         s.append("actions = [\n")
         s.extend(map(custom_str, self.actions))
@@ -179,8 +172,6 @@ class Problem(  # type: ignore[misc]
             return False
         if not FluentsSetMixin.__eq__(self, oth):
             return False
-        if not InterpretedFunctionsSetMixin.__eq__(self, oth):
-            return False
         if not InitialStateMixin.__eq__(self, oth):
             return False
         if not MetricsMixin.__eq__(self, oth):
@@ -215,7 +206,6 @@ class Problem(  # type: ignore[misc]
         res = hash(self._name)
 
         res += FluentsSetMixin.__hash__(self)
-        res += InterpretedFunctionsSetMixin.__hash__(self)
         res += ObjectsSetMixin.__hash__(self)
         res += UserTypesSetMixin.__hash__(self)
         res += InitialStateMixin.__hash__(self)
@@ -242,7 +232,6 @@ class Problem(  # type: ignore[misc]
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
-        InterpretedFunctionsSetMixin._clone_to(self, new_p)
         InitialStateMixin._clone_to(self, new_p)
         TimeModelMixin._clone_to(self, new_p)
 
@@ -720,7 +709,6 @@ class _KindFactory:
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
-        # assert isinstance(pb, InterpretedFunctionsSetMixin)#???
         assert isinstance(pb, ObjectsSetMixin)
         assert isinstance(pb, UserTypesSetMixin)
         assert isinstance(pb, TimeModelMixin)
@@ -792,9 +780,6 @@ class _KindFactory:
     ):
         value = self.simplifier.simplify(e.value)
         fluents_in_value = self.environment.free_vars_extractor.get(value)
-        interpreted_functions_in_value = (
-            self.environment.interpreted_function_extractor.get(value)
-        )
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -825,10 +810,6 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if len(interpreted_functions_in_value) != 0:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
-                    )
         elif e.is_decrease():
             self.kind.set_effects_kind("DECREASE_EFFECTS")
             # If the value is a number (int or real) and it violates the constraint
@@ -851,10 +832,6 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if len(interpreted_functions_in_value) != 0:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
-                    )
         elif e.is_assignment():
             value_type = value.type
             if (
@@ -871,28 +848,16 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if len(interpreted_functions_in_value) != 0:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
-                    )
             elif value.type.is_bool_type():
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-                if len(interpreted_functions_in_value) != 0:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
-                    )
             elif value.type.is_user_type():
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-                if len(interpreted_functions_in_value) != 0:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
-                    )
 
     def update_problem_kind_expression(
         self,
@@ -982,9 +947,7 @@ class _KindFactory:
         free_vars = self.environment.free_vars_extractor.get(
             lower
         ) | self.environment.free_vars_extractor.get(upper)
-        interpreted_functions = self.environment.interpreted_function_extractor.get(
-            lower
-        ) | self.environment.interpreted_function_extractor.get(upper)
+
         if len(free_vars) > 0:
             only_static = True
             for fv in free_vars:
@@ -995,8 +958,6 @@ class _KindFactory:
                 self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
             else:
                 self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
-        if len(interpreted_functions) > 0:
-            self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
 
     def update_action_timed_condition(
         self, span: "up.model.TimeInterval", cond: "up.model.FNode"
