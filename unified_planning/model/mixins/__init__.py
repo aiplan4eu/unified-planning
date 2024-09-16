@@ -19,6 +19,9 @@ from unified_planning.model.mixins.natural_transitions_set import (
 )
 from unified_planning.model.mixins.time_model import TimeModelMixin
 from unified_planning.model.mixins.fluents_set import FluentsSetMixin
+from unified_planning.model.mixins.interpreted_functions_set import (
+    InterpretedFunctionsSetMixin,
+)
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
 from unified_planning.model.mixins.agents_set import AgentsSetMixin
@@ -30,6 +33,7 @@ __all__ = [
     "NaturalTransitionsSetMixin",
     "TimeModelMixin",
     "FluentsSetMixin",
+    "InterpretedFunctionsSetMixin",
     "ObjectsSetMixin",
     "UserTypesSetMixin",
     "AgentsSetMixin",
