@@ -507,10 +507,10 @@ class ExpressionManager(object):
         params_exp = self.auto_promote(params)
         if interpreted_function.arity != len(params_exp):
             raise UPExpressionDefinitionError(
-                f"In InterpretedFunctionExp, fluent: {interpreted_function.name} has arity {interpreted_function.arity} but {len(params_exp)} parameters were passed."
+                f"In InterpretedFunctionExp, interpreted_function: {interpreted_function.name} has arity {interpreted_function.arity} but {len(params_exp)} parameters were passed."
             )
         return self.create_node(
-            node_type=OperatorKind.FLUENT_EXP,
+            node_type=OperatorKind.INTERPRETED_FUNCTION_EXP,
             args=tuple(params_exp),
             payload=interpreted_function,
         )
