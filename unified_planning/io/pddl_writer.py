@@ -586,10 +586,12 @@ class PDDLWriter:
                 out.write(")\n")
 
         for a in self.problem.actions:
-            if isinstance(a, up.model.InstantaneousAction) or isinstance(a, up.model.Event):
+            if isinstance(a, up.model.InstantaneousAction) or isinstance(
+                a, up.model.Event
+            ):
                 if any(p.simplify().is_false() for p in a.preconditions):
                     continue
-                if isinstance(a,up.model.Event):
+                if isinstance(a, up.model.Event):
                     out.write(f" (:event {self._get_mangled_name(a)}")
                 else:
                     out.write(f" (:action {self._get_mangled_name(a)}")
@@ -1221,7 +1223,8 @@ def _write_effect(
         out.write(")")
     if effect.is_forall():
         out.write(")")
-        
+
+
 def _write_derivative(
     effect: Effect,
     out: IO[str],

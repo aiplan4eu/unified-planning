@@ -764,13 +764,15 @@ class SensingAction(InstantaneousAction):
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
-    
+
+
 """
 Below we have natural transitions. These are not controlled by the agent and would probably need a proper subclass. Natural transitions can be of two kinds:
 Processes or Events.
 Processes dictate how numeric variables evolve over time through the use of time-derivative functions
 Events dictate the analogous of urgent transitions in timed automata theory
-"""    
+"""
+
 
 class Process(Action):
     """This is the `Process` class, which implements the abstract `Process` class."""
@@ -849,9 +851,7 @@ class Process(Action):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
-        new_instantaneous_action = Process(
-            self._name, new_params, self._environment
-        )
+        new_instantaneous_action = Process(self._name, new_params, self._environment)
         new_instantaneous_action._preconditions = self._preconditions[:]
         new_instantaneous_action._effects = [e.clone() for e in self._effects]
         new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
@@ -882,13 +882,14 @@ class Process(Action):
     def __str__(self) -> str:
         """Return a string representation of the `Process`."""
         return f"Process(name={self._name}, parameters={self._parameters})"
+
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
         assert (
             effect.environment == self._environment
         ), "effect does not have the same environment of the action"
-        
+
         self._effects.append(effect)
-        
+
     def add_precondition(
         self,
         precondition: Union[
@@ -922,7 +923,7 @@ class Process(Action):
     def add_derivative(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: "up.model.expression.Expression"
+        value: "up.model.expression.Expression",
     ):
         """
         Adds the given `derivative effect` to the `process's effects`.
@@ -955,13 +956,15 @@ class Process(Action):
                 value_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.INCREASE,
-                forall = tuple(),
+                forall=tuple(),
             )
         )
+
     def __repr__(self) -> str:
         action_str = InstantaneousAction.__repr__(self)
-        return action_str.replace("action","process")
-        
+        return action_str.replace("action", "process")
+
+
 class Event(InstantaneousAction):
     """This class represents an event."""
 
@@ -973,7 +976,6 @@ class Event(InstantaneousAction):
         **kwargs: "up.model.types.Type",
     ):
         InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
-        self._observed_fluents: List["up.model.fnode.FNode"] = []
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Event):
@@ -983,7 +985,7 @@ class Event(InstantaneousAction):
 
     def __repr__(self) -> str:
         action_str = InstantaneousAction.__repr__(self)
-        return action_str.replace("action","event")
+        return action_str.replace("action", "event")
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -995,5 +997,3 @@ class Event(InstantaneousAction):
             res += hash(e)
         res += hash(self._simulated_effect)
         return res
-    
-    
