@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from typing import OrderedDict
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -598,4 +599,40 @@ def get_example_problems():
         invalid_plans=[],
     )
 
+    # interpreted functions in durations
+    problem = Problem("interpreted_functions_in_durations")
+
+    def callableFun(
+        israining, basetime
+    ):  # if it rains you will take longer to walk home
+        r = basetime
+        if israining:
+            r = basetime * 1.4
+        return r
+
+    signature = OrderedDict()
+    signature["israining"] = BoolType()
+    signature["basetime"] = IntType()
+    funx = InterpretedFunction("funx", RealType(), signature, callableFun)
+    athome = Fluent("athome")
+    rain = Fluent("rain")
+    normaltime = Fluent("normaltime", IntType(0, 20))
+    gohome = DurativeAction("gohome")
+    gohome.add_condition(StartTiming(), Not(athome))
+    gohome.add_effect(EndTiming(), athome, True)
+    gohome.set_fixed_duration(funx(rain, normaltime))
+    problem = Problem("IF_in_durations")
+    problem.add_fluent(athome)
+    problem.add_fluent(rain)
+    problem.add_fluent(normaltime)
+    problem.add_action(gohome)
+    problem.set_initial_value(athome, False)
+    problem.set_initial_value(rain, True)
+    problem.set_initial_value(normaltime, 10)
+    problem.add_goal(athome)
+
+    problems["interpreted_functions_in_durations"] = TestCase(
+        problem=problem,
+        solvable=True,
+    )  # solvable=True, valid_plans=[up.plans.SequentialPlan([gohome])]
     return problems
