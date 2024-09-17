@@ -896,7 +896,7 @@ class _KindFactory:
             elif value.type.is_bool_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                        "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
                     )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -905,7 +905,7 @@ class _KindFactory:
             elif value.type.is_user_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                        "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
                     )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
