@@ -183,7 +183,7 @@ class ExpressionManager(object):
         payload: Optional[
             Union[
                 "up.model.fluent.Fluent",
-                "up.model.interpreted_function.InterpretedFunction",  # not sure this is ok
+                "up.model.interpreted_function.InterpretedFunction",
                 "up.model.object.Object",
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
