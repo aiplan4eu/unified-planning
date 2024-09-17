@@ -81,6 +81,25 @@ class ActionsSetMixin:
         for a in self._actions:
             if isinstance(a, up.model.action.DurativeAction):
                 yield a
+    
+    @property
+    def processes(self) -> Iterator["up.model.action.Process"]:
+        """Returs all the sensing actions of the problem.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        seldom as possible."""
+        for a in self._actions:
+            if isinstance(a, up.model.action.Process):
+                yield a
+    @property
+    def events(self) -> Iterator["up.model.action.Event"]:
+        """Returs all the sensing actions of the problem.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        seldom as possible."""
+        for a in self._actions:
+            if isinstance(a, up.model.action.Event):
+                yield a
 
     @property
     def conditional_actions(self) -> List["up.model.action.Action"]:
