@@ -85,7 +85,7 @@ class Problem(  # type: ignore[misc]
         )
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
-
+        
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
@@ -115,6 +115,8 @@ class Problem(  # type: ignore[misc]
         s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
         s.append("actions = [\n")
+        s.extend(map(custom_str, self.actions))
+        s.append("processes = [\n")
         s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
         if len(self.user_types) > 0:
@@ -331,6 +333,10 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
+            elif isinstance(a,  up.model.action.Process):
+                for e in a.effects:
+                    remove_used_fluents(e.fluent, e.value, e.condition)
+                    static_fluents.discard(e.fluent.fluent())
             else:
                 raise NotImplementedError
         for el in self._timed_effects.values():
@@ -682,6 +688,9 @@ class Problem(  # type: ignore[misc]
         for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
         factory.update_problem_kind_initial_state(self)
+        self.processes
+        if len(list(self.processes)) > 0:
+            factory.kind.set_time("PROCESSES")
 
         return factory
 
@@ -1003,6 +1012,8 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
+        elif isinstance(action, up.model.action.Process):
+            pass    
         else:
             raise NotImplementedError
 

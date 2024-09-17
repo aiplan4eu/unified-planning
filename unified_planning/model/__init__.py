@@ -19,6 +19,8 @@ from unified_planning.model.action import (
     InstantaneousAction,
     DurativeAction,
     SensingAction,
+    Process,
+    Event,
 )
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
@@ -82,6 +84,8 @@ import unified_planning.model.scheduling
 __all__ = [
     "Action",
     "InstantaneousAction",
+    "Process",
+    "Event",
     "DurativeAction",
     "Effect",
     "SimulatedEffect",

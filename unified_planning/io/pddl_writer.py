@@ -586,10 +586,13 @@ class PDDLWriter:
                 out.write(")\n")
 
         for a in self.problem.actions:
-            if isinstance(a, up.model.InstantaneousAction):
+            if isinstance(a, up.model.InstantaneousAction) or isinstance(a, up.model.Event):
                 if any(p.simplify().is_false() for p in a.preconditions):
                     continue
-                out.write(f" (:action {self._get_mangled_name(a)}")
+                if isinstance(a,up.model.Event):
+                    out.write(f" (:event {self._get_mangled_name(a)}")
+                else:
+                    out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 for ap in a.parameters:
                     if ap.type.is_user_type():
@@ -625,6 +628,40 @@ class PDDLWriter:
                     if a in costs:
                         out.write(
                             f" (increase (total-cost) {converter.convert(costs[a])})"
+                        )
+                    out.write(")")
+                out.write(")\n")
+            elif isinstance(a, up.model.Process):
+                if any(p.simplify().is_false() for p in a.preconditions):
+                    continue
+                out.write(f" (:process {self._get_mangled_name(a)}")
+                out.write(f"\n  :parameters (")
+                for ap in a.parameters:
+                    if ap.type.is_user_type():
+                        out.write(
+                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                        )
+                    else:
+                        raise UPTypeError("PDDL supports only user type parameters")
+                out.write(")")
+                if len(a.preconditions) > 0:
+                    precond_str = []
+                    for p in (c.simplify() for c in a.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                elif len(a.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
+                if len(a.effects) > 0:
+                    out.write("\n  :effect (and")
+                    for e in a.effects:
+                        _write_derivative(
+                            e,
+                            out,
+                            converter,
                         )
                     out.write(")")
                 out.write(")\n")
@@ -1184,3 +1221,21 @@ def _write_effect(
         out.write(")")
     if effect.is_forall():
         out.write(")")
+        
+def _write_derivative(
+    effect: Effect,
+    out: IO[str],
+    converter: ConverterToPDDLString,
+):
+    simplified_cond = effect.condition.simplify()
+    # check for non-constant-bool-assignment
+    simplified_value = effect.value.simplify()
+    fluent = converter.convert(effect.fluent)
+    if effect.is_increase():
+        out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
+    elif effect.is_decrease():
+        out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
+    else:
+        raise UPProblemDefinitionError(
+            "Derivative can only be expressed as increase, decrease in processes",
+        )
