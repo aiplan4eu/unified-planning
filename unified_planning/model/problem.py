@@ -843,10 +843,7 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
-                    )
+
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -869,19 +866,21 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
-                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_assignment():
+
             value_type = value.type
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                    )
                 if (  # if the fluent has increase/decrease constraints or the value assigned is not a constant,
                     # unset "SIMPLE_NUMERIC_PLANNING"
                     e.fluent in self.fluents_to_only_increase
@@ -889,10 +888,7 @@ class _KindFactory:
                     or not value.is_constant()
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
-                    self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTION_IN_NUMERIC_ASSIGNMENTS"
-                    )
+
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -900,7 +896,7 @@ class _KindFactory:
             elif value.type.is_bool_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTION_IN_BOOLEAN_ASSIGNMENTS"
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
                     )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -909,7 +905,7 @@ class _KindFactory:
             elif value.type.is_user_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
-                        "INTERPRETED_FUNCTION_IN_OBJECT_ASSIGNMENTS"
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
                     )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
