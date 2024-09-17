@@ -189,6 +189,30 @@ class PDDLGrammar:
             + Optional(":observe" - set_results_name(nested_expr(), "obs"))
             + Suppress(")")
         )
+        process_def = Group(
+            Suppress("(")
+            + ":process"
+            - set_results_name(name, "name")
+            + ":parameters"
+            - Suppress("(")
+            + parameters
+            + Suppress(")")
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Suppress(")")
+        )
+        event_def = Group(
+            Suppress("(")
+            + ":event"
+            - set_results_name(name, "name")
+            + ":parameters"
+            - Suppress("(")
+            + parameters
+            + Suppress(")")
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Suppress(")")
+        )
 
         dur_action_def = Group(
             Suppress("(")
@@ -260,6 +284,8 @@ class PDDLGrammar:
             + set_results_name(
                 Group(ZeroOrMore(action_def | dur_action_def)), "actions"
             )
+            + set_results_name(Group(ZeroOrMore(process_def)), "processes")
+            + set_results_name(Group(ZeroOrMore(event_def)), "events")
             + Suppress(")")
         )
 
@@ -526,6 +552,8 @@ class PDDLReader:
                         solved.append(self._em.FluentExp(problem.fluent(exp.value)))
                     elif problem.has_object(exp.value):  # object
                         solved.append(self._em.ObjectExp(problem.object(exp.value)))
+                    elif exp.value == "#t":
+                        solved.append(self._em.Int(1))
                     else:  # number
                         try:
                             n = Fraction(exp.value)
@@ -559,7 +587,12 @@ class PDDLReader:
     def _add_effect(
         self,
         problem: up.model.Problem,
-        act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
+        act: Union[
+            up.model.InstantaneousAction,
+            up.model.DurativeAction,
+            up.model.Process,
+            up.model.Event,
+        ],
         types_map: TypesMap,
         exp: CustomParseResults,
         complete_str: str,
@@ -619,7 +652,12 @@ class PDDLReader:
                     ),
                     cond,
                 )
-                act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+
+                if isinstance(act, up.model.Process):
+                    eff1 = (eff[0], eff[1].simplify())
+                    act.add_derivative(*eff1)
+                else:
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
                 eff = (
                     self._parse_exp(
@@ -1207,6 +1245,87 @@ class PDDLReader:
                     task_params[p] = t
             task = htn.Task(name, task_params)
             problem.add_task(task)
+        for a in domain_res.get("processes", []):
+            n = a["name"]
+            a_params = OrderedDict()
+            for g in a.get("params", []):
+                try:
+                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                        g.locn_start, domain_str
+                    )
+                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                        g.locn_end, domain_str
+                    )
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
+                for p in g.value[0]:
+                    a_params[p] = t
+            act = up.model.Process(n, a_params, self._env)
+            if "pre" in a:
+                act.add_precondition(
+                    self._parse_exp(
+                        problem,
+                        act,
+                        types_map,
+                        {},
+                        CustomParseResults(a["pre"][0]),
+                        domain_str,
+                    )
+                )
+            if "eff" in a:
+                self._add_effect(
+                    problem,
+                    act,
+                    types_map,
+                    CustomParseResults(a["eff"][0]),
+                    domain_str,
+                )
+            problem.add_action(act)
+
+        for a in domain_res.get("events", []):
+            n = a["name"]
+            a_params = OrderedDict()
+            for g in a.get("params", []):
+                try:
+                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
+                except KeyError:
+                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                        g.locn_start, domain_str
+                    )
+                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                        g.locn_end, domain_str
+                    )
+                    raise SyntaxError(
+                        f"Undefined parameter's type: {g.value[1]}."
+                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    )
+                for p in g.value[0]:
+                    a_params[p] = t
+            act = up.model.Event(n, a_params, self._env)
+            if "pre" in a:
+                act.add_precondition(
+                    self._parse_exp(
+                        problem,
+                        act,
+                        types_map,
+                        {},
+                        CustomParseResults(a["pre"][0]),
+                        domain_str,
+                    )
+                )
+            if "eff" in a:
+                self._add_effect(
+                    problem,
+                    act,
+                    types_map,
+                    CustomParseResults(a["eff"][0]),
+                    domain_str,
+                )
+            problem.add_action(act)
 
         for a in domain_res.get("actions", []):
             n = a["name"]
@@ -1323,7 +1442,6 @@ class PDDLReader:
                 has_actions_cost = (
                     has_actions_cost and self._instantaneous_action_has_cost(act)
                 )
-
         for m in domain_res.get("methods", []):
             assert isinstance(problem, htn.HierarchicalProblem)
             name = m["name"]
