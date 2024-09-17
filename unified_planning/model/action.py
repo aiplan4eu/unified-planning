@@ -879,10 +879,6 @@ class Process(Action):
         self._fluents_assigned = {}
         self._fluents_inc_dec = set()
 
-    def __str__(self) -> str:
-        """Return a string representation of the `Process`."""
-        return f"Process(name={self._name}, parameters={self._parameters})"
-
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
         assert (
             effect.environment == self._environment
