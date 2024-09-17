@@ -338,7 +338,7 @@ class Simplifier(walkers.dag.DagWalker):
         )
         newlist = []
         for a in args:
-            if not a.is_constant():  # why always not (true) ?
+            if not a.is_constant():
                 return new_exp
             else:
                 v = a.constant_value()
