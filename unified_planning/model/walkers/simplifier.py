@@ -330,13 +330,45 @@ class Simplifier(walkers.dag.DagWalker):
             else:  # value is static but is not defined in the initial state
                 return new_exp
 
-    def walk_interpreted_function_exp(
+    def walk_interpreted_function_exp(  # code here is not clean but should work
         self, expression: FNode, args: List[FNode]
     ) -> FNode:
         new_exp = self.manager.InterpretedFunctionExp(
             expression.interpreted_function(), tuple(args)
         )
-        return new_exp
+        newlist = []
+        for a in args:
+            if not a.is_constant():  # why always not (true) ?
+                return new_exp
+            else:
+                v = a.constant_value()
+                newlist.append(v)
+        constantval = expression.interpreted_function().function(*newlist)
+        if expression.interpreted_function().return_type.is_bool_type():
+            constantval = self.manager.Bool(
+                (expression.interpreted_function().function(*newlist))
+            )
+
+        elif expression.interpreted_function().return_type.is_int_type():
+
+            constantval = self.manager.Int(
+                (expression.interpreted_function().function(*newlist))
+            )
+        elif expression.interpreted_function().return_type.is_real_type():
+
+            constantval = self.manager.Real(
+                (expression.interpreted_function().function(*newlist))
+            )
+        elif (
+            expression.interpreted_function().return_type.is_user_type()
+        ):  # not sure this works and idk how to check
+
+            constantval = self.manager.ObjectExp(
+                (expression.interpreted_function().function(*newlist))
+            )
+        else:
+            return new_exp
+        return constantval
 
     def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.Dot(expression.agent(), args[0])

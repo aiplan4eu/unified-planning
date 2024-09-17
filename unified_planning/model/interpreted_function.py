@@ -99,7 +99,7 @@ class InterpretedFunction:
         return res ^ hash(self._name)
 
     @property
-    def lambra_function(self) -> Callable:
+    def function(self) -> Callable:
         """Returns the `InterpretedFunction` `function`."""
         return self._function
 
