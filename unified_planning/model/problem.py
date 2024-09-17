@@ -85,7 +85,7 @@ class Problem(  # type: ignore[misc]
         )
         InitialStateMixin.__init__(self, self, self, self.environment)
         MetricsMixin.__init__(self, self.environment)
-        
+
         self._timed_effects: Dict[
             "up.model.timing.Timing", List["up.model.effect.Effect"]
         ] = {}
@@ -333,7 +333,7 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
-            elif isinstance(a,  up.model.action.Process):
+            elif isinstance(a, up.model.action.Process):
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
                     static_fluents.discard(e.fluent.fluent())
@@ -1013,7 +1013,7 @@ class _KindFactory:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
         elif isinstance(action, up.model.action.Process):
-            pass    
+            pass
         else:
             raise NotImplementedError
 
