@@ -933,8 +933,6 @@ class _KindFactory:
             self.kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
             self.kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
-        ##can an IF straight up be a condition as it can return bool or should this be done differently
-        ##change walker that extracts operators?
         is_linear, _, _ = self.linear_checker.get_fluents(exp)
         if not is_linear:
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
