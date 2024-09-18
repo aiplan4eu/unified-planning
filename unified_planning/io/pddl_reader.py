@@ -1264,12 +1264,12 @@ class PDDLReader:
                     )
                 for p in g.value[0]:
                     a_params[p] = t
-            act = up.model.Process(n, a_params, self._env)
+            proc = up.model.Process(n, a_params, self._env)
             if "pre" in a:
-                act.add_precondition(
+                proc.add_precondition(
                     self._parse_exp(
                         problem,
-                        act,
+                        proc,
                         types_map,
                         {},
                         CustomParseResults(a["pre"][0]),
@@ -1279,12 +1279,12 @@ class PDDLReader:
             if "eff" in a:
                 self._add_effect(
                     problem,
-                    act,
+                    proc,
                     types_map,
                     CustomParseResults(a["eff"][0]),
                     domain_str,
                 )
-            problem.add_action(act)
+            problem.add_action(proc)
 
         for a in domain_res.get("events", []):
             n = a["name"]
@@ -1305,12 +1305,12 @@ class PDDLReader:
                     )
                 for p in g.value[0]:
                     a_params[p] = t
-            act = up.model.Event(n, a_params, self._env)
+            evt = up.model.Event(n, a_params, self._env)
             if "pre" in a:
-                act.add_precondition(
+                evt.add_precondition(
                     self._parse_exp(
                         problem,
-                        act,
+                        evt,
                         types_map,
                         {},
                         CustomParseResults(a["pre"][0]),
@@ -1320,12 +1320,12 @@ class PDDLReader:
             if "eff" in a:
                 self._add_effect(
                     problem,
-                    act,
+                    evt,
                     types_map,
                     CustomParseResults(a["eff"][0]),
                     domain_str,
                 )
-            problem.add_action(act)
+            problem.add_action(evt)
 
         for a in domain_res.get("actions", []):
             n = a["name"]

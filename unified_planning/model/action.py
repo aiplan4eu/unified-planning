@@ -956,9 +956,6 @@ class Process(Action):
             )
         )
 
-    def __repr__(self) -> str:
-        action_str = InstantaneousAction.__repr__(self)
-        return action_str.replace("action", "process")
 
 
 class Event(InstantaneousAction):
