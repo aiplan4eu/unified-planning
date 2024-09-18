@@ -945,7 +945,7 @@ class Process(Action):
                 f"Process effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
-            raise UPTypeError("Increase effects can be created only on numeric types!")
+            raise UPTypeError("Derivative can be created only on numeric types!")
         self._add_effect_instance(
             up.model.effect.Effect(
                 fluent_exp,
