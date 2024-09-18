@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import os
+
+import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -37,6 +39,25 @@ class TestAnytimePlanning(unittest_TestCase):
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="takes a alot of time to test")#this fails now even without adding if problems to minimals
     def test_counters(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
