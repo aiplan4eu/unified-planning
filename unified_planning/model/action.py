@@ -957,7 +957,6 @@ class Process(Action):
         )
 
 
-
 class Event(InstantaneousAction):
     """This class represents an event."""
 
