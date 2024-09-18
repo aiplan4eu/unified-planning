@@ -15,6 +15,8 @@
 import os
 import tempfile
 
+import pytest
+
 import unified_planning as up
 from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.model.htn import TaskNetwork, Task
@@ -32,6 +34,25 @@ class TestProblem(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="takes a alot of time to test")
     def test_htn_problem_creation(self):
         problems = examples.hierarchical.get_example_problems()
         problem = problems["htn-go"].problem
@@ -62,6 +83,25 @@ class TestProblem(unittest_TestCase):
             in self.problems["htn-go-temporal"].problem.kind.features
         )
 
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="takes a alot of time to test")
     def test_ordering(self):
         """Checks that we detect the right orderings in task networks"""
 
@@ -127,6 +167,25 @@ class TestProblem(unittest_TestCase):
             tn.add_constraint(c)
             assert_temporal(tn)
 
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="takes a alot of time to test")
     def test_hddl_parsing(self):
         """Tests that all HDDL benchmarks are successfully parsed."""
         hddl_dir = os.path.join(FILE_PATH, "hddl")
@@ -157,6 +216,25 @@ class TestProblem(unittest_TestCase):
                     or name in TO_instances
                 )
 
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="takes a alot of time to test")
     def test_hddl_writing(self):
         """Tests that all HDDL benchmarks can be written to HDDL and reparsed."""
         hddl_dir = os.path.join(FILE_PATH, "hddl")

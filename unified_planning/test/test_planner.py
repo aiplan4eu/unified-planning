@@ -15,6 +15,8 @@
 
 from typing import Callable
 import warnings
+
+import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -95,6 +97,25 @@ class TestPlanner(unittest_TestCase):
                 self.assertTrue(val_res)
 
     @skipIfEngineNotAvailable("tamer")
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="this one causes deadlock!!! - point 4")
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
         a = problem.action("a")
@@ -150,6 +171,25 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="this one causes deadlock!!! - case 4 - ?")
     def test_basic_oversubscription_parallel(self):
         problem = self.problems["basic_oversubscription"].problem
         a = problem.action("a")
@@ -169,6 +209,25 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # the following skip MUST BE REMOVED
+    # @pytest.mark.skip(reason="this one causes deadlock!!! - point 15")
     def test_timed_connected_locations_parallel(self):
         problem = self.problems["timed_connected_locations"].problem
         move = problem.action("move")
