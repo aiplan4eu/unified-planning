@@ -116,10 +116,6 @@ class Problem(  # type: ignore[misc]
         s.append("]\n\n")
         s.append("actions = [\n")
         s.extend(map(custom_str, self.actions))
-        s.append("processes = [\n")
-        s.extend(map(custom_str, self.processes))
-        s.append("events = [\n")
-        s.extend(map(custom_str, self.events))
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
