@@ -345,27 +345,19 @@ class Simplifier(walkers.dag.DagWalker):
                 newlist.append(v)
         constantval = expression.interpreted_function().function(*newlist)
         if expression.interpreted_function().return_type.is_bool_type():
-            constantval = self.manager.Bool(
-                (expression.interpreted_function().function(*newlist))
-            )
+            constantval = self.manager.Bool((constantval))
 
         elif expression.interpreted_function().return_type.is_int_type():
 
-            constantval = self.manager.Int(
-                (expression.interpreted_function().function(*newlist))
-            )
+            constantval = self.manager.Int((constantval))
         elif expression.interpreted_function().return_type.is_real_type():
 
-            constantval = self.manager.Real(
-                (expression.interpreted_function().function(*newlist))
-            )
+            constantval = self.manager.Real((constantval))
         elif (
             expression.interpreted_function().return_type.is_user_type()
         ):  # not sure this works and idk how to check
 
-            constantval = self.manager.ObjectExp(
-                (expression.interpreted_function().function(*newlist))
-            )
+            constantval = self.manager.ObjectExp((constantval))
         else:
             return new_exp
         return constantval
