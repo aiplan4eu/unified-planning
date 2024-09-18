@@ -668,7 +668,11 @@ class PDDLReader:
                     ),
                     cond,
                 )
-                act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                if isinstance(act, up.model.Process):
+                    eff1 = (eff[0], (eff[1] * (-1)).simplify())
+                    act.add_derivative(*eff1)
+                else:
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
