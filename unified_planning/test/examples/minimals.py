@@ -664,10 +664,43 @@ def get_example_problems():
         problem=problem,
         solvable=True,
         valid_plans=[up.plans.SequentialPlan([awif()])],
-        invalid_plans=[  # invalid plans contain actions that rely on undefined values
+        invalid_plans=[
             up.plans.SequentialPlan([]),
         ],
     )  # solvable=True, valid_plans=[up.plans.SequentialPlan([awif])]
     problems["interpreted_functions_in_conditions"] = ifproblem
+
+    signatureConditionF = OrderedDict()
+    signatureConditionF["inputone"] = IntType()
+    signatureConditionF["inputtwo"] = IntType()
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, callableFunCon)
+
+    g = Fluent("g")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+
+    da = DurativeAction("a")
+
+    da.add_condition(EndTiming(), And(GE(ione, 10), Not(funx(itwo, itwo))))
+    da.add_condition(StartTiming(), (funx(ione, itwo)))
+    da.add_condition(StartTiming(), Not(And(GE(ione, 15), LE(itwo, 5))))
+    da.add_effect(EndTiming(), g, True)
+    da.set_fixed_duration(5)
+
+    problem = Problem("interpreted_functions_in_durative_conditions")
+    problem.add_fluent(g)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(da)
+    problem.set_initial_value(g, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 5)
+    problem.add_goal(g)
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+    )
+    problems["interpreted_functions_in_durative_conditions"] = ifproblem
 
     return problems
