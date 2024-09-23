@@ -79,6 +79,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.conditional_effects_remover",
         "ConditionalEffectsRemover",
     ),
+    "up_interpreted_functions_remover": (
+        "unified_planning.engines.compilers.interpreted_functions_remover",
+        "InterpretedFunctionsRemover",
+    ),
     "up_disjunctive_conditions_remover": (
         "unified_planning.engines.compilers.disjunctive_conditions_remover",
         "DisjunctiveConditionsRemover",
@@ -146,6 +150,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_time_triggered_validator",
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
+    "up_interpreted_functions_remover",
     "up_disjunctive_conditions_remover",
     "up_ma_disjunctive_conditions_remover",
     "up_ma_conditional_effects_remover",
