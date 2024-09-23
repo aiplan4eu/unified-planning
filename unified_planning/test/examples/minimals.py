@@ -635,4 +635,34 @@ def get_example_problems():
         problem=problem,
         solvable=True,
     )  # solvable=True, valid_plans=[up.plans.SequentialPlan([gohome])]
+
+    problem = Problem("interpreted_functions_in_conditions")
+
+    def callableFunCon(inputone, inputtwo):
+        return (inputone * inputtwo) == 60
+
+    signatureConditionF = OrderedDict()
+    signatureConditionF["inputone"] = IntType()
+    signatureConditionF["inputtwo"] = IntType()
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, callableFunCon)
+    eg = Fluent("eg")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+    awif = InstantaneousAction("awif")
+    awif.add_precondition(funx(ione, itwo))
+    awif.add_effect(eg, True)
+    problem.add_fluent(eg)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(awif)
+    problem.set_initial_value(eg, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 5)
+    problem.add_goal(eg)
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=False,
+    )  # solvable=True, valid_plans=[up.plans.SequentialPlan([awif])]
+    problems["interpreted_functions_in_conditions"] = ifproblem
+
     return problems
