@@ -649,7 +649,8 @@ def get_example_problems():
     ione = Fluent("ione", IntType(0, 20))
     itwo = Fluent("itwo", IntType(0, 20))
     awif = InstantaneousAction("awif")
-    awif.add_precondition(funx(ione, itwo))
+    awif.add_precondition(And(GE(ione, 10), Not(funx(itwo, itwo))))
+    awif.add_precondition((funx(ione, itwo)))
     awif.add_effect(eg, True)
     problem.add_fluent(eg)
     problem.add_fluent(ione)
@@ -661,7 +662,11 @@ def get_example_problems():
     problem.add_goal(eg)
     ifproblem = TestCase(
         problem=problem,
-        solvable=False,
+        solvable=True,
+        valid_plans=[up.plans.SequentialPlan([awif()])],
+        invalid_plans=[  # invalid plans contain actions that rely on undefined values
+            up.plans.SequentialPlan([]),
+        ],
     )  # solvable=True, valid_plans=[up.plans.SequentialPlan([awif])]
     problems["interpreted_functions_in_conditions"] = ifproblem
 
