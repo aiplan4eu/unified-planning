@@ -932,6 +932,7 @@ class _KindFactory:
         if OperatorKind.FORALL in ops:
             self.kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             self.kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         is_linear, _, _ = self.linear_checker.get_fluents(exp)
         if not is_linear:
