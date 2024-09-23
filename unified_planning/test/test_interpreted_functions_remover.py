@@ -37,11 +37,30 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    def test_interpreted_functions_in_conditions_remover(self):
+    def test_interpreted_functions_in_preconditions_remover(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
 
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        print(problem)
+        print(problem.kind)
+        print(compiled_problem)
+        print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+        self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
+
+    def test_interpreted_functions_in_durative_conditions_remover(self):
+        problem = self.problems["interpreted_functions_in_durative_conditions"].problem
 
         with Compiler(
             problem_kind=problem.kind,

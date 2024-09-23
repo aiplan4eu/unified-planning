@@ -232,15 +232,19 @@ class InterpretedFunctionsRemover(
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
                 no_IF_action.clear_conditions()
                 for i, cl in a.conditions.items():
+
+                    fixed_conditions = []
                     for c in cl:
-                        # simplified_precondition = simplifier.simplify(p)
-                        # precondition_operators = operators_extractor.get(simplified_precondition)
-                        precondition_operators = self.operators_extractor.get(p)
+                        templist = self._fix_precondition(c)
+                        fixed_conditions.extend(templist)
+                    for fc in fixed_conditions:
+
+                        precondition_operators = self.operators_extractor.get(fc)
                         if not (
                             OperatorKind.INTERPRETED_FUNCTION_EXP
                             in precondition_operators
                         ):
-                            no_IF_action.add_condition(i, p)
+                            no_IF_action.add_condition(i, fc)
                     new_to_old[no_IF_action] = a
             else:
                 raise NotImplementedError
