@@ -406,6 +406,11 @@ class TestProtobufProblems(unittest_TestCase):
             if (
                 kind.has_increase_continuous_effects()
                 or kind.has_decrease_continuous_effects()
+                or kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+                or kind.has_interpreted_functions_in_conditions()
             ):
                 continue
             problem_pb = self.pb_writer.convert(problem)
