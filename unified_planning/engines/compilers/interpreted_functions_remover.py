@@ -66,6 +66,9 @@ class InterpretedFunctionsRemover(
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
+        self.operators_extractor: up.model.walkers.OperatorsExtractor = (
+            up.model.walkers.OperatorsExtractor()
+        )
         CompilerMixin.__init__(self, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
 
     @property
@@ -144,6 +147,21 @@ class InterpretedFunctionsRemover(
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
 
+    def _fix_precondition(self, a):
+        # simplified_precondition = simplifier.simplify(p)
+        # precondition_operators = operators_extractor.get(simplified_precondition)
+        # operators_extractor: up.model.walkers.OperatorsExtractor = (
+        #    up.model.walkers.OperatorsExtractor()
+        # )
+        templist = []
+        if a.is_and():
+            for sub in a.args:
+                templist.append(sub)
+        else:
+            templist.append(a)
+        # print (templist)
+        return templist
+
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
@@ -181,10 +199,10 @@ class InterpretedFunctionsRemover(
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         # name_action_map: Dict[str, Union[InstantaneousAction, DurativeAction]] = {}
-        operators_extractor: up.model.walkers.OperatorsExtractor = (
-            up.model.walkers.OperatorsExtractor()
-        )
 
+        # operators_extractor: up.model.walkers.OperatorsExtractor = (
+        #    up.model.walkers.OperatorsExtractor()
+        # )
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
@@ -194,10 +212,16 @@ class InterpretedFunctionsRemover(
                 no_IF_action = a.clone()
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
                 no_IF_action.clear_preconditions()
+                fixed_preconditions = []
                 for p in a.preconditions:
-                    # simplified_precondition = simplifier.simplify(p)
-                    # precondition_operators = operators_extractor.get(simplified_precondition)
-                    precondition_operators = operators_extractor.get(p)
+                    templist = self._fix_precondition(p)
+                    fixed_preconditions.extend(templist)
+                # print ("\n\n fixed preconds \n\n")
+                # print (fixed_preconditions)
+                # print (a.preconditions)
+                for p in fixed_preconditions:
+                    precondition_operators = self.operators_extractor.get(p)
+
                     if not (
                         OperatorKind.INTERPRETED_FUNCTION_EXP in precondition_operators
                     ):
@@ -211,7 +235,7 @@ class InterpretedFunctionsRemover(
                     for c in cl:
                         # simplified_precondition = simplifier.simplify(p)
                         # precondition_operators = operators_extractor.get(simplified_precondition)
-                        precondition_operators = operators_extractor.get(p)
+                        precondition_operators = self.operators_extractor.get(p)
                         if not (
                             OperatorKind.INTERPRETED_FUNCTION_EXP
                             in precondition_operators
