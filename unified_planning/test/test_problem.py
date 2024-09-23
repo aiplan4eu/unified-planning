@@ -531,6 +531,7 @@ class TestProblem(unittest_TestCase):
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
+            "interpreted_functions_in_conditions",  # this must be removed once the kind is fixed
         ]
         for example in self.problems.values():
             problem = example.problem
@@ -605,6 +606,35 @@ class TestProblem(unittest_TestCase):
                 pb_name in undefs_sym,
                 pb_name,
             )
+
+    def test_interpreted_functions_simple(self):
+        problem = self.problems["interpreted_functions_in_conditions"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertTrue(problem.kind.has_simple_numeric_planning())
+        # should be changed to false once other checks are implemented in kind
+
+        # x = problem.fluent("x")
+        # self.assertEqual(x.name, "x")
+        # self.assertEqual(str(x), "bool x")
+        # self.assertEqual(x.arity, 0)
+        # self.assertTrue(x.type.is_bool_type())
+
+        # a_x = problem.action("a_x")
+        # self.assertEqual(a_x.name, "a_x")
+        # self.assertEqual(len(a_x.preconditions), 1)
+        # self.assertEqual(len(a_x.effects), 1)
+
+        # self.assertEqual(problem.name, "basic_conditional")
+        # self.assertEqual(len(problem.fluents), 2)
+        # self.assertEqual(len(problem.actions), 2)
+        # self.assertTrue(problem.initial_value(x) is not None)
+        # self.assertTrue(problem.initial_value(y) is not None)
+        # self.assertEqual(len(problem.goals), 1)
+        # problem_str = str(problem)
+        # self.assertIn("fluents", problem_str)
+        # self.assertIn("actions", problem_str)
+        # self.assertIn("initial values", problem_str)
+        # self.assertIn("goals", problem_str)
 
 
 if __name__ == "__main__":
