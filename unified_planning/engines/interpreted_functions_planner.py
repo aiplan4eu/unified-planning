@@ -125,6 +125,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":
+
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         em = problem.environment.expression_manager
@@ -137,71 +138,83 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
 
-        new_problem = ifr.problem
-        # print (new_problem)
-        # print (new_problem.kind)
+        retval = _attempt_to_solve(
+            self, problem, ifr, heuristic, timeout, output_stream
+        )
+        return retval
 
-        start = time.time()
 
-        res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+def _attempt_to_solve(
+    self,
+    problem: "up.model.AbstractProblem",
+    compilerresult,
+    heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+    timeout: Optional[float] = None,
+    output_stream: Optional[IO[str]] = None,
+) -> "PlanGenerationResult":
+    new_problem = compilerresult.problem
+    # print (new_problem)
+    # print (new_problem.kind)
 
-        if timeout is not None:
-            timeout -= min(timeout, time.time() - start)
-        if res.status in up.engines.results.POSITIVE_OUTCOMES:
-            status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
-            ###------------------------------------here for successful solve--------------------------------
-            if res.plan is None:
-                return PlanGenerationResult(
-                    status,
-                    up.plans.SequentialPlan([]),
-                    self.name,
-                    log_messages=res.log_messages,
-                )
-            mapback = ifr.map_back_action_instance
-            mappedbackplan = res.plan.replace_action_instances(mapback)
-            # print (res.plan)
+    start = time.time()
 
-            spv = SequentialPlanValidator(environment=get_environment())
-            spv.skip_checks = True  # have to use this
-            validation_result = spv.validate(problem, mappedbackplan)
-            if validation_result.status == ValidationResultStatus.VALID:
-                # print("the plan is ok")
-                retval = PlanGenerationResult(
-                    status,
-                    mappedbackplan,
-                    self.name,
-                    log_messages=res.log_messages,
-                )
-            else:
-                # print ("validation error")
-                # print (validation_result)
-                # print (validation_result.status)
-                status = PlanGenerationResultStatus.INTERNAL_ERROR
-                retval = PlanGenerationResult(
-                    status,
-                    up.plans.SequentialPlan([]),
-                    self.name,
-                    log_messages=res.log_messages,
-                )
+    res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
 
-            return retval
-        elif res.status == PlanGenerationResultStatus.TIMEOUT:
+    if timeout is not None:
+        timeout -= min(timeout, time.time() - start)
+    if res.status in up.engines.results.POSITIVE_OUTCOMES:
+        status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        ###------------------------------------here for successful solve--------------------------------
+        if res.plan is None:
             return PlanGenerationResult(
-                PlanGenerationResultStatus.TIMEOUT, None, self.name
+                status,
+                up.plans.SequentialPlan([]),
+                self.name,
+                log_messages=res.log_messages,
             )
-        elif res.status in [
-            PlanGenerationResultStatus.MEMOUT,
-            PlanGenerationResultStatus.INTERNAL_ERROR,
-            PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
-            PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-        ]:
-            incomplete = True
-            if incomplete:
-                status = res.status
+        mapback = compilerresult.map_back_action_instance
+        mappedbackplan = res.plan.replace_action_instances(mapback)
+        # print (res.plan)
+
+        spv = SequentialPlanValidator(environment=get_environment())
+        spv.skip_checks = True  # have to use this
+        validation_result = spv.validate(problem, mappedbackplan)
+        if validation_result.status == ValidationResultStatus.VALID:
+            # print("the plan is ok")
+            retval = PlanGenerationResult(
+                status,
+                mappedbackplan,
+                self.name,
+                log_messages=res.log_messages,
+            )
         else:
-            status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
-        return PlanGenerationResult(status, None, self.name)
+            # print ("validation error")
+            # print (validation_result)
+            # print (validation_result.status)
+            retval = retval = PlanGenerationResult(
+                _refine(),
+                up.plans.SequentialPlan([]),
+                self.name,
+                log_messages=res.log_messages,
+            )
+
+        return retval
+    elif res.status == PlanGenerationResultStatus.TIMEOUT:
+        return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, None, self.name)
+    elif res.status in [
+        PlanGenerationResultStatus.MEMOUT,
+        PlanGenerationResultStatus.INTERNAL_ERROR,
+        PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
+        PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
+    ]:
+        incomplete = True
+        if incomplete:
+            status = res.status
+    else:
+        status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+    return PlanGenerationResult(status, None, self.name)
 
 
-def attempt_to_solve():
-    return 0
+def _refine():
+    status = PlanGenerationResultStatus.INTERNAL_ERROR
+    return status
