@@ -51,6 +51,11 @@ from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
 
+
+from unified_planning.engines.interpreted_functions_planner import (
+    InterpretedFunctionsPlanner,
+)
+
 __all__ = [
     "Factory",
     "Grounder",
@@ -80,5 +85,6 @@ __all__ = [
     "AnytimeGuarantee",
     "MetaEngine",
     "OversubscriptionPlanner",
+    "InterpretedFunctionsPlanner",
     "Replanner",
 ]

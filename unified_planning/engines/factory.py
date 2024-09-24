@@ -141,6 +141,10 @@ DEFAULT_META_ENGINES = {
         "unified_planning.engines.replanner",
         "Replanner",
     ),
+    "interpreted_functions_planning": (
+        "unified_planning.engines.interpreted_functions_planner",
+        "InterpretedFunctionsPlanner",
+    ),
 }
 
 DEFAULT_ENGINES_PREFERENCE_LIST = [
@@ -181,7 +185,11 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_undefined_initial_numeric_remover",
 ]
 
-DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "replanner"]
+DEFAULT_META_ENGINES_PREFERENCE_LIST = [
+    "oversubscription",
+    "replanner",
+    "interpreted_functions_planning",
+]
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
