@@ -191,11 +191,11 @@ def _attempt_to_solve(
             # print ("validation error")
             # print (validation_result)
             # print (validation_result.status)
-            retval = retval = PlanGenerationResult(
-                _refine(),
+            retval = _refine(
+                PlanGenerationResultStatus.INTERNAL_ERROR,
                 up.plans.SequentialPlan([]),
                 self.name,
-                log_messages=res.log_messages,
+                "pi prime is not valid for P",
             )
 
         return retval
@@ -215,6 +215,5 @@ def _attempt_to_solve(
     return PlanGenerationResult(status, None, self.name)
 
 
-def _refine():
-    status = PlanGenerationResultStatus.INTERNAL_ERROR
-    return status
+def _refine(a, b, c, d):
+    return PlanGenerationResult(a, b, c, d)
