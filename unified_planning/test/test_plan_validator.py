@@ -392,3 +392,49 @@ class TestProblem(unittest_TestCase):
             problem.clear_trajectory_constraints()
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
+    def test_with_interpreted_functions(self):
+        spv = SequentialPlanValidator(environment=get_environment())
+        spv.skip_checks = True  # have to use this
+
+        p = self.problems["interpreted_functions_in_conditions"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        p = self.problems["interpreted_functions_in_boolean_assignment"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        # does not work with durations
+
+        # p = self.problems["interpreted_functions_in_durations"]
+        # problem = p.problem
+        # for plan in p.valid_plans:
+        #    validation_result = spv.validate(problem, plan)
+        #    self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        # for plan in p.invalid_plans:
+        #    validation_result = spv.validate(problem, plan)
+        #    self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        # p = self.problems["interpreted_functions_in_durative_conditions"]
+        # problem = p.problem
+        # for plan in p.valid_plans:
+        #    validation_result = spv.validate(problem, plan)
+        #    self.assertEqual(
+        #        validation_result.status, ValidationResultStatus.VALID
+        #    )
+        # for plan in p.invalid_plans:
+        #    validation_result = spv.validate(problem, plan)
+        #    self.assertEqual(
+        #        validation_result.status, ValidationResultStatus.INVALID
+        #    )

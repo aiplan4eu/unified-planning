@@ -599,10 +599,104 @@ def get_example_problems():
         invalid_plans=[],
     )
 
-    # interpreted functions in durations
-    problem = Problem("interpreted_functions_in_durations")
+    # interpreted functions ----------
+    problem = Problem("interpreted_functions_in_conditions")
 
-    def callableFun(
+    def i_f_simple_bool(inputone, inputtwo):
+        return (inputone * inputtwo) == 60
+
+    signatureConditionF = OrderedDict()
+    signatureConditionF["inputone"] = IntType()
+    signatureConditionF["inputtwo"] = IntType()
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
+    end_goal = Fluent("end_goal")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+    instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
+    instant_action_i_f_condition.add_precondition(
+        And(GE(ione, 10), Not(funx(itwo, itwo)))
+    )
+    instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
+    instant_action_i_f_condition.add_effect(end_goal, Not(end_goal))
+    problem.add_fluent(end_goal)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(instant_action_i_f_condition)
+    problem.set_initial_value(end_goal, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 5)
+    problem.add_goal(end_goal)
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([instant_action_i_f_condition()]),
+            up.plans.SequentialPlan(
+                [
+                    instant_action_i_f_condition(),
+                    instant_action_i_f_condition(),
+                    instant_action_i_f_condition(),
+                ]
+            ),
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([]),
+            up.plans.SequentialPlan(
+                [instant_action_i_f_condition(), instant_action_i_f_condition()]
+            ),
+            up.plans.SequentialPlan(
+                [
+                    instant_action_i_f_condition(),
+                    instant_action_i_f_condition(),
+                    instant_action_i_f_condition(),
+                    instant_action_i_f_condition(),
+                ]
+            ),
+        ],
+    )
+    problems["interpreted_functions_in_conditions"] = ifproblem
+
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
+
+    end_goal = Fluent("end_goal")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+
+    durative_action_i_f_condition = DurativeAction("durative_action_i_f_condition")
+
+    durative_action_i_f_condition.add_condition(
+        EndTiming(), And(GE(ione, 10), Not(funx(itwo, itwo)))
+    )
+    durative_action_i_f_condition.add_condition(StartTiming(), (funx(ione, itwo)))
+    durative_action_i_f_condition.add_condition(
+        StartTiming(), Not(And(GE(ione, 15), LE(itwo, 5)))
+    )
+    durative_action_i_f_condition.add_effect(EndTiming(), end_goal, True)
+    durative_action_i_f_condition.set_fixed_duration(5)
+
+    problem = Problem("interpreted_functions_in_durative_conditions")
+    problem.add_fluent(end_goal)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(durative_action_i_f_condition)
+    problem.set_initial_value(end_goal, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 5)
+    problem.add_goal(end_goal)
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([durative_action_i_f_condition()]),
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([]),
+        ],
+    )
+    problems["interpreted_functions_in_durative_conditions"] = ifproblem
+
+    def i_f_go_home_duration(
         israining, basetime
     ):  # if it rains you will take longer to walk home
         r = basetime
@@ -610,18 +704,23 @@ def get_example_problems():
             r = basetime * 1.4
         return r
 
-    signature = OrderedDict()
-    signature["israining"] = BoolType()
-    signature["basetime"] = IntType()
-    funx = InterpretedFunction("funx", RealType(), signature, callableFun)
+    gohomedurationsignature = OrderedDict()
+    gohomedurationsignature["israining"] = BoolType()
+    gohomedurationsignature["basetime"] = IntType()
+    gohomeduration = InterpretedFunction(
+        "gohomeduration", RealType(), gohomedurationsignature, i_f_go_home_duration
+    )
+
     athome = Fluent("athome")
     rain = Fluent("rain")
     normaltime = Fluent("normaltime", IntType(0, 20))
+
     gohome = DurativeAction("gohome")
     gohome.add_condition(StartTiming(), Not(athome))
     gohome.add_effect(EndTiming(), athome, True)
-    gohome.set_fixed_duration(funx(rain, normaltime))
-    problem = Problem("IF_in_durations")
+    gohome.set_fixed_duration(gohomeduration(rain, normaltime))
+
+    problem = Problem("interpreted_functions_in_durations")
     problem.add_fluent(athome)
     problem.add_fluent(rain)
     problem.add_fluent(normaltime)
@@ -630,77 +729,52 @@ def get_example_problems():
     problem.set_initial_value(rain, True)
     problem.set_initial_value(normaltime, 10)
     problem.add_goal(athome)
-
-    problems["interpreted_functions_in_durations"] = TestCase(
-        problem=problem,
-        solvable=True,
-    )  # solvable=True, valid_plans=[up.plans.SequentialPlan([gohome])]
-
-    problem = Problem("interpreted_functions_in_conditions")
-
-    def callableFunCon(inputone, inputtwo):
-        return (inputone * inputtwo) == 60
-
-    signatureConditionF = OrderedDict()
-    signatureConditionF["inputone"] = IntType()
-    signatureConditionF["inputtwo"] = IntType()
-    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, callableFunCon)
-    eg = Fluent("eg")
-    ione = Fluent("ione", IntType(0, 20))
-    itwo = Fluent("itwo", IntType(0, 20))
-    awif = InstantaneousAction("awif")
-    awif.add_precondition(And(GE(ione, 10), Not(funx(itwo, itwo))))
-    awif.add_precondition((funx(ione, itwo)))
-    awif.add_effect(eg, True)
-    problem.add_fluent(eg)
-    problem.add_fluent(ione)
-    problem.add_fluent(itwo)
-    problem.add_action(awif)
-    problem.set_initial_value(eg, False)
-    problem.set_initial_value(ione, 12)
-    problem.set_initial_value(itwo, 5)
-    problem.add_goal(eg)
     ifproblem = TestCase(
         problem=problem,
         solvable=True,
-        valid_plans=[up.plans.SequentialPlan([awif()])],
+        valid_plans=[
+            up.plans.SequentialPlan([gohome()]),
+        ],
         invalid_plans=[
             up.plans.SequentialPlan([]),
         ],
-    )  # solvable=True, valid_plans=[up.plans.SequentialPlan([awif])]
-    problems["interpreted_functions_in_conditions"] = ifproblem
+    )
+    problems["interpreted_functions_in_durations"] = ifproblem
 
-    signatureConditionF = OrderedDict()
-    signatureConditionF["inputone"] = IntType()
-    signatureConditionF["inputtwo"] = IntType()
-    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, callableFunCon)
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
-    g = Fluent("g")
     ione = Fluent("ione", IntType(0, 20))
     itwo = Fluent("itwo", IntType(0, 20))
+    end_goal = Fluent("end_goal")
 
-    da = DurativeAction("a")
+    apply_i_f_assignment = InstantaneousAction("apply_i_f_assignment")
+    apply_i_f_assignment.add_effect(end_goal, funx(ione, itwo))
 
-    da.add_condition(EndTiming(), And(GE(ione, 10), Not(funx(itwo, itwo))))
-    da.add_condition(StartTiming(), (funx(ione, itwo)))
-    da.add_condition(StartTiming(), Not(And(GE(ione, 15), LE(itwo, 5))))
-    da.add_effect(EndTiming(), g, True)
-    da.set_fixed_duration(5)
+    increase_val = InstantaneousAction("increase_val")
+    increase_val.add_effect(ione, Plus(ione, 2))
 
-    problem = Problem("interpreted_functions_in_durative_conditions")
-    problem.add_fluent(g)
+    problem = Problem("interpreted_functions_in_boolean_assignment")
     problem.add_fluent(ione)
     problem.add_fluent(itwo)
-    problem.add_action(da)
-    problem.set_initial_value(g, False)
-    problem.set_initial_value(ione, 12)
-    problem.set_initial_value(itwo, 5)
-    problem.add_goal(g)
+    problem.add_fluent(end_goal)
+
+    problem.add_action(apply_i_f_assignment)
+    problem.add_action(increase_val)
+    problem.set_initial_value(ione, 3)
+    problem.set_initial_value(itwo, 12)
+    problem.set_initial_value(end_goal, False)
+    problem.add_goal(end_goal)
 
     ifproblem = TestCase(
         problem=problem,
         solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([increase_val(), apply_i_f_assignment()]),
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([apply_i_f_assignment(), increase_val()]),
+        ],
     )
-    problems["interpreted_functions_in_durative_conditions"] = ifproblem
+    problems["interpreted_functions_in_boolean_assignment"] = ifproblem
 
     return problems
