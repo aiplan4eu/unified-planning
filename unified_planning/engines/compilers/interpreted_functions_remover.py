@@ -46,12 +46,7 @@ from typing import List, Dict, Tuple, Optional, Iterator
 from functools import partial
 
 
-class InterpretedFunctionsRemover(
-    engines.engine.Engine, CompilerMixin
-):  # change this # change this # change this
-    # change this
-    # change this
-    # change this
+class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     """
     Interpreted functions remover class: this class offers the capability
     to transform a :class:`~unified_planning.model.Problem` with interpreted functions used as conditions`
@@ -123,6 +118,9 @@ class InterpretedFunctionsRemover(
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+        supported_kind.set_expression_duration(
+            "INTERPRETED_FUNCTIONS_IN_DURATIONS"
+        )  # added this
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
@@ -178,17 +176,11 @@ class InterpretedFunctionsRemover(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
-    ) -> CompilerResult:  # change this # change this # change this # change this
-        # change this
-        # change this
-        # change this
+    ) -> CompilerResult:
         """
-        Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
-        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>` field does not have conditional effects.
-
-        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without conditional effects.
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be compiled.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
-            only :class:`~unified_planning.engines.CompilationKind.CONDITIONAL_EFFECTS_REMOVING` is supported by this compiler
+            only :class:`~unified_planning.engines.CompilationKind.INTERPRETED_FUNCTIONS_REMOVER` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
         :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
             :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
