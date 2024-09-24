@@ -150,6 +150,13 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         if res.status in up.engines.results.POSITIVE_OUTCOMES:
             status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
             ###------------------------------------here for successful solve--------------------------------
+            if res.plan is None:
+                return PlanGenerationResult(
+                    status,
+                    up.plans.SequentialPlan([]),
+                    self.name,
+                    log_messages=res.log_messages,
+                )
             mapback = ifr.map_back_action_instance
             mappedbackplan = res.plan.replace_action_instances(mapback)
             # print (res.plan)
@@ -194,3 +201,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         else:
             status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         return PlanGenerationResult(status, None, self.name)
+
+
+def attempt_to_solve():
+    return 0
