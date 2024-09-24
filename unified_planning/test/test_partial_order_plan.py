@@ -36,6 +36,10 @@ class TestPartialOrderPlan(unittest_TestCase):
             assert validator is not None
             for example in self.problems.values():
                 problem, plans = example.problem, example.valid_plans
+                if (
+                    problem.kind.has_interpreted_functions_in_conditions()
+                ):  # plan translation from sequential to partial order has not been implemented for IF
+                    continue
                 plan = plans[0] if plans else None
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
