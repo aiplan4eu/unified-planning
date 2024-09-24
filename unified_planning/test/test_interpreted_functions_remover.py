@@ -80,3 +80,21 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
         self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
+
+    def test_interpreted_functions_in_durations_remover(self):
+        problem = self.problems["interpreted_functions_in_durations"].problem
+
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        print(problem)
+        print(problem.kind)
+        print(compiled_problem)
+        print(compiled_problem.kind)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(compiled_problem.kind.has_interpreted_functions_in_durations())
