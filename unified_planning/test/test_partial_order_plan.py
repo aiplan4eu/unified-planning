@@ -39,6 +39,10 @@ class TestPartialOrderPlan(unittest_TestCase):
                 if not plans:
                     continue
                 plan = plans[0]
+                if (
+                    problem.kind.has_interpreted_functions_in_conditions()
+                ):  # plan translation from sequential to partial order has not been implemented for IF
+                    continue
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.convert_to(PlanKind.PARTIAL_ORDER_PLAN, problem)
