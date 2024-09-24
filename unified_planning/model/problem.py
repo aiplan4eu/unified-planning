@@ -815,6 +815,7 @@ class _KindFactory:
         e: "up.model.effect.Effect",
     ):
         value = self.simplifier.simplify(e.value)
+        # value = e.value
         fluents_in_value = self.environment.free_vars_extractor.get(value)
         ops = self.operators_extractor.get(value)
         if e.is_conditional():
