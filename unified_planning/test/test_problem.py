@@ -634,6 +634,11 @@ class TestProblem(unittest_TestCase):
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         problem = self.problems["interpreted_functions_in_durative_conditions"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        problem = self.problems["interpreted_functions_in_durations"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        problem = self.problems["interpreted_functions_in_boolean_assignment"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
         # should be changed to false once other checks are implemented in kind
 
         # x = problem.fluent("x")
