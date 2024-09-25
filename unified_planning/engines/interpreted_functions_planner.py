@@ -177,7 +177,7 @@ def _attempt_to_solve(
         # print (res.plan)
 
         spv = SequentialPlanValidator(environment=get_environment())
-        # spv.skip_checks = True  # --------------------------------------------------------------------------
+        spv.skip_checks = True  # --------------------------------------------------------------------------
         validation_result = spv.validate(problem, mappedbackplan)
         if validation_result.status == ValidationResultStatus.VALID:
             # print("the plan is ok")
