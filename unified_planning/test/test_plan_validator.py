@@ -419,27 +419,3 @@ class TestProblem(unittest_TestCase):
         for plan in p.invalid_plans:
             validation_result = spv.validate(problem, plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
-
-        # does not work with durations
-
-        # p = self.problems["interpreted_functions_in_durations"]
-        # problem = p.problem
-        # for plan in p.valid_plans:
-        #    validation_result = spv.validate(problem, plan)
-        #    self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
-        # for plan in p.invalid_plans:
-        #    validation_result = spv.validate(problem, plan)
-        #    self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
-
-        # p = self.problems["interpreted_functions_in_durative_conditions"]
-        # problem = p.problem
-        # for plan in p.valid_plans:
-        #    validation_result = spv.validate(problem, plan)
-        #    self.assertEqual(
-        #        validation_result.status, ValidationResultStatus.VALID
-        #    )
-        # for plan in p.invalid_plans:
-        #    validation_result = spv.validate(problem, plan)
-        #    self.assertEqual(
-        #        validation_result.status, ValidationResultStatus.INVALID
-        #    )
