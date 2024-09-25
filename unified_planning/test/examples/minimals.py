@@ -641,6 +641,70 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_conditions"] = ifproblem
 
+    # interpreted functions in instaneous action precondition refine to solve
+    problem = Problem("interpreted_functions_in_conditions_to_refine")
+
+    signatureConditionF = OrderedDict()
+    signatureConditionF["inputone"] = IntType()
+    signatureConditionF["inputtwo"] = IntType()
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
+    end_goal = Fluent("end_goal")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+    instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
+    increase_val = InstantaneousAction("increase_val")
+    increase_val.add_effect(ione, Plus(ione, 2))
+    instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
+    instant_action_i_f_condition.add_effect(end_goal, True)
+    problem.add_fluent(end_goal)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(instant_action_i_f_condition)
+    problem.add_action(increase_val)
+    problem.set_initial_value(end_goal, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 3)
+    problem.add_goal(end_goal)
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([instant_action_i_f_condition()]),
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([increase_val(), instant_action_i_f_condition()]),
+        ],
+    )
+    problems["interpreted_functions_in_conditions_to_refine"] = ifproblem
+
+    # interpreted functions in instaneous action precondition unsolvable even ignoring interpreted functions
+    problem = Problem("interpreted_functions_in_conditions_always_impossible")
+
+    signatureConditionF = OrderedDict()
+    signatureConditionF["inputone"] = IntType()
+    signatureConditionF["inputtwo"] = IntType()
+    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
+    end_goal = Fluent("end_goal")
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+    instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
+    instant_action_i_f_condition.add_precondition(And((funx(ione, itwo)), GE(ione, 19)))
+    instant_action_i_f_condition.add_effect(end_goal, True)
+    problem.add_fluent(end_goal)
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_action(instant_action_i_f_condition)
+    problem.add_action(increase_val)
+    problem.set_initial_value(end_goal, False)
+    problem.set_initial_value(ione, 12)
+    problem.set_initial_value(itwo, 3)
+    problem.add_goal(end_goal)
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=False,
+    )
+    problems["interpreted_functions_in_conditions_always_impossible"] = ifproblem
+
     # interpreted functions in durative action condition - could be changed
     funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
