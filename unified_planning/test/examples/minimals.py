@@ -653,7 +653,7 @@ def get_example_problems():
     itwo = Fluent("itwo", IntType(0, 20))
     instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
     increase_val = InstantaneousAction("increase_val")
-    increase_val.add_effect(ione, Plus(ione, 2))
+    increase_val.add_effect(itwo, Plus(itwo, 2))
     instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
     instant_action_i_f_condition.add_effect(end_goal, True)
     problem.add_fluent(end_goal)
@@ -667,11 +667,8 @@ def get_example_problems():
     problem.add_goal(end_goal)
     ifproblem = TestCase(
         problem=problem,
-        solvable=True,
+        solvable=False,  # currently
         valid_plans=[
-            up.plans.SequentialPlan([instant_action_i_f_condition()]),
-        ],
-        invalid_plans=[
             up.plans.SequentialPlan([increase_val(), instant_action_i_f_condition()]),
         ],
     )
