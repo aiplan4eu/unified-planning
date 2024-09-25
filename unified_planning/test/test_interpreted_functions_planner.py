@@ -48,7 +48,68 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
-            # print ("now sattempting to solve")
+            # print ("now attempting to solve")
+            result = planner.solve(problem)
+        # print(result)
+        # print(result.plan)
+
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+        self.assertEqual(len(result.plan._actions), 1)
+        self.assertTrue(
+            result.plan.__eq__(
+                self.problems["interpreted_functions_in_conditions"].valid_plans[0]
+            )
+        )
+
+    @skipIfEngineNotAvailable("sequential_plan_validator")
+    @skipIfEngineNotAvailable("tamer")
+    def test_interpreted_functions_in_preconditions_planner_always_impossible(self):
+        problem = self.problems[
+            "interpreted_functions_in_conditions_always_impossible"
+        ].problem
+        # print (problem)
+        # print (problem.kind)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+            # print ("now attempting to solve")
+            result = planner.solve(problem)
+        print(result)
+        print(result.plan)
+
+        self.assertFalse(result.status in up.engines.results.POSITIVE_OUTCOMES)
+
+    @skipIfEngineNotAvailable("sequential_plan_validator")
+    @skipIfEngineNotAvailable("tamer")
+    def test_interpreted_functions_in_preconditions_planner_refine(self):
+        problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
+        # print (problem)
+        # print (problem.kind)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+            # print ("now attempting to solve")
+            result = planner.solve(problem)
+        print(result)
+        print(result.plan)
+        # -------------------------------------------------------------------------------------------------------------------------
+        self.assertFalse(
+            result.status in up.engines.results.POSITIVE_OUTCOMES
+        )  # only false because refine is not implemented yet
+
+    @skipIfEngineNotAvailable("sequential_plan_validator")
+    @skipIfEngineNotAvailable("tamer")
+    @pytest.mark.skip(reason="Tamer returns TimeTriggeredPlan instad of Sequential")
+    def test_interpreted_functions_in_durations_planner(self):
+        problem = self.problems["interpreted_functions_in_durations"].problem
+        # print (problem)
+        # print (problem.kind)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+
+        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+            print("now attempting to solve")
             result = planner.solve(problem)
         print(result)
         print(result.plan)
