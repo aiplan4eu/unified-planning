@@ -221,6 +221,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     new_to_old[no_IF_action] = a
             elif isinstance(a, DurativeAction):
                 no_IF_action = a.clone()
+                if (
+                    OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(a.duration.lower)
+                ) or (
+                    OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(a.duration.upper)
+                ):
+
+                    no_IF_action.set_closed_duration_interval(1, 1000000)
+
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
                 no_IF_action.clear_conditions()
                 for i, cl in a.conditions.items():

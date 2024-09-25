@@ -59,7 +59,7 @@ class TestAnytimePlanning(unittest_TestCase):
     # the following skip MUST BE REMOVED
     @pytest.mark.skip(
         reason="There is currently a bug with this one - planner returns engine error"
-    )  # this fails now even without adding if problems to minimals
+    )
     def test_counters(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
