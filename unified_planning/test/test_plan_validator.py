@@ -64,6 +64,11 @@ class TestProblem(unittest_TestCase):
             for p in self.problems.values():
                 if not pv.supports(p.problem.kind):
                     continue
+                if not p.valid_plans:
+                    print(
+                        p.problem
+                    )  # after adding an always impossible problem we have to make sure we skip it here
+                    continue
                 problem, plan = p.problem, p.valid_plans[0]
                 validation_result = pv.validate(problem, plan)
                 self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
