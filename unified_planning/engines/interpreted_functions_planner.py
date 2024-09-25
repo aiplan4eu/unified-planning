@@ -163,7 +163,7 @@ def _attempt_to_solve(
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
     if res.status in up.engines.results.POSITIVE_OUTCOMES:
-        status = PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        status = res.status
         ###------------------------------------here for successful solve--------------------------------
         if res.plan is None:
             return PlanGenerationResult(
