@@ -97,4 +97,4 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         print(compiled_problem)
         print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
-        self.assertTrue(compiled_problem.kind.has_interpreted_functions_in_durations())
+        self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
