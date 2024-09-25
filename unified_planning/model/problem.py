@@ -43,7 +43,7 @@ from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
 
-import networkx as nx  # type: ignore
+import networkx as nx
 from fractions import Fraction
 from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
 
