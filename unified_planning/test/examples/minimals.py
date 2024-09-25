@@ -600,6 +600,7 @@ def get_example_problems():
     )
 
     # interpreted functions ----------
+    # interpreted functions in instaneous action precondition
     problem = Problem("interpreted_functions_in_conditions")
 
     def i_f_simple_bool(inputone, inputtwo):
@@ -614,10 +615,12 @@ def get_example_problems():
     itwo = Fluent("itwo", IntType(0, 20))
     instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
     instant_action_i_f_condition.add_precondition(
-        And(GE(ione, 10), Not(funx(itwo, itwo)))
+        And(
+            GE(ione, 10), Not(funx(itwo, itwo))
+        )  # note that (!funx (i2, i2)) is always true
     )
     instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
-    instant_action_i_f_condition.add_effect(end_goal, Not(end_goal))
+    instant_action_i_f_condition.add_effect(end_goal, True)
     problem.add_fluent(end_goal)
     problem.add_fluent(ione)
     problem.add_fluent(itwo)
@@ -631,31 +634,14 @@ def get_example_problems():
         solvable=True,
         valid_plans=[
             up.plans.SequentialPlan([instant_action_i_f_condition()]),
-            up.plans.SequentialPlan(
-                [
-                    instant_action_i_f_condition(),
-                    instant_action_i_f_condition(),
-                    instant_action_i_f_condition(),
-                ]
-            ),
         ],
         invalid_plans=[
             up.plans.SequentialPlan([]),
-            up.plans.SequentialPlan(
-                [instant_action_i_f_condition(), instant_action_i_f_condition()]
-            ),
-            up.plans.SequentialPlan(
-                [
-                    instant_action_i_f_condition(),
-                    instant_action_i_f_condition(),
-                    instant_action_i_f_condition(),
-                    instant_action_i_f_condition(),
-                ]
-            ),
         ],
     )
     problems["interpreted_functions_in_conditions"] = ifproblem
 
+    # interpreted functions in durative action condition - could be changed
     funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
     end_goal = Fluent("end_goal")
@@ -696,6 +682,7 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_durative_conditions"] = ifproblem
 
+    # interpreted functions in duration
     def i_f_go_home_duration(
         israining, basetime
     ):  # if it rains you will take longer to walk home
@@ -740,6 +727,8 @@ def get_example_problems():
         ],
     )
     problems["interpreted_functions_in_durations"] = ifproblem
+
+    # interpreted functions in bool assignment - could be changed
 
     funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
