@@ -827,4 +827,37 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_boolean_assignment"] = ifproblem
 
+    # interpreted functions in numeric assignment - could be changed
+
+    def i_f_simple_int(inputone, inputtwo):
+        if inputone % 2 == 0:
+            return inputone
+        return inputtwo + inputone
+
+    funx = InterpretedFunction("funx", IntType(), signatureConditionF, i_f_simple_int)
+
+    ione = Fluent("ione", IntType(0, 20))
+    itwo = Fluent("itwo", IntType(0, 20))
+    end_goal = Fluent("end_goal", IntType(0, 20))
+
+    apply_i_f_assignment = InstantaneousAction("apply_i_f_assignment")
+    apply_i_f_assignment.add_effect(end_goal, funx(ione, itwo))
+
+    problem = Problem("interpreted_functions_in_numeric_assignment")
+    problem.add_fluent(ione)
+    problem.add_fluent(itwo)
+    problem.add_fluent(end_goal)
+
+    problem.add_action(apply_i_f_assignment)
+    problem.set_initial_value(ione, 3)
+    problem.set_initial_value(itwo, 5)
+    problem.set_initial_value(end_goal, 0)
+    problem.add_goal(GE(end_goal, 10))
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=False,
+    )
+    problems["interpreted_functions_in_numeric_assignment"] = ifproblem
+
     return problems

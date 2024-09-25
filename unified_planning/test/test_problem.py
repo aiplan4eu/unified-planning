@@ -647,6 +647,9 @@ class TestProblem(unittest_TestCase):
         problem = self.problems["interpreted_functions_in_boolean_assignment"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["interpreted_functions_in_numeric_assignment"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
 
 if __name__ == "__main__":
     main()
