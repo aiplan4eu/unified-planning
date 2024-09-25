@@ -22,7 +22,7 @@ from unified_planning.model.problem_kind import (
     full_classical_kind,
     basic_temporal_kind,
 )
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
@@ -48,10 +48,10 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
         compiled_problem = ifr.problem
-        print(problem)
-        print(problem.kind)
-        print(compiled_problem)
-        print(compiled_problem.kind)
+        # print(problem)
+        # print(problem.kind)
+        # print(compiled_problem)
+        # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
@@ -70,10 +70,10 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
         compiled_problem = ifr.problem
-        print(problem)
-        print(problem.kind)
-        print(compiled_problem)
-        print(compiled_problem.kind)
+        # print(problem)
+        # print(problem.kind)
+        # print(compiled_problem)
+        # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
@@ -92,9 +92,15 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
         compiled_problem = ifr.problem
-        print(problem)
-        print(problem.kind)
-        print(compiled_problem)
-        print(compiled_problem.kind)
+        # print(problem)
+        # print(problem.kind)
+        # print(compiled_problem)
+        # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
         self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
+        l = compiled_problem.actions[0].duration.lower
+        u = compiled_problem.actions[0].duration.upper
+        self.assertTrue(l.is_int_constant())
+        self.assertTrue(u.is_int_constant())
+        # self.assertEqual(l.int_constant_value, 1) # this is very not user-friendly
+        # self.assertEqual(u.int_constant_value, 1000000)
