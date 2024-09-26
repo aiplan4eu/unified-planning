@@ -32,27 +32,6 @@ class TestPartialOrderPlan(unittest_TestCase):
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    @pytest.mark.skip(
-        reason="plan translation from sequential to partial order has not been implemented for IF"
-    )
     def test_all(self):
         with PlanValidator(name="sequential_plan_validator") as validator:
             assert validator is not None
