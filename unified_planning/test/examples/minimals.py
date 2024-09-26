@@ -856,7 +856,7 @@ def get_example_problems():
 
     ifproblem = TestCase(
         problem=problem,
-        solvable=False,
+        solvable=False,  # should be true but can't be handled by UP yet
     )
     problems["interpreted_functions_in_numeric_assignment"] = ifproblem
 
