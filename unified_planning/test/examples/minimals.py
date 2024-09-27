@@ -832,7 +832,7 @@ def get_example_problems():
     def i_f_simple_int(inputone, inputtwo):
         if inputone % 2 == 0:
             return inputone
-        return inputtwo + inputone
+        return inputtwo * inputone
 
     funx = InterpretedFunction("funx", IntType(), signatureConditionF, i_f_simple_int)
 
@@ -856,7 +856,13 @@ def get_example_problems():
 
     ifproblem = TestCase(
         problem=problem,
-        solvable=False,  # should be true but can't be handled by UP yet
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([apply_i_f_assignment()]),
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([]),
+        ],
     )
     problems["interpreted_functions_in_numeric_assignment"] = ifproblem
 

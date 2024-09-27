@@ -630,6 +630,7 @@ class TestProblem(unittest_TestCase):
 
     def test_interpreted_functions_simple(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
+        print(problem)  # this is just to test repr of IFs
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         problem = self.problems[
