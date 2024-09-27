@@ -178,6 +178,8 @@ class ProblemKindMeta(type):
             self._features.add(feature)
 
         def _unset(self, feature, possible_features):
+            print(feature)
+            print(possible_features)
             assert feature in possible_features
             self._features.discard(feature)
 

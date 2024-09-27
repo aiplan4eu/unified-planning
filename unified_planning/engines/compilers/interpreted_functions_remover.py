@@ -164,14 +164,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
-        # this probably has to be changed -----------------------------------------------------------
+        assert isinstance(problem_kind, ProblemKind)
         new_kind = problem_kind.clone()
         if new_kind.has_interpreted_functions_in_conditions():
-            new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
-            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.unset_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         if new_kind.has_interpreted_functions_in_durations():
-            new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_DURATIONS")
-            new_kind.set_conditions_kind("INT_TYPE_DURATIONS")
+            new_kind.unset_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
+            new_kind.set_expression_duration("INT_TYPE_DURATIONS")
 
         return new_kind
 

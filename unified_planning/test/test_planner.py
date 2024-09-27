@@ -115,9 +115,11 @@ class TestPlanner(unittest_TestCase):
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
-    @pytest.mark.skip(
-        reason="parallel problems currently cause issues with IFs in the environment"
-    )
+    @pytest.mark.skip(reason="parallel solver bugged with IFs")
+    # defined functions can't be pickled
+    # according to https://stackoverflow.com/questions/72766345/attributeerror-cant-pickle-local-object-in-multiprocessing
+    # there are some workarounds, but i am not sure this will work for us
+    # we could make parallel not support IFs and just remove them before calling parallel?
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
         # print (problem)
@@ -128,7 +130,9 @@ class TestPlanner(unittest_TestCase):
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
         ) as planner:
             self.assertNotEqual(planner, None)
-            final_report = planner.solve(problem)
+            # deadlock line ---------------------------------------------------------
+            final_report = planner.solve(problem)  # deadlock line
+            # deadlock line ---------------------------------------------------------
             plan = final_report.plan
             self.assertEqual(
                 final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
@@ -192,9 +196,7 @@ class TestPlanner(unittest_TestCase):
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
-    @pytest.mark.skip(
-        reason="parallel problems currently cause issues with IFs in the environment"
-    )
+    @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_basic_oversubscription_parallel(self):
         problem = self.problems["basic_oversubscription"].problem
         # print(problem)
@@ -233,9 +235,7 @@ class TestPlanner(unittest_TestCase):
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
     # the following skip MUST BE REMOVED
-    @pytest.mark.skip(
-        reason="parallel problems currently cause issues with IFs in the environment"
-    )
+    @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_timed_connected_locations_parallel(self):
         problem = self.problems["timed_connected_locations"].problem
         # print(problem)
