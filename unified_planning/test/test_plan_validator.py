@@ -65,9 +65,7 @@ class TestProblem(unittest_TestCase):
                 if not pv.supports(p.problem.kind):
                     continue
                 if not p.valid_plans:
-                    print(
-                        p.problem
-                    )  # after adding an always impossible problem we have to make sure we skip it here
+                    # after adding an always impossible problem we have to make sure we skip it
                     continue
                 problem, plan = p.problem, p.valid_plans[0]
                 validation_result = pv.validate(problem, plan)
@@ -400,7 +398,8 @@ class TestProblem(unittest_TestCase):
 
     def test_with_interpreted_functions(self):
         spv = SequentialPlanValidator(environment=get_environment())
-        spv.skip_checks = True  # have to use this
+        spv.skip_checks = True
+        # have to use this for now ----------------------------------------------------------
 
         p = self.problems["interpreted_functions_in_conditions"]
         problem = p.problem

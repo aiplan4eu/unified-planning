@@ -622,9 +622,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_conditions_kind(
-            "INTERPRETED_FUNCTIONS_IN_CONDITIONS"
-        )  # causes problems in test_partial_order_plan
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
