@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import time
 import warnings
 import unified_planning as up
 import unified_planning.engines as engines
@@ -97,26 +96,18 @@ class Parallel(
             )
             processes.append(_p)
             _p.start()
-        # print ("\n\n!?!?!?!?!?!?!?!?!?!\n\n")
-        # print (processes)
         processes_alive = len(processes)
         results: List[Result] = []
         definitive_result_found: bool = False
-        # print ("------------msg---------------")
-        # print ("parent process queue is:")
-        # print (signaling_queue)
-        # print ("parent going to sleep")
-        time.sleep(5)
-        # print ("parent waking up")
         while True:
             if processes_alive == 0:  # Every planner gave a result
                 break
             # deadlock line -----------------------------------------------------------------------------------------
-            # print ("about to read")
+
             (idx, res) = signaling_queue.get(
                 block=False
             )  # (idx, res) = signaling_queue.get(block=True)  # deadlock line
-            # print ("after read")
+
             # deadlock line -----------------------------------------------------------------------------------------
             # callables can't be pickled ?
             processes_alive -= 1
@@ -223,35 +214,14 @@ def _run(
     *args,
 ):
     EngineClass = factory.engine(engine_name)
-    # print ("------------msg---------------")
-    # print ("Hello I am")
-    # print (idx)
     with EngineClass(**options) as s:
         s.skip_checks = skip_checks
         s.error_on_failed_checks = error_on_failed_checks
         try:
-            # print ("------------msg---------------")
-            # print (idx)
-            # print ("trying to do the thing")
             local_res = getattr(s, fname)(*args)
         except Exception as ex:
-            # print ("------------msg---------------")
-            # print (idx)
-            # print ("found an exception")
             signaling_queue.put((idx, ex))
             return
-        # print ("------------msg---------------")
-        # print (idx)
-        # print ("trying to put on the queue:")
-        # print ("queue:")
-        # print (signaling_queue)
-        # print ("local res:")
-        # print (local_res)
-        signaling_queue.put((idx, local_res))
-        # print ("------------msg---------------")
-        # print (idx)
-        # print ("after putting on queue :")
-        # print ("queue empty result:")
-        # print (signaling_queue.empty())
-        # print ("queue size result:")
-        # print (signaling_queue.qsize())
+        signaling_queue.put(
+            (idx, local_res)
+        )  # seems that after this queue.empty still says that queue is empty ?
