@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import pytest
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import UPProblemDefinitionError
@@ -44,6 +45,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
+            expectedkind = if_remover.resulting_problem_kind(
+                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
@@ -52,6 +56,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         # print(problem.kind)
         # print(compiled_problem)
         # print(compiled_problem.kind)
+
+        self.assertFalse(expectedkind.has_interpreted_functions_in_conditions())
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
@@ -65,6 +71,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
+            expectedkind = if_remover.resulting_problem_kind(
+                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
@@ -74,6 +83,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         # print(compiled_problem)
         # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(expectedkind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
             compiled_problem.kind.has_interpreted_functions_in_conditions()
@@ -131,6 +141,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
+            expectedkind = if_remover.resulting_problem_kind(
+                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
@@ -140,7 +153,10 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         # print(compiled_problem)
         # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(expectedkind.has_int_type_durations())
+        self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
         self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(compiled_problem.kind.has_int_type_durations())
         l = compiled_problem.actions[0].duration.lower
         u = compiled_problem.actions[0].duration.upper
         self.assertTrue(l.is_int_constant())
