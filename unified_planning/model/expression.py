@@ -39,15 +39,8 @@ BoolExpression = Union[
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
-NumericExpression = Union[
-    NumericConstant,
-    "up.model.fnode.FNode",
-]
-ConstantExpression = Union[
-    NumericExpression,
-    "up.model.object.Object",
-    bool,
-]
+NumericExpression = Union[NumericConstant, "up.model.fnode.FNode"]
+ConstantExpression = Union[NumericExpression, "up.model.object.Object", bool]
 TimeExpression = Union[
     "up.model.timing.Timing",
     "up.model.timing.Timepoint",

@@ -97,34 +97,14 @@ class TestPlanner(unittest_TestCase):
                 self.assertTrue(val_res)
 
     @skipIfEngineNotAvailable("tamer")
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
     # defined functions can't be pickled
     # according to https://stackoverflow.com/questions/72766345/attributeerror-cant-pickle-local-object-in-multiprocessing
     # there are some workarounds, but i am not sure this will work for us
-    # we could make parallel not support IFs and just remove them before calling parallel?
     @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
         # print (problem)
         a = problem.action("a")
-        # self.assertEqual(problem, 0) #always error, deadlock happens after this
         with OneshotPlanner(
             names=["tamer", "tamer"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
@@ -178,30 +158,12 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
+    # parallel currently bugged as callables from the new IFs can't be pickled and sent to the subprocesses
     @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_basic_oversubscription_parallel(self):
         problem = self.problems["basic_oversubscription"].problem
         # print(problem)
         a = problem.action("a")
-        # self.assertEqual(problem, 0) #always error, deadlock happens after this
         with OneshotPlanner(
             names=["oversubscription[tamer]", "oversubscription[tamer]"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
@@ -217,30 +179,12 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
+    # parallel currently bugged as callables from the new IFs can't be pickled and sent to the subprocesses
     @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_timed_connected_locations_parallel(self):
         problem = self.problems["timed_connected_locations"].problem
         # print(problem)
         move = problem.action("move")
-        # self.assertEqual(problem, 0) #always error, deadlock happens after this
         with OneshotPlanner(
             names=["tamer", "tamer"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],

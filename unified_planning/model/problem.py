@@ -77,7 +77,6 @@ class Problem(  # type: ignore[misc]
         FluentsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
-
         ActionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
@@ -778,7 +777,6 @@ class _KindFactory:
         self,
         e: "up.model.effect.Effect",
     ):
-        # value = self.simplifier.simplify(e.value)
         value = e.value
         fluents_in_value = self.environment.free_vars_extractor.get(value)
         ops = self.operators_extractor.get(value)
@@ -808,7 +806,6 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -836,7 +833,6 @@ class _KindFactory:
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_assignment():
-
             value_type = value.type
             if (
                 value_type.is_int_type() or value_type.is_real_type()
