@@ -40,7 +40,7 @@ class TestAnytimePlanning(unittest_TestCase):
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
-    def test_counters(self):
+    def test_counters_modified(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem3.pddl")
@@ -58,8 +58,6 @@ class TestAnytimePlanning(unittest_TestCase):
                 solutions.append(p)
                 if len(solutions) == 2:
                     break
-        # print(solutions[0].actions)
-        # print(solutions[1].actions)
 
         self.assertEqual(len(solutions), 2)
         self.assertEqual(solutions[0].status, PlanGenerationResultStatus.INTERMEDIATE)

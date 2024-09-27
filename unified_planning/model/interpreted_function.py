@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# copyright info is not up to date as of september 27th 2024
 """
 This module defines the InterpretedFunction class.
 An InterpretedFunction has a name, a return type, a signature
@@ -59,19 +60,6 @@ class InterpretedFunction:
                 self._signature.append(
                     up.model.parameter.Parameter(param_name, param_type, self._env)
                 )
-
-    #        for param in self._signature:
-    #            pt = param.type
-    #            if pt.is_real_type() or (
-    #                pt.is_int_type()
-    #                and (
-    #                    cast(_IntType, pt).lower_bound is None
-    #                    or cast(_IntType, pt).upper_bound is None
-    #                )
-    #            ):
-    #                raise UPTypeError(
-    #                    f"Parameter {param} of interpreted function {name} has type {pt}; interpreted function parameters must be int|real|bool|userType."  # this should probably be different
-    #                )
 
     def __repr__(self) -> str:
         sign = ""

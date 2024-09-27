@@ -27,8 +27,6 @@ from unified_planning.engines.plan_validator import (
 )
 from unified_planning.engines.oversubscription_planner import OversubscriptionPlanner
 from unified_planning.engines.replanner import Replanner
-
-# from unified_planning.engines.interpreted_functions_planner import InterpretedFunctionsPlanner
 from unified_planning.engines.results import (
     Result,
     LogMessage,
@@ -52,7 +50,6 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
-
 
 __all__ = [
     "Factory",

@@ -1,7 +1,7 @@
 ;; edit of the original example by Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
 ;; to make tests faster - this still verifies anytime requirements in unified_planning as of septemer 27th 2024 
 ;; the bloat of unused counters still makes it that the first solution is not optimal, but takes less time to run tests
-(define (problem instance_12_reduced)
+(define (problem instance_12_mod)
   (:domain fn-counters)
   (:objects
     c0 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 - counter
