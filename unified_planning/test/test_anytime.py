@@ -40,7 +40,7 @@ class TestAnytimePlanning(unittest_TestCase):
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
-    def test_counters(self):
+    def test_counters_modified(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem3.pddl")
@@ -58,8 +58,6 @@ class TestAnytimePlanning(unittest_TestCase):
                 solutions.append(p)
                 if len(solutions) == 2:
                     break
-        # print(solutions[0].actions)
-        # print(solutions[1].actions)
 
         self.assertEqual(len(solutions), 2)
         if solutions[1].status == PlanGenerationResultStatus.INTERMEDIATE:
@@ -67,7 +65,53 @@ class TestAnytimePlanning(unittest_TestCase):
                 len(solutions[0].plan.actions), len(solutions[1].plan.actions)
             )
         elif solutions[1].status == PlanGenerationResultStatus.SOLVED_SATISFICING:
-            self.assertGreaterEqual(
+            self.assertEqual(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )
+        elif solutions[1].status == PlanGenerationResultStatus.INTERNAL_ERROR:
+            print("this sometimes happens with large problems")
+            print(solutions)
+            self.assertGreater(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )
+            # this will most likely error if you somehow got here
+        else:
+            print(solutions)
+            self.assertGreater(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )
+            # this will most likely error if you somehow got here
+
+    @skipIfNoAnytimePlannerForProblemKind(
+        simple_numeric_kind.union(quality_metrics_kind),
+        up.engines.AnytimeGuarantee.INCREASING_QUALITY,
+    )
+    def test_counters_small(self):
+        reader = PDDLReader()
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem.pddl")
+        # using the modified problem3 to save time
+        problem = reader.parse_problem(domain_filename, problem_filename)
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+
+        with AnytimePlanner(
+            problem_kind=problem.kind, anytime_guarantee="INCREASING_QUALITY"
+        ) as planner:
+            self.assertTrue(planner.is_anytime_planner())
+            solutions = []
+            for p in planner.get_solutions(problem):
+                self.assertTrue(p.plan is not None)
+                solutions.append(p)
+                if len(solutions) == 2:
+                    break
+
+        self.assertEqual(len(solutions), 2)
+        if solutions[1].status == PlanGenerationResultStatus.INTERMEDIATE:
+            self.assertGreater(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )
+        elif solutions[1].status == PlanGenerationResultStatus.SOLVED_SATISFICING:
+            self.assertEqual(
                 len(solutions[0].plan.actions), len(solutions[1].plan.actions)
             )
         elif solutions[1].status == PlanGenerationResultStatus.INTERNAL_ERROR:
