@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# copyright info is not up to date as of september 27th 2024
 
 import time
 import unified_planning as up
@@ -30,6 +31,7 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.shortcuts import Compiler
 from unified_planning.utils import powerset
 from typing import Type, IO, Optional, Union, List, Tuple, Callable
@@ -153,8 +155,6 @@ def _attempt_to_solve(
     output_stream: Optional[IO[str]] = None,
 ) -> "PlanGenerationResult":
     new_problem = compilerresult.problem
-    # print (new_problem)
-    # print (new_problem.kind)
 
     start = time.time()
 
@@ -172,15 +172,22 @@ def _attempt_to_solve(
                 self.name,
                 log_messages=res.log_messages,
             )
+        elif isinstance(
+            res.plan, TimeTriggeredPlan
+        ):  # we currently cannot check the validity of time triggered plans
+            return PlanGenerationResult(
+                PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
+                res.plan,
+                self.name,
+            )
+
         mapback = compilerresult.map_back_action_instance
         mappedbackplan = res.plan.replace_action_instances(mapback)
-        # print (res.plan)
 
         spv = SequentialPlanValidator(environment=get_environment())
         spv.skip_checks = True  # --------------------------------------------------------------------------
         validation_result = spv.validate(problem, mappedbackplan)
         if validation_result.status == ValidationResultStatus.VALID:
-            # print("the plan is ok")
             retval = PlanGenerationResult(
                 status,
                 mappedbackplan,
@@ -188,9 +195,6 @@ def _attempt_to_solve(
                 log_messages=res.log_messages,
             )
         else:
-            # print ("validation error")
-            # print (validation_result)
-            # print (validation_result.status)
             retval = _refine(
                 PlanGenerationResultStatus.INTERNAL_ERROR,
                 up.plans.SequentialPlan([]),

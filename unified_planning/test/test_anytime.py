@@ -58,8 +58,6 @@ class TestAnytimePlanning(unittest_TestCase):
                 solutions.append(p)
                 if len(solutions) == 2:
                     break
-        # print(solutions[0].actions)
-        # print(solutions[1].actions)
 
         self.assertEqual(len(solutions), 2)
         self.assertEqual(solutions[0].status, PlanGenerationResultStatus.INTERMEDIATE)

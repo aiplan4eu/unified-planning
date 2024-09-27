@@ -76,7 +76,6 @@ class Parallel(
     def _run_parallel(self, fname, *args) -> List[Result]:
         signaling_queue: Queue = Queue()
         processes = []
-
         for idx, (engine_name, opts) in enumerate(self.engines):
             options = opts
             _p = Process(
