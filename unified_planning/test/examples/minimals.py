@@ -599,7 +599,7 @@ def get_example_problems():
         invalid_plans=[],
     )
 
-    # interpreted functions ----------
+    # interpreted functions --------------------------------------------------------
     # interpreted functions in instaneous action precondition
     problem = Problem("interpreted_functions_in_conditions")
 
@@ -702,7 +702,7 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_conditions_always_impossible"] = ifproblem
 
-    # interpreted functions in durative action condition - could be changed
+    # interpreted functions in durative action condition
     funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
     end_goal = Fluent("end_goal")
