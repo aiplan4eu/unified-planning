@@ -105,7 +105,7 @@ class Parallel(
             # deadlock line -----------------------------------------------------------------------------------------
 
             (idx, res) = signaling_queue.get(
-                block=False
+                block=True
             )  # (idx, res) = signaling_queue.get(block=True)  # deadlock line
 
             # deadlock line -----------------------------------------------------------------------------------------
