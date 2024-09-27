@@ -103,11 +103,7 @@ class Parallel(
             if processes_alive == 0:  # Every planner gave a result
                 break
             # deadlock line -----------------------------------------------------------------------------------------
-
-            (idx, res) = signaling_queue.get(
-                block=True
-            )  # (idx, res) = signaling_queue.get(block=True)  # deadlock line
-
+            (idx, res) = signaling_queue.get(block=True)
             # deadlock line -----------------------------------------------------------------------------------------
             # callables can't be pickled ?
             processes_alive -= 1
@@ -222,6 +218,5 @@ def _run(
         except Exception as ex:
             signaling_queue.put((idx, ex))
             return
-        signaling_queue.put(
-            (idx, local_res)
-        )  # seems that after this queue.empty still says that queue is empty ?
+        signaling_queue.put((idx, local_res))
+        # seems that after this queue.empty still says that queue is empty ? and queue.get can't find the reult
