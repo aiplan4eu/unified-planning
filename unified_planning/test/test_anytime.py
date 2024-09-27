@@ -16,6 +16,7 @@ import os
 
 import pytest
 import unified_planning as up
+from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     simple_numeric_kind,
@@ -39,29 +40,11 @@ class TestAnytimePlanning(unittest_TestCase):
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    # the following skip MUST BE REMOVED
-    @pytest.mark.skip(reason="Currently bugged - planner returns engine error")
     def test_counters(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
-        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem2.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem3.pddl")
+        # using the modified problem3 to save time
         problem = reader.parse_problem(domain_filename, problem_filename)
         problem.add_quality_metric(MinimizeSequentialPlanLength())
 
