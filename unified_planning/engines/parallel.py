@@ -218,4 +218,4 @@ def _run(
             signaling_queue.put((idx, ex))
             return
         signaling_queue.put((idx, local_res))
-        # seems that after this queue.empty still says that queue is empty ? and queue.get can't find the reult
+        # seems that after this put operation queue.empty still says that queue is empty ? and queue.get can't find the result
