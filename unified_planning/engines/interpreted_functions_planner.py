@@ -32,7 +32,6 @@ from unified_planning.engines.results import (
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.shortcuts import Compiler
 from unified_planning.utils import powerset
 from typing import Type, IO, Optional, Union, List, Tuple, Callable
 from fractions import Fraction
@@ -131,8 +130,9 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         em = problem.environment.expression_manager
+        f = problem.environment.factory
 
-        with Compiler(
+        with f.Compiler(
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
@@ -156,6 +156,7 @@ def _attempt_to_solve(
 ) -> "PlanGenerationResult":
     new_problem = compilerresult.problem
 
+    f = problem.environment.factory
     start = time.time()
 
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
@@ -164,29 +165,13 @@ def _attempt_to_solve(
         timeout -= min(timeout, time.time() - start)
     if res.status in up.engines.results.POSITIVE_OUTCOMES:
         status = res.status
-        ###------------------------------------here for successful solve--------------------------------
-        if res.plan is None:
-            return PlanGenerationResult(
-                status,
-                up.plans.SequentialPlan([]),
-                self.name,
-                log_messages=res.log_messages,
-            )
-        elif isinstance(
-            res.plan, TimeTriggeredPlan
-        ):  # we currently cannot check the validity of time triggered plans
-            return PlanGenerationResult(
-                PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
-                res.plan,
-                self.name,
-            )
-
         mapback = compilerresult.map_back_action_instance
         mappedbackplan = res.plan.replace_action_instances(mapback)
+        with f.PlanValidator(
+            problem_kind=problem.kind, plan_kind=mappedbackplan.kind
+        ) as validator:
+            validation_result = validator.validate(problem, mappedbackplan)
 
-        spv = SequentialPlanValidator(environment=get_environment())
-        # spv.skip_checks = True  # --------------------------------------------------------------------------
-        validation_result = spv.validate(problem, mappedbackplan)
         if validation_result.status == ValidationResultStatus.VALID:
             retval = PlanGenerationResult(
                 status,
@@ -197,7 +182,7 @@ def _attempt_to_solve(
         else:
             retval = _refine(
                 PlanGenerationResultStatus.INTERNAL_ERROR,
-                up.plans.SequentialPlan([]),
+                mappedbackplan,
                 self.name,
                 "pi prime is not valid for P",
             )
