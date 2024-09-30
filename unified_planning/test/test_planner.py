@@ -16,7 +16,6 @@
 from typing import Callable
 import warnings
 
-import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -97,10 +96,6 @@ class TestPlanner(unittest_TestCase):
                 self.assertTrue(val_res)
 
     @skipIfEngineNotAvailable("tamer")
-    # defined functions can't be pickled
-    # according to https://stackoverflow.com/questions/72766345/attributeerror-cant-pickle-local-object-in-multiprocessing
-    # there are some workarounds, but i am not sure this will work for us
-    @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
         # print (problem)
@@ -158,8 +153,6 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
-    # parallel currently bugged as callables from the new IFs can't be pickled and sent to the subprocesses
-    @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_basic_oversubscription_parallel(self):
         problem = self.problems["basic_oversubscription"].problem
         # print(problem)
@@ -179,8 +172,6 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
     @skipIfEngineNotAvailable("tamer")
-    # parallel currently bugged as callables from the new IFs can't be pickled and sent to the subprocesses
-    @pytest.mark.skip(reason="parallel solver bugged with IFs")
     def test_timed_connected_locations_parallel(self):
         problem = self.problems["timed_connected_locations"].problem
         # print(problem)

@@ -86,6 +86,13 @@ class InterpretedFunction:
             res += hash(p)
         return res ^ hash(self._name)
 
+    # anti pickling test -------------------------------------------------------------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # print ("trying anti pickling measures")
+        state["_function"] = None
+        return state
+
     @property
     def function(self) -> Callable:
         """Returns the `InterpretedFunction` `function`."""
