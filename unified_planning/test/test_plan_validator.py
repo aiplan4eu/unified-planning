@@ -396,7 +396,18 @@ class TestProblem(unittest_TestCase):
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
 
-    def test_with_interpreted_functions(self):
+    def test_with_interpreted_functions_time_triggered(self):
+        ttv = SequentialPlanValidator(environment=get_environment())
+        p = self.problems["interpreted_functions_in_conditions"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = ttv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = ttv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+    def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
         spv.skip_checks = True
         # have to use this for now ----------------------------------------------------------
