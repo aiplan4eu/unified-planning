@@ -101,9 +101,7 @@ class Parallel(
         while True:
             if processes_alive == 0:  # Every planner gave a result
                 break
-            # deadlock line -----------------------------------------------------------------------------------------
             (idx, res) = signaling_queue.get(block=True)
-            # deadlock line -----------------------------------------------------------------------------------------
             processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res
