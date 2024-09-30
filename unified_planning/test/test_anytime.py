@@ -44,7 +44,6 @@ class TestAnytimePlanning(unittest_TestCase):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem3.pddl")
-        # using the modified problem3 to save time
         problem = reader.parse_problem(domain_filename, problem_filename)
         problem.add_quality_metric(MinimizeSequentialPlanLength())
 
