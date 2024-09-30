@@ -213,7 +213,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         OperatorKind.INTERPRETED_FUNCTION_EXP in precondition_operators
                     ):
                         no_IF_action.add_precondition(p)
-                    new_to_old[no_IF_action] = a
+                new_to_old[no_IF_action] = a
             elif isinstance(a, DurativeAction):
                 no_IF_action = a.clone()
                 if (
@@ -242,7 +242,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             in precondition_operators
                         ):
                             no_IF_action.add_condition(i, fc)
-                    new_to_old[no_IF_action] = a
+                new_to_old[no_IF_action] = a
             else:
                 raise NotImplementedError
 

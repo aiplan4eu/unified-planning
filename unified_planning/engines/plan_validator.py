@@ -93,6 +93,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind = UPSequentialSimulator.supported_kind()
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return supported_kind
 
     @staticmethod
@@ -244,10 +245,12 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_time("SELF_OVERLAPPING")
         kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         kind.set_expression_duration("INT_TYPE_DURATIONS")
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
         kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return kind
 
     @staticmethod

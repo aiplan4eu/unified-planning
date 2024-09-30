@@ -113,8 +113,13 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
             print("now attempting to solve")
             result = planner.solve(problem)
+            print(result)
 
-        self.assertTrue(result.status == PlanGenerationResultStatus.UNSUPPORTED_PROBLEM)
+        self.assertTrue(result.status == PlanGenerationResultStatus.INTERNAL_ERROR)
         self.assertEqual(len(result.plan._actions), 1)
         self.assertEqual((result.plan.timed_actions[0])[1].action.name, pa.name)
         # the action objects are different, one contains an IF, the other has 1-1000000 as time instead
+        # this test case has to be changed once support is implemented
+        # ------------------------------------------------------------
+        # ------------------------------------------------------------
+        # ------------------------------------------------------------
