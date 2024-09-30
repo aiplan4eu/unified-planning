@@ -78,9 +78,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_conditions_kind(
-            "INTERPRETED_FUNCTIONS_IN_CONDITIONS"
-        )  # added this
+
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
@@ -103,7 +101,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        final_supported_kind = supported_kind.intersection(engine.supported_kind())
+        final_supported_kind = supported_kind.intersection(engine.supported_kind())  #
         additive_supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         # additive_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         # additive_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
@@ -113,6 +111,12 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         # additive_supported_kind.set_oversubscription_kind(
         #    "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
         # )
+        additive_supported_kind.set_expression_duration(
+            "INTERPRETED_FUNCTIONS_IN_DURATIONS"
+        )
+        additive_supported_kind.set_conditions_kind(
+            "INTERPRETED_FUNCTIONS_IN_CONDITIONS"
+        )
         return final_supported_kind.union(additive_supported_kind)
 
     @staticmethod
