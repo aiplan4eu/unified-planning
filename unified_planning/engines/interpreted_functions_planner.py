@@ -185,7 +185,7 @@ def _attempt_to_solve(
         mappedbackplan = res.plan.replace_action_instances(mapback)
 
         spv = SequentialPlanValidator(environment=get_environment())
-        spv.skip_checks = True  # --------------------------------------------------------------------------
+        # spv.skip_checks = True  # --------------------------------------------------------------------------
         validation_result = spv.validate(problem, mappedbackplan)
         if validation_result.status == ValidationResultStatus.VALID:
             retval = PlanGenerationResult(
