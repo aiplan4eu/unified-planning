@@ -781,10 +781,7 @@ def get_example_problems():
         problem=problem,
         solvable=True,
         valid_plans=[
-            up.plans.SequentialPlan([gohome()]),
-        ],
-        invalid_plans=[
-            up.plans.SequentialPlan([]),
+            up.plans.TimeTriggeredPlan([(Fraction(0), gohome(), Fraction(14))]),
         ],
     )
     problems["interpreted_functions_in_durations"] = ifproblem
