@@ -1,6 +1,7 @@
 ;; edit of the original example by Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
-;; to make tests faster - this still verifies anytime requirements in unified_planning as of septemer 27th 2024 
-;; the bloat of unused counters still makes it that the first solution is not optimal, but takes less time to run tests
+;; to make tests faster and more stable
+;; this still verifies anytime requirements in unified_planning as of septemer 27th 2024 
+;; the bloat of unused counters makes it that the first solution is not optimal
 (define (problem instance_12_mod)
   (:domain fn-counters)
   (:objects
@@ -34,7 +35,6 @@
 	(<= (+ (value c3) 1) (value c4))
 	(<= (+ (value c4) 1) (value c5))
 	(<= (+ (value c5) 1) (value c6))
-	(<= (+ (value c6) 1) (value c7))
   ))
 
   
