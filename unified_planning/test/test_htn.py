@@ -15,8 +15,6 @@
 import os
 import tempfile
 
-import pytest
-
 import unified_planning as up
 from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.model.htn import TaskNetwork, Task
