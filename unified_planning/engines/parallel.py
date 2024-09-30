@@ -104,7 +104,6 @@ class Parallel(
             # deadlock line -----------------------------------------------------------------------------------------
             (idx, res) = signaling_queue.get(block=True)
             # deadlock line -----------------------------------------------------------------------------------------
-            # callables can't be pickled ?
             processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res
@@ -218,4 +217,3 @@ def _run(
             signaling_queue.put((idx, ex))
             return
         signaling_queue.put((idx, local_res))
-        # seems that after this put operation queue.empty still says that queue is empty ? and queue.get can't find the result
