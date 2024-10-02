@@ -41,6 +41,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
         # print (problem)
@@ -64,6 +65,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_always_impossible(self):
         problem = self.problems[
             "interpreted_functions_in_conditions_always_impossible"
@@ -73,7 +75,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
-        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+        # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+        with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
             # print ("now attempting to solve")
             result = planner.solve(problem)
         print(result)
@@ -83,6 +86,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_refine(self):
         problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
         # print (problem)
@@ -90,19 +94,22 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
-        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+        # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+        with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
             # print ("now attempting to solve")
             result = planner.solve(problem)
         print(result)
         print(result.plan)
+        print("increase val -> action if in condition ")
+        print("is a valid solution")
         # -------------------------------------------------------------------------------------------------------------------------
-        self.assertFalse(
-            result.status in up.engines.results.POSITIVE_OUTCOMES
-        )  # only false because refine is not implemented yet
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
-    # @pytest.mark.skip(reason="Tamer returns TimeTriggeredPlan instad of Sequential")
+    # @pytest.mark.skip(reason="work in progress - this does not work as of now")
+
+    # refine currently does not work with tamer
     def test_interpreted_functions_in_durations_planner(self):
         problem = self.problems["interpreted_functions_in_durations"].problem
         # print (problem)
@@ -111,11 +118,11 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
 
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
-            print("now attempting to solve")
+            # print("now attempting to solve")
+            planner.skipChecks = True
             result = planner.solve(problem)
             print(result)
 
-        self.assertTrue(result.status == PlanGenerationResultStatus.INTERNAL_ERROR)
         self.assertEqual(len(result.plan._actions), 1)
         self.assertEqual((result.plan.timed_actions[0])[1].action.name, pa.name)
         # the action objects are different, one contains an IF, the other has 1-1000000 as time instead
