@@ -63,7 +63,14 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertFalse(
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
-        self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
+        print(problem)
+        print(problem.kind)
+        print("-------------------------------------")
+        print(compiled_problem)
+        print(compiled_problem.kind)
+        self.assertTrue(
+            compiled_problem.kind.has_simple_numeric_planning()
+        )  # --------------------------------
 
         problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
 
