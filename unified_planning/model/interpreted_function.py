@@ -17,6 +17,9 @@
 This module defines the InterpretedFunction class.
 An InterpretedFunction has a name, a return type, a signature
 that defines the types of its parameters and its code.
+Due to the way some functions work in Python,
+problems containing interpreted functions are currently
+not supported by the parallel planners
 """
 
 import unified_planning as up

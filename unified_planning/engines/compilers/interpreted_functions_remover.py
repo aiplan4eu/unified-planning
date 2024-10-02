@@ -16,10 +16,12 @@
 """This module defines the interpreted functions effects remover class."""
 
 
+from collections import OrderedDict
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.model.operators import OperatorKind
+from unified_planning.model.expression import Expression, ExpressionManager
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.compilers.utils import updated_minimize_action_costs
 from unified_planning.engines.results import CompilerResult
@@ -34,6 +36,7 @@ from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
     AbstractProblem,
+    FNode,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
@@ -60,11 +63,19 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     This `Compiler` supports only the the `INTERPRETED_FUNCTIONS_REMOVER` :class:`~unified_planning.engines.CompilationKind`.
     """
 
-    def __init__(self):
+    def __init__(
+        self, interpreted_functions_values=None
+    ):  # IF_values - va aggiunto qui
         engines.engine.Engine.__init__(self)
         self.operators_extractor: up.model.walkers.OperatorsExtractor = (
             up.model.walkers.OperatorsExtractor()
         )
+        self.interpreted_functions_extractor: up.model.walkers.InterpretedFunctionsExtractor = (
+            up.model.walkers.InterpretedFunctionsExtractor()
+        )
+        self._interpreted_functions_values = interpreted_functions_values
+        # print("what we got in I_F_V")
+        # print(self._interpreted_functions_values)
         CompilerMixin.__init__(self, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
 
     @property
@@ -179,6 +190,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
+        #        IF_values: Optional[Dict[FNode, FNode]] = None # vedi grounder
     ) -> CompilerResult:
         """
         :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be compiled.
@@ -191,6 +203,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
         env = problem.environment
         simplifier = env.simplifier
+        if self._interpreted_functions_values is None:
+            self._interpreted_functions_values = OrderedDict()
+        # print("what we got in I_F_V")
+        # print(self._interpreted_functions_values)
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_problem = problem.clone()
@@ -198,6 +214,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_actions()
 
         for a in problem.actions:
+            # print("-----------------------------------------------")
+            # print("------------processing a new action------------")
+            # print("-----------------------------------------------")
             if isinstance(a, InstantaneousAction):
                 no_IF_action = a.clone()
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
@@ -207,13 +226,59 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     templist = self._fix_precondition(p)
                     fixed_preconditions.extend(templist)
                 for p in fixed_preconditions:
-                    precondition_operators = self.operators_extractor.get(p)
-
-                    if not (
-                        OperatorKind.INTERPRETED_FUNCTION_EXP in precondition_operators
-                    ):
+                    IFs = self.interpreted_functions_extractor.get(p)
+                    if len(IFs) == 0:
+                        # print("no ifs here, re adding precons")
                         no_IF_action.add_precondition(p)
+
+                alreadyFoundValues = OrderedDict()
+                for p in fixed_preconditions:
+                    IFs = self.interpreted_functions_extractor.get(p)
+                    if len(IFs) != 0:
+                        # print("ifs here")
+                        for f in IFs:
+                            for key in self._interpreted_functions_values:
+                                if f._content.payload.__eq__(key._content.payload):
+                                    # print("we found a match")
+                                    # print("make new action with precondition = key")
+                                    # print (key)
+                                    # print (key._content)
+                                    # print (key._content.payload)
+                                    alreadyFoundValues[
+                                        f._content.args
+                                    ] = key._content.args
+                # print("must add following as negative condition")
+                # print(alreadyFoundValues)
+                for key in alreadyFoundValues:
+                    i = 0
+                    new_condition = None
+                    while i < len(key):
+                        if i == 0:
+                            new_condition = (
+                                no_IF_action.environment.expression_manager.Equals(
+                                    key[i], alreadyFoundValues[key][i]
+                                )
+                            )
+                        else:
+                            new_condition = (
+                                no_IF_action.environment.expression_manager.And(
+                                    new_condition,
+                                    no_IF_action.environment.expression_manager.Equals(
+                                        key[i], alreadyFoundValues[key][i]
+                                    ),
+                                )
+                            )
+
+                        i = i + 1
+                    new_condition = no_IF_action.environment.expression_manager.Not(
+                        new_condition
+                    )
+                    # print (new_condition)
+                    no_IF_action.add_precondition(new_condition)
                 new_to_old[no_IF_action] = a
+
+                # print("---------------processed action----------------")
+                # print(no_IF_action)
             elif isinstance(a, DurativeAction):
                 no_IF_action = a.clone()
                 if (
@@ -228,7 +293,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
                 no_IF_action.clear_conditions()
-                for i, cl in a.conditions.items():
+                for ii, cl in a.conditions.items():
 
                     fixed_conditions = []
                     for c in cl:
@@ -241,7 +306,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             OperatorKind.INTERPRETED_FUNCTION_EXP
                             in precondition_operators
                         ):
-                            no_IF_action.add_condition(i, fc)
+                            no_IF_action.add_condition(ii, fc)
                 new_to_old[no_IF_action] = a
             else:
                 raise NotImplementedError

@@ -22,6 +22,9 @@ from unified_planning.model.walkers.expression_quantifiers_remover import (
 from unified_planning.model.walkers.fluents_substituter import FluentsSubstituter
 from unified_planning.model.walkers.linear_checker import LinearChecker
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
+from unified_planning.model.walkers.interpreted_functions_extractor import (
+    InterpretedFunctionsExtractor,
+)
 from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier
 from unified_planning.model.walkers.simplifier import Simplifier
 from unified_planning.model.walkers.state_evaluator import StateEvaluator
