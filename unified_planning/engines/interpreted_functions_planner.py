@@ -14,18 +14,25 @@
 #
 # copyright info is not up to date as of september 27th 2024
 
+from collections import OrderedDict
 import time
 import unified_planning as up
+from unified_planning.engines.compilers.interpreted_functions_remover import (
+    InterpretedFunctionsRemover,
+)
 import unified_planning.engines.mixins as mixins
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.plan_validator import SequentialPlanValidator
 import unified_planning.engines.results
 from unified_planning.environment import get_environment
 from unified_planning.model import ProblemKind
+from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.interpreted_function import InterpretedFunction
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.results import (
+    FailedValidationReason,
     PlanGenerationResultStatus,
     PlanGenerationResult,
     ValidationResultStatus,
@@ -158,10 +165,11 @@ def _attempt_to_solve(
     timeout: Optional[float] = None,
     output_stream: Optional[IO[str]] = None,
 ) -> "PlanGenerationResult":
+    f = problem.environment.factory
     new_problem = compilerresult.problem
 
-    f = problem.environment.factory
     start = time.time()
+    # print (new_problem)
 
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
 
@@ -177,20 +185,37 @@ def _attempt_to_solve(
             validation_result = validator.validate(problem, mappedbackplan)
 
         if validation_result.status == ValidationResultStatus.VALID:
+            # print ("the found plan is valid")
             retval = PlanGenerationResult(
                 status,
                 mappedbackplan,
                 self.name,
                 log_messages=res.log_messages,
             )
+            return retval
         else:
-            retval = _refine(
-                PlanGenerationResultStatus.INTERNAL_ERROR,
+            # temporary skip for ttp
+            if isinstance(mappedbackplan, TimeTriggeredPlan):
+                return PlanGenerationResult(
+                    validation_result.status,
+                    mappedbackplan,
+                    self.name,
+                    log_messages=res.log_messages,
+                )
+
+            refined_problem = _refine(problem, validation_result)
+
+            retval = PlanGenerationResult(
+                validation_result.status,
                 mappedbackplan,
                 self.name,
-                "pi prime is not valid for P",
+                log_messages=res.log_messages,
             )
-
+            # print ("calling attempt again ###########################################################################")
+            # print (retval)
+            retval = _attempt_to_solve(
+                self, problem, refined_problem, heuristic, timeout, output_stream
+            )
         return retval
     elif res.status == PlanGenerationResultStatus.TIMEOUT:
         return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, None, self.name)
@@ -208,5 +233,34 @@ def _attempt_to_solve(
     return PlanGenerationResult(status, None, self.name)
 
 
-def _refine(a, b, c, d):
-    return PlanGenerationResult(a, b, c, d)
+def _refine(problem, validation_result):
+    if validation_result.reason == FailedValidationReason.INAPPLICABLE_ACTION:
+        knowledge = OrderedDict()
+        for a in problem.actions:
+            if a == validation_result.inapplicable_action.action:
+                # trace = validation_result.trace [0] # this might just get the starting value ?
+                for temp in validation_result.trace:
+                    trace = temp
+                if isinstance(a, InstantaneousAction):
+                    ife = up.model.walkers.InterpretedFunctionsExtractor()
+                    for p in a.preconditions:
+                        IFs = ife.get(p)
+                        if len(IFs) != 0:
+                            for foundif in IFs:
+                                args = foundif._content.args
+                                callable = foundif._content.payload.function
+                                notOkParams = list()
+                                for argname in args:
+                                    notOkParams.append(trace.get_value(argname))
+                                blockedValue = callable(*notOkParams)
+                                foundcon = foundif._content.payload
+                                knowledge[foundcon(*notOkParams)] = blockedValue
+    with InterpretedFunctionsRemover(knowledge) as if_remover:
+        newProb = if_remover.compile(
+            problem,
+            CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        )
+    if len(knowledge) == 0:
+        print("no updates available, the problem has not solution")
+        newProb.problem.clear_actions()
+    return newProb
