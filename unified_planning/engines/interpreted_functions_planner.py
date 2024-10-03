@@ -53,6 +53,14 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def __init__(self, *args, **kwargs):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)
+        self._knowledge = OrderedDict()
+
+    @property
+    def knowledge(self):
+        return self._knowledge
+
+    def add_knowledge(self, key, value):
+        self._knowledge[key] = value
 
     @property
     def name(self) -> str:
@@ -167,11 +175,15 @@ def _attempt_to_solve(
 ) -> "PlanGenerationResult":
     f = problem.environment.factory
     new_problem = compilerresult.problem
-
+    # print (self.knowledge)
     start = time.time()
     # print (new_problem)
-
+    if self._skip_checks:
+        self.engine._skip_checks = True
+    print("planner talking:")
+    print("asking " + str(self.engine.name) + " to solve this")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+    print("we got an answer :D")
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -203,7 +215,7 @@ def _attempt_to_solve(
                     log_messages=res.log_messages,
                 )
 
-            refined_problem = _refine(problem, validation_result)
+            refined_problem = _refine(self, problem, validation_result)
 
             retval = PlanGenerationResult(
                 validation_result.status,
@@ -233,9 +245,13 @@ def _attempt_to_solve(
     return PlanGenerationResult(status, None, self.name)
 
 
-def _refine(problem, validation_result):
+def _refine(self, problem, validation_result):
+    # print ("entering refine ----------------------------")
+    # print ("planner talking:")
+    print("oh no, plan did not work D:")
+    new_knowledge = 0
     if validation_result.reason == FailedValidationReason.INAPPLICABLE_ACTION:
-        knowledge = OrderedDict()
+        # knowledge = OrderedDict()
         for a in problem.actions:
             if a == validation_result.inapplicable_action.action:
                 # trace = validation_result.trace [0] # this might just get the starting value ?
@@ -254,13 +270,21 @@ def _refine(problem, validation_result):
                                     notOkParams.append(trace.get_value(argname))
                                 blockedValue = callable(*notOkParams)
                                 foundcon = foundif._content.payload
-                                knowledge[foundcon(*notOkParams)] = blockedValue
-    with InterpretedFunctionsRemover(knowledge) as if_remover:
+                                # print (foundcon(*notOkParams))
+                                # print (blockedValue)
+                                self.add_knowledge(foundcon(*notOkParams), blockedValue)
+                                new_knowledge = new_knowledge + 1
+                                # knowledge[foundcon(*notOkParams)] = blockedValue
+    with InterpretedFunctionsRemover(self.knowledge) as if_remover:
         newProb = if_remover.compile(
             problem,
             CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         )
-    if len(knowledge) == 0:
-        print("no updates available, the problem has not solution")
+    if new_knowledge == 0:
+        print("no updates available, the problem has no solution")
         newProb.problem.clear_actions()
+    else:
+        # print("we discovered " + str(new_knowledge) + " new information")
+        print("the problem has been updated !")
+        placeholderjunk = 0
     return newProb
