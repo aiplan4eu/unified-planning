@@ -231,32 +231,42 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         # print("no ifs here, re adding precons")
                         no_IF_action.add_precondition(p)
 
-                alreadyFoundValues = OrderedDict()
-                for p in fixed_preconditions:
+                found_to_substitute = list()
+                new_vals_to_substitute = list()
+                for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:
-                        # print("ifs here")
-                        for f in IFs:
+                        for f in IFs:  # get all the IFs in the precondition
                             for key in self._interpreted_functions_values:
                                 if f._content.payload.__eq__(key._content.payload):
-                                    # print("we found a match")
-                                    # print("make new action with precondition = key")
-                                    # print (key)
-                                    # print (key._content)
-                                    # print (key._content.payload)
-                                    alreadyFoundValues[
-                                        f._content.args
-                                    ] = key._content.args
-                # print("must add following as negative condition")
-                # print(alreadyFoundValues)
-                for key in alreadyFoundValues:
+                                    found_to_substitute.append(f._content.args)
+                                    new_vals_to_substitute.append(key._content.args)
+                                    # print("compiler talking here :)")
+                                    # print("inside")
+                                    # print(a)
+                                    # print("we found ")
+                                    # print(f._content.payload)
+                                    # print("which for input values")
+                                    # print(key._content.args)
+                                    # print("always outputs")
+                                    # print(self._interpreted_functions_values[key])
+                                    # tempaction = a.clone()
+                                    # print ("temp clone:")
+                                    # print (tempaction)
+
+                j = 0
+                if len(found_to_substitute) != len(new_vals_to_substitute):
+                    j = 100000000000000000000
+                    print("you should not be here")
+                while j < len(found_to_substitute):
                     i = 0
                     new_condition = None
+                    key = found_to_substitute[j]
                     while i < len(key):
                         if i == 0:
                             new_condition = (
                                 no_IF_action.environment.expression_manager.Equals(
-                                    key[i], alreadyFoundValues[key][i]
+                                    key[i], new_vals_to_substitute[j][i]
                                 )
                             )
                         else:
@@ -264,7 +274,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 no_IF_action.environment.expression_manager.And(
                                     new_condition,
                                     no_IF_action.environment.expression_manager.Equals(
-                                        key[i], alreadyFoundValues[key][i]
+                                        key[i], new_vals_to_substitute[j][i]
                                     ),
                                 )
                             )
@@ -275,6 +285,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     )
                     # print (new_condition)
                     no_IF_action.add_precondition(new_condition)
+                    j = j + 1
                 new_to_old[no_IF_action] = a
 
                 # print("---------------processed action----------------")
