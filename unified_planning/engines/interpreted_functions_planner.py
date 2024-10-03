@@ -180,10 +180,10 @@ def _attempt_to_solve(
     # print (new_problem)
     if self._skip_checks:
         self.engine._skip_checks = True
-    print("planner talking:")
-    print("asking " + str(self.engine.name) + " to solve this")
+    # print("planner talking:")
+    # print("asking " + str(self.engine.name) + " to solve this")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    print("we got an answer :D")
+    # print("we got an answer :D")
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -197,7 +197,8 @@ def _attempt_to_solve(
             validation_result = validator.validate(problem, mappedbackplan)
 
         if validation_result.status == ValidationResultStatus.VALID:
-            # print ("the found plan is valid")
+            # print ("the final problem was")
+            # print (new_problem)
             retval = PlanGenerationResult(
                 status,
                 mappedbackplan,
@@ -223,8 +224,6 @@ def _attempt_to_solve(
                 self.name,
                 log_messages=res.log_messages,
             )
-            # print ("calling attempt again ###########################################################################")
-            # print (retval)
             retval = _attempt_to_solve(
                 self, problem, refined_problem, heuristic, timeout, output_stream
             )
@@ -246,17 +245,17 @@ def _attempt_to_solve(
 
 
 def _refine(self, problem, validation_result):
-    # print ("entering refine ----------------------------")
-    # print ("planner talking:")
-    print("oh no, plan did not work D:")
+    # print("oh no, plan did not work D:")
     new_knowledge = 0
     if validation_result.reason == FailedValidationReason.INAPPLICABLE_ACTION:
-        # knowledge = OrderedDict()
         for a in problem.actions:
             if a == validation_result.inapplicable_action.action:
-                # trace = validation_result.trace [0] # this might just get the starting value ?
-                for temp in validation_result.trace:
-                    trace = temp
+                # print (validation_result.trace)
+                trace = validation_result.trace[
+                    0
+                ]  # this might just get the starting value ?
+                # for temp in validation_result.trace:
+                #    trace = temp
                 if isinstance(a, InstantaneousAction):
                     ife = up.model.walkers.InterpretedFunctionsExtractor()
                     for p in a.preconditions:
@@ -284,7 +283,6 @@ def _refine(self, problem, validation_result):
         print("no updates available, the problem has no solution")
         newProb.problem.clear_actions()
     else:
-        # print("we discovered " + str(new_knowledge) + " new information")
-        print("the problem has been updated !")
+        # print("the problem has been updated !")
         placeholderjunk = 0
     return newProb

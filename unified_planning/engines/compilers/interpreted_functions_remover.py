@@ -235,24 +235,61 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_vals_to_substitute = list()
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
-                    if len(IFs) != 0:
-                        for f in IFs:  # get all the IFs in the precondition
-                            for key in self._interpreted_functions_values:
-                                if f._content.payload.__eq__(key._content.payload):
+                    if len(IFs) != 0:  # get all the IFs in the precondition
+                        for f in IFs:  # for each of those IFs
+                            for (
+                                key
+                            ) in (
+                                self._interpreted_functions_values
+                            ):  # for each IF known value
+                                if f._content.payload.__eq__(
+                                    key._content.payload
+                                ):  # if they are the correspoinding IF
                                     found_to_substitute.append(f._content.args)
-                                    new_vals_to_substitute.append(key._content.args)
-                                    # print("compiler talking here :)")
-                                    # print("inside")
-                                    # print(a)
-                                    # print("we found ")
-                                    # print(f._content.payload)
-                                    # print("which for input values")
-                                    # print(key._content.args)
-                                    # print("always outputs")
-                                    # print(self._interpreted_functions_values[key])
-                                    # tempaction = a.clone()
-                                    # print ("temp clone:")
-                                    # print (tempaction)
+                                    new_vals_to_substitute.append(
+                                        key._content.args
+                                    )  # save the values that have to be removed from the main action
+
+                                    # print (f._content.args) # this is as expected
+                                    # print (key._content.args) # this is as expected
+                                    # print (f._content.payload) # this is as expected
+                                    # print (key._content.payload) # this is as expected
+
+                                    # here we should clone the initial action
+                                    a_known_value = a.clone()
+                                    # make a condition where the values correspond with the current values in f._content.args and key._content.args
+                                    # essentially the new action must have f._content.args == key._content.args
+                                    argindex = 0
+                                    new_condition = None
+                                    if len(f._content.args) != len(key._content.args):
+                                        argindex = 10000000000000000
+                                        print("you should not be here")
+                                    while argindex < len(f._content.args):
+                                        if argindex == 0:
+                                            new_condition = no_IF_action.environment.expression_manager.Equals(
+                                                f._content.args[argindex],
+                                                key._content.args[argindex],
+                                            )
+                                        else:
+                                            new_condition = no_IF_action.environment.expression_manager.And(
+                                                new_condition,
+                                                no_IF_action.environment.expression_manager.Equals(
+                                                    f._content.args[argindex],
+                                                    key._content.args[argindex],
+                                                ),
+                                            )
+
+                                        argindex = argindex + 1
+                                    # print(new_condition) # this is as expected
+                                    # add the precondition
+                                    a_known_value.add_precondition(new_condition)
+                                    # substitute the instance of the function with its result
+                                    # function instance is: f._content.payload or key._content.payload - they should be the same
+                                    # result is: self._interpreted_functions_values[key]
+                                    # print (f.is_interpreted_function_exp()) # this is the expression
+                                    # add the new action to the problem
+
+                                    # add the new action to the map
 
                 j = 0
                 if len(found_to_substitute) != len(new_vals_to_substitute):
