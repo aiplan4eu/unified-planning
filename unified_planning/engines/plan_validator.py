@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-
-from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
@@ -116,6 +114,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         metric = None
+        cif = None
+        hasif = False
+        if problem.kind.has_interpreted_functions_in_conditions():
+            hasif = True
         if len(problem.quality_metrics) > 0:
             if len(problem.quality_metrics) == 1:
                 metric = problem.quality_metrics[0]
@@ -150,6 +152,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+                    # here get and add to result if values
+                    # cif = None
+                    if hasif:
+                        cif = simulator._knowledge
                 else:
                     next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPUsageError as e:
@@ -168,6 +174,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     reason=FailedValidationReason.INAPPLICABLE_ACTION,
                     inapplicable_action=ai,
                     trace=trace,
+                    calculated_interpreted_functions=cif,
                 )
             assert next_state is not None
             if metric is not None:
@@ -419,7 +426,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         """
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
-
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 

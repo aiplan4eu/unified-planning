@@ -55,6 +55,7 @@ from typing import (
     Iterator,
     List,
     Optional,
+    OrderedDict,
     Sequence,
     Set,
     Tuple,
@@ -98,6 +99,12 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         Engine.__init__(self)
         SequentialSimulatorMixin.__init__(self, problem, error_on_failed_checks)
         pk = problem.kind
+        self._knowledge: OrderedDict = OrderedDict()
+        self._contains_IFs = False
+        if (
+            pk.has_interpreted_functions_in_conditions()
+        ):  # not the best way to check this huh
+            self._contains_IFs = True
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
@@ -459,6 +466,27 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         unsatisfied_conditions = []
         for c in g_action.preconditions:
             evaluated_cond = evaluate(c)
+            if self._contains_IFs:
+                ife = up.model.walkers.InterpretedFunctionsExtractor()
+                ifs = ife.get(c)
+                # print (ifs)
+                for infu in ifs:
+                    r = evaluate(infu)  # aka blockedvalue - in final output
+                    fp = infu._content.payload  # aka foundcon - in final output
+                    fa = infu._content.args  # aka args
+                    notOkParams = list()
+                    for fan in fa:
+                        notOkParams.append(state.get_value(fan))
+                    # print (notOkParams)
+
+                    self._knowledge[fp(*notOkParams)] = r
+                    # print (state)
+                    # print (infu._content.payload)
+
+            # print (self._contains_IFs)
+            # here evaluates the whole precondition - how do I fish up IF? -
+            # print (c._content) # ----------------------------------------------------
+            # print (evaluated_cond._content) # ---------------------------------------
             if (
                 not evaluated_cond.is_bool_constant()
                 or not evaluated_cond.bool_constant_value()
@@ -764,3 +792,7 @@ def evaluate_quality_metric_in_initial_state(
         raise NotImplementedError(
             f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
         )
+
+
+def get_knowledge(self):
+    return self._knowledge

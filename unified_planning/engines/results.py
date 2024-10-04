@@ -15,6 +15,7 @@
 """This module defines the PlanGenerationResult class."""
 
 
+from collections import OrderedDict
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
@@ -281,7 +282,7 @@ class ValidationResult(Result):
         Union[List[up.model.State], Dict[Fraction, up.model.State]]
     ] = field(default=None)
     calculated_interpreted_functions: Optional[
-        Dict[up.model.FNode, up.model.FNode]
+        OrderedDict[up.model.FNode, up.model.FNode]
     ] = field(default=None)
 
     def __post_init__(self):
