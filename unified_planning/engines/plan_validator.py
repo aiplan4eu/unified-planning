@@ -153,8 +153,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-                    # here get and add to result if values
-                    # cif = None
+
                     if hasif:
                         cif = simulator._knowledge
                 else:
@@ -426,6 +425,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
+        cif = None
+
+        hasif = False
+        if problem.kind.has_interpreted_functions_in_conditions():
+            hasif = True
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
         )
@@ -624,6 +628,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 if not self._check_condition(state=state, se=se, condition=c):
                     if opt_ai is not None:
+                        if hasif:
+                            # cif = simulator._knowledge
+                            print(
+                                "this thing does not have a simulator like the sequential ones ;-;"
+                            )
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
@@ -632,6 +641,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             reason=FailedValidationReason.INAPPLICABLE_ACTION,
                             inapplicable_action=opt_ai,
                             trace={k: v for k, v in trace.items() if k <= end},
+                            calculated_interpreted_functions=cif,
                         )
                     else:
                         return ValidationResult(
