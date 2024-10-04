@@ -177,7 +177,7 @@ def _attempt_to_solve(
     new_problem = compilerresult.problem
     # print (self.knowledge)
     start = time.time()
-    # print (new_problem)
+    print(new_problem)
     if self._skip_checks:
         self.engine._skip_checks = True
     # print("planner talking:")
@@ -246,7 +246,7 @@ def _attempt_to_solve(
 
 
 def _refine(self, problem, validation_result):
-    print("oh no, plan did not work D:")
+    # print("oh no, plan did not work D:")
     newProb = None
     # print (validation_result.calculated_interpreted_functions)
     if validation_result.calculated_interpreted_functions is None:
