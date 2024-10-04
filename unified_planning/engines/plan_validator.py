@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-
-from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
@@ -118,6 +116,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         metric = None
+        cif = None
+        hasif = False
+        if problem.kind.has_interpreted_functions_in_conditions():
+            hasif = True
         if len(problem.quality_metrics) > 0:
             if len(problem.quality_metrics) == 1:
                 metric = problem.quality_metrics[0]
@@ -170,6 +172,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+                    if hasif:
+                        cif = simulator._knowledge
                     return invalid_result(
                         msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
                     )
@@ -229,6 +233,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     [],
                     metric_evaluations,
                     trace=trace,
+                    calculated_interpreted_functions=cif,
                 )
             else:
                 msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
@@ -492,7 +497,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         """
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
-
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 

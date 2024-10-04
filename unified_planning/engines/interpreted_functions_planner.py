@@ -14,7 +14,7 @@
 #
 # copyright info is not up to date as of september 27th 2024
 
-from collections import OrderedDict
+
 import time
 import unified_planning as up
 from unified_planning.engines.compilers.interpreted_functions_remover import (
@@ -40,7 +40,7 @@ from unified_planning.engines.results import (
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.utils import powerset
-from typing import Type, IO, Optional, Union, List, Tuple, Callable
+from typing import OrderedDict, Type, IO, Optional, Union, List, Tuple, Callable
 from fractions import Fraction
 
 
@@ -217,16 +217,17 @@ def _attempt_to_solve(
                 )
 
             refined_problem = _refine(self, problem, validation_result)
-
-            retval = PlanGenerationResult(
-                validation_result.status,
-                mappedbackplan,
-                self.name,
-                log_messages=res.log_messages,
-            )
-            retval = _attempt_to_solve(
-                self, problem, refined_problem, heuristic, timeout, output_stream
-            )
+            if refined_problem is None:
+                retval = PlanGenerationResult(
+                    PlanGenerationResultStatus.UNSOLVABLE_PROVEN,  # validation_result.status,
+                    mappedbackplan,
+                    self.name,
+                    log_messages=res.log_messages,
+                )
+            else:
+                retval = _attempt_to_solve(
+                    self, problem, refined_problem, heuristic, timeout, output_stream
+                )
         return retval
     elif res.status == PlanGenerationResultStatus.TIMEOUT:
         return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, None, self.name)
@@ -245,44 +246,20 @@ def _attempt_to_solve(
 
 
 def _refine(self, problem, validation_result):
-    # print("oh no, plan did not work D:")
-    new_knowledge = 0
-    if validation_result.reason == FailedValidationReason.INAPPLICABLE_ACTION:
-        for a in problem.actions:
-            if a == validation_result.inapplicable_action.action:
-                # print (validation_result.trace)
-                trace = validation_result.trace[
-                    0
-                ]  # this might just get the starting value ?
-                # for temp in validation_result.trace:
-                #    trace = temp
-                if isinstance(a, InstantaneousAction):
-                    ife = up.model.walkers.InterpretedFunctionsExtractor()
-                    for p in a.preconditions:
-                        IFs = ife.get(p)
-                        if len(IFs) != 0:
-                            for foundif in IFs:
-                                args = foundif._content.args
-                                callable = foundif._content.payload.function
-                                notOkParams = list()
-                                for argname in args:
-                                    notOkParams.append(trace.get_value(argname))
-                                blockedValue = callable(*notOkParams)
-                                foundcon = foundif._content.payload
-                                # print (foundcon(*notOkParams))
-                                # print (blockedValue)
-                                self.add_knowledge(foundcon(*notOkParams), blockedValue)
-                                new_knowledge = new_knowledge + 1
-                                # knowledge[foundcon(*notOkParams)] = blockedValue
-    with InterpretedFunctionsRemover(self.knowledge) as if_remover:
-        newProb = if_remover.compile(
-            problem,
-            CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
-        )
-    if new_knowledge == 0:
+    print("oh no, plan did not work D:")
+    newProb = None
+    # print (validation_result.calculated_interpreted_functions)
+    if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
-        newProb.problem.clear_actions()
+    elif len(validation_result.calculated_interpreted_functions) == 0:
+        print("no updates available, the problem has no solution")
     else:
-        # print("the problem has been updated !")
-        placeholderjunk = 0
+        for k in validation_result.calculated_interpreted_functions:
+            self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
+        with InterpretedFunctionsRemover(self.knowledge) as if_remover:
+            newProb = if_remover.compile(
+                problem,
+                CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+            )
+    # print (newProb)
     return newProb
