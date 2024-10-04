@@ -212,11 +212,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
-
+        better_knowledge = self.elaborate_known_IFs(
+            self._interpreted_functions_values
+        )  # not used yet
+        print("knowledge at this time:")
+        print(better_knowledge)
         for a in problem.actions:
-            # print("-----------------------------------------------")
-            # print("------------processing a new action------------")
-            # print("-----------------------------------------------")
             if isinstance(a, InstantaneousAction):
                 no_IF_action = a.clone()
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
@@ -364,3 +365,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
+
+    def elaborate_known_IFs(self, ifvs):
+        # print ("now elaborating (>.<)")
+        bk: OrderedDict = OrderedDict()
+        for f in ifvs:
+            # print (f._content.payload)
+            # print (bk.keys())
+            # print (ifvs[f])
+            if not (f._content.payload in bk.keys()):
+                bk[f._content.payload] = OrderedDict()
+            bk[f._content.payload][f] = ifvs[f]
+
+        return bk

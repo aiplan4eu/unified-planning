@@ -89,10 +89,10 @@ class InterpretedFunction:
             res += hash(p)
         return res ^ hash(self._name)
 
-    # anti pickling test -------------------------------------------------------------
     def __getstate__(self):
         state = self.__dict__.copy()
-        # print ("trying anti pickling measures")
+        # removing the function here so that pickler does not get mad at us
+        # interpreted functions in parallel problems won't work
         state["_function"] = None
         return state
 
