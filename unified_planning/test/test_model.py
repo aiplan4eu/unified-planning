@@ -113,33 +113,32 @@ class TestModel(unittest_TestCase):
 
     def test_process(self):
         Vehicle = UserType("Vehicle")
-        a = Fluent("a",BoolType())
+        a = Fluent("a", BoolType())
         x = Fluent("x", IntType())
-        move = Process("moving",car = Vehicle)
+        move = Process("moving", car=Vehicle)
         move.add_precondition(a)
-        move.add_derivative(x,1)
+        move.add_derivative(x, 1)
         e = Effect(
             FluentExp(x), Int(1), TRUE(), unified_planning.model.EffectKind.DERIVATIVE
         )
-        self.assertEqual(move.effects[0],e)
-        self.assertEqual(move.name,"moving")
-        self.assertEqual(isinstance(move,Process),True)
-        
+        self.assertEqual(move.effects[0], e)
+        self.assertEqual(move.name, "moving")
+        self.assertEqual(isinstance(move, Process), True)
+
     def test_event(self):
         Vehicle = UserType("Vehicle")
-        a = Fluent("a",BoolType())
+        a = Fluent("a", BoolType())
         x = Fluent("x", IntType())
-        fell = Event("fell",car = Vehicle)
+        fell = Event("fell", car=Vehicle)
         fell.add_precondition(a)
-        fell.add_effect(x,1)
+        fell.add_effect(x, 1)
         e = Effect(
             FluentExp(x), Int(1), TRUE(), unified_planning.model.EffectKind.ASSIGN
         )
-        self.assertEqual(fell.effects[0],e)
-        self.assertEqual(fell.name,"fell")
-        self.assertEqual(isinstance(fell,Event),True)
-        self.assertEqual(isinstance(fell,InstantaneousAction),False)      
-  
+        self.assertEqual(fell.effects[0], e)
+        self.assertEqual(fell.name, "fell")
+        self.assertEqual(isinstance(fell, Event), True)
+        self.assertEqual(isinstance(fell, InstantaneousAction), False)
 
     def test_istantaneous_action(self):
         Location = UserType("Location")

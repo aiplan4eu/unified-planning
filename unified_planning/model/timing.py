@@ -50,7 +50,8 @@ class Timepoint:
      - global end: plan horizon, at which the plan goals must hold.
      - start time or end time of an action, activity or task/method.
 
-    Used to define the point in the time from which a :class:`~unified_planning.model.timing.Timing` is considered."""
+    Used to define the point in the time from which a :class:`~unified_planning.model.timing.Timing` is considered.
+    """
 
     def __init__(self, kind: TimepointKind, container: Optional[str] = None):
         """

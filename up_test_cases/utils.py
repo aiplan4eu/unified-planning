@@ -16,7 +16,6 @@ DEFAULT_TIMEOUT = 3.0
 
 
 def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
-
     stack = [(package_name, True, "")]
     res = {}
     while len(stack) > 0:

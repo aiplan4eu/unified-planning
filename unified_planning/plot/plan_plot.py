@@ -656,7 +656,6 @@ def _plot_expressions(
     filename: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
 ):
-
     import plotly.express as px  # type: ignore[import]
 
     if figsize is None:
@@ -785,7 +784,6 @@ def _plot_expressions(
 
 
 class GraphvizGenerator:
-
     available_colors = [
         "firebrick2",
         "gold2",
