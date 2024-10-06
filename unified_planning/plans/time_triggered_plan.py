@@ -503,7 +503,6 @@ def _extract_instantenous_actions(
     for i, timing in enumerate(
         _extract_action_timings(action, start, duration, epsilon)
     ):
-
         inst_action = InstantaneousAction(
             f"{action.name}_{i}",
             _parameters=OrderedDict(((p.name, p.type) for p in action.parameters)),

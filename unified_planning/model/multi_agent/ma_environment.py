@@ -49,7 +49,8 @@ class MAEnvironment(
         Returns `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
 
         :param name: The target name to find in the `MultiAgentProblem`.
-        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `MultiAgentProblem`, `False` otherwise.
+        """
         return self.has_fluent(name)
 
     def __repr__(self) -> str:

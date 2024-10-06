@@ -81,7 +81,6 @@ class TestTTPToSTN(unittest_TestCase):
         self.assertEqual(len(total_stn_nodes), len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
-
         for name, tc in self.problems.items():
             for valid_plan in tc.valid_plans:
                 if valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN:
@@ -100,7 +99,6 @@ class TestTTPToSTN(unittest_TestCase):
 
     @skipIfNoPlanValidatorForProblemKind(sim_problem.kind)
     def test_simultaneity(self):
-
         a = sim_problem.action("a")
         b = sim_problem.action("b")
         c = sim_problem.action("c")
