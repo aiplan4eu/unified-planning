@@ -1238,6 +1238,8 @@ def _write_derivative(
         out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
     elif effect.is_decrease():
         out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
+    elif effect.is_derivative():
+        out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
     else:
         raise UPProblemDefinitionError(
             "Derivative can only be expressed as increase, decrease in processes",
