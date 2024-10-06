@@ -38,11 +38,13 @@ class EffectKind(Enum):
     `ASSIGN`   => `if C then F <= V`
     `INCREASE` => `if C then F <= F + V`
     `DECREASE` => `if C then F <= F - V`
+    `DERIVATIVE` => `dF/dt <= V`
     """
 
     ASSIGN = auto()
     INCREASE = auto()
     DECREASE = auto()
+    DERIVATIVE = auto()
 
 
 class Effect:
@@ -109,13 +111,16 @@ class Effect:
             s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
             s.append(f"if {str(self._condition)} then")
-        s.append(f"{str(self._fluent)}")
+        if not(self.is_derivative()):
+            s.append(f"{str(self._fluent)}")
         if self.is_assignment():
             s.append(":=")
         elif self.is_increase():
             s.append("+=")
         elif self.is_decrease():
             s.append("-=")
+        elif self.is_derivative():
+            s.append(f"d{str(self._fluent)}/dt =")
         s.append(f"{str(self._value)}")
         return " ".join(s)
 
@@ -244,6 +249,9 @@ class Effect:
     def is_decrease(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
         return self._kind == EffectKind.DECREASE
+    def is_derivative(self) -> bool:
+        """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `derivative`, `False` otherwise."""
+        return self._kind == EffectKind.DERIVATIVE
 
 
 class SimulatedEffect:

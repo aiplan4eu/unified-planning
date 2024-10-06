@@ -948,7 +948,7 @@ class Process(Action):
                 fluent_exp,
                 value_exp,
                 condition_exp,
-                kind=up.model.effect.EffectKind.INCREASE,
+                kind=up.model.effect.EffectKind.DERIVATIVE,
                 forall=tuple(),
             )
         )
