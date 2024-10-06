@@ -17,7 +17,6 @@ problems_meta_data = [
 
 
 def get_test_cases():
-
     res = {}
 
     base_problem = Problem()

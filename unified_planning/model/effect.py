@@ -111,7 +111,7 @@ class Effect:
             s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
             s.append(f"if {str(self._condition)} then")
-        if not(self.is_derivative()):
+        if not (self.is_derivative()):
             s.append(f"{str(self._fluent)}")
         if self.is_assignment():
             s.append(":=")
@@ -249,6 +249,7 @@ class Effect:
     def is_decrease(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `decrease`, `False` otherwise."""
         return self._kind == EffectKind.DECREASE
+
     def is_derivative(self) -> bool:
         """Returns `True` if the :func:`kind <unified_planning.model.Effect.kind>` of this `Effect` is a `derivative`, `False` otherwise."""
         return self._kind == EffectKind.DERIVATIVE

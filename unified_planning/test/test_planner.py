@@ -290,7 +290,6 @@ class TestPlanner(unittest_TestCase):
         problem = self.problems["robot"].problem
         error_msg = "We cannot establish whether ENHSP can solve this problem!"
         with OneshotPlanner(name="opt-pddl-planner") as planner:
-
             # By default, when getting an Engine by name, we get a warning if the problem is not
             # supported
             with warnings.catch_warnings(record=True) as w:

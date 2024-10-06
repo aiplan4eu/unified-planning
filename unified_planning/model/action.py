@@ -154,9 +154,10 @@ class Action(ABC):
         """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
         raise NotImplementedError
 
-    
+
 class InstantaneousTransitionMixin(Action):
     """Represents an instantaneous action."""
+
     def __init__(
         self,
         _name: str,
@@ -174,7 +175,7 @@ class InstantaneousTransitionMixin(Action):
         ] = {}
         # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
         self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
- 
+
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = (
@@ -458,6 +459,7 @@ class InstantaneousTransitionMixin(Action):
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
 
+
 class InstantaneousAction(InstantaneousTransitionMixin):
     def __repr__(self) -> str:
         s = []
@@ -485,7 +487,8 @@ class InstantaneousAction(InstantaneousTransitionMixin):
             s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
-    
+
+
 class DurativeAction(Action, TimedCondsEffs):
     """Represents a durative action."""
 
@@ -691,6 +694,7 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
+
 class SensingAction(InstantaneousAction):
     """This class represents a sensing action."""
 
@@ -770,6 +774,7 @@ Processes or Events.
 Processes dictate how numeric variables evolve over time through the use of time-derivative functions
 Events dictate the analogous of urgent transitions in timed automata theory
 """
+
 
 class Process(Action):
     """This is the `Process` class, which implements the abstract `Action` class."""
@@ -953,6 +958,7 @@ class Process(Action):
             )
         )
 
+
 class Event(InstantaneousTransitionMixin):
     """This class represents an event."""
 
@@ -981,7 +987,7 @@ class Event(InstantaneousTransitionMixin):
             res += hash(e)
         res += hash(self._simulated_effect)
         return res
-    
+
     def __repr__(self) -> str:
         s = []
         s.append(f"event {self.name}")
@@ -1008,4 +1014,3 @@ class Event(InstantaneousTransitionMixin):
             s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
-

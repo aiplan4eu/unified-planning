@@ -254,7 +254,8 @@ class Problem(  # type: ignore[misc]
         Returns `True` if the given `name` is already in the `Problem`, `False` otherwise.
 
         :param name: The target name to find in the `Problem`.
-        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise.
+        """
         return (
             self.has_action(name)
             or self.has_fluent(name)
@@ -310,7 +311,9 @@ class Problem(  # type: ignore[misc]
             (f.fluent() for e in exps for f in fve.get(e))
         )
         for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousAction) or isinstance(a, up.model.action.Event):
+            if isinstance(a, up.model.action.InstantaneousAction) or isinstance(
+                a, up.model.action.Event
+            ):
                 remove_used_fluents(*a.preconditions)
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
@@ -991,7 +994,9 @@ class _KindFactory:
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
-        if isinstance(action, up.model.action.InstantaneousAction) or isinstance(action, up.model.action.Event):
+        if isinstance(action, up.model.action.InstantaneousAction) or isinstance(
+            action, up.model.action.Event
+        ):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
             for e in action.effects:
