@@ -154,10 +154,9 @@ class Action(ABC):
         """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
         raise NotImplementedError
 
-
-class InstantaneousAction(Action):
+    
+class InstantaneousTransitionMixin(Action):
     """Represents an instantaneous action."""
-
     def __init__(
         self,
         _name: str,
@@ -175,34 +174,7 @@ class InstantaneousAction(Action):
         ] = {}
         # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
         self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
-
-    def __repr__(self) -> str:
-        s = []
-        s.append(f"action {self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
-        s.append(" {\n")
-        s.append("    preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
-        s.append("    ]\n")
-        s.append("    effects = [\n")
-        for e in self.effects:
-            s.append(f"      {str(e)}\n")
-        s.append("    ]\n")
-        if self._simulated_effect is not None:
-            s.append(f"    simulated effect = {self._simulated_effect}\n")
-        s.append("  }")
-        return "".join(s)
-
+ 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InstantaneousAction):
             cond = (
@@ -486,7 +458,34 @@ class InstantaneousAction(Action):
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
 
-
+class InstantaneousAction(InstantaneousTransitionMixin):
+    def __repr__(self) -> str:
+        s = []
+        s.append(f"action {self.name}")
+        first = True
+        for p in self.parameters:
+            if first:
+                s.append("(")
+                first = False
+            else:
+                s.append(", ")
+            s.append(str(p))
+        if not first:
+            s.append(")")
+        s.append(" {\n")
+        s.append("    preconditions = [\n")
+        for c in self.preconditions:
+            s.append(f"      {str(c)}\n")
+        s.append("    ]\n")
+        s.append("    effects = [\n")
+        for e in self.effects:
+            s.append(f"      {str(e)}\n")
+        s.append("    ]\n")
+        if self._simulated_effect is not None:
+            s.append(f"    simulated effect = {self._simulated_effect}\n")
+        s.append("  }")
+        return "".join(s)
+    
 class DurativeAction(Action, TimedCondsEffs):
     """Represents a durative action."""
 
@@ -692,7 +691,6 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
-
 class SensingAction(InstantaneousAction):
     """This class represents a sensing action."""
 
@@ -773,9 +771,8 @@ Processes dictate how numeric variables evolve over time through the use of time
 Events dictate the analogous of urgent transitions in timed automata theory
 """
 
-
 class Process(Action):
-    """This is the `Process` class, which implements the abstract `Process` class."""
+    """This is the `Process` class, which implements the abstract `Action` class."""
 
     def __init__(
         self,
@@ -851,30 +848,30 @@ class Process(Action):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
-        new_instantaneous_action = Process(self._name, new_params, self._environment)
-        new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = [e.clone() for e in self._effects]
-        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
-        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_instantaneous_action._simulated_effect = self._simulated_effect
-        return new_instantaneous_action
+        new_process = Process(self._name, new_params, self._environment)
+        new_process._preconditions = self._preconditions[:]
+        new_process._effects = [e.clone() for e in self._effects]
+        new_process._fluents_assigned = self._fluents_assigned.copy()
+        new_process._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_process._simulated_effect = self._simulated_effect
+        return new_process
 
     @property
     def preconditions(self) -> List["up.model.fnode.FNode"]:
-        """Returns the `list` of the `Action` `preconditions`."""
+        """Returns the `list` of the `Process` `preconditions`."""
         return self._preconditions
 
     def clear_preconditions(self):
-        """Removes all the `Action preconditions`"""
+        """Removes all the `Process preconditions`"""
         self._preconditions = []
 
     @property
     def effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `Action effects`."""
+        """Returns the `list` of the `Process effects`."""
         return self._effects
 
     def clear_effects(self):
-        """Removes all the `Action's effects`."""
+        """Removes all the `Process's effects`."""
         self._effects = []
         self._fluents_assigned = {}
         self._fluents_inc_dec = set()
@@ -882,7 +879,7 @@ class Process(Action):
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
         assert (
             effect.environment == self._environment
-        ), "effect does not have the same environment of the action"
+        ), "effect does not have the same environment of the Process"
 
         self._effects.append(effect)
 
@@ -896,9 +893,9 @@ class Process(Action):
         ],
     ):
         """
-        Adds the given expression to `action's preconditions`.
+        Adds the given expression to `Process's preconditions`.
 
-        :param precondition: The expression that must be added to the `action's preconditions`.
+        :param precondition: The expression that must be added to the `Process's preconditions`.
         """
         (precondition_exp,) = self._environment.expression_manager.auto_promote(
             precondition
@@ -922,10 +919,10 @@ class Process(Action):
         value: "up.model.expression.Expression",
     ):
         """
-        Adds the given `derivative effect` to the `process's effects`.
+        Adds the given `time derivative effect` to the `process's effects`.
 
-        :param fluent: The `fluent` objective of the time derivative definition.
-        :param value: The given `fluent` is incremented by the given `value`.
+        :param fluent: The `fluent` is the numeric state variable of which this process expresses its time derivative, which in Newton's notation would be over-dot(fluent).
+        :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
         """
         (
             fluent_exp,
@@ -956,8 +953,7 @@ class Process(Action):
             )
         )
 
-
-class Event(InstantaneousAction):
+class Event(InstantaneousTransitionMixin):
     """This class represents an event."""
 
     def __init__(
@@ -967,17 +963,13 @@ class Event(InstantaneousAction):
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        InstantaneousAction.__init__(self, _name, _parameters, _env, **kwargs)
+        InstantaneousTransitionMixin.__init__(self, _name, _parameters, _env, **kwargs)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Event):
             return super().__eq__(oth)
         else:
             return False
-
-    def __repr__(self) -> str:
-        action_str = InstantaneousAction.__repr__(self)
-        return action_str.replace("action", "event")
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -989,3 +981,31 @@ class Event(InstantaneousAction):
             res += hash(e)
         res += hash(self._simulated_effect)
         return res
+    
+    def __repr__(self) -> str:
+        s = []
+        s.append(f"event {self.name}")
+        first = True
+        for p in self.parameters:
+            if first:
+                s.append("(")
+                first = False
+            else:
+                s.append(", ")
+            s.append(str(p))
+        if not first:
+            s.append(")")
+        s.append(" {\n")
+        s.append("    preconditions = [\n")
+        for c in self.preconditions:
+            s.append(f"      {str(c)}\n")
+        s.append("    ]\n")
+        s.append("    effects = [\n")
+        for e in self.effects:
+            s.append(f"      {str(e)}\n")
+        s.append("    ]\n")
+        if self._simulated_effect is not None:
+            s.append(f"    simulated effect = {self._simulated_effect}\n")
+        s.append("  }")
+        return "".join(s)
+
