@@ -247,7 +247,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         print(a)
                         print("with knowledge")
                         print(self._interpreted_functions_values)
-                        ifaskeys = list()
+                        ifaskeys: list = list()
                         ifaskeys.clear()
                         for f in IFs:
                             # print (f._content.payload)
@@ -277,6 +277,41 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                         print("placeholder found")
                                     elif f._content.payload.__eq__(kf._content.payload):
                                         print("known value found")
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
+                        # ----------old code undere here-------------------------------------
                         # ----------old code undere here-------------------------------------
                         for f in IFs:  # for each of those IFs
 
@@ -435,7 +470,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             # print (akl)
         if len(akl) == 0:
             print("our knowledge does not help us with this condition")
-            empd = OrderedDict()
+            empd: OrderedDict = OrderedDict()
             return empd
 
         c = it.product(*(d[Name] for Name in akl))
