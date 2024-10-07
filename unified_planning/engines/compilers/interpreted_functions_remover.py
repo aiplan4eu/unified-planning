@@ -214,20 +214,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
-        better_knowledge = self.elaborate_known_IFs(
-            self._interpreted_functions_values
-        )  # not used yet
-        print("user readable knowledge at this time:")
-        print(better_knowledge)
+        better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
         knowledge_with_placeholders = self.add_empty_knowledge_values(better_knowledge)
-        combined_knowledge = self.knowledge_combinations(better_knowledge)
+        combined_knowledge = self.knowledge_combinations(knowledge_with_placeholders)
+
+        # better way: function comb (dict, list of keys to combine) -> combination of those keys
         print("combinations of functions knowledge:")
         for debugprintstuff in combined_knowledge:
             print(debugprintstuff)
-        # print (combined_knowledge)
-
-        # use the values in combined_knowledge to query self._interpreted_functions_values for the known output values
-        # use values in better_knowledge to know which values to skip
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
                 no_IF_action = a.clone()
@@ -247,19 +241,49 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
+                        # print(knowledge_with_placeholders.keys())
+                        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+                        print("now on action")
+                        print(a)
+                        print("with knowledge")
+                        print(self._interpreted_functions_values)
+                        ifaskeys = list()
+                        ifaskeys.clear()
+                        for f in IFs:
+                            # print (f._content.payload)
+                            ifaskeys.append(f._content.payload)
+                        print("this action contains IFs:")
+                        print(ifaskeys)
+                        thisfcombine = self.knowledge_combinations(
+                            knowledge_with_placeholders, ifaskeys
+                        )
+                        print("if combinations")
+                        print(thisfcombine)
+                        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
+                        print("kfc iterating on")
+                        print(thisfcombine)
+                        for kfc in thisfcombine:
+                            # for each possible combination (known function combinations)
+                            print("kf iterating on")
+                            print(kfc)
+                            for kf in kfc:
+                                # for each known function in the combination
+                                for f in IFs:
+                                    print("f and kf")
+                                    print(f)
+                                    print(kf)
+                                    if f._content.payload.__eq__(kf):
+                                        print("placeholder found")
+                                    elif f._content.payload.__eq__(kf._content.payload):
+                                        print("known value found")
+                        # ----------old code undere here-------------------------------------
                         for f in IFs:  # for each of those IFs
-                            for (
-                                key
-                            ) in (
-                                self._interpreted_functions_values
-                            ):  # for each IF known value
-                                if f._content.payload.__eq__(
-                                    key._content.payload
-                                ):  # if they are the correspoinding IF
+
+                            for key in self._interpreted_functions_values:
+                                if f._content.payload.__eq__(key._content.payload):
                                     found_to_substitute.append(f._content.args)
-                                    new_vals_to_substitute.append(
-                                        key._content.args
-                                    )  # save the values that have to be removed from the main action
+                                    new_vals_to_substitute.append(key._content.args)
 
                                     # print (f._content.args) # this is as expected
                                     # print (key._content.args) # this is as expected
@@ -397,11 +421,30 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         return bk
 
-    def knowledge_combinations(self, d):
-        n = d.keys()
-        c = it.product(*(d[Name] for Name in n))
+    def knowledge_combinations(self, d, kl=None):
+        # print ("now in combination function+++++++++++++++++++++++++++=")
+        # print (d)
+        if len(d) == 0:
+            print("empty d")
+            return d
+        akl = None
+        if kl is None:
+            akl = d.keys()
+        else:
+            akl = self.intersection(kl, d.keys())
+            # print (akl)
+        if len(akl) == 0:
+            print("our knowledge does not help us with this condition")
+            empd = OrderedDict()
+            return empd
+
+        c = it.product(*(d[Name] for Name in akl))
         return list(c)
 
     def add_empty_knowledge_values(self, d):
         for key in d:
-            d[key]["placeholder"] = key
+            d[key][key] = key
+        return d
+
+    def intersection(self, lst1, lst2):
+        return list(set(lst1) & set(lst2))
