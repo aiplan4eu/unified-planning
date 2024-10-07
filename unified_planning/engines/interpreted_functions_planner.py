@@ -177,7 +177,7 @@ def _attempt_to_solve(
     new_problem = compilerresult.problem
     # print (self.knowledge)
     start = time.time()
-    print(new_problem)
+    # print(new_problem)
     if self._skip_checks:
         self.engine._skip_checks = True
     # print("planner talking:")
@@ -195,10 +195,18 @@ def _attempt_to_solve(
             problem_kind=problem.kind, plan_kind=mappedbackplan.kind
         ) as validator:
             validation_result = validator.validate(problem, mappedbackplan)
-
+        # debug prints --------------------------------------------------
+        print("the plan:")  # -------------------------------------------
+        print(mappedbackplan)  # ----------------------------------------
+        print("gave the result:")  # ------------------------------------
+        print(validation_result)  # -------------------------------------
+        # debug prints --------------------------------------------------
         if validation_result.status == ValidationResultStatus.VALID:
             # print ("the final problem was")
             # print (new_problem)
+
+            print("\nfinal plan found by " + self.engine.name + ":\n")
+
             retval = PlanGenerationResult(
                 status,
                 mappedbackplan,
