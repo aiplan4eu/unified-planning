@@ -15,10 +15,12 @@
 # copyright info is not up to date as of september 27th 2024
 """This module defines the interpreted functions effects remover class."""
 
+import itertools as it
 
 from collections import OrderedDict
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.model.interpreted_function import InterpretedFunction
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.expression import Expression, ExpressionManager
@@ -215,8 +217,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         better_knowledge = self.elaborate_known_IFs(
             self._interpreted_functions_values
         )  # not used yet
-        print("knowledge at this time:")
+        print("user readable knowledge at this time:")
         print(better_knowledge)
+        knowledge_with_placeholders = self.add_empty_knowledge_values(better_knowledge)
+        combined_knowledge = self.knowledge_combinations(better_knowledge)
+        print("combinations of functions knowledge:")
+        for debugprintstuff in combined_knowledge:
+            print(debugprintstuff)
+        # print (combined_knowledge)
+
+        # use the values in combined_knowledge to query self._interpreted_functions_values for the known output values
+        # use values in better_knowledge to know which values to skip
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
                 no_IF_action = a.clone()
@@ -229,7 +240,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for p in fixed_preconditions:
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) == 0:
-                        # print("no ifs here, re adding precons")
                         no_IF_action.add_precondition(p)
 
                 found_to_substitute = list()
@@ -262,10 +272,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     # essentially the new action must have f._content.args == key._content.args
                                     argindex = 0
                                     new_condition = None
+                                    errorfound = False
                                     if len(f._content.args) != len(key._content.args):
-                                        argindex = 10000000000000000
+                                        errorfound = True
                                         print("you should not be here")
-                                    while argindex < len(f._content.args):
+                                    while (argindex < len(f._content.args)) and not (
+                                        errorfound
+                                    ):
                                         if argindex == 0:
                                             new_condition = no_IF_action.environment.expression_manager.Equals(
                                                 f._content.args[argindex],
@@ -293,10 +306,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     # add the new action to the map
 
                 j = 0
+                errorfound = False
                 if len(found_to_substitute) != len(new_vals_to_substitute):
-                    j = 100000000000000000000
+                    errorfound = True
                     print("you should not be here")
-                while j < len(found_to_substitute):
+                while (j < len(found_to_substitute)) and not (errorfound):
                     i = 0
                     new_condition = None
                     key = found_to_substitute[j]
@@ -375,6 +389,19 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             # print (ifvs[f])
             if not (f._content.payload in bk.keys()):
                 bk[f._content.payload] = OrderedDict()
+                # bk[f._content.payload]["placeholder_f_and_vnames"] = "placeholder_outval"
+                # placeholdernode = InterpretedFunction (f._content.payload.name)
+                # print (f._content.payload.name)
+                # bk[f._content.payload]["placeholder_unknown_val"] = f._content.payload
             bk[f._content.payload][f] = ifvs[f]
 
         return bk
+
+    def knowledge_combinations(self, d):
+        n = d.keys()
+        c = it.product(*(d[Name] for Name in n))
+        return list(c)
+
+    def add_empty_knowledge_values(self, d):
+        for key in d:
+            d[key]["placeholder"] = key
