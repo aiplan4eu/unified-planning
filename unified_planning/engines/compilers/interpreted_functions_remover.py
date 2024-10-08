@@ -219,14 +219,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         combined_knowledge = self.knowledge_combinations(knowledge_with_placeholders)
 
         # better way: function comb (dict, list of keys to combine) -> combination of those keys
-        print("combinations of functions knowledge:")
-        for debugprintstuff in combined_knowledge:
-            print(debugprintstuff)
+        # print("combinations of functions knowledge:")
+        # for debugprintstuff in combined_knowledge:
+        # print(debugprintstuff)
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
-                no_IF_action = a.clone()
-                no_IF_action.name = get_fresh_name(new_problem, a.name)
-                no_IF_action.clear_preconditions()
+                no_IF_action_base = a.clone()
+                # no_IF_action.name = get_fresh_name(new_problem, a.name)
+                no_IF_action_base.clear_preconditions()
                 fixed_preconditions = []
                 for p in a.preconditions:
                     templist = self._fix_precondition(p)
@@ -234,170 +234,221 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for p in fixed_preconditions:
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) == 0:
-                        no_IF_action.add_precondition(p)
+                        no_IF_action_base.add_precondition(p)
 
-                found_to_substitute = list()
-                new_vals_to_substitute = list()
+                # found_to_substitute = list()
+                # new_vals_to_substitute = list()
+                all_combinations_for_this_action = OrderedDict()
+                allifs: list = list()
+                allifs.clear()
+                problem_multiple_IFs_in_precondition = False
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
-                        # print(knowledge_with_placeholders.keys())
-                        print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-                        print("now on action")
-                        print(a)
-                        print("with knowledge")
-                        print(self._interpreted_functions_values)
-                        ifaskeys: list = list()
-                        ifaskeys.clear()
                         for f in IFs:
-                            # print (f._content.payload)
-                            ifaskeys.append(f._content.payload)
-                        print("this action contains IFs:")
-                        print(ifaskeys)
-                        thisfcombine = self.knowledge_combinations(
-                            knowledge_with_placeholders, ifaskeys
-                        )
-                        print("if combinations")
-                        print(thisfcombine)
-                        print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                            if f not in allifs:
+                                # and apend them in the key list if not already there
+                                allifs.append(f)
+                        if len(IFs) >= 2:
+                            problem_multiple_IFs_in_precondition = True
+                if (len(allifs) != 0) and not (problem_multiple_IFs_in_precondition):
+                    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+                    print("now on action")
+                    print(a)
+                    print("with knowledge")
+                    print(self._interpreted_functions_values)
+                    print("this action contains IFs:")
+                    print(allifs)
 
-                        print("kfc iterating on")
-                        print(thisfcombine)
-                        for kfc in thisfcombine:
-                            # for each possible combination (known function combinations)
-                            print("kf iterating on")
-                            print(kfc)
-                            for kf in kfc:
-                                # for each known function in the combination
-                                for f in IFs:
-                                    print("f and kf")
-                                    print(f)
-                                    print(kf)
-                                    if f._content.payload.__eq__(kf):
-                                        print("placeholder found")
-                                    elif f._content.payload.__eq__(kf._content.payload):
-                                        print("known value found")
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        # ----------old code undere here-------------------------------------
-                        for f in IFs:  # for each of those IFs
+                    ifaskeys: list = list()
+                    ifaskeys.clear()
+                    for f in allifs:
+                        ifaskeys.append(f._content.payload)
 
-                            for key in self._interpreted_functions_values:
-                                if f._content.payload.__eq__(key._content.payload):
-                                    found_to_substitute.append(f._content.args)
-                                    new_vals_to_substitute.append(key._content.args)
-
-                                    # print (f._content.args) # this is as expected
-                                    # print (key._content.args) # this is as expected
-                                    # print (f._content.payload) # this is as expected
-                                    # print (key._content.payload) # this is as expected
-
-                                    # here we should clone the initial action
-                                    a_known_value = a.clone()
-                                    # make a condition where the values correspond with the current values in f._content.args and key._content.args
-                                    # essentially the new action must have f._content.args == key._content.args
-                                    argindex = 0
-                                    new_condition = None
-                                    errorfound = False
-                                    if len(f._content.args) != len(key._content.args):
-                                        errorfound = True
-                                        print("you should not be here")
-                                    while (argindex < len(f._content.args)) and not (
-                                        errorfound
-                                    ):
-                                        if argindex == 0:
-                                            new_condition = no_IF_action.environment.expression_manager.Equals(
-                                                f._content.args[argindex],
-                                                key._content.args[argindex],
-                                            )
-                                        else:
-                                            new_condition = no_IF_action.environment.expression_manager.And(
-                                                new_condition,
-                                                no_IF_action.environment.expression_manager.Equals(
-                                                    f._content.args[argindex],
-                                                    key._content.args[argindex],
-                                                ),
-                                            )
-
-                                        argindex = argindex + 1
-                                    # print(new_condition) # this is as expected
-                                    # add the precondition
-                                    a_known_value.add_precondition(new_condition)
-                                    # substitute the instance of the function with its result
-                                    # function instance is: f._content.payload or key._content.payload - they should be the same
-                                    # result is: self._interpreted_functions_values[key]
-                                    # print (f.is_interpreted_function_exp()) # this is the expression
-                                    # add the new action to the problem
-
-                                    # add the new action to the map
-
-                j = 0
-                errorfound = False
-                if len(found_to_substitute) != len(new_vals_to_substitute):
-                    errorfound = True
-                    print("you should not be here")
-                while (j < len(found_to_substitute)) and not (errorfound):
-                    i = 0
-                    new_condition = None
-                    key = found_to_substitute[j]
-                    while i < len(key):
-                        if i == 0:
-                            new_condition = (
-                                no_IF_action.environment.expression_manager.Equals(
-                                    key[i], new_vals_to_substitute[j][i]
-                                )
-                            )
-                        else:
-                            new_condition = (
-                                no_IF_action.environment.expression_manager.And(
-                                    new_condition,
-                                    no_IF_action.environment.expression_manager.Equals(
-                                        key[i], new_vals_to_substitute[j][i]
-                                    ),
-                                )
-                            )
-
-                        i = i + 1
-                    new_condition = no_IF_action.environment.expression_manager.Not(
-                        new_condition
+                    all_combinations_for_this_action = self.knowledge_combinations(
+                        knowledge_with_placeholders, ifaskeys
                     )
-                    # print (new_condition)
-                    no_IF_action.add_precondition(new_condition)
-                    j = j + 1
-                new_to_old[no_IF_action] = a
+                    print("if combinations")
+                    print(all_combinations_for_this_action)
+                    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+                    # -----------------------------------------------
+                    # -----------------------------------------------
+                    # -----------------------------------------------
+                    # -----------------------------------------------
+                    # print("kfc iterating on")
+                    # print(all_combinations_for_this_action)
+                    for kfc in all_combinations_for_this_action:
+                        # for each possible combination (known function combinations)
+                        new_action = no_IF_action_base.clone()
+                        new_action.name = get_fresh_name(new_problem, a.name)
+                        # print("kf iterating on")
+                        # print(kfc)
+                        for kf in kfc:
+                            # for each known function in the combination
+                            for f in allifs:
+                                # print("f and kf")
+                                # print(f)
+                                # print(kf)
+                                if isinstance(kf, InterpretedFunction):
+                                    print("this is a placeholder")
+                                    if f._content.payload.__eq__(kf):
+                                        print("placeholder matches")
+                                else:
+                                    print("this is a known value")
+                                    if f._content.payload.__eq__(kf._content.payload):
+                                        print("known value matches")
+                    new_action.clear_effects()  # temp to avoid loops
+                    new_to_old[new_action] = a
+
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # ----------old code undere here-------------------------------------
+                    # for f in IFs:  # for each of those IFs
+
+                    #    for key in self._interpreted_functions_values:
+                    #        if f._content.payload.__eq__(key._content.payload):
+                    #            found_to_substitute.append(f._content.args)
+                    #            new_vals_to_substitute.append(key._content.args)
+
+                    #            # print (f._content.args) # this is as expected
+                    #            # print (key._content.args) # this is as expected
+                    #            # print (f._content.payload) # this is as expected
+                    #            # print (key._content.payload) # this is as expected
+
+                    #            # here we should clone the initial action
+                    #            a_known_value = a.clone()
+                    #            # make a condition where the values correspond with the current values in f._content.args and key._content.args
+                    #            # essentially the new action must have f._content.args == key._content.args
+                    #            argindex = 0
+                    #            new_condition = None
+                    #            errorfound = False
+                    #            if len(f._content.args) != len(key._content.args):
+                    #                errorfound = True
+                    #                print(
+                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
+                    #                )
+                    #                print(
+                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
+                    #                )
+                    #                print(
+                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
+                    #                )
+                    #                print(
+                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
+                    #                )
+                    #                print(
+                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
+                    #                )
+                    #            while (argindex < len(f._content.args)) and not (
+                    #                errorfound
+                    #            ):
+                    #                if argindex == 0:
+                    #                    new_condition = no_IF_action.environment.expression_manager.Equals(
+                    #                        f._content.args[argindex],
+                    #                        key._content.args[argindex],
+                    #                    )
+                    #                else:
+                    #                    new_condition = no_IF_action.environment.expression_manager.And(
+                    #                        new_condition,
+                    #                        no_IF_action.environment.expression_manager.Equals(
+                    #                            f._content.args[argindex],
+                    #                            key._content.args[argindex],
+                    #                        ),
+                    #                    )#
+
+                    #                argindex = argindex + 1
+                    #            # print(new_condition) # this is as expected
+                    #            # add the precondition
+                    #            a_known_value.add_precondition(new_condition)
+                    #            # substitute the instance of the function with its result
+                    #            # function instance is: f._content.payload or key._content.payload - they should be the same
+                    #            # result is: self._interpreted_functions_values[key]
+                    #            # print (f.is_interpreted_function_exp()) # this is the expression
+                    #            # add the new action to the problem
+
+                    #            # add the new action to the map
+
+                # j = 0
+                # errorfound = False
+                # if len(found_to_substitute) != len(new_vals_to_substitute):
+                #    errorfound = True
+                #    print(
+                #        "you should not be here\nyou should not be here\nyou should not be here\n"
+                #    )
+                #    print(
+                #        "you should not be here\nyou should not be here\nyou should not be here\n"
+                #    )
+                #    print(
+                #        "you should not be here\nyou should not be here\nyou should not be here\n"
+                #    )
+                #    print(
+                #        "you should not be here\nyou should not be here\nyou should not be here\n"
+                #    )
+                #    print(
+                #        "you should not be here\nyou should not be here\nyou should not be here\n"
+                #    )
+                # while (j < len(found_to_substitute)) and not (errorfound):
+                #    i = 0
+                #    new_condition = None
+                #    key = found_to_substitute[j]
+                #    while i < len(key):
+                #        if i == 0:
+                #            new_condition = (
+                #                no_IF_action.environment.expression_manager.Equals(
+                #                    key[i], new_vals_to_substitute[j][i]
+                #                )
+                #            )
+                #        else:
+                #            new_condition = (
+                #                no_IF_action.environment.expression_manager.And(
+                #                    new_condition,
+                #                    no_IF_action.environment.expression_manager.Equals(
+                #                        key[i], new_vals_to_substitute[j][i]
+                #                    ),
+                #                )
+                #            )
+
+                #        i = i + 1
+                #    new_condition = no_IF_action.environment.expression_manager.Not(
+                #        new_condition
+                #    )
+                #    # print (new_condition)
+                #    no_IF_action.add_precondition(new_condition)
+                #    j = j + 1
+                # new_to_old[no_IF_action] = a
 
                 # print("---------------processed action----------------")
                 # print(no_IF_action)
@@ -460,7 +511,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         # print ("now in combination function+++++++++++++++++++++++++++=")
         # print (d)
         if len(d) == 0:
-            print("empty d")
+            # print("empty d")
             return d
         akl = None
         if kl is None:
@@ -469,7 +520,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             akl = self.intersection(kl, d.keys())
             # print (akl)
         if len(akl) == 0:
-            print("our knowledge does not help us with this condition")
+            # print("our knowledge does not help us with this condition")
             empd: OrderedDict = OrderedDict()
             return empd
 
