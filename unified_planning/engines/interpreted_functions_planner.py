@@ -177,13 +177,14 @@ def _attempt_to_solve(
     new_problem = compilerresult.problem
     # print (self.knowledge)
     start = time.time()
-    # print(new_problem)
     if self._skip_checks:
         self.engine._skip_checks = True
-    # print("planner talking:")
-    # print("asking " + str(self.engine.name) + " to solve this")
+    print("planner talking:")
+    print("asking " + str(self.engine.name) + " to solve this:")
+    print(new_problem)
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    # print("we got an answer :D")
+    print("we got an answer :D")
+    print(res)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -264,6 +265,8 @@ def _refine(self, problem, validation_result):
     else:
         for k in validation_result.calculated_interpreted_functions:
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
+        print("now compiling with the following knowledge:")
+        print(self.knowledge)
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
             newProb = if_remover.compile(
                 problem,
