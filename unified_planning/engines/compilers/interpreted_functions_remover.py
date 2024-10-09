@@ -215,8 +215,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
         better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
-        knowledge_with_placeholders = self.add_empty_knowledge_values(better_knowledge)
-        combined_knowledge = self.knowledge_combinations(knowledge_with_placeholders)
+        # knowledge_with_placeholders = self.add_empty_knowledge_values(better_knowledge)
+        combined_knowledge = self.knowledge_combinations(better_knowledge)
 
         # better way: function comb (dict, list of keys to combine) -> combination of those keys
         # print("combinations of functions knowledge:")
@@ -225,8 +225,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
                 no_IF_action_base = a.clone()
-                # no_IF_action.name = get_fresh_name(new_problem, a.name)
+                # no_IF_action_base.name = get_fresh_name(new_problem, a.name)
                 no_IF_action_base.clear_preconditions()
+                no_IF_action_preconditions_list = list()
                 fixed_preconditions = []
                 for p in a.preconditions:
                     templist = self._fix_precondition(p)
@@ -241,7 +242,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 all_combinations_for_this_action = OrderedDict()
                 allifs: list = list()
                 allifs.clear()
-                problem_multiple_IFs_in_precondition = False
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
@@ -249,16 +249,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             if f not in allifs:
                                 # and apend them in the key list if not already there
                                 allifs.append(f)
-                        if len(IFs) >= 2:
-                            problem_multiple_IFs_in_precondition = True
-                if (len(allifs) != 0) and not (problem_multiple_IFs_in_precondition):
-                    print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-                    print("now on action")
-                    print(a)
-                    print("with knowledge")
-                    print(self._interpreted_functions_values)
-                    print("this action contains IFs:")
-                    print(allifs)
+                if len(allifs) != 0:
+                    # print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+                    # print("now on action")
+                    # print(a)
+                    # print("with knowledge")
+                    # print(self._interpreted_functions_values)
+                    # print("this action contains IFs:")
+                    # print(allifs)
 
                     ifaskeys: list = list()
                     ifaskeys.clear()
@@ -266,192 +264,173 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         ifaskeys.append(f._content.payload)
 
                     all_combinations_for_this_action = self.knowledge_combinations(
-                        knowledge_with_placeholders, ifaskeys
+                        better_knowledge, ifaskeys
                     )
-                    print("if combinations")
-                    print(all_combinations_for_this_action)
-                    print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
-                    # -----------------------------------------------
-                    # -----------------------------------------------
-                    # -----------------------------------------------
-                    # -----------------------------------------------
-                    # print("kfc iterating on")
+                    # print("if combinations")
                     # print(all_combinations_for_this_action)
+                    # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
                     for kfc in all_combinations_for_this_action:
                         # for each possible combination (known function combinations)
-                        new_action = no_IF_action_base.clone()
+                        new_action = a.clone()
                         new_action.name = get_fresh_name(new_problem, a.name)
-                        # print("kf iterating on")
-                        # print(kfc)
                         for kf in kfc:
-                            # for each known function in the combination
-                            for f in allifs:
-                                # print("f and kf")
-                                # print(f)
-                                # print(kf)
-                                if isinstance(kf, InterpretedFunction):
-                                    print("this is a placeholder")
-                                    if f._content.payload.__eq__(kf):
-                                        print("placeholder matches")
-                                else:
-                                    print("this is a known value")
-                                    if f._content.payload.__eq__(kf._content.payload):
-                                        print("known value matches")
-                    new_action.clear_effects()  # temp to avoid loops
-                    new_to_old[new_action] = a
+                            # print ("kf, content, payload:")
+                            # print (kf)
+                            # print (kf._content)
+                            # print (kf._content.payload)
+                            print(
+                                "for every precondition, we should substitute the known values:"
+                            )
+                            print(kf._content.payload)
+                            print("should become")
+                            print(self._interpreted_functions_values[kf])
+                            for pre in new_action.preconditions:
+                                print(
+                                    "here is a precondition, we should call substituter"
+                                )
+                                # here use substituter
 
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # ----------old code undere here-------------------------------------
-                    # for f in IFs:  # for each of those IFs
+                            argumentcounter = 0
+                            new_condition = None
+                            new_precondition_list = list()
+                            while argumentcounter < len(kf._content.args):
+                                # print ("now the counter is")
+                                # print (argumentcounter)
+                                # print ("we are using kf and allifs:")
+                                # print (kf)
+                                # print (allifs)
+                                for aif in allifs:
+                                    if aif._content.payload.__eq__(kf._content.payload):
+                                        # print ("we found a match!")
+                                        # print ("the fluent:")
+                                        # print (aif._content.args[argumentcounter])
+                                        # print ("should equal the known input:")
+                                        # print (kf._content.args[argumentcounter])
+                                        new_precondition_list.append(
+                                            [
+                                                aif._content.args[argumentcounter],
+                                                kf._content.args[argumentcounter],
+                                            ]
+                                        )
+                                        if new_condition is None:
+                                            new_condition = new_action.environment.expression_manager.Equals(
+                                                aif._content.args[argumentcounter],
+                                                kf._content.args[argumentcounter],
+                                            )
 
-                    #    for key in self._interpreted_functions_values:
-                    #        if f._content.payload.__eq__(key._content.payload):
-                    #            found_to_substitute.append(f._content.args)
-                    #            new_vals_to_substitute.append(key._content.args)
+                                        else:
+                                            new_condition = new_action.environment.expression_manager.And(
+                                                new_condition,
+                                                new_action.environment.expression_manager.Equals(
+                                                    aif._content.args[argumentcounter],
+                                                    kf._content.args[argumentcounter],
+                                                ),
+                                            )
 
-                    #            # print (f._content.args) # this is as expected
-                    #            # print (key._content.args) # this is as expected
-                    #            # print (f._content.payload) # this is as expected
-                    #            # print (key._content.payload) # this is as expected
+                                    else:
+                                        print("the functions do not match")
+                                argumentcounter = argumentcounter + 1
+                            new_action.add_precondition(new_condition)
 
-                    #            # here we should clone the initial action
-                    #            a_known_value = a.clone()
-                    #            # make a condition where the values correspond with the current values in f._content.args and key._content.args
-                    #            # essentially the new action must have f._content.args == key._content.args
-                    #            argindex = 0
-                    #            new_condition = None
-                    #            errorfound = False
-                    #            if len(f._content.args) != len(key._content.args):
-                    #                errorfound = True
-                    #                print(
-                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
-                    #                )
-                    #                print(
-                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
-                    #                )
-                    #                print(
-                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
-                    #                )
-                    #                print(
-                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
-                    #                )
-                    #                print(
-                    #                    "you should not be here\nyou should not be here\nyou should not be here\n"
-                    #                )
-                    #            while (argindex < len(f._content.args)) and not (
-                    #                errorfound
-                    #            ):
-                    #                if argindex == 0:
-                    #                    new_condition = no_IF_action.environment.expression_manager.Equals(
-                    #                        f._content.args[argindex],
-                    #                        key._content.args[argindex],
-                    #                    )
-                    #                else:
-                    #                    new_condition = no_IF_action.environment.expression_manager.And(
-                    #                        new_condition,
-                    #                        no_IF_action.environment.expression_manager.Equals(
-                    #                            f._content.args[argindex],
-                    #                            key._content.args[argindex],
-                    #                        ),
-                    #                    )#
+                            no_IF_action_preconditions_list.append(
+                                new_precondition_list
+                            )
+                        new_action.clear_effects()  # temp to avoid loops
+                        new_to_old[new_action] = a
+                        # print ("> compiled action:")
+                        # print (new_action)
+                        # uncomment the below line ------------------------------
+                        # new_problem.add_action(new_action)
+                        # uncomment the above line ------------------------------
+                        # currently commented because substituter is not called here yet
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                        # -----------------------------------------------------------------
+                    # here add action with inputs different from knowledge
+                    new_condition_for_no_IFs = None
+                    # print ("no if action precon list:")
+                    # print (no_IF_action_preconditions_list)
+                    for pre in no_IF_action_preconditions_list:
+                        # print ("this should be another list with the pairs af values")
+                        # print (pre)
+                        new_inner_condition = None
+                        itercounter = 0
+                        while itercounter < len(pre):
+                            # print ("this should just be the pair fluent:value")
+                            # print (pre[itercounter])
+                            # print ("adding this in inner precondition")
+                            if new_inner_condition is None:
+                                new_inner_condition = no_IF_action_base.environment.expression_manager.Equals(
+                                    pre[itercounter][0], pre[itercounter][1]
+                                )
+                            else:
+                                new_inner_condition = no_IF_action_base.environment.expression_manager.And(
+                                    new_inner_condition,
+                                    no_IF_action_base.environment.expression_manager.Equals(
+                                        pre[itercounter][0], pre[itercounter][1]
+                                    ),
+                                )
+                            itercounter = itercounter + 1
+                        # print ("the final inner precondition is")
+                        # print (new_inner_condition)
+                        # print ("adding it to the outer condition")
+                        if new_condition_for_no_IFs is None:
+                            new_condition_for_no_IFs = (
+                                no_IF_action_base.environment.expression_manager.Not(
+                                    new_inner_condition
+                                )
+                            )
+                        else:
+                            new_condition_for_no_IFs = no_IF_action_base.environment.expression_manager.Or(
+                                new_condition_for_no_IFs,
+                                no_IF_action_base.environment.expression_manager.Not(
+                                    new_inner_condition
+                                ),
+                            )
+                        # this is logically wrong, it does what i thought but what i thought was wrong
+                        # -----------------wrong-----------------------------------------
+                        # -------------------------wrong---------------------------------
+                        # ----------------------------wrong------------------------------
+                        # --------------------------------------wrong--------------------
+                        # ----------------------wrong------------------------------------
+                        # --------------------------------wrong--------------------------
+                        # ------------------------------------------wrong----------------
+                        # ------------------------------------------------wrong----------
+                        # print ("the outer condition looks like this for now:")
+                        # print (new_condition_for_no_IFs)
+                    # print ("thi sshould be the final form of the outer condition")#this does not look correct
+                    # print (new_condition_for_no_IFs)
+                    no_IF_action_base.name = get_fresh_name(new_problem, a.name)
+                    # print ("right now action looks like this:")
+                    # print (no_IF_action_base)
+                    # print ("with planner has problems just after this") #------------------------------
+                    # print (no_IF_action_base)
+                    # print (new_condition_for_no_IFs) # this should not be None
+                    if new_condition_for_no_IFs is not None:
+                        no_IF_action_base.add_precondition(new_condition_for_no_IFs)
+                    new_to_old[no_IF_action_base] = a
+                    # print ("> action for other input values:")
+                    # print (no_IF_action_base)
+                    new_problem.add_action(no_IF_action_base)
+                else:
+                    print("this action should not change right?")
+                    print(a)
+                    # tempaction = a.clone()
+                    # tempaction.name = get_fresh_name(new_problem, a.name)
+                    # new_to_old[tempaction] = a
+                    new_to_old[a] = a
+                    new_problem.add_action(a)
 
-                    #                argindex = argindex + 1
-                    #            # print(new_condition) # this is as expected
-                    #            # add the precondition
-                    #            a_known_value.add_precondition(new_condition)
-                    #            # substitute the instance of the function with its result
-                    #            # function instance is: f._content.payload or key._content.payload - they should be the same
-                    #            # result is: self._interpreted_functions_values[key]
-                    #            # print (f.is_interpreted_function_exp()) # this is the expression
-                    #            # add the new action to the problem
-
-                    #            # add the new action to the map
-
-                # j = 0
-                # errorfound = False
-                # if len(found_to_substitute) != len(new_vals_to_substitute):
-                #    errorfound = True
-                #    print(
-                #        "you should not be here\nyou should not be here\nyou should not be here\n"
-                #    )
-                #    print(
-                #        "you should not be here\nyou should not be here\nyou should not be here\n"
-                #    )
-                #    print(
-                #        "you should not be here\nyou should not be here\nyou should not be here\n"
-                #    )
-                #    print(
-                #        "you should not be here\nyou should not be here\nyou should not be here\n"
-                #    )
-                #    print(
-                #        "you should not be here\nyou should not be here\nyou should not be here\n"
-                #    )
-                # while (j < len(found_to_substitute)) and not (errorfound):
-                #    i = 0
-                #    new_condition = None
-                #    key = found_to_substitute[j]
-                #    while i < len(key):
-                #        if i == 0:
-                #            new_condition = (
-                #                no_IF_action.environment.expression_manager.Equals(
-                #                    key[i], new_vals_to_substitute[j][i]
-                #                )
-                #            )
-                #        else:
-                #            new_condition = (
-                #                no_IF_action.environment.expression_manager.And(
-                #                    new_condition,
-                #                    no_IF_action.environment.expression_manager.Equals(
-                #                        key[i], new_vals_to_substitute[j][i]
-                #                    ),
-                #                )
-                #            )
-
-                #        i = i + 1
-                #    new_condition = no_IF_action.environment.expression_manager.Not(
-                #        new_condition
-                #    )
-                #    # print (new_condition)
-                #    no_IF_action.add_precondition(new_condition)
-                #    j = j + 1
-                # new_to_old[no_IF_action] = a
-
-                # print("---------------processed action----------------")
-                # print(no_IF_action)
             elif isinstance(a, DurativeAction):
                 no_IF_action = a.clone()
                 if (
@@ -484,7 +463,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
 
-            new_problem.add_action(no_IF_action)
+            # new_problem.add_action(no_IF_action)# not here :P
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
