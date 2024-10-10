@@ -1,6 +1,5 @@
 from unified_planning.shortcuts import *
 from unified_planning.model.action import Process
-from unified_planning.io import PDDLReader, PDDLWriter
 
 
 on = Fluent("on")
