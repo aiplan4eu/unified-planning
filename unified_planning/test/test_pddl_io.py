@@ -520,7 +520,6 @@ class TestPddlIO(unittest_TestCase):
         self._test_htn_transport_reader(problem_2)
 
     def test_examples_io(self):
-
         for example in self.problems.values():
             problem = example.problem
             kind = problem.kind

@@ -167,7 +167,6 @@ class TestSimulator(unittest_TestCase):
             self.assertIsNone(double_dec_state)
 
     def test_exceptions(self):
-
         condition1 = Fluent("condition1")
         condition2 = Fluent("condition2")
         condition3 = Fluent("condition3")
