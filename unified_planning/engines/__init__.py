@@ -80,5 +80,6 @@ __all__ = [
     "AnytimeGuarantee",
     "MetaEngine",
     "OversubscriptionPlanner",
+    "InterpretedFunctionsPlanner",
     "Replanner",
 ]

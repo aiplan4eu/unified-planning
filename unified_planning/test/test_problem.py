@@ -606,6 +606,30 @@ class TestProblem(unittest_TestCase):
                 pb_name,
             )
 
+    def test_interpreted_functions_simple(self):
+        problem = self.problems["interpreted_functions_in_conditions"].problem
+        print(problem)  # this is just to test repr of IFs
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems[
+            "interpreted_functions_in_conditions_always_impossible"
+        ].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["interpreted_functions_in_durative_conditions"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        problem = self.problems["interpreted_functions_in_durations"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        problem = self.problems["interpreted_functions_in_boolean_assignment"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["interpreted_functions_in_numeric_assignment"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
 
 if __name__ == "__main__":
     main()

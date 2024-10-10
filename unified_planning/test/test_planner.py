@@ -15,6 +15,7 @@
 
 from typing import Callable
 import warnings
+
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -97,14 +98,16 @@ class TestPlanner(unittest_TestCase):
     @skipIfEngineNotAvailable("tamer")
     def test_basic_parallel(self):
         problem = self.problems["basic"].problem
+        # print (problem)
         a = problem.action("a")
-
         with OneshotPlanner(
             names=["tamer", "tamer"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
         ) as planner:
             self.assertNotEqual(planner, None)
-            final_report = planner.solve(problem)
+            # deadlock line ---------------------------------------------------------
+            final_report = planner.solve(problem)  # deadlock line
+            # deadlock line ---------------------------------------------------------
             plan = final_report.plan
             self.assertEqual(
                 final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
@@ -152,8 +155,8 @@ class TestPlanner(unittest_TestCase):
     @skipIfEngineNotAvailable("tamer")
     def test_basic_oversubscription_parallel(self):
         problem = self.problems["basic_oversubscription"].problem
+        # print(problem)
         a = problem.action("a")
-
         with OneshotPlanner(
             names=["oversubscription[tamer]", "oversubscription[tamer]"],
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
@@ -171,6 +174,7 @@ class TestPlanner(unittest_TestCase):
     @skipIfEngineNotAvailable("tamer")
     def test_timed_connected_locations_parallel(self):
         problem = self.problems["timed_connected_locations"].problem
+        # print(problem)
         move = problem.action("move")
         with OneshotPlanner(
             names=["tamer", "tamer"],

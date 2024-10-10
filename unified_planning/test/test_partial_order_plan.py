@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind
@@ -37,6 +38,8 @@ class TestPartialOrderPlan(unittest_TestCase):
             for example in self.problems.values():
                 problem, plans = example.problem, example.valid_plans
                 plan = plans[0] if plans else None
+                if plan is None:
+                    continue
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.convert_to(PlanKind.PARTIAL_ORDER_PLAN, problem)

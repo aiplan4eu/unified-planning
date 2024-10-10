@@ -17,8 +17,10 @@ import unified_planning as up
 from unified_planning.model import ProblemKind
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Optional
+from typing import Dict, Optional, OrderedDict
 from warnings import warn
+
+from unified_planning.model.fnode import FNode
 
 
 class CompilationKind(Enum):
@@ -26,6 +28,7 @@ class CompilationKind(Enum):
 
     GROUNDING = auto()
     CONDITIONAL_EFFECTS_REMOVING = auto()
+    INTERPRETED_FUNCTIONS_REMOVING = auto()
     DISJUNCTIVE_CONDITIONS_REMOVING = auto()
     NEGATIVE_CONDITIONS_REMOVING = auto()
     QUANTIFIERS_REMOVING = auto()
