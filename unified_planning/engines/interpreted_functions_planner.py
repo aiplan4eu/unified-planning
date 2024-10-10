@@ -179,7 +179,10 @@ def _attempt_to_solve(
     start = time.time()
     if self._skip_checks:
         self.engine._skip_checks = True
+    # print ("now trying to solve")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+    # print ("planner output:")
+    # print (res)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -205,7 +208,11 @@ def _attempt_to_solve(
             return retval
         else:
             # temporary skip for ttp
+
             if isinstance(mappedbackplan, TimeTriggeredPlan):
+                print("temporary skip for ttp")
+                if self._debug_print_final_problem:
+                    print(new_problem)
                 return PlanGenerationResult(
                     validation_result.status,
                     mappedbackplan,
@@ -234,6 +241,9 @@ def _attempt_to_solve(
         PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
         PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
     ]:
+
+        if self._debug_print_final_problem:
+            print(new_problem)
         incomplete = True
         if incomplete:
             status = res.status
