@@ -66,9 +66,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     This `Compiler` supports only the the `INTERPRETED_FUNCTIONS_REMOVER` :class:`~unified_planning.engines.CompilationKind`.
     """
 
-    def __init__(
-        self, interpreted_functions_values=None
-    ):  # IF_values - va aggiunto qui
+    def __init__(self, interpreted_functions_values=None):
         engines.engine.Engine.__init__(self)
         self.operators_extractor: up.model.walkers.OperatorsExtractor = (
             up.model.walkers.OperatorsExtractor()
@@ -78,8 +76,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         )
 
         self._interpreted_functions_values = interpreted_functions_values
-        # print("what we got in I_F_V")
-        # print(self._interpreted_functions_values)
+
         CompilerMixin.__init__(self, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
 
     @property
@@ -209,25 +206,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         simplifier = env.simplifier
         if self._interpreted_functions_values is None:
             self._interpreted_functions_values = OrderedDict()
-        # print("what we got in I_F_V")
-        # print(self._interpreted_functions_values)
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
         better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
-        # knowledge_with_placeholders = self.add_empty_knowledge_values(better_knowledge)
         combined_knowledge = self.knowledge_combinations(better_knowledge)
 
-        # better way: function comb (dict, list of keys to combine) -> combination of those keys
-        # print("combinations of functions knowledge:")
-        # for debugprintstuff in combined_knowledge:
-        # print(debugprintstuff)
         for a in problem.actions:
             if isinstance(a, InstantaneousAction):
                 no_IF_action_base = a.clone()
-                # no_IF_action_base.name = get_fresh_name(new_problem, a.name)
                 no_IF_action_base.clear_preconditions()
                 no_IF_action_preconditions_list = list()
                 fixed_preconditions = []
@@ -239,8 +228,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if len(IFs) == 0:
                         no_IF_action_base.add_precondition(p)
 
-                # found_to_substitute = list()
-                # new_vals_to_substitute = list()
                 all_combinations_for_this_action = OrderedDict()
                 allifs: list = list()
                 allifs.clear()
@@ -249,16 +236,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if len(IFs) != 0:  # get all the IFs in the precondition
                         for f in IFs:
                             if f not in allifs:
-                                # and apend them in the key list if not already there
+                                # and append them in the key list if not already there
                                 allifs.append(f)
                 if len(allifs) != 0:
-                    # print("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-                    # print("now on action")
-                    # print(a)
-                    # print("with knowledge")
-                    # print(self._interpreted_functions_values)
-                    # print("this action contains IFs:")
-                    # print(allifs)
 
                     ifaskeys: list = list()
                     ifaskeys.clear()
@@ -268,9 +248,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     all_combinations_for_this_action = self.knowledge_combinations(
                         better_knowledge, ifaskeys
                     )
-                    # print("if combinations")
-                    # print(all_combinations_for_this_action)
-                    # print("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
 
                     for kfc in all_combinations_for_this_action:
                         # for each possible combination (known function combinations)
@@ -281,19 +258,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             subhere: up.model.walkers.Substituter = (
                                 up.model.walkers.Substituter(new_action.environment)
                             )
-                            # subdict: Dict[FNode, FNode] = {}
+
                             subdict = dict()
                             tempfun = None
                             for fun in allifs:
-                                # print(fun._content.payload)
+
                                 if fun._content.payload.__eq__(kf._content.payload):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
                                     ]
-                                    # print("added one thing to sub dict")
 
-                            # print("substitution dict:")
-                            # print(subdict)
                             if len(subdict) == 0:
                                 print("sub dict is empty ;-;")
                                 print(
@@ -303,19 +277,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             new_action.clear_preconditions()
                             for pre in preconditions_to_substitute_list:
 
-                                # print("before substituting condition is:")
-                                # print(pre)
                                 test = subhere.substitute(pre, subdict)
-                                # print("test variable:")
-                                # print(test)
-                                # substituter does not work like this
                                 pre = test
-                                # print("now condition looks like this:")
-                                # print(pre)
                                 new_action.add_precondition(pre)
-                                # print("preconditions now are")
-                                # print(new_action.preconditions)
-                                # does not work :P
 
                             argumentcounter = 0
                             new_condition = None
@@ -358,31 +322,35 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             )
 
                         new_to_old[new_action] = a
-                        # print("we should add this new action - once this works")
-                        # print(new_action)
                         new_problem.add_action(new_action)
                     no_IF_action_base.name = get_fresh_name(new_problem, a.name)
                     new_to_old[no_IF_action_base] = a
                     new_problem.add_action(no_IF_action_base)
                 else:
-                    # print("this action should not change right?")
-                    # print(a)
                     new_to_old[a] = a
                     new_problem.add_action(a)
 
             elif isinstance(a, DurativeAction):
+                # print("now on action")
+                # print(a)
                 no_IF_action = a.clone()
-                if (
+                minduration: FNode | int = 1
+                maxduration: FNode | int = 1000000
+                if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.lower)
-                ) or (
+                ):
+                    minduration = a.duration.lower
+                if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.upper)
                 ):
+                    maxduration = a.duration.upper
 
-                    no_IF_action.set_closed_duration_interval(1, 1000000)
+                no_IF_action.set_closed_duration_interval(minduration, maxduration)
+                # print("after duration part of the remover")
+                # print(no_IF_action)
 
-                no_IF_action.name = get_fresh_name(new_problem, a.name)
                 no_IF_action.clear_conditions()
                 for ii, cl in a.conditions.items():
 
@@ -398,47 +366,34 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             in precondition_operators
                         ):
                             no_IF_action.add_condition(ii, fc)
+                no_IF_action.name = get_fresh_name(new_problem, a.name)
                 new_to_old[no_IF_action] = a
+                new_problem.add_action(no_IF_action)
             else:
                 raise NotImplementedError
-
-            # new_problem.add_action(no_IF_action)# not here :P
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
 
     def elaborate_known_IFs(self, ifvs):
-        # print ("now elaborating (>.<)")
         bk: OrderedDict = OrderedDict()
         for f in ifvs:
-            # print (f._content.payload)
-            # print (bk.keys())
-            # print (ifvs[f])
             if not (f._content.payload in bk.keys()):
                 bk[f._content.payload] = OrderedDict()
-                # bk[f._content.payload]["placeholder_f_and_vnames"] = "placeholder_outval"
-                # placeholdernode = InterpretedFunction (f._content.payload.name)
-                # print (f._content.payload.name)
-                # bk[f._content.payload]["placeholder_unknown_val"] = f._content.payload
             bk[f._content.payload][f] = ifvs[f]
 
         return bk
 
     def knowledge_combinations(self, d, kl=None):
-        # print ("now in combination function+++++++++++++++++++++++++++=")
-        # print (d)
         if len(d) == 0:
-            # print("empty d")
             return d
         akl = None
         if kl is None:
             akl = d.keys()
         else:
             akl = self.intersection(kl, d.keys())
-            # print (akl)
         if len(akl) == 0:
-            # print("our knowledge does not help us with this condition")
             empd: OrderedDict = OrderedDict()
             return empd
 
