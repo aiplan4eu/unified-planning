@@ -54,6 +54,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)
         self._knowledge = OrderedDict()
+        self._debug_print_final_problem = False
 
     @property
     def knowledge(self):
@@ -175,16 +176,10 @@ def _attempt_to_solve(
 ) -> "PlanGenerationResult":
     f = problem.environment.factory
     new_problem = compilerresult.problem
-    # print (self.knowledge)
     start = time.time()
     if self._skip_checks:
         self.engine._skip_checks = True
-    print("planner talking:")
-    print("asking " + str(self.engine.name) + " to solve this:")
-    print(new_problem)
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    print("we got an answer :D")
-    print(res)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -196,17 +191,10 @@ def _attempt_to_solve(
             problem_kind=problem.kind, plan_kind=mappedbackplan.kind
         ) as validator:
             validation_result = validator.validate(problem, mappedbackplan)
-        # debug prints --------------------------------------------------
-        print("the plan:")  # -------------------------------------------
-        print(mappedbackplan)  # ----------------------------------------
-        print("gave the result:")  # ------------------------------------
-        print(validation_result)  # -------------------------------------
-        # debug prints --------------------------------------------------
         if validation_result.status == ValidationResultStatus.VALID:
-            # print ("the final problem was")
-            # print (new_problem)
 
-            print("\nfinal plan found by " + self.engine.name + ":\n")
+            if self._debug_print_final_problem:
+                print(new_problem)
 
             retval = PlanGenerationResult(
                 status,
@@ -255,9 +243,7 @@ def _attempt_to_solve(
 
 
 def _refine(self, problem, validation_result):
-    # print("oh no, plan did not work D:")
     newProb = None
-    # print (validation_result.calculated_interpreted_functions)
     if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
     elif len(validation_result.calculated_interpreted_functions) == 0:
@@ -265,12 +251,9 @@ def _refine(self, problem, validation_result):
     else:
         for k in validation_result.calculated_interpreted_functions:
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
-        # print("now compiling with the following knowledge:")
-        # print(self.knowledge)
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
             newProb = if_remover.compile(
                 problem,
                 CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
             )
-    # print (newProb)
     return newProb
