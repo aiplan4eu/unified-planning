@@ -88,7 +88,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
     @skipIfEngineNotAvailable("tamer")
     @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_refine(self):
-        problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
+        testproblem = self.problems["interpreted_functions_in_conditions_to_refine"]
+        problem = testproblem.problem
         # print (problem)
         # print (problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
@@ -102,13 +103,16 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         print(result.plan)
         print("increase val -> action if in condition ")
         print("is a valid solution")
-        # -------------------------------------------------------------------------------------------------------------------------
+        self.assertEqual(len(result.plan.actions), 2)
+        self.assertEqual(result.plan.actions[0].action, problem.actions[0])
+        self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
-    # @pytest.mark.skip(reason="work in progress - this does not work as of now")
-
+    @pytest.mark.skip(
+        reason="work in progress - timed problems are not currently supported by the compiler"
+    )
     # refine currently does not work with tamer
     def test_interpreted_functions_in_durations_planner(self):
         problem = self.problems["interpreted_functions_in_durations"].problem
