@@ -405,7 +405,7 @@ jobs:
           ref: ${{env.up_tamer_commit}}
 
       - name: Install up-tamer
-        run: python3 -m pip install up-tamer/
+        run: python3 -m pip install up-tamer/ --break-system-packages
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v2
@@ -415,7 +415,7 @@ jobs:
           ref: ${{env.up_pyperplan_commit}}
 
       - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
+        run: python3 -m pip install up-pyperplan/ --break-system-packages
 
       - name: Checkout up-fast-downward
         uses: actions/checkout@v2
@@ -425,7 +425,7 @@ jobs:
           ref: ${{env.up_fast_downward_commit}}
 
       - name: Install up-fast-downward
-        run: python3 -m pip install up-fast-downward/
+        run: python3 -m pip install up-fast-downward/ --break-system-packages
 
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
@@ -454,7 +454,7 @@ jobs:
           ref: ${{env.up_fmap_commit}}
 
       - name: Install up-fmap
-        run: python3 -m pip install up-fmap/
+        run: python3 -m pip install up-fmap/ --break-system-packages
 
       - name: Install jupyter and ipython3
         run:  |
