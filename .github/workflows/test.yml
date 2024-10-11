@@ -123,6 +123,9 @@ jobs:
       - name: Install up-tamer
         run: python3 -m pip install up-tamer/
 
+      - name: Install up-enhsp
+        run: python3 -m pip install up-enhsp/
+
       - name: Checkout up-pyperplan
         uses: actions/checkout@v2
         with:
