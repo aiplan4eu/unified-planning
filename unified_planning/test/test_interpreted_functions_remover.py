@@ -59,7 +59,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
                 problem2.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
             self.assertTrue(problem2.kind.has_interpreted_functions_in_durations())
-            self.assertFalse(kind1.has_interpreted_functions_in_durations())
+            self.assertFalse(kind2.has_interpreted_functions_in_durations())
 
     def test_interpreted_functions_in_preconditions_remover(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
