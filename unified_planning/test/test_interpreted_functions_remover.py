@@ -38,6 +38,29 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_expected_kind(self):
+
+        problem1 = self.problems["interpreted_functions_in_conditions"].problem
+        problem2 = self.problems["interpreted_functions_in_durations"].problem
+        with Compiler(
+            problem_kind=problem1.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind1 = if_remover.resulting_problem_kind(
+                problem1.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(problem1.kind.has_interpreted_functions_in_conditions())
+            self.assertFalse(kind1.has_interpreted_functions_in_conditions())
+        with Compiler(
+            problem_kind=problem1.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind2 = if_remover.resulting_problem_kind(
+                problem2.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(problem2.kind.has_interpreted_functions_in_durations())
+            self.assertFalse(kind1.has_interpreted_functions_in_durations())
+
     def test_interpreted_functions_in_preconditions_remover(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
 
@@ -45,9 +68,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
-            expectedkind = if_remover.resulting_problem_kind(
-                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
@@ -57,7 +77,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         # print(compiled_problem)
         # print(compiled_problem.kind)
 
-        self.assertFalse(expectedkind.has_interpreted_functions_in_conditions())
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
