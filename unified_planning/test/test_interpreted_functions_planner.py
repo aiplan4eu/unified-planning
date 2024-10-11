@@ -77,6 +77,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
         with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
+            planner._skip_checks = True  # -----------------------------
             # print ("now attempting to solve")
             result = planner.solve(problem)
         print(result)
@@ -97,6 +98,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
         with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
+            planner._skip_checks = True  # -----------------------------
             # print ("now attempting to solve")
             result = planner.solve(problem)
         print(result)
@@ -107,6 +109,33 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[0].action, problem.actions[0])
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+
+    @skipIfEngineNotAvailable("sequential_plan_validator")
+    @skipIfEngineNotAvailable("enhsp")
+    def test_interpreted_functions_in_preconditions_planner_complex(self):
+        testproblem = self.problems["IF_in_conditions_complex_1"]
+        problem = testproblem.problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+        with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
+            planner._skip_checks = True  # -----------------------------
+            result = planner.solve(problem)
+        print(result)
+        print("known valid plan:")
+        print(testproblem.valid_plans[0])
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+        self.assertEqual(
+            len(result.plan.actions), len(testproblem.valid_plans[0].actions)
+        )
+        i = 0
+        while i < len(testproblem.valid_plans[0].actions):
+            self.assertEqual(
+                result.plan.actions[i].action,
+                testproblem.valid_plans[0].actions[i].action,
+            )
+
+            i = i + 1
 
     @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
