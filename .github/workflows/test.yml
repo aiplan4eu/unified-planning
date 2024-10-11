@@ -386,16 +386,16 @@ jobs:
           python-version: ${{inputs.python-version}}
 
       - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
+        run: python3 -m pip install -r requirements.txt --break-system-packages # it's ok to not use a venv for the tests
 
       - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
+        run: python3 -m pip install -r dev-requirements.txt --break-system-packages
 
       - name: Install graphviz
         run: sudo apt-get install graphviz graphviz-dev
 
       - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt
+        run: python3 -m pip install -r plot-requirements.txt --break-system-packages
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -441,10 +441,10 @@ jobs:
           ref: ${{env.up_enhsp_commit}}
 
       - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
+        run: python3 -m pip install up-enhsp/ --break-system-packages
 
       - name: Install up-aries
-        run: pip3 install up-aries
+        run: pip3 install up-aries --break-system-packages
 
       - name: Checkout up-fmap
         uses: actions/checkout@v2
