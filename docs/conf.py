@@ -33,6 +33,7 @@ nbsphinx_allow_errors = True
 
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
+needs_sphinx = "8.0"  # sphinx 8.1 creates problems as of Oct 11th 2024
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
