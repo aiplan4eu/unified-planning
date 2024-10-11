@@ -39,9 +39,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
-    @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
         # print (problem)
@@ -63,8 +61,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             )
         )
 
-    @skipIfEngineNotAvailable("sequential_plan_validator")
-    @skipIfEngineNotAvailable("tamer")
     @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_always_impossible(self):
         problem = self.problems[
@@ -85,8 +81,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         self.assertFalse(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    @skipIfEngineNotAvailable("sequential_plan_validator")
-    @skipIfEngineNotAvailable("tamer")
     @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_refine(self):
         testproblem = self.problems["interpreted_functions_in_conditions_to_refine"]
@@ -110,7 +104,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
@@ -137,7 +130,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
             i = i + 1
 
-    @skipIfEngineNotAvailable("sequential_plan_validator")
     @skipIfEngineNotAvailable("tamer")
     @pytest.mark.skip(
         reason="work in progress - timed problems are not currently supported by the compiler"
