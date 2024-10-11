@@ -105,9 +105,7 @@ class TestPlanner(unittest_TestCase):
             params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
         ) as planner:
             self.assertNotEqual(planner, None)
-            # deadlock line ---------------------------------------------------------
-            final_report = planner.solve(problem)  # deadlock line
-            # deadlock line ---------------------------------------------------------
+            final_report = planner.solve(problem)
             plan = final_report.plan
             self.assertEqual(
                 final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
