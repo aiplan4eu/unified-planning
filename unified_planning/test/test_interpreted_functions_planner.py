@@ -61,7 +61,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             )
         )
 
-    @skipIfEngineNotAvailable("enhsp")
+    # @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_always_impossible(self):
         problem = self.problems[
             "interpreted_functions_in_conditions_always_impossible"
@@ -81,7 +81,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         self.assertFalse(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    @skipIfEngineNotAvailable("enhsp")
+    # @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_refine(self):
         testproblem = self.problems["interpreted_functions_in_conditions_to_refine"]
         problem = testproblem.problem
@@ -104,7 +104,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    @skipIfEngineNotAvailable("enhsp")
+    # @skipIfEngineNotAvailable("enhsp")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
         problem = testproblem.problem
