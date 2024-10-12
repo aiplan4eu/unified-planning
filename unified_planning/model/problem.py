@@ -327,6 +327,10 @@ class Problem(  # type: ignore[misc]
                     for e in el:
                         remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
+                for le in a.continuous_effects.values():
+                    for ce in le:
+                        remove_used_fluents(ce.fluent, ce.value, ce.condition)
+                        static_fluents.discard(ce.fluent.fluent())
                 for se in a.simulated_effects.values():
                     unused_fluents.clear()
                     for f in se.fluents:
@@ -831,6 +835,12 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        elif e.is_continuous_increase():
+            self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+        elif e.is_continuous_decrease():
+            self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         elif e.is_assignment():
             value_type = value.type
             if (
@@ -966,12 +976,19 @@ class _KindFactory:
                     self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_expression(cond)
 
-    def update_action_timed_effect(self, t: "up.model.Timing", eff: "up.model.Effect"):
-        if t.delay != 0:
-            if (t.is_from_start() and t.delay > 0) or (t.is_from_end() and t.delay < 0):
-                self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-            else:
-                self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+    def update_action_timed_effect(
+        self,
+        t: Union["up.model.timing.Timing", "up.model.timing.TimeInterval"],
+        eff: "up.model.effect.Effect",
+    ):
+        if isinstance(t, up.model.timing.Timing):
+            if t.delay != 0:
+                if (t.is_from_start() and t.delay > 0) or (
+                    t.is_from_end() and t.delay < 0
+                ):
+                    self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                else:
+                    self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_effect(eff)
 
     def update_problem_kind_action(
@@ -1000,6 +1017,18 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            continuous_fluents = set()
+            fluents_in_rhs = set()
+            for i, le in action.continuous_effects.items():
+                for ce in le:
+                    self.update_action_timed_effect(i, ce)
+                    continuous_fluents.add(ce.fluent.fluent)
+                    rhs = self.simplifier.simplify(ce.value)
+                    for var in self.environment.free_vars_extractor.get(rhs):
+                        if var.is_fluent_exp():
+                            fluents_in_rhs.add(var.fluent)
+            if any(variable in fluents_in_rhs for variable in continuous_fluents):
+                self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
