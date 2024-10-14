@@ -269,9 +269,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     ]
 
                             if len(subdict) == 0:
-                                print("sub dict is empty ;-;")
                                 print(
-                                    "if you got here it means there is a bug in the code"
+                                    "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
                                 )
                             preconditions_to_substitute_list = new_action.preconditions
                             new_action.clear_preconditions()
