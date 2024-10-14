@@ -16,7 +16,7 @@
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
+from typing import Any, Dict, Generator, List, Optional, OrderedDict, Set, Tuple, Union, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -165,6 +165,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
+                # print (cif)
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -431,7 +432,10 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         cif = None
 
         hasif = False
-        if problem.kind.has_interpreted_functions_in_conditions():
+        if (
+            problem.kind.has_interpreted_functions_in_conditions()
+            or problem.kind.has_interpreted_functions_in_durations()
+        ):
             hasif = True
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
@@ -650,6 +654,39 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             print(
                                 "this thing does not have a simulator like the sequential ones ;-;"
                             )
+                            print(opt_ai.action)
+                            ife: up.model.walkers.InterpretedFunctionsExtractor = (
+                                up.model.walkers.InterpretedFunctionsExtractor()
+                            )
+                            ifl = ife.get(opt_ai.action.duration.lower)
+                            ifu = ife.get(opt_ai.action.duration.upper)
+                            ifc = []
+                            for ii, cl in opt_ai.action.conditions.items():
+
+                                for c in cl:
+                                    ifc.append(ife.get(c))
+
+                            # print (ifl)
+                            # print (ifu)
+                            # print (ifc)
+                            # print(trace)
+                            cif = OrderedDict()
+                            for lll in ifl:
+                                fp = lll._content.payload
+                                fa = lll._content.args  # aka args
+                                fc = lll._content.payload.function
+                                # print (fc)
+                                notOkParams = list()
+                                for fan in fa:
+                                    notOkParams.append(state.get_value(fan))
+
+                                # print (fp)
+                                # print (fa)
+                                print(fp(*notOkParams))
+                                print(fc(*notOkParams))
+                                cif[fp(*notOkParams)] = fc(
+                                    *notOkParams
+                                )  # does not use memoization
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
