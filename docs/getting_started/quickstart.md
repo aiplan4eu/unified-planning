@@ -33,11 +33,11 @@ Location = UserType('Location')
 
 ### Fluents and constants
 
-The basic variables of a planning problem are called "fluents" and are quantities that can change over time. Fluents can have differen types, in this first example we will stick to classical "predicates" that are fluents of boolean type. Moreover, fluents can have parameters: effectively describing multiple variables.
+The basic variables of a planning problem are called "fluents" and are quantities that can change over time. Fluents can have different types, in this first example we will stick to classical "predicates" that are fluents of boolean type. Moreover, fluents can have parameters: effectively describing multiple variables.
 
 For example, a boolean fluent `connected` with two parameters of type `Location` (that can be interpreted as `from` and `to`) can be used to model a graph of locations: there exists an edge between two locations `a` and `b` if `connected(a, b)` is true.
 
-In this example, `connected` will be a constant (i.e. it will never change in any execution), but another fluent `robot_at` will be used to model where the robot is: the robot is in locatiopn `l` if and only if `robot_at(l)` is true (we will ensure that exactly one such `l` exists, so that the robot is always in one single location).
+In this example, `connected` will be a constant (i.e. it will never change in any execution), but another fluent `robot_at` will be used to model where the robot is: the robot is in location `l` if and only if `robot_at(l)` is true (we will ensure that exactly one such `l` exists, so that the robot is always in one single location).
 
 ```python
 robot_at = unified_planning.model.Fluent('robot_at', BoolType(), l=Location)
@@ -68,7 +68,7 @@ move.add_effect(robot_at(l_to), True)
 
 ### Creating the problem
 
-The class that represents a planning problem is `Problem`, it contains the set of fluents, the actions, the objects, an intial value for all the fluents and a goal to be reached by the planner. We start by adding the entities we created so far. Note that entities are not bound to one problem, we can create the actions and fluents one and create multiple problems with them.
+The class that represents a planning problem is `Problem`, it contains the set of fluents, the actions, the objects, an initial value for all the fluents and a goal to be reached by the planner. We start by adding the entities we created so far. Note that entities are not bound to one problem, we can create the actions and fluents one and create multiple problems with them.
 
 ```python
 problem = Problem('robot')
@@ -77,7 +77,7 @@ problem.add_fluent(connected, default_initial_value=False)
 problem.add_action(move)
 ```
 
-The set of objects is a set of `Object` instances, each represnting an element of the domain. In this example, we create `NLOC` (set to 10) locations named `l0` to `l9`. We can create the set of objects and add it to the problem as follows.
+The set of objects is a set of `Object` instances, each representing an element of the domain. In this example, we create `NLOC` (set to 10) locations named `l0` to `l9`. We can create the set of objects and add it to the problem as follows.
 
 ```python
 NLOC = 10
@@ -87,7 +87,7 @@ problem.add_objects(locations)
 
 Then, we need to specify the initial state. We used the `default_initial_value` specification when adding the fluents, so it suffices to indicate the fluents that are initially true (this is called "closed-world assumption". Without this specification, we would need to initialize all the possible instantiation of all the fluents).
 
-In this example, we connect location `li` with location `li+1`, creating a simple "linear" graph lof locations and we set the initial position of the robot in location `l0`.
+In this example, we connect location `li` with location `li+1`, creating a simple "linear" graph of locations and we set the initial position of the robot in location `l0`.
 
 ```python
 problem.set_initial_value(robot_at(locations[0]), True)
@@ -148,7 +148,7 @@ with Compiler(problem_kind=problem.kind, compilation_kind=CompilationKind.GROUND
     with OneshotPlanner(problem_kind=ground_problem.kind) as planner:
         ground_plan = planner.solve(ground_problem).plan
         print('Ground plan: %s' % ground_plan)
-        # Replace the action instances of the grounded plan with their correspoding lifted version
+        # Replace the action instances of the grounded plan with their corresponding lifted version
         lifted_plan = ground_plan.replace_action_instances(grounding_result.map_back_action_instance)
         print('Lifted plan: %s' % lifted_plan)
         # Test the problem and plan validity
