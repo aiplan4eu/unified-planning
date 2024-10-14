@@ -427,6 +427,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 print(ifid)
                                 condition_to_avoid = None
                                 i = 0
+                                continue  # this does not work and it needs the equals iff boolean fix thing
                                 while i < len(kif.args):
                                     print(ifid.args[i])
                                     print("should not be")
