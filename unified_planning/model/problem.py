@@ -1062,11 +1062,9 @@ class _KindFactory:
             elif metric.is_minimize_action_costs():
                 assert isinstance(metric, up.model.metrics.MinimizeActionCosts)
                 self.kind.set_quality_metrics("ACTIONS_COST")
-                costs = (
-                    metric.costs.values()
-                    if metric.default is None
-                    else chain(metric.costs.values(), [metric.default])
-                )
+                costs = list(metric.costs.values())
+                if metric.default is not None:
+                    costs.append(metric.default)
                 for cost in costs:
                     if cost is None:
                         raise UPProblemDefinitionError(

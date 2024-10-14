@@ -36,7 +36,9 @@ class TestPartialOrderPlan(unittest_TestCase):
             assert validator is not None
             for example in self.problems.values():
                 problem, plans = example.problem, example.valid_plans
-                plan = plans[0] if plans else None
+                if not plans:
+                    continue
+                plan = plans[0]
                 if validator.supports(problem.kind):
                     self.assertTrue(isinstance(plan, up.plans.SequentialPlan))
                     pop_plan = plan.convert_to(PlanKind.PARTIAL_ORDER_PLAN, problem)
