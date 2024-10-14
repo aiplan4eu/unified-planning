@@ -165,9 +165,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         print(compiled_problem.kind)
         self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
 
-    @pytest.mark.skip(
-        reason="work in progress - timed problems are not currently supported by the compiler"
-    )
     def test_interpreted_functions_in_durations_remover(self):
         problem = self.problems["interpreted_functions_in_durations"].problem
 
@@ -191,9 +188,12 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
         self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
         self.assertTrue(compiled_problem.kind.has_int_type_durations())
+
         l = compiled_problem.actions[0].duration.lower
         u = compiled_problem.actions[0].duration.upper
         self.assertTrue(l.is_int_constant())
         self.assertTrue(u.is_int_constant())
-        # self.assertEqual(l.int_constant_value, 1) # this is very not user-friendly
-        # self.assertEqual(u.int_constant_value, 1000000)
+        print(l)
+        print(u)
+        self.assertTrue(l._content.payload == 1)
+        self.assertTrue(u._content.payload == 150)
