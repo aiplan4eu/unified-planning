@@ -658,35 +658,36 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             ife: up.model.walkers.InterpretedFunctionsExtractor = (
                                 up.model.walkers.InterpretedFunctionsExtractor()
                             )
-                            ifl = ife.get(opt_ai.action.duration.lower)
-                            ifu = ife.get(opt_ai.action.duration.upper)
-                            ifc = []
-                            for ii, cl in opt_ai.action.conditions.items():
-
-                                for c in cl:
-                                    ifc.append(ife.get(c))
-
+                            print(opt_ai.action.duration)
+                            # ifl = ife.get(opt_ai.action.duration.lower)
+                            # ifu = ife.get(opt_ai.action.duration.upper)
+                            # ifc = []
+                            # for ii, cl in opt_ai.action.conditions.items():
+                            #
+                            #    for c in cl:
+                            #        ifc.append(ife.get(c))
+                            #
                             # print (ifl)
                             # print (ifu)
                             # print (ifc)
                             # print(trace)
-                            cif = OrderedDict()
-                            for lll in ifl:
-                                fp = lll._content.payload
-                                fa = lll._content.args  # aka args
-                                fc = lll._content.payload.function
-                                # print (fc)
-                                notOkParams = list()
-                                for fan in fa:
-                                    notOkParams.append(state.get_value(fan))
-
-                                # print (fp)
-                                # print (fa)
-                                print(fp(*notOkParams))
-                                print(fc(*notOkParams))
-                                cif[fp(*notOkParams)] = fc(
-                                    *notOkParams
-                                )  # does not use memoization
+                            # cif = OrderedDict()
+                            # for lll in ifl:
+                            #    fp = lll._content.payload
+                            #    fa = lll._content.args  # aka args
+                            #    fc = lll._content.payload.function
+                            #    # print (fc)
+                            #    notOkParams = list()
+                            #    for fan in fa:
+                            #        notOkParams.append(state.get_value(fan))
+                            #
+                            #    # print (fp)
+                            #    # print (fa)
+                            #    print(fp(*notOkParams))
+                            #    print(fc(*notOkParams))
+                            #    cif[fp(*notOkParams)] = fc(
+                            #        *notOkParams
+                            #    )  # does not use memoization
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
