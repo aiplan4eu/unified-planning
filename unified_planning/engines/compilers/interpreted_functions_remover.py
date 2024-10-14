@@ -212,7 +212,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
+        print("raw knowledge now is:")
+        print(self._interpreted_functions_values)
         better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
+        print("better knowledge now is:")
+        print(better_knowledge)
         combined_knowledge = self.knowledge_combinations(better_knowledge)
 
         for a in problem.actions:
@@ -273,6 +277,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 print(
                                     "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
                                 )
+
                             preconditions_to_substitute_list = new_action.preconditions
                             new_action.clear_preconditions()
                             for pre in preconditions_to_substitute_list:
@@ -366,6 +371,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 minduration: FNode | int = 1
                 maxduration: FNode | int = 1000000
                 IF_in_durations = list()
+                # IF_in_durations does not require keeping track of i as all conditions are at StartTime()
+                IF_in_conditions = list()
+                IF_in_conditions = list()
 
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
@@ -374,12 +382,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     minduration = a.duration.lower
                 else:
                     IFs = self.interpreted_functions_extractor.get(a.duration.lower)
-                    if len(IFs) != 0:  # get all the IFs in the precondition
+                    if len(IFs) != 0:
                         for f in IFs:
                             if f not in IF_in_durations:
-                                # and append them in the key list if not already there
                                 IF_in_durations.append(f)
-
                 IFs = None
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
@@ -388,67 +394,191 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     maxduration = a.duration.upper
                 else:
                     IFs = self.interpreted_functions_extractor.get(a.duration.upper)
-                    if len(IFs) != 0:  # get all the IFs in the precondition
+                    if len(IFs) != 0:
                         for f in IFs:
                             if f not in IF_in_durations:
-                                # and append them in the key list if not already there
                                 IF_in_durations.append(f)
-                print("compiler with knowledge:")
-                # print (IF_in_durations)
-                # print (self._interpreted_functions_values)
 
                 no_IF_action.set_closed_duration_interval(minduration, maxduration)
-                # print("after duration part of the remover")
-                # print(no_IF_action)
 
                 no_IF_action.clear_conditions()
+                fixed_conditions = []
+                fixed_conditions_i = []
                 for ii, cl in a.conditions.items():
-
-                    fixed_conditions = []
                     for c in cl:
                         templist = self._fix_precondition(c)
-                        fixed_conditions.extend(templist)
-                    for fc in fixed_conditions:
+                        for fc in templist:
+                            fixed_conditions.append(fc)
+                            fixed_conditions_i.append(ii)
+                print(fixed_conditions)
+                print(fixed_conditions_i)
+                condcounter = 0
+                while condcounter < len(fixed_conditions):
+                    print("for each preelaborated condition")
+                    if not (
+                        OperatorKind.INTERPRETED_FUNCTION_EXP
+                        in self.operators_extractor.get(fixed_conditions[condcounter])
+                    ):
+                        no_IF_action.add_condition(
+                            fixed_conditions_i[condcounter],
+                            fixed_conditions[condcounter],
+                        )
+                    else:
+                        IFs = None
+                        IFs = self.interpreted_functions_extractor.get(
+                            fixed_conditions[condcounter]
+                        )
+                        if len(IFs) != 0:  # get all the IFs in the precondition
+                            for f in IFs:
+                                if f not in IF_in_conditions:
+                                    # and append them in the key list if not already there
+                                    IF_in_conditions.append(f)
+                    condcounter = +1
 
-                        precondition_operators = self.operators_extractor.get(fc)
-                        if not (
-                            OperatorKind.INTERPRETED_FUNCTION_EXP
-                            in precondition_operators
-                        ):
-                            no_IF_action.add_condition(ii, fc)
-                kifid = []
-                for kif in self._interpreted_functions_values:
-                    for ifid in IF_in_durations:
-                        if kif._content.payload.__eq__(ifid._content.payload):
-                            if kif not in kifid:
-                                kifid.append(ifid)
-                                print("found a match:")
-                                print(kif)
-                                print(ifid)
-                                condition_to_avoid = None
-                                i = 0
-                                continue  # this does not work and it needs the equals iff boolean fix thing
-                                while i < len(kif.args):
-                                    print(ifid.args[i])
-                                    print("should not be")
-                                    print(kif.args[i])
-                                    # have to do the combination thing
-                                    temp_cond = no_IF_action.environment.expression_manager.Not(
-                                        no_IF_action.environment.expression_manager.Equals(
-                                            ifid.args[i], kif.args[i]
-                                        )
-                                    )
-                                    no_IF_action.add_condition(StartTiming(), temp_cond)
+                print(IF_in_durations)
+                print(IF_in_conditions)
+                print(self._interpreted_functions_values)
+                all_combinations_for_this_action = OrderedDict()
+                allifs: list = list()
+                allifs.clear()
+                for ifid in IF_in_durations:
+                    if ifid not in allifs:
+                        allifs.append(ifid)
+                for ific in IF_in_conditions:
+                    if ific not in allifs:
+                        allifs.append(ific)
+                print("allifs")
+                print(allifs)
+                if len(allifs) != 0:
+                    ifaskeys: list = list()
+                    ifaskeys.clear()
+                    for f in allifs:
+                        ifaskeys.append(f._content.payload)
+                    print("ifaskeys")
+                    print(ifaskeys)
+                    all_combinations_for_this_action = self.knowledge_combinations(
+                        better_knowledge, ifaskeys
+                    )
+                    print("combinations for action")
+                    print(all_combinations_for_this_action)
 
-                                    i = i + 1
+                    for kfc in all_combinations_for_this_action:
+                        new_action = a.clone()
+                        new_action.name = get_fresh_name(new_problem, a.name)
+                        for kf in kfc:
 
-                    # no_IF_action.add_condition(StartTiming(), condition_to_avoid)
-                no_IF_action.name = get_fresh_name(new_problem, a.name)
-                new_to_old[no_IF_action] = a
-                new_problem.add_action(no_IF_action)
+                            subhere: up.model.walkers.Substituter = (
+                                up.model.walkers.Substituter(new_action.environment)
+                            )
+
+                            subdict = dict()
+                            tempfun = None
+                            for fun in allifs:
+
+                                if fun._content.payload.__eq__(kf._content.payload):
+                                    subdict[fun] = self._interpreted_functions_values[
+                                        kf
+                                    ]
+
+                            if len(subdict) == 0:
+                                print(
+                                    "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
+                                )
+                            print("now sub dict is ready!")
+                            print(subdict)
+                            print(
+                                "we have to substitute it in durations upper and lower and conditions"
+                            )
+                            # seems to work until this point
+                            # substitute here
+
+                            preconditions_to_substitute_list = new_action.conditions
+                            print("copied action list, before clearing")
+                            print(preconditions_to_substitute_list)
+                            new_action.clear_conditions()
+                            for ii, cl in preconditions_to_substitute_list.items():
+                                for c in cl:
+
+                                    test = subhere.substitute(c, subdict)
+                                    c = test
+                                    new_action.add_condition(ii, c)
+                            print(
+                                "conditions for new action, before non redundnacy constraints"
+                            )
+                            print(new_action.conditions)
+                            print("duration before substitution")
+                            print(new_action.duration)
+                            test = subhere.substitute(
+                                new_action.duration.upper, subdict
+                            )
+                            new_maxduration = test
+                            test = subhere.substitute(
+                                new_action.duration.lower, subdict
+                            )
+                            new_minduration = test
+
+                            new_action.set_closed_duration_interval(
+                                new_minduration, new_maxduration
+                            )
+                            print("duration after substitution")
+                            print(new_action.duration)
+
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+                            # here should be the code for the conditions
+
+                            # after this is code for base action !!! careful the logic is different as we have to keep track of time
+
+                            # base_not_precondition = (
+                            #    no_IF_action.environment.expression_manager.Not(
+                            #        new_condition
+                            #    )
+                            # )
+                            # no_IF_action.add_precondition(base_not_precondition)
+                            # no_IF_action_preconditions_list.append(
+                            #    new_precondition_list
+                            # )
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        #
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # --------------------------------
+                        # before this we have to modify new action to add the constraints and substitute the stuff we know
+                        new_to_old[new_action] = a
+                        new_problem.add_action(new_action)
+
+                    # no_IF_action.add_condition(StartTiming(), condition_to_avoid_for_duration_purposes)
+                    no_IF_action.name = get_fresh_name(new_problem, a.name)
+                    new_to_old[no_IF_action] = a
+                    new_problem.add_action(no_IF_action)
+                else:
+                    new_to_old[a] = a
+                    new_problem.add_action(a)
             else:
                 raise NotImplementedError
-
+        print("compilation complete!")
+        print(new_problem)
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
@@ -464,6 +594,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
     def knowledge_combinations(self, d, kl=None):
         if len(d) == 0:
+            print("len is zero womp womp")
             return d
         akl = None
         if kl is None:
@@ -471,6 +602,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             akl = self.intersection(kl, d.keys())
         if len(akl) == 0:
+            print("calculated length is zero womp womp")
             empd: OrderedDict = OrderedDict()
             return empd
 

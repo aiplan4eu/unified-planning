@@ -179,10 +179,13 @@ def _attempt_to_solve(
     start = time.time()
     if self._skip_checks:
         self.engine._skip_checks = True
-    # print ("now trying to solve")
+    print("now trying to solve the following problem")
+    print(new_problem)
+    print("with engine")
+    print(self.engine.name)
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    # print ("planner output:")
-    # print (res)
+    print("planner output:")
+    print(res)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -219,7 +222,7 @@ def _attempt_to_solve(
             #        self.name,
             #        log_messages=res.log_messages,
             #    )
-
+            print("solution did not work, refining problem")
             refined_problem = _refine(self, problem, validation_result)
             if refined_problem is None:
                 retval = PlanGenerationResult(
@@ -260,10 +263,16 @@ def _refine(self, problem, validation_result):
         print("no updates available, the problem has no solution")
     else:
         for k in validation_result.calculated_interpreted_functions:
+            print("we found new knowledge:")
+            print(k)
+            print("is")
+            print(validation_result.calculated_interpreted_functions[k])
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
             newProb = if_remover.compile(
                 problem,
                 CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
             )
+    # print ("new, better (hopefully) problem:")
+    # print (newProb)
     return newProb
