@@ -14,7 +14,7 @@ for colab_file in `find ./docs/notebooks -name '*.ipynb'` ; do
         exit 1
     fi
     echo -n "  -> Testing ${python_basename_file}..."
-    output=`ipython3 ${python_file} 2>&1`
+    output=`python3 ${python_file} 2>&1`
     if [ ! $? == 0 ]; then
         rm ${python_file}
         echo " FAILED for the following reason:"
