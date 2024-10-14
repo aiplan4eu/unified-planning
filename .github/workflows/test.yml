@@ -360,7 +360,7 @@ jobs:
 
       - name: Install Protobuf compiler
         run: |
-          python3 -m pip install grpcio-tools==1.54.2
+          python3 -m pip install grpcio-tools==1.66.2
 
       - name: Check Protobuf generation
         run: bash scripts/generate_protobuf_bindings.sh
