@@ -49,7 +49,7 @@ def get_example_problems():
         return False
 
     s_simple_always_false = OrderedDict()
-    s_simple_always_false["ind"] = IntType()
+    s_simple_always_false["ind"] = BoolType()
     IF_simple_always_false = InterpretedFunction(
         "simple_always_false", BoolType(), s_simple_always_false, simple_always_false
     )
@@ -58,7 +58,7 @@ def get_example_problems():
     ione = Fluent("ione", IntType(0, 20))
     itwo = Fluent("itwo", IntType(0, 20))
     ithree = Fluent("ithree", IntType(0, 20))
-    ifour = Fluent("ifour", IntType(0, 20))
+    ifour = Fluent("ifour", BoolType())
     a = InstantaneousAction("a")
     a.add_precondition(And(IF_integers_to_bool(ione, itwo), LT(ione, 15)))
     a.add_precondition(LT(g, 10))
@@ -66,7 +66,8 @@ def get_example_problems():
     b = InstantaneousAction("b")
     b.add_precondition(
         And(
-            And(IF_integers_to_bool(itwo, itwo), GT(simple_int_to_int(ithree), 5)), True
+            And(IF_integers_to_bool(itwo, itwo), GT(IF_simple_int_to_int(ithree), 5)),
+            True,
         )
     )
     b.add_effect(g, Plus(g, 5))
@@ -75,10 +76,10 @@ def get_example_problems():
     d = InstantaneousAction("d")
     d.add_effect(ione, Minus(ione, 1))
     e = InstantaneousAction("e")
-    e.add_precondition(simple_always_false(ifour))
+    e.add_precondition(IF_simple_always_false(ifour))
     e.add_effect(g, 5)
     f = InstantaneousAction("f")
-    f.add_precondition(And(GT(ione, simple_int_to_int(ithree))))
+    f.add_precondition(And(GT(ione, IF_simple_int_to_int(ithree))))
     f.add_effect(itwo, 5)
     problem = Problem("IF_in_conditions_complex_1")
     problem.add_fluent(g)
@@ -96,7 +97,7 @@ def get_example_problems():
     problem.set_initial_value(ione, 11)
     problem.set_initial_value(itwo, 1)
     problem.set_initial_value(ithree, 15)
-    problem.set_initial_value(ifour, 15)
+    problem.set_initial_value(ifour, False)
     problem.add_goal(GE(g, 5))
 
     ifproblem = TestCase(
