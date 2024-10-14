@@ -55,6 +55,7 @@ class ENHSP(PDDLAnytimePlanner):
             plan_filename,
             "-planner",
             "opt-hrmax",
+            "-npm",
         ]
 
     def _get_anytime_cmd(
