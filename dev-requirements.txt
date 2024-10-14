@@ -4,6 +4,6 @@ grpcio-tools
 grpc-stubs
 pytest
 pytest-cov
-mypy
+mypy==1.12.0
 pre-commit
 black==22.6.0

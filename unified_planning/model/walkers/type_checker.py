@@ -263,8 +263,12 @@ class TypeChecker(walkers.dag.DagWalker):
         if upper == float("inf"):
             upper = None
         if has_real:
+            lower = cast(Optional[Fraction], lower)
+            upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
         else:
+            lower = cast(Optional[int], lower)
+            upper = cast(Optional[int], upper)
             return self.environment.type_manager.IntType(lower, upper)
 
     def walk_times(self, expression, args):
@@ -294,8 +298,12 @@ class TypeChecker(walkers.dag.DagWalker):
         ):
             upper = None
         if has_real:
+            lower = cast(Optional[Fraction], lower)
+            upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
         else:
+            lower = cast(Optional[int], lower)
+            upper = cast(Optional[int], upper)
             return self.environment.type_manager.IntType(lower, upper)
 
     def walk_div(self, expression, args):

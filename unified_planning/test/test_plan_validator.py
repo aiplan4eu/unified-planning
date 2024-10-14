@@ -71,7 +71,9 @@ class TestProblem(unittest_TestCase):
     def test_all_from_factory_with_problem_kind(self):
         for p in self.problems.values():
             problem, plans = p.problem, p.valid_plans
-            plan = plans[0] if plans else None
+            if not plans:
+                continue
+            plan = plans[0]
             pk = problem.kind
             if SequentialPlanValidator.supports(pk):
                 environment = unified_planning.environment.Environment()
