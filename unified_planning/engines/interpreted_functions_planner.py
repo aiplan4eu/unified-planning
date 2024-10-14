@@ -209,16 +209,16 @@ def _attempt_to_solve(
         else:
             # temporary skip for ttp
 
-            if isinstance(mappedbackplan, TimeTriggeredPlan):
-                print("temporary skip for ttp")
-                if self._debug_print_final_problem:
-                    print(new_problem)
-                return PlanGenerationResult(
-                    validation_result.status,
-                    mappedbackplan,
-                    self.name,
-                    log_messages=res.log_messages,
-                )
+            # if isinstance(mappedbackplan, TimeTriggeredPlan):
+            #    print("temporary skip for ttp")
+            #    if self._debug_print_final_problem:
+            #        print(new_problem)
+            #    return PlanGenerationResult(
+            #        validation_result.status,
+            #        mappedbackplan,
+            #        self.name,
+            #        log_messages=res.log_messages,
+            #    )
 
             refined_problem = _refine(self, problem, validation_result)
             if refined_problem is None:
