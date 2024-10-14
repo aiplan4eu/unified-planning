@@ -766,7 +766,7 @@ def get_example_problems():
     gohome = DurativeAction("gohome")
     gohome.add_condition(StartTiming(), Not(athome))
     gohome.add_effect(EndTiming(), athome, True)
-    gohome.set_fixed_duration(gohomeduration(rain, normaltime))
+    gohome.set_closed_duration_interval(gohomeduration(rain, normaltime), 150)
 
     problem = Problem("interpreted_functions_in_durations")
     problem.add_fluent(athome)
