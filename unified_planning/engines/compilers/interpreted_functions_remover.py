@@ -21,6 +21,7 @@ from collections import OrderedDict
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.model.interpreted_function import InterpretedFunction
+from unified_planning.model.timing import StartTiming
 from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.model.operators import OperatorKind
@@ -293,19 +294,48 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                             ]
                                         )
                                         if new_condition is None:
-                                            new_condition = new_action.environment.expression_manager.Equals(
-                                                aif._content.args[argumentcounter],
-                                                kf._content.args[argumentcounter],
-                                            )
-
-                                        else:
-                                            new_condition = new_action.environment.expression_manager.And(
-                                                new_condition,
-                                                new_action.environment.expression_manager.Equals(
+                                            if aif._content.args[
+                                                argumentcounter
+                                            ].type.is_bool_type():
+                                                # is this ok?
+                                                new_condition = new_action.environment.expression_manager.Iff(
                                                     aif._content.args[argumentcounter],
                                                     kf._content.args[argumentcounter],
-                                                ),
-                                            )
+                                                )
+                                            else:
+                                                new_condition = new_action.environment.expression_manager.Equals(
+                                                    aif._content.args[argumentcounter],
+                                                    kf._content.args[argumentcounter],
+                                                )
+
+                                        else:
+                                            if aif._content.args[
+                                                argumentcounter
+                                            ].type.is_bool_type():
+                                                # is this ok?
+                                                new_condition = new_action.environment.expression_manager.And(
+                                                    new_condition,
+                                                    new_action.environment.expression_manager.Iff(
+                                                        aif._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                        kf._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                    ),
+                                                )
+                                            else:
+                                                new_condition = new_action.environment.expression_manager.And(
+                                                    new_condition,
+                                                    new_action.environment.expression_manager.Equals(
+                                                        aif._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                        kf._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                    ),
+                                                )
 
                                 argumentcounter = argumentcounter + 1
                             new_action.add_precondition(new_condition)
@@ -335,16 +365,37 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 no_IF_action = a.clone()
                 minduration: FNode | int = 1
                 maxduration: FNode | int = 1000000
+                IF_in_durations = list()
+
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.lower)
                 ):
                     minduration = a.duration.lower
+                else:
+                    IFs = self.interpreted_functions_extractor.get(a.duration.lower)
+                    if len(IFs) != 0:  # get all the IFs in the precondition
+                        for f in IFs:
+                            if f not in IF_in_durations:
+                                # and append them in the key list if not already there
+                                IF_in_durations.append(f)
+
+                IFs = None
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.upper)
                 ):
                     maxduration = a.duration.upper
+                else:
+                    IFs = self.interpreted_functions_extractor.get(a.duration.upper)
+                    if len(IFs) != 0:  # get all the IFs in the precondition
+                        for f in IFs:
+                            if f not in IF_in_durations:
+                                # and append them in the key list if not already there
+                                IF_in_durations.append(f)
+                print("compiler with knowledge:")
+                # print (IF_in_durations)
+                # print (self._interpreted_functions_values)
 
                 no_IF_action.set_closed_duration_interval(minduration, maxduration)
                 # print("after duration part of the remover")
@@ -365,6 +416,32 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             in precondition_operators
                         ):
                             no_IF_action.add_condition(ii, fc)
+                kifid = []
+                for kif in self._interpreted_functions_values:
+                    for ifid in IF_in_durations:
+                        if kif._content.payload.__eq__(ifid._content.payload):
+                            if kif not in kifid:
+                                kifid.append(ifid)
+                                print("found a match:")
+                                print(kif)
+                                print(ifid)
+                                condition_to_avoid = None
+                                i = 0
+                                while i < len(kif.args):
+                                    print(ifid.args[i])
+                                    print("should not be")
+                                    print(kif.args[i])
+                                    # have to do the combination thing
+                                    temp_cond = no_IF_action.environment.expression_manager.Not(
+                                        no_IF_action.environment.expression_manager.Equals(
+                                            ifid.args[i], kif.args[i]
+                                        )
+                                    )
+                                    no_IF_action.add_condition(StartTiming(), temp_cond)
+
+                                    i = i + 1
+
+                    # no_IF_action.add_condition(StartTiming(), condition_to_avoid)
                 no_IF_action.name = get_fresh_name(new_problem, a.name)
                 new_to_old[no_IF_action] = a
                 new_problem.add_action(no_IF_action)

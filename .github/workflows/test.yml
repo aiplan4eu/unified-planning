@@ -301,18 +301,18 @@ jobs:
           cd ENHSP-Public; git checkout enhsp20-0.15.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
-      #- name: Checkout up-enhsp
-      #  uses: actions/checkout@v2
-      #  with:
-      #    repository: aiplan4eu/up-enhsp
-      #    path: up-enhsp
-      #    ref: ${{env.up_enhsp_commit}}
-      #
-      #- name: Install up-enhsp
-      #  run: python3 -m pip install up-enhsp/
-      #
-      #- name: Run tests
-      #  run: bash run_tests.sh
+      - name: Checkout up-enhsp
+        uses: actions/checkout@v2
+        with:
+          repository: aiplan4eu/up-enhsp
+          path: up-enhsp
+          ref: ${{env.up_enhsp_commit}}
+      
+      - name: Install up-enhsp
+        run: python3 -m pip install up-enhsp/
+      
+      - name: Run tests
+        run: bash run_tests.sh
 
   run-tests-macos:
     runs-on: macos-15-intel
