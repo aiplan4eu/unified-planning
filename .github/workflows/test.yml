@@ -146,16 +146,6 @@ jobs:
           cd ENHSP-Public; git checkout enhsp20-0.14.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{env.up_enhsp_commit}}
-
-      - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
-
       - name: Run tests
         run: bash run_tests.sh
 
@@ -224,16 +214,6 @@ jobs:
           cd ENHSP-Public; git checkout enhsp20-0.14.0; ./compile; cd ..
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{env.up_enhsp_commit}}
-
-      - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
-
       - name: Test code-snippets
         run: bash scripts/test_code_snippets.sh
 
@@ -301,16 +281,6 @@ jobs:
           git clone https://gitlab.com/enricos83/ENHSP-Public.git
           cd ENHSP-Public; git checkout enhsp20-0.14.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
-
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{env.up_enhsp_commit}}
-      
-      - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
       
       - name: Run tests
         run: bash run_tests.sh
@@ -373,16 +343,6 @@ jobs:
           cd ENHSP-Public; git checkout enhsp20-0.14.0; bash ./compile; cd ..
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{env.up_enhsp_commit}}
-  
-      - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
-
       - name: Run tests
         run: bash run_tests.sh
 
@@ -427,16 +387,16 @@ jobs:
           python-version: ${{inputs.python-version}}
 
       - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt --break-system-packages # it's ok to not use a venv for the tests
+        run: python3 -m pip install -r requirements.txt
 
       - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt --break-system-packages
+        run: python3 -m pip install -r dev-requirements.txt
 
       - name: Install graphviz
         run: sudo apt-get install graphviz graphviz-dev
 
       - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt --break-system-packages
+        run: python3 -m pip install -r plot-requirements.txt
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -446,7 +406,7 @@ jobs:
           ref: ${{env.up_tamer_commit}}
 
       - name: Install up-tamer
-        run: python3 -m pip install up-tamer/ --break-system-packages
+        run: python3 -m pip install up-tamer/
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v2
@@ -456,7 +416,7 @@ jobs:
           ref: ${{env.up_pyperplan_commit}}
 
       - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/ --break-system-packages
+        run: python3 -m pip install up-pyperplan/
 
       - name: Checkout up-fast-downward
         uses: actions/checkout@v2
@@ -466,7 +426,7 @@ jobs:
           ref: ${{env.up_fast_downward_commit}}
 
       - name: Install up-fast-downward
-        run: python3 -m pip install up-fast-downward/ --break-system-packages
+        run: python3 -m pip install up-fast-downward/
 
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
@@ -482,10 +442,10 @@ jobs:
           ref: ${{env.up_enhsp_commit}}
 
       - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/ --break-system-packages
+        run: python3 -m pip install up-enhsp/
 
       - name: Install up-aries
-        run: pip3 install up-aries --break-system-packages
+        run: pip3 install up-aries
 
       - name: Checkout up-fmap
         uses: actions/checkout@v2
@@ -495,7 +455,7 @@ jobs:
           ref: ${{env.up_fmap_commit}}
 
       - name: Install up-fmap
-        run: python3 -m pip install up-fmap/ --break-system-packages
+        run: python3 -m pip install up-fmap/
 
       - name: Install jupyter and ipython3
         run:  |
