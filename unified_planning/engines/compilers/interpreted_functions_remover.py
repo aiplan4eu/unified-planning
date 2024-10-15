@@ -244,7 +244,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     ifaskeys: list = list()
                     ifaskeys.clear()
                     for f in allifs:
-                        ifaskeys.append(f._content.payload)
+                        ifaskeys.append(f.interpreted_function())
 
                     all_combinations_for_this_action = self.knowledge_combinations(
                         better_knowledge, ifaskeys
@@ -264,7 +264,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             tempfun = None
                             for fun in allifs:
 
-                                if fun._content.payload.__eq__(kf._content.payload):
+                                if fun.interpreted_function().__eq__(
+                                    kf.interpreted_function()
+                                ):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
                                     ]
@@ -285,56 +287,50 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             argumentcounter = 0
                             new_condition = None
                             new_precondition_list = list()
-                            while argumentcounter < len(kf._content.args):
+                            while argumentcounter < len(kf.args):
                                 for aif in allifs:
-                                    if aif._content.payload.__eq__(kf._content.payload):
+                                    if aif.interpreted_function().__eq__(
+                                        kf.interpreted_function()
+                                    ):
                                         new_precondition_list.append(
                                             [
-                                                aif._content.args[argumentcounter],
-                                                kf._content.args[argumentcounter],
+                                                aif.args[argumentcounter],
+                                                kf.args[argumentcounter],
                                             ]
                                         )
                                         if new_condition is None:
-                                            if aif._content.args[
+                                            if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
                                                 # is this ok?
                                                 new_condition = new_action.environment.expression_manager.Iff(
-                                                    aif._content.args[argumentcounter],
-                                                    kf._content.args[argumentcounter],
+                                                    aif.args[argumentcounter],
+                                                    kf.args[argumentcounter],
                                                 )
                                             else:
                                                 new_condition = new_action.environment.expression_manager.Equals(
-                                                    aif._content.args[argumentcounter],
-                                                    kf._content.args[argumentcounter],
+                                                    aif.args[argumentcounter],
+                                                    kf.args[argumentcounter],
                                                 )
 
                                         else:
-                                            if aif._content.args[
+                                            if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
                                                 # is this ok?
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Iff(
-                                                        aif._content.args[
-                                                            argumentcounter
-                                                        ],
-                                                        kf._content.args[
-                                                            argumentcounter
-                                                        ],
+                                                        aif.args[argumentcounter],
+                                                        kf.args[argumentcounter],
                                                     ),
                                                 )
                                             else:
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Equals(
-                                                        aif._content.args[
-                                                            argumentcounter
-                                                        ],
-                                                        kf._content.args[
-                                                            argumentcounter
-                                                        ],
+                                                        aif.args[argumentcounter],
+                                                        kf.args[argumentcounter],
                                                     ),
                                                 )
 
@@ -437,17 +433,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for ifid in IF_in_durations:
                     if ifid not in allifs:
                         allifs.append(ifid)
-                        IFkeys_in_durations.append(ifid._content.payload)
+                        IFkeys_in_durations.append(ifid.interpreted_function())
                 for ific in IF_in_conditions:
                     if ific not in allifs:
                         allifs.append(ific)
-                        IFkeys_in_conditions.append(ific._content.payload)
+                        IFkeys_in_conditions.append(ific.interpreted_function())
 
                 if len(allifs) != 0:
                     ifaskeys: list = list()
                     ifaskeys.clear()
                     for f in allifs:
-                        ifaskeys.append(f._content.payload)
+                        ifaskeys.append(f.interpreted_function())
                     all_combinations_for_this_action = self.knowledge_combinations(
                         better_knowledge, ifaskeys
                     )
@@ -466,7 +462,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             tempfun = None
                             for fun in allifs:
 
-                                if fun._content.payload.__eq__(kf._content.payload):
+                                if fun.interpreted_function().__eq__(
+                                    kf.interpreted_function()
+                                ):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
                                     ]
@@ -502,56 +500,50 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                             new_condition = None
                             new_precondition_list = list()
-                            while argumentcounter < len(kf._content.args):
+                            while argumentcounter < len(kf.args):
                                 for aif in allifs:
-                                    if aif._content.payload.__eq__(kf._content.payload):
+                                    if aif.interpreted_function().__eq__(
+                                        kf.interpreted_function()
+                                    ):
                                         new_precondition_list.append(
                                             [
-                                                aif._content.args[argumentcounter],
-                                                kf._content.args[argumentcounter],
+                                                aif.args[argumentcounter],
+                                                kf.args[argumentcounter],
                                             ]
                                         )
                                         if new_condition is None:
-                                            if aif._content.args[
+                                            if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
                                                 # is this ok?
                                                 new_condition = new_action.environment.expression_manager.Iff(
-                                                    aif._content.args[argumentcounter],
-                                                    kf._content.args[argumentcounter],
+                                                    aif.args[argumentcounter],
+                                                    kf.args[argumentcounter],
                                                 )
                                             else:
                                                 new_condition = new_action.environment.expression_manager.Equals(
-                                                    aif._content.args[argumentcounter],
-                                                    kf._content.args[argumentcounter],
+                                                    aif.args[argumentcounter],
+                                                    kf.args[argumentcounter],
                                                 )
 
                                         else:
-                                            if aif._content.args[
+                                            if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
                                                 # is this ok?
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Iff(
-                                                        aif._content.args[
-                                                            argumentcounter
-                                                        ],
-                                                        kf._content.args[
-                                                            argumentcounter
-                                                        ],
+                                                        aif.args[argumentcounter],
+                                                        kf.args[argumentcounter],
                                                     ),
                                                 )
                                             else:
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Equals(
-                                                        aif._content.args[
-                                                            argumentcounter
-                                                        ],
-                                                        kf._content.args[
-                                                            argumentcounter
-                                                        ],
+                                                        aif.args[argumentcounter],
+                                                        kf.args[argumentcounter],
                                                     ),
                                                 )
 
@@ -568,7 +560,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             # print("kf and if in durations")
                             # print(kf)
                             # print(IF_in_durations)
-                            if kf._content.payload in IFkeys_in_durations:
+                            if kf.interpreted_function() in IFkeys_in_durations:
                                 print(
                                     "this if was in a duration, condition should apply at start time"
                                 )
@@ -617,9 +609,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def elaborate_known_IFs(self, ifvs):
         bk: OrderedDict = OrderedDict()
         for f in ifvs:
-            if not (f._content.payload in bk.keys()):
-                bk[f._content.payload] = OrderedDict()
-            bk[f._content.payload][f] = ifvs[f]
+            if not (f.interpreted_function() in bk.keys()):
+                bk[f.interpreted_function()] = OrderedDict()
+            bk[f.interpreted_function()][f] = ifvs[f]
 
         return bk
 
