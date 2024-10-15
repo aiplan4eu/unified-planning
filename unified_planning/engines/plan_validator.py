@@ -668,14 +668,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
                                 for c in cl:
                                     iflist = list(ife.get(c))
-                                    print(iflist)
+                                    # print(iflist)
                                     ifc.extend(iflist)
-                            print("ifl, ifu and ifc")
-                            print(ifl)
-                            print(ifu)
-                            print(ifc)
                             cif = OrderedDict()
                             for ccc in ifc:
+
                                 fp = ccc._content.payload
                                 fa = ccc._content.args
                                 fc = ccc._content.payload.function
