@@ -212,11 +212,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = problem.clone()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
-        print("raw knowledge now is:")
-        print(self._interpreted_functions_values)
         better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
-        print("better knowledge now is:")
-        print(better_knowledge)
         combined_knowledge = self.knowledge_combinations(better_knowledge)
 
         for a in problem.actions:
@@ -365,14 +361,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     new_problem.add_action(a)
 
             elif isinstance(a, DurativeAction):
-                # print("now on action")
-                # print(a)
                 no_IF_action = a.clone()
                 minduration: FNode | int = 1
                 maxduration: FNode | int = 1000000
                 IF_in_durations = list()
-                # IF_in_durations does not require keeping track of i as all conditions are at StartTime()
-                IF_in_conditions = list()
                 IF_in_conditions = list()
 
                 if not (
@@ -410,11 +402,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         for fc in templist:
                             fixed_conditions.append(fc)
                             fixed_conditions_i.append(ii)
-                print(fixed_conditions)
-                print(fixed_conditions_i)
+                # print(fixed_conditions)
+                # print(fixed_conditions_i)
                 condcounter = 0
                 while condcounter < len(fixed_conditions):
-                    print("for each preelaborated condition")
                     if not (
                         OperatorKind.INTERPRETED_FUNCTION_EXP
                         in self.operators_extractor.get(fixed_conditions[condcounter])
@@ -435,36 +426,36 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     IF_in_conditions.append(f)
                     condcounter = +1
 
-                print(IF_in_durations)
-                print(IF_in_conditions)
-                print(self._interpreted_functions_values)
+                # print(IF_in_durations)
+                # print(IF_in_conditions)
+                # print(self._interpreted_functions_values)
                 all_combinations_for_this_action = OrderedDict()
                 allifs: list = list()
                 allifs.clear()
+                IFkeys_in_durations = []
+                IFkeys_in_conditions = []
                 for ifid in IF_in_durations:
                     if ifid not in allifs:
                         allifs.append(ifid)
+                        IFkeys_in_durations.append(ifid._content.payload)
                 for ific in IF_in_conditions:
                     if ific not in allifs:
                         allifs.append(ific)
-                print("allifs")
-                print(allifs)
+                        IFkeys_in_conditions.append(ific._content.payload)
+
                 if len(allifs) != 0:
                     ifaskeys: list = list()
                     ifaskeys.clear()
                     for f in allifs:
                         ifaskeys.append(f._content.payload)
-                    print("ifaskeys")
-                    print(ifaskeys)
                     all_combinations_for_this_action = self.knowledge_combinations(
                         better_knowledge, ifaskeys
                     )
-                    print("combinations for action")
-                    print(all_combinations_for_this_action)
 
                     for kfc in all_combinations_for_this_action:
                         new_action = a.clone()
                         new_action.name = get_fresh_name(new_problem, a.name)
+                        new_condition = None
                         for kf in kfc:
 
                             subhere: up.model.walkers.Substituter = (
@@ -478,23 +469,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 if fun._content.payload.__eq__(kf._content.payload):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
-                                    ]
+                                    ]  # change to 14 and it works
 
                             if len(subdict) == 0:
                                 print(
                                     "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
                                 )
-                            print("now sub dict is ready!")
-                            print(subdict)
-                            print(
-                                "we have to substitute it in durations upper and lower and conditions"
-                            )
-                            # seems to work until this point
-                            # substitute here
 
                             preconditions_to_substitute_list = new_action.conditions
-                            print("copied action list, before clearing")
-                            print(preconditions_to_substitute_list)
                             new_action.clear_conditions()
                             for ii, cl in preconditions_to_substitute_list.items():
                                 for c in cl:
@@ -502,12 +484,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     test = subhere.substitute(c, subdict)
                                     c = test
                                     new_action.add_condition(ii, c)
-                            print(
-                                "conditions for new action, before non redundnacy constraints"
-                            )
-                            print(new_action.conditions)
-                            print("duration before substitution")
-                            print(new_action.duration)
                             test = subhere.substitute(
                                 new_action.duration.upper, subdict
                             )
@@ -520,54 +496,107 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             new_action.set_closed_duration_interval(
                                 new_minduration, new_maxduration
                             )
-                            print("duration after substitution")
-                            print(new_action.duration)
+                            argumentcounter = 0
 
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
-                            # here should be the code for the conditions
+                            new_condition = None
+                            new_precondition_list = list()
+                            while argumentcounter < len(kf._content.args):
+                                for aif in allifs:
+                                    if aif._content.payload.__eq__(kf._content.payload):
+                                        new_precondition_list.append(
+                                            [
+                                                aif._content.args[argumentcounter],
+                                                kf._content.args[argumentcounter],
+                                            ]
+                                        )
+                                        if new_condition is None:
+                                            if aif._content.args[
+                                                argumentcounter
+                                            ].type.is_bool_type():
+                                                # is this ok?
+                                                new_condition = new_action.environment.expression_manager.Iff(
+                                                    aif._content.args[argumentcounter],
+                                                    kf._content.args[argumentcounter],
+                                                )
+                                            else:
+                                                new_condition = new_action.environment.expression_manager.Equals(
+                                                    aif._content.args[argumentcounter],
+                                                    kf._content.args[argumentcounter],
+                                                )
 
-                            # after this is code for base action !!! careful the logic is different as we have to keep track of time
+                                        else:
+                                            if aif._content.args[
+                                                argumentcounter
+                                            ].type.is_bool_type():
+                                                # is this ok?
+                                                new_condition = new_action.environment.expression_manager.And(
+                                                    new_condition,
+                                                    new_action.environment.expression_manager.Iff(
+                                                        aif._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                        kf._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                    ),
+                                                )
+                                            else:
+                                                new_condition = new_action.environment.expression_manager.And(
+                                                    new_condition,
+                                                    new_action.environment.expression_manager.Equals(
+                                                        aif._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                        kf._content.args[
+                                                            argumentcounter
+                                                        ],
+                                                    ),
+                                                )
 
-                            # base_not_precondition = (
-                            #    no_IF_action.environment.expression_manager.Not(
-                            #        new_condition
-                            #    )
-                            # )
-                            # no_IF_action.add_precondition(base_not_precondition)
-                            # no_IF_action_preconditions_list.append(
-                            #    new_precondition_list
-                            # )
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        #
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # --------------------------------
-                        # before this we have to modify new action to add the constraints and substitute the stuff we know
+                                argumentcounter = argumentcounter + 1
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            print("kf and if in durations")
+                            print(kf)
+                            print(IF_in_durations)
+                            if kf._content.payload in IFkeys_in_durations:
+                                print(
+                                    "this if was in a duration, condition should apply at start time"
+                                )
+
+                                new_action.add_condition(StartTiming(), new_condition)
+                            else:
+                                print("for now all other cases are at starttime")
+                                new_action.add_condition(StartTiming(), new_condition)
+
+                            base_not_precondition = (
+                                no_IF_action.environment.expression_manager.Not(
+                                    new_condition
+                                )
+                            )
+                            no_IF_action.add_condition(
+                                StartTiming(), base_not_precondition
+                            )
+
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
+                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
                         new_to_old[new_action] = a
                         new_problem.add_action(new_action)
-
                     # no_IF_action.add_condition(StartTiming(), condition_to_avoid_for_duration_purposes)
                     no_IF_action.name = get_fresh_name(new_problem, a.name)
                     new_to_old[no_IF_action] = a
@@ -578,7 +607,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
         print("compilation complete!")
-        print(new_problem)
+        # print(new_problem)
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
