@@ -104,14 +104,16 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    @skipIfEngineNotAvailable("enhsp")
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
         problem = testproblem.problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
-        with OneshotPlanner(name="interpreted_functions_planning[enhsp]") as planner:
+        with OneshotPlanner(
+            name="interpreted_functions_planning[opt-pddl-planner]"
+        ) as planner:
             planner._skip_checks = True  # -----------------------------
             result = planner.solve(problem)
         print(result)

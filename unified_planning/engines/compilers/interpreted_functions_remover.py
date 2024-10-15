@@ -469,7 +469,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 if fun._content.payload.__eq__(kf._content.payload):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
-                                    ]  # change to 14 and it works
+                                    ]
 
                             if len(subdict) == 0:
                                 print(
@@ -478,6 +478,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                             preconditions_to_substitute_list = new_action.conditions
                             new_action.clear_conditions()
+                            print("durative - substitution dictionary is")
+                            print(subdict)
                             for ii, cl in preconditions_to_substitute_list.items():
                                 for c in cl:
 
@@ -563,9 +565,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                             #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
                             #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            print("kf and if in durations")
-                            print(kf)
-                            print(IF_in_durations)
+                            # print("kf and if in durations")
+                            # print(kf)
+                            # print(IF_in_durations)
                             if kf._content.payload in IFkeys_in_durations:
                                 print(
                                     "this if was in a duration, condition should apply at start time"
