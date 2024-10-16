@@ -660,55 +660,39 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                                 up.model.walkers.InterpretedFunctionsExtractor()
                             )
                             # print(opt_ai.action.duration)
+                            if isinstance(opt_ai.action, DurativeAction):
 
-                            ifl = list(ife.get(opt_ai.action.duration.lower))
-                            ifu = list(ife.get(opt_ai.action.duration.upper))
-                            ifc = []
-                            for ii, cl in opt_ai.action.conditions.items():
+                                iflower = list(ife.get(opt_ai.action.duration.lower))
+                                ifupper = list(ife.get(opt_ai.action.duration.upper))
+                                ifcondition = []
+                                for ii, cl in opt_ai.action.conditions.items():
 
-                                for c in cl:
-                                    iflist = list(ife.get(c))
-                                    # print(iflist)
-                                    ifc.extend(iflist)
-                            cif = OrderedDict()
-                            for ccc in ifc:
+                                    for c in cl:
+                                        iflist = list(ife.get(c))
+                                        # print(iflist)
+                                        ifcondition.extend(iflist)
+                                cif = OrderedDict()
 
-                                fp = ccc._content.payload
-                                fa = ccc._content.args
-                                fc = ccc._content.payload.function
-                                notOkParams = list()
-                                for fan in fa:
-                                    notOkParams.append(
-                                        state.get_value(fan).constant_value()
-                                    )
-                                cif[fp(*notOkParams)] = fc(
-                                    *notOkParams
-                                )  # does not use memoization
+                                found_ifs = []
+                                found_ifs.extend(iflower)
+                                found_ifs.extend(ifupper)
+                                found_ifs.extend(ifcondition)
 
-                            for lll in ifl:
-                                fp = lll._content.payload
-                                fa = lll._content.args
-                                fc = lll._content.payload.function
-                                notOkParams = list()
-                                for fan in fa:
-                                    notOkParams.append(
-                                        state.get_value(fan).constant_value()
-                                    )
-                                cif[fp(*notOkParams)] = fc(
-                                    *notOkParams
-                                )  # does not use memoization
-                            for uuu in ifu:
-                                fp = uuu._content.payload
-                                fa = uuu._content.args
-                                fc = uuu._content.payload.function
-                                notOkParams = list()
-                                for fan in fa:
-                                    notOkParams.append(
-                                        state.get_value(fan).constant_value()
-                                    )
-                                cif[fp(*notOkParams)] = fc(
-                                    *notOkParams
-                                )  # does not use memoization
+                                for fif in found_ifs:
+
+                                    fp = fif._content.payload
+                                    print(fp)
+                                    print(fif.interpreted_function)
+                                    fa = fif._content.args
+                                    fc = fif._content.payload.function
+                                    notOkParams = list()
+                                    for fan in fa:
+                                        notOkParams.append(
+                                            state.get_value(fan).constant_value()
+                                        )
+                                    cif[fp(*notOkParams)] = fc(
+                                        *notOkParams
+                                    )  # does not use memoization
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,

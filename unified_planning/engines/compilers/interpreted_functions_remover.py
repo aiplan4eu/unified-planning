@@ -230,24 +230,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         no_IF_action_base.add_precondition(p)
 
                 all_combinations_for_this_action = OrderedDict()
-                allifs: list = list()
-                allifs.clear()
+
+                all_ifs_in_instantaneous_action: list = list()
+                all_ifs_in_instantaneous_action.clear()
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
                         for f in IFs:
-                            if f not in allifs:
+                            if f not in all_ifs_in_instantaneous_action:
                                 # and append them in the key list if not already there
-                                allifs.append(f)
-                if len(allifs) != 0:
-
-                    ifaskeys: list = list()
-                    ifaskeys.clear()
-                    for f in allifs:
-                        ifaskeys.append(f.interpreted_function())
+                                all_ifs_in_instantaneous_action.append(f)
+                if len(all_ifs_in_instantaneous_action) != 0:
+                    ifs_as_keys_instantaneous: list = list()
+                    ifs_as_keys_instantaneous.clear()
+                    for f in all_ifs_in_instantaneous_action:
+                        ifs_as_keys_instantaneous.append(f.interpreted_function())
 
                     all_combinations_for_this_action = self.knowledge_combinations(
-                        better_knowledge, ifaskeys
+                        better_knowledge, ifs_as_keys_instantaneous
                     )
 
                     for kfc in all_combinations_for_this_action:
@@ -256,16 +256,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         new_action.name = get_fresh_name(new_problem, a.name)
                         for kf in kfc:
 
-                            subhere: up.model.walkers.Substituter = (
-                                up.model.walkers.Substituter(new_action.environment)
+                            substituter_instantaneous_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
+                                new_action.environment
                             )
 
                             subdict = dict()
-                            tempfun = None
-                            for fun in allifs:
+                            for fun in all_ifs_in_instantaneous_action:
 
-                                if fun.interpreted_function().__eq__(
-                                    kf.interpreted_function()
+                                if (
+                                    fun.interpreted_function()
+                                    == kf.interpreted_function()
                                 ):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
@@ -280,17 +280,21 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             new_action.clear_preconditions()
                             for pre in preconditions_to_substitute_list:
 
-                                test = subhere.substitute(pre, subdict)
-                                pre = test
-                                new_action.add_precondition(pre)
+                                new_precondition = (
+                                    substituter_instantaneous_action.substitute(
+                                        pre, subdict
+                                    )
+                                )
+                                new_action.add_precondition(new_precondition)
 
                             argumentcounter = 0
                             new_condition = None
                             new_precondition_list = list()
                             while argumentcounter < len(kf.args):
-                                for aif in allifs:
-                                    if aif.interpreted_function().__eq__(
-                                        kf.interpreted_function()
+                                for aif in all_ifs_in_instantaneous_action:
+                                    if (
+                                        aif.interpreted_function()
+                                        == kf.interpreted_function()
                                     ):
                                         new_precondition_list.append(
                                             [
@@ -426,26 +430,27 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 # print(IF_in_conditions)
                 # print(self._interpreted_functions_values)
                 all_combinations_for_this_action = OrderedDict()
-                allifs: list = list()
-                allifs.clear()
+
+                all_ifs_in_durative_action: list = list()
+                all_ifs_in_durative_action.clear()
                 IFkeys_in_durations = []
                 IFkeys_in_conditions = []
                 for ifid in IF_in_durations:
-                    if ifid not in allifs:
-                        allifs.append(ifid)
+                    if ifid not in all_ifs_in_durative_action:
+                        all_ifs_in_durative_action.append(ifid)
                         IFkeys_in_durations.append(ifid.interpreted_function())
                 for ific in IF_in_conditions:
-                    if ific not in allifs:
-                        allifs.append(ific)
+                    if ific not in all_ifs_in_durative_action:
+                        all_ifs_in_durative_action.append(ific)
                         IFkeys_in_conditions.append(ific.interpreted_function())
 
-                if len(allifs) != 0:
-                    ifaskeys: list = list()
-                    ifaskeys.clear()
-                    for f in allifs:
-                        ifaskeys.append(f.interpreted_function())
+                if len(all_ifs_in_durative_action) != 0:
+                    ifs_as_keys_durative: list = list()
+                    ifs_as_keys_durative.clear()
+                    for f in all_ifs_in_durative_action:
+                        ifs_as_keys_durative.append(f.interpreted_function())
                     all_combinations_for_this_action = self.knowledge_combinations(
-                        better_knowledge, ifaskeys
+                        better_knowledge, ifs_as_keys_durative
                     )
 
                     for kfc in all_combinations_for_this_action:
@@ -454,16 +459,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         new_condition = None
                         for kf in kfc:
 
-                            subhere: up.model.walkers.Substituter = (
-                                up.model.walkers.Substituter(new_action.environment)
+                            substituter_durative_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
+                                new_action.environment
                             )
 
                             subdict = dict()
-                            tempfun = None
-                            for fun in allifs:
+                            for fun in all_ifs_in_durative_action:
 
-                                if fun.interpreted_function().__eq__(
-                                    kf.interpreted_function()
+                                if (
+                                    fun.interpreted_function()
+                                    == kf.interpreted_function()
                                 ):
                                     subdict[fun] = self._interpreted_functions_values[
                                         kf
@@ -481,17 +486,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             for ii, cl in preconditions_to_substitute_list.items():
                                 for c in cl:
 
-                                    test = subhere.substitute(c, subdict)
-                                    c = test
-                                    new_action.add_condition(ii, c)
-                            test = subhere.substitute(
+                                    new_condition = (
+                                        substituter_durative_action.substitute(
+                                            c, subdict
+                                        )
+                                    )
+                                    new_action.add_condition(ii, new_condition)
+                            new_maxduration = substituter_durative_action.substitute(
                                 new_action.duration.upper, subdict
                             )
-                            new_maxduration = test
-                            test = subhere.substitute(
+                            new_minduration = substituter_durative_action.substitute(
                                 new_action.duration.lower, subdict
                             )
-                            new_minduration = test
 
                             new_action.set_closed_duration_interval(
                                 new_minduration, new_maxduration
@@ -501,9 +507,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             new_condition = None
                             new_precondition_list = list()
                             while argumentcounter < len(kf.args):
-                                for aif in allifs:
-                                    if aif.interpreted_function().__eq__(
-                                        kf.interpreted_function()
+                                for aif in all_ifs_in_durative_action:
+                                    if (
+                                        aif.interpreted_function()
+                                        == kf.interpreted_function()
                                     ):
                                         new_precondition_list.append(
                                             [
@@ -600,7 +607,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     new_problem.add_action(a)
             else:
                 raise NotImplementedError
-        print("compilation complete!")
+        # print("compilation complete!")
         # print(new_problem)
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
@@ -617,7 +624,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
     def knowledge_combinations(self, d, kl=None):
         if len(d) == 0:
-            print("len is zero womp womp")
             return d
         akl = None
         if kl is None:
@@ -625,7 +631,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             akl = self.intersection(kl, d.keys())
         if len(akl) == 0:
-            print("calculated length is zero womp womp")
             empd: OrderedDict = OrderedDict()
             return empd
 
