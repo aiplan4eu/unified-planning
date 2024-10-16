@@ -42,6 +42,7 @@
                 )
     )
 
+    
 
     (:action decelerate
         :parameters ()
@@ -69,5 +70,15 @@
                     (decrease (v)  (* #t (* (* (v) (v)) (drag_coefficient)  ) )  )  ;; velocity changes because of the acceleration
         )
     )
+    (:event velocity_check
+        :parameters ()
+        :precondition (and
+            (> (v) 100000 )
+        )
+        :effect (and
+            (engine_stopped)
+        )
+    )
+    
 
 )

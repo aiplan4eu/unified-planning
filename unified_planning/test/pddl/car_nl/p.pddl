@@ -11,7 +11,6 @@
 	(= (max_acceleration) 1)
 	(= (min_acceleration) -1)
 	(= (drag_coefficient) 0.1)
-	(= (max_speed) 10.0)
   )
 
   (:goal
