@@ -360,11 +360,137 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             elif isinstance(a, DurativeAction):
                 no_IF_action = a.clone()
+                IF_in_durations = list()
+                IFs_in_durations = list()
+                IF_in_conditions = list()
+                known_duration_actions_list = []
+                times_to_avoid_in_generic = []
+                duration_elaborated_actions = []
+
+                if not (
+                    (
+                        OperatorKind.INTERPRETED_FUNCTION_EXP
+                        in self.operators_extractor.get(a.duration.lower)
+                    )
+                    or (
+                        OperatorKind.INTERPRETED_FUNCTION_EXP
+                        in self.operators_extractor.get(a.duration.upper)
+                    )
+                ):
+                    # there is no if in durations, we just have to elaborate conditions
+                    print("this action had no IF")
+                    temp_action = a.clone()
+                    duration_elaborated_actions.append(temp_action)
+                else:
+                    aIFs = self.interpreted_functions_extractor.get(a.duration.lower)
+                    if len(aIFs) != 0:
+                        for f in aIFs:
+                            if f not in IFs_in_durations:
+                                IFs_in_durations.append(f)
+                    aIFs = None
+                    aIFs = self.interpreted_functions_extractor.get(a.duration.upper)
+                    if len(aIFs) != 0:
+                        for f in aIFs:
+                            if f not in IFs_in_durations:
+                                IFs_in_durations.append(f)
+                    print("if in durations")
+                    print(IFs_in_durations)
+                    known_IFs_in_durations = list()
+                    for IF_in_durations in IFs_in_durations:
+                        print(IF_in_durations)
+                        # for each found if
+                        if (
+                            IF_in_durations.interpreted_function()
+                            in better_knowledge.keys()
+                        ):
+                            if (
+                                IF_in_durations.interpreted_function()
+                                not in known_IFs_in_durations
+                            ):
+                                known_IFs_in_durations.append(
+                                    IF_in_durations.interpreted_function()
+                                )
+
+                    print("known_IFs_in_durations")
+                    print(known_IFs_in_durations)
+                    if len(known_IFs_in_durations) == 0:
+                        print(
+                            "we know nothing, let's just make the 1 1000000 action and go to conditions"
+                        )
+                        minduration: FNode | int = 1
+                        maxduration: FNode | int = 1000000
+                        if not (
+                            OperatorKind.INTERPRETED_FUNCTION_EXP
+                            in self.operators_extractor.get(a.duration.lower)
+                        ):
+                            minduration = a.duration.lower
+                        if not (
+                            OperatorKind.INTERPRETED_FUNCTION_EXP
+                            in self.operators_extractor.get(a.duration.upper)
+                        ):
+                            maxduration = a.duration.upper
+                        temp_action = a.clone()
+                        temp_action.set_closed_duration_interval(
+                            minduration, maxduration
+                        )
+                        duration_elaborated_actions.append(temp_action)
+
+                    else:
+                        print("we have to elaborate durations stuff")
+                        combinations_for_durations = self.knowledge_combinations(
+                            better_knowledge, known_IFs_in_durations
+                        )
+                        print("combinations_for_durations")
+                        print(combinations_for_durations)
+                        for known_functions_combination in combinations_for_durations:
+                            print("known_functions_combinations")
+                            print(known_functions_combination)
+                            temp_action = a.clone()
+                            dict_if_to_duration = dict()
+                            for known_function in known_functions_combination:
+                                print("known_function")
+                                print(known_function)
+                                dict_if_to_duration[
+                                    known_function
+                                ] = self._interpreted_functions_values[known_function]
+
+                            print("dict_if_to_duration")
+                            print(dict_if_to_duration)
+                            if len(dict_if_to_duration) == 0:
+                                print(
+                                    "substitution dict is empty ;-;\nif you got here it means there is a bug in the code"
+                                )
+
+                    # now we have all the combinations
+                    # for each combination, do the elaborating of durations
+
+                    # for each known value in the durations split
+                    # e.g. if we know values that impose duration = 14
+                    # clone action, impose conditions at start time, substitute duration = 14
+                    # save 5 in a list
+                    # n=len(list)
+                    # clone action n+1 times, impose duration limits (1, 13) and (15, 1000000) in this example
+                    # remember to impose conditions at starttime for these
+                    # continue to condition elaboration
+                print("================================================")
+                print("for the starting action")
+                print(a)
+                print("================================================")
+                print("these are the actions after duration elaboration")
+                print("================================================")
+                print(duration_elaborated_actions)
+                print("================================================")
+
+                # change of plans :'(
+                # temporary for the tests
+                # for f in duration_elaborated_actions:
+                #    new_to_old[f] = a
+                #    new_problem.add_action(f)
+
+                IFs = None
+
                 minduration: FNode | int = 1
                 maxduration: FNode | int = 1000000
-                IF_in_durations = list()
-                IF_in_conditions = list()
-
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.lower)
@@ -441,11 +567,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if ifid not in all_ifs_in_durative_action:
                         all_ifs_in_durative_action.append(ifid)
                         IFkeys_in_durations.append(ifid.interpreted_function())
+                        print(better_knowledge)
+                        if ifid.interpreted_function() in better_knowledge.keys():
+                            for key in better_knowledge[ifid.interpreted_function()]:
+                                times_to_avoid_in_generic.append(
+                                    better_knowledge[ifid.interpreted_function()][key]
+                                )
+
                 for ific in IF_in_conditions:
                     if ific not in all_ifs_in_durative_action:
                         all_ifs_in_durative_action.append(ific)
                         IFkeys_in_conditions.append(ific.interpreted_function())
-
                 if len(all_ifs_in_durative_action) != 0:
                     ifs_as_keys_durative: list = list()
                     ifs_as_keys_durative.clear()
@@ -588,8 +720,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         new_to_old[new_action] = a
                         new_problem.add_action(new_action)
                     no_IF_action.name = get_fresh_name(new_problem, a.name)
+
                     new_to_old[no_IF_action] = a
                     new_problem.add_action(no_IF_action)
+                    print(no_IF_action)
+                    print(
+                        "this is the generic action, it should be changed to avoid the duration values"
+                    )
+                    print(times_to_avoid_in_generic)
                 else:
                     new_to_old[a] = a
                     new_problem.add_action(a)
