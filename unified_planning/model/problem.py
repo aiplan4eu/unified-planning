@@ -180,8 +180,6 @@ class Problem(  # type: ignore[misc]
             return False
         if set(self._actions) != set(oth._actions):
             return False
-        if set(self.processes) != set(oth.processes):
-            return False
         if set(self._trajectory_constraints) != set(oth._trajectory_constraints):
             return False
 
