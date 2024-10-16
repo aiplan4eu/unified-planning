@@ -441,6 +441,11 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(
             len(list([ele for ele in problem.actions if isinstance(ele, Event)])), 1
         )
+        for ele in problem.actions:
+            if isinstance(ele, Process):
+                for e in ele.effects:
+                    self.assertEqual(e.kind,EffectKind.DERIVATIVE)        
+        
 
     def test_matchcellar_reader(self):
         reader = PDDLReader()

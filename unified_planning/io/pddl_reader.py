@@ -907,7 +907,25 @@ class PDDLReader:
                 raise SyntaxError(
                     f"Not able to handle: {eff.value}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                 )
-
+    def _get_params(self, a: dict, types_map: TypesMap, domain_str: str):
+        a_params = OrderedDict()
+        for g in a.get("params", []):
+            try:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+            except KeyError:
+                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                    g.locn_start, domain_str
+                )
+                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                    g.locn_end, domain_str
+                )
+                raise SyntaxError(
+                    f"Undefined parameter's type: {g.value[1]}."
+                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                )
+            for p in g.value[0]:
+                a_params[p] = t
+        return a_params
     def _parse_subtask(
         self,
         e,
@@ -1251,23 +1269,7 @@ class PDDLReader:
             problem.add_task(task)
         for a in domain_res.get("processes", []):
             n = a["name"]
-            a_params = OrderedDict()
-            for g in a.get("params", []):
-                try:
-                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
-                except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
-                    )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
-                    )
-                    raise SyntaxError(
-                        f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
-                for p in g.value[0]:
-                    a_params[p] = t
+            a_params = self._get_params(a, types_map, domain_str)
             proc = up.model.Process(n, a_params, self._env)
             if "pre" in a:
                 proc.add_precondition(
@@ -1292,23 +1294,7 @@ class PDDLReader:
 
         for a in domain_res.get("events", []):
             n = a["name"]
-            a_params = OrderedDict()
-            for g in a.get("params", []):
-                try:
-                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
-                except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
-                    )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
-                    )
-                    raise SyntaxError(
-                        f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
-                for p in g.value[0]:
-                    a_params[p] = t
+            a_params = self._get_params(a, types_map, domain_str)
             evt = up.model.Event(n, a_params, self._env)
             if "pre" in a:
                 evt.add_precondition(
@@ -1333,23 +1319,7 @@ class PDDLReader:
 
         for a in domain_res.get("actions", []):
             n = a["name"]
-            a_params = OrderedDict()
-            for g in a.get("params", []):
-                try:
-                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
-                except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
-                    )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
-                    )
-                    raise SyntaxError(
-                        f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
-                for p in g.value[0]:
-                    a_params[p] = t
+            a_params = self._get_params(a, types_map, domain_str)
             if "duration" in a:
                 dur_act = up.model.DurativeAction(n, a_params, self._env)
                 dur = CustomParseResults(a["duration"][0])
