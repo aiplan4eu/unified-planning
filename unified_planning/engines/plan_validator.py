@@ -680,11 +680,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
                                 for fif in found_ifs:
 
-                                    fp = fif._content.payload
-                                    print(fp)
-                                    print(fif.interpreted_function)
-                                    fa = fif._content.args
-                                    fc = fif._content.payload.function
+                                    fp = fif.interpreted_function()
+                                    fa = fif.args
+                                    fc = fif.interpreted_function().function
                                     notOkParams = list()
                                     for fan in fa:
                                         notOkParams.append(

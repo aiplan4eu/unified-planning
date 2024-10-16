@@ -306,7 +306,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                             if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
-                                                # is this ok?
                                                 new_condition = new_action.environment.expression_manager.Iff(
                                                     aif.args[argumentcounter],
                                                     kf.args[argumentcounter],
@@ -321,7 +320,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                             if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
-                                                # is this ok?
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Iff(
@@ -396,14 +394,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 no_IF_action.clear_conditions()
                 fixed_conditions = []
                 fixed_conditions_i = []
+                map_if_to_time: dict = dict()
                 for ii, cl in a.conditions.items():
                     for c in cl:
                         templist = self._fix_precondition(c)
                         for fc in templist:
                             fixed_conditions.append(fc)
                             fixed_conditions_i.append(ii)
-                # print(fixed_conditions)
-                # print(fixed_conditions_i)
                 condcounter = 0
                 while condcounter < len(fixed_conditions):
                     if not (
@@ -419,16 +416,21 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         IFs = self.interpreted_functions_extractor.get(
                             fixed_conditions[condcounter]
                         )
-                        if len(IFs) != 0:  # get all the IFs in the precondition
+                        if len(IFs) != 0:  # get all the IFs in the condition
                             for f in IFs:
                                 if f not in IF_in_conditions:
                                     # and append them in the key list if not already there
                                     IF_in_conditions.append(f)
-                    condcounter = +1
-
-                # print(IF_in_durations)
-                # print(IF_in_conditions)
-                # print(self._interpreted_functions_values)
+                                if (
+                                    f.interpreted_function()
+                                    not in map_if_to_time.keys()
+                                ):
+                                    # maybe this should not be the generic if as key, but an instance? but idk how to code it down the line
+                                    map_if_to_time[f.interpreted_function()] = []
+                                map_if_to_time[f.interpreted_function()].append(
+                                    fixed_conditions_i[condcounter]
+                                )
+                    condcounter = condcounter + 1
                 all_combinations_for_this_action = OrderedDict()
 
                 all_ifs_in_durative_action: list = list()
@@ -481,8 +483,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                             preconditions_to_substitute_list = new_action.conditions
                             new_action.clear_conditions()
-                            print("durative - substitution dictionary is")
-                            print(subdict)
                             for ii, cl in preconditions_to_substitute_list.items():
                                 for c in cl:
 
@@ -522,7 +522,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                             if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
-                                                # is this ok?
                                                 new_condition = new_action.environment.expression_manager.Iff(
                                                     aif.args[argumentcounter],
                                                     kf.args[argumentcounter],
@@ -537,7 +536,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                             if aif.args[
                                                 argumentcounter
                                             ].type.is_bool_type():
-                                                # is this ok?
                                                 new_condition = new_action.environment.expression_manager.And(
                                                     new_condition,
                                                     new_action.environment.expression_manager.Iff(
@@ -555,50 +553,40 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                                 )
 
                                 argumentcounter = argumentcounter + 1
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            # print("kf and if in durations")
-                            # print(kf)
-                            # print(IF_in_durations)
-                            if kf.interpreted_function() in IFkeys_in_durations:
-                                print(
-                                    "this if was in a duration, condition should apply at start time"
-                                )
-
-                                new_action.add_condition(StartTiming(), new_condition)
-                            else:
-                                print("for now all other cases are at starttime")
-                                new_action.add_condition(StartTiming(), new_condition)
-
                             base_not_precondition = (
                                 no_IF_action.environment.expression_manager.Not(
                                     new_condition
                                 )
                             )
-                            no_IF_action.add_condition(
-                                StartTiming(), base_not_precondition
-                            )
-
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                            #!!!!!THIS PUTS ALL CONDITIONS ON START TIME!!!!!!!!
-                            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            if kf.interpreted_function() in IFkeys_in_durations:
+                                new_action.add_condition(StartTiming(), new_condition)
+                                no_IF_action.add_condition(
+                                    StartTiming(), base_not_precondition
+                                )
+                            else:
+                                if (
+                                    kf.interpreted_function()
+                                    not in map_if_to_time.keys()
+                                ):
+                                    new_action.add_condition(
+                                        StartTiming(), new_condition
+                                    )
+                                    no_IF_action.add_condition(
+                                        StartTiming(), base_not_precondition
+                                    )
+                                else:
+                                    for timepoint in map_if_to_time[
+                                        kf.interpreted_function()
+                                    ]:
+                                        new_action.add_condition(
+                                            timepoint, new_condition
+                                        )
+                                        no_IF_action.add_condition(
+                                            timepoint, base_not_precondition
+                                        )
 
                         new_to_old[new_action] = a
                         new_problem.add_action(new_action)
-                    # no_IF_action.add_condition(StartTiming(), condition_to_avoid_for_duration_purposes)
                     no_IF_action.name = get_fresh_name(new_problem, a.name)
                     new_to_old[no_IF_action] = a
                     new_problem.add_action(no_IF_action)
