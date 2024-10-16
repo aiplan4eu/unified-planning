@@ -425,6 +425,7 @@ class TestPddlIO(unittest_TestCase):
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self.assertEqual(problem, problem_2)
+
     def test_non_linear_car(self):
         reader = PDDLReader()
 
@@ -434,9 +435,13 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 8)
-        self.assertEqual(len(list([ele for ele in problem.actions if isinstance(ele,Process)])), 3)
-        self.assertEqual(len(list([ele for ele in problem.actions if isinstance(ele,Event)])),1)
-        
+        self.assertEqual(
+            len(list([ele for ele in problem.actions if isinstance(ele, Process)])), 3
+        )
+        self.assertEqual(
+            len(list([ele for ele in problem.actions if isinstance(ele, Event)])), 1
+        )
+
     def test_matchcellar_reader(self):
         reader = PDDLReader()
 
