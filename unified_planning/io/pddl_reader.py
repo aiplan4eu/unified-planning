@@ -907,6 +907,7 @@ class PDDLReader:
                 raise SyntaxError(
                     f"Not able to handle: {eff.value}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                 )
+
     def _get_params(self, a: dict, types_map: TypesMap, domain_str: str):
         a_params = OrderedDict()
         for g in a.get("params", []):
@@ -926,6 +927,7 @@ class PDDLReader:
             for p in g.value[0]:
                 a_params[p] = t
         return a_params
+
     def _parse_subtask(
         self,
         e,
