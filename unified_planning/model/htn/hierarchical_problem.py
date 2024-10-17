@@ -171,7 +171,8 @@ class HierarchicalProblem(up.model.problem.Problem):
         Returns `True` if the given `name` is already in the `HierarchicalProblem`, `False` otherwise.
 
         :param name: The target name to find in the `HierarchicalProblem`.
-        :return: `True` if the given `name` is already in the `HierarchicalProblem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `HierarchicalProblem`, `False` otherwise.
+        """
         return (
             self.has_action(name)
             or self.has_fluent(name)

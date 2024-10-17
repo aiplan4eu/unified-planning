@@ -254,7 +254,8 @@ class Problem(  # type: ignore[misc]
         Returns `True` if the given `name` is already in the `Problem`, `False` otherwise.
 
         :param name: The target name to find in the `Problem`.
-        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise.
+        """
         return (
             self.has_action(name)
             or self.has_fluent(name)
@@ -310,7 +311,9 @@ class Problem(  # type: ignore[misc]
             (f.fluent() for e in exps for f in fve.get(e))
         )
         for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousAction):
+            if isinstance(a, up.model.action.InstantaneousAction) or isinstance(
+                a, up.model.action.Event
+            ):
                 remove_used_fluents(*a.preconditions)
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
@@ -331,6 +334,10 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
+            elif isinstance(a, up.model.action.Process):
+                for e in a.effects:
+                    remove_used_fluents(e.fluent, e.value, e.condition)
+                    static_fluents.discard(e.fluent.fluent())
             else:
                 raise NotImplementedError
         for el in self._timed_effects.values():
@@ -682,6 +689,8 @@ class Problem(  # type: ignore[misc]
         for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
         factory.update_problem_kind_initial_state(self)
+        if len(list(self.processes)) > 0:
+            factory.kind.set_time("PROCESSES")
 
         return factory
 
@@ -985,7 +994,9 @@ class _KindFactory:
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
-        if isinstance(action, up.model.action.InstantaneousAction):
+        if isinstance(action, up.model.action.InstantaneousAction) or isinstance(
+            action, up.model.action.Event
+        ):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
             for e in action.effects:
@@ -1003,6 +1014,8 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
+        elif isinstance(action, up.model.action.Process):
+            pass
         else:
             raise NotImplementedError
 

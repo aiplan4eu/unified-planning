@@ -5,7 +5,6 @@ from unified_planning.test import TestCase
 
 
 def get_test_cases():
-
     res = {}
 
     place = UserType("place")

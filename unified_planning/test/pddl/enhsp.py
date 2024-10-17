@@ -55,6 +55,7 @@ class ENHSP(PDDLAnytimePlanner):
             plan_filename,
             "-planner",
             "opt-hrmax",
+            "-npm",
         ]
 
     def _get_anytime_cmd(
@@ -142,6 +143,7 @@ class ENHSP(PDDLAnytimePlanner):
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_time("PROCESSES")
         return supported_kind
 
     @staticmethod

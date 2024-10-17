@@ -59,7 +59,8 @@ class MetricsMixin:
 
     def _clone_to(self, other: "MetricsMixin", new_actions: Optional[ActionsSetMixin]):
         """Returns the list of cloned metric.
-        We make sure that any action appearing in hte metric is from the new set passed as parameter."""
+        We make sure that any action appearing in hte metric is from the new set passed as parameter.
+        """
         cloned: List[PlanQualityMetric] = []
         for m in self._metrics:
             if m.is_minimize_action_costs():

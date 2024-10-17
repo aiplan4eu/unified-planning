@@ -169,7 +169,6 @@ class TestCase:
         valid_plans: Optional[List[Plan]] = None,
         invalid_plans: Optional[List[Plan]] = None,
     ):
-
         self._problem = problem
         self._solvable = solvable
         self._optimum = optimum
@@ -204,7 +203,6 @@ class TestCase:
 
 
 def get_test_cases():
-
     # import unified_planning.test.examples as examples
     from unified_planning.test import examples
 
