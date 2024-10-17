@@ -441,10 +441,16 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(
             len(list([ele for ele in problem.actions if isinstance(ele, Event)])), 1
         )
+        found_drag_ahead = False
         for ele in problem.actions:
             if isinstance(ele, Process):
                 for e in ele.effects:
                     self.assertEqual(e.kind, EffectKind.DERIVATIVE)
+                if ele.name == "drag_ahead":
+                    found_drag_ahead = True
+                    self.assertTrue("engine_running" in str(ele))
+                    self.assertTrue("drag_coefficient" in str(ele))
+        self.assertTrue(found_drag_ahead)
 
     def test_matchcellar_reader(self):
         reader = PDDLReader()
