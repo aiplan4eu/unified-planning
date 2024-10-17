@@ -21,7 +21,7 @@ from collections import OrderedDict
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.model.interpreted_function import InterpretedFunction
-from unified_planning.model.timing import StartTiming
+from unified_planning.model.timing import EndTiming, StartTiming, TimepointKind
 from unified_planning.model.walkers.substituter import Substituter
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
 from unified_planning.model.operators import OperatorKind
@@ -363,44 +363,313 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 minduration: FNode | int = 1
                 maxduration: FNode | int = 1000000
                 IF_in_durations = list()
+                IF_in_start_conditions = list()
+                IF_in_end_conditions = list()
+                IF_keys_in_durations = list()
+                IF_keys_in_start_conditions = list()
+                IF_keys_in_end_conditions = list()
                 IF_in_conditions = list()
 
+                actions_start_conditions: list = list()
+                # check for ifs in lower duration, add them to if in durations
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.lower)
                 ):
-                    minduration = a.duration.lower
+                    minduration = (
+                        a.duration.lower
+                    )  # this is the min duration for unknown values
                 else:
                     IFs = self.interpreted_functions_extractor.get(a.duration.lower)
                     if len(IFs) != 0:
                         for f in IFs:
                             if f not in IF_in_durations:
                                 IF_in_durations.append(f)
+                            if f.interpreted_function() not in IF_keys_in_durations:
+                                IF_keys_in_durations.append(f.interpreted_function())
                 IFs = None
+                # check for ifs in upper duration, add them to if in durations
                 if not (
                     OperatorKind.INTERPRETED_FUNCTION_EXP
                     in self.operators_extractor.get(a.duration.upper)
                 ):
-                    maxduration = a.duration.upper
+                    maxduration = (
+                        a.duration.upper
+                    )  # this is the max duration for unknown values
                 else:
                     IFs = self.interpreted_functions_extractor.get(a.duration.upper)
                     if len(IFs) != 0:
                         for f in IFs:
                             if f not in IF_in_durations:
                                 IF_in_durations.append(f)
+                            if f.interpreted_function() not in IF_keys_in_durations:
+                                IF_keys_in_durations.append(f.interpreted_function())
 
                 no_IF_action.set_closed_duration_interval(minduration, maxduration)
 
                 no_IF_action.clear_conditions()
-                fixed_conditions = []
-                fixed_conditions_i = []
+                fixed_conditions: list = []
+                fixed_conditions_i: list = []
                 map_if_to_time: dict = dict()
+                # print (a.conditions.items())
                 for ii, cl in a.conditions.items():
                     for c in cl:
-                        templist = self._fix_precondition(c)
-                        for fc in templist:
-                            fixed_conditions.append(fc)
-                            fixed_conditions_i.append(ii)
+                        # print ("now let's check if this is at start or end")
+                        if ii.lower.is_from_start():
+                            # print ("this is at start timing")
+                            IFs = self.interpreted_functions_extractor.get(c)
+                            if len(IFs) != 0:
+                                for f in IFs:
+                                    if f not in IF_in_start_conditions:
+                                        IF_in_start_conditions.append(f)
+                                    if (
+                                        f.interpreted_function()
+                                        not in IF_keys_in_start_conditions
+                                    ):
+                                        IF_keys_in_start_conditions.append(
+                                            f.interpreted_function()
+                                        )
+                        elif ii.upper.is_from_end():
+                            # print ("this is at end timing")
+                            IFs = self.interpreted_functions_extractor.get(c)
+                            if len(IFs) != 0:
+                                for f in IFs:
+                                    if f not in IF_in_end_conditions:
+                                        IF_in_end_conditions.append(f)
+                                    if (
+                                        f.interpreted_function()
+                                        not in IF_keys_in_end_conditions
+                                    ):
+                                        IF_keys_in_end_conditions.append(
+                                            f.interpreted_function()
+                                        )
+                        else:
+                            print(
+                                "this should not happen aaaaaaaaaaaaaaaaaaahhhhhhhhhhhh"
+                            )
+                        #
+                        # let's skip using the fixed conditions for now
+                        #
+                        # templist = self._fix_precondition(c)
+                        # for fc in templist:
+                        #    fixed_conditions.append(fc)
+                        #    fixed_conditions_i.append(ii)
+                # print ("action:")
+                # print (a)
+                # print ("found functions:")
+                # print ("IF_in_durations")
+                # print (IF_in_durations)
+                # print ("IF_in_start_conditions")
+                # print (IF_in_start_conditions)
+                # print ("IF_in_end_conditions")
+                # print (IF_in_end_conditions)
+                # print ("found functions keys:")
+                # print ("IF_keys_in_durations")
+                # print (IF_keys_in_durations)
+                # print ("IF_keys_in_start_conditions")
+                # print (IF_keys_in_start_conditions)
+                # print ("IF_keys_in_end_conditions")
+                # print (IF_keys_in_end_conditions)
+
+                IF_to_check_at_start = list()
+                IF_keys_to_check_at_start = list()
+                for f in IF_in_start_conditions:
+                    if f not in IF_to_check_at_start:
+                        IF_to_check_at_start.append(f)
+                    if f.interpreted_function() not in IF_keys_to_check_at_start:
+                        IF_keys_to_check_at_start.append(f.interpreted_function())
+                for f in IF_in_durations:
+                    if f not in IF_to_check_at_start:
+                        IF_to_check_at_start.append(f)
+                    if f.interpreted_function() not in IF_keys_to_check_at_start:
+                        IF_keys_to_check_at_start.append(f.interpreted_function())
+
+                # print ("IF_to_check_at_start")
+                # print (IF_to_check_at_start)
+                # print ("IF_keys_to_check_at_start")
+                # print (IF_keys_to_check_at_start)
+
+                start_combinations = OrderedDict()
+
+                start_combinations = self.knowledge_combinations(
+                    better_knowledge, IF_keys_to_check_at_start
+                )
+
+                # print ("start_combinations")
+                # print (start_combinations)
+
+                generic_action_start_condition_list = list()
+                for known_function_combination_start in start_combinations:
+                    temp_action_start = a.clone()
+                    substitution_dict_start: dict = dict()
+                    substitution_dict_start.clear()
+                    combination_condition = None
+                    for known_function_start in known_function_combination_start:
+                        for f in IF_to_check_at_start:
+                            if (
+                                f.interpreted_function()
+                                == known_function_start.interpreted_function()
+                            ):
+                                substitution_dict_start[
+                                    f
+                                ] = self._interpreted_functions_values[
+                                    known_function_start
+                                ]
+                                argumentcounter = 0
+                                while argumentcounter < len(known_function_start.args):
+                                    if combination_condition is None:
+                                        if (
+                                            f.args[argumentcounter]
+                                        ).type.is_bool_type():
+                                            combination_condition = temp_action_start.environment.expression_manager.Iff(
+                                                f.args[argumentcounter],
+                                                known_function_start.args[
+                                                    argumentcounter
+                                                ],
+                                            )
+                                        else:
+                                            combination_condition = temp_action_start.environment.expression_manager.Equals(
+                                                f.args[argumentcounter],
+                                                known_function_start.args[
+                                                    argumentcounter
+                                                ],
+                                            )
+                                    else:
+                                        if (
+                                            f.args[argumentcounter]
+                                        ).type.is_bool_type():
+                                            combination_condition = temp_action_start.environment.expression_manager.And(
+                                                combination_condition,
+                                                temp_action_start.environment.expression_manager.Iff(
+                                                    f.args[argumentcounter],
+                                                    known_function_start.args[
+                                                        argumentcounter
+                                                    ],
+                                                ),
+                                            )
+                                        else:
+                                            combination_condition = temp_action_start.environment.expression_manager.And(
+                                                combination_condition,
+                                                temp_action_start.environment.expression_manager.Equals(
+                                                    f.args[argumentcounter],
+                                                    known_function_start.args[
+                                                        argumentcounter
+                                                    ],
+                                                ),
+                                            )
+                                    argumentcounter = argumentcounter + 1
+
+                    # print ("new start condition is")
+                    # print (combination_condition)
+                    substituter_durative_action_start: up.model.walkers.Substituter = (
+                        up.model.walkers.Substituter(temp_action_start.environment)
+                    )
+                    new_conditions_list = temp_action_start.conditions
+                    temp_action_start.clear_conditions()
+                    # conditions substitution stuff
+                    for ii, cl in new_conditions_list.items():
+                        # ii stands for interval, cl for conditions list
+                        for c in cl:
+                            if ii.lower.is_from_start():
+                                # if it's from start we edit it, if it end we just copy it
+                                new_condition = (
+                                    substituter_durative_action_start.substitute(
+                                        c, substitution_dict_start
+                                    )
+                                )
+                            else:
+                                new_condition = c
+                            temp_action_start.add_condition(ii, new_condition)
+                    # durations substitution stuff
+                    new_maxduration = substituter_durative_action_start.substitute(
+                        temp_action_start.duration.upper, substitution_dict_start
+                    )
+                    new_minduration = substituter_durative_action_start.substitute(
+                        temp_action_start.duration.lower, substitution_dict_start
+                    )
+                    temp_action_start.set_closed_duration_interval(
+                        new_minduration, new_maxduration
+                    )
+                    temp_action_start.add_condition(
+                        StartTiming(), combination_condition
+                    )
+                    generic_action_start_condition_list.append(combination_condition)
+                    # print ("we finished elaborating this combination, the action is:")
+                    # print (temp_action_start)
+                    actions_start_conditions.append(temp_action_start)
+
+                start_generic_action = a.clone()
+                generic_minduration = 1
+                generic_maxduration = 1000000
+                if not (
+                    OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(start_generic_action.duration.lower)
+                ):
+                    generic_minduration = start_generic_action.duration.lower
+                if not (
+                    OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(start_generic_action.duration.upper)
+                ):
+                    generic_maxduration = start_generic_action.duration.upper
+                start_generic_action.set_closed_duration_interval(
+                    generic_minduration, generic_maxduration
+                )
+                new_generic_conditions_list = start_generic_action.conditions
+                start_generic_action.clear_conditions()
+                for ii, cl in new_generic_conditions_list.items():
+                    for c in cl:
+                        if ii.lower.is_from_start():
+                            # if it's start
+                            if not (
+                                OperatorKind.INTERPRETED_FUNCTION_EXP
+                                in self.operators_extractor.get(c)
+                            ):
+                                # if it has no IF add it
+                                start_generic_action.add_condition(ii, c)
+                            # if it has ifs ignore it
+                        else:
+                            # if it's not from start (so it should be at end), just add it
+                            start_generic_action.add_condition(ii, c)
+
+                for (
+                    known_values_exclusion_conditions
+                ) in generic_action_start_condition_list:
+                    start_not_condition = (
+                        start_generic_action.environment.expression_manager.Not(
+                            known_values_exclusion_conditions
+                        )
+                    )
+                    start_generic_action.add_condition(
+                        StartTiming(), start_not_condition
+                    )
+                # print ("generic action compiled:")
+                # print (start_generic_action)
+                actions_start_conditions.append(start_generic_action)
+
+                print("checkpoint! We are about to go to end conditions compilation")
+                print("currently we have some actions in actions_start_conditions")
+                print(len(actions_start_conditions))
+                print(actions_start_conditions)
+                # before compiling for end stuff
+                # if start functions is empty
+                # it means we found nothing to elaborate at start
+                # add copy of original function to start functions
+
+                # code after this is old
+                # it's left here to avoid everything crashing at the moment, but it will be removed
+                # note that many things might crash anyway, there is a reason it's being replaced
+                # code after this is old
+                # it's left here to avoid everything crashing at the moment, but it will be removed
+                # note that many things might crash anyway, there is a reason it's being replaced
+                # code after this is old
+                # it's left here to avoid everything crashing at the moment, but it will be removed
+                # note that many things might crash anyway, there is a reason it's being replaced
+                # code after this is old
+                # it's left here to avoid everything crashing at the moment, but it will be removed
+                # note that many things might crash anyway, there is a reason it's being replaced
+                # code after this is old
+                # it's left here to avoid everything crashing at the moment, but it will be removed
+                # note that many things might crash anyway, there is a reason it's being replaced
                 condcounter = 0
                 while condcounter < len(fixed_conditions):
                     if not (
@@ -593,6 +862,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 else:
                     new_to_old[a] = a
                     new_problem.add_action(a)
+
+                print("-----------------------------------------------")
             else:
                 raise NotImplementedError
         # print("compilation complete!")
