@@ -18,8 +18,16 @@ import unified_planning.test.examples.realistic as realistic
 import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.hierarchical as hierarchical
 import unified_planning.test.examples.scheduling as scheduling
+import unified_planning.test.examples.complex_interpreted_functions as complex_interpreted_functions
 
 
 def get_example_problems():
-    sub_modules = [minimals, realistic, testing_variants, hierarchical, scheduling]
+    sub_modules = [
+        minimals,
+        realistic,
+        testing_variants,
+        hierarchical,
+        scheduling,
+        complex_interpreted_functions,
+    ]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())

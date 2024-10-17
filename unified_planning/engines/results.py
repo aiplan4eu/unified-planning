@@ -15,6 +15,7 @@
 """This module defines the PlanGenerationResult class."""
 
 
+from collections import OrderedDict
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
@@ -279,6 +280,9 @@ class ValidationResult(Result):
     # The trace is either the sequences of states until the first validation error or a map from time to state for each event up to the first validation error
     trace: Optional[
         Union[List[up.model.State], Dict[Fraction, up.model.State]]
+    ] = field(default=None)
+    calculated_interpreted_functions: Optional[
+        OrderedDict[up.model.FNode, up.model.FNode]
     ] = field(default=None)
 
     def __post_init__(self):
