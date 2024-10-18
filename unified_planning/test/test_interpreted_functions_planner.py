@@ -139,16 +139,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             i = i + 1
 
     @skipIfEngineNotAvailable("tamer")
-    @pytest.mark.skip(
-        reason="work in progress - timed problems are not currently supported by the compiler"
-    )
-    # refine currently does not work with tamer
     def test_interpreted_functions_in_durations_planner(self):
-        problem = self.problems["interpreted_functions_in_durations"].problem
-        # print (problem)
-        # print (problem.kind)
-        pa = problem.action("gohome")
-        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        testproblem = self.problems["IF_durations_in_conditions_rain"]
+        problem = testproblem.problem
 
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
             # print("now attempting to solve")
@@ -156,10 +149,29 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             result = planner.solve(problem)
             print(result)
 
-        self.assertEqual(len(result.plan._actions), 1)
-        self.assertEqual((result.plan.timed_actions[0])[1].action.name, pa.name)
-        # the action objects are different, one contains an IF, the other has 1-1000000 as time instead
-        # this test case has to be changed once support is implemented
-        # ------------------------------------------------------------
-        # ------------------------------------------------------------
-        # ------------------------------------------------------------
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+        self.assertEqual(len(result.plan._actions), 2)
+        print(result.plan)
+        print(testproblem.valid_plans[0])
+        i = 0
+        while i < len(testproblem.valid_plans[0].timed_actions):
+            j = 0
+            while j < 3:
+                # the result tuple has 3 values: start time, action, duration
+                print(result.plan.timed_actions[i][j])
+                print(testproblem.valid_plans[0].timed_actions[i][j])
+                if j != 1:
+                    self.assertEqual(
+                        result.plan.timed_actions[i][j],
+                        testproblem.valid_plans[0].timed_actions[i][j],
+                    )
+                else:
+                    # when checking for the action it needs a different syntax
+                    self.assertEqual(
+                        result.plan.timed_actions[i][j].action,
+                        testproblem.valid_plans[0].timed_actions[i][j].action,
+                    )
+
+                j = j + 1
+
+            i = i + 1

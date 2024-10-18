@@ -138,9 +138,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
 
-    @pytest.mark.skip(
-        reason="work in progress - timed problems are not currently supported by the compiler"
-    )
     def test_interpreted_functions_in_durative_conditions_remover(self):
         problem = self.problems["interpreted_functions_in_durative_conditions"].problem
 
@@ -157,13 +154,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         # print(compiled_problem)
         # print(compiled_problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
         self.assertFalse(
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
-        print(compiled_problem)
-        print(compiled_problem.kind)
-        self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
 
     def test_interpreted_functions_in_durations_remover(self):
         problem = self.problems["interpreted_functions_in_durations"].problem

@@ -204,6 +204,8 @@ def _attempt_to_solve(
             )
             return retval
         else:
+            print(mappedbackplan)
+            print("Oh no! plan did not work!")
             refined_problem = _refine(self, problem, validation_result)
             if refined_problem is None:
                 retval = PlanGenerationResult(
@@ -238,6 +240,7 @@ def _attempt_to_solve(
 
 def _refine(self, problem, validation_result):
     newProb = None
+    print("Now let's refine!")
     if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
     elif len(validation_result.calculated_interpreted_functions) == 0:
@@ -245,6 +248,8 @@ def _refine(self, problem, validation_result):
     else:
         for k in validation_result.calculated_interpreted_functions:
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
+        print("we have knowledge:")
+        print(self.knowledge)
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
             newProb = if_remover.compile(
                 problem,
