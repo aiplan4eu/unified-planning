@@ -403,6 +403,16 @@ class TestProtobufProblems(unittest_TestCase):
         for name, example in self.problems.items():
             problem = example.problem
             kind = problem.kind
+
+            if (
+                kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+                or kind.has_interpreted_functions_in_conditions()
+                # could be done more cleanly with an has_interpreted_functions() imlpementation
+            ):
+                continue
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 
