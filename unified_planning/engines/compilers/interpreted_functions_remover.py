@@ -254,6 +254,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         # for each possible combination (known function combinations)
                         new_action = a.clone()
                         new_action.name = get_fresh_name(new_problem, a.name)
+
+                        new_condition = None
+                        new_precondition_list = list()
+
                         for kf in kfc:
 
                             substituter_instantaneous_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
@@ -288,8 +292,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 new_action.add_precondition(new_precondition)
 
                             argumentcounter = 0
-                            new_condition = None
-                            new_precondition_list = list()
                             while argumentcounter < len(kf.args):
                                 for aif in all_ifs_in_instantaneous_action:
                                     if (
@@ -796,8 +798,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             else:
                 raise NotImplementedError
-        # print("compilation complete!")
-        # print(new_problem)
+        print("compilation complete!")
+        print(new_problem)
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
