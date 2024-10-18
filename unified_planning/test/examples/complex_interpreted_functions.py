@@ -21,7 +21,7 @@ from unified_planning.test import TestCase
 
 def get_example_problems():
     problems = {}
-    # the interpreted functions are defined at the start and used in more test cases
+    # the more generic interpreted functions are defined at the start and used in more test cases
     def simple_integers_to_bool(ina, inb):
         return (ina * inb) == 60
 
@@ -111,5 +111,81 @@ def get_example_problems():
         ],
     )
     problems["IF_in_conditions_complex_1"] = ifproblem
+
+    def time_to_go_home(
+        israining, basetime
+    ):  # if it rains you will take longer to walk home
+        r = basetime
+        if israining:
+            r = r * Fraction(7, 5)
+        return r
+
+    signature_time_to_go_home = OrderedDict()
+    signature_time_to_go_home["israining"] = BoolType()
+    signature_time_to_go_home["basetime"] = RealType()
+    time_to_go_home_if = InterpretedFunction(
+        "time_to_go_home", RealType(), signature_time_to_go_home, time_to_go_home
+    )
+
+    def wet_house(
+        israining, haveumbrella
+    ):  # if it rains and you have no umbrella you will wet the house
+        r = False
+        if israining and not haveumbrella:
+            r = True
+        return r
+
+    signature_wet_house_if = OrderedDict()
+    signature_wet_house_if["israining"] = BoolType()
+    signature_wet_house_if["haveumbrella"] = BoolType()
+    wet_house_if = InterpretedFunction(
+        "wet_house_if", BoolType(), signature_wet_house_if, wet_house
+    )
+
+    athome = Fluent("athome")
+    rain = Fluent("rain")
+    have_umbrella = Fluent("have_umbrella")
+    normaltime = Fluent("normaltime", RealType(0, 20))
+
+    gohome = DurativeAction("gohome")
+    gohome.add_condition(StartTiming(), Not(athome))
+    gohome.add_condition(StartTiming(), Not(wet_house_if(rain, have_umbrella)))
+    gohome.add_effect(EndTiming(), athome, True)
+    gohome.set_closed_duration_interval(time_to_go_home_if(rain, normaltime), 150)
+
+    takeumbrella = DurativeAction("takeumbrella")
+    takeumbrella.add_effect(EndTiming(), have_umbrella, True)
+
+    takeumbrella.set_fixed_duration(Fraction(99, 100))
+
+    problem = Problem("go_home_with_rain_and_interpreted_functions")
+    problem.add_fluent(athome)
+    problem.add_fluent(rain)
+    problem.add_fluent(have_umbrella)
+    problem.add_fluent(normaltime)
+    problem.add_action(gohome)
+    problem.add_action(takeumbrella)
+    problem.set_initial_value(have_umbrella, False)
+    problem.set_initial_value(athome, False)
+    problem.set_initial_value(rain, True)
+    problem.set_initial_value(normaltime, 10)
+    problem.add_goal(athome)
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan(
+                [
+                    (Fraction(0), takeumbrella(), Fraction(99, 100)),
+                    (Fraction(1), gohome(), Fraction(14)),
+                ]
+            ),
+        ],
+        invalid_plans=[
+            up.plans.TimeTriggeredPlan([(Fraction(0), gohome(), Fraction(1, 1))]),
+        ],
+    )
+    problems["IF_durations_in_conditions_rain"] = ifproblem
 
     return problems
