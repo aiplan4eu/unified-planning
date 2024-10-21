@@ -41,6 +41,7 @@ from unified_planning.model import (
     DurativeAction,
     AbstractProblem,
     FNode,
+    action,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
@@ -254,59 +255,122 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 interpreted_functions_queue.append(f)
                 # alternative implementation -----------------------------------------------------------------
                 temp_a = a.clone()
-                action_cases_list = list()
-                action_cases_list.append(temp_a)
+                print(len(all_ifs_in_instantaneous_action))
+                number_of_combinations = 2 ** len(all_ifs_in_instantaneous_action)
+                print("there are")
+                print(number_of_combinations)
+                print("combinations")
+                print(all_ifs_in_instantaneous_action)
+                actions_list: list = list()
+                actions_list.clear()
+                actions_list.append(temp_a)
                 while len(interpreted_functions_queue) > 0:
-
-                    print("this action has IFs")
-
-                    print("we have some IFs")
-                    print(interpreted_functions_queue)
-                    print("pop from the queue:")
-                    IF_we_want_to_test = interpreted_functions_queue.pop()
-                    print(IF_we_want_to_test)
-                    print("do we know anything about this one?")
-                    print("its key is")
-                    print(IF_we_want_to_test.interpreted_function())
+                    IF_to_handle_now = interpreted_functions_queue.pop()
+                    print(
+                        "new if to handle ---------------------------------------------------"
+                    )
                     if (
-                        IF_we_want_to_test.interpreted_function()
+                        IF_to_handle_now.interpreted_function()
                         in better_knowledge.keys()
                     ):
-                        print("yep:")
-                        for partially_elaborated_action in action_cases_list:
-                            for known_function in better_knowledge[
-                                IF_we_want_to_test.interpreted_function()
+                        print("we know some values for this one")
+                        print(IF_to_handle_now)
+                        print("is an instance of")
+                        print(IF_to_handle_now.interpreted_function())
+                        temp_action_list = list()
+                        temp_action_list.clear()
+                        for partially_elaborated_action in actions_list:
+                            # print (partially_elaborated_action)
+                            action_for_known_values = (
+                                partially_elaborated_action.clone()
+                            )
+                            temp_action_list.append(action_for_known_values)
+                            # ---------------------------------------
+                            # add parameter (Px:kNum)
+                            # ? -> can I add this without reconstructing the action from scratch?
+                            # ---------------------------------------
+
+                            known_values_precondition_list = list()
+                            known_values_precondition_list.clear()
+                            for known_value in better_knowledge[
+                                IF_to_handle_now.interpreted_function()
                             ]:
-                                temp_action = partially_elaborated_action.clone()
-                                substituter_instantaneous_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
-                                    temp_action.environment
+                                print("known value of")
+                                print(known_value)
+                                print("is")
+                                print(self._interpreted_functions_values[known_value])
+                                argcounter = 0
+                                known_values_precondition = None
+                                while argcounter < len(known_value.args):
+
+                                    if known_values_precondition is None:
+                                        known_values_precondition = self._Equals_or_Iff(
+                                            known_value.arg(argcounter),
+                                            IF_to_handle_now.arg(argcounter),
+                                            action_for_known_values,
+                                        )
+                                    else:
+                                        temp_precondition = self._Equals_or_Iff(
+                                            known_value.arg(argcounter),
+                                            IF_to_handle_now.arg(argcounter),
+                                            action_for_known_values,
+                                        )
+                                        known_values_precondition = action_for_known_values.environment.expression_manager.And(
+                                            known_values_precondition, temp_precondition
+                                        )
+
+                                    argcounter = argcounter + 1
+                                print("known_values_precondition")
+                                print(known_values_precondition)
+                                known_values_precondition_list.append(
+                                    known_values_precondition
                                 )
-                                # add this case as a new action to the list
-                                # print (known_function)
-                                # print ("is")
-                                # print (better_knowledge[IF_we_want_to_test.interpreted_function()][known_function])
-                                substitution_dict = dict()
-                                substitution_dict[known_function] = better_knowledge[
-                                    IF_we_want_to_test.interpreted_function()
-                                ][known_function]
-                                print("substitution_dict")
-                                print(substitution_dict)
-                                print("the found function args are:")
-                                print(IF_we_want_to_test.args)
-                                print("we have to make them equal to:")
-                                print(known_function.args)
-                                # add constraint precondition
-                                # keep track of all the known values
-                                # add to new temp action list
-                            # add generic case for IF_we_want_to_test
-                        # now, outside the for loop on the actions list
-                        # delete old action list, new action list <- temp action list
+                            print("preconditions for known values")
+                            print(known_values_precondition_list)
+                            for p in known_values_precondition_list:
+                                action_for_known_values.add_precondition(p)
+
+                            # handle known values with usertype and object
+
+                            # now add precondition for unknown values and remove the if
+                            action_for_unknown_values = (
+                                partially_elaborated_action.clone()
+                            )
+                            preconditions_for_unknown_values = (
+                                action_for_unknown_values.preconditions
+                            )
+                            action_for_unknown_values.clear_preconditions()
+                            # print (preconditions_for_unknown_values)
+                            for p in preconditions_for_unknown_values:
+                                # print (p)
+                                # print ("has ifs:")
+                                IFs = self.interpreted_functions_extractor.get(p)
+                                # print (IFs)
+                                if IF_to_handle_now in IFs:
+                                    print(p)
+                                    print(IF_to_handle_now)
+                                    print("this one is here")
+                                else:
+                                    print(
+                                        "seems that this precondition does not contain our IF, we can add it back"
+                                    )
+                                    print(p)
+                                    action_for_unknown_values.add_precondition(p)
+
+                            print("for unknown values we have to Not the preocnditions")
+                            for p in known_values_precondition_list:
+                                notp = action_for_unknown_values.environment.expression_manager.Not(
+                                    p
+                                )
+                                action_for_unknown_values.add_precondition(notp)
+                            temp_action_list.append(action_for_unknown_values)
+                        actions_list.clear()
+                        actions_list.extend(temp_action_list)
                     else:
-                        print("nope, we found")
-                        print(IF_we_want_to_test.interpreted_function())
-                        print("but better knowledge keys is")
-                        print(better_knowledge.keys())
-                # end of alternative implementation --------------------------------------------------------
+                        print("we have no info about this IF")
+                        print(IF_to_handle_now)
+                print("final list of actions:")
+                print(actions_list)
 
                 if len(all_ifs_in_instantaneous_action) != 0:
                     ifs_as_keys_instantaneous: list = list()
@@ -909,3 +973,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
     def intersection(self, lst1, lst2):
         return list(set(lst1) & set(lst2))
+
+    def _Equals_or_Iff(self, exp1, exp2, action):
+        ret_exp = None
+        if exp1.type.is_bool_type():
+            ret_exp = action.environment.expression_manager.Iff(exp1, exp2)
+        else:
+            ret_exp = action.environment.expression_manager.Equals(exp1, exp2)
+        return ret_exp
