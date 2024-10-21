@@ -17,7 +17,7 @@
 
 import itertools as it
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.model.interpreted_function import InterpretedFunction
@@ -216,7 +216,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         combined_knowledge = self.knowledge_combinations(better_knowledge)
 
         for a in problem.actions:
+            print(
+                "---------------------------------------------------------------------"
+            )
+            print("now working on:")
+            print(a.name)
+            print(
+                "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
+            )
             if isinstance(a, InstantaneousAction):
+                interpreted_functions_queue = deque()
                 no_IF_action_base = a.clone()
                 no_IF_action_base.clear_preconditions()
                 no_IF_action_preconditions_list = list()
@@ -236,11 +245,69 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for p in fixed_preconditions:  # for each precondition
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
+
                         for f in IFs:
                             print(f)
                             if f not in all_ifs_in_instantaneous_action:
                                 # and append them in the key list if not already there
                                 all_ifs_in_instantaneous_action.append(f)
+                                interpreted_functions_queue.append(f)
+                # alternative implementation -----------------------------------------------------------------
+                temp_a = a.clone()
+                action_cases_list = list()
+                action_cases_list.append(temp_a)
+                while len(interpreted_functions_queue) > 0:
+
+                    print("this action has IFs")
+
+                    print("we have some IFs")
+                    print(interpreted_functions_queue)
+                    print("pop from the queue:")
+                    IF_we_want_to_test = interpreted_functions_queue.pop()
+                    print(IF_we_want_to_test)
+                    print("do we know anything about this one?")
+                    print("its key is")
+                    print(IF_we_want_to_test.interpreted_function())
+                    if (
+                        IF_we_want_to_test.interpreted_function()
+                        in better_knowledge.keys()
+                    ):
+                        print("yep:")
+                        for partially_elaborated_action in action_cases_list:
+                            for known_function in better_knowledge[
+                                IF_we_want_to_test.interpreted_function()
+                            ]:
+                                temp_action = partially_elaborated_action.clone()
+                                substituter_instantaneous_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
+                                    temp_action.environment
+                                )
+                                # add this case as a new action to the list
+                                # print (known_function)
+                                # print ("is")
+                                # print (better_knowledge[IF_we_want_to_test.interpreted_function()][known_function])
+                                substitution_dict = dict()
+                                substitution_dict[known_function] = better_knowledge[
+                                    IF_we_want_to_test.interpreted_function()
+                                ][known_function]
+                                print("substitution_dict")
+                                print(substitution_dict)
+                                print("the found function args are:")
+                                print(IF_we_want_to_test.args)
+                                print("we have to make them equal to:")
+                                print(known_function.args)
+                                # add constraint precondition
+                                # keep track of all the known values
+                                # add to new temp action list
+                            # add generic case for IF_we_want_to_test
+                        # now, outside the for loop on the actions list
+                        # delete old action list, new action list <- temp action list
+                    else:
+                        print("nope, we found")
+                        print(IF_we_want_to_test.interpreted_function())
+                        print("but better knowledge keys is")
+                        print(better_knowledge.keys())
+                # end of alternative implementation --------------------------------------------------------
+
                 if len(all_ifs_in_instantaneous_action) != 0:
                     ifs_as_keys_instantaneous: list = list()
                     ifs_as_keys_instantaneous.clear()
