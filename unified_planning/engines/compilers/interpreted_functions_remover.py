@@ -237,6 +237,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) != 0:  # get all the IFs in the precondition
                         for f in IFs:
+                            print(f)
                             if f not in all_ifs_in_instantaneous_action:
                                 # and append them in the key list if not already there
                                 all_ifs_in_instantaneous_action.append(f)
@@ -339,18 +340,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                                 )
 
                                 argumentcounter = argumentcounter + 1
-                            new_action.add_precondition(new_condition)
-                            base_not_precondition = (
-                                no_IF_action_base.environment.expression_manager.Not(
-                                    new_condition
-                                )
-                            )
-                            no_IF_action_base.add_precondition(base_not_precondition)
+                            # new_action.add_precondition(new_condition)
+                            # base_not_precondition = (
+                            #    no_IF_action_base.environment.expression_manager.Not(
+                            #        new_condition
+                            #    )
+                            # )
+                            # no_IF_action_base.add_precondition(base_not_precondition)
 
                             no_IF_action_preconditions_list.append(
                                 new_precondition_list
                             )
-
+                        new_action.add_precondition(new_condition)
+                        base_not_precondition = (
+                            no_IF_action_base.environment.expression_manager.Not(
+                                new_condition
+                            )
+                        )
+                        no_IF_action_base.add_precondition(base_not_precondition)
                         new_to_old[new_action] = a
                         new_problem.add_action(new_action)
                     no_IF_action_base.name = get_fresh_name(new_problem, a.name)
