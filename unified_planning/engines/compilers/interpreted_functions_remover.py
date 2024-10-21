@@ -372,6 +372,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 print("final list of actions:")
                 print(actions_list)
 
+                # old implementation will be removed
+                # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
                 if len(all_ifs_in_instantaneous_action) != 0:
                     ifs_as_keys_instantaneous: list = list()
                     ifs_as_keys_instantaneous.clear()
