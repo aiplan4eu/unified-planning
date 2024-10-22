@@ -272,6 +272,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 actions_list: list = list()
                 actions_list.clear()
                 actions_list.append(temp_a)
+                # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                # make lists of fluents, types and objects to add at the end?
+                # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
                 while len(interpreted_functions_queue) > 0:
                     IF_to_handle_now = interpreted_functions_queue.pop()
                     print(
@@ -313,15 +316,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             # action_for_known_values = (partially_elaborated_action.clone())
 
                             # maybe can use new_problem but not sure
-                            print("need name, retType and signature")
-                            print(
-                                "placeholder name"
-                            )  # might not be necessary - just for naming purposes
-                            print(
-                                placeholder_function_name
-                            )  # might not be necessary - just for naming purposes
-                            print("retType")
-                            print(IF_to_handle_now.interpreted_function().return_type)
+
                             # input for placeholder is always one value, that might represent more than one input parameter for the original function
                             # function_placeholder = Fluent (placeholder_function_name)
                             # ---------------------------------------
@@ -343,9 +338,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 compressed_input_name = "O"
                                 argcounter_for_name = 0
                                 while argcounter_for_name < len(IF_to_handle_now.args):
-                                    # print (IF_to_handle_now.arg(argcounter_for_name))
-                                    # compressed_input_name = compressed_input_name + IF_to_handle_now.arg(argcounter_for_name)
-                                    # print (known_value.arg(argcounter_for_name).constant_value())
                                     compressed_input_name = (
                                         compressed_input_name
                                         + "_"
@@ -357,16 +349,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     )
                                     argcounter_for_name = argcounter_for_name + 1
 
-                                print(
-                                    "placeholder name before double checking"
-                                )  # not sure double checking is necessary - the fluents have to be added only at the end I think
-                                print(compressed_input_name)
+                                # print("placeholder name before double checking")  # not sure double checking is necessary - the fluents have to be added only at the end I think
+                                # print(compressed_input_name)
                                 known_value_object = Object(
                                     compressed_input_name,
                                     kNum_for_interpreted_functions,
                                 )
-                                print("known value object we just created")
-                                print(known_value_object)
                                 argcounter = 0
                                 known_values_precondition = None
                                 imply_precondition = None
@@ -374,14 +362,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                                     if known_values_precondition is None:
                                         known_values_precondition = self._Equals_or_Iff(
-                                            known_value.arg(argcounter),
                                             IF_to_handle_now.arg(argcounter),
+                                            known_value.arg(argcounter),
                                             action_for_known_values,
                                         )
                                     else:
                                         temp_precondition = self._Equals_or_Iff(
-                                            known_value.arg(argcounter),
                                             IF_to_handle_now.arg(argcounter),
+                                            known_value.arg(argcounter),
                                             action_for_known_values,
                                         )
                                         known_values_precondition = action_for_known_values.environment.expression_manager.And(
@@ -389,8 +377,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                         )
 
                                     argcounter = argcounter + 1
-                                print("known_values_precondition")
-                                print(known_values_precondition)
                                 # known_values_precondition implies that the value of the new action parameter is O_*knownvalue*
                                 action_parameter = action_for_known_values.parameter(
                                     action_parameter_name
@@ -401,21 +387,32 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                         action_parameter, known_value_object
                                     ),
                                 )
-                                print("imply precondition")
-                                print(imply_precondition)
                                 known_values_imply_list.append(imply_precondition)
                                 known_values_precondition_list.append(
                                     known_values_precondition
                                 )
-                            print(
-                                "printing elaborated lists ------------------------------"
-                            )
-                            print("preconditions for known values")
-                            for printp in known_values_precondition_list:
-                                print(printp)
-                            print("implications for known values")
-                            for printi in known_values_imply_list:
-                                print(printi)
+                            # end of for known_value in better knowledge
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                            # for each known value we still have to add the special fluent assignment
+                            # e.g. f_funx (O_11_1) =  funx(11, 1)
+
+                            # after having the special fluent assignment things done,
+                            # we can substitute the instance of the IF
+                            # e.g. funx (ione, itwo)
+                            # with the new special fluent with the action parameter
+                            # e.g. f_funx (P_f_funx_ione_itwo)
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+                            # -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO -- TODO --
+
+                            # print("preconditions for known values")
+                            # for printp in known_values_precondition_list:
+                            #    print(printp)
+                            # print("implications for known values")
+                            # for printi in known_values_imply_list:
+                            #    print(printi)
                             for p in known_values_imply_list:
                                 action_for_known_values.add_precondition(p)
                             Or_condition = None
@@ -423,23 +420,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 p
                             ) in known_values_precondition_list:  # we have to Or these
                                 if Or_condition is None:
-                                    print("or condition is none")
-                                    print(Or_condition)
                                     Or_condition = p
-                                    print("now it is ")
-                                    print(Or_condition)
                                 else:
-                                    print("or condition is not none, it's already")
-                                    print(Or_condition)
-                                    print("let's add another or")
                                     Or_condition = action_for_known_values.environment.expression_manager.Or(
                                         Or_condition, p
                                     )
-                                    print(Or_condition)
                             action_for_known_values.add_precondition(Or_condition)
-                            print(
-                                "end printing elaborated lists --------------------------"
-                            )
 
                             # handle known values with usertype and object
 
@@ -508,9 +494,45 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     else:
                         print("we have no info about this IF")
                         print(IF_to_handle_now)
+                print(
+                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
+                )
+                print(
+                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
+                )
+                print(
+                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
+                )
+                print(
+                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
+                )
+                print(
+                    "/\\                                                                              /\\"
+                )
+                print(
+                    "\\/                                                                              \\/"
+                )
+                print("done!")
                 print("final list of actions:")
                 print(actions_list)
-
+                print(
+                    "/\\                                                                              /\\"
+                )
+                print(
+                    "\\/                                                                              \\/"
+                )
+                print(
+                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
+                )
+                print(
+                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
+                )
+                print(
+                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
+                )
+                print(
+                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
+                )
                 # old implementation will be removed
                 # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
                 if len(all_ifs_in_instantaneous_action) != 0:
