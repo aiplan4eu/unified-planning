@@ -110,6 +110,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
+    # @pytest.mark.skip(reason="current implementation does not work")
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
