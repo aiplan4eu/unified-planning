@@ -61,7 +61,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             self.assertTrue(problem2.kind.has_interpreted_functions_in_durations())
             self.assertFalse(kind2.has_interpreted_functions_in_durations())
 
-    def test_interpreted_functions_in_preconditions_remover(self):
+    def test_interpreted_functions_in_preconditions_remover_simple(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
 
         with Compiler(
@@ -79,18 +79,19 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+        self.assertTrue(problem.kind.has_general_numeric_planning())
         self.assertFalse(
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
+
         print(problem)
         print(problem.kind)
         print("-------------------------------------")
         print(compiled_problem)
         print(compiled_problem.kind)
-        self.assertTrue(
-            compiled_problem.kind.has_simple_numeric_planning()
-        )  # --------------------------------
+        self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
 
+    def test_interpreted_functions_in_preconditions_removerto_refine(self):
         problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
 
         with Compiler(
@@ -116,6 +117,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         )
         self.assertFalse(compiled_problem.kind.has_simple_numeric_planning())
 
+    def test_interpreted_functions_in_preconditions_remover_always_impossible(self):
         problem = self.problems[
             "interpreted_functions_in_conditions_always_impossible"
         ].problem
