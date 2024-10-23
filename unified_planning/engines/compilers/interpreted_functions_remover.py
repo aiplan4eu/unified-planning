@@ -34,6 +34,7 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPConflictingEffectsException,
+    UPUsageError,
 )
 from unified_planning.model import (
     Problem,
@@ -52,6 +53,7 @@ from unified_planning.engines.compilers.utils import (
     check_and_simplify_conditions,
     replace_action,
 )
+from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType, UserType
 from unified_planning.utils import powerset
 from typing import List, Dict, Tuple, Optional, Iterator
@@ -1202,8 +1204,15 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         print("compilation complete!")
         print(new_problem)
+        # TODO TODO TODO TODO TODO TODO TODO
+        # here change with custom replace
+        # here change with custom replace
+        # here change with custom replace
+        # here change with custom replace
+        # here change with custom replace
+
         return CompilerResult(
-            new_problem, partial(replace_action, map=new_to_old), self.name
+            new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
     def elaborate_known_IFs(self, ifvs):
@@ -1268,3 +1277,35 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_instantaneous_action._fluents_inc_dec = action._fluents_inc_dec.copy()
         new_instantaneous_action._simulated_effect = action._simulated_effect
         return new_instantaneous_action
+
+
+def custom_replace(
+    action_instance: ActionInstance,
+    map: Dict["up.model.Action", Optional["up.model.Action"]],
+) -> Optional[ActionInstance]:
+    try:
+        replaced_action = map[action_instance.action]
+    except KeyError:
+        raise UPUsageError(
+            "The Action of the given ActionInstance does not have a valid replacement."
+        )
+    expected_amount = 0
+    if replaced_action is not None:
+        if replaced_action.parameters is not None:
+            expected_amount = len(replaced_action.parameters)
+
+    new_list: list = list()
+    i = 0
+    while i < expected_amount:
+        new_list.append(action_instance.actual_parameters[i])
+        i = i + 1
+
+    if replaced_action is not None:
+        return ActionInstance(
+            replaced_action,
+            new_list,
+            action_instance.agent,
+            action_instance.motion_paths,
+        )
+    else:
+        return None
