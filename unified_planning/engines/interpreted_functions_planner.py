@@ -38,6 +38,7 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
+from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.utils import powerset
 from typing import OrderedDict, Type, IO, Optional, Union, List, Tuple, Callable
