@@ -81,7 +81,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         self.interpreted_functions_extractor: up.model.walkers.InterpretedFunctionsExtractor = (
             up.model.walkers.InterpretedFunctionsExtractor()
         )
-
+        self._use_old_algorithm = False
         self._interpreted_functions_values = interpreted_functions_values
 
         CompilerMixin.__init__(self, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
@@ -165,21 +165,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
         return compilation_kind == CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
 
-    def _fix_precondition(self, a):
-        # should we check for always true preconditions?
-        # simplified_precondition = simplifier.simplify(p)
-        # precondition_operators = operators_extractor.get(simplified_precondition)
-        # operators_extractor: up.model.walkers.OperatorsExtractor = (
-        #    up.model.walkers.OperatorsExtractor()
-        # )
-        templist = []
-        if a.is_and():
-            for sub in a.args:
-                templist.append(sub)
-        else:
-            templist.append(a)
-        return templist
-
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
@@ -220,8 +205,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
         # temp_problem.clear_actions()
-        better_knowledge = self.elaborate_known_IFs(self._interpreted_functions_values)
-        combined_knowledge = self.knowledge_combinations(better_knowledge)
+        better_knowledge = elaborate_known_IFs(self._interpreted_functions_values)
+        combined_knowledge = knowledge_combinations(better_knowledge)
         kNum_for_interpreted_functions = UserType(
             "kNum_for_interpreted_functions"
         )  # does this need to have a unique name?
@@ -232,30 +217,38 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         object_dict.clear()
         fluents_assignments_tuple_list: list = list()  # (fluent, input, output)
         fluents_assignments_tuple_list.clear()
+
         for a in problem.actions:
-            print(
-                "---------------------------------------------------------------------"
-            )
-            print("now working on:")
-            print(a.name)
-            print(
-                "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"
-            )
+            # print ("now on action")
+            # print(a)
             if isinstance(a, InstantaneousAction):
+
+                if self._use_old_algorithm:
+                    # print ("old algorithm, many small actions")
+                    elaborated_actions = old_algorithm(
+                        a,
+                        new_problem,
+                        self._interpreted_functions_values,
+                        better_knowledge,
+                    )
+                    for ea in elaborated_actions:
+                        ea.name = get_fresh_name(new_problem, a.name)
+                        new_to_old[ea] = a
+                        new_problem.add_action(ea)
+
+                    continue
+
                 interpreted_functions_queue: deque = deque()
                 no_IF_action_base = a.clone()
                 no_IF_action_base.clear_preconditions()
-                no_IF_action_preconditions_list: list = list()
                 fixed_preconditions = []
                 for p in a.preconditions:
-                    templist = self._fix_precondition(p)
+                    templist = _fix_precondition(p)
                     fixed_preconditions.extend(templist)
                 for p in fixed_preconditions:
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) == 0:
                         no_IF_action_base.add_precondition(p)
-
-                all_combinations_for_this_action: OrderedDict = OrderedDict()
 
                 all_ifs_in_instantaneous_action: list = list()
                 all_ifs_in_instantaneous_action.clear()
@@ -264,40 +257,28 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if len(IFs) != 0:  # get all the IFs in the precondition
 
                         for f in IFs:
-                            print(f)
+                            # print(f)
                             if f not in all_ifs_in_instantaneous_action:
                                 # and append them in the key list if not already there
                                 all_ifs_in_instantaneous_action.append(f)
                                 interpreted_functions_queue.append(f)
+
                 # alternative implementation -----------------------------------------------------------------
                 temp_a = a.clone()
                 temp_a.clear_preconditions()
                 for p in fixed_preconditions:
                     temp_a.add_precondition(p)
 
-                print(len(all_ifs_in_instantaneous_action))
-                number_of_combinations = 2 ** len(all_ifs_in_instantaneous_action)
-                print("there are")
-                print(number_of_combinations)
-                print("combinations")
-                print(all_ifs_in_instantaneous_action)
                 actions_list: list = list()
                 actions_list.clear()
                 actions_list.append(temp_a)
                 # moved lists/dict assignments from here
                 while len(interpreted_functions_queue) > 0:
                     IF_to_handle_now = interpreted_functions_queue.pop()
-                    print(
-                        "new if to handle ---------------------------------------------------"
-                    )
                     if (
                         IF_to_handle_now.interpreted_function()
                         in better_knowledge.keys()
                     ):
-                        print("we know some values for this one")
-                        print(IF_to_handle_now)
-                        print("is an instance of")
-                        print(IF_to_handle_now.interpreted_function())
                         temp_action_list: list = list()
                         temp_action_list.clear()
                         for partially_elaborated_action in actions_list:
@@ -325,13 +306,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             argnamesstring = ""
                             for arg in IF_to_handle_now.args:
                                 argnamesstring = argnamesstring + "_" + str(arg)
-                            print(argnamesstring)
+
                             action_parameter_name = (
                                 "P_" + placeholder_function_name + argnamesstring
                             )
 
                             action_for_known_values = (
-                                self._clone_instantaneous_add_parameter(
+                                _clone_instantaneous_add_parameter(
                                     partially_elaborated_action,
                                     action_parameter_name,
                                     kNum_for_interpreted_functions,
@@ -340,8 +321,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             action_parameter = action_for_known_values.parameter(
                                 action_parameter_name
                             )
-                            print("just cloned action")
-                            print(action_for_known_values)
 
                             # action_for_known_values = (partially_elaborated_action.clone())
 
@@ -361,10 +340,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             for known_value in better_knowledge[
                                 IF_to_handle_now.interpreted_function()
                             ]:
-                                print("known value of")
-                                print(known_value)
-                                print("is")
-                                print(self._interpreted_functions_values[known_value])
                                 compressed_input_name = "O"
                                 argcounter_for_name = 0
                                 while argcounter_for_name < len(IF_to_handle_now.args):
@@ -412,13 +387,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 while argcounter < len(known_value.args):
 
                                     if known_values_precondition is None:
-                                        known_values_precondition = self._Equals_or_Iff(
+                                        known_values_precondition = _Equals_or_Iff(
                                             IF_to_handle_now.arg(argcounter),
                                             known_value.arg(argcounter),
                                             action_for_known_values,
                                         )
                                     else:
-                                        temp_precondition = self._Equals_or_Iff(
+                                        temp_precondition = _Equals_or_Iff(
                                             IF_to_handle_now.arg(argcounter),
                                             known_value.arg(argcounter),
                                             action_for_known_values,
@@ -482,14 +457,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                             # handle known values with usertype and object
 
-                            print(
-                                "========================================================"
-                            )
-                            print("action for known values:")
-                            print(action_for_known_values)
-                            print(
-                                "========================================================"
-                            )
                             temp_action_list.append(action_for_known_values)
                             action_for_known_values.name = get_fresh_name(
                                 temp_problem, a.name
@@ -533,12 +500,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 )
                                 action_for_unknown_values.add_precondition(notp)
                             temp_action_list.append(action_for_unknown_values)
-                            print("action for unknown values:")
-                            print(action_for_unknown_values)
-
-                            print(
-                                "========================================================"
-                            )
                             # print ("end elaborating unknown values if")
                             action_for_unknown_values.name = get_fresh_name(
                                 temp_problem, a.name
@@ -549,8 +510,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         actions_list.clear()
                         actions_list.extend(temp_action_list)
                     else:
-                        print("we have no info about this IF")
-                        print(IF_to_handle_now)
                         temp_action_list = list()
                         temp_action_list.clear()
                         for partially_elaborated_action in actions_list:
@@ -566,187 +525,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             temp_action_list.append(partially_elaborated_action)
                         actions_list.clear()
                         actions_list.extend(temp_action_list)
-
-                print(
-                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
-                )
-                print(
-                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
-                )
-                print(
-                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
-                )
-                print(
-                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
-                )
-                print(
-                    "/\\                                                                              /\\"
-                )
-                print(
-                    "\\/                                                                              \\/"
-                )
-                print("done!")
-                print("final list of actions:")
-                print(actions_list)
-                print("\ndict of fluents to add to the problem")
-                print(fluent_function_dict)
-                print("\ndict of objects to add to the problem")
-                print(object_dict)
-                print("\nlist of tuples of fluent values to add to the problem")
-                print(fluents_assignments_tuple_list)
-                print(
-                    "/\\                                                                              /\\"
-                )
-                print(
-                    "\\/                                                                              \\/"
-                )
-                print(
-                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
-                )
-                print(
-                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
-                )
-                print(
-                    "/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\"
-                )
-                print(
-                    "\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/\\/"
-                )
+                print_debug = False
+                if print_debug:
+                    print("done!")
+                    print("final list of actions:")
+                    print(actions_list)
+                    print("\ndict of fluents to add to the problem")
+                    print(fluent_function_dict)
+                    print("\ndict of objects to add to the problem")
+                    print(object_dict)
+                    print("\nlist of tuples of fluent values to add to the problem")
+                    print(fluents_assignments_tuple_list)
                 for final_action in actions_list:
                     final_action.name = get_fresh_name(new_problem, a.name)
                     new_to_old[final_action] = a
                     new_problem.add_action(final_action)
 
-                continue
-                # old implementation will be removed
-                # vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-                if len(all_ifs_in_instantaneous_action) != 0:
-                    ifs_as_keys_instantaneous: list = list()
-                    ifs_as_keys_instantaneous.clear()
-                    for f in all_ifs_in_instantaneous_action:
-                        ifs_as_keys_instantaneous.append(f.interpreted_function())
-
-                    all_combinations_for_this_action = self.knowledge_combinations(
-                        better_knowledge, ifs_as_keys_instantaneous
-                    )
-
-                    for kfc in all_combinations_for_this_action:
-                        # for each possible combination (known function combinations)
-                        new_action = a.clone()
-                        new_action.name = get_fresh_name(new_problem, a.name)
-
-                        new_condition = None
-                        new_precondition_list = list()
-
-                        for kf in kfc:
-
-                            substituter_instantaneous_action_old: up.model.walkers.Substituter = up.model.walkers.Substituter(
-                                new_action.environment
-                            )
-
-                            subdict = dict()
-                            for fun in all_ifs_in_instantaneous_action:
-
-                                if (
-                                    fun.interpreted_function()
-                                    == kf.interpreted_function()
-                                ):
-                                    subdict[fun] = self._interpreted_functions_values[
-                                        kf
-                                    ]
-
-                            if len(subdict) == 0:
-                                print(
-                                    "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
-                                )
-
-                            preconditions_to_substitute_list = new_action.preconditions
-                            new_action.clear_preconditions()
-                            for pre in preconditions_to_substitute_list:
-
-                                new_precondition = (
-                                    substituter_instantaneous_action_old.substitute(
-                                        pre, subdict
-                                    )
-                                )
-                                new_action.add_precondition(new_precondition)
-
-                            argumentcounter = 0
-                            while argumentcounter < len(kf.args):
-                                for aif in all_ifs_in_instantaneous_action:
-                                    if (
-                                        aif.interpreted_function()
-                                        == kf.interpreted_function()
-                                    ):
-                                        new_precondition_list.append(
-                                            [
-                                                aif.args[argumentcounter],
-                                                kf.args[argumentcounter],
-                                            ]
-                                        )
-                                        if new_condition is None:
-                                            if aif.args[
-                                                argumentcounter
-                                            ].type.is_bool_type():
-                                                new_condition = new_action.environment.expression_manager.Iff(
-                                                    aif.args[argumentcounter],
-                                                    kf.args[argumentcounter],
-                                                )
-                                            else:
-                                                new_condition = new_action.environment.expression_manager.Equals(
-                                                    aif.args[argumentcounter],
-                                                    kf.args[argumentcounter],
-                                                )
-
-                                        else:
-                                            if aif.args[
-                                                argumentcounter
-                                            ].type.is_bool_type():
-                                                new_condition = new_action.environment.expression_manager.And(
-                                                    new_condition,
-                                                    new_action.environment.expression_manager.Iff(
-                                                        aif.args[argumentcounter],
-                                                        kf.args[argumentcounter],
-                                                    ),
-                                                )
-                                            else:
-                                                new_condition = new_action.environment.expression_manager.And(
-                                                    new_condition,
-                                                    new_action.environment.expression_manager.Equals(
-                                                        aif.args[argumentcounter],
-                                                        kf.args[argumentcounter],
-                                                    ),
-                                                )
-
-                                argumentcounter = argumentcounter + 1
-                            # new_action.add_precondition(new_condition)
-                            # base_not_precondition = (
-                            #    no_IF_action_base.environment.expression_manager.Not(
-                            #        new_condition
-                            #    )
-                            # )
-                            # no_IF_action_base.add_precondition(base_not_precondition)
-
-                            no_IF_action_preconditions_list.append(
-                                new_precondition_list
-                            )
-                        new_action.add_precondition(new_condition)
-                        base_not_precondition = (
-                            no_IF_action_base.environment.expression_manager.Not(
-                                new_condition
-                            )
-                        )
-                        no_IF_action_base.add_precondition(base_not_precondition)
-                        new_to_old[new_action] = a
-                        new_problem.add_action(new_action)
-                    no_IF_action_base.name = get_fresh_name(new_problem, a.name)
-                    new_to_old[no_IF_action_base] = a
-                    new_problem.add_action(no_IF_action_base)
-                else:
-                    new_to_old[a] = a
-                    new_problem.add_action(a)
-
             elif isinstance(a, DurativeAction):
+                # TODO - new algorithm for durative
                 # print ("new action ---------------------------------------------------------------------------------")
                 no_IF_action = a.clone()
                 minduration: FNode | int = 1
@@ -796,9 +592,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 no_IF_action.set_closed_duration_interval(minduration, maxduration)
 
                 no_IF_action.clear_conditions()
-                fixed_conditions: list = []
-                fixed_conditions_i: list = []
-                map_if_to_time: dict = dict()
                 for ii, cl in a.conditions.items():
                     for c in cl:
                         if ii.lower.is_from_start():
@@ -831,13 +624,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             print(
                                 "this should not happen aaaaaaaaaaaaaaaaaaahhhhhhhhhhhh"
                             )
-                        #
-                        # let's skip using the fixed conditions for now
-                        #
-                        # templist = self._fix_precondition(c)
-                        # for fc in templist:
-                        #    fixed_conditions.append(fc)
-                        #    fixed_conditions_i.append(ii)
 
                 # print ("action:")
                 # print (a)
@@ -873,7 +659,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                 start_combinations = OrderedDict()
 
-                start_combinations = self.knowledge_combinations(
+                start_combinations = knowledge_combinations(
                     better_knowledge, IF_keys_to_check_at_start
                 )
 
@@ -1045,7 +831,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                 end_combinations = OrderedDict()
 
-                end_combinations = self.knowledge_combinations(
+                end_combinations = knowledge_combinations(
                     better_knowledge, IF_keys_to_check_at_end
                 )
                 # print("end_combinations")
@@ -1184,9 +970,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             else:
                 raise NotImplementedError
-        # TODO
-        # add fluents / objects / fluent tuples
-        print("final part, content of fluent dict")
         for fkey in fluent_function_dict:
             # change here if we need a specific default value
             if fluent_function_dict[fkey].type.is_bool_type():
@@ -1196,87 +979,105 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for okey in object_dict:
             new_problem.add_object(object_dict[okey])
         for ftuple in fluents_assignments_tuple_list:
-            print(ftuple)
-            print(ftuple[0])
-            print(ftuple[1])
-            print(ftuple[2])
             problem.set_initial_value(ftuple[0](ftuple[1]), ftuple[2])
 
-        print("compilation complete!")
-        print(new_problem)
-        # TODO TODO TODO TODO TODO TODO TODO
-        # here change with custom replace
-        # here change with custom replace
-        # here change with custom replace
-        # here change with custom replace
-        # here change with custom replace
+        print_debug = False
+        if print_debug:
+            print("compilation complete!")
+            print(new_problem)
 
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def elaborate_known_IFs(self, ifvs):
-        bk: OrderedDict = OrderedDict()
-        for f in ifvs:
-            if not (f.interpreted_function() in bk.keys()):
-                bk[f.interpreted_function()] = OrderedDict()
-            bk[f.interpreted_function()][f] = ifvs[f]
 
-        return bk
+def elaborate_known_IFs(ifvs):
+    bk: OrderedDict = OrderedDict()
+    for f in ifvs:
+        if not (f.interpreted_function() in bk.keys()):
+            bk[f.interpreted_function()] = OrderedDict()
+        bk[f.interpreted_function()][f] = ifvs[f]
 
-    def knowledge_combinations(self, d, kl=None):
-        if len(d) == 0:
-            return d
-        akl = None
-        if kl is None:
-            akl = d.keys()
-        else:
-            akl = self.intersection(kl, d.keys())
-        if len(akl) == 0:
-            empd: OrderedDict = OrderedDict()
-            return empd
+    return bk
 
-        c = it.product(*(d[Name] for Name in akl))
-        return list(c)
 
-    def add_empty_knowledge_values(self, d):
-        for key in d:
-            d[key][key] = key
+def knowledge_combinations(d, kl=None):
+    if len(d) == 0:
         return d
+    akl = None
+    if kl is None:
+        akl = d.keys()
+    else:
+        akl = intersection(kl, d.keys())
+    if len(akl) == 0:
+        empd: OrderedDict = OrderedDict()
+        return empd
 
-    def intersection(self, lst1, lst2):
-        return list(set(lst1) & set(lst2))
+    c = it.product(*(d[Name] for Name in akl))
+    return list(c)
 
-    def _Equals_or_Iff(self, exp1, exp2, action):
-        ret_exp = None
-        if exp1.type.is_bool_type():
-            ret_exp = action.environment.expression_manager.Iff(exp1, exp2)
-        else:
-            ret_exp = action.environment.expression_manager.Equals(exp1, exp2)
-        return ret_exp
 
-    def _clone_instantaneous_add_parameter(
-        self, action, new_parameter_name, param_type
-    ):
-        # not sure how to do this without "private" variables
-        new_params = OrderedDict(
-            (param_name, param.type) for param_name, param in action._parameters.items()
-        )
+def add_empty_knowledge_values(d):
+    for key in d:
+        d[key][key] = key
+    return d
 
-        if new_parameter_name in new_params.keys():
-            print("oopsie")
-            print("could not add the new parameter")
-        else:
-            new_params[new_parameter_name] = param_type
-        new_instantaneous_action = InstantaneousAction(
-            action._name, new_params, action._environment
-        )
-        new_instantaneous_action._preconditions = action._preconditions[:]
-        new_instantaneous_action._effects = [e.clone() for e in action._effects]
-        new_instantaneous_action._fluents_assigned = action._fluents_assigned.copy()
-        new_instantaneous_action._fluents_inc_dec = action._fluents_inc_dec.copy()
-        new_instantaneous_action._simulated_effect = action._simulated_effect
-        return new_instantaneous_action
+
+def intersection(lst1, lst2):
+    return list(set(lst1) & set(lst2))
+
+
+def _Equals_or_Iff(exp1, exp2, action):
+    ret_exp = None
+    if exp1.type.is_bool_type():
+        ret_exp = action.environment.expression_manager.Iff(exp1, exp2)
+    else:
+        ret_exp = action.environment.expression_manager.Equals(exp1, exp2)
+    return ret_exp
+
+
+def _clone_instantaneous_add_parameter(action, new_parameter_name, param_type):
+    # not sure how to do this without "private" variables
+    new_params = OrderedDict(
+        # TODO - action.parameters returns _parameters.values(), we need items()
+        (param_name, param.type)
+        for param_name, param in action._parameters.items()
+    )
+
+    if new_parameter_name in new_params.keys():
+        print("could not add the new parameter")
+    else:
+        new_params[new_parameter_name] = param_type
+    new_instantaneous_action = InstantaneousAction(
+        action._name, new_params, action._environment
+    )
+    # redo this by iterating and using functions like add_precondition TODO
+    new_instantaneous_action._preconditions = action.preconditions[:]
+    new_instantaneous_action._effects = [e.clone() for e in action.effects]
+    new_instantaneous_action._fluents_assigned = (
+        action._fluents_assigned.copy()
+    )  # how to reach this?
+    new_instantaneous_action._fluents_inc_dec = (
+        action._fluents_inc_dec.copy()
+    )  # how to reach this?
+    new_instantaneous_action._simulated_effect = action.simulated_effect
+    return new_instantaneous_action
+
+
+def _fix_precondition(a):
+    # should we check for always true preconditions?
+    # simplified_precondition = simplifier.simplify(p)
+    # precondition_operators = operators_extractor.get(simplified_precondition)
+    # operators_extractor: up.model.walkers.OperatorsExtractor = (
+    #    up.model.walkers.OperatorsExtractor()
+    # )
+    templist = []
+    if a.is_and():
+        for sub in a.args:
+            templist.append(sub)
+    else:
+        templist.append(a)
+    return templist
 
 
 def custom_replace(
@@ -1299,7 +1100,7 @@ def custom_replace(
     while i < expected_amount:
         new_list.append(action_instance.actual_parameters[i])
         i = i + 1
-
+    # this might want a tuple instad of a list
     if replaced_action is not None:
         return ActionInstance(
             replaced_action,
@@ -1309,3 +1110,155 @@ def custom_replace(
         )
     else:
         return None
+
+
+# TODO - update old algorithm with queue version
+def old_algorithm(a, new_problem, ifvs, better_knowledge):
+
+    oe: up.model.walkers.OperatorsExtractor = up.model.walkers.OperatorsExtractor()
+    ife: up.model.walkers.InterpretedFunctionsExtractor = (
+        up.model.walkers.InterpretedFunctionsExtractor()
+    )
+    return_list = list()
+    interpreted_functions_queue: deque = deque()
+    no_IF_action_base = a.clone()
+    no_IF_action_base.clear_preconditions()
+    no_IF_action_preconditions_list: list = list()
+    fixed_preconditions = []
+    for p in a.preconditions:
+        templist = _fix_precondition(p)
+        fixed_preconditions.extend(templist)
+    for p in fixed_preconditions:
+        IFs = ife.get(p)
+        if len(IFs) == 0:
+            no_IF_action_base.add_precondition(p)
+
+    all_combinations_for_this_action: OrderedDict = OrderedDict()
+
+    all_ifs_in_instantaneous_action: list = list()
+    all_ifs_in_instantaneous_action.clear()
+    for p in fixed_preconditions:  # for each precondition
+        IFs = ife.get(p)
+        if len(IFs) != 0:  # get all the IFs in the precondition
+
+            for f in IFs:
+                # print(f)
+                if f not in all_ifs_in_instantaneous_action:
+                    # and append them in the key list if not already there
+                    all_ifs_in_instantaneous_action.append(f)
+                    interpreted_functions_queue.append(f)
+    if len(all_ifs_in_instantaneous_action) != 0:
+        ifs_as_keys_instantaneous: list = list()
+        ifs_as_keys_instantaneous.clear()
+        for f in all_ifs_in_instantaneous_action:
+            ifs_as_keys_instantaneous.append(f.interpreted_function())
+
+        all_combinations_for_this_action = knowledge_combinations(
+            better_knowledge, ifs_as_keys_instantaneous
+        )
+        if len(all_combinations_for_this_action) == 0:
+            no_if_action = a.clone()
+            no_if_action.clear_preconditions()
+            for p in fixed_preconditions:
+                n_IFs = ife.get(p)
+                if len(n_IFs) == 0:
+                    no_if_action.add_precondition(p)
+            return_list.append(no_if_action)
+        for kfc in all_combinations_for_this_action:
+            # for each possible combination (known function combinations)
+
+            new_action = a.clone()
+            new_action.name = get_fresh_name(new_problem, a.name)
+
+            new_condition = None
+            new_precondition_list = list()
+
+            for kf in kfc:
+
+                substituter_instantaneous_action_old: up.model.walkers.Substituter = (
+                    up.model.walkers.Substituter(new_action.environment)
+                )
+
+                subdict = dict()
+                for fun in all_ifs_in_instantaneous_action:
+
+                    if fun.interpreted_function() == kf.interpreted_function():
+                        subdict[fun] = ifvs[kf]
+
+                if len(subdict) == 0:
+                    print(
+                        "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
+                    )
+
+                preconditions_to_substitute_list = new_action.preconditions
+                new_action.clear_preconditions()
+                for pre in preconditions_to_substitute_list:
+
+                    new_precondition = substituter_instantaneous_action_old.substitute(
+                        pre, subdict
+                    )
+                    new_action.add_precondition(new_precondition)
+                argumentcounter = 0
+                while argumentcounter < len(kf.args):
+                    for aif in all_ifs_in_instantaneous_action:
+                        if aif.interpreted_function() == kf.interpreted_function():
+                            new_precondition_list.append(
+                                [
+                                    aif.args[argumentcounter],
+                                    kf.args[argumentcounter],
+                                ]
+                            )
+                            if new_condition is None:
+                                if aif.args[argumentcounter].type.is_bool_type():
+                                    new_condition = (
+                                        new_action.environment.expression_manager.Iff(
+                                            aif.args[argumentcounter],
+                                            kf.args[argumentcounter],
+                                        )
+                                    )
+                                else:
+                                    new_condition = new_action.environment.expression_manager.Equals(
+                                        aif.args[argumentcounter],
+                                        kf.args[argumentcounter],
+                                    )
+
+                            else:
+                                if aif.args[argumentcounter].type.is_bool_type():
+                                    new_condition = new_action.environment.expression_manager.And(
+                                        new_condition,
+                                        new_action.environment.expression_manager.Iff(
+                                            aif.args[argumentcounter],
+                                            kf.args[argumentcounter],
+                                        ),
+                                    )
+                                else:
+                                    new_condition = new_action.environment.expression_manager.And(
+                                        new_condition,
+                                        new_action.environment.expression_manager.Equals(
+                                            aif.args[argumentcounter],
+                                            kf.args[argumentcounter],
+                                        ),
+                                    )
+
+                    argumentcounter = argumentcounter + 1
+                # new_action.add_precondition(new_condition)
+                # base_not_precondition = (
+                #    no_IF_action_base.environment.expression_manager.Not(
+                #        new_condition
+                #    )
+                # )
+                # no_IF_action_base.add_precondition(base_not_precondition)
+
+                no_IF_action_preconditions_list.append(new_precondition_list)
+            new_action.add_precondition(new_condition)
+            base_not_precondition = (
+                no_IF_action_base.environment.expression_manager.Not(new_condition)
+            )
+            no_IF_action_base.add_precondition(base_not_precondition)
+            return_list.append(new_action)
+        no_IF_action_base.name = get_fresh_name(new_problem, a.name)
+        return_list.append(no_IF_action_base)
+    else:
+        return_list.append(a)
+
+    return return_list
