@@ -13,12 +13,10 @@
 # limitations under the License.
 #
 
-
-from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, OrderedDict, Set, Tuple, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -94,6 +92,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind = UPSequentialSimulator.supported_kind()
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return supported_kind
 
     @staticmethod
@@ -116,6 +115,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         metric = None
+        cif = None
+        hasif = False
+        if problem.kind.has_interpreted_functions_in_conditions():
+            hasif = True
         if len(problem.quality_metrics) > 0:
             if len(problem.quality_metrics) == 1:
                 metric = problem.quality_metrics[0]
@@ -150,6 +153,9 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+
+                    if hasif:
+                        cif = simulator._knowledge
                 else:
                     next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPUsageError as e:
@@ -160,6 +166,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
+                # print (cif)
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -168,6 +175,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     reason=FailedValidationReason.INAPPLICABLE_ACTION,
                     inapplicable_action=ai,
                     trace=trace,
+                    calculated_interpreted_functions=cif,
                 )
             assert next_state is not None
             if metric is not None:
@@ -245,10 +253,12 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_time("SELF_OVERLAPPING")
         kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         kind.set_expression_duration("INT_TYPE_DURATIONS")
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
         kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return kind
 
     @staticmethod
@@ -413,10 +423,17 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         """
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
-
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
+        cif = None
+
+        hasif = False
+        if (
+            problem.kind.has_interpreted_functions_in_conditions()
+            or problem.kind.has_interpreted_functions_in_durations()
+        ):
+            hasif = True
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
         )
@@ -615,6 +632,48 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 if not self._check_condition(state=state, se=se, condition=c):
                     if opt_ai is not None:
+                        if hasif:
+                            # cif = simulator._knowledge
+                            # print(
+                            #    "this thing does not have a simulator like the sequential ones ;-;"
+                            # )
+                            # print ("now in validator, extracting knowledge")
+                            # print(opt_ai.action)
+                            ife: up.model.walkers.InterpretedFunctionsExtractor = (
+                                up.model.walkers.InterpretedFunctionsExtractor()
+                            )
+                            # print(opt_ai.action.duration)
+                            if isinstance(opt_ai.action, DurativeAction):
+
+                                iflower = list(ife.get(opt_ai.action.duration.lower))
+                                ifupper = list(ife.get(opt_ai.action.duration.upper))
+                                ifcondition = []
+                                for ii, cl in opt_ai.action.conditions.items():
+
+                                    for c in cl:
+                                        iflist = list(ife.get(c))
+                                        # print(iflist)
+                                        ifcondition.extend(iflist)
+                                cif = OrderedDict()
+
+                                found_ifs = []
+                                found_ifs.extend(iflower)
+                                found_ifs.extend(ifupper)
+                                found_ifs.extend(ifcondition)
+
+                                for fif in found_ifs:
+
+                                    fp = fif.interpreted_function()
+                                    fa = fif.args
+                                    fc = fif.interpreted_function().function
+                                    notOkParams = list()
+                                    for fan in fa:
+                                        notOkParams.append(
+                                            state.get_value(fan).constant_value()
+                                        )
+                                    cif[fp(*notOkParams)] = fc(
+                                        *notOkParams
+                                    )  # does not use memoization
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
@@ -623,6 +682,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             reason=FailedValidationReason.INAPPLICABLE_ACTION,
                             inapplicable_action=opt_ai,
                             trace={k: v for k, v in trace.items() if k <= end},
+                            calculated_interpreted_functions=cif,
                         )
                     else:
                         return ValidationResult(
