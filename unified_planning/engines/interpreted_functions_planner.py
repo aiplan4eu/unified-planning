@@ -187,14 +187,14 @@ def _attempt_to_solve(
     if self._skip_checks:
         self.engine._skip_checks = True
     self._times_called = self._times_called + 1
-    before = round(time.time() * 1000)
+    # before = round(time.time() * 1000)
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    after = round(time.time() * 1000)
-    actual_time = after - before
-    print("this call took")
-    print(actual_time)
-    print("milliseconds")
-    self._time_list.append(actual_time)
+    # after = round(time.time() * 1000)
+    # actual_time = after - before
+    # print("this call took")
+    # print(actual_time)
+    # print("milliseconds")
+    # self._time_list.append(actual_time)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -212,17 +212,17 @@ def _attempt_to_solve(
                 print(new_problem)
                 print("planner called")
                 print(self._times_called)
-                print(len(self._time_list))
-                print("times")
-                print("on average each call lasted")
+                # print(len(self._time_list))
+                # print("times")
+                # print("on average each call lasted")
 
-                tottime = 0
+                # tottime = 0
 
-                for t in self._time_list:
-                    tottime = tottime + t
+                # for t in self._time_list:
+                #    tottime = tottime + t
 
-                avgtime = tottime / self._times_called
-                print(avgtime)
+                # avgtime = tottime / self._times_called
+                # print(avgtime)
 
             retval = PlanGenerationResult(
                 status,
@@ -280,7 +280,7 @@ def _refine(self, problem, validation_result):
         # print(self.knowledge)
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
             if self._use_old_compiler:
-                print("refining with old compiler")
+                # print("refining with old compiler")
                 if_remover._use_old_algorithm = True
             newProb = if_remover.compile(
                 problem,

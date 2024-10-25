@@ -231,6 +231,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         self._interpreted_functions_values,
                         better_knowledge,
                     )
+                    # print ("elaborated actions:")
+                    # print (elaborated_actions)
                     for ea in elaborated_actions:
                         ea.name = get_fresh_name(new_problem, a.name)
                         new_to_old[ea] = a
@@ -1114,151 +1116,112 @@ def custom_replace(
 
 # TODO - update old algorithm with queue version
 def old_algorithm(a, new_problem, ifvs, better_knowledge):
+    # print ("old algorithm called ----------------------------")
 
     oe: up.model.walkers.OperatorsExtractor = up.model.walkers.OperatorsExtractor()
     ife: up.model.walkers.InterpretedFunctionsExtractor = (
         up.model.walkers.InterpretedFunctionsExtractor()
     )
+    sub: up.model.walkers.Substituter = up.model.walkers.Substituter(a.environment)
+
     return_list = list()
     interpreted_functions_queue: deque = deque()
+    base_action = a.clone()
+    base_action.clear_preconditions()
     no_IF_action_base = a.clone()
     no_IF_action_base.clear_preconditions()
     no_IF_action_preconditions_list: list = list()
     fixed_preconditions = []
+    all_ifs_in_instantaneous_action: list = list()
+    all_ifs_in_instantaneous_action.clear()
     for p in a.preconditions:
         templist = _fix_precondition(p)
         fixed_preconditions.extend(templist)
     for p in fixed_preconditions:
+        base_action.add_precondition(p)
         IFs = ife.get(p)
-        if len(IFs) == 0:
-            no_IF_action_base.add_precondition(p)
+        for f in IFs:
+            if f not in all_ifs_in_instantaneous_action:
+                all_ifs_in_instantaneous_action.append(f)
+                interpreted_functions_queue.append(f)
 
-    all_combinations_for_this_action: OrderedDict = OrderedDict()
+    actions_list: list = list()
+    new_actions_list: list = list()
 
-    all_ifs_in_instantaneous_action: list = list()
-    all_ifs_in_instantaneous_action.clear()
-    for p in fixed_preconditions:  # for each precondition
-        IFs = ife.get(p)
-        if len(IFs) != 0:  # get all the IFs in the precondition
+    known_values_conditions: list = list()
+    actions_list.clear()
+    actions_list.append(base_action)
+    while len(interpreted_functions_queue) > 0:
+        new_actions_list.clear()
+        IF_to_handle_now = interpreted_functions_queue.pop()
+        if IF_to_handle_now.interpreted_function() not in better_knowledge.keys():
+            for pea in actions_list:
+                ta = pea.clone()
+                ta.clear_preconditions()
+                for precon in pea.preconditions:
+                    IFP = ife.get(precon)
+                    if IF_to_handle_now not in IFP:
+                        ta.add_precondition(precon)
+                new_actions_list.append(ta)
 
-            for f in IFs:
-                # print(f)
-                if f not in all_ifs_in_instantaneous_action:
-                    # and append them in the key list if not already there
-                    all_ifs_in_instantaneous_action.append(f)
-                    interpreted_functions_queue.append(f)
-    if len(all_ifs_in_instantaneous_action) != 0:
-        ifs_as_keys_instantaneous: list = list()
-        ifs_as_keys_instantaneous.clear()
-        for f in all_ifs_in_instantaneous_action:
-            ifs_as_keys_instantaneous.append(f.interpreted_function())
+        else:
+            # print ("we know something about")
+            # print (IF_to_handle_now)
+            # print (better_knowledge[IF_to_handle_now.interpreted_function()])
+            # print ("first let's do the ones we know something about")
+            known_values_conditions.clear()
+            for b in better_knowledge[IF_to_handle_now.interpreted_function()]:
+                # print (IF_to_handle_now) # thing to substitute
+                # print (ifvs[b]) # value to put in its place
+                arg_names = IF_to_handle_now.args
+                arg_values = b.args
+                # print (arg_names) # names of the arguments
+                # print (arg_values) # arguments have to be equal to this
+                subdict: dict = dict()
+                subdict.clear()
+                subdict[IF_to_handle_now] = ifvs[b]
 
-        all_combinations_for_this_action = knowledge_combinations(
-            better_knowledge, ifs_as_keys_instantaneous
-        )
-        if len(all_combinations_for_this_action) == 0:
-            no_if_action = a.clone()
-            no_if_action.clear_preconditions()
-            for p in fixed_preconditions:
-                n_IFs = ife.get(p)
-                if len(n_IFs) == 0:
-                    no_if_action.add_precondition(p)
-            return_list.append(no_if_action)
-        for kfc in all_combinations_for_this_action:
-            # for each possible combination (known function combinations)
+                argcounter = 0
+                arguments_precondition = None
+                while argcounter < len(arg_names):
+                    if arguments_precondition is None:
+                        arguments_precondition = _Equals_or_Iff(
+                            arg_names[argcounter], arg_values[argcounter], a
+                        )
+                    else:
+                        temp_precondition = _Equals_or_Iff(
+                            arg_names[argcounter], arg_values[argcounter], a
+                        )
+                        arguments_precondition = a.environment.expression_manager.And(
+                            arguments_precondition, temp_precondition
+                        )
+                    argcounter = argcounter + 1
+                known_values_conditions.append(arguments_precondition)
+                for pea in actions_list:
+                    ta = pea.clone()
+                    ta.clear_preconditions()
+                    for precon in pea.preconditions:
+                        temp_con = sub.substitute(precon, subdict)
+                        ta.add_precondition(temp_con)
+                    ta.add_precondition(arguments_precondition)
+                    new_actions_list.append(ta)
 
-            new_action = a.clone()
-            new_action.name = get_fresh_name(new_problem, a.name)
+            # print ("then let's do the generic case")
+            # print ("all these have to bet not")
+            # print (known_values_conditions)
+            for pea in actions_list:
+                ta = pea.clone()
+                ta.clear_preconditions()
+                for precon in pea.preconditions:
+                    IFP = ife.get(precon)
+                    if IF_to_handle_now not in IFP:
+                        ta.add_precondition(precon)
+                for nprecon in known_values_conditions:
+                    temp_precondition = ta.environment.expression_manager.Not(nprecon)
+                    ta.add_precondition(temp_precondition)
+                new_actions_list.append(ta)
+        actions_list.clear()
+        for ac in new_actions_list:
+            actions_list.append(ac)
 
-            new_condition = None
-            new_precondition_list = list()
-
-            for kf in kfc:
-
-                substituter_instantaneous_action_old: up.model.walkers.Substituter = (
-                    up.model.walkers.Substituter(new_action.environment)
-                )
-
-                subdict = dict()
-                for fun in all_ifs_in_instantaneous_action:
-
-                    if fun.interpreted_function() == kf.interpreted_function():
-                        subdict[fun] = ifvs[kf]
-
-                if len(subdict) == 0:
-                    print(
-                        "sub dict is empty ;-;\nif you got here it means there is a bug in the code"
-                    )
-
-                preconditions_to_substitute_list = new_action.preconditions
-                new_action.clear_preconditions()
-                for pre in preconditions_to_substitute_list:
-
-                    new_precondition = substituter_instantaneous_action_old.substitute(
-                        pre, subdict
-                    )
-                    new_action.add_precondition(new_precondition)
-                argumentcounter = 0
-                while argumentcounter < len(kf.args):
-                    for aif in all_ifs_in_instantaneous_action:
-                        if aif.interpreted_function() == kf.interpreted_function():
-                            new_precondition_list.append(
-                                [
-                                    aif.args[argumentcounter],
-                                    kf.args[argumentcounter],
-                                ]
-                            )
-                            if new_condition is None:
-                                if aif.args[argumentcounter].type.is_bool_type():
-                                    new_condition = (
-                                        new_action.environment.expression_manager.Iff(
-                                            aif.args[argumentcounter],
-                                            kf.args[argumentcounter],
-                                        )
-                                    )
-                                else:
-                                    new_condition = new_action.environment.expression_manager.Equals(
-                                        aif.args[argumentcounter],
-                                        kf.args[argumentcounter],
-                                    )
-
-                            else:
-                                if aif.args[argumentcounter].type.is_bool_type():
-                                    new_condition = new_action.environment.expression_manager.And(
-                                        new_condition,
-                                        new_action.environment.expression_manager.Iff(
-                                            aif.args[argumentcounter],
-                                            kf.args[argumentcounter],
-                                        ),
-                                    )
-                                else:
-                                    new_condition = new_action.environment.expression_manager.And(
-                                        new_condition,
-                                        new_action.environment.expression_manager.Equals(
-                                            aif.args[argumentcounter],
-                                            kf.args[argumentcounter],
-                                        ),
-                                    )
-
-                    argumentcounter = argumentcounter + 1
-                # new_action.add_precondition(new_condition)
-                # base_not_precondition = (
-                #    no_IF_action_base.environment.expression_manager.Not(
-                #        new_condition
-                #    )
-                # )
-                # no_IF_action_base.add_precondition(base_not_precondition)
-
-                no_IF_action_preconditions_list.append(new_precondition_list)
-            new_action.add_precondition(new_condition)
-            base_not_precondition = (
-                no_IF_action_base.environment.expression_manager.Not(new_condition)
-            )
-            no_IF_action_base.add_precondition(base_not_precondition)
-            return_list.append(new_action)
-        no_IF_action_base.name = get_fresh_name(new_problem, a.name)
-        return_list.append(no_IF_action_base)
-    else:
-        return_list.append(a)
-
-    return return_list
+    return actions_list
