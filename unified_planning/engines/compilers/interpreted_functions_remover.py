@@ -22,6 +22,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.interpreted_function import InterpretedFunction
+from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.object import Object
 from unified_planning.model.timing import EndTiming, StartTiming, TimepointKind
 from unified_planning.model.walkers.substituter import Substituter
@@ -201,6 +202,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_problem = problem.clone()
+        actions_list: list = list()
+        interpreted_functions_queue: deque = deque()
         temp_problem = problem.clone()  # used to get fresh names might not be necessary
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
@@ -211,16 +214,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             "kNum_for_interpreted_functions"
         )  # does this need to have a unique name?
 
+        known_values_imply_list: list = list()
         fluent_function_dict: dict = dict()
         fluent_function_dict.clear()
         object_dict: dict = dict()
         object_dict.clear()
         fluents_assignments_tuple_list: list = list()  # (fluent, input, output)
         fluents_assignments_tuple_list.clear()
-
+        print("Compiling...")
         for a in problem.actions:
-            # print ("now on action")
-            # print(a)
+            # TODO - clean up code
+            print("---------- now on action: ----------")
+            print(a)
             if isinstance(a, InstantaneousAction):
 
                 if self._use_old_algorithm:
@@ -240,10 +245,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                     continue
 
-                interpreted_functions_queue: deque = deque()
+                interpreted_functions_queue.clear()
                 no_IF_action_base = a.clone()
                 no_IF_action_base.clear_preconditions()
                 fixed_preconditions = []
+                all_ifs_in_instantaneous_action: list = list()
+                all_ifs_in_instantaneous_action.clear()
+                temp_a = a.clone()
+                temp_a.clear_preconditions()
                 for p in a.preconditions:
                     templist = _fix_precondition(p)
                     fixed_preconditions.extend(templist)
@@ -251,13 +260,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     IFs = self.interpreted_functions_extractor.get(p)
                     if len(IFs) == 0:
                         no_IF_action_base.add_precondition(p)
-
-                all_ifs_in_instantaneous_action: list = list()
-                all_ifs_in_instantaneous_action.clear()
-                for p in fixed_preconditions:  # for each precondition
-                    IFs = self.interpreted_functions_extractor.get(p)
-                    if len(IFs) != 0:  # get all the IFs in the precondition
-
+                    else:
                         for f in IFs:
                             # print(f)
                             if f not in all_ifs_in_instantaneous_action:
@@ -265,16 +268,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 all_ifs_in_instantaneous_action.append(f)
                                 interpreted_functions_queue.append(f)
 
-                # alternative implementation -----------------------------------------------------------------
-                temp_a = a.clone()
-                temp_a.clear_preconditions()
                 for p in fixed_preconditions:
                     temp_a.add_precondition(p)
 
-                actions_list: list = list()
                 actions_list.clear()
                 actions_list.append(temp_a)
-                # moved lists/dict assignments from here
                 while len(interpreted_functions_queue) > 0:
                     IF_to_handle_now = interpreted_functions_queue.pop()
                     if (
@@ -337,7 +335,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                             known_values_precondition_list: list = list()
                             known_values_precondition_list.clear()
-                            known_values_imply_list: list = list()
                             known_values_imply_list.clear()
                             for known_value in better_knowledge[
                                 IF_to_handle_now.interpreted_function()
@@ -466,11 +463,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             temp_problem.add_action(
                                 action_for_known_values
                             )  # might not be necessary - just for naming purposes
-                            # unknown values ----------------------------------------------------------------
-                            # unknown values ----------------------------------------------------------------
-                            # unknown values ----------------------------------------------------------------
-                            # unknown values ----------------------------------------------------------------
-                            # unknown values ----------------------------------------------------------------
                             # print ("now making action for unknown values ---")
                             # now add precondition for unknown values and remove the if
                             action_for_unknown_values = (
@@ -555,6 +547,297 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 IF_keys_in_durations = list()
                 IF_keys_in_start_conditions = list()
                 IF_keys_in_end_conditions = list()
+                base_action = a.clone()
+                base_action.clear_conditions()
+                new_actions_list: list = list()
+
+                IFs_from_conditions: dict = dict()
+                IFs_from_durations: list = list()
+
+                for ii, cl in a.conditions.items():
+                    IFs_from_conditions[ii] = list()
+                    for c in cl:
+                        tc = _fix_precondition(c)
+                        IFs = self.interpreted_functions_extractor.get(c)
+                        for f in IFs:
+                            if f not in IFs_from_conditions[ii]:
+                                IFs_from_conditions[ii].append(f)
+                        base_action.add_condition(ii, c)
+                # print ("action with fixed conditions")
+                # print (base_action)
+
+                # print ("all ifs from conditions")
+                # print (IFs_from_conditions)
+                if (
+                    not OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(a.duration.lower)
+                ):
+                    minduration = a.duration.lower
+                else:
+                    IFs = self.interpreted_functions_extractor.get(a.duration.lower)
+                    for f in IFs:
+                        IFs_from_durations.append(f)
+                if (
+                    not OperatorKind.INTERPRETED_FUNCTION_EXP
+                    in self.operators_extractor.get(a.duration.upper)
+                ):
+                    maxduration = a.duration.upper
+                else:
+                    IFs = self.interpreted_functions_extractor.get(a.duration.upper)
+                    for f in IFs:
+                        IFs_from_durations.append(f)
+                # print ("all ifs from durations")
+                # print (IFs_from_durations)
+
+                actions_list.clear()
+                actions_list.append(base_action)
+
+                interpreted_functions_queue.clear()
+                # start with durations part
+                for f in IFs_from_durations:
+                    interpreted_functions_queue.append(f)
+                while len(interpreted_functions_queue) > 0:
+                    IF_to_handle_now = interpreted_functions_queue.pop()
+                    # print (IF_to_handle_now)
+                    # print ("was found in a duration")
+                    # print ("all our knowledge is")
+                    # print (better_knowledge)
+                    new_actions_list.clear()
+                    if (
+                        IF_to_handle_now.interpreted_function()
+                        in better_knowledge.keys()
+                    ):
+                        # print ("we know something about this")
+                        # print ("have to make two actions, one for known one for unknown")
+
+                        for partially_elaborated_action in actions_list:
+                            placeholder_function_name = get_fresh_name(
+                                temp_problem,
+                                ("f_" + IF_to_handle_now.interpreted_function().name),
+                            )
+                            placeholder_function_fluent = None
+                            if placeholder_function_name in fluent_function_dict.keys():
+                                placeholder_function_fluent = fluent_function_dict[
+                                    placeholder_function_name
+                                ]
+
+                            else:
+                                placeholder_function_fluent = Fluent(
+                                    placeholder_function_name,
+                                    IF_to_handle_now.interpreted_function().return_type,
+                                    input_object=kNum_for_interpreted_functions,
+                                )
+                                fluent_function_dict[
+                                    placeholder_function_name
+                                ] = placeholder_function_fluent
+                            argnamesstring = ""
+                            for arg in IF_to_handle_now.args:
+                                argnamesstring = argnamesstring + "_" + str(arg)
+                            action_parameter_name = (
+                                "P_" + placeholder_function_name + argnamesstring
+                            )
+                            action_for_known_values = _clone_durative_add_parameter(
+                                partially_elaborated_action,
+                                action_parameter_name,
+                                kNum_for_interpreted_functions,
+                            )
+                            action_parameter = action_for_known_values.parameter(
+                                action_parameter_name
+                            )
+                            # print ("test clone durative action")
+                            # print (action_for_known_values)
+
+                            known_values_condition_list: list = list()
+                            known_values_condition_list.clear()
+                            known_values_imply_list.clear()
+                            for known_value in better_knowledge[
+                                IF_to_handle_now.interpreted_function()
+                            ]:
+                                compressed_input_name = "O"
+                                argcounter_for_name = 0
+                                while argcounter_for_name < len(IF_to_handle_now.args):
+                                    compressed_input_name = (
+                                        compressed_input_name
+                                        + "_"
+                                        + str(
+                                            known_value.arg(
+                                                argcounter_for_name
+                                            ).constant_value()
+                                        )
+                                    )
+                                    argcounter_for_name = argcounter_for_name + 1
+                                    # print("placeholder name before double checking")  # not sure double checking is necessary - the fluents have to be added only at the end I think
+                                # print(compressed_input_name)
+                                known_value_object = None
+                                if compressed_input_name in object_dict.keys():
+                                    known_value_object = object_dict[
+                                        compressed_input_name
+                                    ]
+                                else:
+                                    known_value_object = Object(
+                                        compressed_input_name,
+                                        kNum_for_interpreted_functions,
+                                    )
+                                    object_dict[
+                                        compressed_input_name
+                                    ] = known_value_object
+                                # here add fluent assignment list
+                                # placeholder_function_fluent(known_value_object) = VALUE
+                                known_output_value = self._interpreted_functions_values[
+                                    known_value
+                                ]
+                                fluents_assignments_tuple_list.append(
+                                    (
+                                        placeholder_function_fluent,
+                                        known_value_object,
+                                        known_output_value,
+                                    )
+                                )
+                                argcounter = 0
+                                known_values_condition = None
+                                imply_condition = None
+                                while argcounter < len(known_value.args):
+
+                                    if known_values_condition is None:
+                                        known_values_condition = _Equals_or_Iff(
+                                            IF_to_handle_now.arg(argcounter),
+                                            known_value.arg(argcounter),
+                                            action_for_known_values,
+                                        )
+                                    else:
+                                        temp_condition = _Equals_or_Iff(
+                                            IF_to_handle_now.arg(argcounter),
+                                            known_value.arg(argcounter),
+                                            action_for_known_values,
+                                        )
+                                        known_values_condition = action_for_known_values.environment.expression_manager.And(
+                                            known_values_condition, temp_condition
+                                        )
+
+                                    argcounter = argcounter + 1
+                                # known_values_precondition implies that the value of the new action parameter is O_*knownvalue*
+
+                                imply_condition = action_for_known_values.environment.expression_manager.Implies(
+                                    known_values_condition,
+                                    action_for_known_values.environment.expression_manager.Equals(
+                                        action_parameter, known_value_object
+                                    ),
+                                )
+                                known_values_imply_list.append(imply_condition)
+                                known_values_condition_list.append(
+                                    known_values_condition
+                                )
+                            # end of for known_value in better knowledge
+                            substitution_dict_durative_action = dict()
+                            placeholder_function_expression = (
+                                placeholder_function_fluent(action_parameter)
+                            )
+                            substitution_dict_durative_action[
+                                IF_to_handle_now
+                            ] = placeholder_function_expression
+                            substituter_durative_action: up.model.walkers.Substituter = up.model.walkers.Substituter(
+                                action_for_known_values.environment
+                            )
+
+                            lowtimeexp = action_for_known_values.duration.lower
+                            uptimeexp = action_for_known_values.duration.upper
+                            temp_low = substituter_durative_action.substitute(
+                                lowtimeexp, substitution_dict_durative_action
+                            )
+                            temp_up = substituter_durative_action.substitute(
+                                uptimeexp, substitution_dict_durative_action
+                            )
+                            action_for_known_values.set_closed_duration_interval(
+                                temp_low, temp_up
+                            )
+
+                            for p in known_values_imply_list:
+                                action_for_known_values.add_condition(StartTiming(), p)
+                            Or_condition = None
+                            for (
+                                p
+                            ) in (
+                                known_values_condition_list
+                            ):  # we have to Or these - TODO not checked or condition with complex problems
+                                if Or_condition is None:
+                                    Or_condition = p
+                                else:
+                                    Or_condition = action_for_known_values.environment.expression_manager.Or(
+                                        Or_condition, p
+                                    )
+                            action_for_known_values.add_condition(
+                                StartTiming(), Or_condition
+                            )
+                            # print ("action_for_known_values")
+                            # print (action_for_known_values)
+                            new_actions_list.append(action_for_known_values)
+                            action_for_known_values.name = get_fresh_name(
+                                temp_problem, a.name
+                            )  # might not be necessary - just for naming purposes
+                            temp_problem.add_action(
+                                action_for_known_values
+                            )  # might not be necessary - just for naming purposes
+
+                            action_for_unknown_values = (
+                                partially_elaborated_action.clone()
+                            )
+                            for p in known_values_condition_list:
+                                notp = action_for_unknown_values.environment.expression_manager.Not(
+                                    p
+                                )
+                                action_for_unknown_values.add_condition(
+                                    StartTiming(), notp
+                                )
+                            new_actions_list.append(action_for_unknown_values)
+                            # print ("end elaborating unknown values if")
+                            action_for_unknown_values.name = get_fresh_name(
+                                temp_problem, a.name
+                            )  # might not be necessary - just for naming purposes
+                            temp_problem.add_action(
+                                action_for_unknown_values
+                            )  # might not be necessary - just for naming purposes
+
+                    else:
+                        for pea in actions_list:
+                            ta = pea.clone()
+                            ta.set_closed_duration_interval(minduration, maxduration)
+                            new_actions_list.append(ta)
+
+                        print("we have no knowledge of this")
+
+                    actions_list.clear()
+                    for pea in new_actions_list:
+                        actions_list.append(pea)
+                print("after elaborating durations, the list now is")
+                print(actions_list)
+                print("now elaborate conditions!")
+                print("we have this from conditions:")
+                print(IFs_from_conditions)
+
+                # code seems to work up until here
+                # TODO - finish this thing
+
+                for f in IFs_from_durations:
+                    interpreted_functions_queue.append(f)
+                while len(interpreted_functions_queue) > 0:
+                    IF_to_handle_now = interpreted_functions_queue.pop()
+
+                    new_actions_list.clear()
+                    if (
+                        IF_to_handle_now.interpreted_function()
+                        in better_knowledge.keys()
+                    ):
+                        print("we know something about this one")
+                        print(IF_to_handle_now)
+                        print(better_knowledge[IF_to_handle_now.interpreted_function()])
+                    else:
+                        print("we know nothing about this one")
+                        print(IF_to_handle_now)
+                        print(better_knowledge)
+                # TODO - finish this thing
+
+                # old implementation down here
+                # vvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
                 actions_start_conditions: list = list()
                 # check for ifs in lower duration, add them to if in durations
@@ -729,10 +1012,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     substituter_durative_action_start: up.model.walkers.Substituter = (
                         up.model.walkers.Substituter(temp_action_start.environment)
                     )
-                    new_conditions_list = temp_action_start.conditions
+                    new_conditions_list = temp_action_start.conditions.items()
                     temp_action_start.clear_conditions()
                     # conditions substitution stuff
-                    for ii, cl in new_conditions_list.items():
+                    for ii, cl in new_conditions_list:
                         # ii stands for interval, cl for conditions list
                         for c in cl:
                             if ii.lower.is_from_start():
@@ -779,9 +1062,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 start_generic_action.set_closed_duration_interval(
                     generic_minduration, generic_maxduration
                 )
-                new_generic_conditions_list = start_generic_action.conditions
+                new_generic_conditions_list = start_generic_action.conditions.items()
                 start_generic_action.clear_conditions()
-                for ii, cl in new_generic_conditions_list.items():
+                for ii, cl in new_generic_conditions_list:
                     for c in cl:
                         if ii.lower.is_from_start():
                             # if it's start
@@ -916,7 +1199,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         substituter_durative_action_end: up.model.walkers.Substituter = up.model.walkers.Substituter(
                             temp_action_end.environment
                         )
-                        new_conditions_list = temp_action_end.conditions
+                        new_conditions_list = temp_action_end.conditions.items()
                         temp_action_end.clear_conditions()
                         for ii, cl in new_conditions_list.items():
                             for c in cl:
@@ -934,9 +1217,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         # print (temp_action_end)
                         all_actions_compiled.append(temp_action_end)
                     end_generic_action = sa.clone()
-                    new_generic_conditions_list = end_generic_action.conditions
+                    new_generic_conditions_list = end_generic_action.conditions.items()
                     end_generic_action.clear_conditions()
-                    for ii, cl in new_generic_conditions_list.items():
+                    for ii, cl in new_generic_conditions_list:
                         for c in cl:
                             if ii.lower.is_from_end():
                                 # if it's end
@@ -1038,6 +1321,22 @@ def _Equals_or_Iff(exp1, exp2, action):
     return ret_exp
 
 
+def _clone_durative_add_parameter(action, new_parameter_name, param_type):
+    new_params = OrderedDict(
+        (param_name, param.type) for param_name, param in action._parameters.items()
+    )
+
+    if new_parameter_name in new_params.keys():
+        print("could not add the new parameter")
+    else:
+        new_params[new_parameter_name] = param_type
+    new_durative_action = DurativeAction(action._name, new_params, action._environment)
+    new_durative_action._duration = action._duration
+
+    TimedCondsEffs._clone_to(action, new_durative_action)
+    return new_durative_action
+
+
 def _clone_instantaneous_add_parameter(action, new_parameter_name, param_type):
     # not sure how to do this without "private" variables
     new_params = OrderedDict(
@@ -1054,8 +1353,11 @@ def _clone_instantaneous_add_parameter(action, new_parameter_name, param_type):
         action._name, new_params, action._environment
     )
     # redo this by iterating and using functions like add_precondition TODO
-    new_instantaneous_action._preconditions = action.preconditions[:]
-    new_instantaneous_action._effects = [e.clone() for e in action.effects]
+    for p in action.preconditions:
+        new_instantaneous_action.add_precondition(p)
+    new_instantaneous_action._effects = [
+        e.clone() for e in action.effects
+    ]  # this is also strange
     new_instantaneous_action._fluents_assigned = (
         action._fluents_assigned.copy()
     )  # how to reach this?
@@ -1114,7 +1416,6 @@ def custom_replace(
         return None
 
 
-# TODO - update old algorithm with queue version
 def old_algorithm(a, new_problem, ifvs, better_knowledge):
     # print ("old algorithm called ----------------------------")
 
