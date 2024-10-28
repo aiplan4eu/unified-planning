@@ -188,7 +188,14 @@ def _attempt_to_solve(
         self.engine._skip_checks = True
     self._times_called = self._times_called + 1
     # before = round(time.time() * 1000)
+    print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
+    print("asking planner to solve the following problem:")
+    print(new_problem)
+    print("planner")
+    print(self.engine.name)
+    print("says:")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+    print(res)
     # after = round(time.time() * 1000)
     # actual_time = after - before
     # print("this call took")
