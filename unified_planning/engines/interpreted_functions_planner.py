@@ -160,9 +160,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
-            if self._use_old_compiler:
-                print("using old compiler algorithm, many small actions")
-                if_remover._use_old_algorithm = True
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
@@ -187,8 +184,9 @@ def _attempt_to_solve(
     if self._skip_checks:
         self.engine._skip_checks = True
     self._times_called = self._times_called + 1
-    # before = round(time.time() * 1000)
     print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
+    print("our knowledge was")
+    print(self.knowledge)
     print("asking planner to solve the following problem:")
     print(new_problem)
     print("planner")
@@ -196,12 +194,6 @@ def _attempt_to_solve(
     print("says:")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
     print(res)
-    # after = round(time.time() * 1000)
-    # actual_time = after - before
-    # print("this call took")
-    # print(actual_time)
-    # print("milliseconds")
-    # self._time_list.append(actual_time)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
@@ -217,19 +209,6 @@ def _attempt_to_solve(
 
             if self._debug_print_final_problem:
                 print(new_problem)
-                print("planner called")
-                print(self._times_called)
-                # print(len(self._time_list))
-                # print("times")
-                # print("on average each call lasted")
-
-                # tottime = 0
-
-                # for t in self._time_list:
-                #    tottime = tottime + t
-
-                # avgtime = tottime / self._times_called
-                # print(avgtime)
 
             retval = PlanGenerationResult(
                 status,
@@ -275,7 +254,6 @@ def _attempt_to_solve(
 
 def _refine(self, problem, validation_result):
     newProb = None
-    # print("Now let's refine!")
     if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
     elif len(validation_result.calculated_interpreted_functions) == 0:
@@ -283,16 +261,9 @@ def _refine(self, problem, validation_result):
     else:
         for k in validation_result.calculated_interpreted_functions:
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
-        # print("we have knowledge:")
-        # print(self.knowledge)
         with InterpretedFunctionsRemover(self.knowledge) as if_remover:
-            if self._use_old_compiler:
-                # print("refining with old compiler")
-                if_remover._use_old_algorithm = True
             newProb = if_remover.compile(
                 problem,
                 CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
             )
-    # print ("new, better (hopefully) problem:")
-    # print (newProb)
     return newProb
