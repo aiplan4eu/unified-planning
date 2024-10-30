@@ -173,6 +173,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
             :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
+        print("Compiling...")
         assert isinstance(problem, Problem)
         env = problem.environment
         em = env.expression_manager
@@ -186,21 +187,28 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
 
-        kNum = env.type_manager.UserType(get_fresh_name(problem, "kNum"))
+        kNum = env.type_manager.UserType(get_fresh_name(new_problem, "kNum"))
 
-        new_objects = {}
-        new_fluents = {}
-        if_known = {}
-        for ifun_exp, val in self._interpreted_functions_values:
+        new_objects: dict = {}
+        new_fluents: dict = {}
+        if_known: dict = {}
+        for ifun_exp, val in self._interpreted_functions_values.items():
             # this does not add the functions we have not found with the validator yet
             ifun = ifun_exp.interpreted_function()
             if ifun not in if_known:
                 if_known[ifun] = []
             if ifun not in new_fluents:
-                f = Fluent(get_fresh_name(f"_f_{ifun.name}"), ifun.return_type, p=kNum)
+                f = Fluent(
+                    get_fresh_name(new_problem, f"_f_{ifun.name}"),
+                    ifun.return_type,
+                    p=kNum,
+                )
                 new_fluents[ifun] = f
                 new_problem.add_fluent(
-                    f, default_initial_value=self.default(ifun.return_type)
+                    f,
+                    default_initial_value=self._default_value_given_type(
+                        ifun.return_type
+                    ),
                 )
             else:
                 f = new_fluents[ifun]
@@ -208,12 +216,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 o = new_objects[tuple(ifun_exp.args)]
             else:
                 if_known[ifun].append(tuple(ifun_exp.args))
-                o = Object(get_fresh_name(f"_o"), kNum)
+                o = Object(get_fresh_name(new_problem, f"_o"), kNum)
                 new_objects[tuple(ifun_exp.args)] = o
                 new_problem.add_object(o)
             new_problem.set_initial_value(f(o), val)
 
         for a in problem.actions:
+            print("-------------------------------------------------------------------")
+            print("looping for a in problem actions")
+
+            print("now on action")
+            print(a)
             conds = []
             if_conds = []
             for t, c in self.get_conditions(a):
@@ -237,35 +250,35 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     upper = None
 
             for known in itertools.product([True, False], repeat=len(if_conds)):
+                if not knowledge_compatible(if_conds, known, new_fluents.keys()):
+                    print("this is not compatible with our knowledge")
+                    print("we have to skip this case")
+                    # is this ok?
+                    continue
                 new_params = []
                 new_conds = []
+                paramcounter = 0
                 for (t, c, ifuns, is_duration, is_lower), k in zip(if_conds, known):
-                    # TODO - find better solution for under this
-                    for ifun in ifuns:
-                        if ifun not in new_fluents.keys():
-                            print(
-                                "function that should be in known case has no known values"
-                            )
-                            k = False
-                    # ------ find better solution for above this
                     subs = {}
                     implies = []
                     l1 = []
                     for ifun in ifuns:
                         if k:
+                            paramcounter = paramcounter + 1
                             new_param = up.model.Parameter(
                                 get_fresh_name(
-                                    problem, f"_p_{ifun.interpreted_function().name}"
+                                    new_problem,
+                                    f"_p_{ifun.interpreted_function().name}_"
+                                    + str(paramcounter),
                                 ),
                                 kNum,
                             )
                             new_params.append(new_param)
-                            print(new_fluents)  # TODO - remove debug prints
                             f = new_fluents[ifun.interpreted_function()]
                             subs[ifun] = f(new_param)
                         l2 = []
-                        # TODO - check if fix is ok - added if ... in keys
                         if ifun.interpreted_function() in if_known.keys():
+
                             for p_known in if_known[ifun.interpreted_function()]:
                                 pf = em.And(
                                     [
@@ -279,12 +292,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                         (t, em.Implies(pf, em.Equals(new_param, ob)))
                                     )
                                 l2.append(pf)
-                        print("l2")  # TODO - remove debug prints
-                        print(l2)  # TODO - remove debug prints
+                        else:
+                            # in this case it means that this function has to be ocnsidered unknown
+                            # and there are no known values to put as not in the condition
+                            pass
                         if len(l2) != 0:
                             l1.append(em.Or(l2))
-                    print("l1")  # TODO - remove debug prints
-                    print(l1)  # TODO - remove debug prints
                     if k:
                         new_conds.append((t, em.And(l1)))
                         new_conds.extend(implies)
@@ -297,45 +310,73 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             new_conds.append((t, c.substitute(subs)))
                     else:
                         if len(l1) != 0:
-                            new_conds.append(em.Not(em.And(l1)))
+                            new_conds.append((t, em.Not(em.And(l1))))
                         if is_duration:
                             if is_lower:
                                 lower = em.Real(Fraction(1, 1))
                             else:
                                 upper = em.Real(Fraction(1000000, 1))
 
-                # clone action
-                print("conds")  # TODO - remove debug prints
-                print(conds)  # TODO - remove debug prints
-                print("new_conds")  # TODO - remove debug prints
-                print(new_conds)  # TODO - remove debug prints
                 new_a = self.clone_action_with_extra_params(
                     a, new_params, conds + new_conds, (lower, upper)
                 )
+                print("case:")
+                for ifc, kv in zip(if_conds, known):
+                    print(*ifc[2])
+                    if kv:
+                        print("known")
+                    else:
+                        print("unknown")
+                print("---compiled action:")
+                new_a.name = get_fresh_name(new_problem, a.name)
+                print(new_a)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
+        print("finished compiling!")
 
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
     def clone_action_with_extra_params(self, a, new_params, conditions, duration):
-        print("self")  # TODO - remove debug prints
-        print(self)  # TODO - remove debug prints
-        print("a")  # TODO - remove debug prints
-        print(a)  # TODO - remove debug prints
-        print("new_params")  # TODO - remove debug prints
-        print(new_params)  # TODO - remove debug prints
-        print("conditions")  # TODO - remove debug prints
-        print(conditions)  # TODO - remove debug prints
-        print("duration")  # TODO - remove debug prints
-        print(duration)  # TODO - remove debug prints
-        # TODO - implement this
+        # TODO - finish implementing this
+
+        updated_parameters = OrderedDict(
+            (param.name, param.type) for param in a.parameters
+        )
+        for n in new_params:
+            updated_parameters[n.name] = n.type
+
+            # following stuff has to be split between instantaneous and durative
+        # new_instantaneous_action = InstantaneousAction(
+        #    action.name, new_params, action.environment
+        # )
+        # for p in action.preconditions:
+        #    new_instantaneous_action.add_precondition(p)
+        # for eff in action.effects:
+        #    new_instantaneous_action._add_effect_instance(eff.clone())
+        # if action.simulated_effect is not None:
+        #    new_instantaneous_action.set_simulated_effect(action.simulated_effect)
+
         new_action = None
         if isinstance(a, up.model.DurativeAction):
             raise NotImplementedError
         elif isinstance(a, up.model.InstantaneousAction):
-            raise NotImplementedError
+            new_action = up.model.InstantaneousAction(
+                a.name, updated_parameters, a.environment
+            )
+
+            for eff in a.effects:
+                new_action._add_effect_instance(eff.clone())
+            if a.simulated_effect is not None:
+                new_action.set_simulated_effect(a.simulated_effect)
+
+            not_timed_conditions = []
+            for c in conditions:
+                not_timed_conditions.append(c[1])
+            new_action.clear_preconditions()
+            for c in not_timed_conditions:
+                new_action.add_precondition(c)
         else:
             raise NotImplementedError
         return new_action
@@ -348,21 +389,25 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             ret_exp = manager.Equals(v1, v2)
         return ret_exp
 
-    def default(self, t):
-        if t.is_bool_type:
+    def _default_value_given_type(self, t):
+        if t.is_bool_type():
             return False
-        if t.is_int_type:
-            # TODO check for bounds
-            return 0
-        if t.is_real_type:
-            # TODO check for bounds
-            return Fraction(0, 1)
+        if t.is_int_type():
+            if t.lower_bound is None:
+                return 0
+            else:
+                return t.lower_bound
+        if t.is_real_type():
+            if t.lower_bound is None:
+                return Fraction(0, 1)
+            else:
+                return t.lower_bound
         else:
             raise NotImplementedError
 
     def get_conditions(self, a):
-        cond_list = []
-        time_list = []
+        cond_list: list = []
+        time_list: list = []
         if isinstance(a, up.model.DurativeAction):
             a_conditions = a.conditions.items()
             for ii, cl in a_conditions:
@@ -424,3 +469,13 @@ def custom_replace(
         )
     else:
         return None
+
+
+def knowledge_compatible(_ic, _k, _kl):
+    retval = True
+    for (t, c, ifuns, is_duration, is_lower), k in zip(_ic, _k):
+        if k:
+            for ifun in ifuns:
+                if ifun.interpreted_function() not in _kl:
+                    retval = False
+    return retval
