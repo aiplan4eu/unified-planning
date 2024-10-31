@@ -40,6 +40,7 @@ from unified_planning.engines.compilers.utils import (
 )
 from unified_planning.model.timing import StartTiming
 from unified_planning.plans.plan import ActionInstance
+from unified_planning.shortcuts import BoolType
 
 
 class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
@@ -108,6 +109,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FORALL_EFFECTS")
+        supported_kind.set_effects_kind(
+            "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
+        )  # added this
+        supported_kind.set_effects_kind(
+            "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+        )  # added this
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -214,14 +221,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             else:
                 f = new_fluents[ifun]
 
-            # for all actions
-            # extract all effects
-            # if effects assigns IF value to fluent -> add fluent same as above
-            # fluent default at true (maybe it would be better to default it at false and flip the rest of the checks/assignments to reduce the number of Nots)
-            # fluent keeps track of weather another fluent has been assigned a value from an IF
-            # add it to list of pairs (variable, fluent_tracking_variable)
-            # we will need this later when we create new actions
-
             if tuple(ifun_exp.args) in new_objects:
                 o = new_objects[tuple(ifun_exp.args)]
             else:
@@ -231,6 +230,35 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_object(o)
             new_problem.set_initial_value(f(o), val)
 
+        # for all actions
+        # extract all effects
+        # if effects assigns IF value to fluent -> add fluent same as above
+        # fluent default at true (maybe it would be better to default it at false and flip the rest of the checks/assignments to reduce the number of Nots)
+        # fluent keeps track of weather another fluent has been assigned a value from an IF
+        # add it to list of pairs (variable, fluent_tracking_variable)
+        # we will need this later when we create new actions
+        assignment_tracking_fluents: dict = {}
+        print("effects tests -------------------------------------------------------")
+        for a in problem.actions:
+            found_effects = self.get_effects(a)
+            for time, ef in found_effects:
+                print(time)  # we don't need time here
+                print(ef.fluent)
+                print(ef.value)
+                ifuns = self.interpreted_functions_extractor.get(ef.value)
+                if len(ifuns) != 0:
+                    # there are ifuns
+                    # in the effect assigment
+                    # of fluent ef.fluent
+                    new_f_name = get_fresh_name(
+                        new_problem, "_" + str(ef.fluent) + "_known"
+                    )
+                    f = Fluent(new_f_name, BoolType())
+                    new_problem.add_fluent(f, default_initial_value=True)
+                    print(f)
+        print(
+            "end of effects tests -------------------------------------------------------"
+        )
         for a in problem.actions:
             print("-------------------------------------------------------------------")
             print("looping for a in problem actions")
@@ -238,31 +266,42 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             print("now on action")
             print(a)
             conds = []
+            effs = []
             if_conds = []
             for t, c in self.get_conditions(a):
                 ifuns = self.interpreted_functions_extractor.get(c)
                 if ifuns:
-                    if_conds.append((t, c, ifuns, False, False))
+                    if_conds.append((t, c, ifuns, False, False, False))
                 else:
                     conds.append((t, c))
+
+            # get all effects
+            for time, ef in self.get_effects(a):
+                ifuns = self.interpreted_functions_extractor.get(ef.value)
+                # check if they contain IFs
+                if len(ifuns) != 0:
+                    # if they do save them to if_conds with is_effect
+                    if_conds.append((time, ef.value, ifuns, False, False, True))
+                else:
+                    effs.append((time, ef))
+                    # should we do a list of just ok effects similar to conds?
+                    pass
+
+            # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
+            # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT};
 
             lower, upper = None, None
             if isinstance(a, up.model.DurativeAction):
                 lower = a.duration.lower
                 ifuns = self.interpreted_functions_extractor.get(lower)
                 if ifuns:
-                    if_conds.append((StartTiming(), lower, ifuns, True, True))
+                    if_conds.append((StartTiming(), lower, ifuns, True, True, False))
                     lower = None
                 upper = a.duration.upper
                 ifuns = self.interpreted_functions_extractor.get(upper)
                 if ifuns:
-                    if_conds.append((StartTiming(), upper, ifuns, True, False))
+                    if_conds.append((StartTiming(), upper, ifuns, True, False, False))
                     upper = None
-
-            # get all effects and check if they contain IFs
-            # if they do, save them to the if_conds with extra param is_effect
-            # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
-            # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT}
 
             for known in itertools.product([True, False], repeat=len(if_conds)):
                 if not knowledge_compatible(if_conds, known, new_fluents.keys()):
@@ -272,8 +311,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     continue
                 new_params = []
                 new_conds = []
+                new_effs: list = []
                 paramcounter = 0
-                for (t, c, ifuns, is_duration, is_lower), k in zip(if_conds, known):
+                for (t, c, ifuns, is_duration, is_lower, is_effect), k in zip(
+                    if_conds, known
+                ):
                     subs = {}
                     implies = []
                     l1 = []
@@ -321,10 +363,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 lower = c.substitute(subs)
                             else:
                                 upper = c.substitute(subs)
+                        elif is_effect:
+                            # case known effect
+                            # TODO - effects stuff
+                            # new_effect - substitute
+                            print("we have an effect")
                         else:
                             new_conds.append((t, c.substitute(subs)))
-                        # case known effect
-                        # if is effect -> substitute
                     else:
                         if len(l1) != 0:
                             new_conds.append((t, em.Not(em.And(l1))))
@@ -333,12 +378,15 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 lower = em.Real(Fraction(1, 1))
                             else:
                                 upper = em.Real(Fraction(1000000, 1))
-                        # case unknown effect
-                        # change effect to known_variable := false
+                        if is_effect:
+                            pass
+                            # case unknown effect
+                            # TODO - new effect
+                            # new effect - known_variable := false
 
                 new_a = self.clone_action_with_extra_params(
-                    a, new_params, conds + new_conds, (lower, upper)
-                )  # we give the
+                    a, new_params, conds + new_conds, (lower, upper), effs + new_effs
+                )
                 print("case:")
                 for ifc, kv in zip(if_conds, known):
                     print(*ifc[2])
@@ -357,9 +405,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def clone_action_with_extra_params(self, a, new_params, conditions, duration):
-        # another argument, list of pairs
-        # (fluent, fluent_that_keeps_track)
+    def clone_action_with_extra_params(
+        self, a, new_params, conditions, duration, effects
+    ):
+
+        print("in clone action")
+        print("testing effects stuff")
+        print(effects)
 
         updated_parameters = OrderedDict(
             (param.name, param.type) for param in a.parameters
@@ -378,10 +430,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_durative_action = up.model.DurativeAction(
                 a.name, updated_parameters, a.environment
             )
-            for time in a.effects:
-                effs = a.effects[time]
-                for eff in effs:
-                    new_durative_action._add_effect_instance(time, eff.clone())
+            for time, eff in effects:
+                new_durative_action._add_effect_instance(time, eff.clone())
             if a.simulated_effects is not None:
                 for t, se in a.simulated_effects.items():
                     new_durative_action.set_simulated_effect(
@@ -398,8 +448,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_instantaneous_action = up.model.InstantaneousAction(
                 a.name, updated_parameters, a.environment
             )
-
-            for eff in a.effects:
+            for time, eff in effects:
                 new_instantaneous_action._add_effect_instance(eff.clone())
             if a.simulated_effect is not None:
                 new_instantaneous_action.set_simulated_effect(a.simulated_effect)
@@ -441,6 +490,27 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             raise NotImplementedError
 
+    def get_effects(self, a):
+        eff_list: list = []
+        time_list: list = []
+        if isinstance(a, up.model.InstantaneousAction):
+            i_aeffs = a.effects
+            for aeff in i_aeffs:
+                eff_list.append(aeff)
+                time_list.append(None)
+        elif isinstance(a, up.model.DurativeAction):
+            d_aeffs = a.effects
+            for time in d_aeffs:
+                for eff in d_aeffs[time]:
+                    eff_list.append(eff)
+                    time_list.append(time)
+            # TODO
+            pass
+        else:
+            # case default
+            raise NotImplementedError
+        return zip(time_list, eff_list)
+
     def get_conditions(self, a):
         cond_list: list = []
         time_list: list = []
@@ -462,6 +532,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return zip(time_list, cond_list)
 
     def add_condition(self, a, t, c):
+        raise NotImplementedError
+
+    def add_effect(self, a, t, e):
         raise NotImplementedError
 
 
@@ -511,7 +584,7 @@ def knowledge_compatible(_ic, _k, _kl):
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, c, ifuns, is_duration, is_lower), k in zip(_ic, _k):
+    for (t, c, ifuns, is_duration, is_lower, is_effect), k in zip(_ic, _k):
         if k:
             for ifun in ifuns:
                 if ifun in ukifuns:
