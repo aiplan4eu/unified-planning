@@ -213,6 +213,15 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 )
             else:
                 f = new_fluents[ifun]
+
+            # for all actions
+            # extract all effects
+            # if effects assigns IF value to fluent -> add fluent same as above
+            # fluent default at true (maybe it would be better to default it at false and flip the rest of the checks/assignments to reduce the number of Nots)
+            # fluent keeps track of weather another fluent has been assigned a value from an IF
+            # add it to list of pairs (variable, fluent_tracking_variable)
+            # we will need this later when we create new actions
+
             if tuple(ifun_exp.args) in new_objects:
                 o = new_objects[tuple(ifun_exp.args)]
             else:
@@ -249,6 +258,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if ifuns:
                     if_conds.append((StartTiming(), upper, ifuns, True, False))
                     upper = None
+
+            # get all effects and check if they contain IFs
+            # if they do, save them to the if_conds with extra param is_effect
+            # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
+            # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT}
 
             for known in itertools.product([True, False], repeat=len(if_conds)):
                 if not knowledge_compatible(if_conds, known, new_fluents.keys()):
@@ -309,6 +323,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 upper = c.substitute(subs)
                         else:
                             new_conds.append((t, c.substitute(subs)))
+                        # case known effect
+                        # if is effect -> substitute
                     else:
                         if len(l1) != 0:
                             new_conds.append((t, em.Not(em.And(l1))))
@@ -317,10 +333,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 lower = em.Real(Fraction(1, 1))
                             else:
                                 upper = em.Real(Fraction(1000000, 1))
+                        # case unknown effect
+                        # change effect to known_variable := false
 
                 new_a = self.clone_action_with_extra_params(
                     a, new_params, conds + new_conds, (lower, upper)
-                )
+                )  # we give the
                 print("case:")
                 for ifc, kv in zip(if_conds, known):
                     print(*ifc[2])
@@ -340,7 +358,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         )
 
     def clone_action_with_extra_params(self, a, new_params, conditions, duration):
-        # TODO - finish implementing this
+        # another argument, list of pairs
+        # (fluent, fluent_that_keeps_track)
 
         updated_parameters = OrderedDict(
             (param.name, param.type) for param in a.parameters
@@ -348,16 +367,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for n in new_params:
             updated_parameters[n.name] = n.type
 
-            # following stuff has to be split between instantaneous and durative
-        # new_instantaneous_action = InstantaneousAction(
-        #    action.name, new_params, action.environment
-        # )
-        # for p in action.preconditions:
-        #    new_instantaneous_action.add_precondition(p)
-        # for eff in action.effects:
-        #    new_instantaneous_action._add_effect_instance(eff.clone())
-        # if action.simulated_effect is not None:
-        #    new_instantaneous_action.set_simulated_effect(action.simulated_effect)
+        # effects have to be managed slightly differently in instantaneous and durative
+        # for each fluent in the new arg, if condition contains it, add
+        # [condition] Or Not fluent_that_keeps_track
 
         new_action: Optional[
             up.model.DurativeAction | up.model.InstantaneousAction
@@ -497,10 +509,25 @@ def custom_replace(
 
 def knowledge_compatible(_ic, _k, _kl):
     retval = True
+    kifuns = []
+    ukifuns = []
     for (t, c, ifuns, is_duration, is_lower), k in zip(_ic, _k):
         if k:
             for ifun in ifuns:
+                if ifun in ukifuns:
+                    retval = False
+                else:
+                    kifuns.append(ifun)
+
                 if ifun.interpreted_function() not in _kl:
                     retval = False
-    # TODO add skip for always false conditions (e.g. funx(a) known and funx (a) unknown)
+        else:
+            for ifun in ifuns:
+                if ifun in kifuns:
+                    retval = False
+                else:
+                    ukifuns.append(ifun)
+    # TODO check for always impossible probably does not work with complex durative conditions
+    # e.g. situation where you are supposed to know one same value at start but not at end
+
     return retval
