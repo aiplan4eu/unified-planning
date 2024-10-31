@@ -137,6 +137,12 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         additive_supported_kind.set_conditions_kind(
             "INTERPRETED_FUNCTIONS_IN_CONDITIONS"
         )
+        additive_supported_kind.set_effects_kind(
+            "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+        )
+        additive_supported_kind.set_effects_kind(
+            "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
+        )
         return final_supported_kind.union(additive_supported_kind)
 
     @staticmethod
