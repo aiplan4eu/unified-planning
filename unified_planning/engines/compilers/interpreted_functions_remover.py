@@ -32,6 +32,7 @@ from unified_planning.model import (
     Action,
 )
 from unified_planning.model.fluent import Fluent
+from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.object import Object
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
@@ -358,27 +359,50 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         # if action.simulated_effect is not None:
         #    new_instantaneous_action.set_simulated_effect(action.simulated_effect)
 
-        new_action = None
+        new_action: Optional[
+            up.model.DurativeAction | up.model.InstantaneousAction
+        ] = None
         if isinstance(a, up.model.DurativeAction):
-            raise NotImplementedError
+            new_durative_action = up.model.DurativeAction(
+                a.name, updated_parameters, a.environment
+            )
+            for time in a.effects:
+                effs = a.effects[time]
+                for eff in effs:
+                    new_durative_action._add_effect_instance(time, eff.clone())
+            if a.simulated_effects is not None:
+                for t, se in a.simulated_effects.items():
+                    new_durative_action.set_simulated_effect(
+                        t, se
+                    )  # TODO - check if this is correct
+            new_durative_action.clear_conditions()
+            for ii, c in conditions:
+                new_durative_action.add_condition(ii, c)
+            new_lower = duration[0]
+            new_upper = duration[1]
+            new_durative_action.set_closed_duration_interval(new_lower, new_upper)
+            new_action = new_durative_action
         elif isinstance(a, up.model.InstantaneousAction):
-            new_action = up.model.InstantaneousAction(
+            new_instantaneous_action = up.model.InstantaneousAction(
                 a.name, updated_parameters, a.environment
             )
 
             for eff in a.effects:
-                new_action._add_effect_instance(eff.clone())
+                new_instantaneous_action._add_effect_instance(eff.clone())
             if a.simulated_effect is not None:
-                new_action.set_simulated_effect(a.simulated_effect)
+                new_instantaneous_action.set_simulated_effect(a.simulated_effect)
 
             not_timed_conditions = []
             for c in conditions:
                 not_timed_conditions.append(c[1])
-            new_action.clear_preconditions()
+            new_instantaneous_action.clear_preconditions()
             for c in not_timed_conditions:
-                new_action.add_precondition(c)
+                new_instantaneous_action.add_precondition(c)
+            new_action = new_instantaneous_action
         else:
             raise NotImplementedError
+        print("new action:")
+        print(new_action)
         return new_action
 
     def EqualsOrIff(self, v1, v2, manager):
@@ -478,4 +502,5 @@ def knowledge_compatible(_ic, _k, _kl):
             for ifun in ifuns:
                 if ifun.interpreted_function() not in _kl:
                     retval = False
+    # TODO add skip for always false conditions (e.g. funx(a) known and funx (a) unknown)
     return retval
