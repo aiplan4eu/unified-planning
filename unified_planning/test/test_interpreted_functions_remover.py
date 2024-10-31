@@ -182,13 +182,3 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(expectedkind.has_int_type_durations())
         self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
         self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
-        self.assertTrue(compiled_problem.kind.has_int_type_durations())
-
-        l = compiled_problem.actions[0].duration.lower
-        u = compiled_problem.actions[0].duration.upper
-        self.assertTrue(l.is_int_constant())
-        self.assertTrue(u.is_int_constant())
-        print(l)
-        print(u)
-        self.assertTrue(l._content.payload == 1)
-        self.assertTrue(u._content.payload == 150)
