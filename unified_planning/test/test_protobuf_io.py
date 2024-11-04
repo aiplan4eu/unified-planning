@@ -403,6 +403,8 @@ class TestProtobufProblems(unittest_TestCase):
         for name, example in self.problems.items():
             problem = example.problem
             kind = problem.kind
+            if kind.has_processes():
+                continue
             problem_pb = self.pb_writer.convert(problem)
             problem_up = self.pb_reader.convert(problem_pb)
 

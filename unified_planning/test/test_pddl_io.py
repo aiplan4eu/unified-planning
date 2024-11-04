@@ -115,6 +115,13 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
 
+    def test_processes_writer(self):
+        problem = self.problems["1d_movement"].problem
+        w = PDDLWriter(problem)
+        pddl_domain = w.get_domain()
+        self.assertIn("(:process moving", pddl_domain)
+        self.assertIn("#t", pddl_domain)
+
     def test_basic_exists_writer(self):
         problem = self.problems["basic_exists"].problem
 
@@ -591,6 +598,7 @@ class TestPddlIO(unittest_TestCase):
                 for a in problem.actions:
                     parsed_a = parsed_problem.action(w.get_pddl_name(a))
                     self.assertEqual(a, w.get_item_named(parsed_a.name))
+
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
                         self.assertEqual(
                             param.type,
