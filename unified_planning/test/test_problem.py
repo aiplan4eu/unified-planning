@@ -530,6 +530,7 @@ class TestProblem(unittest_TestCase):
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
+            "1d_Movement",
         ]
         for example in self.problems.values():
             problem = example.problem

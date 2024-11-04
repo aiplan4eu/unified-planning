@@ -177,7 +177,7 @@ class InstantaneousTransitionMixin(Action):
         self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, InstantaneousAction):
+        if isinstance(oth, InstantaneousTransitionMixin):
             cond = (
                 self._environment == oth._environment
                 and self._name == oth._name
@@ -207,7 +207,7 @@ class InstantaneousTransitionMixin(Action):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
-        new_instantaneous_action = InstantaneousAction(
+        new_instantaneous_action = InstantaneousTransitionMixin(
             self._name, new_params, self._environment
         )
         new_instantaneous_action._preconditions = self._preconditions[:]
@@ -487,6 +487,20 @@ class InstantaneousAction(InstantaneousTransitionMixin):
             s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
+
+    def clone(self):
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
+        new_instantaneous_action = InstantaneousAction(
+            self._name, new_params, self._environment
+        )
+        new_instantaneous_action._preconditions = self._preconditions[:]
+        new_instantaneous_action._effects = [e.clone() for e in self._effects]
+        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
+        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_instantaneous_action._simulated_effect = self._simulated_effect
+        return new_instantaneous_action
 
 
 class DurativeAction(Action, TimedCondsEffs):
@@ -1014,3 +1028,15 @@ class Event(InstantaneousTransitionMixin):
             s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
+
+    def clone(self):
+        new_params = OrderedDict(
+            (param_name, param.type) for param_name, param in self._parameters.items()
+        )
+        new_instantaneous_action = Event(self._name, new_params, self._environment)
+        new_instantaneous_action._preconditions = self._preconditions[:]
+        new_instantaneous_action._effects = [e.clone() for e in self._effects]
+        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
+        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_instantaneous_action._simulated_effect = self._simulated_effect
+        return new_instantaneous_action
