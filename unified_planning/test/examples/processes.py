@@ -33,11 +33,11 @@ def get_example_problems():
     z = Fluent("z", BoolType())
     pr = Process("Name")
     pr.add_precondition(z)
-    problem = TestCase(
+    test_problem = TestCase(
         problem=problem,
         solvable=True,
         valid_plans=[],
         invalid_plans=[],
     )
-    problems["1d_movement"] = problem
+    problems["1d_movement"] = test_problem
     return problems
