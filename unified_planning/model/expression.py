@@ -483,7 +483,7 @@ class ExpressionManager(object):
             node_type=OperatorKind.FLUENT_EXP, args=tuple(params_exp), payload=fluent
         )
 
-    def InterpretedFunctionExp(  # not sure this is functional yet
+    def InterpretedFunctionExp(
         self,
         interpreted_function: "up.model.interpreted_function.InterpretedFunction",
         params: Sequence[Expression] = tuple(),
