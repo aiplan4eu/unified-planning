@@ -260,6 +260,7 @@ def _attempt_to_solve(
 
 def _refine(self, problem, validation_result):
     newProb = None
+    # TODO - how to get new calculated IFs for assignments ?
     if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
     elif len(validation_result.calculated_interpreted_functions) == 0:

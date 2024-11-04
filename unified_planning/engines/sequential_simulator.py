@@ -471,6 +471,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 ifs = ife.get(c)
                 # print (ifs)
                 for infu in ifs:
+                    # TODO remove _things
                     r = evaluate(infu)  # aka blockedvalue - in final output
                     fp = infu._content.payload  # aka foundcon - in final output
                     fa = infu._content.args  # aka args
@@ -483,10 +484,6 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     # print (state)
                     # print (infu._content.payload)
 
-            # print (self._contains_IFs)
-            # here evaluates the whole precondition - how do I fish up IF? -
-            # print (c._content) # ----------------------------------------------------
-            # print (evaluated_cond._content) # ---------------------------------------
             if (
                 not evaluated_cond.is_bool_constant()
                 or not evaluated_cond.bool_constant_value()
