@@ -34,6 +34,7 @@ from unified_planning.model import (
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.object import Object
+from unified_planning.model.effect import Effect
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
@@ -64,6 +65,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         self.interpreted_functions_extractor: up.model.walkers.InterpretedFunctionsExtractor = (
             up.model.walkers.InterpretedFunctionsExtractor()
         )
+        self.names_extractor: up.model.walkers.NamesExtractor = (
+            up.model.walkers.NamesExtractor()
+        )
         self._use_old_algorithm = False
         self._interpreted_functions_values = interpreted_functions_values
 
@@ -93,9 +97,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind(
-            "INTERPRETED_FUNCTIONS_IN_CONDITIONS"
-        )  # added this
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
@@ -109,12 +111,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FORALL_EFFECTS")
-        supported_kind.set_effects_kind(
-            "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
-        )  # added this
-        supported_kind.set_effects_kind(
-            "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
-        )  # added this
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -127,9 +125,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
-        supported_kind.set_expression_duration(
-            "INTERPRETED_FUNCTIONS_IN_DURATIONS"
-        )  # added this
+        supported_kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
@@ -142,8 +138,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_quality_metrics("FINAL_VALUE")
         supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
-        # supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
-        # supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
         return supported_kind
 
     @staticmethod
@@ -165,6 +159,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         if new_kind.has_interpreted_functions_in_durations():
             new_kind.unset_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
             new_kind.set_expression_duration("INT_TYPE_DURATIONS")
+        if new_kind.has_interpreted_functions_in_boolean_assignments():
+            new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        if new_kind.has_interpreted_functions_in_numeric_assignments():
+            new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
 
         return new_kind
 
@@ -234,28 +232,30 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         # extract all effects
         # if effects assigns IF value to fluent -> add fluent same as above
         # fluent default at true (maybe it would be better to default it at false and flip the rest of the checks/assignments to reduce the number of Nots)
+        # e.g. the fluent could be called value_has_changed instead of known_value
         # fluent keeps track of weather another fluent has been assigned a value from an IF
         # add it to list of pairs (variable, fluent_tracking_variable)
         # we will need this later when we create new actions
+
+        # NOTE right now implemented with the tracking fluent as thing_has_changed
+        # init to false, condition is "cond Or thing_has_changed", assignment in unknown case is to true
         assignment_tracking_fluents: dict = {}
         print("effects tests -------------------------------------------------------")
         for a in problem.actions:
             found_effects = self.get_effects(a)
             for time, ef in found_effects:
-                print(time)  # we don't need time here
-                print(ef.fluent)
-                print(ef.value)
-                ifuns = self.interpreted_functions_extractor.get(ef.value)
-                if len(ifuns) != 0:
-                    # there are ifuns
-                    # in the effect assigment
-                    # of fluent ef.fluent
-                    new_f_name = get_fresh_name(
-                        new_problem, "_" + str(ef.fluent) + "_known"
-                    )
-                    f = Fluent(new_f_name, BoolType())
-                    new_problem.add_fluent(f, default_initial_value=True)
-                    print(f)
+                if ef.fluent not in assignment_tracking_fluents.keys():
+                    ifuns = self.interpreted_functions_extractor.get(ef.value)
+                    if len(ifuns) != 0:
+                        print(type(ef.fluent))  # this is an FNode
+                        print(type(ef.fluent.fluent()))  # this is a fluent
+                        new_f_name = get_fresh_name(
+                            new_problem, "_" + str(ef.fluent.fluent()) + "_has_changed"
+                        )
+                        f = Fluent(new_f_name, BoolType())
+                        new_problem.add_fluent(f, default_initial_value=False)
+                        assignment_tracking_fluents[ef.fluent.fluent()] = f
+        print(assignment_tracking_fluents)
         print(
             "end of effects tests -------------------------------------------------------"
         )
@@ -269,11 +269,28 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             effs = []
             if_conds = []
             for t, c in self.get_conditions(a):
-                ifuns = self.interpreted_functions_extractor.get(c)
+                new_c = c
+                all_names: set = set()
+                # NOTE - probably should find better solution for this
+                # might have to change the names extractor
+                # maybe use free vars extractor
+                # TODO use fluent instead of fluentexpression
+                try:
+                    all_names = self.names_extractor.extract_names(c)
+                except:
+                    print("cannot extract some names")
+                    print("if this has IF assignment in effects it might not work")
+
+                for k in assignment_tracking_fluents.keys():
+                    if k.name in all_names:
+                        print("found one, we have to change this condition")
+                        new_c = em.Or(new_c, assignment_tracking_fluents[k])
+
+                ifuns = self.interpreted_functions_extractor.get(new_c)
                 if ifuns:
-                    if_conds.append((t, c, ifuns, False, False, False))
+                    if_conds.append((t, new_c, ifuns, False, False, False, None))
                 else:
-                    conds.append((t, c))
+                    conds.append((t, new_c))
 
             # get all effects
             for time, ef in self.get_effects(a):
@@ -281,11 +298,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 # check if they contain IFs
                 if len(ifuns) != 0:
                     # if they do save them to if_conds with is_effect
-                    if_conds.append((time, ef.value, ifuns, False, False, True))
+
+                    if_conds.append((time, ef.value, ifuns, False, False, True, ef))
                 else:
                     effs.append((time, ef))
                     # should we do a list of just ok effects similar to conds?
-                    pass
 
             # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
             # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT};
@@ -295,12 +312,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 lower = a.duration.lower
                 ifuns = self.interpreted_functions_extractor.get(lower)
                 if ifuns:
-                    if_conds.append((StartTiming(), lower, ifuns, True, True, False))
+                    if_conds.append(
+                        (StartTiming(), lower, ifuns, True, True, False, None)
+                    )
                     lower = None
                 upper = a.duration.upper
                 ifuns = self.interpreted_functions_extractor.get(upper)
                 if ifuns:
-                    if_conds.append((StartTiming(), upper, ifuns, True, False, False))
+                    if_conds.append(
+                        (StartTiming(), upper, ifuns, True, False, False, None)
+                    )
                     upper = None
 
             for known in itertools.product([True, False], repeat=len(if_conds)):
@@ -313,9 +334,15 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_conds = []
                 new_effs: list = []
                 paramcounter = 0
-                for (t, c, ifuns, is_duration, is_lower, is_effect), k in zip(
-                    if_conds, known
-                ):
+                for (
+                    t,
+                    c,
+                    ifuns,
+                    is_duration,
+                    is_lower,
+                    is_effect,
+                    effect_instance,
+                ), k in zip(if_conds, known):
                     subs = {}
                     implies = []
                     l1 = []
@@ -350,7 +377,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     )
                                 l2.append(pf)
                         else:
-                            # in this case it means that this function has to be ocnsidered unknown
+                            # NOTE - check if we need anything here
+                            # in this case it means that this function has to be considered unknown
                             # and there are no known values to put as not in the condition
                             pass
                         if len(l2) != 0:
@@ -364,10 +392,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             else:
                                 upper = c.substitute(subs)
                         elif is_effect:
-                            # case known effect
-                            # TODO - effects stuff
-                            # new_effect - substitute
-                            print("we have an effect")
+                            assert (
+                                effect_instance is not None
+                            )  # NOTE - is doing this for fixing mypy problems ok?
+                            n_e_v = c.substitute(subs)
+                            n_e = effect_instance.clone()
+                            n_e.set_value(n_e_v)
+                            new_effs.append((t, n_e))  # NOTE - not tested
                         else:
                             new_conds.append((t, c.substitute(subs)))
                     else:
@@ -379,11 +410,22 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             else:
                                 upper = em.Real(Fraction(1000000, 1))
                         if is_effect:
-                            pass
-                            # case unknown effect
-                            # TODO - new effect
-                            # new effect - known_variable := false
+                            assert (
+                                effect_instance is not None
+                            )  # NOTE - is doing this for fixing mypy problems ok?
+                            tracking_fluent_expression = em.FluentExp(
+                                assignment_tracking_fluents[
+                                    effect_instance.fluent.fluent()
+                                ]
+                            )
+                            n_e = Effect(
+                                tracking_fluent_expression, em.TRUE(), em.TRUE()
+                            )
+                            new_effs.append((t, n_e))
 
+                print("printing all effects")
+                print(effs)
+                print(new_effs)
                 new_a = self.clone_action_with_extra_params(
                     a, new_params, conds + new_conds, (lower, upper), effs + new_effs
                 )
@@ -422,6 +464,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         # effects have to be managed slightly differently in instantaneous and durative
         # for each fluent in the new arg, if condition contains it, add
         # [condition] Or Not fluent_that_keeps_track
+        # this has to be done at the start
 
         new_action: Optional[
             up.model.DurativeAction | up.model.InstantaneousAction
@@ -436,7 +479,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for t, se in a.simulated_effects.items():
                     new_durative_action.set_simulated_effect(
                         t, se
-                    )  # TODO - check if this is correct
+                    )  # NOTE - this might not be correct
             new_durative_action.clear_conditions()
             for ii, c in conditions:
                 new_durative_action.add_condition(ii, c)
@@ -504,8 +547,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for eff in d_aeffs[time]:
                     eff_list.append(eff)
                     time_list.append(time)
-            # TODO
-            pass
         else:
             # case default
             raise NotImplementedError
@@ -584,7 +625,9 @@ def knowledge_compatible(_ic, _k, _kl):
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, c, ifuns, is_duration, is_lower, is_effect), k in zip(_ic, _k):
+    for (t, c, ifuns, is_duration, is_lower, is_effect, effect_instance), k in zip(
+        _ic, _k
+    ):
         if k:
             for ifun in ifuns:
                 if ifun in ukifuns:
@@ -600,7 +643,7 @@ def knowledge_compatible(_ic, _k, _kl):
                     retval = False
                 else:
                     ukifuns.append(ifun)
-    # TODO check for always impossible probably does not work with complex durative conditions
+    # NOTE check for always impossible probably does not work with complex durative conditions
     # e.g. situation where you are supposed to know one same value at start but not at end
 
     return retval
