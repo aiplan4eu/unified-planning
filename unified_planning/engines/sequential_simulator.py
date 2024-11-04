@@ -360,7 +360,11 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 not effect.is_conditional() or evaluate(effect.condition).is_true()
             )
         if evaluated_condition:
+            print("IFs are calculated here for effects")
+            print(effect.value)
+            print(state)
             new_value = evaluate(effect.value)
+            print(new_value)  # TODO get these values in knowledge
             if effect.is_assignment():
                 old_value = updated_values.get(fluent, None)
                 if (
@@ -469,20 +473,15 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             if self._contains_IFs:
                 ife = up.model.walkers.InterpretedFunctionsExtractor()
                 ifs = ife.get(c)
-                # print (ifs)
                 for infu in ifs:
-                    # TODO remove _things
-                    r = evaluate(infu)  # aka blockedvalue - in final output
-                    fp = infu._content.payload  # aka foundcon - in final output
-                    fa = infu._content.args  # aka args
+                    r = evaluate(infu)
+                    fp = infu.interpreted_function()
+                    fa = infu.args
                     notOkParams = list()
                     for fan in fa:
                         notOkParams.append(state.get_value(fan))
-                    # print (notOkParams)
 
                     self._knowledge[fp(*notOkParams)] = r
-                    # print (state)
-                    # print (infu._content.payload)
 
             if (
                 not evaluated_cond.is_bool_constant()
@@ -681,6 +680,11 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
     def supports(problem_kind):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
+    def get_knowledge(self):
+        print(self._se.memoization)
+        # NOTE memoization is empty here
+        return self._knowledge
+
 
 def evaluate_quality_metric(
     simulator: SequentialSimulatorMixin,
@@ -789,7 +793,3 @@ def evaluate_quality_metric_in_initial_state(
         raise NotImplementedError(
             f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
         )
-
-
-def get_knowledge(self):
-    return self._knowledge

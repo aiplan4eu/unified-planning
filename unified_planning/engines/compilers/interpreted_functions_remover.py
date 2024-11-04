@@ -68,6 +68,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         self.names_extractor: up.model.walkers.NamesExtractor = (
             up.model.walkers.NamesExtractor()
         )
+        self.free_vars_extractor: up.model.walkers.FreeVarsExtractor = (
+            up.model.walkers.FreeVarsExtractor()
+        )
         self._use_old_algorithm = False
         self._interpreted_functions_values = interpreted_functions_values
 
@@ -240,50 +243,33 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         # NOTE right now implemented with the tracking fluent as thing_has_changed
         # init to false, condition is "cond Or thing_has_changed", assignment in unknown case is to true
         assignment_tracking_fluents: dict = {}
-        print("effects tests -------------------------------------------------------")
         for a in problem.actions:
             found_effects = self.get_effects(a)
             for time, ef in found_effects:
                 if ef.fluent not in assignment_tracking_fluents.keys():
                     ifuns = self.interpreted_functions_extractor.get(ef.value)
                     if len(ifuns) != 0:
-                        print(type(ef.fluent))  # this is an FNode
-                        print(type(ef.fluent.fluent()))  # this is a fluent
+                        # print(type(ef.fluent))  # this is an FNode
+                        # print(type(ef.fluent.fluent()))  # this is a fluent
                         new_f_name = get_fresh_name(
                             new_problem, "_" + str(ef.fluent.fluent()) + "_has_changed"
                         )
                         f = Fluent(new_f_name, BoolType())
                         new_problem.add_fluent(f, default_initial_value=False)
+                        new_problem.set_initial_value(f, em.FALSE())
                         assignment_tracking_fluents[ef.fluent.fluent()] = f
-        print(assignment_tracking_fluents)
-        print(
-            "end of effects tests -------------------------------------------------------"
-        )
         for a in problem.actions:
-            print("-------------------------------------------------------------------")
-            print("looping for a in problem actions")
-
-            print("now on action")
-            print(a)
             conds = []
             effs = []
             if_conds = []
             for t, c in self.get_conditions(a):
                 new_c = c
-                all_names: set = set()
-                # NOTE - probably should find better solution for this
-                # might have to change the names extractor
-                # maybe use free vars extractor
-                # TODO use fluent instead of fluentexpression
-                try:
-                    all_names = self.names_extractor.extract_names(c)
-                except:
-                    print("cannot extract some names")
-                    print("if this has IF assignment in effects it might not work")
-
+                all_fluents_fnodes = self.free_vars_extractor.get(c)
+                all_fluents = []
+                for f_fnode in all_fluents_fnodes:
+                    all_fluents.append(f_fnode.fluent())
                 for k in assignment_tracking_fluents.keys():
-                    if k.name in all_names:
-                        print("found one, we have to change this condition")
+                    if k in all_fluents:
                         new_c = em.Or(new_c, assignment_tracking_fluents[k])
 
                 ifuns = self.interpreted_functions_extractor.get(new_c)
@@ -306,6 +292,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
             # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT};
+            # TODO implement this
 
             lower, upper = None, None
             if isinstance(a, up.model.DurativeAction):
@@ -326,10 +313,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             for known in itertools.product([True, False], repeat=len(if_conds)):
                 if not knowledge_compatible(if_conds, known, new_fluents.keys()):
-                    print("this is not compatible with our knowledge")
-                    print("we have to skip this case")
-                    # is this ok?
                     continue
+                # TODO - maybe the following blocks can be places in a function
                 new_params = []
                 new_conds = []
                 new_effs: list = []
@@ -423,22 +408,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             )
                             new_effs.append((t, n_e))
 
-                print("printing all effects")
-                print(effs)
-                print(new_effs)
                 new_a = self.clone_action_with_extra_params(
                     a, new_params, conds + new_conds, (lower, upper), effs + new_effs
                 )
-                print("case:")
-                for ifc, kv in zip(if_conds, known):
-                    print(*ifc[2])
-                    if kv:
-                        print("known")
-                    else:
-                        print("unknown")
-                print("---compiled action:")
                 new_a.name = get_fresh_name(new_problem, a.name)
-                print(new_a)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
         print("finished compiling!")
@@ -450,10 +423,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def clone_action_with_extra_params(
         self, a, new_params, conditions, duration, effects
     ):
-
-        print("in clone action")
-        print("testing effects stuff")
-        print(effects)
 
         updated_parameters = OrderedDict(
             (param.name, param.type) for param in a.parameters
@@ -505,8 +474,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_action = new_instantaneous_action
         else:
             raise NotImplementedError
-        print("new action:")
-        print(new_action)
         return new_action
 
     def EqualsOrIff(self, v1, v2, manager):
@@ -621,28 +588,26 @@ def custom_replace(
         return None
 
 
-def knowledge_compatible(_ic, _k, _kl):
+def knowledge_compatible(_ic, _k, _kl):  # TODO change names - without underscore
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, c, ifuns, is_duration, is_lower, is_effect, effect_instance), k in zip(
-        _ic, _k
-    ):
+    for (t, _, ifuns, _, _, _, _), k in zip(_ic, _k):
         if k:
             for ifun in ifuns:
-                if ifun in ukifuns:
+                if (t, ifun) in ukifuns:
                     retval = False
                 else:
-                    kifuns.append(ifun)
+                    kifuns.append((t, ifun))
 
                 if ifun.interpreted_function() not in _kl:
                     retval = False
         else:
             for ifun in ifuns:
-                if ifun in kifuns:
+                if (t, ifun) in kifuns:
                     retval = False
                 else:
-                    ukifuns.append(ifun)
+                    ukifuns.append((t, ifun))
     # NOTE check for always impossible probably does not work with complex durative conditions
     # e.g. situation where you are supposed to know one same value at start but not at end
 
