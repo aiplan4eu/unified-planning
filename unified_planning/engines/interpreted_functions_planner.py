@@ -55,7 +55,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)
         self._knowledge = OrderedDict()
-        self._debug_print_final_problem = False
         self._use_old_compiler = False
         self._times_called = 0
         self._time_list = list()
@@ -213,9 +212,6 @@ def _attempt_to_solve(
             validation_result = validator.validate(problem, mappedbackplan)
         if validation_result.status == ValidationResultStatus.VALID:
 
-            if self._debug_print_final_problem:
-                print(new_problem)
-
             retval = PlanGenerationResult(
                 status,
                 mappedbackplan,
@@ -224,8 +220,6 @@ def _attempt_to_solve(
             )
             return retval
         else:
-            # print(mappedbackplan)
-            # print("Oh no! plan did not work!")
             refined_problem = _refine(self, problem, validation_result)
             if refined_problem is None:
                 retval = PlanGenerationResult(
@@ -248,8 +242,6 @@ def _attempt_to_solve(
         PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
     ]:
 
-        if self._debug_print_final_problem:
-            print(new_problem)
         incomplete = True
         if incomplete:
             status = res.status
