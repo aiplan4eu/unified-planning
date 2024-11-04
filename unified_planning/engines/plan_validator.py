@@ -154,7 +154,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
 
                     if hasif:
-                        cif = simulator._knowledge
+                        cif = simulator.get_knowledge()
                 else:
                     next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPUsageError as e:
@@ -166,6 +166,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
                 # print (cif)
+
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -343,6 +344,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     result[g_fluent] = se.evaluate(
                         em.Plus(f_value, g_value), state=state
                     )
+        print("finding where the memoization stuff is: _apply_effect in plan validator")
+        print(se.memoization)
         return result
 
     def _states_in_interval(
