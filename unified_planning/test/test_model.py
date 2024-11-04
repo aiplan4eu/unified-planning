@@ -80,9 +80,9 @@ class TestModel(unittest_TestCase):
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = {}
                 elif isinstance(action_2, Process):
-                    action_2._effects = {}
+                    action_2._effects = []
                     action_1_clone = action_1.clone()
-                    action_1_clone._effects = {}
+                    action_1_clone._effects = []
                 else:
                     raise NotImplementedError
                 self.assertEqual(action_2, action_1_clone)
