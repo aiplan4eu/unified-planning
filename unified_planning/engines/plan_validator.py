@@ -650,12 +650,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     if opt_ai is not None:
                         assert end is not None
                         if hasif:
-                            # cif = simulator._knowledge
-                            # print(
-                            #    "this thing does not have a simulator like the sequential ones ;-;"
-                            # )
-                            # print ("now in validator, extracting knowledge")
-                            # print(opt_ai.action)
                             ife: up.model.walkers.InterpretedFunctionsExtractor = (
                                 up.model.walkers.InterpretedFunctionsExtractor()
                             )
@@ -690,7 +684,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                                         )
                                     cif[fp(*notOkParams)] = fc(
                                         *notOkParams
-                                    )  # does not use memoization
+                                    )  # NOTE does not use memoization
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
