@@ -173,7 +173,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
                     if hasif:
-                        cif = simulator._knowledge
+                        cif = simulator.get_knowledge()
                     return invalid_result(
                         msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
                     )
