@@ -43,7 +43,7 @@ class QuantifierSimplifier(Simplifier):
         self._problem = problem
         self._assignments: Optional[Dict["Expression", "Expression"]] = None
         self._variable_assignments: Optional[Dict["Expression", "Expression"]] = None
-        self.if_values = {}
+        self.if_values: dict = {}
 
     def qsimplify(
         self,
