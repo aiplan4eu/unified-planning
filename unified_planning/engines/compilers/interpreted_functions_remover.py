@@ -189,6 +189,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         if self._interpreted_functions_values is None:
             self._interpreted_functions_values = OrderedDict()
+        # print (self._interpreted_functions_values )
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_problem = problem.clone()
@@ -612,3 +613,6 @@ def knowledge_compatible(_ic, _k, _kl):  # TODO change names - without underscor
     # e.g. situation where you are supposed to know one same value at start but not at end
 
     return retval
+
+
+# TODO - fix names extractor walker - as of right now it does not work with IFs
