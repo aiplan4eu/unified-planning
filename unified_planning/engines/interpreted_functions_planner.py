@@ -189,16 +189,16 @@ def _attempt_to_solve(
     if self._skip_checks:
         self.engine._skip_checks = True
     self._times_called = self._times_called + 1
-    print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
-    print("our knowledge was")
-    print(self.knowledge)
-    print("asking planner to solve the following problem:")
-    print(new_problem)
-    print("planner")
-    print(self.engine.name)
-    print("says:")
+    # print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
+    # print("our knowledge was")
+    # print(self.knowledge)
+    # print("asking planner to solve the following problem:")
+    # print(new_problem)
+    # print("planner")
+    # print(self.engine.name)
+    # print("says:")
     res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    print(res)
+    # print(res)
 
     if timeout is not None:
         timeout -= min(timeout, time.time() - start)
