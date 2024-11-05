@@ -189,14 +189,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         :raises: :exc:`~unified_planning.exceptions.UPProblemDefinitionError` when the :meth:`condition<unified_planning.model.Effect.condition>` of an
             :class:`~unified_planning.model.Effect` can't be removed without changing the :class:`~unified_planning.model.Problem` semantic.
         """
-        print("Compiling...")
         assert isinstance(problem, Problem)
         env = problem.environment
         em = env.expression_manager
 
         if self._interpreted_functions_values is None:
             self._interpreted_functions_values = OrderedDict()
-        # print (self._interpreted_functions_values )
 
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_problem = problem.clone()
@@ -246,8 +244,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if ef.fluent not in assignment_tracking_fluents.keys():
                     ifuns = self.interpreted_functions_extractor.get(ef.value)
                     if len(ifuns) != 0:
-                        # print(type(ef.fluent))  # this is an FNode
-                        # print(type(ef.fluent.fluent()))  # this is a fluent
                         new_f_name = get_fresh_name(
                             new_problem, "_" + str(ef.fluent.fluent()) + "_has_changed"
                         )
@@ -398,7 +394,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_a.name = get_fresh_name(new_problem, a.name)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
-        print("finished compiling!")
 
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name

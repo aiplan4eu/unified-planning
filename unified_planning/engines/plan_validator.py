@@ -94,6 +94,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         return supported_kind
 
     @staticmethod
@@ -272,6 +274,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.set_parameters("REAL_ACTION_PARAMETERS")
         kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
+        kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         return kind
 
     @staticmethod
@@ -672,7 +676,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         for g in problem.goals:
             if not self._check_condition(state=last_state, se=se, condition=g):
-                print("in for problem goals")
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -682,8 +685,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     inapplicable_action=None,
                     trace=trace,
                 )
-            print("just out of for problem goals")
-            print(se.if_values)
 
         return ValidationResult(
             status=ValidationResultStatus.VALID,
