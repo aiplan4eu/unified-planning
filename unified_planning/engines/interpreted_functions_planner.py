@@ -155,7 +155,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":
-        self._times_called = 0
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         em = problem.environment.expression_manager
@@ -168,7 +167,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             ifr = if_remover.compile(
                 problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
             )
-
         retval = _attempt_to_solve(
             self, problem, ifr, heuristic, timeout, output_stream
         )
@@ -183,76 +181,48 @@ def _attempt_to_solve(
     timeout: Optional[float] = None,
     output_stream: Optional[IO[str]] = None,
 ) -> "PlanGenerationResult":
+    cres = compilerresult
     f = problem.environment.factory
-    new_problem = compilerresult.problem
     start = time.time()
     if self._skip_checks:
         self.engine._skip_checks = True
-    self._times_called = self._times_called + 1
-    # print("<><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>")
-    # print("our knowledge was")
-    # print(self.knowledge)
-    # print("asking planner to solve the following problem:")
-    # print(new_problem)
-    # print("planner")
-    # print(self.engine.name)
-    # print("says:")
-    res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-    # print(res)
-
-    if timeout is not None:
-        timeout -= min(timeout, time.time() - start)
-    if res.status in up.engines.results.POSITIVE_OUTCOMES:
-        status = res.status
-        mapback = compilerresult.map_back_action_instance
-        mappedbackplan = res.plan.replace_action_instances(mapback)
-        with f.PlanValidator(
-            problem_kind=problem.kind, plan_kind=mappedbackplan.kind
-        ) as validator:
-            validation_result = validator.validate(problem, mappedbackplan)
-        if validation_result.status == ValidationResultStatus.VALID:
-
-            retval = PlanGenerationResult(
-                status,
-                mappedbackplan,
-                self.name,
-                log_messages=res.log_messages,
-            )
-            return retval
-        else:
-            refined_problem = _refine(self, problem, validation_result)
-            if refined_problem is None:
+    found_solution = False
+    while not found_solution:
+        new_problem = cres.problem
+        res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
+        if timeout is not None:
+            timeout -= min(timeout, time.time() - start)
+        if res.status in up.engines.results.POSITIVE_OUTCOMES:
+            # the planner found something
+            status = res.status
+            mapback = cres.map_back_action_instance
+            mappedbackplan = res.plan.replace_action_instances(mapback)
+            with f.PlanValidator(
+                problem_kind=problem.kind, plan_kind=mappedbackplan.kind
+            ) as validator:
+                validation_result = validator.validate(problem, mappedbackplan)
+            if validation_result.status == ValidationResultStatus.VALID:
+                # validator says ok, return this
                 retval = PlanGenerationResult(
-                    PlanGenerationResultStatus.UNSOLVABLE_PROVEN,  # validation_result.status,
+                    status,
                     mappedbackplan,
                     self.name,
                     log_messages=res.log_messages,
                 )
+                found_solution = True
             else:
-                retval = _attempt_to_solve(
-                    self, problem, refined_problem, heuristic, timeout, output_stream
-                )
-        return retval
-    elif res.status == PlanGenerationResultStatus.TIMEOUT:
-        return PlanGenerationResult(PlanGenerationResultStatus.TIMEOUT, None, self.name)
-    elif res.status in [
-        PlanGenerationResultStatus.MEMOUT,
-        PlanGenerationResultStatus.INTERNAL_ERROR,
-        PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,
-        PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY,
-    ]:
+                # validator says not ok, refine and retry
+                cres = _refine(self, problem, validation_result)
 
-        incomplete = True
-        if incomplete:
-            status = res.status
-    else:
-        status = PlanGenerationResultStatus.UNSOLVABLE_PROVEN
-    return PlanGenerationResult(status, None, self.name)
+        else:
+            # negative planner outcome, this is not solvable
+            retval = PlanGenerationResult(res.status, None, self.name)
+            found_solution = True
+    return retval
 
 
 def _refine(self, problem, validation_result):
     newProb = None
-    # TODO - how to get new calculated IFs for assignments ?
     if validation_result.calculated_interpreted_functions is None:
         print("no updates available, the problem has no solution")
     elif len(validation_result.calculated_interpreted_functions) == 0:
