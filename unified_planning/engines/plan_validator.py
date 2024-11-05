@@ -118,7 +118,11 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         metric = None
         cif = None
         hasif = False
-        if problem.kind.has_interpreted_functions_in_conditions():
+        if (
+            problem.kind.has_interpreted_functions_in_conditions()
+            or problem.kind.has_interpreted_functions_in_numeric_assignments()
+            or problem.kind.has_interpreted_functions_in_boolean_assignments()
+        ):
             hasif = True
         if len(problem.quality_metrics) > 0:
             if len(problem.quality_metrics) == 1:
@@ -506,6 +510,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         if (
             problem.kind.has_interpreted_functions_in_conditions()
             or problem.kind.has_interpreted_functions_in_durations()
+            or problem.kind.has_interpreted_functions_in_numeric_assignments()
+            or problem.kind.has_interpreted_functions_in_boolean_assignments()
         ):
             hasif = True
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
