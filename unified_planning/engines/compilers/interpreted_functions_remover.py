@@ -18,7 +18,7 @@
 from fractions import Fraction
 from functools import partial
 import itertools
-
+from enum import Enum
 from collections import OrderedDict
 from typing import Dict, Optional
 import unified_planning as up
@@ -42,6 +42,13 @@ from unified_planning.engines.compilers.utils import (
 from unified_planning.model.timing import StartTiming
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
+
+
+class c_type(Enum):
+    CONDITION = 1
+    DURATION_LOWER = 2
+    DURATION_UPPER = 3
+    EFFECT = 4
 
 
 class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
@@ -232,17 +239,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_object(o)
             new_problem.set_initial_value(f(o), val)
 
-        # for all actions
-        # extract all effects
-        # if effects assigns IF value to fluent -> add fluent same as above
-        # fluent default at true (maybe it would be better to default it at false and flip the rest of the checks/assignments to reduce the number of Nots)
-        # e.g. the fluent could be called value_has_changed instead of known_value
-        # fluent keeps track of weather another fluent has been assigned a value from an IF
-        # add it to list of pairs (variable, fluent_tracking_variable)
-        # we will need this later when we create new actions
-
-        # NOTE right now implemented with the tracking fluent as thing_has_changed
-        # init to false, condition is "cond Or thing_has_changed", assignment in unknown case is to true
         assignment_tracking_fluents: dict = {}
         for a in problem.actions:
             found_effects = self.get_effects(a)
@@ -275,7 +271,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                 ifuns = self.interpreted_functions_extractor.get(new_c)
                 if ifuns:
-                    if_conds.append((t, new_c, ifuns, False, False, False, None))
+                    if_conds.append((t, new_c, ifuns, c_type.CONDITION, None))
                 else:
                     conds.append((t, new_c))
 
@@ -285,30 +281,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 # check if they contain IFs
                 if len(ifuns) != 0:
                     # if they do save them to if_conds with is_effect
-
-                    if_conds.append((time, ef.value, ifuns, False, False, True, ef))
+                    if_conds.append((time, ef.value, ifuns, c_type.EFFECT, ef))
                 else:
                     effs.append((time, ef))
-                    # should we do a list of just ok effects similar to conds?
-
-            # maybe we should change name for if_cond and use an enum for is_duration/is_lower and is_effect
-            # enum type {CONDITION, DURATION_LOWER, DURATION_UPPER, EFFECT};
-            # TODO implement this
-
+                    # should we do a list of just ok effects similar to conds
             lower, upper = None, None
             if isinstance(a, up.model.DurativeAction):
                 lower = a.duration.lower
                 ifuns = self.interpreted_functions_extractor.get(lower)
                 if ifuns:
                     if_conds.append(
-                        (StartTiming(), lower, ifuns, True, True, False, None)
+                        (StartTiming(), lower, ifuns, c_type.DURATION_LOWER, None)
                     )
                     lower = None
                 upper = a.duration.upper
                 ifuns = self.interpreted_functions_extractor.get(upper)
                 if ifuns:
                     if_conds.append(
-                        (StartTiming(), upper, ifuns, True, False, False, None)
+                        (StartTiming(), upper, ifuns, c_type.DURATION_UPPER, None)
                     )
                     upper = None
 
@@ -324,9 +314,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     t,
                     c,
                     ifuns,
-                    is_duration,
-                    is_lower,
-                    is_effect,
+                    case_type,
                     effect_instance,
                 ), k in zip(if_conds, known):
                     subs = {}
@@ -372,33 +360,28 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if k:
                         new_conds.append((t, em.And(l1)))
                         new_conds.extend(implies)
-                        if is_duration:
-                            if is_lower:
-                                lower = c.substitute(subs)
-                            else:
-                                upper = c.substitute(subs)
-                        elif is_effect:
-                            assert (
-                                effect_instance is not None
-                            )  # NOTE - is doing this for fixing mypy problems ok?
+                        if case_type == c_type.DURATION_LOWER:
+                            lower = c.substitute(subs)
+                        elif case_type == c_type.DURATION_UPPER:
+                            upper = c.substitute(subs)
+                        elif case_type == c_type.EFFECT:
+                            assert effect_instance is not None
                             n_e_v = c.substitute(subs)
                             n_e = effect_instance.clone()
                             n_e.set_value(n_e_v)
-                            new_effs.append((t, n_e))  # NOTE - not tested
+                            new_effs.append((t, n_e))
                         else:
+                            # elif case_type == c_type.CONSITION
                             new_conds.append((t, c.substitute(subs)))
                     else:
                         if len(l1) != 0:
                             new_conds.append((t, em.Not(em.And(l1))))
-                        if is_duration:
-                            if is_lower:
-                                lower = em.Real(Fraction(1, 1))
-                            else:
-                                upper = em.Real(Fraction(1000000, 1))
-                        if is_effect:
-                            assert (
-                                effect_instance is not None
-                            )  # NOTE - is doing this for fixing mypy problems ok?
+                        if case_type == c_type.DURATION_LOWER:
+                            lower = em.Real(Fraction(1, 1))
+                        elif case_type == c_type.DURATION_UPPER:
+                            upper = em.Real(Fraction(1000000, 1))
+                        if case_type == c_type.EFFECT:
+                            assert effect_instance is not None
                             tracking_fluent_expression = em.FluentExp(
                                 assignment_tracking_fluents[
                                     effect_instance.fluent.fluent()
@@ -447,9 +430,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_durative_action._add_effect_instance(time, eff.clone())
             if a.simulated_effects is not None:
                 for t, se in a.simulated_effects.items():
-                    new_durative_action.set_simulated_effect(
-                        t, se
-                    )  # NOTE - this might not be correct
+                    new_durative_action.set_simulated_effect(t, se)
             new_durative_action.clear_conditions()
             for ii, c in conditions:
                 new_durative_action.add_condition(ii, c)
@@ -589,11 +570,11 @@ def custom_replace(
         return None
 
 
-def knowledge_compatible(_ic, _k, _kl):  # TODO change names - without underscore
+def knowledge_compatible(if_conds, known, key_list):
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, _, ifuns, _, _, _, _), k in zip(_ic, _k):
+    for (t, _, ifuns, _, _), k in zip(if_conds, known):
         if k:
             for ifun in ifuns:
                 if (t, ifun) in ukifuns:
@@ -601,7 +582,7 @@ def knowledge_compatible(_ic, _k, _kl):  # TODO change names - without underscor
                 else:
                     kifuns.append((t, ifun))
 
-                if ifun.interpreted_function() not in _kl:
+                if ifun.interpreted_function() not in key_list:
                     retval = False
         else:
             for ifun in ifuns:
@@ -609,10 +590,5 @@ def knowledge_compatible(_ic, _k, _kl):  # TODO change names - without underscor
                     retval = False
                 else:
                     ukifuns.append((t, ifun))
-    # NOTE check for always impossible probably does not work with complex durative conditions
-    # e.g. situation where you are supposed to know one same value at start but not at end
 
     return retval
-
-
-# TODO - fix names extractor walker - as of right now it does not work with IFs
