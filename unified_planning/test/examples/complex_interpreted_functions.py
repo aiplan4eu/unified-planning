@@ -112,64 +112,73 @@ def get_example_problems():
     )
     problems["IF_in_conditions_complex_1"] = ifproblem
 
-    def time_to_go_home(
-        israining, basetime
-    ):  # if it rains you will take longer to walk home
+    def time_to_go_home(israining, basetime):
         r = basetime
         if israining:
-            r = r * Fraction(7, 5)
+            r = r * 2
         return r
 
     signature_time_to_go_home = OrderedDict()
     signature_time_to_go_home["israining"] = BoolType()
-    signature_time_to_go_home["basetime"] = RealType()
+    signature_time_to_go_home["basetime"] = IntType()
     time_to_go_home_if = InterpretedFunction(
-        "time_to_go_home", RealType(), signature_time_to_go_home, time_to_go_home
+        "time_to_go_home", IntType(), signature_time_to_go_home, time_to_go_home
     )
 
-    def wet_house(
-        israining, haveumbrella
-    ):  # if it rains and you have no umbrella you will wet the house
+    def wet(israining, haveumbrella):
         r = False
         if israining and not haveumbrella:
             r = True
         return r
 
-    signature_wet_house_if = OrderedDict()
-    signature_wet_house_if["israining"] = BoolType()
-    signature_wet_house_if["haveumbrella"] = BoolType()
-    wet_house_if = InterpretedFunction(
-        "wet_house_if", BoolType(), signature_wet_house_if, wet_house
-    )
-
+    signature_wet_if = OrderedDict()
+    signature_wet_if["israining"] = BoolType()
+    signature_wet_if["haveumbrella"] = BoolType()
+    wet_if = InterpretedFunction("wet_if", BoolType(), signature_wet_if, wet)
     athome = Fluent("athome")
+    atwork = Fluent("atwork")
+    wet_clothes = Fluent("wet_clothes")
+    house_wet = Fluent("house_wet")
     rain = Fluent("rain")
     have_umbrella = Fluent("have_umbrella")
-    normaltime = Fluent("normaltime", RealType(0, 20))
-
+    normaltime = Fluent("normaltime", IntType(0, 20))
     gohome = DurativeAction("gohome")
+    # when you go home
     gohome.add_condition(StartTiming(), Not(athome))
-    gohome.add_condition(StartTiming(), Not(wet_house_if(rain, have_umbrella)))
+    gohome.add_condition(StartTiming(), atwork)
+    # you start from work
     gohome.add_effect(EndTiming(), athome, True)
-    gohome.set_closed_duration_interval(time_to_go_home_if(rain, normaltime), 150)
-
+    gohome.add_effect(StartTiming(), atwork, False)
+    # and you will end up at home
+    gohome.add_effect(EndTiming(), house_wet, wet_clothes)
+    # if your clothes are wet you will wet your house
+    gohome.add_effect(StartTiming(), wet_clothes, wet_if(rain, have_umbrella))
+    # if it rains and you don't have an umbrella you will wet your clothes
+    gohome.set_fixed_duration(time_to_go_home_if(rain, normaltime))
+    # it takes longer if it's raining
     takeumbrella = DurativeAction("takeumbrella")
+    takeumbrella.add_condition(StartTiming(), atwork)
+    # take the umbrella when you still are at work
     takeumbrella.add_effect(EndTiming(), have_umbrella, True)
-
-    takeumbrella.set_fixed_duration(Fraction(99, 100))
-
+    takeumbrella.set_fixed_duration(1)
     problem = Problem("go_home_with_rain_and_interpreted_functions")
     problem.add_fluent(athome)
+    problem.add_fluent(atwork)
+    problem.add_fluent(house_wet)
+    problem.add_fluent(wet_clothes)
     problem.add_fluent(rain)
     problem.add_fluent(have_umbrella)
     problem.add_fluent(normaltime)
     problem.add_action(gohome)
     problem.add_action(takeumbrella)
     problem.set_initial_value(have_umbrella, False)
+    problem.set_initial_value(wet_clothes, False)
     problem.set_initial_value(athome, False)
+    problem.set_initial_value(atwork, True)
+    problem.set_initial_value(house_wet, False)
     problem.set_initial_value(rain, True)
     problem.set_initial_value(normaltime, 10)
-    problem.add_goal(athome)
+    problem.add_goal(And(athome, Not(house_wet)))
 
     ifproblem = TestCase(
         problem=problem,
@@ -177,8 +186,8 @@ def get_example_problems():
         valid_plans=[
             up.plans.TimeTriggeredPlan(
                 [
-                    (Fraction(0), takeumbrella(), Fraction(99, 100)),
-                    (Fraction(1), gohome(), Fraction(14)),
+                    (Fraction(0), takeumbrella(), Fraction(1)),
+                    (Fraction(101, 100), gohome(), Fraction(20)),
                 ]
             ),
         ],
@@ -186,6 +195,6 @@ def get_example_problems():
             up.plans.TimeTriggeredPlan([(Fraction(0), gohome(), Fraction(1, 1))]),
         ],
     )
-    problems["IF_durations_in_conditions_rain"] = ifproblem
-
+    problems["go_home_with_rain_and_interpreted_functions"] = ifproblem
+    # TODO - update and change names
     return problems

@@ -86,6 +86,22 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertFalse(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_interpreted_functions_planner_int_assignment(self):
+        problem = self.problems["interpreted_functions_in_numeric_assignment"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+
+        with OneshotPlanner(
+            name="interpreted_functions_planning[opt-pddl-planner]"
+        ) as planner:
+            planner._skip_checks = True  # -----------------------------
+
+            result = planner.solve(problem)
+        print(result)
+        print(result.plan)
+
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_refine(self):
         testproblem = self.problems["interpreted_functions_in_conditions_to_refine"]
         problem = testproblem.problem
@@ -110,7 +126,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
-    # @pytest.mark.skip(reason="current implementation does not work")
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
@@ -141,7 +156,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
     @skipIfEngineNotAvailable("tamer")
     def test_interpreted_functions_in_durations_planner(self):
-        testproblem = self.problems["IF_durations_in_conditions_rain"]
+        testproblem = self.problems["go_home_with_rain_and_interpreted_functions"]
         problem = testproblem.problem
 
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:

@@ -825,37 +825,50 @@ def get_example_problems():
     problems["interpreted_functions_in_boolean_assignment"] = ifproblem
 
     # interpreted functions in numeric assignment - could be changed
+    # if we remove the apply_to_goal action and try apply the if directly to the goal fluent
+    # the planner is not able to see it
 
     def i_f_simple_int(inputone, inputtwo):
         if inputone % 2 == 0:
             return inputone
         return inputtwo * inputone
 
-    funx = InterpretedFunction("funx", IntType(), signatureConditionF, i_f_simple_int)
+    i_f_simple_int_if = InterpretedFunction(
+        "i_f_simple_int", IntType(), signatureConditionF, i_f_simple_int
+    )
 
     ione = Fluent("ione", IntType(0, 20))
     itwo = Fluent("itwo", IntType(0, 20))
+    end_goal_temp = Fluent("end_goal_temp", IntType(0, 20))
     end_goal = Fluent("end_goal", IntType(0, 20))
 
     apply_i_f_assignment = InstantaneousAction("apply_i_f_assignment")
-    apply_i_f_assignment.add_effect(end_goal, funx(ione, itwo))
+    apply_i_f_assignment.add_effect(end_goal_temp, i_f_simple_int_if(ione, itwo))
+
+    apply_to_goal = InstantaneousAction("apply_to_goal")
+    apply_to_goal.add_precondition(GE(end_goal_temp, 2))
+    apply_to_goal.add_effect(end_goal, 2)
+    # apply_to_goal.add_effect(end_goal, end_goal_temp) # NOTE - this would not work
 
     problem = Problem("interpreted_functions_in_numeric_assignment")
     problem.add_fluent(ione)
     problem.add_fluent(itwo)
+    problem.add_fluent(end_goal_temp)
     problem.add_fluent(end_goal)
 
     problem.add_action(apply_i_f_assignment)
+    problem.add_action(apply_to_goal)
     problem.set_initial_value(ione, 3)
     problem.set_initial_value(itwo, 5)
+    problem.set_initial_value(end_goal_temp, 0)
     problem.set_initial_value(end_goal, 0)
-    problem.add_goal(GE(end_goal, 10))
+    problem.add_goal(GE(end_goal, 2))
 
     ifproblem = TestCase(
         problem=problem,
         solvable=True,
         valid_plans=[
-            up.plans.SequentialPlan([apply_i_f_assignment()]),
+            up.plans.SequentialPlan([apply_i_f_assignment(), apply_to_goal()])
         ],
         invalid_plans=[
             up.plans.SequentialPlan([]),

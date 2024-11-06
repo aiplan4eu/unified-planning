@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# copyright info is not up to date as of september 27th 2024
 """This module defines the interpreted functions effects remover class."""
 
 from fractions import Fraction
@@ -254,7 +253,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for a in problem.actions:
             conds = []
             effs = []
-            if_conds = []
+            ifs = []
             for t, c in self.get_conditions(a):
                 new_c = c
                 all_fluents_fnodes = self.free_vars_extractor.get(c)
@@ -267,7 +266,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
                 ifuns = self.interpreted_functions_extractor.get(new_c)
                 if ifuns:
-                    if_conds.append((t, new_c, ifuns, c_type.CONDITION, None))
+                    ifs.append((t, new_c, ifuns, c_type.CONDITION, None))
                 else:
                     conds.append((t, new_c))
 
@@ -276,8 +275,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 ifuns = self.interpreted_functions_extractor.get(ef.value)
                 # check if they contain IFs
                 if len(ifuns) != 0:
-                    # if they do save them to if_conds with is_effect
-                    if_conds.append((time, ef.value, ifuns, c_type.EFFECT, ef))
+                    # if they do save them to ifs with is_effect
+                    ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
                 else:
                     effs.append((time, ef))
                     # should we do a list of just ok effects similar to conds
@@ -286,33 +285,27 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 lower = a.duration.lower
                 ifuns = self.interpreted_functions_extractor.get(lower)
                 if ifuns:
-                    if_conds.append(
+                    ifs.append(
                         (StartTiming(), lower, ifuns, c_type.DURATION_LOWER, None)
                     )
                     lower = None
                 upper = a.duration.upper
                 ifuns = self.interpreted_functions_extractor.get(upper)
                 if ifuns:
-                    if_conds.append(
+                    ifs.append(
                         (StartTiming(), upper, ifuns, c_type.DURATION_UPPER, None)
                     )
                     upper = None
 
-            for known in itertools.product([True, False], repeat=len(if_conds)):
-                if not knowledge_compatible(if_conds, known, new_fluents.keys()):
+            for known in itertools.product([True, False], repeat=len(ifs)):
+                if not knowledge_compatible(ifs, known, new_fluents.keys()):
                     continue
                 # TODO - maybe the following blocks can be places in a function
                 new_params = []
                 new_conds = []
                 new_effs: list = []
                 paramcounter = 0
-                for (
-                    t,
-                    c,
-                    ifuns,
-                    case_type,
-                    effect_instance,
-                ), k in zip(if_conds, known):
+                for (t, c, ifuns, case, eff_instance), k in zip(ifs, known):
                     subs = {}
                     implies = []
                     l1 = []
@@ -356,31 +349,32 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if k:
                         new_conds.append((t, em.And(l1)))
                         new_conds.extend(implies)
-                        if case_type == c_type.DURATION_LOWER:
+                        if case == c_type.DURATION_LOWER:
                             lower = c.substitute(subs)
-                        elif case_type == c_type.DURATION_UPPER:
+                        elif case == c_type.DURATION_UPPER:
                             upper = c.substitute(subs)
-                        elif case_type == c_type.EFFECT:
-                            assert effect_instance is not None
+                        elif case == c_type.EFFECT:
+                            assert eff_instance is not None
                             n_e_v = c.substitute(subs)
-                            n_e = effect_instance.clone()
+                            n_e = eff_instance.clone()
                             n_e.set_value(n_e_v)
                             new_effs.append((t, n_e))
-                        else:
-                            # elif case_type == c_type.CONSITION
+                        elif case == c_type.CONDITION:
                             new_conds.append((t, c.substitute(subs)))
+                        else:
+                            raise NotImplementedError
                     else:
                         if len(l1) != 0:
                             new_conds.append((t, em.Not(em.And(l1))))
-                        if case_type == c_type.DURATION_LOWER:
+                        if case == c_type.DURATION_LOWER:
                             lower = em.Real(Fraction(1, 1))
-                        elif case_type == c_type.DURATION_UPPER:
+                        elif case == c_type.DURATION_UPPER:
                             upper = em.Real(Fraction(1000000, 1))
-                        if case_type == c_type.EFFECT:
-                            assert effect_instance is not None
+                        if case == c_type.EFFECT:
+                            assert eff_instance is not None
                             tracking_fluent_expression = em.FluentExp(
                                 assignment_tracking_fluents[
-                                    effect_instance.fluent.fluent()
+                                    eff_instance.fluent.fluent()
                                 ]
                             )
                             n_e = Effect(
@@ -492,7 +486,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     eff_list.append(eff)
                     time_list.append(time)
         else:
-            # case default
             raise NotImplementedError
         return zip(time_list, eff_list)
 
@@ -565,11 +558,11 @@ def custom_replace(
         return None
 
 
-def knowledge_compatible(if_conds, known, key_list):
+def knowledge_compatible(ifs, known, key_list):
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, _, ifuns, _, _), k in zip(if_conds, known):
+    for (t, _, ifuns, _, _), k in zip(ifs, known):
         if k:
             for ifun in ifuns:
                 if (t, ifun) in ukifuns:
