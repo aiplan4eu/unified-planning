@@ -630,7 +630,6 @@ class TestProblem(unittest_TestCase):
 
     def test_interpreted_functions_simple(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
-        print(problem)  # this is just to test repr of IFs
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         problem = self.problems[
@@ -651,6 +650,13 @@ class TestProblem(unittest_TestCase):
         problem = self.problems["interpreted_functions_in_numeric_assignment"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+    def test_interpreted_functions_complex(self):
+        problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        print(problem)
+        print(problem.kind)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
 
 if __name__ == "__main__":
     main()
