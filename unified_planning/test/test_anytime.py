@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import os
-
-import pytest
 import unified_planning as up
-from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     simple_numeric_kind,
@@ -40,7 +37,7 @@ class TestAnytimePlanning(unittest_TestCase):
         simple_numeric_kind.union(quality_metrics_kind),
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
-    def test_counters_modified(self):
+    def test_counters(self):
         reader = PDDLReader()
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem2.pddl")
@@ -54,29 +51,9 @@ class TestAnytimePlanning(unittest_TestCase):
             solutions = []
             for p in planner.get_solutions(problem):
                 self.assertTrue(p.plan is not None)
-                solutions.append(p)
+                solutions.append(p.plan)
                 if len(solutions) == 2:
                     break
 
         self.assertEqual(len(solutions), 2)
-        if solutions[1].status == PlanGenerationResultStatus.INTERMEDIATE:
-            self.assertGreater(
-                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
-            )
-        elif solutions[1].status == PlanGenerationResultStatus.SOLVED_SATISFICING:
-            self.assertEqual(
-                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
-            )
-        elif solutions[1].status == PlanGenerationResultStatus.INTERNAL_ERROR:
-            print("this sometimes happens with large problems")
-            print(solutions)
-            self.assertGreater(
-                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
-            )
-            # this will most likely error if you somehow got here
-        else:
-            print(solutions)
-            self.assertGreater(
-                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
-            )
-            # this will most likely error if you somehow got here
+        self.assertGreater(len(solutions[0].actions), len(solutions[1].actions))
