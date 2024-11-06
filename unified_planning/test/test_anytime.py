@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import os
-
-import pytest
 import unified_planning as up
-from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     simple_numeric_kind,
@@ -54,7 +51,7 @@ class TestAnytimePlanning(unittest_TestCase):
             solutions = []
             for p in planner.get_solutions(problem):
                 self.assertTrue(p.plan is not None)
-                solutions.append(p)
+                solutions.append(p.plan)
                 if len(solutions) == 2:
                     break
 
