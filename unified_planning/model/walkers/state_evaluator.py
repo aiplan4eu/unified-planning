@@ -54,8 +54,6 @@ class StateEvaluator(QuantifierSimplifier):
         r = self.walk(expression)
         self._variable_assignments = None
         assert r.is_constant()
-        # print ("state evaluator - evaluate")
-        # print(self.if_values)
         return r
 
     def _deep_subs_simplify(
@@ -72,11 +70,6 @@ class StateEvaluator(QuantifierSimplifier):
         copy = self._variable_assignments.copy()
         copy.update(variables_assignments)
         r = new_state_evaluator.evaluate(expression, self._state, copy)
-        ## this never happens in our scenario
-        # for k, v in new_state_evaluator.memoization.items():
-        #    if k.is_interpreted_function_exp():
-        #        self.if_values[k] = v
-        #        print (self.if_values)
         assert r.is_constant()
         return r
 
