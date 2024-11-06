@@ -182,3 +182,27 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(expectedkind.has_int_type_durations())
         self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
         self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
+
+        problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            expectedkind = if_remover.resulting_problem_kind(
+                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(expectedkind.has_int_type_durations())
+        self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
+        self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_boolean_assignments()
+        )
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_numeric_assignments()
+        )
