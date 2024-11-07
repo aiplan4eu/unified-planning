@@ -330,7 +330,7 @@ class Simplifier(walkers.dag.DagWalker):
             else:  # value is static but is not defined in the initial state
                 return new_exp
 
-    def walk_interpreted_function_exp(  # code here is not clean but should work
+    def walk_interpreted_function_exp(
         self, expression: FNode, args: List[FNode]
     ) -> FNode:
         new_exp = self.manager.InterpretedFunctionExp(
@@ -355,7 +355,7 @@ class Simplifier(walkers.dag.DagWalker):
             constantval = self.manager.Real((Fraction(constantval)))
         elif (
             expression.interpreted_function().return_type.is_user_type()
-        ):  # not sure this works and idk how to check
+        ):  # NOTE - not tested
 
             constantval = self.manager.ObjectExp((constantval))
         else:
