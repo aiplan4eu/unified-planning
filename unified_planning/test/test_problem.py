@@ -629,21 +629,16 @@ class TestProblem(unittest_TestCase):
         self.assertFalse(p.kind.has_processes())
 
     def test_interpreted_functions_simple(self):
-        problem = self.problems["interpreted_functions_in_conditions"].problem
-        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
         problem = self.problems[
             "interpreted_functions_in_conditions_always_impossible"
         ].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
-        problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
+        problem = self.problems["interpreted_functions_in_conditions"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
         problem = self.problems["interpreted_functions_in_durative_conditions"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        problem = self.problems["interpreted_functions_in_durations"].problem
-        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
         problem = self.problems["interpreted_functions_in_boolean_assignment"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
@@ -657,6 +652,9 @@ class TestProblem(unittest_TestCase):
         print(problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        problem = self.problems["IF_in_conditions_complex_1"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
 
 if __name__ == "__main__":
     main()

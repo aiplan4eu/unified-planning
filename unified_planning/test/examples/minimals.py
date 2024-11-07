@@ -600,49 +600,11 @@ def get_example_problems():
     )
 
     # interpreted functions --------------------------------------------------------
-    # interpreted functions in instaneous action precondition
-    problem = Problem("interpreted_functions_in_conditions")
 
     def i_f_simple_bool(inputone, inputtwo):
         return (inputone * inputtwo) == 60
 
-    signatureConditionF = OrderedDict()
-    signatureConditionF["inputone"] = IntType()
-    signatureConditionF["inputtwo"] = IntType()
-    funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
-    end_goal = Fluent("end_goal")
-    ione = Fluent("ione", IntType(0, 20))
-    itwo = Fluent("itwo", IntType(0, 20))
-    instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
-    instant_action_i_f_condition.add_precondition(
-        And(
-            GE(ione, 10), Not(funx(itwo, itwo))
-        )  # note that (!funx (i2, i2)) is always true
-    )
-    instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
-    instant_action_i_f_condition.add_effect(end_goal, True)
-    problem.add_fluent(end_goal)
-    problem.add_fluent(ione)
-    problem.add_fluent(itwo)
-    problem.add_action(instant_action_i_f_condition)
-    problem.set_initial_value(end_goal, False)
-    problem.set_initial_value(ione, 12)
-    problem.set_initial_value(itwo, 5)
-    problem.add_goal(end_goal)
-    ifproblem = TestCase(
-        problem=problem,
-        solvable=True,
-        valid_plans=[
-            up.plans.SequentialPlan([instant_action_i_f_condition()]),
-        ],
-        invalid_plans=[
-            up.plans.SequentialPlan([]),
-        ],
-    )
-    problems["interpreted_functions_in_conditions"] = ifproblem
-
-    # interpreted functions in instaneous action precondition refine to solve
-    problem = Problem("interpreted_functions_in_conditions_to_refine")
+    problem = Problem("interpreted_functions_in_conditions")
 
     signatureConditionF = OrderedDict()
     signatureConditionF["inputone"] = IntType()
@@ -667,12 +629,12 @@ def get_example_problems():
     problem.add_goal(end_goal)
     ifproblem = TestCase(
         problem=problem,
-        solvable=False,  # currently
+        solvable=True,
         valid_plans=[
             up.plans.SequentialPlan([increase_val(), instant_action_i_f_condition()]),
         ],
     )
-    problems["interpreted_functions_in_conditions_to_refine"] = ifproblem
+    problems["interpreted_functions_in_conditions"] = ifproblem
 
     # interpreted functions in instaneous action precondition unsolvable even ignoring interpreted functions
     problem = Problem("interpreted_functions_in_conditions_always_impossible")
@@ -743,50 +705,7 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_durative_conditions"] = ifproblem
 
-    # interpreted functions in duration
-    def i_f_go_home_duration(
-        israining, basetime
-    ):  # if it rains you will take longer to walk home
-        r = basetime
-        if israining:
-            r = basetime * 1.4
-        return r
-
-    gohomedurationsignature = OrderedDict()
-    gohomedurationsignature["israining"] = BoolType()
-    gohomedurationsignature["basetime"] = IntType()
-    gohomeduration = InterpretedFunction(
-        "gohomeduration", RealType(), gohomedurationsignature, i_f_go_home_duration
-    )
-
-    athome = Fluent("athome")
-    rain = Fluent("rain")
-    normaltime = Fluent("normaltime", IntType(0, 20))
-
-    gohome = DurativeAction("gohome")
-    gohome.add_condition(StartTiming(), Not(athome))
-    gohome.add_effect(EndTiming(), athome, True)
-    gohome.set_closed_duration_interval(gohomeduration(rain, normaltime), 150)
-
-    problem = Problem("interpreted_functions_in_durations")
-    problem.add_fluent(athome)
-    problem.add_fluent(rain)
-    problem.add_fluent(normaltime)
-    problem.add_action(gohome)
-    problem.set_initial_value(athome, False)
-    problem.set_initial_value(rain, True)
-    problem.set_initial_value(normaltime, 10)
-    problem.add_goal(athome)
-    ifproblem = TestCase(
-        problem=problem,
-        solvable=True,
-        valid_plans=[
-            up.plans.TimeTriggeredPlan([(Fraction(0), gohome(), Fraction(14))]),
-        ],
-    )
-    problems["interpreted_functions_in_durations"] = ifproblem
-
-    # interpreted functions in bool assignment - could be changed
+    # interpreted functions in bool assignment
 
     funx = InterpretedFunction("funx", BoolType(), signatureConditionF, i_f_simple_bool)
 
@@ -824,9 +743,7 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_boolean_assignment"] = ifproblem
 
-    # interpreted functions in numeric assignment - could be changed
-    # if we remove the apply_to_goal action and try apply the if directly to the goal fluent
-    # the planner is not able to see it
+    # interpreted functions in numeric assignment
 
     def i_f_simple_int(inputone, inputtwo):
 

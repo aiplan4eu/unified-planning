@@ -409,9 +409,6 @@ class TestProblem(unittest_TestCase):
 
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
-        # spv.skip_checks = True
-        # have to use this for now ----------------------------------------------------------
-        # the validator works but the warning blocks the tests
 
         p = self.problems["interpreted_functions_in_conditions"]
         problem = p.problem

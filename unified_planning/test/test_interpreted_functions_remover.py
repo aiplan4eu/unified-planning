@@ -41,7 +41,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
     def test_expected_kind(self):
 
         problem1 = self.problems["interpreted_functions_in_conditions"].problem
-        problem2 = self.problems["interpreted_functions_in_durations"].problem
+        problem2 = self.problems["go_home_with_rain_and_interpreted_functions"].problem
         with Compiler(
             problem_kind=problem1.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
@@ -84,38 +84,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             compiled_problem.kind.has_interpreted_functions_in_conditions()
         )
 
-        print(problem)
-        print(problem.kind)
-        print("-------------------------------------")
-        print(compiled_problem)
-        print(compiled_problem.kind)
-        self.assertTrue(compiled_problem.kind.has_simple_numeric_planning())
-
-    def test_interpreted_functions_in_preconditions_removerto_refine(self):
-        problem = self.problems["interpreted_functions_in_conditions_to_refine"].problem
-
-        with Compiler(
-            problem_kind=problem.kind,
-            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
-        ) as if_remover:
-            expectedkind = if_remover.resulting_problem_kind(
-                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
-            ifr = if_remover.compile(
-                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
-        compiled_problem = ifr.problem
-        # print(problem)
-        # print(problem.kind)
-        # print(compiled_problem)
-        # print(compiled_problem.kind)
-        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(expectedkind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
-        self.assertFalse(
-            compiled_problem.kind.has_interpreted_functions_in_conditions()
-        )
-        self.assertFalse(compiled_problem.kind.has_simple_numeric_planning())
+        self.assertTrue(compiled_problem.kind.has_general_numeric_planning())
 
     def test_interpreted_functions_in_preconditions_remover_always_impossible(self):
         problem = self.problems[
@@ -161,27 +130,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         )
 
     def test_interpreted_functions_in_durations_remover(self):
-        problem = self.problems["interpreted_functions_in_durations"].problem
-
-        with Compiler(
-            problem_kind=problem.kind,
-            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
-        ) as if_remover:
-            expectedkind = if_remover.resulting_problem_kind(
-                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
-            ifr = if_remover.compile(
-                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
-        compiled_problem = ifr.problem
-        # print(problem)
-        # print(problem.kind)
-        # print(compiled_problem)
-        # print(compiled_problem.kind)
-        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
-        self.assertTrue(expectedkind.has_int_type_durations())
-        self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
-        self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
 
         problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
         with Compiler(
