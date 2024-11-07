@@ -16,7 +16,7 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from typing import List, Tuple
+from typing import List, OrderedDict, Tuple
 
 
 class TestInfixNotation(unittest_TestCase):
@@ -62,6 +62,26 @@ class TestInfixNotation(unittest_TestCase):
         b_1 = Parameter("b_1", BoolType(), environment)
         b_2 = Parameter("b_2", BoolType(), environment)
         b_3 = Parameter("b_3", BoolType(), environment)
+        self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
+
+    def test_infix_with_interpreted_functions(self):
+        def if_bool():
+            return True
+
+        def if_int():
+            return 3
+
+        def if_real():
+            return Fraction(2, 5)
+
+        signature_empty: OrderedDict = OrderedDict()
+        i_1 = InterpretedFunction("i_1", IntType(), signature_empty, if_int)
+        r_1 = InterpretedFunction("r_1", RealType(), signature_empty, if_real)
+        i_2 = InterpretedFunction("i_2", IntType(), signature_empty, if_int)
+        r_2 = InterpretedFunction("r_2", RealType(), signature_empty, if_real)
+        b_1 = InterpretedFunction("b_1", BoolType(), signature_empty, if_bool)
+        b_2 = InterpretedFunction("b_2", BoolType(), signature_empty, if_bool)
+        b_3 = InterpretedFunction("b_3", BoolType(), signature_empty, if_bool)
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_on_objects(self):

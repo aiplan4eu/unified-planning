@@ -270,12 +270,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 else:
                     conds.append((t, new_c))
 
-            # get all effects
             for time, ef in self.get_effects(a):
                 ifuns = self.interpreted_functions_extractor.get(ef.value)
-                # check if they contain IFs
                 if len(ifuns) != 0:
-                    # if they do save them to ifs with type.EFFECT
                     ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
                 else:
                     effs.append((time, ef))

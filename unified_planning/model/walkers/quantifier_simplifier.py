@@ -101,7 +101,6 @@ class QuantifierSimplifier(Simplifier):
                 self.memoization[key] = f(expression, args=expression.args, **kwargs)
         else:
             pass
-        # NOTE - not clean implementation
         for key in self.memoization:
             if key.is_interpreted_function_exp():
                 args_values = [
@@ -121,8 +120,6 @@ class QuantifierSimplifier(Simplifier):
                     new_key = temp_key(*args_values)
                     if new_key not in self.if_values.keys():
                         self.if_values[new_key] = result
-                # print ("quantifier simplifier")
-                # print (self.if_values) # here it works
 
     def _deep_subs_simplify(
         self,

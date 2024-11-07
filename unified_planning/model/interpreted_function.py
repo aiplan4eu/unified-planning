@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# copyright info is not up to date as of september 27th 2024
 """
 This module defines the InterpretedFunction class.
 An InterpretedFunction has a name, a return type, a signature
