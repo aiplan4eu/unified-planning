@@ -65,7 +65,6 @@ class TestProblem(unittest_TestCase):
                 if not pv.supports(p.problem.kind):
                     continue
                 if not p.valid_plans:
-                    # after adding an always impossible problem we have to make sure we skip it
                     continue
                 problem, plan = p.problem, p.valid_plans[0]
                 validation_result = pv.validate(problem, plan)
@@ -397,8 +396,8 @@ class TestProblem(unittest_TestCase):
             self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
 
     def test_with_interpreted_functions_time_triggered(self):
-        ttv = SequentialPlanValidator(environment=get_environment())
-        p = self.problems["interpreted_functions_in_conditions"]
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        p = self.problems["go_home_with_rain_and_interpreted_functions"]
         problem = p.problem
         for plan in p.valid_plans:
             validation_result = ttv.validate(problem, plan)
@@ -410,7 +409,7 @@ class TestProblem(unittest_TestCase):
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
 
-        p = self.problems["interpreted_functions_in_conditions"]
+        p = self.problems["IF_in_conditions_complex_1"]
         problem = p.problem
         for plan in p.valid_plans:
             validation_result = spv.validate(problem, plan)
