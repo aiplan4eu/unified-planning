@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# copyright info is not up to date as of september 27th 2024
 
 
 import time
@@ -120,16 +119,8 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        final_supported_kind = supported_kind.intersection(engine.supported_kind())  #
+        final_supported_kind = supported_kind.intersection(engine.supported_kind())
         additive_supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
-        # additive_supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
-        # additive_supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-        # additive_supported_kind.set_oversubscription_kind(
-        #    "INT_NUMBERS_IN_OVERSUBSCRIPTION"
-        # )
-        # additive_supported_kind.set_oversubscription_kind(
-        #    "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
-        # )
         additive_supported_kind.set_expression_duration(
             "INTERPRETED_FUNCTIONS_IN_DURATIONS"
         )

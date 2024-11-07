@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the interpreted functions effects remover class."""
+"""This module defines the interpreted functions remover class."""
 
 from fractions import Fraction
 from functools import partial
@@ -275,11 +275,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 ifuns = self.interpreted_functions_extractor.get(ef.value)
                 # check if they contain IFs
                 if len(ifuns) != 0:
-                    # if they do save them to ifs with is_effect
+                    # if they do save them to ifs with type.EFFECT
                     ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
                 else:
                     effs.append((time, ef))
-                    # should we do a list of just ok effects similar to conds
             lower, upper = None, None
             if isinstance(a, up.model.DurativeAction):
                 lower = a.duration.lower
@@ -339,7 +338,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                     )
                                 l2.append(pf)
                         else:
-                            # NOTE - check if we need anything here
                             pass
                         if len(l2) != 0:
                             l1.append(em.Or(l2))
@@ -379,14 +377,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             )
                             new_effs.append((t, n_e))
 
-                new_a = self.clone_action_with_extra_params(
+                new_a = self.clone_action_with_extras(
                     a, new_params, conds + new_conds, (lower, upper), effs + new_effs
                 )
                 new_a.name = get_fresh_name(new_problem, a.name)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
 
-        print(new_problem.goals)
         old_goals = new_problem.goals
         new_problem.clear_goals()
         for goal_c in old_goals:
@@ -404,20 +401,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def clone_action_with_extra_params(
-        self, a, new_params, conditions, duration, effects
-    ):
+    def clone_action_with_extras(self, a, new_params, conditions, duration, effects):
 
         updated_parameters = OrderedDict(
             (param.name, param.type) for param in a.parameters
         )
         for n in new_params:
             updated_parameters[n.name] = n.type
-
-        # effects have to be managed slightly differently in instantaneous and durative
-        # for each fluent in the new arg, if condition contains it, add
-        # [condition] Or Not fluent_that_keeps_track
-        # this has to be done at the start
 
         new_action: Optional[
             up.model.DurativeAction | up.model.InstantaneousAction
@@ -520,12 +510,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     time_list.append(None)
         return zip(time_list, cond_list)
 
-    def add_condition(self, a, t, c):
-        raise NotImplementedError
-
-    def add_effect(self, a, t, e):
-        raise NotImplementedError
-
 
 def _split_ands(e):
     templist = []
@@ -557,7 +541,6 @@ def custom_replace(
     while i < expected_amount:
         new_list.append(action_instance.actual_parameters[i])
         i = i + 1
-    # this might want a tuple instad of a list
     if replaced_action is not None:
         return ActionInstance(
             replaced_action,
