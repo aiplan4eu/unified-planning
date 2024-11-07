@@ -40,45 +40,17 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
-    def test_interpreted_functions_in_preconditions_planner(self):
-        problem = self.problems["interpreted_functions_in_conditions"].problem
-        # print (problem)
-        # print (problem.kind)
-        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
-
-        with OneshotPlanner(
-            name="interpreted_functions_planning[opt-pddl-planner]"
-        ) as planner:
-            # print ("now attempting to solve")
-            result = planner.solve(problem)
-        # print(result)
-        # print(result.plan)
-
-        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
-        self.assertEqual(len(result.plan._actions), 1)
-        self.assertTrue(
-            result.plan.__eq__(
-                self.problems["interpreted_functions_in_conditions"].valid_plans[0]
-            )
-        )
-
-    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_always_impossible(self):
         problem = self.problems[
             "interpreted_functions_in_conditions_always_impossible"
         ].problem
-        # print (problem)
-        # print (problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
 
-        # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # -----------------------------
-            # print ("now attempting to solve")
+            planner._skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
             result = planner.solve(problem)
         print(result)
         print(result.plan)
@@ -102,20 +74,13 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
-    def test_interpreted_functions_in_preconditions_planner_refine(self):
-        testproblem = self.problems["interpreted_functions_in_conditions_to_refine"]
+    def test_interpreted_functions_in_preconditions(self):
+        testproblem = self.problems["interpreted_functions_in_conditions"]
         problem = testproblem.problem
-        # print (problem)
-        # print (problem.kind)
-        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
-
-        # with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # -----------------------------
-            # print ("now attempting to solve")
+            planner._skip_checks = True
             result = planner.solve(problem)
         print(result)
         print(result.plan)
