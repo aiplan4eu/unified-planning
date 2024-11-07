@@ -829,8 +829,7 @@ def get_example_problems():
     # the planner is not able to see it
 
     def i_f_simple_int(inputone, inputtwo):
-        if inputone % 2 == 0:
-            return inputone
+
         return inputtwo * inputone
 
     i_f_simple_int_if = InterpretedFunction(
@@ -839,37 +838,26 @@ def get_example_problems():
 
     ione = Fluent("ione", IntType(0, 20))
     itwo = Fluent("itwo", IntType(0, 20))
-    end_goal_temp = Fluent("end_goal_temp", IntType(0, 20))
     end_goal = Fluent("end_goal", IntType(0, 20))
 
     apply_i_f_assignment = InstantaneousAction("apply_i_f_assignment")
-    apply_i_f_assignment.add_effect(end_goal_temp, i_f_simple_int_if(ione, itwo))
-
-    apply_to_goal = InstantaneousAction("apply_to_goal")
-    apply_to_goal.add_precondition(GE(end_goal_temp, 2))
-    apply_to_goal.add_effect(end_goal, 2)
-    # apply_to_goal.add_effect(end_goal, end_goal_temp) # NOTE - this would not work
+    apply_i_f_assignment.add_effect(end_goal, i_f_simple_int_if(ione, itwo))
 
     problem = Problem("interpreted_functions_in_numeric_assignment")
     problem.add_fluent(ione)
     problem.add_fluent(itwo)
-    problem.add_fluent(end_goal_temp)
     problem.add_fluent(end_goal)
 
     problem.add_action(apply_i_f_assignment)
-    problem.add_action(apply_to_goal)
     problem.set_initial_value(ione, 3)
     problem.set_initial_value(itwo, 5)
-    problem.set_initial_value(end_goal_temp, 0)
     problem.set_initial_value(end_goal, 0)
     problem.add_goal(GE(end_goal, 2))
 
     ifproblem = TestCase(
         problem=problem,
         solvable=True,
-        valid_plans=[
-            up.plans.SequentialPlan([apply_i_f_assignment(), apply_to_goal()])
-        ],
+        valid_plans=[up.plans.SequentialPlan([apply_i_f_assignment()])],
         invalid_plans=[
             up.plans.SequentialPlan([]),
         ],
