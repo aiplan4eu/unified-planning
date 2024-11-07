@@ -300,7 +300,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for known in itertools.product([True, False], repeat=len(ifs)):
                 if not knowledge_compatible(ifs, known, new_fluents.keys()):
                     continue
-                # TODO - maybe the following blocks can be places in a function
                 new_params = []
                 new_conds = []
                 new_effs: list = []
@@ -341,8 +340,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 l2.append(pf)
                         else:
                             # NOTE - check if we need anything here
-                            # in this case it means that this function has to be considered unknown
-                            # and there are no known values to put as not in the condition
                             pass
                         if len(l2) != 0:
                             l1.append(em.Or(l2))
@@ -388,6 +385,20 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_a.name = get_fresh_name(new_problem, a.name)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
+
+        print(new_problem.goals)
+        old_goals = new_problem.goals
+        new_problem.clear_goals()
+        for goal_c in old_goals:
+            g_c = goal_c
+            all_fluents_fnodes = self.free_vars_extractor.get(goal_c)
+            all_fluents = []
+            for f_fnode in all_fluents_fnodes:
+                all_fluents.append(f_fnode.fluent())
+            for k in assignment_tracking_fluents.keys():
+                if k in all_fluents:
+                    g_c = em.Or(goal_c, assignment_tracking_fluents[k])
+            new_problem.add_goal(g_c)
 
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name

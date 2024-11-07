@@ -147,8 +147,9 @@ def get_example_problems():
     gohome.add_condition(StartTiming(), Not(athome))
     gohome.add_condition(StartTiming(), atwork)
     # you start from work
-    gohome.add_effect(EndTiming(), athome, True)
     gohome.add_effect(StartTiming(), atwork, False)
+    # you leave work
+    gohome.add_effect(EndTiming(), athome, True)
     # and you will end up at home
     gohome.add_effect(EndTiming(), house_wet, wet_clothes)
     # if your clothes are wet you will wet your house
