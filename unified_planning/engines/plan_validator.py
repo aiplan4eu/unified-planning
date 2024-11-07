@@ -222,14 +222,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 trace=trace,
             )
 
-    def update_knowledge(self, se):
-        for k in se.if_values.keys():
-            if k not in self._calculated_interpreted_functions.keys():
-                self._calculated_interpreted_functions[k] = se.if_values[k]
-
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
-    # NOTE ttpv here - just for ctrl+f things
     """
     Performs :class:`~unified_planning.plans.Plan` validation.
 
