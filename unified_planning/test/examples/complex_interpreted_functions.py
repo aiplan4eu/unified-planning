@@ -197,5 +197,83 @@ def get_example_problems():
         ],
     )
     problems["go_home_with_rain_and_interpreted_functions"] = ifproblem
-    # TODO - update and change names
+
+    def if_cut_a_slice(in_val):
+        if in_val >= Fraction(1, 8):
+            out_val = Fraction(in_val - Fraction(1, 8))
+        else:
+            out_val = Fraction(0, 1)
+        return out_val
+
+    signature_if_cut = OrderedDict()
+    signature_if_cut["i_one"] = RealType()
+    if_cut = InterpretedFunction("if_cut", RealType(), signature_if_cut, if_cut_a_slice)
+
+    pizza = Fluent("pizza", RealType())
+    hunger = Fluent("hunger", IntType())
+    slices = Fluent("slices", IntType())
+
+    buy = InstantaneousAction("buy")
+    buy.add_effect(pizza, 1)
+
+    cut = InstantaneousAction("cut")
+    cut.add_effect(pizza, if_cut(pizza))
+    cut.add_effect(slices, Plus(slices, 1))
+    cut.add_precondition(GE(pizza, Fraction(1, 8)))
+
+    eat = InstantaneousAction("eat")
+    eat.add_effect(hunger, Minus(hunger, 1))
+    eat.add_effect(slices, Minus(slices, 1))
+    eat.add_precondition(GT(slices, 0))
+
+    problem = Problem("if_reals_condition_effect_pizza")
+    problem.add_fluent(pizza)
+    problem.add_fluent(hunger)
+    problem.add_fluent(slices)
+    problem.add_action(eat)
+    problem.add_action(cut)
+    problem.add_action(buy)
+    problem.set_initial_value(pizza, Fraction(1, 8))
+    problem.set_initial_value(hunger, 11)
+    problem.set_initial_value(slices, 0)
+    problem.add_goal(LE(hunger, 0))
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan(
+                [
+                    cut(),
+                    eat(),
+                    buy(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                    buy(),
+                    cut(),
+                    eat(),
+                    cut(),
+                    eat(),
+                ]
+            )
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([eat()]),
+        ],
+    )
+    problems["if_reals_condition_effect_pizza"] = ifproblem
+
     return problems

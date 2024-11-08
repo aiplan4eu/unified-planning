@@ -119,6 +119,24 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
             i = i + 1
 
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_interpreted_functions_reals(self):
+        # BUG - check example file "complex_interpreted_functions.py"
+        testproblem = self.problems["if_reals_condition_effect_pizza"]
+        problem = testproblem.problem
+        with OneshotPlanner(
+            name="interpreted_functions_planning[opt-pddl-planner]"
+        ) as planner:
+            planner._skip_checks = True  # -----------------------------
+            result = planner.solve(problem)
+        print(result)
+        print("known valid plan:")
+        print(testproblem.valid_plans[0])
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+        self.assertEqual(
+            len(result.plan.actions), len(testproblem.valid_plans[0].actions)
+        )
+
     @skipIfEngineNotAvailable("tamer")
     def test_interpreted_functions_in_durations_planner(self):
         testproblem = self.problems["go_home_with_rain_and_interpreted_functions"]

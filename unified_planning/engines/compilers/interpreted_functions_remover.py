@@ -240,11 +240,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for a in problem.actions:
             found_effects = self.get_effects(a)
             for time, ef in found_effects:
-                if ef.fluent not in assignment_tracking_fluents.keys():
+                if ef.fluent.fluent() not in assignment_tracking_fluents.keys():
                     ifuns = self.interpreted_functions_extractor.get(ef.value)
                     if len(ifuns) != 0:
                         new_f_name = get_fresh_name(
-                            new_problem, "_" + str(ef.fluent.fluent()) + "_has_changed"
+                            new_problem,
+                            "_" + str(ef.fluent.fluent().name) + "_has_changed",
                         )
                         f = Fluent(new_f_name, BoolType())
                         new_problem.add_fluent(f, default_initial_value=False)
@@ -274,8 +275,25 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 ifuns = self.interpreted_functions_extractor.get(ef.value)
                 if len(ifuns) != 0:
                     ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
+
                 else:
+
+                    # if effect assigns value to an unknown fluent, put tracker back to known state
+                    # TODO - fix cascade effect that might lead to incorrect results
+                    # cascade effect is preset not only here
+
                     effs.append((time, ef))
+                    if ef.fluent.fluent() in assignment_tracking_fluents.keys():
+                        # if the fluent is one of the changing ones
+                        # this action sets it to a (possibly) known value
+
+                        tracking_fluent_expression = em.FluentExp(
+                            assignment_tracking_fluents[ef.fluent.fluent()]
+                        )
+                        reset_tracker_eff = Effect(
+                            tracking_fluent_expression, em.FALSE(), em.TRUE()
+                        )
+                        effs.append((time, reset_tracker_eff))
             lower, upper = None, None
             if isinstance(a, up.model.DurativeAction):
                 lower = a.duration.lower
@@ -339,6 +357,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         if len(l2) != 0:
                             l1.append(em.Or(l2))
                     if k:
+                        # in case we know the valus of the if
                         new_conds.append((t, em.And(l1)))
                         new_conds.extend(implies)
                         if case == c_type.DURATION_LOWER:
@@ -351,11 +370,21 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             n_e = eff_instance.clone()
                             n_e.set_value(n_e_v)
                             new_effs.append((t, n_e))
+                            tracking_fluent_expression = em.FluentExp(
+                                assignment_tracking_fluents[
+                                    eff_instance.fluent.fluent()
+                                ]
+                            )
+                            reset_tracker_eff = Effect(
+                                tracking_fluent_expression, em.FALSE(), em.TRUE()
+                            )
+                            new_effs.append((t, reset_tracker_eff))
                         elif case == c_type.CONDITION:
                             new_conds.append((t, c.substitute(subs)))
                         else:
                             raise NotImplementedError
                     else:
+                        # in case we do not know the values of the if
                         if len(l1) != 0:
                             new_conds.append((t, em.Not(em.And(l1))))
                         if case == c_type.DURATION_LOWER:
@@ -393,7 +422,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if k in all_fluents:
                     g_c = em.Or(goal_c, assignment_tracking_fluents[k])
             new_problem.add_goal(g_c)
-
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
