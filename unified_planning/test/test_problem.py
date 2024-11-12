@@ -652,7 +652,9 @@ class TestProblem(unittest_TestCase):
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
         problem = self.problems["IF_in_conditions_complex_1"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
-        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        problem = self.problems["if_reals_condition_effect_pizza"].problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
 
 if __name__ == "__main__":
     main()
