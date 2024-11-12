@@ -70,6 +70,18 @@ class Action(ABC):
     def __eq__(self, oth: object) -> bool:
         raise NotImplementedError
 
+    def _print_parameters(self, s):
+        first = True
+        for p in self.parameters:
+            if first:
+                s.append("(")
+                first = False
+            else:
+                s.append(", ")
+            s.append(str(p))
+        if not first:
+            s.append(")")
+
     @abstractmethod
     def __hash__(self) -> int:
         raise NotImplementedError
@@ -464,16 +476,7 @@ class InstantaneousAction(InstantaneousTransitionMixin):
     def __repr__(self) -> str:
         s = []
         s.append(f"action {self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
+        self._print_parameters(s)
         s.append(" {\n")
         s.append("    preconditions = [\n")
         for c in self.preconditions:
@@ -814,16 +817,7 @@ class Process(Action):
     def __repr__(self) -> str:
         s = []
         s.append(f"process {self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
+        self._print_parameters(s)
         s.append(" {\n")
         s.append("    preconditions = [\n")
         for c in self.preconditions:
@@ -1005,16 +999,7 @@ class Event(InstantaneousTransitionMixin):
     def __repr__(self) -> str:
         s = []
         s.append(f"event {self.name}")
-        first = True
-        for p in self.parameters:
-            if first:
-                s.append("(")
-                first = False
-            else:
-                s.append(", ")
-            s.append(str(p))
-        if not first:
-            s.append(")")
+        self._print_parameters(s)
         s.append(" {\n")
         s.append("    preconditions = [\n")
         for c in self.preconditions:

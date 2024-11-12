@@ -366,6 +366,15 @@ class PDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
+    def _write_parameters(self, out, a):
+        for ap in a.parameters:
+            if ap.type.is_user_type():
+                out.write(
+                    f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                )
+            else:
+                raise UPTypeError("PDDL supports only user type parameters")
+
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError(
@@ -596,13 +605,7 @@ class PDDLWriter:
                 else:
                     out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
-                for ap in a.parameters:
-                    if ap.type.is_user_type():
-                        out.write(
-                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
-                        )
-                    else:
-                        raise UPTypeError("PDDL supports only user type parameters")
+                self._write_parameters(out, a)
                 out.write(")")
                 if len(a.preconditions) > 0:
                     precond_str = []
@@ -638,13 +641,7 @@ class PDDLWriter:
                     continue
                 out.write(f" (:process {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
-                for ap in a.parameters:
-                    if ap.type.is_user_type():
-                        out.write(
-                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
-                        )
-                    else:
-                        raise UPTypeError("PDDL supports only user type parameters")
+                self._write_parameters(out, a)
                 out.write(")")
                 if len(a.preconditions) > 0:
                     precond_str = []
