@@ -121,7 +121,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_reals(self):
-        # BUG - check example file "complex_interpreted_functions.py"
         testproblem = self.problems["if_reals_condition_effect_pizza"]
         problem = testproblem.problem
         with OneshotPlanner(
