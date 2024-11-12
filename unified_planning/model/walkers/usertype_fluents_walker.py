@@ -543,6 +543,35 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         exp_args, variables, fluents = self._process_exp_args(args)
         return (self.manager.Plus(*exp_args), None, variables, None, fluents)
 
+    def walk_interpreted_function_exp(
+        self,
+        expression: FNode,
+        args: List[
+            Tuple[
+                FNode,
+                Optional["up.model.variable.Variable"],
+                Set["up.model.variable.Variable"],
+                Optional[FNode],
+                Set[FNode],
+            ]
+        ],
+    ) -> Tuple[
+        FNode,
+        Optional["up.model.variable.Variable"],
+        Set["up.model.variable.Variable"],
+        Optional[FNode],
+        Set[FNode],
+    ]:
+        exp_args, variables, fluents = self._process_exp_args(args)
+        i_f = expression.interpreted_function()
+        return (
+            self.manager.InterpretedFunctionExp(i_f, exp_args),
+            None,
+            variables,
+            None,
+            fluents,
+        )
+
     def walk_minus(
         self,
         expression: FNode,
