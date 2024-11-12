@@ -648,8 +648,6 @@ class TestProblem(unittest_TestCase):
 
     def test_interpreted_functions_complex(self):
         problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
-        print(problem)
-        print(problem.kind)
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
         problem = self.problems["IF_in_conditions_complex_1"].problem

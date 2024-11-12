@@ -215,9 +215,9 @@ def _attempt_to_solve(
 def _refine(self, problem, validation_result):
     newProb = None
     if validation_result.calculated_interpreted_functions is None:
-        print("no updates available, the problem has no solution")
+        pass
     elif len(validation_result.calculated_interpreted_functions) == 0:
-        print("no updates available, the problem has no solution")
+        pass
     else:
         for k in validation_result.calculated_interpreted_functions:
             self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
