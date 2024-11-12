@@ -650,6 +650,8 @@ class TestProblem(unittest_TestCase):
         problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
         self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        IF_string = repr(problem.action("gohome").duration.lower.interpreted_function())
+        self.assertTrue(isinstance(IF_string, str))
         problem = self.problems["IF_in_conditions_complex_1"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
         problem = self.problems["if_reals_condition_effect_pizza"].problem
