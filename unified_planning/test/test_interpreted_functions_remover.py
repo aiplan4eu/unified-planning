@@ -42,6 +42,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         problem1 = self.problems["interpreted_functions_in_conditions"].problem
         problem2 = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        problem3 = self.problems["if_reals_condition_effect_pizza"].problem
         with Compiler(
             problem_kind=problem1.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
@@ -52,7 +53,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             self.assertTrue(problem1.kind.has_interpreted_functions_in_conditions())
             self.assertFalse(kind1.has_interpreted_functions_in_conditions())
         with Compiler(
-            problem_kind=problem1.kind,
+            problem_kind=problem2.kind,
             compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
         ) as if_remover:
             kind2 = if_remover.resulting_problem_kind(
@@ -60,6 +61,17 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             )
             self.assertTrue(problem2.kind.has_interpreted_functions_in_durations())
             self.assertFalse(kind2.has_interpreted_functions_in_durations())
+        with Compiler(
+            problem_kind=problem3.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind3 = if_remover.resulting_problem_kind(
+                problem2.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(
+                problem3.kind.has_interpreted_functions_in_numeric_assignments()
+            )
+            self.assertFalse(kind3.has_interpreted_functions_in_numeric_assignments())
 
     def test_interpreted_functions_in_preconditions_remover_simple(self):
         problem = self.problems["interpreted_functions_in_conditions"].problem
