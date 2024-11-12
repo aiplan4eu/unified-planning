@@ -199,15 +199,25 @@ def get_example_problems():
     problems["go_home_with_rain_and_interpreted_functions"] = ifproblem
 
     def if_cut_a_slice(in_val):
+        out_val = Fraction(0, 1)
         if in_val >= Fraction(1, 8):
             out_val = Fraction(in_val - Fraction(1, 8))
-        else:
-            out_val = Fraction(0, 1)
         return out_val
 
-    signature_if_cut = OrderedDict()
-    signature_if_cut["i_one"] = RealType()
-    if_cut = InterpretedFunction("if_cut", RealType(), signature_if_cut, if_cut_a_slice)
+    def if_is_there_enough_pizza(in_val):
+        if in_val >= Fraction(1, 8):
+            return True
+        else:
+            return False
+
+    signature_if_both = OrderedDict()
+    signature_if_both["i_one"] = RealType()
+    if_cut = InterpretedFunction(
+        "if_cut", RealType(), signature_if_both, if_cut_a_slice
+    )
+    if_available = InterpretedFunction(
+        "if_available", BoolType(), signature_if_both, if_is_there_enough_pizza
+    )
 
     pizza = Fluent("pizza", RealType())
     hunger = Fluent("hunger", IntType())
@@ -219,7 +229,7 @@ def get_example_problems():
     cut = InstantaneousAction("cut")
     cut.add_effect(pizza, if_cut(pizza))
     cut.add_effect(slices, Plus(slices, 1))
-    cut.add_precondition(GE(pizza, Fraction(1, 8)))
+    cut.add_precondition(if_available(pizza))
 
     eat = InstantaneousAction("eat")
     eat.add_effect(hunger, Minus(hunger, 1))
