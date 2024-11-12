@@ -50,10 +50,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
             result = planner.solve(problem)
-        print(result)
-        print(result.plan)
 
         self.assertFalse(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
@@ -65,11 +63,9 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # -----------------------------
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
 
             result = planner.solve(problem)
-        print(result)
-        print(result.plan)
 
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
@@ -80,12 +76,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
             result = planner.solve(problem)
-        print(result)
-        print(result.plan)
-        print("increase val -> action if in condition ")
-        print("is a valid solution")
         self.assertEqual(len(result.plan.actions), 2)
         self.assertEqual(result.plan.actions[0].action, problem.actions[0])
         self.assertEqual(result.plan.actions[1].action, problem.actions[1])
@@ -101,11 +93,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # -----------------------------
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
             result = planner.solve(problem)
-        print(result)
-        print("known valid plan:")
-        print(testproblem.valid_plans[0])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
         self.assertEqual(
             len(result.plan.actions), len(testproblem.valid_plans[0].actions)
@@ -126,11 +115,8 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         with OneshotPlanner(
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
-            planner._skip_checks = True  # -----------------------------
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
             result = planner.solve(problem)
-        print(result)
-        print("known valid plan:")
-        print(testproblem.valid_plans[0])
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
         self.assertEqual(
             len(result.plan.actions), len(testproblem.valid_plans[0].actions)
@@ -142,22 +128,15 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         problem = testproblem.problem
 
         with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
-            # print("now attempting to solve")
-            planner.skipChecks = True
             result = planner.solve(problem)
-            print(result)
 
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
         self.assertEqual(len(result.plan._actions), 2)
-        print(result.plan)
-        print(testproblem.valid_plans[0])
         i = 0
         while i < len(testproblem.valid_plans[0].timed_actions):
             j = 0
             while j < 3:
                 # the result tuple has 3 values: start time, action, duration
-                print(result.plan.timed_actions[i][j])
-                print(testproblem.valid_plans[0].timed_actions[i][j])
                 if j != 1:
                     self.assertEqual(
                         result.plan.timed_actions[i][j],

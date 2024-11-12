@@ -207,7 +207,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_fluents: dict = {}
         if_known: dict = {}
         for ifun_exp, val in self._interpreted_functions_values.items():
-            # this does not add the functions we have not found with the validator yet
             ifun = ifun_exp.interpreted_function()
             if ifun not in if_known:
                 if_known[ifun] = []
@@ -279,10 +278,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
 
                 else:
-
-                    # if effect assigns value to an unknown fluent, put tracker back to known state
-                    # TODO - fix cascade effect that might lead to incorrect results
-                    # cascade effect is preset not only here
 
                     effs.append((time, ef))
                     if ef.fluent.fluent() in assignment_tracking_fluents.keys():
