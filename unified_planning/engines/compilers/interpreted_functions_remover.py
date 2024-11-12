@@ -230,10 +230,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             if tuple(ifun_exp.args) in new_objects:
                 o = new_objects[tuple(ifun_exp.args)]
             else:
-                if_known[ifun].append(tuple(ifun_exp.args))
                 o = Object(get_fresh_name(new_problem, f"_o"), kNum)
                 new_objects[tuple(ifun_exp.args)] = o
                 new_problem.add_object(o)
+            if tuple(ifun_exp.args) not in if_known[ifun]:
+                if_known[ifun].append(tuple(ifun_exp.args))
+
             new_problem.set_initial_value(f(o), val)
 
         assignment_tracking_fluents: dict = {}
