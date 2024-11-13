@@ -280,7 +280,7 @@ class ValidationResult(Result):
         Union[List[up.model.State], Dict[Fraction, up.model.State]]
     ] = field(default=None)
     calculated_interpreted_functions: Optional[
-        dict[up.model.InterpretedFunction, up.model.FNode]
+        Dict[up.model.InterpretedFunction, up.model.FNode]
     ] = field(default=None)
 
     def __post_init__(self):

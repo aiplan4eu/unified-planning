@@ -28,7 +28,7 @@ class StateEvaluator(QuantifierSimplifier):
 
     def __init__(self, problem: "up.model.problem.Problem"):
         QuantifierSimplifier.__init__(self, problem.environment, problem)
-        self.if_values: dict[up.model.InterpretedFunction, up.model.FNode] = {}
+        self.if_values: Dict[up.model.InterpretedFunction, up.model.FNode] = {}
 
     def evaluate(
         self,
