@@ -21,7 +21,10 @@ from unified_planning.engines.compilers.interpreted_functions_remover import (
 )
 import unified_planning.engines.mixins as mixins
 from unified_planning.engines.mixins.compiler import CompilationKind
-from unified_planning.engines.plan_validator import SequentialPlanValidator
+from unified_planning.engines.plan_validator import (
+    SequentialPlanValidator,
+    TimeTriggeredPlanValidator,
+)
 import unified_planning.engines.results
 from unified_planning.environment import get_environment
 from unified_planning.model import ProblemKind
@@ -54,9 +57,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         MetaEngine.__init__(self, *args, **kwargs)
         mixins.OneshotPlannerMixin.__init__(self)
         self._knowledge = OrderedDict()
-        self._use_old_compiler = False
-        self._times_called = 0
-        self._time_list = list()
 
     @property
     def knowledge(self):
@@ -148,82 +148,44 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
-        em = problem.environment.expression_manager
-        f = problem.environment.factory
-
-        with f.Compiler(
-            problem_kind=problem.kind,
-            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
-        ) as if_remover:
-            ifr = if_remover.compile(
-                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
-            )
-        retval = _attempt_to_solve(
-            self, problem, ifr, heuristic, timeout, output_stream
-        )
-        return retval
-
-
-def _attempt_to_solve(
-    self,
-    problem: "up.model.AbstractProblem",
-    compilerresult,
-    heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
-    timeout: Optional[float] = None,
-    output_stream: Optional[IO[str]] = None,
-) -> "PlanGenerationResult":
-    cres = compilerresult
-    f = problem.environment.factory
-    start = time.time()
-    if self._skip_checks:
-        self.engine._skip_checks = True
-    found_solution = False
-    while not found_solution:
-        new_problem = cres.problem
-        res = self.engine.solve(new_problem, heuristic, timeout, output_stream)
-        if timeout is not None:
-            timeout -= min(timeout, time.time() - start)
-        if res.status in up.engines.results.POSITIVE_OUTCOMES:
-            # the planner found something
-            status = res.status
-            mapback = cres.map_back_action_instance
-            mappedbackplan = res.plan.replace_action_instances(mapback)
-            with f.PlanValidator(
-                problem_kind=problem.kind, plan_kind=mappedbackplan.kind
-            ) as validator:
-                validation_result = validator.validate(problem, mappedbackplan)
-            if validation_result.status == ValidationResultStatus.VALID:
-                # validator says ok, return this
-                retval = PlanGenerationResult(
-                    status,
-                    mappedbackplan,
-                    self.name,
-                    log_messages=res.log_messages,
+        start = time.time()
+        knowledge: dict[up.model.InterpretedFunction, up.model.FNode] = {}
+        if self._skip_checks:
+            self.engine._skip_checks = True
+        while True:
+            if timeout is not None:
+                timeout -= time.time() - start
+                if timeout <= 0:
+                    return PlanGenerationResult(
+                        PlanGenerationResultStatus.TIMEOUT, None, self.name
+                    )
+            with InterpretedFunctionsRemover(knowledge) as if_remover:
+                comp_res = if_remover.compile(problem)
+            res = self.engine.solve(comp_res.problem, heuristic, timeout, output_stream)
+            if res.status in up.engines.results.POSITIVE_OUTCOMES:
+                assert res.plan is not None
+                plan = res.plan.replace_action_instances(
+                    comp_res.map_back_action_instance
                 )
-                found_solution = True
+                validator: Optional[
+                    up.engines.plan_validator.SequentialPlanValidator
+                    | up.engines.plan_validator.TimeTriggeredPlanValidator
+                ] = None
+                if plan.kind == up.plans.PlanKind.SEQUENTIAL_PLAN:
+                    validator = SequentialPlanValidator()
+                elif plan.kind == up.plans.PlanKind.TIME_TRIGGERED_PLAN:
+                    validator = TimeTriggeredPlanValidator()
+                else:
+                    raise
+                validation_result = validator.validate(problem, plan)
+                if validation_result.status == ValidationResultStatus.VALID:
+                    return PlanGenerationResult(
+                        res.status, plan, self.name, log_messages=res.log_messages
+                    )
+                else:
+                    if validation_result.calculated_interpreted_functions is not None:
+                        knowledge.update(
+                            validation_result.calculated_interpreted_functions
+                        )
             else:
-                # validator says not ok, refine and retry
-                cres = _refine(self, problem, validation_result)
-
-        else:
-            # negative planner outcome, this is not solvable
-            retval = PlanGenerationResult(res.status, None, self.name)
-            found_solution = True
-    return retval
-
-
-def _refine(self, problem, validation_result):
-    newProb = None
-    if validation_result.calculated_interpreted_functions is None:
-        pass
-    elif len(validation_result.calculated_interpreted_functions) == 0:
-        pass
-    else:
-        for k in validation_result.calculated_interpreted_functions:
-            self.add_knowledge(k, validation_result.calculated_interpreted_functions[k])
-        with InterpretedFunctionsRemover(self.knowledge) as if_remover:
-            newProb = if_remover.compile(
-                problem,
-                CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
-            )
-    return newProb
+                return PlanGenerationResult(res.status, None, self.name)
