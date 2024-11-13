@@ -43,7 +43,6 @@ class QuantifierSimplifier(Simplifier):
         self._problem = problem
         self._assignments: Optional[Dict["Expression", "Expression"]] = None
         self._variable_assignments: Optional[Dict["Expression", "Expression"]] = None
-        self.if_values: dict = {}
 
     def qsimplify(
         self,
@@ -115,11 +114,6 @@ class QuantifierSimplifier(Simplifier):
                     if not (af.type.is_compatible(av.type)):
                         compatible_substitution = False
                 result = self.memoization[key]
-                if compatible_substitution:
-                    temp_key = key.interpreted_function()
-                    new_key = temp_key(*args_values)
-                    if new_key not in self.if_values.keys():
-                        self.if_values[new_key] = result
 
     def _deep_subs_simplify(
         self,

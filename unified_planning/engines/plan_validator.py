@@ -79,7 +79,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 options.get("environment", None)
             )
         )
-        self._calculated_interpreted_functions: dict = {}
 
     @property
     def name(self):
@@ -120,6 +119,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(problem, Problem)
         metric = None
         hasif = False
+        _calculated_interpreted_functions: dict = {}
         if (
             problem.kind.has_interpreted_functions_in_conditions()
             or problem.kind.has_interpreted_functions_in_numeric_assignments()
@@ -179,9 +179,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
                     if hasif:
-                        self._calculated_interpreted_functions = (
-                            simulator.get_knowledge()
-                        )
+                        _calculated_interpreted_functions = simulator.get_knowledge()
                     return invalid_result(
                         msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
                     )
@@ -201,7 +199,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                         next_state,
                     )
                 trace.append(next_state)
-
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
@@ -241,7 +238,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     [],
                     metric_evaluations,
                     trace=trace,
-                    calculated_interpreted_functions=self._calculated_interpreted_functions,
+                    calculated_interpreted_functions=_calculated_interpreted_functions,
                 )
             else:
                 msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
@@ -269,7 +266,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 options.get("environment", None)
             )
         )
-        self._calculated_interpreted_functions: dict = {}
+        # self._calculated_interpreted_functions: dict = {}
 
     @property
     def name(self):
@@ -390,7 +387,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     else:
                         updates[f] = v
                         assigned[f] = ai
-        self.update_knowledge(se)
         return state.make_child(updated_values=updates)
 
     def _apply_effect(
@@ -426,7 +422,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         result[g_fluent] = se.evaluate(
                             em.Plus(f_value, g_value), state=state
                         )
-        self.update_knowledge(se)
         return result
 
     def _states_in_interval(
@@ -459,7 +454,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
         ret_val = se.evaluate(condition, state=state).bool_constant_value()
-        self.update_knowledge(se)
         return ret_val
 
     def _instantiate_timing(
@@ -765,7 +759,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             reason=FailedValidationReason.INAPPLICABLE_ACTION,
                             inapplicable_action=opt_ai,
                             trace={k: v for k, v in trace.items() if k <= end},
-                            calculated_interpreted_functions=self._calculated_interpreted_functions,
+                            calculated_interpreted_functions=se.if_values,
                         )
                     else:
                         return ValidationResult(
@@ -847,6 +841,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             metric_evaluations=metric_evaluations,
             trace=trace,
         )
+
     def update_knowledge(self, se):
         for k in se.if_values.keys():
             if k not in self._calculated_interpreted_functions.keys():
