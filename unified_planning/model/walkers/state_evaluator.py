@@ -28,6 +28,7 @@ class StateEvaluator(QuantifierSimplifier):
 
     def __init__(self, problem: "up.model.problem.Problem"):
         QuantifierSimplifier.__init__(self, problem.environment, problem)
+        self.if_values: dict[up.model.InterpretedFunction, up.model.FNode] = {}
 
     def evaluate(
         self,
@@ -81,3 +82,14 @@ class StateEvaluator(QuantifierSimplifier):
         raise UPProblemDefinitionError(
             f"The StateEvaluator.evaluate should only be called on grounded expressions."
         )
+
+    def iter_walk(self, expression: FNode, **kwargs):
+        res = super(QuantifierSimplifier, self).iter_walk(expression, **kwargs)
+        for key, value in self.memoization.items():
+            if key.is_interpreted_function_exp():
+                args_values = [
+                    self.memoization[self._get_key(s, **kwargs)] for s in key.args
+                ]
+                new_key = key.interpreted_function()(*args_values)
+                self.if_values[new_key] = value
+        return res
