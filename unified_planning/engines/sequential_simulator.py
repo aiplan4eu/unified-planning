@@ -99,7 +99,6 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         Engine.__init__(self)
         SequentialSimulatorMixin.__init__(self, problem, error_on_failed_checks)
         pk = problem.kind
-        self._if_values: OrderedDict = OrderedDict()
         if not Grounder.supports(pk):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
@@ -354,9 +353,6 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             evaluated_condition = (
                 not effect.is_conditional() or evaluate(effect.condition).is_true()
             )
-            for k, v in self._se.if_values.items():
-                if k not in self._if_values.keys():
-                    self._if_values[k] = v
         if evaluated_condition:
             new_value = evaluate(effect.value)
             if effect.is_assignment():
@@ -464,10 +460,6 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         unsatisfied_conditions = []
         for c in g_action.preconditions:
             evaluated_cond = evaluate(c)
-            for k, v in self._se.if_values.items():
-                if k not in self._if_values.keys():
-                    self._if_values[k] = v
-
             if (
                 not evaluated_cond.is_bool_constant()
                 or not evaluated_cond.bool_constant_value()
@@ -666,7 +658,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
     def get_knowledge(self):
-        return self._if_values
+        return self._se.if_values
 
 
 def evaluate_quality_metric(
