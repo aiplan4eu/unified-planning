@@ -27,6 +27,7 @@ from unified_planning.engines.plan_validator import (
 )
 import unified_planning.engines.results
 from unified_planning.environment import get_environment
+from unified_planning.exceptions import UPException
 from unified_planning.model import ProblemKind
 from unified_planning.model.action import InstantaneousAction
 from unified_planning.model.interpreted_function import InterpretedFunction
@@ -43,7 +44,7 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.plans.sequential_plan import SequentialPlan
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 from unified_planning.utils import powerset
-from typing import OrderedDict, Type, IO, Optional, Union, List, Tuple, Callable
+from typing import Dict, OrderedDict, Type, IO, Optional, Union, List, Tuple, Callable
 from fractions import Fraction
 
 
@@ -149,7 +150,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         start = time.time()
-        knowledge: dict[up.model.InterpretedFunction, up.model.FNode] = {}
+        knowledge: Dict[up.model.InterpretedFunction, up.model.FNode] = {}
         if self._skip_checks:
             self.engine._skip_checks = True
         while True:
@@ -168,24 +169,33 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     comp_res.map_back_action_instance
                 )
                 validator: Optional[
-                    up.engines.plan_validator.SequentialPlanValidator
-                    | up.engines.plan_validator.TimeTriggeredPlanValidator
+                    Union[SequentialPlanValidator, TimeTriggeredPlanValidator]
                 ] = None
                 if plan.kind == up.plans.PlanKind.SEQUENTIAL_PLAN:
                     validator = SequentialPlanValidator()
                 elif plan.kind == up.plans.PlanKind.TIME_TRIGGERED_PLAN:
                     validator = TimeTriggeredPlanValidator()
+                elif plan.kind == up.plans.PlanKind.STN_PLAN:
+                    plan = plan.convert_to(
+                        up.plans.plan.PlanKind.TIME_TRIGGERED_PLAN, problem
+                    )
+                    validator = TimeTriggeredPlanValidator()
+                elif plan.kind == up.plans.PlanKind.PARTIAL_ORDER_PLAN:
+                    plan = plan.convert_to(
+                        up.plans.plan.PlanKind.SEQUENTIAL_PLAN, problem
+                    )
+                    validator = SequentialPlanValidator()
                 else:
-                    raise
+                    raise UPException(f"Unexpected plan kind: {plan.kind}")
                 validation_result = validator.validate(problem, plan)
                 if validation_result.status == ValidationResultStatus.VALID:
                     return PlanGenerationResult(
                         res.status, plan, self.name, log_messages=res.log_messages
                     )
                 else:
-                    if validation_result.calculated_interpreted_functions is not None:
-                        knowledge.update(
-                            validation_result.calculated_interpreted_functions
-                        )
+                    assert (
+                        validation_result.calculated_interpreted_functions is not None
+                    )
+                    knowledge.update(validation_result.calculated_interpreted_functions)
             else:
                 return PlanGenerationResult(res.status, None, self.name)
