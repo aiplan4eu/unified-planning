@@ -119,7 +119,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(problem, Problem)
         metric = None
         hasif = False
-        _calculated_interpreted_functions: dict = {}
+        calculated_interpreted_functions: Dict = {}
         if (
             problem.kind.has_interpreted_functions_in_conditions()
             or problem.kind.has_interpreted_functions_in_numeric_assignments()
@@ -179,7 +179,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
                     if hasif:
-                        _calculated_interpreted_functions = simulator.get_knowledge()
+                        calculated_interpreted_functions = simulator.get_knowledge()
                     return invalid_result(
                         msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
                     )
@@ -238,7 +238,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     [],
                     metric_evaluations,
                     trace=trace,
-                    calculated_interpreted_functions=_calculated_interpreted_functions,
+                    calculated_interpreted_functions=calculated_interpreted_functions,
                 )
             else:
                 msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
@@ -266,7 +266,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 options.get("environment", None)
             )
         )
-        # self._calculated_interpreted_functions: dict = {}
 
     @property
     def name(self):
