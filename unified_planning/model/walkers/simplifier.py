@@ -351,7 +351,6 @@ class Simplifier(walkers.dag.DagWalker):
         elif expression.interpreted_function().return_type.is_real_type():
             constantval = self.manager.Real((Fraction(constantval)))
         elif expression.interpreted_function().return_type.is_user_type():
-            # NOTE - not tested
             constantval = self.manager.ObjectExp((constantval))
         else:
             return new_exp
