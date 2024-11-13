@@ -203,9 +203,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         kNum = env.type_manager.UserType(get_fresh_name(new_problem, "kNum"))
 
-        new_objects: dict = {}
-        new_fluents: dict = {}
-        if_known: dict = {}
+        new_objects: Dict = {}
+        new_fluents: Dict = {}
+        if_known: Dict = {}
         for ifun_exp, val in self._interpreted_functions_values.items():
             ifun = ifun_exp.interpreted_function()
             if ifun not in if_known:
@@ -237,7 +237,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
             new_problem.set_initial_value(f(o), val)
 
-        assignment_tracking_fluents: dict = {}
+        assignment_tracking_fluents: Dict = {}
         for a in problem.actions:
             found_effects = self.get_effects(a)
             for time, ef in found_effects:
