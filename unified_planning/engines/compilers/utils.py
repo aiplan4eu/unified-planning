@@ -270,6 +270,19 @@ def get_fresh_name(
     return new_name
 
 
+def get_fresh_parameter_name(action: Action, name: str):
+    """This method returns a fresh name for a parameter in the action, given a name and the action"""
+    name_list: List[str] = []
+    for p in action.parameters:
+        name_list.append(p.name)
+    count = 0
+    new_name = name
+    while new_name in name_list:
+        new_name = f"{name}_{str(count)}"
+        count += 1
+    return new_name
+
+
 def lift_action_instance(
     action_instance: ActionInstance,
     map: Dict["up.model.Action", Tuple["up.model.Action", List["up.model.FNode"]]],
