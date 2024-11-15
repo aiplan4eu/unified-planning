@@ -44,8 +44,11 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
 
 
-class ElementKind(Enum):  # TODO rinomainare per il codice
-    """TODO - commento enum"""
+class ElementKind(Enum):
+    """
+    ElementKind enum:
+    this enum is used to identify in which situation an IF that is found during compilation is used
+    """
 
     CONDITION = auto()
     DURATION_LOWER = auto()
