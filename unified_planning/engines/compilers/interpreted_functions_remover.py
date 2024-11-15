@@ -1,4 +1,4 @@
-# Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 from fractions import Fraction
 from functools import partial
 import itertools
-from enum import Enum
+from enum import Enum, auto
 from collections import OrderedDict
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -30,24 +30,27 @@ from unified_planning.model import (
     ProblemKind,
     Action,
 )
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.fluent import Fluent
-from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.object import Object
 from unified_planning.model.effect import Effect
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
+    get_fresh_parameter_name,
 )
 from unified_planning.model.timing import StartTiming
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
 
 
-class c_type(Enum):
-    CONDITION = 1
-    DURATION_LOWER = 2
-    DURATION_UPPER = 3
-    EFFECT = 4
+class ElementKind(Enum):  # TODO rinomainare per il codice
+    """TODO - commento enum"""
+
+    CONDITION = auto()
+    DURATION_LOWER = auto()
+    DURATION_UPPER = auto()
+    EFFECT = auto()
 
 
 class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
@@ -211,21 +214,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             if ifun not in if_known:
                 if_known[ifun] = []
             if ifun not in new_fluents:
-                f = Fluent(
-                    get_fresh_name(new_problem, f"_f_{ifun.name}"),
-                    ifun.return_type,
-                    p=kNum,
-                )
+                f_name = get_fresh_name(new_problem, f"_f_{ifun.name}")
+                f = Fluent(f_name, ifun.return_type, p=kNum)
                 new_fluents[ifun] = f
-                new_problem.add_fluent(
-                    f,
-                    default_initial_value=self._default_value_given_type(
-                        ifun.return_type
-                    ),
-                )
+                default_value = self._default_value_given_type(ifun.return_type)
+                new_problem.add_fluent(f, default_initial_value=default_value)
             else:
                 f = new_fluents[ifun]
-
             if tuple(ifun_exp.args) in new_objects:
                 o = new_objects[tuple(ifun_exp.args)]
             else:
@@ -234,175 +229,29 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_object(o)
             if tuple(ifun_exp.args) not in if_known[ifun]:
                 if_known[ifun].append(tuple(ifun_exp.args))
-
             new_problem.set_initial_value(f(o), val)
 
-        assignment_tracking_fluents: Dict = {}
+        has_changed_fluents: Dict = {}
         for a in problem.actions:
-            found_effects = self.get_effects(a)
+            found_effects = self._get_effects(a)
             for time, ef in found_effects:
-                if ef.fluent.fluent() not in assignment_tracking_fluents.keys():
-                    ifuns = self.interpreted_functions_extractor.get(ef.value)
-                    if len(ifuns) != 0:
-                        new_f_name = get_fresh_name(
-                            new_problem,
-                            "_" + str(ef.fluent.fluent().name) + "_has_changed",
-                        )
-                        f = Fluent(new_f_name, BoolType())
-                        new_problem.add_fluent(f, default_initial_value=False)
-                        new_problem.set_initial_value(f, em.FALSE())
-                        assignment_tracking_fluents[ef.fluent.fluent()] = f
-        for a in problem.actions:
-            conds = []
-            effs = []
-            ifs = []
-            for t, c in self.get_conditions(a):
-                new_c = c
-                all_fluents_fnodes = self.free_vars_extractor.get(c)
-                all_fluents = []
-                for f_fnode in all_fluents_fnodes:
-                    all_fluents.append(f_fnode.fluent())
-                for k in assignment_tracking_fluents.keys():
-                    if k in all_fluents:
-                        new_c = em.Or(new_c, assignment_tracking_fluents[k])
-
-                ifuns = self.interpreted_functions_extractor.get(new_c)
-                if ifuns:
-                    ifs.append((t, new_c, ifuns, c_type.CONDITION, None))
-                else:
-                    conds.append((t, new_c))
-
-            for time, ef in self.get_effects(a):
-                ifuns = self.interpreted_functions_extractor.get(ef.value)
-                if len(ifuns) != 0:
-                    ifs.append((time, ef.value, ifuns, c_type.EFFECT, ef))
-
-                else:
-
-                    effs.append((time, ef))
-                    if ef.fluent.fluent() in assignment_tracking_fluents.keys():
-                        # if the fluent is one of the changing ones
-                        # this action sets it to a (possibly) known value
-
-                        tracking_fluent_expression = em.FluentExp(
-                            assignment_tracking_fluents[ef.fluent.fluent()]
-                        )
-                        reset_tracker_eff = Effect(
-                            tracking_fluent_expression, em.FALSE(), em.TRUE()
-                        )
-                        effs.append((time, reset_tracker_eff))
-            lower, upper = None, None
-            if isinstance(a, up.model.DurativeAction):
-                lower = a.duration.lower
-                ifuns = self.interpreted_functions_extractor.get(lower)
-                if ifuns:
-                    ifs.append(
-                        (StartTiming(), lower, ifuns, c_type.DURATION_LOWER, None)
-                    )
-                    lower = None
-                upper = a.duration.upper
-                ifuns = self.interpreted_functions_extractor.get(upper)
-                if ifuns:
-                    ifs.append(
-                        (StartTiming(), upper, ifuns, c_type.DURATION_UPPER, None)
-                    )
-                    upper = None
-
-            for known in itertools.product([True, False], repeat=len(ifs)):
-                if not knowledge_compatible(ifs, known, new_fluents.keys()):
+                f = ef.fluent.fluent()
+                if f in has_changed_fluents.keys():
                     continue
-                new_params = []
-                new_conds = []
-                new_effs: list = []
-                paramcounter = 0
-                for (t, c, ifuns, case, eff_instance), k in zip(ifs, known):
-                    subs = {}
-                    implies = []
-                    l1 = []
-                    for ifun in ifuns:
-                        if k:
-                            paramcounter = paramcounter + 1
-                            new_param = up.model.Parameter(
-                                get_fresh_name(
-                                    new_problem,
-                                    f"_p_{ifun.interpreted_function().name}_"
-                                    + str(paramcounter),
-                                ),
-                                kNum,
-                            )
-                            new_params.append(new_param)
-                            f = new_fluents[ifun.interpreted_function()]
-                            subs[ifun] = f(new_param)
-                        l2 = []
-                        if ifun.interpreted_function() in if_known.keys():
+                ifuns = self.interpreted_functions_extractor.get(ef.value)
+                if len(ifuns) == 0:
+                    continue
+                new_f_name = get_fresh_name(new_problem, f"_{f.name}_has_changed")
+                new_f = Fluent(new_f_name, BoolType())
+                new_problem.add_fluent(new_f, default_initial_value=False)
+                new_problem.set_initial_value(new_f, em.FALSE())
+                has_changed_fluents[f] = new_f
 
-                            for p_known in if_known[ifun.interpreted_function()]:
-                                pf = em.And(
-                                    [
-                                        self.EqualsOrIff(v1, v2, em)
-                                        for v1, v2 in zip(ifun.args, p_known)
-                                    ]
-                                )
-                                if k:
-                                    ob = new_objects[p_known]
-                                    implies.append(
-                                        (t, em.Implies(pf, em.Equals(new_param, ob)))
-                                    )
-                                l2.append(pf)
-                        else:
-                            pass
-                        if len(l2) != 0:
-                            l1.append(em.Or(l2))
-                    if k:
-                        # in case we know the valus of the if
-                        new_conds.append((t, em.And(l1)))
-                        new_conds.extend(implies)
-                        if case == c_type.DURATION_LOWER:
-                            lower = c.substitute(subs)
-                        elif case == c_type.DURATION_UPPER:
-                            upper = c.substitute(subs)
-                        elif case == c_type.EFFECT:
-                            assert eff_instance is not None
-                            n_e_v = c.substitute(subs)
-                            n_e = eff_instance.clone()
-                            n_e.set_value(n_e_v)
-                            new_effs.append((t, n_e))
-                            tracking_fluent_expression = em.FluentExp(
-                                assignment_tracking_fluents[
-                                    eff_instance.fluent.fluent()
-                                ]
-                            )
-                            reset_tracker_eff = Effect(
-                                tracking_fluent_expression, em.FALSE(), em.TRUE()
-                            )
-                            new_effs.append((t, reset_tracker_eff))
-                        elif case == c_type.CONDITION:
-                            new_conds.append((t, c.substitute(subs)))
-                        else:
-                            raise NotImplementedError
-                    else:
-                        # in case we do not know the values of the if
-                        if len(l1) != 0:
-                            new_conds.append((t, em.Not(em.And(l1))))
-                        if case == c_type.DURATION_LOWER:
-                            lower = em.Real(Fraction(1, 1))
-                        elif case == c_type.DURATION_UPPER:
-                            upper = em.Real(Fraction(1000000, 1))
-                        if case == c_type.EFFECT:
-                            assert eff_instance is not None
-                            tracking_fluent_expression = em.FluentExp(
-                                assignment_tracking_fluents[
-                                    eff_instance.fluent.fluent()
-                                ]
-                            )
-                            n_e = Effect(
-                                tracking_fluent_expression, em.TRUE(), em.TRUE()
-                            )
-                            new_effs.append((t, n_e))
-
-                new_a = self.clone_action_with_extras(
-                    a, new_params, conds + new_conds, (lower, upper), effs + new_effs
-                )
+        for a in problem.actions:
+            for new_params, dur, conds, effs in self._expand_action(
+                a, new_fluents, new_objects, if_known, has_changed_fluents
+            ):
+                new_a = self._clone_action_with_extras(a, new_params, conds, dur, effs)
                 new_a.name = get_fresh_name(new_problem, a.name)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
@@ -415,68 +264,169 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             all_fluents = []
             for f_fnode in all_fluents_fnodes:
                 all_fluents.append(f_fnode.fluent())
-            for k in assignment_tracking_fluents.keys():
+            for k in has_changed_fluents.keys():
                 if k in all_fluents:
-                    g_c = em.Or(goal_c, assignment_tracking_fluents[k])
+                    g_c = em.Or(goal_c, has_changed_fluents[k])
             new_problem.add_goal(g_c)
+
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def clone_action_with_extras(self, a, new_params, conditions, duration, effects):
+    def _expand_action(
+        self, a, new_fluents, new_objects, if_known, has_changed_fluents
+    ):
+        em = a.environment.expression_manager
+        conds = []
+        effs = []
+        ifs = []
+        for t, exp in self._get_conditions(a):
+            all_fluent_exps = self.free_vars_extractor.get(exp)
+            all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
+            extra_c = [hcf for f, hcf in has_changed_fluents.items() if f in all_f]
+            new_c = em.Or([exp] + extra_c)
+            ifuns = self.interpreted_functions_extractor.get(exp)
+            if ifuns:
+                ifs.append((t, new_c, ifuns, ElementKind.CONDITION, None))
+            else:
+                conds.append((t, new_c))
+        for time, ef in self._get_effects(a):
+            ifuns = self.interpreted_functions_extractor.get(ef.value)
+            if ifuns:
+                ifs.append((time, ef.value, ifuns, ElementKind.EFFECT, ef))
+            else:
+                f = ef.fluent.fluent()
+                effs.append((time, ef))
+                if f not in has_changed_fluents.keys():
+                    continue
+                # if the fluent is one of the changing ones
+                # this action sets it to a (possibly) known value
+                tracking_fluent_exp = em.FluentExp(has_changed_fluents[f])
+                reset_tracker_eff = Effect(tracking_fluent_exp, em.FALSE(), em.TRUE())
+                effs.append((time, reset_tracker_eff))
 
-        updated_parameters = OrderedDict(
-            (param.name, param.type) for param in a.parameters
-        )
-        for n in new_params:
-            updated_parameters[n.name] = n.type
-
-        new_action: Optional[
-            up.model.DurativeAction | up.model.InstantaneousAction
-        ] = None
+        lower, upper = None, None
         if isinstance(a, up.model.DurativeAction):
-            new_durative_action = up.model.DurativeAction(
-                a.name, updated_parameters, a.environment
-            )
+            lower = a.duration.lower
+            ifuns = self.interpreted_functions_extractor.get(lower)
+            if ifuns:
+                ifs.append(
+                    (StartTiming(), lower, ifuns, ElementKind.DURATION_LOWER, None)
+                )
+                lower = None
+            upper = a.duration.upper
+            ifuns = self.interpreted_functions_extractor.get(upper)
+            if ifuns:
+                ifs.append(
+                    (StartTiming(), upper, ifuns, ElementKind.DURATION_UPPER, None)
+                )
+                upper = None
+        for known_vec in itertools.product([True, False], repeat=len(ifs)):
+            if not knowledge_compatible(ifs, known_vec, new_fluents.keys()):
+                continue
+            new_params: List = []
+            new_conds: List = []
+            new_effs: List = []
+            i = 0
+            for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
+                subs = {}
+                implies = []
+                l1 = []
+                for ifun_exp in ifuns:
+                    ifun = ifun_exp.interpreted_function()
+                    if ifun not in if_known:
+                        continue
+                    if known:
+                        i += 1
+                        f = new_fluents[ifun]
+                        kNum = f.signature[0].type
+                        p_n = get_fresh_parameter_name(a, f"_p_{ifun.name}_" + str(i))
+                        new_param = up.model.Parameter(p_n, kNum)
+                        new_params.append(new_param)
+                        subs[ifun_exp] = f(new_param)
+                    l2 = []
+                    for p_known in if_known[ifun]:
+                        pf = em.And(
+                            [
+                                em.EqualsOrIff(v1, v2)
+                                for v1, v2 in zip(ifun_exp.args, p_known)
+                            ]
+                        )
+                        if known:
+                            o = new_objects[p_known]
+                            implies.append((t, em.Implies(pf, em.Equals(new_param, o))))
+                        l2.append(pf)
+                    if len(l2) != 0:
+                        l1.append(em.Or(l2))
+                if known:
+                    # in case we know the valus of the if
+                    new_conds.append((t, em.And(l1)))
+                    new_conds.extend(implies)
+                    if case == ElementKind.DURATION_LOWER:
+                        lower = exp.substitute(subs)
+                    elif case == ElementKind.DURATION_UPPER:
+                        upper = exp.substitute(subs)
+                    elif case == ElementKind.EFFECT:
+                        assert eff_instance is not None
+                        n_e = eff_instance.clone()
+                        n_e.set_value(exp.substitute(subs))
+                        new_effs.append((t, n_e))
+                        f = eff_instance.fluent.fluent()
+                        tracking_f = em.FluentExp(has_changed_fluents[f])
+                        reset_tracker_eff = Effect(tracking_f, em.FALSE(), em.TRUE())
+                        new_effs.append((t, reset_tracker_eff))
+                    elif case == ElementKind.CONDITION:
+                        new_conds.append((t, exp.substitute(subs)))
+                    else:
+                        raise NotImplementedError
+                else:
+                    # in case we do not know the values of the if
+                    if len(l1) != 0:
+                        new_conds.append((t, em.Not(em.And(l1))))
+                    if case == ElementKind.DURATION_LOWER:
+                        lower = em.Real(Fraction(1, 1))
+                    elif case == ElementKind.DURATION_UPPER:
+                        upper = em.Real(Fraction(1000000, 1))
+                    if case == ElementKind.EFFECT:
+                        assert eff_instance is not None
+                        f = eff_instance.fluent.fluent()
+                        tracking_f = em.FluentExp(has_changed_fluents[f])
+                        n_e = Effect(tracking_f, em.TRUE(), em.TRUE())
+                        new_effs.append((t, n_e))
+            yield new_params, (lower, upper), conds + new_conds, effs + new_effs
+
+    def _clone_action_with_extras(self, a, new_params, conditions, duration, effects):
+        updated_params = OrderedDict((p.name, p.type) for p in a.parameters)
+        for n in new_params:
+            updated_params[n.name] = n.type
+
+        new_a: Optional[Union[DurativeAction, InstantaneousAction]] = None
+        if isinstance(a, DurativeAction):
+            new_dur_a = DurativeAction(a.name, updated_params, a.environment)
             for time, eff in effects:
-                new_durative_action._add_effect_instance(time, eff.clone())
+                new_dur_a._add_effect_instance(time, eff.clone())
             if a.simulated_effects is not None:
                 for t, se in a.simulated_effects.items():
-                    new_durative_action.set_simulated_effect(t, se)
-            new_durative_action.clear_conditions()
+                    new_dur_a.set_simulated_effect(t, se)
+            new_dur_a.clear_conditions()
             for ii, c in conditions:
-                new_durative_action.add_condition(ii, c)
-            new_lower = duration[0]
-            new_upper = duration[1]
-            new_durative_action.set_closed_duration_interval(new_lower, new_upper)
-            new_action = new_durative_action
+                new_dur_a.add_condition(ii, c)
+            new_dur_a.set_closed_duration_interval(duration[0], duration[1])
+            new_a = new_dur_a
         elif isinstance(a, up.model.InstantaneousAction):
-            new_instantaneous_action = up.model.InstantaneousAction(
-                a.name, updated_parameters, a.environment
-            )
+            new_ia = InstantaneousAction(a.name, updated_params, a.environment)
             for time, eff in effects:
-                new_instantaneous_action._add_effect_instance(eff.clone())
+                new_ia._add_effect_instance(eff.clone())
             if a.simulated_effect is not None:
-                new_instantaneous_action.set_simulated_effect(a.simulated_effect)
-
-            not_timed_conditions = []
+                new_ia.set_simulated_effect(a.simulated_effect)
+            new_ia.clear_preconditions()
             for c in conditions:
-                not_timed_conditions.append(c[1])
-            new_instantaneous_action.clear_preconditions()
-            for c in not_timed_conditions:
-                new_instantaneous_action.add_precondition(c)
-            new_action = new_instantaneous_action
+                new_ia.add_precondition(c[1])
+            new_a = new_ia
         else:
             raise NotImplementedError
-        return new_action
 
-    def EqualsOrIff(self, v1, v2, manager):
-        ret_exp = None
-        if v1.type.is_bool_type():
-            ret_exp = manager.Iff(v1, v2)
-        else:
-            ret_exp = manager.Equals(v1, v2)
-        return ret_exp
+        return new_a
 
     def _default_value_given_type(self, t):
         if t.is_bool_type():
@@ -494,7 +444,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             raise NotImplementedError
 
-    def get_effects(self, a):
+    def _get_effects(self, a):
         eff_list: list = []
         time_list: list = []
         if isinstance(a, up.model.InstantaneousAction):
@@ -512,7 +462,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             raise NotImplementedError
         return zip(time_list, eff_list)
 
-    def get_conditions(self, a):
+    def _get_conditions(self, a):
         cond_list: list = []
         time_list: list = []
         if isinstance(a, up.model.DurativeAction):
