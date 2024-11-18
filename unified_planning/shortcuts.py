@@ -458,7 +458,6 @@ def EqualsOrIff(left: Expression, right: Expression) -> FNode:
         ``left <-> right``
         ``left == right``
 
-
     :param left: The ``left`` member of the ``EqualsOrIff expression``.
     :param right: The ``right`` member of the ``EqualsOrIff expression``.
     :return: The created ``Equals`` or ``Iff`` expression.

@@ -100,20 +100,6 @@ class QuantifierSimplifier(Simplifier):
                 self.memoization[key] = f(expression, args=expression.args, **kwargs)
         else:
             pass
-        for key in self.memoization:
-            if key.is_interpreted_function_exp():
-                args_values = [
-                    self.memoization[self._get_key(s, **kwargs)]
-                    for s in self._get_children(expression)
-                ]
-                args_fluents = key.args
-                compatible_substitution = True
-                if len(args_fluents) != len(args_values):
-                    compatible_substitution = False
-                for av, af in zip(args_values, args_fluents):
-                    if not (af.type.is_compatible(av.type)):
-                        compatible_substitution = False
-                result = self.memoization[key]
 
     def _deep_subs_simplify(
         self,

@@ -767,14 +767,13 @@ class ExpressionManager(object):
         ``left <-> right``
         ``left == right``
 
-
         :param left: The ``left`` member of the ``EqualsOrIff expression``.
         :param right: The ``right`` member of the ``EqualsOrIff expression``.
         :return: The created ``Equals`` or ``Iff`` expression.
         """
 
         left, right = self.auto_promote(left, right)
-        if (left.type.is_bool_type()) and (right.type.is_bool_type()):
+        if left.type.is_bool_type() and right.type.is_bool_type():
 
             return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
         else:
