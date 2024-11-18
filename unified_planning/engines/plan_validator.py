@@ -116,14 +116,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         assert isinstance(plan, SequentialPlan)
         assert isinstance(problem, Problem)
         metric = None
-        hasif = False
-        calculated_interpreted_functions: Dict = {}
-        if (
-            problem.kind.has_interpreted_functions_in_conditions()
-            or problem.kind.has_interpreted_functions_in_numeric_assignments()
-            or problem.kind.has_interpreted_functions_in_boolean_assignments()
-        ):
-            hasif = True
         if len(problem.quality_metrics) > 0:
             if len(problem.quality_metrics) == 1:
                 metric = problem.quality_metrics[0]
@@ -158,9 +150,6 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-
-                    if hasif:
-                        calculated_interpreted_functions = simulator.get_knowledge()
                 else:
                     next_state = simulator.apply_unsafe(trace[-1], ai)
             except UPUsageError as e:
@@ -180,7 +169,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     reason=FailedValidationReason.INAPPLICABLE_ACTION,
                     inapplicable_action=ai,
                     trace=trace,
-                    calculated_interpreted_functions=calculated_interpreted_functions,
+                    calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                 )
             assert next_state is not None
             if metric is not None:
@@ -382,8 +371,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _check_condition(
         self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
-        ret_val = se.evaluate(condition, state=state).bool_constant_value()
-        return ret_val
+        return se.evaluate(condition, state=state).bool_constant_value()
 
     def _instantiate_timing(
         self,
@@ -438,14 +426,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
-        hasif = False
-        if (
-            problem.kind.has_interpreted_functions_in_conditions()
-            or problem.kind.has_interpreted_functions_in_durations()
-            or problem.kind.has_interpreted_functions_in_numeric_assignments()
-            or problem.kind.has_interpreted_functions_in_boolean_assignments()
-        ):
-            hasif = True
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
         )
@@ -676,11 +656,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             metric_evaluations=None,
                             reason=FailedValidationReason.UNSATISFIED_GOALS,
                             inapplicable_action=None,
-                            trace={
-                                k: v
-                                for k, v in trace.items()
-                                if end is None or k <= end
-                            },
+                            trace={k: v for k, v in trace.items() if k <= end},
+                            calculated_interpreted_functions=se.if_values,
                         )
 
         for g in problem.goals:
@@ -693,6 +670,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     reason=FailedValidationReason.UNSATISFIED_GOALS,
                     inapplicable_action=None,
                     trace=trace,
+                    calculated_interpreted_functions=se.if_values,
                 )
 
         metric_evaluations = None

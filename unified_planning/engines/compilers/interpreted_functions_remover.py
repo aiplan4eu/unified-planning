@@ -236,6 +236,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         has_changed_fluents: Dict = {}
         for a in problem.actions:
+            # these fluents are created and added to the problem at the start
+            # as might need some of them before we encounter them during the compilation
             found_effects = self._get_effects(a)
             for time, ef in found_effects:
                 f = ef.fluent.fluent()
@@ -262,6 +264,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         old_goals = new_problem.goals
         new_problem.clear_goals()
         for goal_c in old_goals:
+            # the goal is modified in order to handle situations where
+            # the fluents contained in it have changed
             g_c = goal_c
             all_fluents_fnodes = self.free_vars_extractor.get(goal_c)
             all_fluents = []
@@ -283,6 +287,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         conds = []
         effs = []
         ifs = []
+        # ifs will contain a tuple with the information needed to remove the interpreted functions
+        # the time (None if instantaneous)
+        # the expression that contains some IFs
+        # the list of IFs contained in the expression
+        # the ElementKind
+        # the effect that is being handled (None if we are not on an effect)
         for t, exp in self._get_conditions(a):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
@@ -487,6 +497,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
 
 def _split_ands(e):
+
     templist = []
     if e.is_and():
         for sub in e.args:
@@ -500,6 +511,7 @@ def custom_replace(
     action_instance: ActionInstance,
     map: Dict["up.model.Action", Optional["up.model.Action"]],
 ) -> Optional[ActionInstance]:
+    # the default replace can't handle a different number of parameters
     try:
         replaced_action = map[action_instance.action]
     except KeyError:
@@ -528,6 +540,8 @@ def custom_replace(
 
 
 def knowledge_compatible(ifs, known, key_list):
+    # returns true if no conflicts are found and we have the necessary knowledge about the IFs in question
+
     retval = True
     kifuns = []
     ukifuns = []

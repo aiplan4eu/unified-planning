@@ -657,7 +657,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
     def supports(problem_kind):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
-    def get_knowledge(self):
+    def get_interpreted_functions_values(self):
         return self._se.if_values
 
 

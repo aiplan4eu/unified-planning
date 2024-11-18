@@ -18,6 +18,7 @@ from collections import OrderedDict
 from typing import List, Optional, FrozenSet, Union, cast
 import unified_planning as up
 import unified_planning.environment
+from unified_planning.exceptions import UPUnreachableCodeError
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.types import _UserType
@@ -345,15 +346,15 @@ class Simplifier(walkers.dag.DagWalker):
                 newlist.append(v)
         constantval = expression.interpreted_function().function(*newlist)
         if expression.interpreted_function().return_type.is_bool_type():
-            constantval = self.manager.Bool((constantval))
+            constantval = self.manager.Bool(constantval)
         elif expression.interpreted_function().return_type.is_int_type():
-            constantval = self.manager.Int((constantval))
+            constantval = self.manager.Int(constantval)
         elif expression.interpreted_function().return_type.is_real_type():
-            constantval = self.manager.Real((Fraction(constantval)))
+            constantval = self.manager.Real(Fraction(constantval))
         elif expression.interpreted_function().return_type.is_user_type():
-            constantval = self.manager.ObjectExp((constantval))
+            constantval = self.manager.ObjectExp(constantval)
         else:
-            return new_exp
+            raise UPUnreachableCodeError
         return constantval
 
     def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
