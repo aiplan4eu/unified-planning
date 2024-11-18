@@ -97,7 +97,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
@@ -133,6 +132,9 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         )
         additive_supported_kind.set_effects_kind(
             "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
+        )
+        additive_supported_kind.set_effects_kind(
+            "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
         )
         return final_supported_kind.union(additive_supported_kind)
 
