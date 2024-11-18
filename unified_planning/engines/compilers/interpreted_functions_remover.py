@@ -128,6 +128,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
@@ -178,6 +179,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
         if new_kind.has_interpreted_functions_in_numeric_assignments():
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
+        if new_kind.has_interpreted_functions_in_object_assignments():
+            new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
 
         return new_kind
 
@@ -236,8 +239,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         has_changed_fluents: Dict = {}
         for a in problem.actions:
-            # these fluents are created and added to the problem at the start
-            # as might need some of them before we encounter them during the compilation
+            # these fluents are created and added to the problem at the start as we
+            # might need some of them before we encounter them during the compilation
             found_effects = self._get_effects(a)
             for time, ef in found_effects:
                 f = ef.fluent.fluent()
@@ -287,12 +290,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         conds = []
         effs = []
         ifs = []
-        # ifs will contain a tuple with the information needed to remove the interpreted functions
-        # the time (None if instantaneous)
-        # the expression that contains some IFs
-        # the list of IFs contained in the expression
-        # the ElementKind
-        # the effect that is being handled (None if we are not on an effect)
         for t, exp in self._get_conditions(a):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
