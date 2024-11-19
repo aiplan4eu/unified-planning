@@ -435,3 +435,12 @@ class TestProblem(unittest_TestCase):
         for plan in p.invalid_plans:
             validation_result = spv.validate(problem, plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        p = self.problems["interpreted_functions_minimal_chain_of_assignments"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)

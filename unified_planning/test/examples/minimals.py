@@ -783,35 +783,44 @@ def get_example_problems():
 
     # interpreted functions minimal chain of assignments
 
-    def assign_five(in_val):
-        out_val = 5
+    def assign_plus_two(in_val):
+        out_val = in_val + 2
         return out_val
 
     signature_if_assign = OrderedDict()
     signature_if_assign["i_one"] = IntType()
-    if_assign_five = InterpretedFunction(
-        "if_assing", IntType(), signature_if_assign, assign_five
+    if_assign_plus_two = InterpretedFunction(
+        "if_assing", IntType(), signature_if_assign, assign_plus_two
     )
 
-    value = Fluent("val", IntType())
+    start_value = Fluent("start_value", IntType())
+    mid_value = Fluent("mid_value", IntType())
+
     g = Fluent("g", IntType())
-    simple_action = InstantaneousAction("simple_action")
-    simple_action.add_effect(value, if_assign_five(value))
+    start_action = InstantaneousAction("start_action")
+    start_action.add_effect(start_value, if_assign_plus_two(start_value))
+    mid_action = InstantaneousAction("mid_action")
+    mid_action.add_effect(mid_value, if_assign_plus_two(start_value))
     goal_action = InstantaneousAction("goal_action")
-    goal_action.add_effect(g, value)
+    goal_action.add_effect(g, mid_value)
     problem = Problem("interpreted_functions_minimal_chain_of_assignments")
-    problem.add_fluent(value)
+    problem.add_fluent(start_value)
+    problem.add_fluent(mid_value)
     problem.add_fluent(g)
-    problem.add_action(simple_action)
+    problem.add_action(start_action)
+    problem.add_action(mid_action)
     problem.add_action(goal_action)
-    problem.set_initial_value(value, 1)
+    problem.set_initial_value(start_value, 1)
+    problem.set_initial_value(mid_value, 1)
     problem.set_initial_value(g, 1)
     problem.add_goal(GE(g, 4))
 
     ifproblem = TestCase(
         problem=problem,
         solvable=True,
-        valid_plans=[up.plans.SequentialPlan([simple_action(), goal_action()])],
+        valid_plans=[
+            up.plans.SequentialPlan([start_action(), mid_action(), goal_action()])
+        ],
         invalid_plans=[
             up.plans.SequentialPlan([]),
         ],
