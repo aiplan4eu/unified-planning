@@ -148,6 +148,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             trace: List[State],
             reason: FailedValidationReason,
             inapplicable_action: Optional[ActionInstance] = None,
+            calculted_interpreted_functions = None,
+
         ) -> ValidationResult:
             logs = [LogMessage(LogLevel.INFO, msg)]
             return ValidationResult(
@@ -158,6 +160,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 reason=reason,
                 inapplicable_action=inapplicable_action,
                 trace=trace,
+                calculated_interpreted_functions = calculted_interpreted_functions,
             )
 
         msg = None
@@ -236,8 +239,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
         assert msg is not None
-        return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS)
-
+        return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS, calculated_interpreted_functions=simulator.get_interpreted_functions_values())
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     """
