@@ -208,6 +208,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 None,
                 FailedValidationReason.UNSATISFIED_GOALS,
                 trace=trace,
+                calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
             )
 
 

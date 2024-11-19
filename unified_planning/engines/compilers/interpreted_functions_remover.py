@@ -302,24 +302,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 conds.append((t, new_c))
         for time, ef in self._get_effects(a):
             ifuns = self.interpreted_functions_extractor.get(ef.value)
-
             if ifuns:
                 ifs.append((time, ef.value, ifuns, ElementKind.EFFECT, ef))
             else:
-                f = ef.fluent.fluent()
                 effs.append((time, ef))
+                f = ef.fluent.fluent()
+                # only if the fluent is one of the changing ones
+                # we need to set the tracker
                 if f not in has_changed_fluents.keys():
                     continue
-                # if the fluent is one of the changing ones
-                # this action sets it to a (possibly) known value
-                # so the tracking fluent is set to has_changed if at least one
-                # of the fluents in value is tagged with has_changed
-
-                f_list = [v.fluent() for v in self.free_vars_extractor.get(ef.value)]
-                o_e = em.Or([em.FluentExp(has_changed_fluents[vf]) for vf in f_list])
-
-                tracking_fluent_exp = em.FluentExp(has_changed_fluents[f])
-                reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
+                reset_tracker_eff = self._create_tracking_effect(
+                    ef, has_changed_fluents, em
+                )
                 effs.append((time, reset_tracker_eff))
 
         lower, upper = None, None
@@ -388,9 +382,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         n_e = eff_instance.clone()
                         n_e.set_value(exp.substitute(subs))
                         new_effs.append((t, n_e))
-                        f = eff_instance.fluent.fluent()
-                        tracking_f = em.FluentExp(has_changed_fluents[f])
-                        reset_tracker_eff = Effect(tracking_f, em.FALSE(), em.TRUE())
+                        reset_tracker_eff = self._create_tracking_effect(
+                            eff_instance, has_changed_fluents, em
+                        )
                         new_effs.append((t, reset_tracker_eff))
                     elif case == ElementKind.CONDITION:
                         new_conds.append((t, exp.substitute(subs)))
@@ -460,6 +454,20 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 return t.lower_bound
         else:
             raise NotImplementedError
+
+    def _create_tracking_effect(self, ef, has_changed_fluents, em):
+        # tracking fluent is set to has_changed if at least one
+        # of the fluents in value is tagged with has_changed
+        f = ef.fluent.fluent()
+        f_list = []
+        for v in self.free_vars_extractor.get(ef.value):
+            if v.fluent() in has_changed_fluents.keys():
+                f_list.append(v.fluent())
+
+        o_e = em.Or([em.FluentExp(has_changed_fluents[vf]) for vf in f_list])
+        tracking_fluent_exp = em.FluentExp(has_changed_fluents[f])
+        reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
+        return reset_tracker_eff
 
     def _get_effects(self, a):
         eff_list: list = []
