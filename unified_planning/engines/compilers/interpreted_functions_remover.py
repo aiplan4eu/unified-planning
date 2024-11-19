@@ -238,22 +238,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.set_initial_value(f(o), val)
 
         is_unknown_fluents: Dict = {}
-        # NOTE - contents is_unknown_fluents could be more optimal
-        # now tracking fluents are added for all fluents that can change from any effect
-        # in theory we do not need fluents that are completely isolated from IFs
-        for a in problem.actions:
-            # these fluents are created and added to the problem at the start as we
-            # might need some of them before we encounter them during the compilation
-            found_effects = self._get_effects(a)
-            for time, ef in found_effects:
-                f = ef.fluent.fluent()
-                if f in is_unknown_fluents.keys():
-                    continue
-                new_f_name = get_fresh_name(new_problem, f"_{f.name}_is_unknown")
-                new_f = Fluent(new_f_name, BoolType())
-                new_problem.add_fluent(new_f, default_initial_value=False)
-                new_problem.set_initial_value(new_f, em.FALSE())
-                is_unknown_fluents[f] = new_f
+        changing_fluents = self._find_changing_fluents(problem)
+        for f in changing_fluents:
+            new_f_name = get_fresh_name(new_problem, f"_{f.name}_is_unknown")
+            new_f = Fluent(new_f_name, BoolType())
+            new_problem.add_fluent(new_f, default_initial_value=False)
+            new_problem.set_initial_value(new_f, em.FALSE())
+            is_unknown_fluents[f] = new_f
 
         for a in problem.actions:
             for new_params, dur, conds, effs in self._expand_action(
@@ -452,6 +443,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 return t.lower_bound
         else:
             raise NotImplementedError
+
+    def _find_changing_fluents(self, problem):
+        found_fluents_set = set()
+        # TODO - improve this
+        # right now adds all fluents that can be modified by actions
+        # should only get those related to IFs or to other IF related fluents
+        for a in problem.actions:
+            found_effects = self._get_effects(a)
+            for _, ef in found_effects:
+                f = ef.fluent.fluent()
+                found_fluents_set.add(f)
+        return found_fluents_set
 
     def _create_tracking_effect(self, ef, is_unknown_fluents, em):
         # tracking fluent is set to is_unknown if at least one
