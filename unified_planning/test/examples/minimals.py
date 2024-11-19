@@ -781,4 +781,41 @@ def get_example_problems():
     )
     problems["interpreted_functions_in_numeric_assignment"] = ifproblem
 
+    # interpreted functions minimal chain of assignments
+
+    def assign_five(in_val):
+        out_val = 5
+        return out_val
+
+    signature_if_assign = OrderedDict()
+    signature_if_assign["i_one"] = IntType()
+    if_assign_five = InterpretedFunction(
+        "if_assing", IntType(), signature_if_assign, assign_five
+    )
+
+    value = Fluent("val", IntType())
+    g = Fluent("g", IntType())
+    simple_action = InstantaneousAction("simple_action")
+    simple_action.add_effect(value, if_assign_five(value))
+    goal_action = InstantaneousAction("goal_action")
+    goal_action.add_effect(g, value)
+    problem = Problem("interpreted_functions_minimal_chain_of_assignments")
+    problem.add_fluent(value)
+    problem.add_fluent(g)
+    problem.add_action(simple_action)
+    problem.add_action(goal_action)
+    problem.set_initial_value(value, 1)
+    problem.set_initial_value(g, 1)
+    problem.add_goal(GE(g, 4))
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[up.plans.SequentialPlan([simple_action(), goal_action()])],
+        invalid_plans=[
+            up.plans.SequentialPlan([]),
+        ],
+    )
+    problems["interpreted_functions_minimal_chain_of_assignments"] = ifproblem
+
     return problems
