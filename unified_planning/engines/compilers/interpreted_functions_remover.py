@@ -237,8 +237,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if_known[ifun].append(tuple(ifun_exp.args))
             new_problem.set_initial_value(f(o), val)
 
-        has_changed_fluents: Dict = {}
-        # NOTE - contents has_changed_fluents could be more optimal
+        is_unknown_fluents: Dict = {}
+        # NOTE - contents is_unknown_fluents could be more optimal
         # now tracking fluents are added for all fluents that can change from any effect
         # in theory we do not need fluents that are completely isolated from IFs
         for a in problem.actions:
@@ -247,17 +247,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             found_effects = self._get_effects(a)
             for time, ef in found_effects:
                 f = ef.fluent.fluent()
-                if f in has_changed_fluents.keys():
+                if f in is_unknown_fluents.keys():
                     continue
-                new_f_name = get_fresh_name(new_problem, f"_{f.name}_has_changed")
+                new_f_name = get_fresh_name(new_problem, f"_{f.name}_is_unknown")
                 new_f = Fluent(new_f_name, BoolType())
                 new_problem.add_fluent(new_f, default_initial_value=False)
                 new_problem.set_initial_value(new_f, em.FALSE())
-                has_changed_fluents[f] = new_f
+                is_unknown_fluents[f] = new_f
 
         for a in problem.actions:
             for new_params, dur, conds, effs in self._expand_action(
-                a, new_fluents, new_objects, if_known, has_changed_fluents
+                a, new_fluents, new_objects, if_known, is_unknown_fluents
             ):
                 new_a = self._clone_action_with_extras(a, new_params, conds, dur, effs)
                 new_a.name = get_fresh_name(new_problem, a.name)
@@ -268,24 +268,22 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_goals()
         for goal_c in old_goals:
             # the goal is modified in order to handle situations where
-            # the fluents contained in it have changed
+            # the fluents contained in it are unknown
             g_c = goal_c
             all_fluents_fnodes = self.free_vars_extractor.get(goal_c)
             all_fluents = []
             for f_fnode in all_fluents_fnodes:
                 all_fluents.append(f_fnode.fluent())
-            for k in has_changed_fluents.keys():
+            for k in is_unknown_fluents.keys():
                 if k in all_fluents:
-                    g_c = em.Or(goal_c, has_changed_fluents[k])
+                    g_c = em.Or(goal_c, is_unknown_fluents[k])
             new_problem.add_goal(g_c)
 
         return CompilerResult(
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def _expand_action(
-        self, a, new_fluents, new_objects, if_known, has_changed_fluents
-    ):
+    def _expand_action(self, a, new_fluents, new_objects, if_known, is_unknown_fluents):
         em = a.environment.expression_manager
         conds = []
         effs = []
@@ -293,7 +291,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for t, exp in self._get_conditions(a):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
-            extra_c = [hcf for f, hcf in has_changed_fluents.items() if f in all_f]
+            extra_c = [hcf for f, hcf in is_unknown_fluents.items() if f in all_f]
             new_c = em.Or([exp] + extra_c)
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
@@ -309,10 +307,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 f = ef.fluent.fluent()
                 # only if the fluent is one of the changing ones
                 # we need to set the tracker
-                if f not in has_changed_fluents.keys():
+                if f not in is_unknown_fluents.keys():
                     continue
                 reset_tracker_eff = self._create_tracking_effect(
-                    ef, has_changed_fluents, em
+                    ef, is_unknown_fluents, em
                 )
                 effs.append((time, reset_tracker_eff))
 
@@ -383,7 +381,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         n_e.set_value(exp.substitute(subs))
                         new_effs.append((t, n_e))
                         reset_tracker_eff = self._create_tracking_effect(
-                            eff_instance, has_changed_fluents, em
+                            eff_instance, is_unknown_fluents, em
                         )
                         new_effs.append((t, reset_tracker_eff))
                     elif case == ElementKind.CONDITION:
@@ -401,7 +399,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     if case == ElementKind.EFFECT:
                         assert eff_instance is not None
                         f = eff_instance.fluent.fluent()
-                        tracking_f = em.FluentExp(has_changed_fluents[f])
+                        tracking_f = em.FluentExp(is_unknown_fluents[f])
                         n_e = Effect(tracking_f, em.TRUE(), em.TRUE())
                         new_effs.append((t, n_e))
             yield new_params, (lower, upper), conds + new_conds, effs + new_effs
@@ -455,17 +453,17 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             raise NotImplementedError
 
-    def _create_tracking_effect(self, ef, has_changed_fluents, em):
-        # tracking fluent is set to has_changed if at least one
-        # of the fluents in value is tagged with has_changed
+    def _create_tracking_effect(self, ef, is_unknown_fluents, em):
+        # tracking fluent is set to is_unknown if at least one
+        # of the fluents in value is tagged with is_unknown
         f = ef.fluent.fluent()
         f_list = []
         for v in self.free_vars_extractor.get(ef.value):
-            if v.fluent() in has_changed_fluents.keys():
+            if v.fluent() in is_unknown_fluents.keys():
                 f_list.append(v.fluent())
 
-        o_e = em.Or([em.FluentExp(has_changed_fluents[vf]) for vf in f_list])
-        tracking_fluent_exp = em.FluentExp(has_changed_fluents[f])
+        o_e = em.Or([em.FluentExp(is_unknown_fluents[vf]) for vf in f_list])
+        tracking_fluent_exp = em.FluentExp(is_unknown_fluents[f])
         reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
         return reset_tracker_eff
 
