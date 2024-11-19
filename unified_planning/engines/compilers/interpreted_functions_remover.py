@@ -238,7 +238,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.set_initial_value(f(o), val)
 
         has_changed_fluents: Dict = {}
-        # NOTE - declaration of has_changed_fluents could be more optimal
+        # NOTE - contents has_changed_fluents could be more optimal
+        # now tracking fluents are added for all fluents that can change from any effect
+        # in theory we do not need fluents that are completely isolated from IFs
         for a in problem.actions:
             # these fluents are created and added to the problem at the start as we
             # might need some of them before we encounter them during the compilation
@@ -300,7 +302,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 conds.append((t, new_c))
         for time, ef in self._get_effects(a):
             ifuns = self.interpreted_functions_extractor.get(ef.value)
-            # TODO - here add the management of chains of assignments with has_changed_fluents
 
             if ifuns:
                 ifs.append((time, ef.value, ifuns, ElementKind.EFFECT, ef))
@@ -313,19 +314,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 # this action sets it to a (possibly) known value
                 # so the tracking fluent is set to has_changed if at least one
                 # of the fluents in value is tagged with has_changed
-                #
-                # NOTE : alternative implementation - cleaner code, a bit more unintuitive but still working output
-                # o_e = em.FALSE()
-                # for v in self.free_vars_extractor.get(ef.value):
-                #    o_e = em.Or(o_e, em.FluentExp(has_changed_fluents[v.fluent()]))
-                o_e = None
-                for v in self.free_vars_extractor.get(ef.value):
-                    if o_e is None:
-                        o_e = em.FluentExp(has_changed_fluents[v.fluent()])
-                    else:
-                        o_e = em.Or(o_e, em.FluentExp(has_changed_fluents[v.fluent()]))
-                if o_e is None:
-                    o_e = em.FALSE()
+
+                f_list = [v.fluent() for v in self.free_vars_extractor.get(ef.value)]
+                o_e = em.Or([em.FluentExp(has_changed_fluents[vf]) for vf in f_list])
 
                 tracking_fluent_exp = em.FluentExp(has_changed_fluents[f])
                 reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
