@@ -84,6 +84,22 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_interpreted_functions_assignment_chain_minimal(self):
+        testproblem = self.problems[
+            "interpreted_functions_minimal_chain_of_assignments"
+        ]
+        problem = testproblem.problem
+        with OneshotPlanner(
+            name="interpreted_functions_planning[opt-pddl-planner]"
+        ) as planner:
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
+            result = planner.solve(problem)
+        self.assertEqual(len(result.plan.actions), 2)
+        self.assertEqual(result.plan.actions[0].action, problem.actions[0])
+        self.assertEqual(result.plan.actions[1].action, problem.actions[1])
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_interpreted_functions_in_preconditions_planner_complex(self):
         testproblem = self.problems["IF_in_conditions_complex_1"]
         problem = testproblem.problem
