@@ -60,13 +60,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         self._knowledge = OrderedDict()
 
     @property
-    def knowledge(self):
-        return self._knowledge
-
-    def add_knowledge(self, key, value):
-        self._knowledge[key] = value
-
-    @property
     def name(self) -> str:
         return f"InterpretedFunctionsPlanner[{self.engine.name}]"
 
