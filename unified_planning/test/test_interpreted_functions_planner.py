@@ -164,7 +164,21 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
                         result.plan.timed_actions[i][j].action,
                         testproblem.valid_plans[0].timed_actions[i][j].action,
                     )
-
                 j = j + 1
-
             i = i + 1
+
+    @skipIfEngineNotAvailable("tamer")
+    def test_interpreted_functions_usertype(self):
+        testproblem = self.problems["treasure_hunting_robot_simple"]
+        problem = testproblem.problem
+        with OneshotPlanner(name="interpreted_functions_planning[tamer]") as planner:
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
+            result = planner.solve(problem)
+        self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+        self.assertEqual(
+            len(result.plan.actions), len(testproblem.valid_plans[0].actions)
+        )
+        valid_plan = testproblem.valid_plans[0].actions
+        found_plan = result.plan.actions
+        for v, f in zip(valid_plan, found_plan):
+            self.assertEqual(v.action, f.action)
