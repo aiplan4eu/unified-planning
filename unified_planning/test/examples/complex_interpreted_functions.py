@@ -112,6 +112,7 @@ def get_example_problems():
     )
     problems["IF_in_conditions_complex_1"] = ifproblem
 
+    # go_home_with_rain_and_interpreted_functions
     def time_to_go_home(israining, basetime):
         r = basetime
         if israining:
@@ -285,5 +286,64 @@ def get_example_problems():
         ],
     )
     problems["if_reals_condition_effect_pizza"] = ifproblem
+
+    # treasure hunting robot simple
+    Location = UserType("Location")
+
+    robot_at = Fluent("robot_at", BoolType(), l=Location)
+
+    money = Fluent("moeny", IntType())
+
+    location_1 = Object("location_1", Location)
+    location_2 = Object("location_2", Location)
+    location_3 = Object("location_3", Location)
+
+    def check_treasure_map():
+        return location_3
+
+    signature_chack_map = OrderedDict()
+    chack_treasure_map_if = InterpretedFunction(
+        "chack_treasure_map_if",
+        UserType("Location"),
+        signature_chack_map,
+        check_treasure_map,
+    )
+
+    dig_for_treasure = InstantaneousAction("dig_for_treasure")
+    dig_for_treasure.add_precondition(robot_at(chack_treasure_map_if()))
+    dig_for_treasure.add_effect(money, Plus(money, 100))
+
+    move = unified_planning.model.InstantaneousAction(
+        "move", l_from=Location, l_to=Location
+    )
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_precondition(robot_at(l_from))
+    move.add_effect(robot_at(l_from), False)
+    move.add_effect(robot_at(l_to), True)
+
+    problem = Problem("treasure_hunting_robot_simple")
+    problem.add_fluent(money)
+    problem.add_fluent(robot_at, default_initial_value=False)
+    problem.add_object(location_1)
+    problem.add_object(location_2)
+    problem.add_object(location_3)
+    problem.add_action(dig_for_treasure)
+    problem.add_action(move)
+    problem.set_initial_value(money, 43)
+    problem.set_initial_value(robot_at(location_1), True)
+    problem.add_goal(GE(money, 80))
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([move(location_1, location_3), dig_for_treasure()])
+        ],
+        invalid_plans=[
+            up.plans.SequentialPlan([move(location_1, location_2), dig_for_treasure()])
+        ],
+    )
+    problems["treasure_hunting_robot_simple"] = ifproblem
 
     return problems

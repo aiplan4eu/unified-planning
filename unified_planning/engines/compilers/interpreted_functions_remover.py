@@ -223,7 +223,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 f_name = get_fresh_name(new_problem, f"_f_{ifun.name}")
                 f = Fluent(f_name, ifun.return_type, p=kNum)
                 new_fluents[ifun] = f
-                default_value = self._default_value_given_type(ifun.return_type)
+                default_value = self._default_value_given_type(
+                    ifun.return_type, problem
+                )
                 new_problem.add_fluent(f, default_initial_value=default_value)
             else:
                 f = new_fluents[ifun]
@@ -428,7 +430,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         return new_a
 
-    def _default_value_given_type(self, t):
+    def _default_value_given_type(self, t, problem):
         if t.is_bool_type():
             return False
         if t.is_int_type():
@@ -441,19 +443,35 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 return Fraction(0, 1)
             else:
                 return t.lower_bound
+        if t.is_user_type():
+            # TODO - this is probably not the best solution
+            for o in problem.all_objects:
+                if o.type == t:
+                    return o
+            raise NotImplementedError
         else:
             raise NotImplementedError
 
     def _find_changing_fluents(self, problem):
-        found_fluents_set = set()
-        # TODO - improve this
-        # right now adds all fluents that can be modified by actions
-        # should only get those related to IFs or to other IF related fluents
-        for a in problem.actions:
-            found_effects = self._get_effects(a)
-            for _, ef in found_effects:
-                f = ef.fluent.fluent()
-                found_fluents_set.add(f)
+        found_fluents_set: set[up.model.Fluent] = set()
+        len_start = 0
+        len_end = 1
+        while len_end > len_start:
+            len_start = len(found_fluents_set)
+            for a in problem.actions:
+                found_effects = self._get_effects(a)
+                for _, ef in found_effects:
+                    f = ef.fluent.fluent()
+                    v = ef.value
+                    ifs = self.interpreted_functions_extractor.get(v)
+                    fs_e = self.free_vars_extractor.get(v)
+                    if ifs:
+                        found_fluents_set.add(f)
+                    else:
+                        for f_e in fs_e:
+                            if f_e.fluent() in found_fluents_set:
+                                found_fluents_set.add(f)
+            len_end = len(found_fluents_set)
         return found_fluents_set
 
     def _create_tracking_effect(self, ef, is_unknown_fluents, em):
