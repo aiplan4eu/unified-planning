@@ -181,6 +181,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         if new_kind.has_interpreted_functions_in_object_assignments():
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
+            # TODO set fluents objects ...
 
         return new_kind
 
@@ -433,22 +434,23 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def _default_value_given_type(self, t, problem):
         if t.is_bool_type():
             return False
-        if t.is_int_type():
+        elif t.is_int_type() or t.is_real_type():
+            c = int if t.is_int_type() else Fraction
             if t.lower_bound is None:
-                return 0
+                if t.upper_bound is None:
+                    return c(0)
+                else:
+                    return c(t.upper_bound - 1)
             else:
-                return t.lower_bound
-        if t.is_real_type():
-            if t.lower_bound is None:
-                return Fraction(0, 1)
-            else:
-                return t.lower_bound
-        if t.is_user_type():
-            # TODO - this is probably not the best solution
-            for o in problem.all_objects:
-                if o.type == t:
-                    return o
-            raise NotImplementedError
+                if t.upper_bound is None:
+                    return c(t.lower_bound + 1)
+                else:
+                    return c((t.upper_bound + t.lower_bound) / 2)
+        elif t.is_user_type():
+            try:
+                return next(problem.objects(t))
+            except StopIteration:
+                return None
         else:
             raise NotImplementedError
 
@@ -464,10 +466,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     f = ef.fluent.fluent()
                     v = ef.value
                     ifs = self.interpreted_functions_extractor.get(v)
-                    fs_e = self.free_vars_extractor.get(v)
                     if ifs:
                         found_fluents_set.add(f)
                     else:
+                        fs_e = self.free_vars_extractor.get(v)
                         for f_e in fs_e:
                             if f_e.fluent() in found_fluents_set:
                                 found_fluents_set.add(f)
