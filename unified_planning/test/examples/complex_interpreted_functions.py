@@ -301,16 +301,16 @@ def get_example_problems():
     def check_treasure_map():
         return location_3
 
-    signature_chack_map = OrderedDict()
-    chack_treasure_map_if = InterpretedFunction(
+    signature_check_map: OrderedDict = OrderedDict()
+    check_treasure_map_if = InterpretedFunction(
         "chack_treasure_map_if",
         UserType("Location"),
-        signature_chack_map,
+        signature_check_map,
         check_treasure_map,
     )
 
     dig_for_treasure = InstantaneousAction("dig_for_treasure")
-    dig_for_treasure.add_precondition(robot_at(chack_treasure_map_if()))
+    dig_for_treasure.add_precondition(robot_at(check_treasure_map_if()))
     dig_for_treasure.add_effect(money, Plus(money, 100))
 
     move = unified_planning.model.InstantaneousAction(
