@@ -181,7 +181,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         if new_kind.has_interpreted_functions_in_object_assignments():
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
-            # TODO set fluents objects ...
+            new_kind.set_fluents_type("OBJECT_FLUENTS")
 
         return new_kind
 
