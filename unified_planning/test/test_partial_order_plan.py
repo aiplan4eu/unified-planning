@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import pytest
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind

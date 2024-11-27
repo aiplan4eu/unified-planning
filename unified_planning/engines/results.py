@@ -14,6 +14,7 @@
 #
 """This module defines the PlanGenerationResult class."""
 
+
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
