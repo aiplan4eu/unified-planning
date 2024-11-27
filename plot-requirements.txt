@@ -1,6 +1,6 @@
 -r requirements.txt
 plotly
 matplotlib==3.7.3
-kaleido==0.2.1
+kaleido
 pandas
 pygraphviz
