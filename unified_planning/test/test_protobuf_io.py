@@ -410,7 +410,6 @@ class TestProtobufProblems(unittest_TestCase):
                 or kind.has_interpreted_functions_in_numeric_assignments()
                 or kind.has_interpreted_functions_in_object_assignments()
                 or kind.has_interpreted_functions_in_conditions()
-                # could be done more cleanly with an has_interpreted_functions() imlpementation
             ):
                 continue
             problem_pb = self.pb_writer.convert(problem)
