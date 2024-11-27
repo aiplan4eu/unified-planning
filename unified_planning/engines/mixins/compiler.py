@@ -17,7 +17,7 @@ import unified_planning as up
 from unified_planning.model import ProblemKind
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import Dict, Optional, OrderedDict
+from typing import Optional
 from warnings import warn
 
 from unified_planning.model.fnode import FNode
