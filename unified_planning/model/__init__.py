@@ -21,9 +21,9 @@ from unified_planning.model.action import (
     SensingAction,
 )
 
-from unified_planning.model.transition import(
+from unified_planning.model.transition import (
     Process,
-    Event,  
+    Event,
 )
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
