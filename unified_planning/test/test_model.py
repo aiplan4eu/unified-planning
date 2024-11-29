@@ -22,7 +22,7 @@ from unified_planning.exceptions import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
-from unified_planning.model.action import InstantaneousTransitionMixin
+from unified_planning.model.action import InstantaneousAction
 
 
 class TestModel(unittest_TestCase):
@@ -71,7 +71,7 @@ class TestModel(unittest_TestCase):
             for action_1, action_2 in zip(
                 problem_clone_1.actions, problem_clone_2.actions
             ):
-                if isinstance(action_2, InstantaneousTransitionMixin):
+                if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = []
@@ -80,6 +80,10 @@ class TestModel(unittest_TestCase):
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = {}
                 elif isinstance(action_2, Process):
+                    action_2._effects = []
+                    action_1_clone = action_1.clone()
+                    action_1_clone._effects = []
+                elif isinstance(action_2, Event):
                     action_2._effects = []
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = []

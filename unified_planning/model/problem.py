@@ -311,7 +311,19 @@ class Problem(  # type: ignore[misc]
             (f.fluent() for e in exps for f in fve.get(e))
         )
         for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousTransitionMixin):
+            if isinstance(a, up.model.action.InstantaneousAction):
+                remove_used_fluents(*a.preconditions)
+                for e in a.effects:
+                    remove_used_fluents(e.fluent, e.value, e.condition)
+                    static_fluents.discard(e.fluent.fluent())
+                if a.simulated_effect is not None:
+                    # empty the set because a simulated effect reads all the fluents
+                    unused_fluents.clear()
+                    for f in a.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
+
+            elif isinstance(a, up.model.transition.Event): 
+                # NOTE copypaste of above, with mixin should become one single block
                 remove_used_fluents(*a.preconditions)
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
@@ -332,7 +344,7 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.action.Process):
+            elif isinstance(a, up.model.transition.Process):
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
                     static_fluents.discard(e.fluent.fluent())
@@ -992,7 +1004,7 @@ class _KindFactory:
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
-        if isinstance(action, up.model.action.InstantaneousTransitionMixin):
+        if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
             for e in action.effects:
@@ -1010,8 +1022,10 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
-        elif isinstance(action, up.model.action.Process):
-            pass
+        elif isinstance(action, up.model.transition.Process):
+            pass # TODO add Process kind
+        elif isinstance(action, up.model.transition.Event):
+            pass # TODO add Event kind
         else:
             raise NotImplementedError
 
