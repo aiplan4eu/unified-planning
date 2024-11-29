@@ -38,6 +38,19 @@ from unified_planning.model.transition import Transition
 class Action(Transition):
     """This is the `Action` interface."""
 
+    def __call__(
+        self,
+        *args: "up.model.Expression",
+        agent: Optional["up.model.multi_agent.Agent"] = None,
+        motion_paths: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+        ] = None,
+    ) -> "up.plans.plan.ActionInstance":
+        params = tuple(args)
+        return up.plans.plan.ActionInstance(
+            self, params, agent=agent, motion_paths=motion_paths
+        )
+
 
 class InstantaneousAction(Action):
     """Represents an instantaneous action."""

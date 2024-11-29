@@ -86,19 +86,6 @@ class Transition(ABC):
     def __hash__(self) -> int:
         raise NotImplementedError
 
-    def __call__(
-        self,
-        *args: "up.model.Expression",
-        agent: Optional["up.model.multi_agent.Agent"] = None,
-        motion_paths: Optional[
-            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
-        ] = None,
-    ) -> "up.plans.plan.ActionInstance":
-        params = tuple(args)
-        return up.plans.plan.ActionInstance(
-            self, params, agent=agent, motion_paths=motion_paths
-        )
-
     @abstractmethod
     def clone(self):
         raise NotImplementedError
@@ -401,15 +388,13 @@ class Event(Transition):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
-        new_instantaneous_action = Event(
-            self._name, new_params, self._environment
-        )
-        new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = [e.clone() for e in self._effects]
-        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
-        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_instantaneous_action._simulated_effect = self._simulated_effect
-        return new_instantaneous_action
+        new_event = Event(self._name, new_params, self._environment)
+        new_event._preconditions = self._preconditions[:]
+        new_event._effects = [e.clone() for e in self._effects]
+        new_event._fluents_assigned = self._fluents_assigned.copy()
+        new_event._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_event._simulated_effect = self._simulated_effect
+        return new_event
 
     @property
     def preconditions(self) -> List["up.model.fnode.FNode"]:
@@ -653,18 +638,6 @@ class Event(Transition):
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
 
-
-    def __hash__(self) -> int:
-        res = hash(self._name)
-        for ap in self._parameters.items():
-            res += hash(ap)
-        for p in self._preconditions:
-            res += hash(p)
-        for e in self._effects:
-            res += hash(e)
-        res += hash(self._simulated_effect)
-        return res
-
     def __repr__(self) -> str:
         s = []
         s.append(f"event {self.name}")
@@ -682,15 +655,3 @@ class Event(Transition):
             s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
-
-    def clone(self):
-        new_params = OrderedDict(
-            (param_name, param.type) for param_name, param in self._parameters.items()
-        )
-        new_instantaneous_action = Event(self._name, new_params, self._environment)
-        new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = [e.clone() for e in self._effects]
-        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
-        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_instantaneous_action._simulated_effect = self._simulated_effect
-        return new_instantaneous_action
