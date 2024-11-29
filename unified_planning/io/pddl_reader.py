@@ -413,7 +413,7 @@ class PDDLReader:
     def _parse_exp(
         self,
         problem: up.model.Problem,
-        act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
+        act: typing.Optional[Union[up.model.Transition, htn.Method, htn.TaskNetwork]],
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: CustomParseResults,
