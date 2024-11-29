@@ -146,7 +146,8 @@ class ActionsSetMixin:
             if a.name == name:
                 return True
         return False
-# TODO different add_action and add_*something_else*
+
+    # TODO different add_action and add_*something_else*
     def add_action(self, action: "up.model.transition.Transition"):
         """
         Adds the given `action` to the `problem`.
