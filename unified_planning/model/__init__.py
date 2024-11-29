@@ -22,6 +22,7 @@ from unified_planning.model.action import (
 )
 
 from unified_planning.model.transition import (
+    Transition,
     Process,
     Event,
 )
