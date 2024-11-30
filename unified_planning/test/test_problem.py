@@ -502,7 +502,6 @@ class TestProblem(unittest_TestCase):
                     )
 
     def test_simple_numeric_planning_kind(self):
-
         problem = self.problems["robot"].problem
         # False because the problem has an assignment instead of a decrease
         self.assertFalse(problem.kind.has_simple_numeric_planning())
@@ -531,6 +530,7 @@ class TestProblem(unittest_TestCase):
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
+            "1d_Movement",
         ]
         for example in self.problems.values():
             problem = example.problem

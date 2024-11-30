@@ -7,7 +7,6 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 def get_test_cases():
-
     res = {}
 
     t_robot = MovableType("robot")

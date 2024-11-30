@@ -110,7 +110,6 @@ class ANMLGrammar:
     """
 
     def __init__(self):
-
         # Data structures to populate while parsing
         self.types: List[ParseResults] = []
         self.constant_fluents: List[ParseResults] = []
