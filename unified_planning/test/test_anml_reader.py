@@ -706,7 +706,14 @@ class TestANMLReader(unittest_TestCase):
             if problem.name in problems_to_skip:
                 continue
             kind = problem.kind
-            if not kind.has_action_based():
+            if (
+                not kind.has_action_based()
+                or kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+                or kind.has_interpreted_functions_in_conditions()
+            ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:
                 problem_filename = os.path.join(tempdir, "problem.anml")
