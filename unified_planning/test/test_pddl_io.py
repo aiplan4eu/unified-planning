@@ -443,13 +443,31 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 8)
         self.assertEqual(
-            len(list([ele for ele in problem.actions if isinstance(ele, Process)])), 3
+            len(
+                list(
+                    [
+                        ele
+                        for ele in problem.natural_transitions
+                        if isinstance(ele, Process)
+                    ]
+                )
+            ),
+            3,
         )
         self.assertEqual(
-            len(list([ele for ele in problem.actions if isinstance(ele, Event)])), 1
+            len(
+                list(
+                    [
+                        ele
+                        for ele in problem.natural_transitions
+                        if isinstance(ele, Event)
+                    ]
+                )
+            ),
+            1,
         )
         found_drag_ahead = False
-        for ele in problem.actions:
+        for ele in problem.natural_transitions:
             if isinstance(ele, Process):
                 for e in ele.effects:
                     self.assertEqual(e.kind, EffectKind.DERIVATIVE)
@@ -595,6 +613,10 @@ class TestPddlIO(unittest_TestCase):
                     )
                 )
                 self.assertEqual(len(problem.actions), len(parsed_problem.actions))
+                self.assertEqual(
+                    len(problem.natural_transitions),
+                    len(parsed_problem.natural_transitions),
+                )
                 for a in problem.actions:
                     parsed_a = parsed_problem.action(w.get_pddl_name(a))
                     self.assertEqual(a, w.get_item_named(parsed_a.name))

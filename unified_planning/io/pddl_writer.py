@@ -23,6 +23,10 @@ from warnings import warn
 
 import unified_planning as up
 import unified_planning.environment
+from unified_planning.model.action import Action
+from unified_planning.model.fnode import FNode
+from unified_planning.model.natural_transition import NaturalTransition
+from unified_planning.model.transition import Transition
 import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     InstantaneousAction,
@@ -139,6 +143,7 @@ INITIAL_LETTER: Dict[type, str] = {
 WithName = Union[
     "up.model.Type",
     "up.model.Action",
+    "up.model.NaturalTransition",
     "up.model.Fluent",
     "up.model.Object",
     "up.model.Parameter",
@@ -530,7 +535,9 @@ class PDDLWriter:
         converter = ConverterToPDDLString(
             self.problem.environment, self._get_mangled_name
         )
-        costs = {}
+        costs: Dict[
+            Union[NaturalTransition, Action], Optional[FNode]
+        ] = {}  # TODO check if natural_transition should be here
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
@@ -595,15 +602,10 @@ class PDDLWriter:
                 out.write(")\n")
 
         for a in self.problem.actions:
-            if isinstance(a, up.model.InstantaneousAction) or isinstance(
-                a, up.model.Event
-            ):
+            if isinstance(a, up.model.InstantaneousAction):
                 if any(p.simplify().is_false() for p in a.preconditions):
                     continue
-                if isinstance(a, up.model.Event):
-                    out.write(f" (:event {self._get_mangled_name(a)}")
-                else:
-                    out.write(f" (:action {self._get_mangled_name(a)}")
+                out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
                 self._write_parameters(out, a)
                 out.write(")")
@@ -633,34 +635,6 @@ class PDDLWriter:
                     if a in costs:
                         out.write(
                             f" (increase (total-cost) {converter.convert(costs[a])})"
-                        )
-                    out.write(")")
-                out.write(")\n")
-            elif isinstance(a, up.model.Process):
-                if any(p.simplify().is_false() for p in a.preconditions):
-                    continue
-                out.write(f" (:process {self._get_mangled_name(a)}")
-                out.write(f"\n  :parameters (")
-                self._write_parameters(out, a)
-                out.write(")")
-                if len(a.preconditions) > 0:
-                    precond_str = []
-                    for p in (c.simplify() for c in a.preconditions):
-                        if not p.is_true():
-                            if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
-                            else:
-                                precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(a.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-                if len(a.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for e in a.effects:
-                        _write_derivative(
-                            e,
-                            out,
-                            converter,
                         )
                     out.write(")")
                 out.write(")\n")
@@ -728,6 +702,74 @@ class PDDLWriter:
                     if a in costs:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
+                        )
+                    out.write(")")
+                out.write(")\n")
+            else:
+                raise NotImplementedError
+
+        for nt in self.problem.natural_transitions:
+            if isinstance(nt, up.model.Event):
+                if any(p.simplify().is_false() for p in nt.preconditions):
+                    continue
+                out.write(f" (:event {self._get_mangled_name(nt)}")
+                out.write(f"\n  :parameters (")
+                self._write_parameters(out, nt)
+                out.write(")")
+                if len(nt.preconditions) > 0:
+                    precond_str = []
+                    for p in (c.simplify() for c in nt.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                elif len(nt.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
+                if len(nt.effects) > 0:
+                    out.write("\n  :effect (and")
+                    for e in nt.effects:
+                        _write_effect(
+                            e,
+                            None,
+                            out,
+                            converter,
+                            self.rewrite_bool_assignments,
+                            self._get_mangled_name,
+                        )
+
+                    if nt in costs:
+                        out.write(
+                            f" (increase (total-cost) {converter.convert(costs[nt])})"
+                        )
+                    out.write(")")
+                out.write(")\n")
+            elif isinstance(nt, up.model.Process):
+                if any(p.simplify().is_false() for p in nt.preconditions):
+                    continue
+                out.write(f" (:process {self._get_mangled_name(nt)}")
+                out.write(f"\n  :parameters (")
+                self._write_parameters(out, nt)
+                out.write(")")
+                if len(nt.preconditions) > 0:
+                    precond_str = []
+                    for p in (c.simplify() for c in nt.preconditions):
+                        if not p.is_true():
+                            if p.is_and():
+                                precond_str.extend(map(converter.convert, p.args))
+                            else:
+                                precond_str.append(converter.convert(p))
+                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                elif len(nt.preconditions) == 0 and self.empty_preconditions:
+                    out.write(f"\n  :precondition ()")
+                if len(nt.effects) > 0:
+                    out.write("\n  :effect (and")
+                    for e in nt.effects:
+                        _write_derivative(
+                            e,
+                            out,
+                            converter,
                         )
                     out.write(")")
                 out.write(")\n")

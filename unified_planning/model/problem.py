@@ -22,6 +22,7 @@ from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
@@ -52,6 +53,7 @@ class Problem(  # type: ignore[misc]
     TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
     MetricsMixin,
@@ -78,6 +80,9 @@ class Problem(  # type: ignore[misc]
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
         ActionsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        NaturalTransitionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
         ObjectsSetMixin.__init__(
@@ -235,6 +240,7 @@ class Problem(  # type: ignore[misc]
         TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
+        new_p._natural_transitions = [a.clone() for a in self._natural_transitions]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
