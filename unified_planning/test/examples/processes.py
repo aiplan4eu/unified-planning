@@ -1,5 +1,5 @@
 from unified_planning.shortcuts import *
-from unified_planning.model.transition import Process
+from unified_planning.model.natural_transition import Process
 from unified_planning.test import TestCase
 
 

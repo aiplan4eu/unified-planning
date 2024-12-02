@@ -83,23 +83,23 @@ class ActionsSetMixin:
                 yield a
 
     @property
-    def processes(self) -> Iterator["up.model.transition.Process"]:
+    def processes(self) -> Iterator["up.model.natural_transition.Process"]:
         """Returs all the sensing actions of the problem.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         for a in self._actions:
-            if isinstance(a, up.model.transition.Process):
+            if isinstance(a, up.model.natural_transition.Process):
                 yield a
 
     @property
-    def events(self) -> Iterator["up.model.transition.Event"]:
+    def events(self) -> Iterator["up.model.natural_transition.Event"]:
         """Returs all the sensing actions of the problem.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         for a in self._actions:
-            if isinstance(a, up.model.transition.Event):
+            if isinstance(a, up.model.natural_transition.Event):
                 yield a
 
     @property
