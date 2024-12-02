@@ -322,7 +322,7 @@ class Problem(  # type: ignore[misc]
                     for f in a.simulated_effect.fluents:
                         static_fluents.discard(f.fluent())
 
-            elif isinstance(a, up.model.transition.Event):
+            elif isinstance(a, up.model.natural_transition.Event):
                 # NOTE copypaste of above, with mixin should become one single block
                 remove_used_fluents(*a.preconditions)
                 for e in a.effects:
@@ -344,7 +344,7 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.transition.Process):
+            elif isinstance(a, up.model.natural_transition.Process):
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
                     static_fluents.discard(e.fluent.fluent())
@@ -1022,9 +1022,9 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
-        elif isinstance(action, up.model.transition.Process):
+        elif isinstance(action, up.model.natural_transition.Process):
             pass  # TODO add Process kind
-        elif isinstance(action, up.model.transition.Event):
+        elif isinstance(action, up.model.natural_transition.Event):
             pass  # TODO add Event kind
         else:
             raise NotImplementedError
