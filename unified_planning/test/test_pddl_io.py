@@ -577,7 +577,6 @@ class TestPddlIO(unittest_TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
-                print(problem)
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
                 # Case where the reader does not convert the final_value back to actions_cost.
