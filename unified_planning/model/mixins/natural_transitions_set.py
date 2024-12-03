@@ -63,7 +63,14 @@ class NaturalTransitionsSetMixin:
         ]
     ]:
         """Returns the list of the `Processes` and `Events` in the `Problem`."""
-        return self.events + self.processes
+        ntlist: List[
+            Union[
+                up.model.natural_transition.Event, up.model.natural_transition.Process
+            ]
+        ] = []
+        ntlist.extend(self.processes)
+        ntlist.extend(self.events)
+        return ntlist
 
     def clear_events(self):
         """Removes all the `Problem` `Events`."""
