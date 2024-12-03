@@ -29,8 +29,6 @@ from collections import OrderedDict
 
 from unified_planning.model.transition import Transition
 
-# TODO check weather events/processes should have all the methods/other stuff that actions have.
-# If yes, we probably need more tests for better coverage
 
 """
 Below we have natural transitions. These are not controlled by the agent. Natural transitions can be of two kinds:
@@ -57,7 +55,6 @@ class Process(NaturalTransition):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List["up.model.fnode.FNode"] = []
         self._effects: List[up.model.effect.Effect] = []
-        self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
         self._fluents_assigned: Dict[
             "up.model.fnode.FNode", "up.model.fnode.FNode"
@@ -92,7 +89,6 @@ class Process(NaturalTransition):
                 cond
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
-                and self._simulated_effect == oth._simulated_effect
             )
         else:
             return False
@@ -105,7 +101,6 @@ class Process(NaturalTransition):
             res += hash(p)
         for e in self._effects:
             res += hash(e)
-        res += hash(self._simulated_effect)
         return res
 
     def clone(self):
@@ -117,7 +112,6 @@ class Process(NaturalTransition):
         new_process._effects = [e.clone() for e in self._effects]
         new_process._fluents_assigned = self._fluents_assigned.copy()
         new_process._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_process._simulated_effect = self._simulated_effect
         return new_process
 
     @property
@@ -231,7 +225,6 @@ class Event(NaturalTransition):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
         self._preconditions: List["up.model.fnode.FNode"] = []
         self._effects: List[up.model.effect.Effect] = []
-        self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
         self._fluents_assigned: Dict[
             "up.model.fnode.FNode", "up.model.fnode.FNode"
@@ -250,7 +243,6 @@ class Event(NaturalTransition):
                 cond
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
-                and self._simulated_effect == oth._simulated_effect
             )
         else:
             return False
@@ -263,7 +255,6 @@ class Event(NaturalTransition):
             res += hash(p)
         for e in self._effects:
             res += hash(e)
-        res += hash(self._simulated_effect)
         return res
 
     def clone(self):
@@ -275,7 +266,6 @@ class Event(NaturalTransition):
         new_event._effects = [e.clone() for e in self._effects]
         new_event._fluents_assigned = self._fluents_assigned.copy()
         new_event._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_event._simulated_effect = self._simulated_effect
         return new_event
 
     @property
@@ -297,7 +287,6 @@ class Event(NaturalTransition):
         self._effects = []
         self._fluents_assigned = {}
         self._fluents_inc_dec = set()
-        self._simulated_effect = None
 
     @property
     def conditional_effects(self) -> List["up.model.effect.Effect"]:
@@ -485,37 +474,12 @@ class Event(NaturalTransition):
         up.model.effect.check_conflicting_effects(
             effect,
             None,
-            self._simulated_effect,
-            self._fluents_assigned,
-            self._fluents_inc_dec,
-            "event",
-        )
-        self._effects.append(effect)
-
-    @property
-    def simulated_effect(self) -> Optional["up.model.effect.SimulatedEffect"]:
-        """Returns the `event` `simulated effect`."""
-        return self._simulated_effect
-
-    def set_simulated_effect(self, simulated_effect: "up.model.effect.SimulatedEffect"):
-        """
-        Sets the given `simulated effect` as the only `event's simulated effect`.
-
-        :param simulated_effect: The `SimulatedEffect` instance that must be set as this `event`'s only
-            `simulated effect`.
-        """
-        up.model.effect.check_conflicting_simulated_effects(
-            simulated_effect,
             None,
             self._fluents_assigned,
             self._fluents_inc_dec,
             "event",
         )
-        if simulated_effect.environment != self.environment:
-            raise UPUsageError(
-                "The added SimulatedEffect does not have the same environment of the Event"
-            )
-        self._simulated_effect = simulated_effect
+        self._effects.append(effect)
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
@@ -533,7 +497,5 @@ class Event(NaturalTransition):
         for e in self.effects:
             s.append(f"      {str(e)}\n")
         s.append("    ]\n")
-        if self._simulated_effect is not None:
-            s.append(f"    simulated effect = {self._simulated_effect}\n")
         s.append("  }")
         return "".join(s)
