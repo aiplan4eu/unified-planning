@@ -30,7 +30,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
-from unified_planning.model.transition import Transition
+from unified_planning.model.transition import SingleTimePointTransitionMixin, Transition
 
 
 class Action(Transition):
@@ -50,7 +50,7 @@ class Action(Transition):
         )
 
 
-class InstantaneousAction(Action):
+class InstantaneousAction(Action, SingleTimePointTransitionMixin):
     """Represents an instantaneous action."""
 
     def __init__(
@@ -61,7 +61,7 @@ class InstantaneousAction(Action):
         **kwargs: "up.model.types.Type",
     ):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
-        self._preconditions: List["up.model.fnode.FNode"] = []
+        SingleTimePointTransitionMixin.__init__(self, _env)
         self._effects: List[up.model.effect.Effect] = []
         self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
@@ -140,15 +140,6 @@ class InstantaneousAction(Action):
         return new_instantaneous_action
 
     @property
-    def preconditions(self) -> List["up.model.fnode.FNode"]:
-        """Returns the `list` of the `Action` `preconditions`."""
-        return self._preconditions
-
-    def clear_preconditions(self):
-        """Removes all the `Action preconditions`"""
-        self._preconditions = []
-
-    @property
     def effects(self) -> List["up.model.effect.Effect"]:
         """Returns the `list` of the `Action effects`."""
         return self._effects
@@ -179,36 +170,6 @@ class InstantaneousAction(Action):
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         return [e for e in self._effects if not e.is_conditional()]
-
-    def add_precondition(
-        self,
-        precondition: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.parameter.Parameter",
-            bool,
-        ],
-    ):
-        """
-        Adds the given expression to `action's preconditions`.
-
-        :param precondition: The expression that must be added to the `action's preconditions`.
-        """
-        (precondition_exp,) = self._environment.expression_manager.auto_promote(
-            precondition
-        )
-        assert self._environment.type_checker.get_type(precondition_exp).is_bool_type()
-        if precondition_exp == self._environment.expression_manager.TRUE():
-            return
-        free_vars = self._environment.free_vars_oracle.get_free_variables(
-            precondition_exp
-        )
-        if len(free_vars) != 0:
-            raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
-            )
-        if precondition_exp not in self._preconditions:
-            self._preconditions.append(precondition_exp)
 
     def add_effect(
         self,
@@ -377,9 +338,6 @@ class InstantaneousAction(Action):
                 "The added SimulatedEffect does not have the same environment of the Action"
             )
         self._simulated_effect = simulated_effect
-
-    def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
-        self._preconditions = preconditions
 
 
 class DurativeAction(Action, TimedCondsEffs):

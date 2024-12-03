@@ -152,3 +152,51 @@ class Transition(ABC):
     def is_conditional(self) -> bool:
         """Returns `True` if the `Transition` has `conditional effects`, `False` otherwise."""
         raise NotImplementedError
+
+
+class SingleTimePointTransitionMixin:
+    def __init__(self, _env):
+        self._preconditions: List["up.model.fnode.FNode"] = []
+        self._environment = get_environment(_env)
+
+    @property
+    def preconditions(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` of the `Action` `preconditions`."""
+        return self._preconditions
+
+    def clear_preconditions(self):
+        """Removes all the `Action preconditions`"""
+        self._preconditions = []
+
+    def add_precondition(
+        self,
+        precondition: Union[
+            "up.model.fnode.FNode",
+            "up.model.fluent.Fluent",
+            "up.model.parameter.Parameter",
+            bool,
+        ],
+    ):
+        """
+        Adds the given expression to `action's preconditions`.
+
+        :param precondition: The expression that must be added to the `action's preconditions`.
+        """
+        (precondition_exp,) = self._environment.expression_manager.auto_promote(
+            precondition
+        )
+        assert self._environment.type_checker.get_type(precondition_exp).is_bool_type()
+        if precondition_exp == self._environment.expression_manager.TRUE():
+            return
+        free_vars = self._environment.free_vars_oracle.get_free_variables(
+            precondition_exp
+        )
+        if len(free_vars) != 0:
+            raise UPUnboundedVariablesError(
+                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
+            )
+        if precondition_exp not in self._preconditions:
+            self._preconditions.append(precondition_exp)
+
+    def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
+        self._preconditions = preconditions

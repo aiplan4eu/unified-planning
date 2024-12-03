@@ -27,7 +27,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
-from unified_planning.model.transition import Transition
+from unified_planning.model.transition import SingleTimePointTransitionMixin, Transition
 
 
 """
@@ -38,7 +38,7 @@ Events dictate the analogous of urgent transitions in timed automata theory
 """
 
 
-class NaturalTransition(Transition):
+class NaturalTransition(Transition, SingleTimePointTransitionMixin):
     """This is the `NaturalTransition` interface"""
 
 
@@ -53,7 +53,7 @@ class Process(NaturalTransition):
         **kwargs: "up.model.types.Type",
     ):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
-        self._preconditions: List["up.model.fnode.FNode"] = []
+        SingleTimePointTransitionMixin.__init__(self, _env)
         self._effects: List[up.model.effect.Effect] = []
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
         self._fluents_assigned: Dict[
@@ -115,15 +115,6 @@ class Process(NaturalTransition):
         return new_process
 
     @property
-    def preconditions(self) -> List["up.model.fnode.FNode"]:
-        """Returns the `list` of the `Process` `preconditions`."""
-        return self._preconditions
-
-    def clear_preconditions(self):
-        """Removes all the `Process preconditions`"""
-        self._preconditions = []
-
-    @property
     def effects(self) -> List["up.model.effect.Effect"]:
         """Returns the `list` of the `Process effects`."""
         return self._effects
@@ -140,36 +131,6 @@ class Process(NaturalTransition):
         ), "effect does not have the same environment of the Process"
 
         self._effects.append(effect)
-
-    def add_precondition(
-        self,
-        precondition: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.parameter.Parameter",
-            bool,
-        ],
-    ):
-        """
-        Adds the given expression to `Process's preconditions`.
-
-        :param precondition: The expression that must be added to the `Process's preconditions`.
-        """
-        (precondition_exp,) = self._environment.expression_manager.auto_promote(
-            precondition
-        )
-        assert self._environment.type_checker.get_type(precondition_exp).is_bool_type()
-        if precondition_exp == self._environment.expression_manager.TRUE():
-            return
-        free_vars = self._environment.free_vars_oracle.get_free_variables(
-            precondition_exp
-        )
-        if len(free_vars) != 0:
-            raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
-            )
-        if precondition_exp not in self._preconditions:
-            self._preconditions.append(precondition_exp)
 
     def add_derivative(
         self,
@@ -223,7 +184,7 @@ class Event(NaturalTransition):
         **kwargs: "up.model.types.Type",
     ):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
-        self._preconditions: List["up.model.fnode.FNode"] = []
+        SingleTimePointTransitionMixin.__init__(self, _env)
         self._effects: List[up.model.effect.Effect] = []
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
         self._fluents_assigned: Dict[
@@ -269,15 +230,6 @@ class Event(NaturalTransition):
         return new_event
 
     @property
-    def preconditions(self) -> List["up.model.fnode.FNode"]:
-        """Returns the `list` of the `Event` `preconditions`."""
-        return self._preconditions
-
-    def clear_preconditions(self):
-        """Removes all the `Event preconditions`"""
-        self._preconditions = []
-
-    @property
     def effects(self) -> List["up.model.effect.Effect"]:
         """Returns the `list` of the `Event effects`."""
         return self._effects
@@ -307,36 +259,6 @@ class Event(NaturalTransition):
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         return [e for e in self._effects if not e.is_conditional()]
-
-    def add_precondition(
-        self,
-        precondition: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.parameter.Parameter",
-            bool,
-        ],
-    ):
-        """
-        Adds the given expression to `event's preconditions`.
-
-        :param precondition: The expression that must be added to the `event's preconditions`.
-        """
-        (precondition_exp,) = self._environment.expression_manager.auto_promote(
-            precondition
-        )
-        assert self._environment.type_checker.get_type(precondition_exp).is_bool_type()
-        if precondition_exp == self._environment.expression_manager.TRUE():
-            return
-        free_vars = self._environment.free_vars_oracle.get_free_variables(
-            precondition_exp
-        )
-        if len(free_vars) != 0:
-            raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
-            )
-        if precondition_exp not in self._preconditions:
-            self._preconditions.append(precondition_exp)
 
     def add_effect(
         self,
@@ -480,9 +402,6 @@ class Event(NaturalTransition):
             "event",
         )
         self._effects.append(effect)
-
-    def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
-        self._preconditions = preconditions
 
     def __repr__(self) -> str:
         s = []
