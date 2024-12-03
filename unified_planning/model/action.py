@@ -13,9 +13,7 @@
 # limitations under the License.
 #
 """
-This module defines the `Action` base class and some of his extensions.
-An `Action` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
-and a `list` of `effects`.
+This module defines the `Action` class and some of his extensions.
 """
 
 
