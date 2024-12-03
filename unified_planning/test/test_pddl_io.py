@@ -442,30 +442,14 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 8)
-        self.assertEqual(
-            len(
-                list(
-                    [
-                        ele
-                        for ele in problem.natural_transitions
-                        if isinstance(ele, Process)
-                    ]
-                )
-            ),
-            3,
+        n_proc = len(
+            list([el for el in problem.natural_transitions if isinstance(el, Process)])
         )
-        self.assertEqual(
-            len(
-                list(
-                    [
-                        ele
-                        for ele in problem.natural_transitions
-                        if isinstance(ele, Event)
-                    ]
-                )
-            ),
-            1,
+        n_eve = len(
+            list([el for el in problem.natural_transitions if isinstance(el, Event)])
         )
+        self.assertEqual(n_proc, 3)
+        self.assertEqual(n_eve, 1)
         found_drag_ahead = False
         for ele in problem.natural_transitions:
             if isinstance(ele, Process):

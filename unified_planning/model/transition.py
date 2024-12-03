@@ -13,8 +13,8 @@
 # limitations under the License.
 #
 """
-This module defines the `Action` base class and some of his extensions.
-An `Action` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
+This module defines the `Transition` base class and some of his extensions.
+A `Transition` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
 and a `list` of `effects`.
 """
 
@@ -34,7 +34,7 @@ from collections import OrderedDict
 
 
 class Transition(ABC):
-    """This is the `Action` interface."""
+    """This is the `Transition` interface."""
 
     def __init__(
         self,
@@ -53,7 +53,7 @@ class Transition(ABC):
             for n, t in _parameters.items():
                 assert self._environment.type_manager.has_type(
                     t
-                ), "type of parameter does not belong to the same environment of the action"
+                ), "type of parameter does not belong to the same environment of the transition"
                 self._parameters[n] = up.model.parameter.Parameter(
                     n, t, self._environment
                 )
@@ -61,7 +61,7 @@ class Transition(ABC):
             for n, t in kwargs.items():
                 assert self._environment.type_manager.has_type(
                     t
-                ), "type of parameter does not belong to the same environment of the action"
+                ), "type of parameter does not belong to the same environment of the transition"
                 self._parameters[n] = up.model.parameter.Parameter(
                     n, t, self._environment
                 )
@@ -92,49 +92,49 @@ class Transition(ABC):
 
     @property
     def environment(self) -> Environment:
-        """Returns this `Action` `Environment`."""
+        """Returns this `Transition` `Environment`."""
         return self._environment
 
     @property
     def name(self) -> str:
-        """Returns the `Action` `name`."""
+        """Returns the `Transition `name`."""
         return self._name
 
     @name.setter
     def name(self, new_name: str):
-        """Sets the `Action` `name`."""
+        """Sets the `Transition` `name`."""
         self._name = new_name
 
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:
-        """Returns the `list` of the `Action parameters`."""
+        """Returns the `list` of the `Transition parameters`."""
         return list(self._parameters.values())
 
     def parameter(self, name: str) -> "up.model.parameter.Parameter":
         """
-        Returns the `parameter` of the `Action` with the given `name`.
+        Returns the `parameter` of the `Transition` with the given `name`.
 
         Example
         -------
         >>> from unified_planning.shortcuts import *
         >>> location_type = UserType("Location")
         >>> move = InstantaneousAction("move", source=location_type, target=location_type)
-        >>> move.parameter("source")  # return the "source" parameter of the action, with type "Location"
+        >>> move.parameter("source")  # return the "source" parameter of the transition, with type "Location"
         Location source
         >>> move.parameter("target")
         Location target
 
-        If a parameter's name (1) does not conflict with an existing attribute of `Action` and (2) does not start with '_'
-        it can also be accessed as if it was an attribute of the action. For instance:
+        If a parameter's name (1) does not conflict with an existing attribute of `Transition` and (2) does not start with '_'
+        it can also be accessed as if it was an attribute of the transition. For instance:
 
         >>> move.source
         Location source
 
         :param name: The `name` of the target `parameter`.
-        :return: The `parameter` of the `Action` with the given `name`.
+        :return: The `parameter` of the `Transition` with the given `name`.
         """
         if name not in self._parameters:
-            raise ValueError(f"Action '{self.name}' has no parameter '{name}'")
+            raise ValueError(f"Transition '{self.name}' has no parameter '{name}'")
         return self._parameters[name]
 
     def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
@@ -142,13 +142,13 @@ class Transition(ABC):
             # guard access as pickling relies on attribute error to be thrown even when
             # no attributes of the object have been set.
             # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
-            raise AttributeError(f"Action has no attribute '{parameter_name}'")
+            raise AttributeError(f"Transition has no attribute '{parameter_name}'")
         if parameter_name not in self._parameters:
             raise AttributeError(
-                f"Action '{self.name}' has no attribute or parameter '{parameter_name}'"
+                f"Transition '{self.name}' has no attribute or parameter '{parameter_name}'"
             )
         return self._parameters[parameter_name]
 
     def is_conditional(self) -> bool:
-        """Returns `True` if the `Action` has `conditional effects`, `False` otherwise."""
+        """Returns `True` if the `Transition` has `conditional effects`, `False` otherwise."""
         raise NotImplementedError
