@@ -1292,7 +1292,7 @@ class PDDLReader:
                     CustomParseResults(a["eff"][0]),
                     domain_str,
                 )
-            problem.add_natural_transition(proc)
+            problem.add_process(proc)
 
         for a in domain_res.get("events", []):
             n = a["name"]
@@ -1317,7 +1317,7 @@ class PDDLReader:
                     CustomParseResults(a["eff"][0]),
                     domain_str,
                 )
-            problem.add_natural_transition(evt)
+            problem.add_event(evt)
 
         for a in domain_res.get("actions", []):
             n = a["name"]

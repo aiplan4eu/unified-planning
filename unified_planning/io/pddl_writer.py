@@ -534,6 +534,7 @@ class PDDLWriter:
         costs: Dict[
             Union[up.model.NaturalTransition, up.model.Action], Optional[up.model.FNode]
         ] = {}
+        # TODO check if natural_transition should be here
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
@@ -703,7 +704,6 @@ class PDDLWriter:
                 out.write(")\n")
             else:
                 raise NotImplementedError
-
         for nt in self.problem.natural_transitions:
             if isinstance(nt, up.model.Event):
                 if any(p.simplify().is_false() for p in nt.preconditions):

@@ -122,6 +122,14 @@ class Problem(  # type: ignore[misc]
         s.append("actions = [\n")
         s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
+        if len(self.processes) > 0:
+            s.append("processes = [\n")
+            s.extend(map(custom_str, self.processes))
+            s.append("]\n\n")
+        if len(self.events) > 0:
+            s.append("events = [\n")
+            s.extend(map(custom_str, self.events))
+            s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
@@ -240,7 +248,8 @@ class Problem(  # type: ignore[misc]
         TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
-        new_p._natural_transitions = [a.clone() for a in self._natural_transitions]
+        new_p._events = [a.clone() for a in self._events]
+        new_p._processes = [a.clone() for a in self._processes]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
@@ -340,23 +349,15 @@ class Problem(  # type: ignore[misc]
                         static_fluents.discard(f.fluent())
             else:
                 raise NotImplementedError
-        for nt in self._natural_transitions:
-            if isinstance(nt, up.model.natural_transition.Event):
-                remove_used_fluents(*nt.preconditions)
-                for e in nt.effects:
-                    remove_used_fluents(e.fluent, e.value, e.condition)
-                    static_fluents.discard(e.fluent.fluent())
-                if nt.simulated_effect is not None:
-                    # empty the set because a simulated effect reads all the fluents
-                    unused_fluents.clear()
-                    for f in nt.simulated_effect.fluents:
-                        static_fluents.discard(f.fluent())
-            elif isinstance(nt, up.model.natural_transition.Process):
-                for e in nt.effects:
-                    remove_used_fluents(e.fluent, e.value, e.condition)
-                    static_fluents.discard(e.fluent.fluent())
-            else:
-                raise NotImplementedError
+        for ev in self._events:
+            remove_used_fluents(*ev.preconditions)
+            for e in ev.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
+        for pro in self._processes:
+            for e in pro.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
         for el in self._timed_effects.values():
             for e in el:
                 remove_used_fluents(e.fluent, e.value, e.condition)
