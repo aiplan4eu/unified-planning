@@ -1030,10 +1030,6 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
-        elif isinstance(action, up.model.natural_transition.Process):
-            pass  # TODO add Process kind
-        elif isinstance(action, up.model.natural_transition.Event):
-            pass  # TODO add Event kind
         else:
             raise NotImplementedError
 
