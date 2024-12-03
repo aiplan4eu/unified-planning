@@ -327,18 +327,6 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in a.simulated_effect.fluents:
                         static_fluents.discard(f.fluent())
-
-            elif isinstance(a, up.model.natural_transition.Event):
-                # NOTE copypaste of above, with mixin should become one single block
-                remove_used_fluents(*a.preconditions)
-                for e in a.effects:
-                    remove_used_fluents(e.fluent, e.value, e.condition)
-                    static_fluents.discard(e.fluent.fluent())
-                if a.simulated_effect is not None:
-                    # empty the set because a simulated effect reads all the fluents
-                    unused_fluents.clear()
-                    for f in a.simulated_effect.fluents:
-                        static_fluents.discard(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
                 for cl in a.conditions.values():
                     remove_used_fluents(*cl)
@@ -350,8 +338,21 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.natural_transition.Process):
-                for e in a.effects:
+            else:
+                raise NotImplementedError
+        for nt in self._natural_transitions:
+            if isinstance(nt, up.model.natural_transition.Event):
+                remove_used_fluents(*nt.preconditions)
+                for e in nt.effects:
+                    remove_used_fluents(e.fluent, e.value, e.condition)
+                    static_fluents.discard(e.fluent.fluent())
+                if nt.simulated_effect is not None:
+                    # empty the set because a simulated effect reads all the fluents
+                    unused_fluents.clear()
+                    for f in nt.simulated_effect.fluents:
+                        static_fluents.discard(f.fluent())
+            elif isinstance(nt, up.model.natural_transition.Process):
+                for e in nt.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
                     static_fluents.discard(e.fluent.fluent())
             else:
