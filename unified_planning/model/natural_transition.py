@@ -29,17 +29,11 @@ from collections import OrderedDict
 
 from unified_planning.model.transition import Transition
 
-# TODO fix comments here
-# TODO check weather events/processes should have all the methods/other stuff that actions have. If yes, we need more tests.
+# TODO check weather events/processes should have all the methods/other stuff that actions have.
+# If yes, we probably need more tests for better coverage
 
 """
-This module defines the `NaturalTransition` class and some of his extensions.
-An `NaturalTransition` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
-and a `list` of `effects`.
-"""
-
-"""
-Below we have natural transitions. These are not controlled by the agent and would probably need a proper subclass. Natural transitions can be of two kinds:
+Below we have natural transitions. These are not controlled by the agent. Natural transitions can be of two kinds:
 Processes or Events.
 Processes dictate how numeric variables evolve over time through the use of time-derivative functions
 Events dictate the analogous of urgent transitions in timed automata theory
