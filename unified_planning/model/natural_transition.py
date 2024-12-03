@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""
-This module defines the `Action` base class and some of his extensions.
-An `Action` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
-and a `list` of `effects`.
-"""
 
 
 import unified_planning as up
@@ -34,6 +29,14 @@ from collections import OrderedDict
 
 from unified_planning.model.transition import Transition
 
+# TODO fix comments here
+# TODO check weather events/processes should have all the methods/other stuff that actions have. If yes, we need more tests.
+
+"""
+This module defines the `NaturalTransition` class and some of his extensions.
+An `NaturalTransition` has a `name`, a `list` of `Parameter`, a `list` of `preconditions`
+and a `list` of `effects`.
+"""
 
 """
 Below we have natural transitions. These are not controlled by the agent and would probably need a proper subclass. Natural transitions can be of two kinds:
@@ -283,20 +286,20 @@ class Event(NaturalTransition):
 
     @property
     def preconditions(self) -> List["up.model.fnode.FNode"]:
-        """Returns the `list` of the `Action` `preconditions`."""
+        """Returns the `list` of the `Event` `preconditions`."""
         return self._preconditions
 
     def clear_preconditions(self):
-        """Removes all the `Action preconditions`"""
+        """Removes all the `Event preconditions`"""
         self._preconditions = []
 
     @property
     def effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `Action effects`."""
+        """Returns the `list` of the `Event effects`."""
         return self._effects
 
     def clear_effects(self):
-        """Removes all the `Action's effects`."""
+        """Removes all the `Event's effects`."""
         self._effects = []
         self._fluents_assigned = {}
         self._fluents_inc_dec = set()
@@ -304,19 +307,19 @@ class Event(NaturalTransition):
 
     @property
     def conditional_effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `action conditional effects`.
+        """Returns the `list` of the `event conditional effects`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
         return [e for e in self._effects if e.is_conditional()]
 
     def is_conditional(self) -> bool:
-        """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
+        """Returns `True` if the `event` has `conditional effects`, `False` otherwise."""
         return any(e.is_conditional() for e in self._effects)
 
     @property
     def unconditional_effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `action unconditional effects`.
+        """Returns the `list` of the `event unconditional effects`.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
@@ -332,9 +335,9 @@ class Event(NaturalTransition):
         ],
     ):
         """
-        Adds the given expression to `action's preconditions`.
+        Adds the given expression to `event's preconditions`.
 
-        :param precondition: The expression that must be added to the `action's preconditions`.
+        :param precondition: The expression that must be added to the `event's preconditions`.
         """
         (precondition_exp,) = self._environment.expression_manager.auto_promote(
             precondition
@@ -360,7 +363,7 @@ class Event(NaturalTransition):
         forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
-        Adds the given `assignment` to the `action's effects`.
+        Adds the given `assignment` to the `event's effects`.
 
         :param fluent: The `fluent` of which `value` is modified by the `assignment`.
         :param value: The `value` to assign to the given `fluent`.
@@ -383,7 +386,7 @@ class Event(NaturalTransition):
         if not fluent_exp.type.is_compatible(value_exp.type):
             # Value is not assignable to fluent (its type is not a subset of the fluent's type).
             raise UPTypeError(
-                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         self._add_effect_instance(
             up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
@@ -397,7 +400,7 @@ class Event(NaturalTransition):
         forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
-        Adds the given `increase effect` to the `action's effects`.
+        Adds the given `increase effect` to the `event's effects`.
 
         :param fluent: The `fluent` which `value` is increased.
         :param value: The given `fluent` is incremented by the given `value`.
@@ -423,7 +426,7 @@ class Event(NaturalTransition):
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError(
-                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Increase effects can be created only on numeric types!")
@@ -445,7 +448,7 @@ class Event(NaturalTransition):
         forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
-        Adds the given `decrease effect` to the `action's effects`.
+        Adds the given `decrease effect` to the `event's effects`.
 
         :param fluent: The `fluent` which value is decreased.
         :param value: The given `fluent` is decremented by the given `value`.
@@ -467,7 +470,7 @@ class Event(NaturalTransition):
             raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError(
-                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Decrease effects can be created only on numeric types!")
@@ -484,27 +487,27 @@ class Event(NaturalTransition):
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
         assert (
             effect.environment == self._environment
-        ), "effect does not have the same environment of the action"
+        ), "effect does not have the same environment of the event"
         up.model.effect.check_conflicting_effects(
             effect,
             None,
             self._simulated_effect,
             self._fluents_assigned,
             self._fluents_inc_dec,
-            "action",
+            "event",
         )
         self._effects.append(effect)
 
     @property
     def simulated_effect(self) -> Optional["up.model.effect.SimulatedEffect"]:
-        """Returns the `action` `simulated effect`."""
+        """Returns the `event` `simulated effect`."""
         return self._simulated_effect
 
     def set_simulated_effect(self, simulated_effect: "up.model.effect.SimulatedEffect"):
         """
-        Sets the given `simulated effect` as the only `action's simulated effect`.
+        Sets the given `simulated effect` as the only `event's simulated effect`.
 
-        :param simulated_effect: The `SimulatedEffect` instance that must be set as this `action`'s only
+        :param simulated_effect: The `SimulatedEffect` instance that must be set as this `event`'s only
             `simulated effect`.
         """
         up.model.effect.check_conflicting_simulated_effects(
@@ -512,11 +515,11 @@ class Event(NaturalTransition):
             None,
             self._fluents_assigned,
             self._fluents_inc_dec,
-            "action",
+            "event",
         )
         if simulated_effect.environment != self.environment:
             raise UPUsageError(
-                "The added SimulatedEffect does not have the same environment of the Action"
+                "The added SimulatedEffect does not have the same environment of the Event"
             )
         self._simulated_effect = simulated_effect
 

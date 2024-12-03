@@ -23,10 +23,6 @@ from warnings import warn
 
 import unified_planning as up
 import unified_planning.environment
-from unified_planning.model.action import Action
-from unified_planning.model.fnode import FNode
-from unified_planning.model.natural_transition import NaturalTransition
-from unified_planning.model.transition import Transition
 import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     InstantaneousAction,
@@ -536,7 +532,7 @@ class PDDLWriter:
             self.problem.environment, self._get_mangled_name
         )
         costs: Dict[
-            Union[NaturalTransition, Action], Optional[FNode]
+            Union[up.model.NaturalTransition, up.model.Action], Optional[up.model.FNode]
         ] = {}  # TODO check if natural_transition should be here
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
