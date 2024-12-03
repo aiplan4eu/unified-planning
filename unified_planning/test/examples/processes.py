@@ -17,8 +17,14 @@ def get_example_problems():
     evt.add_precondition(GE(d, 200))
     evt.add_effect(on, False)
 
+    evt.clear_effects()
+    evt.add_effect(on, False)
+
     b = Process("moving")
     b.add_precondition(on)
+    b.add_derivative(d, 1)
+
+    b.clear_effects()
     b.add_derivative(d, 1)
 
     problem = Problem("1d_Movement")
