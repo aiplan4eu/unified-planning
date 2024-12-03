@@ -16,7 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Iterable
+from typing import Iterator, List, Iterable, Union
 
 
 class NaturalTransitionsSetMixin:
@@ -32,7 +32,7 @@ class NaturalTransitionsSetMixin:
         self._env = environment
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
-        self._events: List["up.model.natural_transition.Effect"] = []
+        self._events: List["up.model.natural_transition.Event"] = []
         self._processes: List["up.model.natural_transition.Process"] = []
 
     @property
@@ -43,7 +43,7 @@ class NaturalTransitionsSetMixin:
     @property
     def processes(
         self,
-    ) -> List["up.model.natural_transition.Processes"]:
+    ) -> List["up.model.natural_transition.Process"]:
         """Returns the list of the `Processes` in the `Problem`."""
         return self._processes
 
@@ -57,12 +57,13 @@ class NaturalTransitionsSetMixin:
     @property
     def natural_transitions(
         self,
-    ) -> List["up.model.natural_transition.NaturalTransition"]:
+    ) -> List[
+        Union[
+            "up.model.natural_transition.Event", "up.model.natural_transition.Process"
+        ]
+    ]:
         """Returns the list of the `Processes` and `Events` in the `Problem`."""
-        ntlist = []
-        ntlist.extend(self._processes)
-        ntlist.extend(self._events)
-        return ntlist
+        return self.events + self.processes
 
     def clear_events(self):
         """Removes all the `Problem` `Events`."""
@@ -91,7 +92,7 @@ class NaturalTransitionsSetMixin:
         :param name: The `name` of the target `event`.
         :return: The `event` in the `problem` with the given `name`.
         """
-        for a in self._event:
+        for a in self._events:
             if a.name == name:
                 return a
         raise UPValueError(f"NaturalTransition of name: {name} is not defined!")
