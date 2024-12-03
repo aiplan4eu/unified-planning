@@ -442,16 +442,12 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 8)
-        n_proc = len(
-            list([el for el in problem.natural_transitions if isinstance(el, Process)])
-        )
-        n_eve = len(
-            list([el for el in problem.natural_transitions if isinstance(el, Event)])
-        )
+        n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
+        n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
         self.assertEqual(n_proc, 3)
         self.assertEqual(n_eve, 1)
         found_drag_ahead = False
-        for ele in problem.natural_transitions:
+        for ele in problem.processes:
             if isinstance(ele, Process):
                 for e in ele.effects:
                     self.assertEqual(e.kind, EffectKind.DERIVATIVE)
@@ -581,6 +577,7 @@ class TestPddlIO(unittest_TestCase):
                 w.write_problem(problem_filename)
 
                 reader = PDDLReader()
+                print(problem)
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
 
                 # Case where the reader does not convert the final_value back to actions_cost.
@@ -598,8 +595,12 @@ class TestPddlIO(unittest_TestCase):
                 )
                 self.assertEqual(len(problem.actions), len(parsed_problem.actions))
                 self.assertEqual(
-                    len(problem.natural_transitions),
-                    len(parsed_problem.natural_transitions),
+                    len(problem.processes),
+                    len(parsed_problem.processes),
+                )
+                self.assertEqual(
+                    len(problem.events),
+                    len(parsed_problem.events),
                 )
                 for a in problem.actions:
                     parsed_a = parsed_problem.action(w.get_pddl_name(a))

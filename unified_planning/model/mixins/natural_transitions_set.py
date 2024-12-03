@@ -32,9 +32,8 @@ class NaturalTransitionsSetMixin:
         self._env = environment
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
-        self._natural_transitions: List[
-            "up.model.natural_transition.NaturalTransition"
-        ] = []
+        self._events: List["up.model.natural_transition.Effect"] = []
+        self._processes: List["up.model.natural_transition.Process"] = []
 
     @property
     def environment(self) -> "up.environment.Environment":
@@ -42,95 +41,151 @@ class NaturalTransitionsSetMixin:
         return self._env
 
     @property
+    def processes(
+        self,
+    ) -> List["up.model.natural_transition.Processes"]:
+        """Returns the list of the `Processes` in the `Problem`."""
+        return self._processes
+
+    @property
+    def events(
+        self,
+    ) -> List["up.model.natural_transition.Event"]:
+        """Returns the list of the `Events` in the `Problem`."""
+        return self._events
+
+    @property
     def natural_transitions(
         self,
     ) -> List["up.model.natural_transition.NaturalTransition"]:
-        """Returns the list of the `NaturalTransitions` in the `Problem`."""
-        return self._natural_transitions
+        """Returns the list of the `Processes` and `Events` in the `Problem`."""
+        ntlist = []
+        ntlist.extend(self._processes)
+        ntlist.extend(self._events)
+        return ntlist
 
-    def clear_natural_transitions(self):
-        """Removes all the `Problem` `NaturalTransitions`."""
-        self._natural_transitions = []
+    def clear_events(self):
+        """Removes all the `Problem` `Events`."""
+        self._events = []
 
-    @property
-    def processes(self) -> Iterator["up.model.natural_transition.Process"]:
-        """Returs all the processes of the problem.
+    def clear_processes(self):
+        """Removes all the `Problem` `Processes`."""
+        self._processes = []
 
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
-        for a in self._natural_transitions:
-            if isinstance(a, up.model.natural_transition.Process):
-                yield a
-
-    @property
-    def events(self) -> Iterator["up.model.natural_transition.Event"]:
-        """Returs all the events of the problem.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
-        for a in self._natural_transitions:
-            if isinstance(a, up.model.natural_transition.Event):
-                yield a
-
-    def natural_transition(
-        self, name: str
-    ) -> "up.model.natural_transition.NaturalTransition":
+    def process(self, name: str) -> "up.model.natural_transition.Process":
         """
-        Returns the `natural_transition` with the given `name`.
+        Returns the `Process` with the given `name`.
 
-        :param name: The `name` of the target `natural_transition`.
-        :return: The `natural_transition` in the `problem` with the given `name`.
+        :param name: The `name` of the target `process`.
+        :return: The `process` in the `problem` with the given `name`.
         """
-        for a in self._natural_transitions:
+        for a in self._processes:
+            if a.name == name:
+                return a
+        raise UPValueError(f"Process of name: {name} is not defined!")
+
+    def event(self, name: str) -> "up.model.natural_transition.Event":
+        """
+        Returns the `event` with the given `name`.
+
+        :param name: The `name` of the target `event`.
+        :return: The `event` in the `problem` with the given `name`.
+        """
+        for a in self._event:
             if a.name == name:
                 return a
         raise UPValueError(f"NaturalTransition of name: {name} is not defined!")
 
-    def has_natural_transition(self, name: str) -> bool:
+    def has_process(self, name: str) -> bool:
         """
-        Returns `True` if the `problem` has the `natural_transition` with the given `name`,
+        Returns `True` if the `problem` has the `process` with the given `name`,
         `False` otherwise.
 
-        :param name: The `name` of the target `natural_transition`.
-        :return: `True` if the `problem` has an `natural_transition` with the given `name`, `False` otherwise.
+        :param name: The `name` of the target `process`.
+        :return: `True` if the `problem` has an `process` with the given `name`, `False` otherwise.
         """
-        for a in self._natural_transitions:
+        for a in self._processes:
             if a.name == name:
                 return True
         return False
 
-    def add_natural_transition(
-        self, natural_transition: "up.model.natural_transition.NaturalTransition"
-    ):
+    def has_event(self, name: str) -> bool:
         """
-        Adds the given `natural_transition` to the `problem`.
+        Returns `True` if the `problem` has the `event` with the given `name`,
+        `False` otherwise.
 
-        :param natural_transition: The `natural_transition` that must be added to the `problem`.
+        :param name: The `name` of the target `event`.
+        :return: `True` if the `problem` has an `event` with the given `name`, `False` otherwise.
+        """
+        for a in self._events:
+            if a.name == name:
+                return True
+        return False
+
+    def add_process(self, process: "up.model.natural_transition.Process"):
+        """
+        Adds the given `process` to the `problem`.
+
+        :param natural_transition: The `process` that must be added to the `problem`.
         """
         assert (
-            natural_transition.environment == self._env
-        ), "NaturalTransition does not have the same environment of the problem"
-        if self._has_name_method(natural_transition.name):
-            msg = f"Name {natural_transition.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
+            process.environment == self._env
+        ), "Process does not have the same environment of the problem"
+        if self._has_name_method(process.name):
+            msg = f"Name {process.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
             if self._env.error_used_name or any(
-                natural_transition.name == a.name for a in self._natural_transitions
+                process.name == a.name for a in self._processes
             ):
                 raise UPProblemDefinitionError(msg)
             else:
                 warn(msg)
-        self._natural_transitions.append(natural_transition)
-        for param in natural_transition.parameters:
+        self._processes.append(process)
+        for param in process.parameters:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
 
-    def add_natural_transitions(
+    def add_event(self, event: "up.model.natural_transition.Event"):
+        """
+        Adds the given `event` to the `problem`.
+
+        :param event: The `event` that must be added to the `problem`.
+        """
+        assert (
+            event.environment == self._env
+        ), "Event does not have the same environment of the problem"
+        if self._has_name_method(event.name):
+            msg = f"Name {event.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
+            if self._env.error_used_name or any(
+                event.name == a.name for a in self._events
+            ):
+                raise UPProblemDefinitionError(msg)
+            else:
+                warn(msg)
+        self._events.append(event)
+        for param in event.parameters:
+            if param.type.is_user_type():
+                self._add_user_type_method(param.type)
+
+    def add_processes(
         self,
-        natural_transitions: Iterable["up.model.natural_transition.NaturalTransition"],
+        processes: Iterable["up.model.natural_transition.Process"],
     ):
         """
-        Adds the given `natural_transitions` to the `problem`.
+        Adds the given `processes` to the `problem`.
 
-        :param natural_transitions: The `natural_transitions` that must be added to the `problem`.
+        :param processes: The `processes` that must be added to the `problem`.
         """
-        for natural_transition in natural_transitions:
-            self.add_natural_transition(natural_transition)
+        for process in processes:
+            self.add_process(process)
+
+    def add_events(
+        self,
+        events: Iterable["up.model.natural_transition.Event"],
+    ):
+        """
+        Adds the given `events` to the `problem`.
+
+        :param events: The `events` that must be added to the `problem`.
+        """
+        for event in events:
+            self.add_event(event)
