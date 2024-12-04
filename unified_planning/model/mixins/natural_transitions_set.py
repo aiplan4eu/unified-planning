@@ -57,17 +57,9 @@ class NaturalTransitionsSetMixin:
     @property
     def natural_transitions(
         self,
-    ) -> List[
-        Union[
-            "up.model.natural_transition.Event", "up.model.natural_transition.Process"
-        ]
-    ]:
+    ) -> List["up.model.natural_transition.NaturalTransition"]:
         """Returns the list of the `Processes` and `Events` in the `Problem`."""
-        ntlist: List[
-            Union[
-                up.model.natural_transition.Event, up.model.natural_transition.Process
-            ]
-        ] = []
+        ntlist: List[up.model.natural_transition.NaturalTransition] = []
         ntlist.extend(self.processes)
         ntlist.extend(self.events)
         return ntlist
