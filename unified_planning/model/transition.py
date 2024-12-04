@@ -90,6 +90,10 @@ class Transition(ABC):
     def clone(self):
         raise NotImplementedError
 
+    def is_conditional(self) -> bool:
+        """Returns `True` if the `Transition` has `conditional effects`, `False` otherwise."""
+        raise NotImplementedError
+
     @property
     def environment(self) -> Environment:
         """Returns this `Transition` `Environment`."""
@@ -149,12 +153,8 @@ class Transition(ABC):
             )
         return self._parameters[parameter_name]
 
-    def is_conditional(self) -> bool:
-        """Returns `True` if the `Transition` has `conditional effects`, `False` otherwise."""
-        raise NotImplementedError
 
-
-class SingleTimePointTransitionMixin:
+class PreconditionMixin:
     def __init__(self, _env):
         self._preconditions: List["up.model.fnode.FNode"] = []
         self._environment = get_environment(_env)
@@ -200,3 +200,216 @@ class SingleTimePointTransitionMixin:
 
     def _set_preconditions(self, preconditions: List["up.model.fnode.FNode"]):
         self._preconditions = preconditions
+
+
+class UntimedEffectMixin:
+    def __init__(self, _env):
+        self._environment = get_environment(_env)
+        self._effects: List[up.model.effect.Effect] = []
+        self._simulated_effect: Optional[up.model.effect.SimulatedEffect] = None
+        # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
+        self._fluents_assigned: Dict[
+            "up.model.fnode.FNode", "up.model.fnode.FNode"
+        ] = {}
+        # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
+        self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
+
+    @property
+    def effects(self) -> List["up.model.effect.Effect"]:
+        """Returns the `list` of the `Action effects`."""
+        return self._effects
+
+    def clear_effects(self):
+        """Removes all the `Action's effects`."""
+        self._effects = []
+        self._fluents_assigned = {}
+        self._fluents_inc_dec = set()
+        self._simulated_effect = None
+
+    @property
+    def conditional_effects(self) -> List["up.model.effect.Effect"]:
+        """Returns the `list` of the `action conditional effects`.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        seldom as possible."""
+        return [e for e in self._effects if e.is_conditional()]
+
+    def is_conditional(self) -> bool:
+        """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
+        return any(e.is_conditional() for e in self._effects)
+
+    @property
+    def unconditional_effects(self) -> List["up.model.effect.Effect"]:
+        """Returns the `list` of the `action unconditional effects`.
+
+        IMPORTANT NOTE: this property does some computation, so it should be called as
+        seldom as possible."""
+        return [e for e in self._effects if not e.is_conditional()]
+
+    def add_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        Adds the given `assignment` to the `action's effects`.
+
+        :param fluent: The `fluent` of which `value` is modified by the `assignment`.
+        :param value: The `value` to assign to the given `fluent`.
+        :param condition: The `condition` in which this `effect` is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_effect must be a Fluent or a FluentExp or a Dot."
+            )
+        if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            # Value is not assignable to fluent (its type is not a subset of the fluent's type).
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        self._add_effect_instance(
+            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
+        )
+
+    def add_increase_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        Adds the given `increase effect` to the `action's effects`.
+
+        :param fluent: The `fluent` which `value` is increased.
+        :param value: The given `fluent` is incremented by the given `value`.
+        :param condition: The `condition` in which this `effect` is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(
+            fluent,
+            value,
+            condition,
+        )
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot."
+            )
+        if not condition_exp.type.is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Increase effects can be created only on numeric types!")
+        self._add_effect_instance(
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.INCREASE,
+                forall=forall,
+            )
+        )
+
+    def add_decrease_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        condition: "up.model.expression.BoolExpression" = True,
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
+    ):
+        """
+        Adds the given `decrease effect` to the `action's effects`.
+
+        :param fluent: The `fluent` which value is decreased.
+        :param value: The given `fluent` is decremented by the given `value`.
+        :param condition: The `condition` in which this `effect` is applied; the default
+            value is `True`.
+        :param forall: The 'Variables' that are universally quantified in this
+            effect; the default value is empty.
+        """
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_decrease_effect must be a Fluent or a FluentExp or a Dot."
+            )
+        if not condition_exp.type.is_bool_type():
+            raise UPTypeError("Effect condition is not a Boolean condition!")
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError(
+                f"InstantaneousAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Decrease effects can be created only on numeric types!")
+        self._add_effect_instance(
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.DECREASE,
+                forall=forall,
+            )
+        )
+
+    def _add_effect_instance(self, effect: "up.model.effect.Effect"):
+        assert (
+            effect.environment == self._environment
+        ), "effect does not have the same environment of the action"
+        up.model.effect.check_conflicting_effects(
+            effect,
+            None,
+            self._simulated_effect,
+            self._fluents_assigned,
+            self._fluents_inc_dec,
+            "action",
+        )
+        self._effects.append(effect)
+
+    @property
+    def simulated_effect(self) -> Optional["up.model.effect.SimulatedEffect"]:
+        """Returns the `action` `simulated effect`."""
+        return self._simulated_effect
+
+    def set_simulated_effect(self, simulated_effect: "up.model.effect.SimulatedEffect"):
+        """
+        Sets the given `simulated effect` as the only `action's simulated effect`.
+
+        :param simulated_effect: The `SimulatedEffect` instance that must be set as this `action`'s only
+            `simulated effect`.
+        """
+        up.model.effect.check_conflicting_simulated_effects(
+            simulated_effect,
+            None,
+            self._fluents_assigned,
+            self._fluents_inc_dec,
+            "action",
+        )
+        if simulated_effect.environment != self._environment:
+            raise UPUsageError(
+                "The added SimulatedEffect does not have the same environment of the Action"
+            )
+        self._simulated_effect = simulated_effect

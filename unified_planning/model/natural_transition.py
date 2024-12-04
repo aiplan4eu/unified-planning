@@ -27,7 +27,11 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
-from unified_planning.model.transition import SingleTimePointTransitionMixin, Transition
+from unified_planning.model.transition import (
+    UntimedEffectMixin,
+    PreconditionMixin,
+    Transition,
+)
 
 
 """
@@ -38,7 +42,7 @@ Events dictate the analogous of urgent transitions in timed automata theory
 """
 
 
-class NaturalTransition(Transition, SingleTimePointTransitionMixin):
+class NaturalTransition(Transition, PreconditionMixin):
     """This is the `NaturalTransition` interface"""
 
 
@@ -53,7 +57,7 @@ class Process(NaturalTransition):
         **kwargs: "up.model.types.Type",
     ):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
-        SingleTimePointTransitionMixin.__init__(self, _env)
+        PreconditionMixin.__init__(self, _env)
         self._effects: List[up.model.effect.Effect] = []
         # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
         self._fluents_assigned: Dict[
@@ -173,7 +177,7 @@ class Process(NaturalTransition):
         )
 
 
-class Event(NaturalTransition):
+class Event(UntimedEffectMixin, NaturalTransition):
     """This class represents an event."""
 
     def __init__(
@@ -184,14 +188,8 @@ class Event(NaturalTransition):
         **kwargs: "up.model.types.Type",
     ):
         Transition.__init__(self, _name, _parameters, _env, **kwargs)
-        SingleTimePointTransitionMixin.__init__(self, _env)
-        self._effects: List[up.model.effect.Effect] = []
-        # fluent assigned is the mapping of the fluent to it's value if it is an unconditional assignment
-        self._fluents_assigned: Dict[
-            "up.model.fnode.FNode", "up.model.fnode.FNode"
-        ] = {}
-        # fluent_inc_dec is the set of the fluents that have an unconditional increase or decrease
-        self._fluents_inc_dec: Set["up.model.fnode.FNode"] = set()
+        PreconditionMixin.__init__(self, _env)
+        UntimedEffectMixin.__init__(self, _env)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Event):
@@ -228,180 +226,6 @@ class Event(NaturalTransition):
         new_event._fluents_assigned = self._fluents_assigned.copy()
         new_event._fluents_inc_dec = self._fluents_inc_dec.copy()
         return new_event
-
-    @property
-    def effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `Event effects`."""
-        return self._effects
-
-    def clear_effects(self):
-        """Removes all the `Event's effects`."""
-        self._effects = []
-        self._fluents_assigned = {}
-        self._fluents_inc_dec = set()
-
-    @property
-    def conditional_effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `event conditional effects`.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
-        return [e for e in self._effects if e.is_conditional()]
-
-    def is_conditional(self) -> bool:
-        """Returns `True` if the `event` has `conditional effects`, `False` otherwise."""
-        return any(e.is_conditional() for e in self._effects)
-
-    @property
-    def unconditional_effects(self) -> List["up.model.effect.Effect"]:
-        """Returns the `list` of the `event unconditional effects`.
-
-        IMPORTANT NOTE: this property does some computation, so it should be called as
-        seldom as possible."""
-        return [e for e in self._effects if not e.is_conditional()]
-
-    def add_effect(
-        self,
-        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: "up.model.expression.Expression",
-        condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
-    ):
-        """
-        Adds the given `assignment` to the `event's effects`.
-
-        :param fluent: The `fluent` of which `value` is modified by the `assignment`.
-        :param value: The `value` to assign to the given `fluent`.
-        :param condition: The `condition` in which this `effect` is applied; the default
-            value is `True`.
-        :param forall: The 'Variables' that are universally quantified in this
-            effect; the default value is empty.
-        """
-        (
-            fluent_exp,
-            value_exp,
-            condition_exp,
-        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
-            raise UPUsageError(
-                "fluent field of add_effect must be a Fluent or a FluentExp or a Dot."
-            )
-        if not self._environment.type_checker.get_type(condition_exp).is_bool_type():
-            raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.type.is_compatible(value_exp.type):
-            # Value is not assignable to fluent (its type is not a subset of the fluent's type).
-            raise UPTypeError(
-                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
-            )
-        self._add_effect_instance(
-            up.model.effect.Effect(fluent_exp, value_exp, condition_exp, forall=forall)
-        )
-
-    def add_increase_effect(
-        self,
-        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: "up.model.expression.Expression",
-        condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
-    ):
-        """
-        Adds the given `increase effect` to the `event's effects`.
-
-        :param fluent: The `fluent` which `value` is increased.
-        :param value: The given `fluent` is incremented by the given `value`.
-        :param condition: The `condition` in which this `effect` is applied; the default
-            value is `True`.
-        :param forall: The 'Variables' that are universally quantified in this
-            effect; the default value is empty.
-        """
-        (
-            fluent_exp,
-            value_exp,
-            condition_exp,
-        ) = self._environment.expression_manager.auto_promote(
-            fluent,
-            value,
-            condition,
-        )
-        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
-            raise UPUsageError(
-                "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot."
-            )
-        if not condition_exp.type.is_bool_type():
-            raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError(
-                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
-            )
-        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
-            raise UPTypeError("Increase effects can be created only on numeric types!")
-        self._add_effect_instance(
-            up.model.effect.Effect(
-                fluent_exp,
-                value_exp,
-                condition_exp,
-                kind=up.model.effect.EffectKind.INCREASE,
-                forall=forall,
-            )
-        )
-
-    def add_decrease_effect(
-        self,
-        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
-        value: "up.model.expression.Expression",
-        condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
-    ):
-        """
-        Adds the given `decrease effect` to the `event's effects`.
-
-        :param fluent: The `fluent` which value is decreased.
-        :param value: The given `fluent` is decremented by the given `value`.
-        :param condition: The `condition` in which this `effect` is applied; the default
-            value is `True`.
-        :param forall: The 'Variables' that are universally quantified in this
-            effect; the default value is empty.
-        """
-        (
-            fluent_exp,
-            value_exp,
-            condition_exp,
-        ) = self._environment.expression_manager.auto_promote(fluent, value, condition)
-        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
-            raise UPUsageError(
-                "fluent field of add_decrease_effect must be a Fluent or a FluentExp or a Dot."
-            )
-        if not condition_exp.type.is_bool_type():
-            raise UPTypeError("Effect condition is not a Boolean condition!")
-        if not fluent_exp.type.is_compatible(value_exp.type):
-            raise UPTypeError(
-                f"Event effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
-            )
-        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
-            raise UPTypeError("Decrease effects can be created only on numeric types!")
-        self._add_effect_instance(
-            up.model.effect.Effect(
-                fluent_exp,
-                value_exp,
-                condition_exp,
-                kind=up.model.effect.EffectKind.DECREASE,
-                forall=forall,
-            )
-        )
-
-    def _add_effect_instance(self, effect: "up.model.effect.Effect"):
-        assert (
-            effect.environment == self._environment
-        ), "effect does not have the same environment of the event"
-        up.model.effect.check_conflicting_effects(
-            effect,
-            None,
-            None,
-            self._fluents_assigned,
-            self._fluents_inc_dec,
-            "event",
-        )
-        self._effects.append(effect)
 
     def __repr__(self) -> str:
         s = []
