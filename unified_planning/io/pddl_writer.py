@@ -704,73 +704,72 @@ class PDDLWriter:
                 out.write(")\n")
             else:
                 raise NotImplementedError
-        for nt in self.problem.natural_transitions:
-            if isinstance(nt, up.model.Event):
-                if any(p.simplify().is_false() for p in nt.preconditions):
-                    continue
-                out.write(f" (:event {self._get_mangled_name(nt)}")
-                out.write(f"\n  :parameters (")
-                self._write_parameters(out, nt)
-                out.write(")")
-                if len(nt.preconditions) > 0:
-                    precond_str = []
-                    for p in (c.simplify() for c in nt.preconditions):
-                        if not p.is_true():
-                            if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
-                            else:
-                                precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(nt.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-                if len(nt.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for e in nt.effects:
-                        _write_effect(
-                            e,
-                            None,
-                            out,
-                            converter,
-                            self.rewrite_bool_assignments,
-                            self._get_mangled_name,
-                        )
+        for proc in self.problem.processes:
 
-                    if nt in costs:
-                        out.write(
-                            f" (increase (total-cost) {converter.convert(costs[nt])})"
-                        )
-                    out.write(")")
-                out.write(")\n")
-            elif isinstance(nt, up.model.Process):
-                if any(p.simplify().is_false() for p in nt.preconditions):
-                    continue
-                out.write(f" (:process {self._get_mangled_name(nt)}")
-                out.write(f"\n  :parameters (")
-                self._write_parameters(out, nt)
+            if any(p.simplify().is_false() for p in proc.preconditions):
+                continue
+            out.write(f" (:process {self._get_mangled_name(proc)}")
+            out.write(f"\n  :parameters (")
+            self._write_parameters(out, proc)
+            out.write(")")
+            if len(proc.preconditions) > 0:
+                precond_str = []
+                for p in (c.simplify() for c in proc.preconditions):
+                    if not p.is_true():
+                        if p.is_and():
+                            precond_str.extend(map(converter.convert, p.args))
+                        else:
+                            precond_str.append(converter.convert(p))
+                out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+            elif len(proc.preconditions) == 0 and self.empty_preconditions:
+                out.write(f"\n  :precondition ()")
+            if len(proc.effects) > 0:
+                out.write("\n  :effect (and")
+                for e in proc.effects:
+                    _write_derivative(
+                        e,
+                        out,
+                        converter,
+                    )
                 out.write(")")
-                if len(nt.preconditions) > 0:
-                    precond_str = []
-                    for p in (c.simplify() for c in nt.preconditions):
-                        if not p.is_true():
-                            if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
-                            else:
-                                precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(nt.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-                if len(nt.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for e in nt.effects:
-                        _write_derivative(
-                            e,
-                            out,
-                            converter,
-                        )
-                    out.write(")")
-                out.write(")\n")
-            else:
-                raise NotImplementedError
+            out.write(")\n")
+        for eve in self.problem.events:
+
+            if any(p.simplify().is_false() for p in eve.preconditions):
+                continue
+            out.write(f" (:event {self._get_mangled_name(eve)}")
+            out.write(f"\n  :parameters (")
+            self._write_parameters(out, eve)
+            out.write(")")
+            if len(eve.preconditions) > 0:
+                precond_str = []
+                for p in (c.simplify() for c in eve.preconditions):
+                    if not p.is_true():
+                        if p.is_and():
+                            precond_str.extend(map(converter.convert, p.args))
+                        else:
+                            precond_str.append(converter.convert(p))
+                out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+            elif len(eve.preconditions) == 0 and self.empty_preconditions:
+                out.write(f"\n  :precondition ()")
+            if len(eve.effects) > 0:
+                out.write("\n  :effect (and")
+                for e in eve.effects:
+                    _write_effect(
+                        e,
+                        None,
+                        out,
+                        converter,
+                        self.rewrite_bool_assignments,
+                        self._get_mangled_name,
+                    )
+
+                if eve in costs:
+                    out.write(
+                        f" (increase (total-cost) {converter.convert(costs[eve])})"
+                    )
+                out.write(")")
+            out.write(")\n")
         out.write(")\n")
 
     def _write_problem(self, out: IO[str]):

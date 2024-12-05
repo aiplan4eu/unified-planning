@@ -14,7 +14,7 @@
 
 import os
 import tempfile
-import pytest  # type: ignore
+import pytest
 from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
