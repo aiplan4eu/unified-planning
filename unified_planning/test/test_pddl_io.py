@@ -14,8 +14,8 @@
 
 import os
 import tempfile
-from typing import cast
 import pytest
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -442,14 +442,12 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertTrue(problem is not None)
         self.assertEqual(len(problem.fluents), 8)
-        self.assertEqual(
-            len(list([ele for ele in problem.actions if isinstance(ele, Process)])), 3
-        )
-        self.assertEqual(
-            len(list([ele for ele in problem.actions if isinstance(ele, Event)])), 1
-        )
+        n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
+        n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
+        self.assertEqual(n_proc, 3)
+        self.assertEqual(n_eve, 1)
         found_drag_ahead = False
-        for ele in problem.actions:
+        for ele in problem.processes:
             if isinstance(ele, Process):
                 for e in ele.effects:
                     self.assertEqual(e.kind, EffectKind.DERIVATIVE)
@@ -595,6 +593,14 @@ class TestPddlIO(unittest_TestCase):
                     )
                 )
                 self.assertEqual(len(problem.actions), len(parsed_problem.actions))
+                self.assertEqual(
+                    len(problem.processes),
+                    len(parsed_problem.processes),
+                )
+                self.assertEqual(
+                    len(problem.events),
+                    len(parsed_problem.events),
+                )
                 for a in problem.actions:
                     parsed_a = parsed_problem.action(w.get_pddl_name(a))
                     self.assertEqual(a, w.get_item_named(parsed_a.name))

@@ -22,6 +22,7 @@ from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
@@ -52,6 +53,7 @@ class Problem(  # type: ignore[misc]
     TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
     MetricsMixin,
@@ -78,6 +80,9 @@ class Problem(  # type: ignore[misc]
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
         ActionsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        NaturalTransitionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
         ObjectsSetMixin.__init__(
@@ -117,6 +122,14 @@ class Problem(  # type: ignore[misc]
         s.append("actions = [\n")
         s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
+        if len(self.processes) > 0:
+            s.append("processes = [\n")
+            s.extend(map(custom_str, self.processes))
+            s.append("]\n\n")
+        if len(self.events) > 0:
+            s.append("events = [\n")
+            s.extend(map(custom_str, self.events))
+            s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
@@ -235,6 +248,8 @@ class Problem(  # type: ignore[misc]
         TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
+        new_p._events = [a.clone() for a in self._events]
+        new_p._processes = [a.clone() for a in self._processes]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
@@ -311,7 +326,7 @@ class Problem(  # type: ignore[misc]
             (f.fluent() for e in exps for f in fve.get(e))
         )
         for a in self._actions:
-            if isinstance(a, up.model.action.InstantaneousTransitionMixin):
+            if isinstance(a, up.model.action.InstantaneousAction):
                 remove_used_fluents(*a.preconditions)
                 for e in a.effects:
                     remove_used_fluents(e.fluent, e.value, e.condition)
@@ -332,12 +347,17 @@ class Problem(  # type: ignore[misc]
                     unused_fluents.clear()
                     for f in se.fluents:
                         static_fluents.discard(f.fluent())
-            elif isinstance(a, up.model.action.Process):
-                for e in a.effects:
-                    remove_used_fluents(e.fluent, e.value, e.condition)
-                    static_fluents.discard(e.fluent.fluent())
             else:
                 raise NotImplementedError
+        for ev in self._events:
+            remove_used_fluents(*ev.preconditions)
+            for e in ev.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
+        for pro in self._processes:
+            for e in pro.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
         for el in self._timed_effects.values():
             for e in el:
                 remove_used_fluents(e.fluent, e.value, e.condition)
@@ -992,7 +1012,7 @@ class _KindFactory:
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
-        if isinstance(action, up.model.action.InstantaneousTransitionMixin):
+        if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
             for e in action.effects:
@@ -1010,8 +1030,6 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
-        elif isinstance(action, up.model.action.Process):
-            pass
         else:
             raise NotImplementedError
 

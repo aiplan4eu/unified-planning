@@ -19,8 +19,16 @@ from unified_planning.model.action import (
     InstantaneousAction,
     DurativeAction,
     SensingAction,
+)
+
+from unified_planning.model.natural_transition import (
+    NaturalTransition,
     Process,
     Event,
+)
+
+from unified_planning.model.transition import (
+    Transition,
 )
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (

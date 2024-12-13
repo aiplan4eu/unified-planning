@@ -531,6 +531,7 @@ class TestProblem(unittest_TestCase):
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
             "1d_Movement",
+            "boiling_water",
         ]
         for example in self.problems.values():
             problem = example.problem
@@ -605,6 +606,19 @@ class TestProblem(unittest_TestCase):
                 pb_name in undefs_sym,
                 pb_name,
             )
+
+    def test_natural_transitions(self):
+        p = self.problems["1d_movement"].problem
+        print(p)
+        self.assertTrue(p.has_process("moving"))
+        self.assertTrue(p.has_event("turn_off_automatically"))
+        proc = p.process("moving")
+        evt = p.event("turn_off_automatically")
+        print(proc)
+        print(evt)
+        p.clear_events()
+        p.clear_processes()
+        self.assertEqual(len(p.natural_transitions), 0)
 
 
 if __name__ == "__main__":

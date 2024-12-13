@@ -14,6 +14,9 @@
 #
 
 from unified_planning.model.mixins.actions_set import ActionsSetMixin
+from unified_planning.model.mixins.natural_transitions_set import (
+    NaturalTransitionsSetMixin,
+)
 from unified_planning.model.mixins.time_model import TimeModelMixin
 from unified_planning.model.mixins.fluents_set import FluentsSetMixin
 from unified_planning.model.mixins.objects_set import ObjectsSetMixin
@@ -24,6 +27,7 @@ from unified_planning.model.mixins.metrics import MetricsMixin
 
 __all__ = [
     "ActionsSetMixin",
+    "NaturalTransitionsSetMixin",
     "TimeModelMixin",
     "FluentsSetMixin",
     "ObjectsSetMixin",
