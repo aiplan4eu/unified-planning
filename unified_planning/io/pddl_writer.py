@@ -606,34 +606,8 @@ class PDDLWriter:
                 out.write(f"\n  :parameters (")
                 self._write_parameters(out, a)
                 out.write(")")
-                if len(a.preconditions) > 0:
-                    precond_str = []
-                    for p in (c.simplify() for c in a.preconditions):
-                        if not p.is_true():
-                            if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
-                            else:
-                                precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(a.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-                if len(a.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for e in a.effects:
-                        _write_effect(
-                            e,
-                            None,
-                            out,
-                            converter,
-                            self.rewrite_bool_assignments,
-                            self._get_mangled_name,
-                        )
-
-                    if a in costs:
-                        out.write(
-                            f" (increase (total-cost) {converter.convert(costs[a])})"
-                        )
-                    out.write(")")
+                self._write_untimed_preconditions(a, converter, out)
+                self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
                 if any(
@@ -712,17 +686,7 @@ class PDDLWriter:
             out.write(f"\n  :parameters (")
             self._write_parameters(out, proc)
             out.write(")")
-            if len(proc.preconditions) > 0:
-                precond_str = []
-                for p in (c.simplify() for c in proc.preconditions):
-                    if not p.is_true():
-                        if p.is_and():
-                            precond_str.extend(map(converter.convert, p.args))
-                        else:
-                            precond_str.append(converter.convert(p))
-                out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-            elif len(proc.preconditions) == 0 and self.empty_preconditions:
-                out.write(f"\n  :precondition ()")
+            self._write_untimed_preconditions(proc, converter, out)
             if len(proc.effects) > 0:
                 out.write("\n  :effect (and")
                 for e in proc.effects:
@@ -741,34 +705,8 @@ class PDDLWriter:
             out.write(f"\n  :parameters (")
             self._write_parameters(out, eve)
             out.write(")")
-            if len(eve.preconditions) > 0:
-                precond_str = []
-                for p in (c.simplify() for c in eve.preconditions):
-                    if not p.is_true():
-                        if p.is_and():
-                            precond_str.extend(map(converter.convert, p.args))
-                        else:
-                            precond_str.append(converter.convert(p))
-                out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-            elif len(eve.preconditions) == 0 and self.empty_preconditions:
-                out.write(f"\n  :precondition ()")
-            if len(eve.effects) > 0:
-                out.write("\n  :effect (and")
-                for e in eve.effects:
-                    _write_effect(
-                        e,
-                        None,
-                        out,
-                        converter,
-                        self.rewrite_bool_assignments,
-                        self._get_mangled_name,
-                    )
-
-                if eve in costs:
-                    out.write(
-                        f" (increase (total-cost) {converter.convert(costs[eve])})"
-                    )
-                out.write(")")
+            self._write_untimed_preconditions(eve, converter, out)
+            self._write_untimed_effects(eve, converter, out, costs)
             out.write(")\n")
         out.write(")\n")
 
@@ -1102,6 +1040,36 @@ class PDDLWriter:
             raise UPProblemDefinitionError(
                 "Task network constraints not supported by HDDL Writer yet"
             )
+
+    def _write_untimed_preconditions(self, item, converter, out):
+        if len(item.preconditions) > 0:
+            precond_str: list[str] = []
+            for p in (c.simplify() for c in item.preconditions):
+                if not p.is_true():
+                    if p.is_and():
+                        precond_str.extend(map(converter.convert, p.args))
+                    else:
+                        precond_str.append(converter.convert(p))
+            out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+        elif len(item.preconditions) == 0 and self.empty_preconditions:
+            out.write(f"\n  :precondition ()")
+
+    def _write_untimed_effects(self, item, converter, out, costs):
+        if len(item.effects) > 0:
+            out.write("\n  :effect (and")
+            for e in item.effects:
+                _write_effect(
+                    e,
+                    None,
+                    out,
+                    converter,
+                    self.rewrite_bool_assignments,
+                    self._get_mangled_name,
+                )
+
+            if item in costs:
+                out.write(f" (increase (total-cost) {converter.convert(costs[item])})")
+            out.write(")")
 
 
 def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
