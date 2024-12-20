@@ -76,6 +76,9 @@ Problem Kinds
      - FLUENTS_IN_DURATION
      - The duration of at least one action is specified using non-static fluents (that might change over the course of a plan).
    * -
+     - INTERPRETED_FUNCTIONS_IN_DURATION
+     - The duration of at least one action is specified using interpreted functions.
+   * -
      - INT_TYPE_DURATIONS
      - The duration of at least one action is of int type; added in ProblemKind's version 2.
    * -
@@ -105,6 +108,9 @@ Problem Kinds
    * -
      - UNIVERSAL_CONDITIONS
      - The problem has at least a condition using the “forall” quantifier over problem objects.
+   * -
+     - INTERPRETED_FUNCTIONS_IN_CONDITIONS
+     - The problem has at least a condition whose expression contains an interpreted function.
    * - EFFECTS_KIND
      - CONDITIONAL_EFFECTS
      - At least one effect has a condition.
@@ -144,6 +150,15 @@ Problem Kinds
    * -
      - FLUENTS_IN_OBJECT_ASSIGNMENTS
      - At least one effect uses a fluent in the expression of a object assignment.
+   * -
+     - INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS
+     - At least one effect uses an interpreted function in the expression of a boolean assignment.
+   * -
+     - INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS
+     - At least one effect uses an interpreted function in the expression of a numeric assignment.
+   * -
+     - INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS
+     - At least one effect uses an interpreted function in the expression of a object assignment.
    * - TYPING
      - FLAT_TYPING
      - The problem uses user-defined types, but no type inherits from another.
