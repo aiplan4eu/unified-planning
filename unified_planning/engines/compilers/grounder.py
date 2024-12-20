@@ -94,7 +94,7 @@ class GrounderHelper:
         # - his conditions create a contradiction
         # - the action has conflicting effects
         self._grounded_actions: Dict[
-            Tuple[Action, Tuple[FNode, ...]], Optional[Action]
+            Tuple[str, Tuple[FNode, ...]], Optional[Action]
         ] = {}
         env = problem.environment
         if prune_actions:
