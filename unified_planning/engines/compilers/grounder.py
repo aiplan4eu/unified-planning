@@ -127,7 +127,7 @@ class GrounderHelper:
         assert len(action.parameters) == len(
             parameters
         ), "The number of given parameters for the grounding is different from the action's parameters"
-        key = (action, tuple(parameters))
+        key = (action.name, tuple(parameters))
         value = self._grounded_actions.get(key, 0)
         if value != 0:  # The action is already created
             assert isinstance(value, Action) or value is None
