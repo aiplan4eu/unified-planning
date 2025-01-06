@@ -57,14 +57,14 @@ You can subscribe to this list to receive notifications and engage in community 
 You can cite the following article:
 
 > Andrea Micheli, Arthur Bit-Monnot, Gabriele Röger, Enrico Scala, Alessandro Valentini, Luca Framba, Alberto Rovetta, Alessandro Trapasso, Luigi Bonassi, Alfonso Emilio Gerevini, Luca Iocchi, Felix Ingrand, Uwe Köckemann, Fabio Patrizi, Alessandro Saetti, Ivan Serina and Sebastian Stock.  
-> Unified Planning: Modeling, manipulating and solving AI planning problems in Python.  
+> ***Unified Planning: Modeling, manipulating and solving AI planning problems in Python***.  
 > SoftwareX, 2025.
 > <https://doi.org/10.1016/j.softx.2024.102012>
 
 ```
 @article{unified_planning_softwarex2025,
   title = {Unified Planning: Modeling, manipulating and solving AI planning problems in Python},
-  author = {Andrea Micheli and Arthur Bit-Monnot and Gabriele Röger and Enrico Scala and Alessandro Valentini and Luca Framba and Alberto Rovetta and Alessandro Trapasso and Luigi Bonassi and Alfonso Emilio Gerevini and Luca Iocchi and Felix Ingrand and Uwe Köckemann and Fabio Patrizi and Alessandro Saetti and Ivan Serina and Sebastian Stock},
+  author = {Andrea Micheli and Arthur Bit-Monnot and Gabriele R{\"o}ger and Enrico Scala and Alessandro Valentini and Luca Framba and Alberto Rovetta and Alessandro Trapasso and Luigi Bonassi and Alfonso Emilio Gerevini and Luca Iocchi and Felix Ingrand and Uwe Köckemann and Fabio Patrizi and Alessandro Saetti and Ivan Serina and Sebastian Stock},
   journal = {SoftwareX},
   volume = {29},
   pages = {102012},
