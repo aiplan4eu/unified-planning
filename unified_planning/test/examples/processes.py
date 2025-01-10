@@ -19,7 +19,7 @@ def get_example_problems():
 
     b = Process("moving")
     b.add_precondition(on)
-    b.add_continuous_increase(d, 1)
+    b.add_increase_continuous_effect(d, 1)
 
     problem = Problem("1d_Movement")
     problem.add_fluent(on)
@@ -54,11 +54,11 @@ def get_example_problems():
 
     water_heating = Process("water_heating")
     water_heating.add_precondition(And(boiler_on, LE(temperature, 100)))
-    water_heating.add_continuous_increase(temperature, 1)
+    water_heating.add_increase_continuous_effect(temperature, 1)
 
     water_boiling = Process("water_boiling")
     water_boiling.add_precondition(And(boiler_on, GE(temperature, 100)))
-    water_boiling.add_continuous_decrease(water_level, 1)
+    water_boiling.add_decrease_continuous_effect(water_level, 1)
 
     open_chimney_vent_auto = Event("open_chimney_vent_auto")
     open_chimney_vent_auto.add_precondition(
