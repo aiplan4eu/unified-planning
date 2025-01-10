@@ -191,7 +191,7 @@ class Process(NaturalTransition):
         Adds the given `continuous increase effect` to the `process's effects`.
 
         NOTE description might be outdated
-        :param fluent: The `fluent` is the numeric state variable of which this process expresses its continuous increase, which in Newton's notation would be over-dot(fluent).
+        :param fluent: The `fluent` is the numeric state variable of which this process expresses its derivative, which in Newton's notation would be over-dot(fluent).
         :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
         """
         self._add_continuous_effect(fluent, value, False)
@@ -205,7 +205,7 @@ class Process(NaturalTransition):
         Adds the given `continuous decrease effect` to the `process's effects`.
 
         NOTE description might be outdated
-        :param fluent: The `fluent` is the numeric state variable of which this process expresses its continuous decrease, which in Newton's notation would be over-dot(fluent).
+        :param fluent: The `fluent` is the numeric state variable of which this process expresses its derivative, which in Newton's notation would be over-dot(fluent).
         :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
         """
         self._add_continuous_effect(fluent, value, True)
