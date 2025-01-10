@@ -694,6 +694,8 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
+        for process in self._processes:
+            factory.update_problem_kind_process(process)
         for effect in chain(*self._timed_effects.values()):
             factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
@@ -1033,24 +1035,30 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
-            continuous_fluents = set()
-            fluents_in_rhs = set()
-            for t, le in action.effects.items():
-                for e in le:
-                    self.update_action_timed_effect(t, e)
-                    continuous_fluents.add(e.fluent.fluent)
-                    rhs = self.simplifier.simplify(e.value)
-                    for var in self.environment.free_vars_extractor.get(rhs):
-                        if var.is_fluent_exp():
-                            fluents_in_rhs.add(var.fluent)
-            if any(variable in fluents_in_rhs for variable in continuous_fluents):
-                self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
 
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def update_problem_kind_process(
+        self,
+        process: "up.model.natural_transitions.Process",
+    ):
+        for param in process.parameters:
+            self.update_action_parameter(param)
+
+        continuous_fluents = set()
+        fluents_in_rhs = set()
+        for e in process.effects:
+            continuous_fluents.add(e.fluent.fluent)
+            rhs = self.simplifier.simplify(e.value)
+            for var in self.environment.free_vars_extractor.get(rhs):
+                if var.is_fluent_exp():
+                    fluents_in_rhs.add(var.fluent)
+        if any(variable in fluents_in_rhs for variable in continuous_fluents):
+            self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
 
     def update_problem_kind_metric(
         self,
