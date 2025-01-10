@@ -1035,7 +1035,6 @@ class _KindFactory:
                     self.update_action_timed_effect(t, e)
             continuous_fluents = set()
             fluents_in_rhs = set()
-            # TODO
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
