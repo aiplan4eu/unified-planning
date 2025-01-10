@@ -709,6 +709,8 @@ class Problem(  # type: ignore[misc]
         factory.update_problem_kind_initial_state(self)
         if len(list(self.processes)) > 0:
             factory.kind.set_time("PROCESSES")
+        if len(list(self.events)) > 0:
+            factory.kind.set_time("EVENTS")
 
         return factory
 
@@ -884,6 +886,10 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        elif e.is_continuous_increase():
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+        elif e.is_continuous_decrease():
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def update_problem_kind_expression(
         self,
@@ -1027,6 +1033,20 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            continuous_fluents = set()
+            fluents_in_rhs = set()
+            # TODO
+            for t, le in action.effects.items():
+                for e in le:
+                    self.update_action_timed_effect(t, e)
+                    continuous_fluents.add(e.fluent.fluent)
+                    rhs = self.simplifier.simplify(e.value)
+                    for var in self.environment.free_vars_extractor.get(rhs):
+                        if var.is_fluent_exp():
+                            fluents_in_rhs.add(var.fluent)
+            if any(variable in fluents_in_rhs for variable in continuous_fluents):
+                self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
+
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")

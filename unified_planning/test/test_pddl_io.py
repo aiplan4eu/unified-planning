@@ -450,7 +450,10 @@ class TestPddlIO(unittest_TestCase):
         for ele in problem.processes:
             if isinstance(ele, Process):
                 for e in ele.effects:
-                    self.assertEqual(e.kind, EffectKind.DERIVATIVE)
+                    self.assertTrue(
+                        (e.kind == EffectKind.CONTINUOUS_INCREASE)
+                        or (e.kind == EffectKind.CONTINUOUS_DECREASE)
+                    )
                 if ele.name == "drag_ahead":
                     found_drag_ahead = True
                     self.assertTrue("engine_running" in str(ele))
