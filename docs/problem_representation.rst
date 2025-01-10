@@ -63,6 +63,12 @@ Problem Kinds
    * -
      - SELF_OVERLAPPING
      - The temporal planning problem allows actions self overlapping.
+   * -
+     - PROCESSES
+     - The problem contains processes, natural transitions that occur automatically over time as their pre-conditions are met.
+   * -
+     - EVENTS
+     - The problem contains events, natural transitions that occur automatically at a single time point when their pre-conditions are met.
    * - EXPRESSION_DURATION
      - STATIC_FLUENTS_IN_DURATION
      - The duration of at least one action uses static fluents (that may never change).
@@ -111,6 +117,15 @@ Problem Kinds
    * -
      - DECREASE_EFFECTS
      - At least one effect uses the numeric decrement operator.
+   * -
+     - INCREASE_CONTINUOUS_EFFECTS
+     - At least one effect uses the continuous numeric increment operator.
+   * -
+     - DECREASE_CONTINUOUS_EFFECTS
+     - At least one effect uses the continuous numeric decrement operator.
+   * -
+     - NON_LINEAR_CONTINUOUS_EFFECTS
+     - At least one continuous effect is described by a differential equation that depends on a continuous variable.
    * -
      - STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS
      - At least one effect uses a static fluent in the expression of a boolean assignment.

@@ -136,17 +136,12 @@ class Process(NaturalTransition):
 
         self._effects.append(effect)
 
-    def add_derivative(
+    def _add_continuous_effect(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
+        negative: bool,
     ):
-        """
-        Adds the given `time derivative effect` to the `process's effects`.
-
-        :param fluent: The `fluent` is the numeric state variable of which this process expresses its time derivative, which in Newton's notation would be over-dot(fluent).
-        :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
-        """
         (
             fluent_exp,
             value_exp,
@@ -166,15 +161,54 @@ class Process(NaturalTransition):
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Derivative can be created only on numeric types!")
-        self._add_effect_instance(
-            up.model.effect.Effect(
-                fluent_exp,
-                value_exp,
-                condition_exp,
-                kind=up.model.effect.EffectKind.DERIVATIVE,
-                forall=tuple(),
+        if not negative:
+            self._add_effect_instance(
+                up.model.effect.Effect(
+                    fluent_exp,
+                    value_exp,
+                    condition_exp,
+                    kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
+                    forall=tuple(),
+                )
             )
-        )
+        else:
+            self._add_effect_instance(
+                up.model.effect.Effect(
+                    fluent_exp,
+                    value_exp,
+                    condition_exp,
+                    kind=up.model.effect.EffectKind.CONTINUOUS_DECREASE,
+                    forall=tuple(),
+                )
+            )
+
+    def add_continuous_increase(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+    ):
+        """
+        Adds the given `continuous increase effect` to the `process's effects`.
+
+        NOTE description might be outdated
+        :param fluent: The `fluent` is the numeric state variable of which this process expresses its continuous increase, which in Newton's notation would be over-dot(fluent).
+        :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
+        """
+        self._add_continuous_effect(fluent, value, False)
+
+    def add_continuous_decrease(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+    ):
+        """
+        Adds the given `continuous decrease effect` to the `process's effects`.
+
+        NOTE description might be outdated
+        :param fluent: The `fluent` is the numeric state variable of which this process expresses its continuous decrease, which in Newton's notation would be over-dot(fluent).
+        :param value: This is the actual time derivative function. For instance, `fluent = 4` expresses that the time derivative of `fluent` is 4.
+        """
+        self._add_continuous_effect(fluent, value, True)
 
 
 class Event(UntimedEffectMixin, NaturalTransition):

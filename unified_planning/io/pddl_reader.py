@@ -655,7 +655,7 @@ class PDDLReader:
 
                 if isinstance(act, up.model.Process):
                     eff1 = (eff[0], eff[1].simplify())
-                    act.add_derivative(*eff1)
+                    act.add_continuous_increase(*eff1)
                 else:
                     act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
@@ -669,8 +669,8 @@ class PDDLReader:
                     cond,
                 )
                 if isinstance(act, up.model.Process):
-                    eff1 = (eff[0], (eff[1] * (-1)).simplify())
-                    act.add_derivative(*eff1)
+                    eff1 = (eff[0], eff[1].simplify())
+                    act.add_continuous_decrease(*eff1)
                 else:
                     act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":

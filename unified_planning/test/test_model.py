@@ -126,9 +126,12 @@ class TestModel(unittest_TestCase):
         x = Fluent("x", IntType())
         move = Process("moving", car=Vehicle)
         move.add_precondition(a)
-        move.add_derivative(x, 1)
+        move.add_continuous_increase(x, 1)
         e = Effect(
-            FluentExp(x), Int(1), TRUE(), unified_planning.model.EffectKind.DERIVATIVE
+            FluentExp(x),
+            Int(1),
+            TRUE(),
+            unified_planning.model.EffectKind.CONTINUOUS_INCREASE,
         )
         self.assertEqual(move.effects[0], e)
         self.assertEqual(move.name, "moving")
