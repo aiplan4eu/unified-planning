@@ -1044,7 +1044,7 @@ class _KindFactory:
 
     def update_problem_kind_process(
         self,
-        process: "up.model.natural_transitions.Process",
+        process: "up.model.natural_transition.Process",
     ):
         for param in process.parameters:
             self.update_action_parameter(param)
