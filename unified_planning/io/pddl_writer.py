@@ -1240,9 +1240,9 @@ def _write_derivative(
         out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
     elif effect.is_decrease():
         out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
-    elif effect.is_increase_continuous_effect():
+    elif effect.is_continuous_increase():
         out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
-    elif effect.is_decrease_continuous_effect():
+    elif effect.is_continuous_decrease():
         out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
     else:
         raise UPProblemDefinitionError(

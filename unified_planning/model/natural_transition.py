@@ -161,10 +161,10 @@ class Process(NaturalTransition):
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Derivative can be created only on numeric types!")
-        e_kind = up.model.effect.EffectKind.INCREASE_CONTINUOUS_EFFECT
+        e_kind = up.model.effect.EffectKind.CONTINUOUS_INCREASE
 
         if negative:
-            e_kind = up.model.effect.EffectKind.DECREASE_CONTINUOUS_EFFECT
+            e_kind = up.model.effect.EffectKind.CONTINUOUS_DECREASE
         self._add_effect_instance(
             up.model.effect.Effect(
                 fluent_exp,
