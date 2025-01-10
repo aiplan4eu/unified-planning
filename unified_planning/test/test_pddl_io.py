@@ -451,8 +451,8 @@ class TestPddlIO(unittest_TestCase):
             if isinstance(ele, Process):
                 for e in ele.effects:
                     self.assertTrue(
-                        (e.kind == EffectKind.INCREASE_CONTINUOUS_EFFECT)
-                        or (e.kind == EffectKind.DECREASE_CONTINUOUS_EFFECT)
+                        (e.kind == EffectKind.CONTINUOUS_INCREASE)
+                        or (e.kind == EffectKind.CONTINUOUS_DECREASE)
                     )
                 if ele.name == "drag_ahead":
                     found_drag_ahead = True

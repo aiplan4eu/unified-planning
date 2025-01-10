@@ -131,7 +131,7 @@ class TestModel(unittest_TestCase):
             FluentExp(x),
             Int(1),
             TRUE(),
-            unified_planning.model.EffectKind.INCREASE_CONTINUOUS_EFFECT,
+            unified_planning.model.EffectKind.CONTINUOUS_INCREASE,
         )
         self.assertEqual(move.effects[0], e)
         self.assertEqual(move.name, "moving")

@@ -17,6 +17,7 @@
 
 from itertools import chain, product
 import unified_planning as up
+from unified_planning.model.effect import EffectKind
 import unified_planning.model.tamp
 from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
@@ -888,9 +889,9 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        elif e.is_increase_continuous_effect():
+        elif e.is_continuous_increase():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-        elif e.is_decrease_continuous_effect():
+        elif e.is_continuous_decrease():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def update_problem_kind_expression(
@@ -1052,6 +1053,11 @@ class _KindFactory:
         continuous_fluents = set()
         fluents_in_rhs = set()
         for e in process.effects:
+            if e.kind == EffectKind.CONTINUOUS_INCREASE:
+                self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+            if e.kind == EffectKind.CONTINUOUS_DECREASE:
+                self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
+
             continuous_fluents.add(e.fluent.fluent)
             rhs = self.simplifier.simplify(e.value)
             for var in self.environment.free_vars_extractor.get(rhs):
