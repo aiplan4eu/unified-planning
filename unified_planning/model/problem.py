@@ -888,9 +888,9 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        elif e.is_continuous_increase():
+        elif e.is_increase_continuous_effect():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-        elif e.is_continuous_decrease():
+        elif e.is_decrease_continuous_effect():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def update_problem_kind_expression(

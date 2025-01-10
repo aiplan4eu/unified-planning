@@ -126,12 +126,12 @@ class TestModel(unittest_TestCase):
         x = Fluent("x", IntType())
         move = Process("moving", car=Vehicle)
         move.add_precondition(a)
-        move.add_continuous_increase(x, 1)
+        move.add_increase_continuous_effect(x, 1)
         e = Effect(
             FluentExp(x),
             Int(1),
             TRUE(),
-            unified_planning.model.EffectKind.CONTINUOUS_INCREASE,
+            unified_planning.model.EffectKind.INCREASE_CONTINUOUS_EFFECT,
         )
         self.assertEqual(move.effects[0], e)
         self.assertEqual(move.name, "moving")

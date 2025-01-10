@@ -161,28 +161,21 @@ class Process(NaturalTransition):
             )
         if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
             raise UPTypeError("Derivative can be created only on numeric types!")
-        if not negative:
-            self._add_effect_instance(
-                up.model.effect.Effect(
-                    fluent_exp,
-                    value_exp,
-                    condition_exp,
-                    kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
-                    forall=tuple(),
-                )
-            )
-        else:
-            self._add_effect_instance(
-                up.model.effect.Effect(
-                    fluent_exp,
-                    value_exp,
-                    condition_exp,
-                    kind=up.model.effect.EffectKind.CONTINUOUS_DECREASE,
-                    forall=tuple(),
-                )
-            )
+        e_kind = up.model.effect.EffectKind.INCREASE_CONTINUOUS_EFFECT
 
-    def add_continuous_increase(
+        if negative:
+            e_kind = up.model.effect.EffectKind.DECREASE_CONTINUOUS_EFFECT
+        self._add_effect_instance(
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=e_kind,
+                forall=tuple(),
+            )
+        )
+
+    def add_increase_continuous_effect(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
@@ -196,7 +189,7 @@ class Process(NaturalTransition):
         """
         self._add_continuous_effect(fluent, value, False)
 
-    def add_continuous_decrease(
+    def add_decrease_continuous_effect(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
