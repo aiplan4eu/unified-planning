@@ -609,8 +609,11 @@ class TestProblem(unittest_TestCase):
 
     def test_natural_transitions(self):
         p = self.problems["1d_movement"].problem
+        print(p)
         self.assertTrue(p.has_process("moving"))
         self.assertTrue(p.has_event("turn_off_automatically"))
+        print(p.process("moving"))
+        print(p.event("turn_off_automatically"))
         p.clear_events()
         p.clear_processes()
         self.assertEqual(len(p.natural_transitions), 0)
