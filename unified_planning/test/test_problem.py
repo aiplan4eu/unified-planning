@@ -615,7 +615,6 @@ class TestProblem(unittest_TestCase):
         p.clear_processes()
         self.assertEqual(len(p.natural_transitions), 0)
         p_boiling_water = self.problems["boiling_water"].problem
-        print(p_boiling_water)
         self.assertFalse(p_boiling_water.kind.has_non_linear_continuous_effects())
         self.assertTrue(p_boiling_water.kind.has_increase_continuous_effects())
         self.assertTrue(p_boiling_water.kind.has_decrease_continuous_effects())
