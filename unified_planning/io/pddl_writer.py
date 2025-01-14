@@ -534,7 +534,6 @@ class PDDLWriter:
         costs: Dict[
             Union[up.model.NaturalTransition, up.model.Action], Optional[up.model.FNode]
         ] = {}
-        # TODO check if natural_transition should be here
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]

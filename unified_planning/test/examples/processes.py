@@ -1,8 +1,6 @@
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 
-# TODO we need more tests for better coverage
-
 
 def get_example_problems():
     problems = {}
