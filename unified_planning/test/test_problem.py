@@ -609,16 +609,16 @@ class TestProblem(unittest_TestCase):
 
     def test_natural_transitions(self):
         p = self.problems["1d_movement"].problem
-        print(p)
         self.assertTrue(p.has_process("moving"))
         self.assertTrue(p.has_event("turn_off_automatically"))
-        proc = p.process("moving")
-        evt = p.event("turn_off_automatically")
-        print(proc)
-        print(evt)
         p.clear_events()
         p.clear_processes()
         self.assertEqual(len(p.natural_transitions), 0)
+        p_boiling_water = self.problems["boiling_water"].problem
+        print(p_boiling_water)
+        self.assertFalse(p_boiling_water.kind.has_non_linear_continuous_effects())
+        self.assertTrue(p_boiling_water.kind.has_increase_continuous_effects())
+        self.assertTrue(p_boiling_water.kind.has_decrease_continuous_effects())
 
 
 if __name__ == "__main__":
