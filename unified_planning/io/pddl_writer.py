@@ -444,6 +444,8 @@ class PDDLWriter:
                 out.write(" :hierarchy")  # HTN / HDDL
             if self.problem_kind.has_method_preconditions():
                 out.write(" :method-preconditions")
+            if self.problem_kind.has_processes() or self.problem_kind.has_events():
+                out.write(" :time")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
