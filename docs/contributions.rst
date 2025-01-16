@@ -17,6 +17,7 @@ Contributors to the repository include:
 - Luca Framba <framba@fbk.eu>
 - Luigi Bonassi <l.bonassi005@unibs.it>
 - Roland Godet <roland.godet@laas.fr>
+- Samuel Gobbi <sgobbi@fbk.eu>
 - Selvakumar Hastham Sathiya Satchi Sadanandam <selvakumar.h-s@laas.fr>
 - Srajan Goyal <sgoyal@fbk.eu>
 - Uwe Köckemann <uwe.kockemann@oru.se>
