@@ -691,7 +691,7 @@ class PDDLWriter:
             if len(proc.effects) > 0:
                 out.write("\n  :effect (and")
                 for e in proc.effects:
-                    _write_derivative(
+                    _write_continuous_effects(
                         e,
                         out,
                         converter,
@@ -1228,24 +1228,19 @@ def _write_effect(
         out.write(")")
 
 
-def _write_derivative(
+def _write_continuous_effects(
     effect: Effect,
     out: IO[str],
     converter: ConverterToPDDLString,
 ):
-    simplified_cond = effect.condition.simplify()
     # check for non-constant-bool-assignment
     simplified_value = effect.value.simplify()
     fluent = converter.convert(effect.fluent)
-    if effect.is_increase():
-        out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
-    elif effect.is_decrease():
-        out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
-    elif effect.is_continuous_increase():
+    if effect.is_continuous_increase():
         out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
     elif effect.is_continuous_decrease():
         out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
     else:
         raise UPProblemDefinitionError(
-            "Derivative can only be expressed as increase, decrease in processes",
+            "Processes can only contains continuous effects in PDDL",
         )

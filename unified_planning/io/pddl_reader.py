@@ -54,11 +54,29 @@ class CustomParseResults:
         if len(self.value) == 1 and isinstance(self.value[0], str):
             self.value = self.value[0]
 
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
     def __getitem__(self, i):
         return CustomParseResults(self.value[i])
 
     def __len__(self):
         return len(self.value)
+
+    def __contains__(self, string: str):
+        stack = [self]
+        while len(stack) > 0:
+            exp = stack.pop()
+            if isinstance(exp.value, str):
+                if exp.value == string:
+                    return True
+            elif isinstance(exp.value, ParseResults):
+                for e in exp:
+                    stack.append(e)
+            else:
+                raise SyntaxError(f"Not able to handle: {exp}")
+        return False
 
     def line_start(self, complete_str: str) -> int:
         return lineno(self.locn_start, complete_str)
@@ -552,8 +570,6 @@ class PDDLReader:
                         solved.append(self._em.FluentExp(problem.fluent(exp.value)))
                     elif problem.has_object(exp.value):  # object
                         solved.append(self._em.ObjectExp(problem.object(exp.value)))
-                    elif exp.value == "#t":
-                        solved.append(self._em.Int(1))
                     else:  # number
                         try:
                             n = Fraction(exp.value)
@@ -643,35 +659,190 @@ class PDDLReader:
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-
-                if isinstance(act, up.model.Process):
-                    eff1 = (eff[0], eff[1].simplify())
-                    act.add_increase_continuous_effect(*eff1)
+                if "#t" in exp:
+                    if not isinstance(act, up.model.Process):
+                        raise UPUnsupportedProblemTypeError(
+                            "Continuous change is supported only in processes"
+                        )
+                    assert isinstance(act, up.model.Process)
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+                        act.add_increase_continuous_effect(*con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+                        act.add_increase_continuous_effect(*con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+                        act.add_increase_continuous_effect(*con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
                 else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
                     act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-                if isinstance(act, up.model.Process):
-                    eff1 = (eff[0], eff[1].simplify())
-                    act.add_decrease_continuous_effect(*eff1)
+                if "#t" in exp:
+                    if not isinstance(act, up.model.Process):
+                        raise UPUnsupportedProblemTypeError(
+                            "Continuous change is supported only in processes"
+                        )
+                    assert isinstance(act, up.model.Process)
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+                        act.add_decrease_continuous_effect(*con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+                        act.add_decrease_continuous_effect(*con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+                        act.add_decrease_continuous_effect(*con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
                 else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
                     act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
