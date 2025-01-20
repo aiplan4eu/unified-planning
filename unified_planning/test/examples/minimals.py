@@ -575,4 +575,24 @@ def get_example_problems():
         ],
     )
 
+    # continuous effect in durative
+    continous_changing_fluent = Fluent("continous_changing_fluent", RealType())
+
+    continuous_change = DurativeAction("continuous_change")
+
+    continuous_change.add_increase_continuous_effect(continous_changing_fluent, 1)
+
+    problem = Problem("durative_continuous_example")
+    problem.add_fluent(continous_changing_fluent)
+    problem.add_action(continuous_change)
+    problem.set_initial_value(continous_changing_fluent, 5)
+    problem.add_goal(GE(continous_changing_fluent, 20))
+
+    problems["durative_continuous_example"] = TestCase(
+        problem=problem,
+        solvable=False,  # not sure we have a planner in UP that can solve this
+        valid_plans=[],
+        invalid_plans=[],
+    )
+
     return problems
