@@ -342,8 +342,66 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
-    def _add_continuous_effect(self):
-        pass
+    def _add_continuous_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+        negative: bool,
+    ):
+
+        (
+            fluent_exp,
+            value_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(
+            fluent,
+            value,
+            True,
+        )
+        if not fluent_exp.is_fluent_exp() and not fluent_exp.is_dot():
+            raise UPUsageError(
+                "fluent field of add_increase_effect must be a Fluent or a FluentExp or a Dot."
+            )
+        if not fluent_exp.type.is_compatible(value_exp.type):
+            raise UPTypeError(
+                f"Process effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {value_exp.type}"
+            )
+        if not fluent_exp.type.is_int_type() and not fluent_exp.type.is_real_type():
+            raise UPTypeError("Derivative can be created only on numeric types!")
+        e_kind = up.model.effect.EffectKind.CONTINUOUS_INCREASE
+
+        if negative:
+            e_kind = up.model.effect.EffectKind.CONTINUOUS_DECREASE
+        self._add_effect_instance(
+            up.model.effect.Effect(
+                fluent_exp,
+                value_exp,
+                condition_exp,
+                kind=e_kind,
+                forall=tuple(),
+            )
+        )
+
+    # FIXME duplicate code with processes
+    def add_increase_continuous_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+    ):
+        """
+        Adds the given `continuous increase effect` to the `durative action's effects`.
+        """
+        self._add_continuous_effect(fluent, value, False)
+
+    def add_decrease_continuous_effect(
+        self,
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        value: "up.model.expression.Expression",
+    ):
+        """
+        Adds the given `continuous decrease effect` to the `durative action's effects`.
+        """
+        self._add_continuous_effect(fluent, value, True)
 
 
 class SensingAction(InstantaneousAction):
