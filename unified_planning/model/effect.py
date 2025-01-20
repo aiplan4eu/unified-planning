@@ -432,6 +432,9 @@ def check_conflicting_effects(
                 else:
                     msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
+        elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+            # TODO actually implement the checks
+            pass
         else:
             raise NotImplementedError
 

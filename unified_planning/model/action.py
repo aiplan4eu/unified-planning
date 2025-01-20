@@ -30,6 +30,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
+from unified_planning.model.timing import EndTiming, StartTiming
 from unified_planning.model.transition import (
     UntimedEffectMixin,
     PreconditionMixin,
@@ -373,13 +374,14 @@ class DurativeAction(Action, TimedCondsEffs):
         if negative:
             e_kind = up.model.effect.EffectKind.CONTINUOUS_DECREASE
         self._add_effect_instance(
+            StartTiming(),
             up.model.effect.Effect(
                 fluent_exp,
                 value_exp,
                 condition_exp,
                 kind=e_kind,
                 forall=tuple(),
-            )
+            ),
         )
 
     # FIXME duplicate code with processes
