@@ -342,6 +342,9 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
+    def _add_continuous_effect(self):
+        pass
+
 
 class SensingAction(InstantaneousAction):
     """This class represents a sensing action."""
