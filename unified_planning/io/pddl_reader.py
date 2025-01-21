@@ -200,8 +200,7 @@ class PDDLGrammar:
             + Suppress(")")
             + ":duration"
             - set_results_name(nested_expr(), "duration")
-            + ":condition"
-            - set_results_name(nested_expr(), "cond")
+            + Optional(":condition" - set_results_name(nested_expr(), "cond"))
             + ":effect"
             - set_results_name(nested_expr(), "eff")
             + Suppress(")")
@@ -667,6 +666,8 @@ class PDDLReader:
         to_add = [(exp, vars)]
         while to_add:
             exp, vars = to_add.pop(0)
+            if len(exp) == 0:
+                continue
             op = exp[0].value
             if op == "and":
                 for i in range(1, len(exp)):
@@ -1265,8 +1266,9 @@ class PDDLReader:
                         f"Not able to handle duration constraint of action {n}"
                         + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                     )
-                cond = CustomParseResults(a["cond"][0])
-                self._add_condition(problem, dur_act, cond, types_map, domain_str)
+                if "cond" in a:
+                    cond = CustomParseResults(a["cond"][0])
+                    self._add_condition(problem, dur_act, cond, types_map, domain_str)
                 eff = CustomParseResults(a["eff"][0])
                 self._add_timed_effects(problem, dur_act, types_map, eff, domain_str)
                 problem.add_action(dur_act)
