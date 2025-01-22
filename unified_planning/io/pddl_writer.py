@@ -33,6 +33,7 @@ from unified_planning.model import (
     Object,
     Effect,
     Timing,
+    TimeInterval,
 )
 from unified_planning.exceptions import (
     UPTypeError,
@@ -124,6 +125,8 @@ PDDL_KEYWORDS = {
     "timed-initial-effects",
     "preferences",
     "contingent",
+    "time",
+    "continuous-effects",
 }
 
 # The following map is used to mangle the invalid names by their class.
@@ -426,6 +429,11 @@ class PDDLWriter:
             if self.problem_kind.has_duration_inequalities():
                 out.write(" :duration-inequalities")
             if (
+                self.problem_kind.has_increase_continuous_effects()
+                or self.problem_kind.has_decrease_continuous_effects()
+            ):
+                out.write(" :continuous-effects")
+            if (
                 self.problem_kind.has_actions_cost()
                 or self.problem_kind.has_plan_length()
             ):
@@ -523,11 +531,17 @@ class PDDLWriter:
                 raise UPTypeError("PDDL supports only boolean and numerical fluents")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             functions.append("(total-cost)")
+        predicates_string = "\n             ".join(predicates)
         out.write(
-            f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else ""
+            f" (:predicates \n             {predicates_string}\n )\n"
+            if len(predicates) > 0
+            else ""
         )
+        functions_string = "\n             ".join(functions)
         out.write(
-            f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else ""
+            f" (:functions \n             {functions_string}\n )\n"
+            if len(functions) > 0
+            else ""
         )
 
         converter = ConverterToPDDLString(
@@ -643,6 +657,7 @@ class PDDLWriter:
                     out.write(f"\n  :condition (and ")
                     for interval, cl in a.conditions.items():
                         for c in (cond.simplify() for cond in cl):
+                            out.write(f"\n                 ")
                             if c.is_true():
                                 continue
                             if interval.lower == interval.upper:
@@ -656,27 +671,65 @@ class PDDLWriter:
                                 out.write(f"(over all {converter.convert(c)})")
                                 if not interval.is_right_open():
                                     out.write(f"(at end {converter.convert(c)})")
-                    out.write(")")
+                    out.write(f"\n             )")
                 elif len(a.conditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :condition (and )")
-                if len(a.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for t, el in a.effects.items():
-                        for e in el:
-                            _write_effect(
-                                e,
-                                t,
-                                out,
-                                converter,
-                                self.rewrite_bool_assignments,
-                                self._get_mangled_name,
-                            )
+                if (
+                    len(a.effects) + len(a.continuous_effects) > 0 or a in costs
+                ):  # change this
+                    out.write(f"\n  :effect (and")
+                    if len(a.effects) > 0:
+                        for t, el in a.effects.items():
+                            for e in el:
+                                out.write(f"\n             ")
+                                _write_effect(
+                                    e,
+                                    t,
+                                    out,
+                                    converter,
+                                    self.rewrite_bool_assignments,
+                                    self._get_mangled_name,
+                                )
                     if a in costs:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
-                    out.write(")")
-                out.write(")\n")
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+                    if len(a.continuous_effects) > 0:  # change this
+                        for interval, el in a.continuous_effects.items():
+                            for ce in el:
+                                out.write(f"\n             ")
+                                _write_effect(
+                                    ce,
+                                    None,
+                                    out,
+                                    converter,
+                                    self.rewrite_bool_assignments,
+                                    self._get_mangled_name,
+                                )
+                    out.write(f"\n          )")
+                out.write(f"\n )\n")
+
             else:
                 raise NotImplementedError
         for proc in self.problem.processes:
@@ -1147,8 +1200,14 @@ def _write_effect(
                         out.write(f" (at start")
                     else:
                         out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+                    out.write(f" (at start")
                 out.write(f"{converter.convert(positive_cond)}")
-                if timing is not None:
+                if (
+                    timing is not None
+                    or effect.is_continuous_decrease()
+                    or effect.is_continuous_increase()
+                ):
                     out.write(")")
                 out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
@@ -1172,9 +1231,14 @@ def _write_effect(
                         out.write(f" (at start")
                     else:
                         out.write(f" (at end")
+                elif effect.is_continuous_increase() or effect.is_continuous_decrease():
                     out.write(f" (at start")
                 out.write(f" {converter.convert(negative_cond)}")
-                if timing is not None:
+                if (
+                    timing is not None
+                    or effect.is_continuous_increase()
+                    or effect.is_continuous_decrease()
+                ):
                     out.write(")")
                 out.write(f" (not {converter.convert(effect.fluent)}))")
             if timing is not None:
@@ -1200,10 +1264,16 @@ def _write_effect(
                 out.write(f" (at start")
             else:
                 out.write(f" (at end")
+        elif effect.is_continuous_increase() or effect.is_continuous_decrease():
+            out.write(f" (at start")
         out.write(f" {converter.convert(effect.condition)}")
         if timing is not None:
             out.write(")")
-    if timing is not None:
+    if (
+        timing is not None
+        or effect.is_continuous_increase()
+        or effect.is_continuous_decrease()
+    ):
         if timing.is_from_start():
             out.write(f" (at start")
         else:
@@ -1218,6 +1288,10 @@ def _write_effect(
         out.write(f" (increase {fluent} {converter.convert(simplified_value)})")
     elif effect.is_decrease():
         out.write(f" (decrease {fluent} {converter.convert(simplified_value)})")
+    elif effect.is_continuous_increase():
+        out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)}))")
+    elif effect.is_continuous_decrease():
+        out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)}))")
     else:
         out.write(f" (assign {fluent} {converter.convert(simplified_value)})")
     if not simplified_cond.is_true():
