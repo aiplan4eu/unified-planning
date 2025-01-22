@@ -662,7 +662,9 @@ class PDDLReader:
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
                 if "#t" in exp:
-                    if isinstance(act, up.model.Process):
+                    if isinstance(
+                        act, up.model.Process
+                    ):  # TODO if process or durativeaction
                         assert isinstance(act, up.model.Process)
                         if (
                             len(exp) == 3
@@ -688,6 +690,8 @@ class PDDLReader:
                                     complete_str,
                                 ),
                             )
+                            # TODO if process ... else if durativeaction ...
+                            # TODO repeat for the rest
                             act.add_increase_continuous_effect(*con_eff)
                         elif (
                             len(exp) == 3

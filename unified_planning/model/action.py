@@ -183,6 +183,10 @@ class DurativeAction(Action, TimedCondsEffs):
             s.append(f"      {str(t)}:\n")
             for e in el:
                 s.append(f"        {str(e)}:\n")
+        for t, el in self.continuous_effects().items():
+            s.append(f"      {str(t)}:\n")
+            for e in el:
+                s.append(f"        {str(e)}:\n")
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():
@@ -406,7 +410,6 @@ class DurativeAction(Action, TimedCondsEffs):
                     return True
         return False
 
-    # FIXME duplicate code with processes
     def add_increase_continuous_effect(
         self,
         interval: "up.model.timing.TimeInterval",
@@ -419,10 +422,8 @@ class DurativeAction(Action, TimedCondsEffs):
         :param interval: The interval in which the `increment` is applied.
         :param fluent: The `fluent` which value is incremented by the added effect.
         :param rhs: The given `fluent` is incremented according to the differential equation `d(fluent)/dt = rhs`.
-        :param condition: The `condition` in which this effect is applied; the default
-            value is `True`.
-        :param forall: The 'Variables' that are universally quantified in this
-            effect; the default value is empty.
+
+        NOTE placeholder _ necessary as sometimes effects functions return other parameters not used in continuous effects
         """
         (
             fluent_exp,
@@ -463,11 +464,9 @@ class DurativeAction(Action, TimedCondsEffs):
         During the given interval, adds the given `decrement` to the `continuous_action's effects`.
         :param interval: The interval in which the `decrement` is applied.
         :param fluent: The `fluent` which value is decremented by the added effect.
-        :param rhs: The given `fluent` is decremented according to the differential equation `d(fluent)/dt = - rhs`..
-        :param condition: The `condition` in which this effect is applied; the default
-            value is `True`.
-        :param forall: The 'Variables' that are universally quantified in this
-            effect; the default value is empty.
+        :param rhs: The given `fluent` is decremented according to the differential equation `d(fluent)/dt = - rhs`.
+
+        NOTE placeholder _ necessary as sometimes effects functions return other parameters not used in continuous effects
         """
         (
             fluent_exp,
