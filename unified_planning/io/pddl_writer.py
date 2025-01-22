@@ -531,17 +531,11 @@ class PDDLWriter:
                 raise UPTypeError("PDDL supports only boolean and numerical fluents")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             functions.append("(total-cost)")
-        predicates_string = "\n             ".join(predicates)
         out.write(
-            f" (:predicates \n             {predicates_string}\n )\n"
-            if len(predicates) > 0
-            else ""
+            f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else ""
         )
-        functions_string = "\n             ".join(functions)
         out.write(
-            f" (:functions \n             {functions_string}\n )\n"
-            if len(functions) > 0
-            else ""
+            f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else ""
         )
 
         converter = ConverterToPDDLString(
@@ -625,6 +619,7 @@ class PDDLWriter:
                 self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
+                assert isinstance(a, DurativeAction)
                 if any(
                     c.simplify().is_false() for cl in a.conditions.values() for c in cl
                 ):
@@ -674,61 +669,47 @@ class PDDLWriter:
                     out.write(f"\n             )")
                 elif len(a.conditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :condition (and )")
-                if (
-                    len(a.effects) + len(a.continuous_effects) > 0 or a in costs
-                ):  # change this
+                if len(a.effects) > 0 or a in costs:
                     out.write(f"\n  :effect (and")
                     if len(a.effects) > 0:
                         for t, el in a.effects.items():
                             for e in el:
-                                out.write(f"\n             ")
-                                _write_effect(
-                                    e,
-                                    t,
-                                    out,
-                                    converter,
-                                    self.rewrite_bool_assignments,
-                                    self._get_mangled_name,
-                                )
+                                if not (
+                                    e.is_continuous_increase()
+                                    or e.is_continuous_decrease()
+                                ):
+                                    out.write(f"\n             ")
+                                    _write_effect(
+                                        e,
+                                        t,
+                                        out,
+                                        converter,
+                                        self.rewrite_bool_assignments,
+                                        self._get_mangled_name,
+                                    )
                     if a in costs:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-                    if len(a.continuous_effects) > 0:  # change this
-                        for interval, el in a.continuous_effects.items():
+                    if a.has_continuous_effects():
+                        for interval, el in a.effects.items():
                             for ce in el:
-                                out.write(f"\n             ")
-                                _write_effect(
-                                    ce,
-                                    None,
-                                    out,
-                                    converter,
-                                    self.rewrite_bool_assignments,
-                                    self._get_mangled_name,
-                                )
-                    out.write(f"\n          )")
-                out.write(f"\n )\n")
+                                if (
+                                    e.is_continuous_increase()
+                                    or e.is_continuous_decrease()
+                                ):
+                                    out.write(f"\n")
+                                    _write_effect(
+                                        ce,
+                                        None,
+                                        out,
+                                        converter,
+                                        self.rewrite_bool_assignments,
+                                        self._get_mangled_name,
+                                    )
+
+                    out.write(")")
+                out.write(")\n")
 
             else:
                 raise NotImplementedError
