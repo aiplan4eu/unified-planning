@@ -56,6 +56,11 @@ class NamesExtractor(walkers.dag.DagWalker):
     def walk_fluent_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         return self._args_merge_in_place(args, {expression.fluent().name})
 
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List[Set[str]]
+    ) -> Set[str]:
+        return self._args_merge_in_place(args, {expression.interpreted_function().name})
+
     def walk_param_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         return self._args_merge_in_place(args, {expression.parameter().name})
 

@@ -30,6 +30,7 @@ from unified_planning.model.expression import (
 )
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
+from unified_planning.model.interpreted_function import InterpretedFunction
 from unified_planning.model.object import Object
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
@@ -93,6 +94,7 @@ __all__ = [
     "ExpressionManager",
     "FNode",
     "Fluent",
+    "InterpretedFunction",
     "Object",
     "OperatorKind",
     "Parameter",
