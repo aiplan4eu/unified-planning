@@ -77,8 +77,10 @@ class TestModel(unittest_TestCase):
                     action_1_clone._effects = []
                 elif isinstance(action_2, DurativeAction):
                     action_2._effects = {}
+                    action_2._continuous_effects = {}
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = {}
+                    action_1_clone._continuous_effects = {}
                 elif isinstance(action_2, Process):
                     action_2._effects = []
                     action_1_clone = action_1.clone()

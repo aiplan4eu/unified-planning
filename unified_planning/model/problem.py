@@ -1010,6 +1010,12 @@ class _KindFactory:
                 self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_effect(eff)
 
+    def update_action_timed_continuous_effect(
+        self, t: "up.model.TimeInterval", eff: "up.model.Effect"
+    ):
+
+        self.update_problem_kind_effect(eff)
+
     def update_problem_kind_action(
         self,
         action: "up.model.action.Action",
@@ -1036,6 +1042,9 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            for ti, le in action.continuous_effects().items():
+                for e in le:
+                    self.update_action_timed_continuous_effect(ti, e)
 
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
@@ -1043,8 +1052,8 @@ class _KindFactory:
             # NOTE duplicate code from below
             continuous_fluents = set()
             fluents_in_rhs = set()
-            for eff_time in action.effects.keys():
-                for e in action.effects[eff_time]:
+            for eff_time in action.continuous_effects().keys():
+                for e in action.continuous_effects()[eff_time]:
                     if e.kind == EffectKind.CONTINUOUS_INCREASE:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
                     elif e.kind == EffectKind.CONTINUOUS_DECREASE:

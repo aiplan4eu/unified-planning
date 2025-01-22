@@ -153,6 +153,9 @@ class DurativeAction(Action, TimedCondsEffs):
         self._duration: "up.model.timing.DurationInterval" = (
             up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
         )
+        self._continuous_effects: Dict[
+            "up.model.timing.TimeInterval", List["up.model.effect.Effect"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -200,6 +203,14 @@ class DurativeAction(Action, TimedCondsEffs):
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False
+        if len(self._continuous_effects) != len(oth._continuous_effects):
+            return False
+        for t, el in self._continuous_effects.items():
+            oth_el = oth._continuous_effects.get(t, None)
+            if oth_el is None:
+                return False
+            elif set(el) != set(oth_el):
+                return False
         return True
 
     def __hash__(self) -> int:
@@ -209,6 +220,9 @@ class DurativeAction(Action, TimedCondsEffs):
         res += TimedCondsEffs.__hash__(self)
         return res
 
+    def continuous_effects(self):
+        return self._continuous_effects
+
     def clone(self):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
@@ -217,6 +231,7 @@ class DurativeAction(Action, TimedCondsEffs):
         new_durative_action._duration = self._duration
 
         TimedCondsEffs._clone_to(self, new_durative_action)
+        new_durative_action._continuous_effects = self._continuous_effects
         return new_durative_action
 
     @property
@@ -385,7 +400,7 @@ class DurativeAction(Action, TimedCondsEffs):
         )
 
     def has_continuous_effects(self):
-        for t, el in self.effects.items():
+        for t, el in self._continuous_effects.items():
             for e in el:
                 if e.is_continuous_increase() or e.is_continuous_decrease():
                     return True
@@ -397,6 +412,7 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         rhs: "up.model.expression.Expression",
+        _=None,
     ):
         """
         During the given interval, adds the given `increment` to the `continuous_action's effects`.
@@ -441,6 +457,7 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         rhs: "up.model.expression.Expression",
+        _=None,
     ):
         """
         During the given interval, adds the given `decrement` to the `continuous_action's effects`.
@@ -490,7 +507,7 @@ class DurativeAction(Action, TimedCondsEffs):
         assert (
             self._environment == continuous_effect.environment
         ), "effect does not have the same environment of the action"
-        self.effects.setdefault(interval, []).append(continuous_effect)
+        self._continuous_effects.setdefault(interval, []).append(continuous_effect)
 
 
 class SensingAction(InstantaneousAction):
