@@ -950,9 +950,9 @@ class TestPddlIO(unittest_TestCase):
             And(Or(x, y), And(y, z)),
         ]
         expected_goals: List[str] = [
-            "(:goal (and (x) (y)))\n",
-            "(:goal (and (x) (y) (z)))\n",
-            "(:goal (and (or (x) (y)) (y) (z)))\n",
+            "(:goal (and \n           (x)\n           (y)\n        )\n )\n)\n",
+            "(:goal (and \n           (x)\n           (y)\n           (z)\n        )\n )\n)\n",
+            "(:goal (and \n           (or (x) (y))\n           (y)\n           (z)\n        )\n )\n)\n",
         ]
         assert len(goals) == len(
             expected_goals

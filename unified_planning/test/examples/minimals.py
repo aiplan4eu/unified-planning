@@ -593,7 +593,7 @@ def get_example_problems():
 
     problems["durative_continuous_example"] = TestCase(
         problem=problem,
-        solvable=False,  # not sure we have a planner in UP that can solve this
+        solvable=False,
         valid_plans=[],
         invalid_plans=[],
     )

@@ -531,11 +531,17 @@ class PDDLWriter:
                 raise UPTypeError("PDDL supports only boolean and numerical fluents")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
             functions.append("(total-cost)")
+        predicates_string = "\n             ".join(predicates)
         out.write(
-            f' (:predicates {" ".join(predicates)})\n' if len(predicates) > 0 else ""
+            f" (:predicates \n             {predicates_string}\n )\n"
+            if len(predicates) > 0
+            else ""
         )
+        functions_string = "\n             ".join(functions)
         out.write(
-            f' (:functions {" ".join(functions)})\n' if len(functions) > 0 else ""
+            f" (:functions \n             {functions_string}\n )\n"
+            if len(functions) > 0
+            else ""
         )
 
         converter = ConverterToPDDLString(
@@ -688,6 +694,7 @@ class PDDLWriter:
                                         self._get_mangled_name,
                                     )
                     if a in costs:
+                        out.write(f"\n             ")
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
@@ -706,9 +713,8 @@ class PDDLWriter:
                                     self.rewrite_bool_assignments,
                                     self._get_mangled_name,
                                 )
-
-                    out.write(")")
-                out.write(")\n")
+                    out.write(f"\n          )")
+                out.write("\n )\n")
 
             else:
                 raise NotImplementedError
@@ -784,16 +790,20 @@ class PDDLWriter:
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():
+                out.write(f"\n             ")
                 out.write(f" {converter.convert(f)}")
             elif v.is_false():
                 pass
             else:
+                out.write(f"\n             ")
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
+            out.write(f"\n             ")
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
                 out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
+                out.write(f"\n             ")
                 _write_effect(
                     e,
                     None,
@@ -802,19 +812,21 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-                out.write(")")
-        out.write(")\n")
+                out.write(f"\n          )")
+        out.write(f"\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
             if g.is_and():
                 goals_str.extend(map(converter.convert, g.args))
             else:
                 goals_str.append(converter.convert(g))
-        out.write(f' (:goal (and {" ".join(goals_str)}))\n')
+        goals_string = "\n           ".join(goals_str)
+        out.write(f" (:goal (and \n           {goals_string}\n        )\n )\n")
         if len(self.problem.trajectory_constraints) > 0:
-            out.write(
-                f' (:constraints {" ".join([converter.convert(c) for c in self.problem.trajectory_constraints])})\n'
+            trajectory_constraints_str = "\n             ".join(
+                [converter.convert(c) for c in self.problem.trajectory_constraints]
             )
+            out.write(f" (:constraints {trajectory_constraints_str})\n")
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
