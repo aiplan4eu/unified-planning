@@ -662,98 +662,93 @@ class PDDLReader:
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
                 if "#t" in exp:
-                    if isinstance(act, up.model.Process) or isinstance(
-                        act, up.model.DurativeAction
-                    ):  # TODO if process or durativeaction
-                        # assert isinstance(act, up.model.Process)
-                        if (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][1].value == "#t"
-                        ):
-                            con_eff = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][2],
-                                    complete_str,
-                                ),
-                            )
-                            if isinstance(act, up.model.Process):
-                                act.add_increase_continuous_effect(*con_eff)
-                            elif isinstance(act, up.model.DurativeAction):
-                                assert isinstance(timing, up.model.timing.TimeInterval)
-                                act.add_increase_continuous_effect(timing, *con_eff)
-                        elif (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][2].value == "#t"
-                        ):
-                            con_eff = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][1],
-                                    complete_str,
-                                ),
-                            )
-
-                            if isinstance(act, up.model.Process):
-                                act.add_increase_continuous_effect(*con_eff)
-                            elif isinstance(act, up.model.DurativeAction):
-                                assert isinstance(timing, up.model.timing.TimeInterval)
-                                act.add_increase_continuous_effect(timing, *con_eff)
-                        elif len(exp) == 3 and exp[2].value == "#t":
-                            con_eff_without = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                1,
-                            )
-
-                            if isinstance(act, up.model.Process):
-                                act.add_increase_continuous_effect(*con_eff_without)
-                            elif isinstance(act, up.model.DurativeAction):
-                                assert isinstance(timing, up.model.timing.TimeInterval)
-                                act.add_increase_continuous_effect(
-                                    timing, *con_eff_without
-                                )
-                        else:
-                            raise SyntaxError(
-                                "Continuous change syntax is not correct!"
-                            )
-
-                    else:
+                    if not (
+                        isinstance(act, up.model.Process)
+                        or isinstance(act, up.model.DurativeAction)
+                    ):
                         raise UPUnsupportedProblemTypeError(
                             "Continuous change is supported only in processes and durative actions"
                         )
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+                        if isinstance(act, up.model.Process):
+                            act.add_increase_continuous_effect(*con_eff)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_increase_continuous_effect(timing, *con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+
+                        if isinstance(act, up.model.Process):
+                            act.add_increase_continuous_effect(*con_eff)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_increase_continuous_effect(timing, *con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+
+                        if isinstance(act, up.model.Process):
+                            act.add_increase_continuous_effect(*con_eff_without)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_increase_continuous_effect(timing, *con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
+
                 else:
                     eff = (
                         self._parse_exp(
@@ -777,158 +772,93 @@ class PDDLReader:
                     act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
                 if "#t" in exp:
-                    if isinstance(act, up.model.Process):
-                        assert isinstance(act, up.model.Process)
-                        if (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][1].value == "#t"
-                        ):
-                            con_eff = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][2],
-                                    complete_str,
-                                ),
-                            )
-                            act.add_decrease_continuous_effect(*con_eff)
-                        elif (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][2].value == "#t"
-                        ):
-                            con_eff = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][1],
-                                    complete_str,
-                                ),
-                            )
-                            act.add_decrease_continuous_effect(*con_eff)
-                        elif len(exp) == 3 and exp[2].value == "#t":
-                            con_eff_without = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                1,
-                            )
-                            act.add_decrease_continuous_effect(*con_eff_without)
-                        else:
-                            raise SyntaxError(
-                                "Continuous change syntax is not correct!"
-                            )
-                    elif isinstance(act, up.model.DurativeAction):
-                        if (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][1].value == "#t"
-                        ):
-                            eff_inverted = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][2],
-                                    complete_str,
-                                ),
-                                cond,
-                            )
-                            assert isinstance(timing, up.model.TimeInterval)
-                            assert isinstance(act, up.model.DurativeAction)
-                            act.add_decrease_continuous_effect(timing, *eff_inverted)
-                        elif (
-                            len(exp) == 3
-                            and len(exp[2]) == 3
-                            and exp[2][0].value == "*"
-                            and exp[2][2].value == "#t"
-                        ):
-                            eff = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[2][1],
-                                    complete_str,
-                                ),
-                                cond,
-                            )
-                            assert isinstance(timing, up.model.TimeInterval)
-                            assert isinstance(act, up.model.DurativeAction)
-                            act.add_decrease_continuous_effect(timing, *eff)
-                        elif len(exp) == 3 and exp[2].value == "#t":
-                            eff_without = (
-                                self._parse_exp(
-                                    problem,
-                                    act,
-                                    types_map,
-                                    forall_variables,
-                                    exp[1],
-                                    complete_str,
-                                ),
-                                1,
-                                cond,
-                            )
-                            assert isinstance(timing, up.model.TimeInterval)
-                            assert isinstance(act, up.model.DurativeAction)
-                            act.add_decrease_continuous_effect(timing, *eff_without)
-                        else:
-                            raise SyntaxError(
-                                "Continuous change syntax is not correct!"
-                            )
-
-                        pass
-                    else:
+                    if not (
+                        isinstance(act, up.model.Process)
+                        or isinstance(act, up.model.DurativeAction)
+                    ):
                         raise UPUnsupportedProblemTypeError(
                             "Continuous change is supported only in processes and durative actions"
                         )
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+
+                        if isinstance(act, up.model.Process):
+                            act.add_decrease_continuous_effect(*con_eff)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_decrease_continuous_effect(timing, *con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+
+                        if isinstance(act, up.model.Process):
+                            act.add_decrease_continuous_effect(*con_eff)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_decrease_continuous_effect(timing, *con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+
+                        if isinstance(act, up.model.Process):
+                            act.add_increase_continuous_effect(*con_eff_without)
+                        elif isinstance(act, up.model.DurativeAction):
+                            assert isinstance(timing, up.model.timing.TimeInterval)
+                            act.add_increase_continuous_effect(timing, *con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
 
                 else:
                     eff = (
