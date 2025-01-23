@@ -693,6 +693,7 @@ class PDDLReader:
                             if isinstance(act, up.model.Process):
                                 act.add_increase_continuous_effect(*con_eff)
                             elif isinstance(act, up.model.DurativeAction):
+                                assert isinstance(timing, up.model.timing.TimeInterval)
                                 act.add_increase_continuous_effect(timing, *con_eff)
                         elif (
                             len(exp) == 3
@@ -722,6 +723,7 @@ class PDDLReader:
                             if isinstance(act, up.model.Process):
                                 act.add_increase_continuous_effect(*con_eff)
                             elif isinstance(act, up.model.DurativeAction):
+                                assert isinstance(timing, up.model.timing.TimeInterval)
                                 act.add_increase_continuous_effect(timing, *con_eff)
                         elif len(exp) == 3 and exp[2].value == "#t":
                             con_eff_without = (
@@ -739,6 +741,7 @@ class PDDLReader:
                             if isinstance(act, up.model.Process):
                                 act.add_increase_continuous_effect(*con_eff_without)
                             elif isinstance(act, up.model.DurativeAction):
+                                assert isinstance(timing, up.model.timing.TimeInterval)
                                 act.add_increase_continuous_effect(
                                     timing, *con_eff_without
                                 )
