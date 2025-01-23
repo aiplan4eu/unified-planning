@@ -1049,7 +1049,6 @@ class _KindFactory:
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
-            # NOTE duplicate code from below
             continuous_fluents = set()
             fluents_in_rhs = set()
             for eff_time in action.continuous_effects().keys():
@@ -1058,9 +1057,6 @@ class _KindFactory:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
                     elif e.kind == EffectKind.CONTINUOUS_DECREASE:
                         self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
-                    else:
-                        # we have to check for nonlinearity only if the effects are continuous
-                        continue
 
                     continuous_fluents.add(e.fluent.fluent)
                     rhs = self.simplifier.simplify(e.value)

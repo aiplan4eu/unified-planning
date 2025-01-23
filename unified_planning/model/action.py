@@ -365,6 +365,9 @@ class DurativeAction(Action, TimedCondsEffs):
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
 
+    def clear_continuous_effects(self):
+        self._continuous_effects = {}
+
     def _add_continuous_effect(
         self,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
