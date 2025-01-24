@@ -697,14 +697,22 @@ class PDDLWriter:
                     for interval, el in a.continuous_effects.items():
                         for ce in el:
                             out.write(f"\n")
-                            _write_effect(
-                                ce,
-                                None,
-                                out,
-                                converter,
-                                self.rewrite_bool_assignments,
-                                self._get_mangled_name,
-                            )
+                            if (
+                                interval.lower.is_from_start()
+                                and interval.upper.is_from_end()
+                            ):
+                                _write_effect(
+                                    ce,
+                                    None,
+                                    out,
+                                    converter,
+                                    self.rewrite_bool_assignments,
+                                    self._get_mangled_name,
+                                )
+                            else:
+                                raise UPException(
+                                    "PDDL only supports intervals from start to end for continuous effects"
+                                )
                     out.write(f"\n          )")
                 out.write("\n )\n")
 
@@ -1187,11 +1195,7 @@ def _write_effect(
                 elif effect.is_continuous_increase() or effect.is_continuous_decrease():
                     out.write(f" (at start")
                 out.write(f"{converter.convert(positive_cond)}")
-                if (
-                    timing is not None
-                    or effect.is_continuous_decrease()
-                    or effect.is_continuous_increase()
-                ):
+                if timing is not None:
                     out.write(")")
                 out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
@@ -1218,11 +1222,7 @@ def _write_effect(
                 elif effect.is_continuous_increase() or effect.is_continuous_decrease():
                     out.write(f" (at start")
                 out.write(f" {converter.convert(negative_cond)}")
-                if (
-                    timing is not None
-                    or effect.is_continuous_increase()
-                    or effect.is_continuous_decrease()
-                ):
+                if timing is not None:
                     out.write(")")
                 out.write(f" (not {converter.convert(effect.fluent)}))")
             if timing is not None:
