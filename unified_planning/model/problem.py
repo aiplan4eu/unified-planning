@@ -344,7 +344,7 @@ class Problem(  # type: ignore[misc]
                     for e in el:
                         remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
-                for cel in a.continuous_effects().values():
+                for cel in a.continuous_effects.values():
                     for ce in cel:
                         remove_used_fluents(ce.fluent, ce.value, ce.condition)
                         static_fluents.discard(ce.fluent.fluent())
@@ -1046,7 +1046,7 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
-            for ti, le in action.continuous_effects().items():
+            for ti, le in action.continuous_effects.items():
                 for e in le:
                     self.update_action_timed_continuous_effect(ti, e)
 
@@ -1055,8 +1055,8 @@ class _KindFactory:
             self.kind.set_time("CONTINUOUS_TIME")
             continuous_fluents = set()
             fluents_in_rhs = set()
-            for eff_time in action.continuous_effects().keys():
-                for e in action.continuous_effects()[eff_time]:
+            for eff_time in action.continuous_effects.keys():
+                for e in action.continuous_effects[eff_time]:
                     if e.kind == EffectKind.CONTINUOUS_INCREASE:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
                     elif e.kind == EffectKind.CONTINUOUS_DECREASE:

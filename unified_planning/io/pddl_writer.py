@@ -675,7 +675,7 @@ class PDDLWriter:
                     out.write(f"\n             )")
                 elif len(a.conditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :condition (and )")
-                if (len(a.effects) + len(a.continuous_effects())) > 0 or a in costs:
+                if (len(a.effects) + len(a.continuous_effects)) > 0 or a in costs:
                     out.write(f"\n  :effect (and")
                     if len(a.effects) > 0:
                         for t, el in a.effects.items():
@@ -698,7 +698,7 @@ class PDDLWriter:
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
-                    for interval, el in a.continuous_effects().items():
+                    for interval, el in a.continuous_effects.items():
                         for ce in el:
                             if (
                                 ce.is_continuous_increase()

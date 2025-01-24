@@ -183,7 +183,7 @@ class DurativeAction(Action, TimedCondsEffs):
             s.append(f"      {str(t)}:\n")
             for e in el:
                 s.append(f"        {str(e)}:\n")
-        for t, el in self.continuous_effects().items():
+        for t, el in self.continuous_effects.items():
             s.append(f"      {str(t)}:\n")
             for e in el:
                 s.append(f"        {str(e)}:\n")
@@ -224,6 +224,7 @@ class DurativeAction(Action, TimedCondsEffs):
         res += TimedCondsEffs.__hash__(self)
         return res
 
+    @property
     def continuous_effects(self):
         return self._continuous_effects
 

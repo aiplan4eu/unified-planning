@@ -630,9 +630,9 @@ class TestPddlIO(unittest_TestCase):
                         self.assertEqual(str(a.duration), str(parsed_a.duration))
                         for t, e in a.effects.items():
                             self.assertEqual(len(e), len(parsed_a.effects[t]))
-                        for i, ce in a.continuous_effects().items():
+                        for i, ce in a.continuous_effects.items():
                             self.assertEqual(
-                                len(ce), len(parsed_a.continuous_effects()[i])
+                                len(ce), len(parsed_a.continuous_effects[i])
                             )
                 self.assertEqual(
                     len(problem.trajectory_constraints),
