@@ -1015,9 +1015,16 @@ class _KindFactory:
         self.update_problem_kind_effect(eff)
 
     def update_action_timed_continuous_effect(
-        self, t: "up.model.TimeInterval", eff: "up.model.Effect"
+        self, interval: "up.model.TimeInterval", eff: "up.model.Effect"
     ):
-
+        if interval.lower.delay != 0 or interval.upper.delay != 0:
+            for t in [interval.lower, interval.upper]:
+                if (t.is_from_start() and t.delay > 0) or (
+                    t.is_from_end() and t.delay < 0
+                ):
+                    self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                else:
+                    self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_effect(eff)
 
     def update_problem_kind_action(
@@ -1061,14 +1068,10 @@ class _KindFactory:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
                     elif e.kind == EffectKind.CONTINUOUS_DECREASE:
                         self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
-                    print(e.fluent.fluent)
                     continuous_fluents.add(e.fluent.fluent)
                     rhs = self.simplifier.simplify(e.value)
-                    print(rhs)
                     for var in self.environment.free_vars_extractor.get(rhs):
-                        print(var)
                         if var.is_fluent_exp():
-                            print(var.fluent)
                             fluents_in_rhs.add(var.fluent)
             if any(variable in fluents_in_rhs for variable in continuous_fluents):
                 self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")

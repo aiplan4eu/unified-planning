@@ -625,7 +625,6 @@ class PDDLWriter:
                 self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
-                assert isinstance(a, DurativeAction)
                 if any(
                     c.simplify().is_false() for cl in a.conditions.values() for c in cl
                 ):

@@ -370,9 +370,7 @@ class DurativeAction(Action, TimedCondsEffs):
         self._continuous_effects = {}
 
     def has_continuous_effects(self):
-        if len(self._continuous_effects) > 0:
-            return True
-        return False
+        return len(self._continuous_effects) > 0
 
     def add_increase_continuous_effect(
         self,
@@ -439,8 +437,6 @@ class DurativeAction(Action, TimedCondsEffs):
             raise UPUsageError(
                 "fluent field of add_decrease_continuous_effect must be a Fluent or a FluentExp"
             )
-        if not condition_exp.type.is_bool_type():
-            raise UPTypeError("Effect condition is not a Boolean condition!")
         if not fluent_exp.type.is_compatible(rhs_exp.type):
             raise UPTypeError(
                 f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {rhs_exp.type}"

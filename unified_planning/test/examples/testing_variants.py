@@ -908,13 +908,13 @@ def get_example_problems():
     move_cond.set_fixed_duration(10)
     move_cond.add_condition(StartTiming(), connected(l_from, l_to))
     move_cond.add_condition(StartTiming(), robot_at(l_from))
+    move_cond.add_condition(StartTiming(), GE(battery_charge, 10))
     move_cond.add_effect(StartTiming(), robot_at(l_from), False)
     move_cond.add_effect(EndTiming(), robot_at(l_to), True, GE(battery_charge, 10))
     move_cond.add_decrease_continuous_effect(
         ClosedTimeInterval(StartTiming(), EndTiming()),
         battery_charge,
         1,
-        #        GE(battery_charge, 10), # NOTE currently not supported
     )
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
