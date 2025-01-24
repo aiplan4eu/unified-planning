@@ -680,19 +680,15 @@ class PDDLWriter:
                     if len(a.effects) > 0:
                         for t, el in a.effects.items():
                             for e in el:
-                                if not (
-                                    e.is_continuous_increase()
-                                    or e.is_continuous_decrease()
-                                ):
-                                    out.write(f"\n             ")
-                                    _write_effect(
-                                        e,
-                                        t,
-                                        out,
-                                        converter,
-                                        self.rewrite_bool_assignments,
-                                        self._get_mangled_name,
-                                    )
+                                out.write(f"\n             ")
+                                _write_effect(
+                                    e,
+                                    t,
+                                    out,
+                                    converter,
+                                    self.rewrite_bool_assignments,
+                                    self._get_mangled_name,
+                                )
                     if a in costs:
                         out.write(f"\n             ")
                         out.write(
@@ -700,19 +696,15 @@ class PDDLWriter:
                         )
                     for interval, el in a.continuous_effects.items():
                         for ce in el:
-                            if (
-                                ce.is_continuous_increase()
-                                or ce.is_continuous_decrease()
-                            ):
-                                out.write(f"\n")
-                                _write_effect(
-                                    ce,
-                                    None,
-                                    out,
-                                    converter,
-                                    self.rewrite_bool_assignments,
-                                    self._get_mangled_name,
-                                )
+                            out.write(f"\n")
+                            _write_effect(
+                                ce,
+                                None,
+                                out,
+                                converter,
+                                self.rewrite_bool_assignments,
+                                self._get_mangled_name,
+                            )
                     out.write(f"\n          )")
                 out.write("\n )\n")
 
