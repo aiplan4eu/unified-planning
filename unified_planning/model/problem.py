@@ -344,6 +344,10 @@ class Problem(  # type: ignore[misc]
                     for e in el:
                         remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
+                for cel in a.continuous_effects().values():
+                    for ce in cel:
+                        remove_used_fluents(ce.fluent, ce.value, ce.condition)
+                        static_fluents.discard(ce.fluent.fluent())
                 for se in a.simulated_effects.values():
                     unused_fluents.clear()
                     for f in se.fluents:
@@ -1057,11 +1061,14 @@ class _KindFactory:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
                     elif e.kind == EffectKind.CONTINUOUS_DECREASE:
                         self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
-
+                    print(e.fluent.fluent)
                     continuous_fluents.add(e.fluent.fluent)
                     rhs = self.simplifier.simplify(e.value)
+                    print(rhs)
                     for var in self.environment.free_vars_extractor.get(rhs):
+                        print(var)
                         if var.is_fluent_exp():
+                            print(var.fluent)
                             fluents_in_rhs.add(var.fluent)
             if any(variable in fluents_in_rhs for variable in continuous_fluents):
                 self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
