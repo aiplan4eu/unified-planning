@@ -379,7 +379,6 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         rhs: "up.model.expression.Expression",
-        _=None,
     ):
         """
         During the given interval, adds the given `increment` to the `continuous_action's effects`.
@@ -422,7 +421,6 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         rhs: "up.model.expression.Expression",
-        _=None,
     ):
         """
         During the given interval, adds the given `decrement` to the `continuous_action's effects`.

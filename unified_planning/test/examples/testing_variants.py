@@ -914,7 +914,7 @@ def get_example_problems():
         ClosedTimeInterval(StartTiming(), EndTiming()),
         battery_charge,
         1,
-        GE(battery_charge, 10),
+        #        GE(battery_charge, 10), # NOTE currently not supported
     )
     l1 = Object("l1", Location)
     l2 = Object("l2", Location)
