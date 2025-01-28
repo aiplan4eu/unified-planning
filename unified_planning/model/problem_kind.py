@@ -46,6 +46,8 @@ FEATURES = {
         "TIMED_GOALS",
         "DURATION_INEQUALITIES",
         "SELF_OVERLAPPING",
+        "PROCESSES",
+        "EVENTS",
     ],
     "EXPRESSION_DURATION": [
         "STATIC_FLUENTS_IN_DURATIONS",
@@ -69,6 +71,9 @@ FEATURES = {
         "CONDITIONAL_EFFECTS",
         "INCREASE_EFFECTS",
         "DECREASE_EFFECTS",
+        "INCREASE_CONTINUOUS_EFFECTS",
+        "DECREASE_CONTINUOUS_EFFECTS",
+        "NON_LINEAR_CONTINUOUS_EFFECTS",
         "STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
         "STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS",
         "STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS",
@@ -369,6 +374,12 @@ basic_temporal_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 basic_temporal_kind.set_problem_class("ACTION_BASED")
 basic_temporal_kind.set_typing("FLAT_TYPING")
 basic_temporal_kind.set_time("CONTINUOUS_TIME")
+
+process_temporal_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+process_temporal_kind.set_problem_class("ACTION_BASED")
+process_temporal_kind.set_time("PROCESSES")
+process_temporal_kind.set_time("CONTINUOUS_TIME")
+
 
 temporal_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 temporal_kind.set_problem_class("ACTION_BASED")

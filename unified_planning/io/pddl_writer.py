@@ -139,6 +139,7 @@ INITIAL_LETTER: Dict[type, str] = {
 WithName = Union[
     "up.model.Type",
     "up.model.Action",
+    "up.model.NaturalTransition",
     "up.model.Fluent",
     "up.model.Object",
     "up.model.Parameter",
@@ -366,6 +367,15 @@ class PDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
+    def _write_parameters(self, out, a):
+        for ap in a.parameters:
+            if ap.type.is_user_type():
+                out.write(
+                    f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
+                )
+            else:
+                raise UPTypeError("PDDL supports only user type parameters")
+
     def _write_domain(self, out: IO[str]):
         if self.problem_kind.has_intermediate_conditions_and_effects():
             raise UPProblemDefinitionError(
@@ -434,6 +444,8 @@ class PDDLWriter:
                 out.write(" :hierarchy")  # HTN / HDDL
             if self.problem_kind.has_method_preconditions():
                 out.write(" :method-preconditions")
+            if self.problem_kind.has_processes() or self.problem_kind.has_events():
+                out.write(" :time")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -521,7 +533,9 @@ class PDDLWriter:
         converter = ConverterToPDDLString(
             self.problem.environment, self._get_mangled_name
         )
-        costs = {}
+        costs: Dict[
+            Union[up.model.NaturalTransition, up.model.Action], Optional[up.model.FNode]
+        ] = {}
         metrics = self.problem.quality_metrics
         if len(metrics) == 1:
             metric = metrics[0]
@@ -591,42 +605,10 @@ class PDDLWriter:
                     continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
                 out.write(f"\n  :parameters (")
-                for ap in a.parameters:
-                    if ap.type.is_user_type():
-                        out.write(
-                            f" {self._get_mangled_name(ap)} - {self._get_mangled_name(ap.type)}"
-                        )
-                    else:
-                        raise UPTypeError("PDDL supports only user type parameters")
+                self._write_parameters(out, a)
                 out.write(")")
-                if len(a.preconditions) > 0:
-                    precond_str = []
-                    for p in (c.simplify() for c in a.preconditions):
-                        if not p.is_true():
-                            if p.is_and():
-                                precond_str.extend(map(converter.convert, p.args))
-                            else:
-                                precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
-                elif len(a.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
-                if len(a.effects) > 0:
-                    out.write("\n  :effect (and")
-                    for e in a.effects:
-                        _write_effect(
-                            e,
-                            None,
-                            out,
-                            converter,
-                            self.rewrite_bool_assignments,
-                            self._get_mangled_name,
-                        )
-
-                    if a in costs:
-                        out.write(
-                            f" (increase (total-cost) {converter.convert(costs[a])})"
-                        )
-                    out.write(")")
+                self._write_untimed_preconditions(a, converter, out)
+                self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
                 if any(
@@ -697,6 +679,36 @@ class PDDLWriter:
                 out.write(")\n")
             else:
                 raise NotImplementedError
+        for proc in self.problem.processes:
+
+            if any(p.simplify().is_false() for p in proc.preconditions):
+                continue
+            out.write(f" (:process {self._get_mangled_name(proc)}")
+            out.write(f"\n  :parameters (")
+            self._write_parameters(out, proc)
+            out.write(")")
+            self._write_untimed_preconditions(proc, converter, out)
+            if len(proc.effects) > 0:
+                out.write("\n  :effect (and")
+                for e in proc.effects:
+                    _write_continuous_effects(
+                        e,
+                        out,
+                        converter,
+                    )
+                out.write(")")
+            out.write(")\n")
+        for eve in self.problem.events:
+
+            if any(p.simplify().is_false() for p in eve.preconditions):
+                continue
+            out.write(f" (:event {self._get_mangled_name(eve)}")
+            out.write(f"\n  :parameters (")
+            self._write_parameters(out, eve)
+            out.write(")")
+            self._write_untimed_preconditions(eve, converter, out)
+            self._write_untimed_effects(eve, converter, out, costs)
+            out.write(")\n")
         out.write(")\n")
 
     def _write_problem(self, out: IO[str]):
@@ -1030,6 +1042,36 @@ class PDDLWriter:
                 "Task network constraints not supported by HDDL Writer yet"
             )
 
+    def _write_untimed_preconditions(self, item, converter, out):
+        if len(item.preconditions) > 0:
+            precond_str: list[str] = []
+            for p in (c.simplify() for c in item.preconditions):
+                if not p.is_true():
+                    if p.is_and():
+                        precond_str.extend(map(converter.convert, p.args))
+                    else:
+                        precond_str.append(converter.convert(p))
+            out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+        elif len(item.preconditions) == 0 and self.empty_preconditions:
+            out.write(f"\n  :precondition ()")
+
+    def _write_untimed_effects(self, item, converter, out, costs):
+        if len(item.effects) > 0:
+            out.write("\n  :effect (and")
+            for e in item.effects:
+                _write_effect(
+                    e,
+                    None,
+                    out,
+                    converter,
+                    self.rewrite_bool_assignments,
+                    self._get_mangled_name,
+                )
+
+            if item in costs:
+                out.write(f" (increase (total-cost) {converter.convert(costs[item])})")
+            out.write(")")
+
 
 def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
     """This function returns a pddl name for the chosen item"""
@@ -1184,3 +1226,21 @@ def _write_effect(
         out.write(")")
     if effect.is_forall():
         out.write(")")
+
+
+def _write_continuous_effects(
+    effect: Effect,
+    out: IO[str],
+    converter: ConverterToPDDLString,
+):
+    # check for non-constant-bool-assignment
+    simplified_value = effect.value.simplify()
+    fluent = converter.convert(effect.fluent)
+    if effect.is_continuous_increase():
+        out.write(f" (increase {fluent} (* #t {converter.convert(simplified_value)} ))")
+    elif effect.is_continuous_decrease():
+        out.write(f" (decrease {fluent} (* #t {converter.convert(simplified_value)} ))")
+    else:
+        raise UPProblemDefinitionError(
+            "Processes can only contains continuous effects in PDDL",
+        )

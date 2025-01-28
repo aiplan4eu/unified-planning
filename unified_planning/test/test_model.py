@@ -22,6 +22,7 @@ from unified_planning.exceptions import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
+from unified_planning.model.action import InstantaneousAction
 
 
 class TestModel(unittest_TestCase):
@@ -78,6 +79,14 @@ class TestModel(unittest_TestCase):
                     action_2._effects = {}
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = {}
+                elif isinstance(action_2, Process):
+                    action_2._effects = []
+                    action_1_clone = action_1.clone()
+                    action_1_clone._effects = []
+                elif isinstance(action_2, Event):
+                    action_2._effects = []
+                    action_1_clone = action_1.clone()
+                    action_1_clone._effects = []
                 else:
                     raise NotImplementedError
                 self.assertEqual(action_2, action_1_clone)
@@ -110,6 +119,38 @@ class TestModel(unittest_TestCase):
         self.assertNotEqual(e, e_clone_2)
         self.assertNotEqual(e, e.value)
         self.assertNotEqual(e.value, e)
+
+    def test_process(self):
+        Vehicle = UserType("Vehicle")
+        a = Fluent("a", BoolType())
+        x = Fluent("x", IntType())
+        move = Process("moving", car=Vehicle)
+        move.add_precondition(a)
+        move.add_increase_continuous_effect(x, 1)
+        e = Effect(
+            FluentExp(x),
+            Int(1),
+            TRUE(),
+            unified_planning.model.EffectKind.CONTINUOUS_INCREASE,
+        )
+        self.assertEqual(move.effects[0], e)
+        self.assertEqual(move.name, "moving")
+        self.assertEqual(isinstance(move, Process), True)
+
+    def test_event(self):
+        Vehicle = UserType("Vehicle")
+        a = Fluent("a", BoolType())
+        x = Fluent("x", IntType())
+        fell = Event("fell", car=Vehicle)
+        fell.add_precondition(a)
+        fell.add_effect(x, 1)
+        e = Effect(
+            FluentExp(x), Int(1), TRUE(), unified_planning.model.EffectKind.ASSIGN
+        )
+        self.assertEqual(fell.effects[0], e)
+        self.assertEqual(fell.name, "fell")
+        self.assertEqual(isinstance(fell, Event), True)
+        self.assertEqual(isinstance(fell, InstantaneousAction), False)
 
     def test_istantaneous_action(self):
         Location = UserType("Location")

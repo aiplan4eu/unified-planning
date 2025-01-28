@@ -20,6 +20,16 @@ from unified_planning.model.action import (
     DurativeAction,
     SensingAction,
 )
+
+from unified_planning.model.natural_transition import (
+    NaturalTransition,
+    Process,
+    Event,
+)
+
+from unified_planning.model.transition import (
+    Transition,
+)
 from unified_planning.model.effect import Effect, SimulatedEffect, EffectKind
 from unified_planning.model.expression import (
     BoolExpression,
@@ -82,6 +92,8 @@ import unified_planning.model.scheduling
 __all__ = [
     "Action",
     "InstantaneousAction",
+    "Process",
+    "Event",
     "DurativeAction",
     "Effect",
     "SimulatedEffect",

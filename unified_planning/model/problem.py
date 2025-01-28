@@ -17,11 +17,13 @@
 
 from itertools import chain, product
 import unified_planning as up
+from unified_planning.model.effect import EffectKind
 import unified_planning.model.tamp
 from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     TimeModelMixin,
     FluentsSetMixin,
     ObjectsSetMixin,
@@ -52,6 +54,7 @@ class Problem(  # type: ignore[misc]
     TimeModelMixin,
     FluentsSetMixin,
     ActionsSetMixin,
+    NaturalTransitionsSetMixin,
     ObjectsSetMixin,
     InitialStateMixin,
     MetricsMixin,
@@ -78,6 +81,9 @@ class Problem(  # type: ignore[misc]
             self, self.environment, self._add_user_type, self.has_name, initial_defaults
         )
         ActionsSetMixin.__init__(
+            self, self.environment, self._add_user_type, self.has_name
+        )
+        NaturalTransitionsSetMixin.__init__(
             self, self.environment, self._add_user_type, self.has_name
         )
         ObjectsSetMixin.__init__(
@@ -117,6 +123,14 @@ class Problem(  # type: ignore[misc]
         s.append("actions = [\n")
         s.extend(map(custom_str, self.actions))
         s.append("]\n\n")
+        if len(self.processes) > 0:
+            s.append("processes = [\n")
+            s.extend(map(custom_str, self.processes))
+            s.append("]\n\n")
+        if len(self.events) > 0:
+            s.append("events = [\n")
+            s.extend(map(custom_str, self.events))
+            s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
@@ -235,6 +249,8 @@ class Problem(  # type: ignore[misc]
         TimeModelMixin._clone_to(self, new_p)
 
         new_p._actions = [a.clone() for a in self._actions]
+        new_p._events = [a.clone() for a in self._events]
+        new_p._processes = [a.clone() for a in self._processes]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
@@ -254,7 +270,8 @@ class Problem(  # type: ignore[misc]
         Returns `True` if the given `name` is already in the `Problem`, `False` otherwise.
 
         :param name: The target name to find in the `Problem`.
-        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise."""
+        :return: `True` if the given `name` is already in the `Problem`, `False` otherwise.
+        """
         return (
             self.has_action(name)
             or self.has_fluent(name)
@@ -333,6 +350,15 @@ class Problem(  # type: ignore[misc]
                         static_fluents.discard(f.fluent())
             else:
                 raise NotImplementedError
+        for ev in self._events:
+            remove_used_fluents(*ev.preconditions)
+            for e in ev.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
+        for pro in self._processes:
+            for e in pro.effects:
+                remove_used_fluents(e.fluent, e.value, e.condition)
+                static_fluents.discard(e.fluent.fluent())
         for el in self._timed_effects.values():
             for e in el:
                 remove_used_fluents(e.fluent, e.value, e.condition)
@@ -669,6 +695,8 @@ class Problem(  # type: ignore[misc]
         if len(self._timed_effects) > 0:
             factory.kind.set_time("CONTINUOUS_TIME")
             factory.kind.set_time("TIMED_EFFECTS")
+        for process in self._processes:
+            factory.update_problem_kind_process(process)
         for effect in chain(*self._timed_effects.values()):
             factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
@@ -682,6 +710,10 @@ class Problem(  # type: ignore[misc]
         for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
         factory.update_problem_kind_initial_state(self)
+        if len(list(self.processes)) > 0:
+            factory.kind.set_time("PROCESSES")
+        if len(list(self.events)) > 0:
+            factory.kind.set_time("EVENTS")
 
         return factory
 
@@ -857,6 +889,10 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        elif e.is_continuous_increase():
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+        elif e.is_continuous_decrease():
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
     def update_problem_kind_expression(
         self,
@@ -1000,11 +1036,35 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
         else:
             raise NotImplementedError
+
+    def update_problem_kind_process(
+        self,
+        process: "up.model.natural_transition.Process",
+    ):
+        for param in process.parameters:
+            self.update_action_parameter(param)
+
+        continuous_fluents = set()
+        fluents_in_rhs = set()
+        for e in process.effects:
+            if e.kind == EffectKind.CONTINUOUS_INCREASE:
+                self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+            if e.kind == EffectKind.CONTINUOUS_DECREASE:
+                self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
+
+            continuous_fluents.add(e.fluent.fluent)
+            rhs = self.simplifier.simplify(e.value)
+            for var in self.environment.free_vars_extractor.get(rhs):
+                if var.is_fluent_exp():
+                    fluents_in_rhs.add(var.fluent)
+        if any(variable in fluents_in_rhs for variable in continuous_fluents):
+            self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
 
     def update_problem_kind_metric(
         self,

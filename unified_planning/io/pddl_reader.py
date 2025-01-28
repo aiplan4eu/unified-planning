@@ -54,11 +54,29 @@ class CustomParseResults:
         if len(self.value) == 1 and isinstance(self.value[0], str):
             self.value = self.value[0]
 
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
     def __getitem__(self, i):
         return CustomParseResults(self.value[i])
 
     def __len__(self):
         return len(self.value)
+
+    def __contains__(self, string: str):
+        stack = [self]
+        while len(stack) > 0:
+            exp = stack.pop()
+            if isinstance(exp.value, str):
+                if exp.value == string:
+                    return True
+            elif isinstance(exp.value, ParseResults):
+                for e in exp:
+                    stack.append(e)
+            else:
+                raise SyntaxError(f"Not able to handle: {exp}")
+        return False
 
     def line_start(self, complete_str: str) -> int:
         return lineno(self.locn_start, complete_str)
@@ -101,7 +119,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :time"
                 )
             )
             + Suppress(")")
@@ -189,6 +207,30 @@ class PDDLGrammar:
             + Optional(":observe" - set_results_name(nested_expr(), "obs"))
             + Suppress(")")
         )
+        process_def = Group(
+            Suppress("(")
+            + ":process"
+            - set_results_name(name, "name")
+            + ":parameters"
+            - Suppress("(")
+            + parameters
+            + Suppress(")")
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Suppress(")")
+        )
+        event_def = Group(
+            Suppress("(")
+            + ":event"
+            - set_results_name(name, "name")
+            + ":parameters"
+            - Suppress("(")
+            + parameters
+            + Suppress(")")
+            + Optional(":precondition" - set_results_name(nested_expr(), "pre"))
+            + Optional(":effect" - set_results_name(nested_expr(), "eff"))
+            + Suppress(")")
+        )
 
         dur_action_def = Group(
             Suppress("(")
@@ -259,6 +301,8 @@ class PDDLGrammar:
             + set_results_name(
                 Group(ZeroOrMore(action_def | dur_action_def)), "actions"
             )
+            + set_results_name(Group(ZeroOrMore(process_def)), "processes")
+            + set_results_name(Group(ZeroOrMore(event_def)), "events")
             + Suppress(")")
         )
 
@@ -386,7 +430,7 @@ class PDDLReader:
     def _parse_exp(
         self,
         problem: up.model.Problem,
-        act: typing.Optional[Union[up.model.Action, htn.Method, htn.TaskNetwork]],
+        act: typing.Optional[Union[up.model.Transition, htn.Method, htn.TaskNetwork]],
         types_map: TypesMap,
         var: Dict[str, up.model.Variable],
         exp: CustomParseResults,
@@ -558,7 +602,12 @@ class PDDLReader:
     def _add_effect(
         self,
         problem: up.model.Problem,
-        act: Union[up.model.InstantaneousAction, up.model.DurativeAction],
+        act: Union[
+            up.model.InstantaneousAction,
+            up.model.DurativeAction,
+            up.model.Process,
+            up.model.Event,
+        ],
         types_map: TypesMap,
         exp: CustomParseResults,
         complete_str: str,
@@ -609,27 +658,191 @@ class PDDLReader:
                 )
                 act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "increase":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-                act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                if "#t" in exp:
+                    if not isinstance(act, up.model.Process):
+                        raise UPUnsupportedProblemTypeError(
+                            "Continuous change is supported only in processes"
+                        )
+                    assert isinstance(act, up.model.Process)
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+                        act.add_increase_continuous_effect(*con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+                        act.add_increase_continuous_effect(*con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+                        act.add_increase_continuous_effect(*con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
+                else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "decrease":
-                eff = (
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[1], complete_str
-                    ),
-                    self._parse_exp(
-                        problem, act, types_map, forall_variables, exp[2], complete_str
-                    ),
-                    cond,
-                )
-                act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                if "#t" in exp:
+                    if not isinstance(act, up.model.Process):
+                        raise UPUnsupportedProblemTypeError(
+                            "Continuous change is supported only in processes"
+                        )
+                    assert isinstance(act, up.model.Process)
+                    if (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][1].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][2],
+                                complete_str,
+                            ),
+                        )
+                        act.add_decrease_continuous_effect(*con_eff)
+                    elif (
+                        len(exp) == 3
+                        and len(exp[2]) == 3
+                        and exp[2][0].value == "*"
+                        and exp[2][2].value == "#t"
+                    ):
+                        con_eff = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[2][1],
+                                complete_str,
+                            ),
+                        )
+                        act.add_decrease_continuous_effect(*con_eff)
+                    elif len(exp) == 3 and exp[2].value == "#t":
+                        con_eff_without = (
+                            self._parse_exp(
+                                problem,
+                                act,
+                                types_map,
+                                forall_variables,
+                                exp[1],
+                                complete_str,
+                            ),
+                            1,
+                        )
+                        act.add_decrease_continuous_effect(*con_eff_without)
+                    else:
+                        raise SyntaxError("Continuous change syntax is not correct!")
+                else:
+                    eff = (
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[1],
+                            complete_str,
+                        ),
+                        self._parse_exp(
+                            problem,
+                            act,
+                            types_map,
+                            forall_variables,
+                            exp[2],
+                            complete_str,
+                        ),
+                        cond,
+                    )
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -866,6 +1079,26 @@ class PDDLReader:
                 raise SyntaxError(
                     f"Not able to handle: {eff.value}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                 )
+
+    def _get_params(self, a: dict, types_map: TypesMap, domain_str: str):
+        a_params = OrderedDict()
+        for g in a.get("params", []):
+            try:
+                t = types_map[g.value[1] if len(g.value) > 1 else Object]
+            except KeyError:
+                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
+                    g.locn_start, domain_str
+                )
+                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
+                    g.locn_end, domain_str
+                )
+                raise SyntaxError(
+                    f"Undefined parameter's type: {g.value[1]}."
+                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                )
+            for p in g.value[0]:
+                a_params[p] = t
+        return a_params
 
     def _parse_subtask(
         self,
@@ -1208,26 +1441,59 @@ class PDDLReader:
                     task_params[p] = t
             task = htn.Task(name, task_params)
             problem.add_task(task)
+        for a in domain_res.get("processes", []):
+            n = a["name"]
+            a_params = self._get_params(a, types_map, domain_str)
+            proc = up.model.Process(n, a_params, self._env)
+            if "pre" in a:
+                proc.add_precondition(
+                    self._parse_exp(
+                        problem,
+                        proc,
+                        types_map,
+                        {},
+                        CustomParseResults(a["pre"][0]),
+                        domain_str,
+                    )
+                )
+            if "eff" in a:
+                self._add_effect(
+                    problem,
+                    proc,
+                    types_map,
+                    CustomParseResults(a["eff"][0]),
+                    domain_str,
+                )
+            problem.add_process(proc)
+
+        for a in domain_res.get("events", []):
+            n = a["name"]
+            a_params = self._get_params(a, types_map, domain_str)
+            evt = up.model.Event(n, a_params, self._env)
+            if "pre" in a:
+                evt.add_precondition(
+                    self._parse_exp(
+                        problem,
+                        evt,
+                        types_map,
+                        {},
+                        CustomParseResults(a["pre"][0]),
+                        domain_str,
+                    )
+                )
+            if "eff" in a:
+                self._add_effect(
+                    problem,
+                    evt,
+                    types_map,
+                    CustomParseResults(a["eff"][0]),
+                    domain_str,
+                )
+            problem.add_event(evt)
 
         for a in domain_res.get("actions", []):
             n = a["name"]
-            a_params = OrderedDict()
-            for g in a.get("params", []):
-                try:
-                    t = types_map[g.value[1] if len(g.value) > 1 else Object]
-                except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
-                    )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
-                    )
-                    raise SyntaxError(
-                        f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
-                for p in g.value[0]:
-                    a_params[p] = t
+            a_params = self._get_params(a, types_map, domain_str)
             if "duration" in a:
                 dur_act = up.model.DurativeAction(n, a_params, self._env)
                 dur = CustomParseResults(a["duration"][0])
@@ -1325,7 +1591,6 @@ class PDDLReader:
                 has_actions_cost = (
                     has_actions_cost and self._instantaneous_action_has_cost(act)
                 )
-
         for m in domain_res.get("methods", []):
             assert isinstance(problem, htn.HierarchicalProblem)
             name = m["name"]
@@ -1848,7 +2113,10 @@ class PDDLReader:
                     dur = Fraction(t_ai.group(6))
             else:
                 raise UPException(
-                    "Error parsing plan generated by " + self.__class__.__name__
+                    "Error parsing plan generated by "
+                    + self.__class__.__name__
+                    + ". Cannot interpret "
+                    + line
                 )
 
             action = (

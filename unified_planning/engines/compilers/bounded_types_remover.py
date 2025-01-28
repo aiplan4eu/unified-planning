@@ -163,7 +163,6 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
 
         new_fluents: Dict[Fluent, Fluent] = {}
         for old_fluent in problem.fluents:
-
             new_fluent = None
             # old_fluent.type != int_type is used to check if the type of the old_fluent
             # has lower or upper bound

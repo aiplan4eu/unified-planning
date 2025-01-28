@@ -273,7 +273,6 @@ def report_oneshot(
         for planner_id in planners:
             planner = OneshotPlanner(name=planner_id)
             if planner.supports(pb.kind):
-
                 if not name_printed:
                     name_printed = True
                     print()
@@ -355,7 +354,6 @@ def report_plan_repair(
             for planner_id in planners:
                 planner = PlanRepairer(name=planner_id)
                 if planner.supports(pb.kind) and planner.supports_plan(plan.kind):
-
                     if not name_printed:
                         problems_run += 1
                         name_printed = True
@@ -461,7 +459,6 @@ def report_anytime(
         for planner_id in planners:
             planner = AnytimePlanner(name=planner_id)
             if planner.supports(pb.kind):
-
                 if not name_printed:
                     name_printed = True
                     print()
@@ -636,7 +633,6 @@ def report_grounding(
         for engine_id in grounders:
             compiler = Compiler(name=engine_id)
             if compiler.supports(kind):
-
                 if not name_printed:
                     name_printed = True
                     problems_run += 1

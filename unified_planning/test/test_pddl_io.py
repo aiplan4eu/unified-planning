@@ -14,8 +14,8 @@
 
 import os
 import tempfile
-from typing import cast
 import pytest
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -114,6 +114,13 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:domain basic_conditional-domain)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
+
+    def test_processes_writer(self):
+        problem = self.problems["1d_movement"].problem
+        w = PDDLWriter(problem)
+        pddl_domain = w.get_domain()
+        self.assertIn("(:process moving", pddl_domain)
+        self.assertIn("#t", pddl_domain)
 
     def test_basic_exists_writer(self):
         problem = self.problems["basic_exists"].problem
@@ -426,6 +433,33 @@ class TestPddlIO(unittest_TestCase):
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self.assertEqual(problem, problem_2)
 
+    def test_non_linear_car(self):
+        reader = PDDLReader()
+
+        domain_filename = os.path.join(PDDL_DOMAINS_PATH, "car_nl", "d.pddl")
+        problem_filename = os.path.join(PDDL_DOMAINS_PATH, "car_nl", "p.pddl")
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertTrue(problem is not None)
+        self.assertEqual(len(problem.fluents), 8)
+        n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
+        n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
+        self.assertEqual(n_proc, 3)
+        self.assertEqual(n_eve, 1)
+        found_drag_ahead = False
+        for ele in problem.processes:
+            if isinstance(ele, Process):
+                for e in ele.effects:
+                    self.assertTrue(
+                        (e.kind == EffectKind.CONTINUOUS_INCREASE)
+                        or (e.kind == EffectKind.CONTINUOUS_DECREASE)
+                    )
+                if ele.name == "drag_ahead":
+                    found_drag_ahead = True
+                    self.assertTrue("engine_running" in str(ele))
+                    self.assertTrue("drag_coefficient" in str(ele))
+        self.assertTrue(found_drag_ahead)
+
     def test_matchcellar_reader(self):
         reader = PDDLReader()
 
@@ -520,7 +554,6 @@ class TestPddlIO(unittest_TestCase):
         self._test_htn_transport_reader(problem_2)
 
     def test_examples_io(self):
-
         for example in self.problems.values():
             problem = example.problem
             kind = problem.kind
@@ -563,9 +596,18 @@ class TestPddlIO(unittest_TestCase):
                     )
                 )
                 self.assertEqual(len(problem.actions), len(parsed_problem.actions))
+                self.assertEqual(
+                    len(problem.processes),
+                    len(parsed_problem.processes),
+                )
+                self.assertEqual(
+                    len(problem.events),
+                    len(parsed_problem.events),
+                )
                 for a in problem.actions:
                     parsed_a = parsed_problem.action(w.get_pddl_name(a))
                     self.assertEqual(a, w.get_item_named(parsed_a.name))
+
                     for param, parsed_param in zip(a.parameters, parsed_a.parameters):
                         self.assertEqual(
                             param.type,

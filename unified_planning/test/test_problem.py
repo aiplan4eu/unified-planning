@@ -502,7 +502,6 @@ class TestProblem(unittest_TestCase):
                     )
 
     def test_simple_numeric_planning_kind(self):
-
         problem = self.problems["robot"].problem
         # False because the problem has an assignment instead of a decrease
         self.assertFalse(problem.kind.has_simple_numeric_planning())
@@ -531,6 +530,8 @@ class TestProblem(unittest_TestCase):
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
+            "1d_Movement",
+            "boiling_water",
         ]
         for example in self.problems.values():
             problem = example.problem
@@ -605,6 +606,21 @@ class TestProblem(unittest_TestCase):
                 pb_name in undefs_sym,
                 pb_name,
             )
+
+    def test_natural_transitions(self):
+        p = self.problems["1d_movement"].problem
+        print(p)
+        self.assertTrue(p.has_process("moving"))
+        self.assertTrue(p.has_event("turn_off_automatically"))
+        print(p.process("moving"))
+        print(p.event("turn_off_automatically"))
+        p.clear_events()
+        p.clear_processes()
+        self.assertEqual(len(p.natural_transitions), 0)
+        p_boiling_water = self.problems["boiling_water"].problem
+        self.assertFalse(p_boiling_water.kind.has_non_linear_continuous_effects())
+        self.assertTrue(p_boiling_water.kind.has_increase_continuous_effects())
+        self.assertTrue(p_boiling_water.kind.has_decrease_continuous_effects())
 
 
 if __name__ == "__main__":
