@@ -415,7 +415,12 @@ def check_conflicting_effects(
                     raise UPConflictingEffectsException(msg)
             else:
                 fluents_assigned[effect.fluent] = effect.value
-        elif effect.is_increase() or effect.is_decrease():
+        elif (
+            effect.is_increase()
+            or effect.is_decrease()
+            or effect.is_continuous_increase()
+            or effect.is_continuous_decrease()
+        ):
             if effect.fluent in fluents_assigned:
                 if timing is None:
                     msg = f"The effect {effect} is in conflict with the effects already in the {name}."

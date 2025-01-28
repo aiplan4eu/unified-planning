@@ -344,6 +344,10 @@ class Problem(  # type: ignore[misc]
                     for e in el:
                         remove_used_fluents(e.fluent, e.value, e.condition)
                         static_fluents.discard(e.fluent.fluent())
+                for cel in a.continuous_effects.values():
+                    for ce in cel:
+                        remove_used_fluents(ce.fluent, ce.value, ce.condition)
+                        static_fluents.discard(ce.fluent.fluent())
                 for se in a.simulated_effects.values():
                     unused_fluents.clear()
                     for f in se.fluents:
@@ -1010,6 +1014,19 @@ class _KindFactory:
                 self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         self.update_problem_kind_effect(eff)
 
+    def update_action_timed_continuous_effect(
+        self, interval: "up.model.TimeInterval", eff: "up.model.Effect"
+    ):
+        if interval.lower.delay != 0 or interval.upper.delay != 0:
+            for t in [interval.lower, interval.upper]:
+                if (t.is_from_start() and t.delay > 0) or (
+                    t.is_from_end() and t.delay < 0
+                ):
+                    self.kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+                else:
+                    self.kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        self.update_problem_kind_effect(eff)
+
     def update_problem_kind_action(
         self,
         action: "up.model.action.Action",
@@ -1036,10 +1053,29 @@ class _KindFactory:
             for t, le in action.effects.items():
                 for e in le:
                     self.update_action_timed_effect(t, e)
+            for ti, le in action.continuous_effects.items():
+                for e in le:
+                    self.update_action_timed_continuous_effect(ti, e)
 
             if len(action.simulated_effects) > 0:
                 self.kind.set_simulated_entities("SIMULATED_EFFECTS")
             self.kind.set_time("CONTINUOUS_TIME")
+            continuous_fluents = set()
+            fluents_in_rhs = set()
+            for eff_time in action.continuous_effects.keys():
+                for e in action.continuous_effects[eff_time]:
+                    if e.kind == EffectKind.CONTINUOUS_INCREASE:
+                        self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+                    elif e.kind == EffectKind.CONTINUOUS_DECREASE:
+                        self.kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
+                    continuous_fluents.add(e.fluent.fluent)
+                    rhs = self.simplifier.simplify(e.value)
+                    for var in self.environment.free_vars_extractor.get(rhs):
+                        if var.is_fluent_exp():
+                            fluents_in_rhs.add(var.fluent)
+            if any(variable in fluents_in_rhs for variable in continuous_fluents):
+                self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
+
         else:
             raise NotImplementedError
 
