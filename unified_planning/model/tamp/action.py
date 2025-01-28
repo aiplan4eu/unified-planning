@@ -18,12 +18,314 @@ import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model import InstantaneousAction, DurativeAction
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from unified_planning.exceptions import UPTypeError
+from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError
 from abc import ABC, abstractmethod
 from typing import Optional, List, Iterable, Dict, Union
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 
 from unified_planning.model.timing import EndTiming, StartTiming, TimeInterval, Timing
+
+
+class Transform(ABC):
+    """
+    This class represents a transformation between two objects.
+
+    This is defined by the involved movable objects, their configurations,
+    and the associated links that establish their connection.
+
+    """
+
+    def __init__(
+        self,
+        movable1: "up.model.expression.Expression",
+        movable2: "up.model.expression.Expression",
+        config1: "up.model.expression.Expression",
+        config2: "up.model.expression.Expression",
+        link1: str,
+        link2: str,
+        environment: Optional[Environment] = None,
+    ):
+        self._environment = get_environment(environment)
+
+        (
+            movable1_exp,
+            movable2_exp,
+        ) = self._environment.expression_manager.auto_promote(movable1, movable2)
+        tm1 = self._environment.type_checker.get_type(movable1_exp)
+        tm2 = self._environment.type_checker.get_type(movable2_exp)
+
+        if not tm1.is_movable_type() or not tm2.is_movable_type():
+            raise UPTypeError(
+                "Objects of Transform's constructor must be of movable type!"
+            )
+
+        if tm1 != tm2:
+            raise UPTypeError("Object 1 and 2 must be of the same movable type!")
+
+        (
+            config1_exp,
+            config2_exp,
+        ) = self._environment.expression_manager.auto_promote(config1, config2)
+        tc1 = self._environment.type_checker.get_type(config1_exp)
+        tc2 = self._environment.type_checker.get_type(config2_exp)
+        if not tc1.is_configuration_type() or not tc2.is_configuration_type():
+            raise UPTypeError(
+                "Configurations of Transform's constructor must be of configuration type!"
+            )
+
+        if tc1 != tc2:
+            raise UPTypeError(
+                "Configurations of Object 1 and 2 must be of the same configuration type!"
+            )
+
+        self._movable1 = movable1_exp
+        self._movable2 = movable2_exp
+        self._config1 = config1_exp
+        self._config2 = config2_exp
+        self._link1 = link1
+        self._link2 = link2
+
+    def __eq__(self, oth) -> bool:
+        if not isinstance(oth, Transform) or self._environment != oth._environment:
+            return False
+        if (
+            self._movable1 != oth._movable1
+            or self._movable2 != oth._movable2
+            or self._config1 != oth._config1
+            or self._config2 != oth._config2
+            or self._link1 != oth._link1
+            or self._link2 != oth._link2
+        ):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._movable1)
+        res += hash(self._movable2)
+        res += hash(self._config1)
+        res += hash(self._config2)
+        res += hash(self._link1)
+        res += hash(self._link2)
+        return res
+
+    def __repr__(self) -> str:
+        s = ["transform("]
+        s.append(str(self.movable1))
+        s.append(", ")
+        s.append(str(self.movable2))
+        s.append(", ")
+        s.append(str(self.config1))
+        s.append(", ")
+        s.append(str(self.config2))
+        s.append(", ")
+        s.append(self.link1)
+        s.append(", ")
+        s.append(self.link2)
+        s.append(")")
+        return "".join(s)
+
+    @property
+    def movable1(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the first involved movable object."""
+        return self._movable1
+
+    @property
+    def movable2(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the second involved movable object."""
+        return self._movable2
+
+    @property
+    def config1(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the configuration of the first involved movable object."""
+        return self._config1
+
+    @property
+    def config2(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the configuration of the second involved movable object."""
+        return self._config2
+
+    @property
+    def link1(self) -> str:
+        """Returns the name of the link of the first involved movable object."""
+        return self._link1
+
+    @property
+    def link2(self) -> str:
+        """Returns the name of the link of the second involved movable object."""
+        return self._link2
+
+
+class Attachment(ABC):
+    """
+    This class represents an attachment between two objects.
+
+    This is defined by the involved movable objects, their attachment configurations,
+    and the associated links that establish their connection.
+
+    Once the two objects are attached, a set of touchable links is defined for each object.
+    These links are the ones for which collision checking is disabled between the two objects.
+
+    """
+
+    def __init__(
+        self,
+        activation_condition: List["up.model.fnode.FNode"],
+        movable1: "up.model.expression.Expression",
+        movable2: "up.model.expression.Expression",
+        attached_config1: "up.model.expression.Expression",
+        attached_config2: "up.model.expression.Expression",
+        attached_link1: str,
+        attached_link2: str,
+        touchable_links1: Optional[List[str]] = None,
+        touchable_links2: Optional[List[str]] = None,
+        environment: Optional[Environment] = None,
+    ):
+        self._environment = get_environment(environment)
+
+        (activation_cond_exp,) = self._environment.expression_manager.auto_promote(
+            activation_condition
+        )
+        assert self._environment.type_checker.get_type(
+            activation_cond_exp
+        ).is_bool_type()
+
+        free_vars = self._environment.free_vars_oracle.get_free_variables(
+            activation_cond_exp
+        )
+        if len(free_vars) != 0:
+            raise UPUnboundedVariablesError(
+                f"The activation condition {str(activation_cond_exp)} has unbounded variables:\n{str(free_vars)}"
+            )
+
+        (
+            movable1_exp,
+            movable2_exp,
+        ) = self._environment.expression_manager.auto_promote(movable1, movable2)
+        tm1 = self._environment.type_checker.get_type(movable1_exp)
+        tm2 = self._environment.type_checker.get_type(movable2_exp)
+
+        if not tm1.is_movable_type() or not tm2.is_movable_type():
+            raise UPTypeError(
+                "Objects of Transform's constructor must be of movable type!"
+            )
+
+        if tm1 != tm2:
+            raise UPTypeError("Object 1 and 2 must be of the same movable type!")
+
+        (
+            attached_config1_exp,
+            attached_config2_exp,
+        ) = self._environment.expression_manager.auto_promote(
+            attached_config1, attached_config2
+        )
+        tc1 = self._environment.type_checker.get_type(attached_config1_exp)
+        tc2 = self._environment.type_checker.get_type(attached_config2_exp)
+        if not tc1.is_configuration_type() or not tc2.is_configuration_type():
+            raise UPTypeError(
+                "Configurations of Transform's constructor must be of configuration type!"
+            )
+
+        if tc1 != tc2:
+            raise UPTypeError(
+                "Configurations of Object 1 and 2 must be of the same configuration type!"
+            )
+
+        self._movable1 = movable1_exp
+        self._movable2 = movable2_exp
+        self._attached_config1 = attached_config1_exp
+        self._attached_config2 = attached_config2_exp
+        self._attached_link1 = attached_link1
+        self._attached_link2 = attached_link2
+        self._touchable_links1 = touchable_links1
+        self._touchable_links2 = touchable_links2
+
+    def __eq__(self, oth) -> bool:
+        if not isinstance(oth, Attachment) or self._environment != oth._environment:
+            return False
+        if (
+            self._movable1 != oth._movable1
+            or self._movable2 != oth._movable2
+            or self._attached_config1 != oth._attached_config1
+            or self._attached_config2 != oth._attached_config2
+            or self._attached_link1 != oth._attached_link1
+            or self._attached_link2 != oth._attached_link2
+            or Counter(self._touchable_links1) != Counter(self._touchable_links2)
+        ):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._movable1)
+        res += hash(self._movable2)
+        res += hash(self._attached_config1)
+        res += hash(self._attached_config2)
+        res += hash(self._attached_link1)
+        res += hash(self._attached_link2)
+        for l in self._touchable_links1:
+            res += hash(l)
+        for l in self._touchable_links2:
+            res += hash(l)
+        return res
+
+    def __repr__(self) -> str:
+        s = ["attachment("]
+        s.append(str(self.movable1))
+        s.append(", ")
+        s.append(str(self.movable2))
+        s.append(", ")
+        s.append(str(self.attached_config1))
+        s.append(", ")
+        s.append(str(self.attached_config2))
+        s.append(", ")
+        s.append(self.attached_link1)
+        s.append(", ")
+        s.append(self.attached_link2)
+        s.append(", ")
+        s.append("[" + ", ".join(self.touchable_links1) + "]")
+        s.append(", ")
+        s.append("[" + ", ".join(self.touchable_links2) + "]")
+        s.append(")")
+        return "".join(s)
+
+    @property
+    def movable1(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the first involved movable object."""
+        return self._movable1
+
+    @property
+    def movable2(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the second involved movable object."""
+        return self._movable2
+
+    @property
+    def attached_config1(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the attached configuration of the first involved movable object."""
+        return self._attached_config1
+
+    @property
+    def attached_config2(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the attached configuration of the second involved movable object."""
+        return self._attached_config2
+
+    @property
+    def attached_link1(self) -> str:
+        """Returns the name of the attached link of the first involved movable object."""
+        return self._attached_link1
+
+    @property
+    def attached_link2(self) -> str:
+        """Returns the name of the attached link of the second involved movable object."""
+        return self._attached_link2
+
+    @property
+    def touchable_links1(self) -> List[str]:
+        """Returns the name of the touchable links of the first involved movable object."""
+        return self._touchable_links1
+
+    @property
+    def touchable_links2(self) -> List[str]:
+        """Returns the name of the touchable links of the second involved movable object."""
+        return self._touchable_links2
 
 
 class MotionConstraint(ABC):
@@ -58,6 +360,10 @@ class Waypoints(MotionConstraint):
     The waypoints constraint is a `MotionConstraint` representing the existence of a trajectory
     in the free configuration space of a movable object that lets it traverse a set of input waypoints
     starting from an initial configuration.
+
+    `static_obstacles` is a dictionary that maps those movable obstacles that remain static during the existence of the constraint with their configurations.
+    `dynamic_obstacles_at_start` is a dictionary that maps those movable obstacles that may move during the existence of the constraint with their configurations at the beginning of the constraint.
+    `attachments` is a list of `Attachments`, i.e., extensions of movable objects that change their geometric models.
     """
 
     def __init__(
@@ -65,12 +371,13 @@ class Waypoints(MotionConstraint):
         movable: "up.model.expression.Expression",
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
-        fixed_obstacles: Optional[
+        static_obstacles: Optional[
             Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
         ] = None,
-        moving_obstacles_at_start: Optional[
+        dynamic_obstacles_at_start: Optional[
             Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
         ] = None,
+        attachments: Optional[List[Attachment]] = None,
         environment: Optional[Environment] = None,
     ):
         super().__init__(environment)
@@ -101,8 +408,9 @@ class Waypoints(MotionConstraint):
         self._movable = movable_exp
         self._starting = starting_exp
         self._waypoints = waypoints_exp
-        self._fixed_obstacles = fixed_obstacles
-        self._moving_obstacles_at_start = moving_obstacles_at_start
+        self._static_obstacles = static_obstacles
+        self._dynamic_obstacles_at_start = dynamic_obstacles_at_start
+        self._attachments = attachments
 
     def __eq__(self, oth) -> bool:
         if not isinstance(oth, Waypoints) or self._environment != oth._environment:
@@ -111,6 +419,8 @@ class Waypoints(MotionConstraint):
             return False
         if set(self._waypoints) != set(oth._waypoints):
             return False
+        if self._attachments != oth._attachments:
+            return False
         return True
 
     def __hash__(self) -> int:
@@ -118,6 +428,8 @@ class Waypoints(MotionConstraint):
         res += hash(self._starting)
         for p in self._waypoints:
             res += hash(p)
+        for a in self._attachments:
+            res += hash(a)
         return res
 
     def __repr__(self) -> str:
@@ -127,10 +439,15 @@ class Waypoints(MotionConstraint):
         s.append(str(self.starting))
         s.append(", ")
         s.append(str(self.waypoints))
-        s.append(", ")
-        s.append(str(self.fixed_obstacles))
-        s.append(", ")
-        s.append(str(self.moving_obstacles_at_start))
+        if self.static_obstacles is not None:
+            s.append(", ")
+            s.append(str(self.static_obstacles))
+        if self.dynamic_obstacles_at_start is not None:
+            s.append(", ")
+            s.append(str(self.dynamic_obstacles_at_start))
+        if self.attachments is not None:
+            s.append(", ")
+            s.append(str(self.attachments))
         s.append(")")
         return "".join(s)
 
@@ -150,18 +467,23 @@ class Waypoints(MotionConstraint):
         return self._waypoints
 
     @property
-    def fixed_obstacles(
+    def static_obstacles(
         self,
     ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
-        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration during all the constraint (fixed obstacles)."""
-        return self._fixed_obstacles
+        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration during all the constraint (static obstacles)."""
+        return self._static_obstacles
 
     @property
-    def moving_obstacles_at_start(
+    def dynamic_obstacles_at_start(
         self,
     ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
-        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration at the beginning of the constraint (possibly moving obstacles)."""
-        return self._moving_obstacles_at_start
+        """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration at the beginning of the constraint (possibly dynamic obstacles)."""
+        return self._dynamic_obstacles_at_start
+
+    @property
+    def attachments(self) -> List[Attachment]:
+        """Returns the list `Attachment` for this motion constraint."""
+        return self._attachments
 
 
 class InstantaneousMotionAction(InstantaneousAction):
