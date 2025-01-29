@@ -18,7 +18,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, cast
+from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -27,10 +27,9 @@ import unified_planning.engines.mixins as mixins
 from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
 from unified_planning.model.fnode import FNode
-from unified_planning.model.parameter import Parameter
+from unified_planning.model.metrics import PlanQualityMetric, MinimizeActionCosts
 from unified_planning.model.state import UPState
 from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
-import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     AbstractProblem,
     Problem,
@@ -184,15 +183,15 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
         unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
         if not unsatisfied_goals:
-            metric_evalutations = None
+            metric_evaluations = None
             if metric is not None:
-                metric_evalutations = {metric: metric_value}
+                metric_evaluations = {metric: metric_value}
             logs = []
             return ValidationResult(
                 ValidationResultStatus.VALID,
                 self.name,
                 logs,
-                metric_evalutations,
+                metric_evaluations,
                 trace=trace,
             )
         else:
@@ -647,10 +646,124 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     trace=trace,
                 )
 
+        metric_evaluations = None
+        if problem.quality_metrics:
+            metric_evaluations = get_temporal_metric_evaluations(
+                problem, plan, trace, se
+            )
         return ValidationResult(
             status=ValidationResultStatus.VALID,
             engine_name=self.name,
             log_messages=None,
-            metric_evaluations=None,
+            metric_evaluations=metric_evaluations,
             trace=trace,
         )
+
+
+def get_temporal_metric_evaluations(
+    problem: Problem,
+    plan: TimeTriggeredPlan,
+    trace: Optional[Dict[Fraction, State]] = None,
+    state_evaluator: Optional[StateEvaluator] = None,
+) -> Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]:
+    metric_evaluations: Dict[PlanQualityMetric, Union[int, Fraction]] = {}
+    for quality_metric in problem.quality_metrics:
+        assert isinstance(quality_metric, PlanQualityMetric)
+        if quality_metric.is_minimize_makespan():
+            metric_evaluations[quality_metric] = _extract_makespan(problem, plan)
+        elif quality_metric.is_minimize_action_costs():
+            assert (
+                trace is not None
+            ), "To evaluate an action_costs metric the trace is required"
+            metric_evaluations[quality_metric] = _extract_action_costs(
+                problem, plan, quality_metric, trace, state_evaluator
+            )
+    if not metric_evaluations:
+        return None
+    return metric_evaluations
+
+
+def _extract_makespan(
+    problem: Problem, plan: TimeTriggeredPlan
+) -> Union[int, Fraction]:
+    makespan: Union[int, Fraction] = 0
+    for action_start_time, _, action_duration in plan.timed_actions:
+        action_end = (
+            action_start_time
+            if action_duration is None
+            else action_start_time + action_duration
+        )
+        makespan = max(makespan, action_end)
+    for effect_timing in problem.timed_effects:
+        assert isinstance(effect_timing, Timing)
+        if effect_timing.is_from_start():
+            makespan = max(makespan, effect_timing.delay)
+    for goal_interval in problem.timed_goals:
+        assert isinstance(goal_interval, TimeInterval)
+        interval_bound = goal_interval.upper
+        if goal_interval.upper.is_from_end():
+            interval_bound = goal_interval.lower
+        makespan = max(makespan, interval_bound.delay)
+    return makespan
+
+
+def _extract_action_costs(
+    problem: Problem,
+    plan: TimeTriggeredPlan,
+    quality_metric: PlanQualityMetric,
+    trace: Dict[Fraction, State],
+    state_evaluator: Optional[StateEvaluator] = None,
+) -> Union[int, Fraction]:
+    action_cost: Union[int, Fraction] = 0
+    assert isinstance(quality_metric, MinimizeActionCosts)
+    sorted_times = sorted(trace)
+    if state_evaluator is None:
+        state_evaluator = StateEvaluator(problem)
+    for action_start_time, action_instance, _ in plan.timed_actions:
+        action = action_instance.action
+        parameters = action_instance.actual_parameters
+
+        action_cost_exp = quality_metric.get_action_cost(action)
+        if action_cost_exp is None:
+            raise UPUsageError(
+                "Can't evaluate Action cost when the cost is not set.",
+                "You can explicitly set a default in the MinimizeActionCost constructor.",
+            )
+        if len(action.parameters) != len(parameters):
+            raise UPUsageError(
+                "The parameters length is different than the action's parameters length."
+            )
+        action_cost_exp = action_cost_exp.substitute(
+            dict(zip(action.parameters, parameters))
+        )
+        assert isinstance(action_cost_exp, up.model.FNode)
+
+        # The state in which the action cost is evaluated must be the one just before the action time
+        pre_action_state_time = binary_search_closest_lower(
+            action_start_time, sorted_times
+        )
+        assert pre_action_state_time is not None
+        pre_action_state = trace[pre_action_state_time]
+        action_cost += state_evaluator.evaluate(
+            action_cost_exp, pre_action_state
+        ).constant_value()
+
+    return action_cost
+
+
+def binary_search_closest_lower(
+    target_time: Fraction, sorted_times: List[Fraction]
+) -> Optional[Fraction]:
+    left, right = 0, len(sorted_times) - 1
+    result = None
+
+    while left <= right:
+        mid = (left + right) // 2
+
+        if sorted_times[mid] < target_time:
+            result = sorted_times[mid]
+            left = mid + 1
+        else:
+            right = mid - 1
+
+    return result
