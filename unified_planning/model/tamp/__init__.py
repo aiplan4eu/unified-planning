@@ -18,6 +18,8 @@ from unified_planning.model.tamp.action import (
     DurativeMotionAction,
     MotionConstraint,
     Waypoints,
+    Attachment,
+    Transform,
 )
 from unified_planning.model.tamp.objects import (
     MotionModels,
@@ -32,6 +34,8 @@ __all__ = [
     "DurativeMotionAction",
     "MotionConstraint",
     "Waypoints",
+    "Attachment",
+    "Transform",
     "MotionModels",
     "MovableObject",
     "ConfigurationObject",
