@@ -339,7 +339,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         self,
         trace: Dict[Fraction, State],
         start: Fraction,
-        end: Fraction,
+        end: Optional[Fraction],
         open_interval: bool,
     ) -> Generator[Tuple[Fraction, State], None, None]:
         before_time = Fraction(-1)
@@ -350,7 +350,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 before_time = x
             if x <= start and x > equal_time:
                 equal_time = x
-            if start < x < end:
+            inside_indexes_condition = start < x if end is None else start < x < end
+            if inside_indexes_condition:
                 inside_indexes.append(x)
 
         if not open_interval:
@@ -370,21 +371,24 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         timing: Timing,
         action_start: Fraction,
         action_duration: Optional[Fraction],
-    ) -> Fraction:
+    ) -> Optional[Fraction]:
         if timing.is_from_start():
             return action_start + timing.delay
-        else:
-            assert action_duration is not None
-            return action_start + action_duration + timing.delay
+        elif timing.is_global():
+            return None
+        assert action_duration is not None
+        return action_start + action_duration + timing.delay
 
     def _instantiate_interval(
         self,
         interval: TimeInterval,
         action_start: Fraction,
         action_duration: Optional[Fraction],
-    ) -> Tuple[Fraction, Fraction, bool]:
+    ) -> Tuple[Fraction, Optional[Fraction], bool]:
+        start = self._instantiate_timing(interval.lower, action_start, action_duration)
+        assert start is not None
         return (
-            self._instantiate_timing(interval.lower, action_start, action_duration),
+            start,
             self._instantiate_timing(interval.upper, action_start, action_duration),
             interval.is_left_open(),
         )
@@ -431,7 +435,12 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ]
         ] = []
         durative_conditions: List[
-            Tuple[Tuple[Fraction, Fraction, bool], int, FNode, Optional[ActionInstance]]
+            Tuple[
+                Tuple[Fraction, Optional[Fraction], bool],
+                int,
+                FNode,
+                Optional[ActionInstance],
+            ]
         ] = []
 
         plan_duration: Fraction = max(
@@ -440,13 +449,15 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         next_id = 0
         for timing, effects in problem.timed_effects.items():
+            instantiated_timing = self._instantiate_timing(
+                timing=timing,
+                action_start=Fraction(0),
+                action_duration=None,
+            )
+            assert instantiated_timing is not None
             scheduled_effects.append(
                 (
-                    self._instantiate_timing(
-                        timing=timing,
-                        action_start=Fraction(0),
-                        action_duration=None,
-                    ),
+                    instantiated_timing,
                     next_id,
                     effects,
                     None,
@@ -462,7 +473,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 action_start=Fraction(0),
                 action_duration=None,
             )
-            plan_duration = max(plan_duration, iint[0], iint[1])
+            end_interval = Fraction(-1) if iint[1] is None else iint[1]
+            plan_duration = max(plan_duration, iint[0], end_interval)
             for g in goals:
                 durative_conditions.append(
                     (
@@ -521,6 +533,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             action_start=start_time,
                             action_duration=duration,
                         )
+                        assert real_timing is not None
                         heapq.heappush(
                             scheduled_effects, (real_timing, next_id, event, None, ai)
                         )
@@ -531,6 +544,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             action_start=start_time,
                             action_duration=duration,
                         )
+                        assert real_timing is not None
                         eff: List[Effect] = []
                         heapq.heappush(
                             scheduled_effects, (real_timing, next_id, eff, sim_eff, ai)
@@ -542,6 +556,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             action_start=start_time,
                             action_duration=duration,
                         )
+                        assert real_interval[1] is not None
                         for c in conditions:
                             durative_conditions.append(
                                 (
@@ -614,6 +629,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 if not self._check_condition(state=state, se=se, condition=c):
                     if opt_ai is not None:
+                        assert end is not None
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
@@ -631,7 +647,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             metric_evaluations=None,
                             reason=FailedValidationReason.UNSATISFIED_GOALS,
                             inapplicable_action=None,
-                            trace={k: v for k, v in trace.items() if k <= end},
+                            trace={
+                                k: v
+                                for k, v in trace.items()
+                                if end is None or k <= end
+                            },
                         )
 
         for g in problem.goals:
