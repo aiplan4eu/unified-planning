@@ -14,11 +14,90 @@
 #
 
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple, List, Callable
+from typing import Dict, Optional, Any, Tuple, List, Callable, Union
 from unified_planning.model import Object
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 import unified_planning.model.types
+
+
+class ConfigurationKind(Enum):
+    SE2 = auto()
+    SE3 = auto()
+    REALVECTOR = auto()
+    JOINT = auto()
+    KINEMATICCHAIN = auto()
+
+
+class ConfigurationInstance:
+    pass
+
+
+@dataclass
+class SE2(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of type (x, y, theta)
+    """
+
+    x: float
+    y: float
+    theta: float
+
+
+@dataclass
+class SE3(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of type (x, y, z, rx, ry, rz, rw)
+    """
+
+    x: float
+    y: float
+    z: float
+    rx: float
+    ry: float
+    rz: float
+    rw: float
+
+
+@dataclass
+class RealVector(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of type real vector.
+    """
+
+    values = List[float]
+
+
+@dataclass
+class Joint(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of a (eventually) torque controlled joint.
+
+    The configuration (revolute or prismatic) is defined by:
+    * the position of the joint (rad or m),
+    * the velocity of the joint (rad/s or m/s) and
+    * the effort that is applied in the joint (Nm or N).
+
+    Each field is optional. When e.g. your joints have no effort associated with them, you can leave the effort array empty.
+    """
+
+    position: Optional[float] = None
+    velocty: Optional[float] = None
+    effort: Optional[float] = None
+
+
+@dataclass
+class KinematicChain(ConfigurationInstance):
+    """
+    This class represents the configuration of a kinematic chain,
+    combining configurations of type SE2, SE2, RealVector or Joint.
+
+    All lists should have the same size, or be empty.
+    This is the only way to uniquely associate a name to its correct state.
+    """
+
+    names = List[str]
+    configs = List[Union[SE2, SE3, RealVector, Joint]]
 
 
 class MotionModels(Enum):
@@ -112,13 +191,13 @@ class ConfigurationObject(Object):
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        configuration: Tuple[float, ...],
+        configuration: ConfigurationInstance,
         env: Optional[Environment] = None,
     ):
         super().__init__(name, typename, env)
         self._configuration = configuration
 
     @property
-    def configuration(self) -> Tuple[float, ...]:
-        """Returns the configuration of this `ConfigurationObject`."""
+    def configuration(self) -> ConfigurationInstance:
+        """Returns the `ConfigurationInstance` of this `ConfigurationObject`."""
         return self._configuration

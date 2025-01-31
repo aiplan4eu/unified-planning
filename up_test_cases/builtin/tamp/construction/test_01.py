@@ -15,7 +15,7 @@ def get_test_cases():
         os.path.join(FILE_PATH, "maps", "simple-construction-map.yaml"), (0, 0)
     )
 
-    t_robot_config = ConfigurationType("robot_config", occ_map, 3)
+    t_robot_config = ConfigurationType("robot_config", occ_map, ConfigurationKind.SE2)
     t_material = UserType("material")
 
     robot_at = Fluent(
@@ -36,15 +36,15 @@ def get_test_cases():
     )
     occupied = Fluent("occupied", BoolType(), loc=t_robot_config)
 
-    queue1 = ConfigurationObject("queue-1", t_robot_config, (10.306, 46.206, -3.111))
-    queue2 = ConfigurationObject("queue-2", t_robot_config, (14.120, 46.213, -3.136))
-    queue3 = ConfigurationObject("queue-3", t_robot_config, (17.606, 42.904, 2.245))
+    queue1 = ConfigurationObject("queue-1", t_robot_config, SE2(10.306, 46.206, -3.111))
+    queue2 = ConfigurationObject("queue-2", t_robot_config, SE2(14.120, 46.213, -3.136))
+    queue3 = ConfigurationObject("queue-3", t_robot_config, SE2(17.606, 42.904, 2.245))
 
-    dump1 = ConfigurationObject("dump-1", t_robot_config, (39.724, 37.334, 2.344))
+    dump1 = ConfigurationObject("dump-1", t_robot_config, SE2(39.724, 37.334, 2.344))
 
-    park1 = ConfigurationObject("parking-1", t_robot_config, (34.935, 4.191, 1.542))
-    park2 = ConfigurationObject("parking-2", t_robot_config, (40.102, 4.374, 1.539))
-    park3 = ConfigurationObject("parking-3", t_robot_config, (44.537, 4.068, 1.540))
+    park1 = ConfigurationObject("parking-1", t_robot_config, SE2(34.935, 4.191, 1.542))
+    park2 = ConfigurationObject("parking-2", t_robot_config, SE2(40.102, 4.374, 1.539))
+    park3 = ConfigurationObject("parking-3", t_robot_config, SE2(44.537, 4.068, 1.540))
 
     truck1 = MovableObject(
         "truck1",
