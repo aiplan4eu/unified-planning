@@ -514,7 +514,7 @@ def MovableType(
 
 
 def ConfigurationType(
-    name: str, occupancy_map: OccupancyMap, size: int
+    name: str, occupancy_map: OccupancyMap, kind: ConfigurationKind
 ) -> unified_planning.model.types.Type:
     """
     Returns the configuration type defined in this :class:`~unified_planning.Environment`
@@ -523,7 +523,7 @@ def ConfigurationType(
 
     :param name: The name of this configuration type.
     :param occupancy_map: The occupancy map.
-    :param size: The size of the configuration.
+    :param kind: The kind of the configuration.
     :return: The retrieved or created `Type`.
     """
     return get_environment().type_manager.ConfigurationType(name, occupancy_map, size)
