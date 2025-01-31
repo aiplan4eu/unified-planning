@@ -59,9 +59,6 @@ class Transform(ABC):
                 "Objects of Transform's constructor must be of movable type!"
             )
 
-        if tm1 != tm2:
-            raise UPTypeError("Object 1 and 2 must be of the same movable type!")
-
         (
             config1_exp,
             config2_exp,
@@ -73,9 +70,9 @@ class Transform(ABC):
                 "Configurations of Transform's constructor must be of configuration type!"
             )
 
-        if tc1 != tc2:
+        if tc1.kind != tc2.kind:
             raise UPTypeError(
-                "Configurations of Object 1 and 2 must be of the same configuration type!"
+                "Configurations of Object 1 and 2 must be of the same configuration kind!"
             )
 
         self._movable1 = movable1_exp
@@ -209,9 +206,6 @@ class Attachment(ABC):
                 "Objects of Transform's constructor must be of movable type!"
             )
 
-        if tm1 != tm2:
-            raise UPTypeError("Object 1 and 2 must be of the same movable type!")
-
         (
             attached_config1_exp,
             attached_config2_exp,
@@ -225,9 +219,9 @@ class Attachment(ABC):
                 "Configurations of Transform's constructor must be of configuration type!"
             )
 
-        if tc1 != tc2:
+        if tc1.kind != tc2.kind:
             raise UPTypeError(
-                "Configurations of Object 1 and 2 must be of the same configuration type!"
+                "Configurations of Object 1 and 2 must be of the same configuration kind!"
             )
 
         self._movable1 = movable1_exp

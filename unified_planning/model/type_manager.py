@@ -16,6 +16,7 @@
 
 import unified_planning
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.tamp.objects import ConfigurationKind
 from unified_planning.model.types import (
     Type,
     _IntType,
@@ -69,7 +70,7 @@ class TypeManager:
             assert isinstance(type, _ConfigurationType)
             return (
                 self._configuration_types.get(
-                    (type.name, type.occupancy_map, type.size), None
+                    (type.name, type.occupancy_map, type.kind), None
                 )
                 == type
             )
@@ -182,21 +183,21 @@ class TypeManager:
             return mt
 
     def ConfigurationType(
-        self, name: str, occupancy_map: OccupancyMap, size: int
+        self, name: str, occupancy_map: OccupancyMap, kind: ConfigurationKind
     ) -> Type:
         """
         Returns the configuration type defined in this :class:`~unified_planning.Environment` with the given `name`,
-        `occupancy_map` and `size`.
+        `occupancy_map` and `kind`.
         If the type already exists, it is returned, otherwise it is created and returned.
 
         :param name: The name of this configuration type.
         :param occupancy_map: The occupancy map.
-        :param size: The size of the configuration.
+        :param kind: The kind of the configuration.
         :return: The retrieved or created `Type`.
         """
-        if (name, occupancy_map, size) in self._configuration_types:
-            return self._configuration_types[(name, occupancy_map, size)]
+        if (name, occupancy_map, kind) in self._configuration_types:
+            return self._configuration_types[(name, occupancy_map, kind)]
         else:
-            ct = _ConfigurationType(name, occupancy_map, size)
-            self._configuration_types[(name, occupancy_map, size)] = ct
+            ct = _ConfigurationType(name, occupancy_map, kind)
+            self._configuration_types[(name, occupancy_map, kind)] = ct
             return ct

@@ -15,6 +15,7 @@
 
 from typing import Tuple, Optional
 from dataclasses import dataclass
+from unified_planning.model.tamp.objects import ConfigurationKind
 from unified_planning.model.types import _UserType, Type
 from unified_planning.exceptions import UPTypeError
 
@@ -49,15 +50,15 @@ class OccupancyMap:
 class _ConfigurationType(_UserType):
     """Represents the configuration type."""
 
-    def __init__(self, name: str, occupancy_map: OccupancyMap, size: int):
+    def __init__(self, name: str, occupancy_map: OccupancyMap, kind: ConfigurationKind):
         super().__init__(name, None)
-        self._size = size
+        self._kind = kind
         self._occupancy_map = occupancy_map
 
     @property
-    def size(self) -> int:
-        """Returns the size of this `ConfigurationType` (e.g., the number of Degrees of Freedom involved in the configuration)."""
-        return self._size
+    def kind(self) -> ConfigurationKind:
+        """Returns the kind of this `ConfigurationType` (e.g., SE2, SE3, ...)."""
+        return self._kind
 
     @property
     def occupancy_map(self) -> OccupancyMap:
