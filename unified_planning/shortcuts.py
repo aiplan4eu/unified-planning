@@ -518,7 +518,7 @@ def ConfigurationType(
 ) -> unified_planning.model.types.Type:
     """
     Returns the configuration type defined in this :class:`~unified_planning.Environment`
-    with the given `name`, `occupancy_map` and `size`.
+    with the given `name`, `occupancy_map` and `kind`.
     If the type already exists, it is returned, otherwise it is created and returned.
 
     :param name: The name of this configuration type.
@@ -526,7 +526,7 @@ def ConfigurationType(
     :param kind: The kind of the configuration.
     :return: The retrieved or created `Type`.
     """
-    return get_environment().type_manager.ConfigurationType(name, occupancy_map, size)
+    return get_environment().type_manager.ConfigurationType(name, occupancy_map, kind)
 
 
 def OneshotPlanner(

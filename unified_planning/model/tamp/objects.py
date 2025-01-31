@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, Optional, Any, Tuple, List, Callable, Union
 from unified_planning.model import Object
