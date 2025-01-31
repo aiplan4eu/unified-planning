@@ -17,6 +17,8 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Tuple, List
 
+from unified_planning.model.tamp.objects import SE2, SE3
+
 
 class Path(ABC):
     """
@@ -36,7 +38,7 @@ class SE2Path(Path):
     It is composed of a list of tuple where each element is a waypoint (e.g., pose of the robot in N-d space).
     """
 
-    path: List[Tuple[float, ...]]
+    path: List[SE2]
 
 
 @dataclass(eq=True, frozen=True)
@@ -46,7 +48,7 @@ class SE3Path(Path):
     It is composed of a list of tuple where each element is a waypoint (e.g., pose of the robot in N-d space).
     """
 
-    path: List[Tuple[float, ...]]
+    path: List[SE3]
 
 
 @dataclass(eq=True, frozen=True)
@@ -58,4 +60,4 @@ class ReedsSheppPath(Path):
     - the second element is the steering to be applied at that waypoint.
     """
 
-    path: List[Tuple[Tuple[float, ...], float]]
+    path: List[Tuple[SE2, float]]
