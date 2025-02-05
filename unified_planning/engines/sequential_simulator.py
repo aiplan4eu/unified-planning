@@ -106,7 +106,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             else:
                 warn(msg)
         assert isinstance(self._problem, up.model.Problem)
-        self._grounder = GrounderHelper(problem)
+        self._grounder = GrounderHelper(problem, prune_actions=False)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
         self._initial_state: Optional[UPState] = None
@@ -658,7 +658,13 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
     def get_interpreted_functions_values(self):
-        return self._se.if_values
+        if_values = {}
+        simplifier = self._problem.environment.simplifier
+        for key, value in simplifier.memoization.items():
+            if key.is_interpreted_function_exp() and value.is_constant():
+                if_values[key] = value
+        if_values.update(self._se.if_values)
+        return if_values
 
 
 def evaluate_quality_metric(
