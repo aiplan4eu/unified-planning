@@ -1231,11 +1231,7 @@ class PDDLReader:
             ) or self._totalcost in self._fve.get(e.condition):
                 return False
             if e.fluent == self._totalcost:
-                if (
-                    not e.is_increase()
-                    or not e.condition.is_true()
-                    or not (e.value.is_int_constant() or e.value.is_real_constant())
-                ):
+                if not e.is_increase() or not e.condition.is_true():
                     return False
         return True
 

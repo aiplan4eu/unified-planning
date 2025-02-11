@@ -1084,7 +1084,7 @@ def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
     ):  # If the name does not start with an alphabetic char, we make it start with one.
         name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
 
-    name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
+    name = re.sub("[^0-9a-zA-Z_-]", "_", name)  # Substitute non-valid elements with "_"
     while (
         name in PDDL_KEYWORDS
     ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
