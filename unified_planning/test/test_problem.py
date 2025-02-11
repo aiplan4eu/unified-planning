@@ -622,6 +622,12 @@ class TestProblem(unittest_TestCase):
         self.assertTrue(p_boiling_water.kind.has_increase_continuous_effects())
         self.assertTrue(p_boiling_water.kind.has_decrease_continuous_effects())
 
+    def test_durative_continuous(self):
+        p = self.problems["durative_continuous_example"].problem
+        self.assertTrue(p.kind.has_increase_continuous_effects())
+        self.assertFalse(p.kind.has_events())
+        self.assertFalse(p.kind.has_processes())
+
 
 if __name__ == "__main__":
     main()
