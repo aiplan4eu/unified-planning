@@ -213,11 +213,59 @@ class GrounderHelper:
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
+                if isinstance(action, up.model.action.InstantaneousAction):
+                    items_list = self._purge_items_list(
+                        items_list=items_list,
+                        pars=action.parameters,
+                        conds=action.preconditions,
+                    )
+                elif isinstance(action, up.model.action.DurativeAction):
+                    condlist = []
+                    for _, cl in action.conditions.items():
+                        condlist.extend(cl)
+                    items_list = self._purge_items_list(
+                        items_list=items_list, pars=action.parameters, conds=condlist
+                    )
                 res = product(*items_list)
             else:
                 # The grounding_actions_map is not None, therefore it must be used to ground
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
+
+    def _purge_items_list(self, items_list, pars, conds):
+        new_items_list = items_list
+        return_list = []
+        count = -1
+        for object_list in new_items_list:
+            count = count + 1
+            temp_list = object_list
+            for cond in conds:
+                for obj in object_list:
+                    count_inner = -1
+                    sub_lists = []
+                    const_f = True
+                    for obj_list_inner in new_items_list:
+                        count_inner = count_inner + 1
+                        if count_inner == count:
+                            sub_lists.append([obj])
+                        else:
+                            sub_lists.append(obj_list_inner)
+                    val_now = None
+                    for l in product(*sub_lists):
+                        subdict = {}
+                        for k, v in zip(pars, l):
+                            subdict[k] = v
+                        val_now = self._simplifier.simplify(cond.substitute(subdict))
+                        if not val_now.is_bool_constant():
+                            const_f = False
+                            break
+                        if val_now.bool_constant_value() == True:
+                            const_f = False
+                            break
+                    if const_f and val_now is not None:
+                        temp_list.remove(obj)
+            return_list.append(temp_list)
+        return return_list
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
