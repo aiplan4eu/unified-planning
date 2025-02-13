@@ -264,7 +264,6 @@ class GrounderHelper:
                     if const_f and val_now is not None:
                         temp_list.remove(obj)
             return_list.append(temp_list)
-        print(return_list)
         return return_list
 
 
