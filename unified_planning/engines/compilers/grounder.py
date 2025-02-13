@@ -256,11 +256,12 @@ class GrounderHelper:
                         for k, v in zip(pars, l):
                             subdict[k] = v
                         val_now = self._simplifier.simplify(cond.substitute(subdict))
-                        if val_now.is_bool_constant():
-                            if not val_now.bool_constant_value() == False:
-                                const_f = False
-                        else:
+                        if not val_now.is_bool_constant():
                             const_f = False
+                            break
+                        if val_now.bool_constant_value() == True:
+                            const_f = False
+                            break
                     if const_f and val_now is not None:
                         temp_list.remove(obj)
             return_list.append(temp_list)
