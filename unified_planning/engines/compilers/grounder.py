@@ -168,6 +168,7 @@ class GrounderHelper:
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):
+                # print (grounded_params)
                 assert isinstance(grounded_params, tuple)
                 new_action = self.ground_action(old_action, grounded_params)
                 yield (old_action, grounded_params, new_action)
@@ -213,11 +214,73 @@ class GrounderHelper:
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
+                if isinstance(action, up.model.action.InstantaneousAction):
+                    items_list = self._purge_items_list(
+                        items_list=items_list,
+                        pars=action.parameters,
+                        conds=action.preconditions,
+                    )
+                elif isinstance(action, up.model.action.DurativeAction):
+                    condlist = []
+                    for _, cl in action.conditions.items():
+                        condlist.extend(cl)
+                    items_list = self._purge_items_list(
+                        items_list=items_list, pars=action.parameters, conds=condlist
+                    )
                 res = product(*items_list)
             else:
                 # The grounding_actions_map is not None, therefore it must be used to ground
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
+
+    def _purge_items_list(self, items_list, pars, conds):
+        new_items_list = items_list
+        return_list = []
+        fve = up.model.walkers.free_vars.FreeVarsExtractor()
+        count = -1
+        for object_list in new_items_list:
+            count = count + 1
+            temp_list = object_list
+            for prec in conds:
+                free_vars = fve.get(prec)
+                for fv in free_vars:
+                    if fv.fluent() not in self._problem.get_static_fluents():
+                        continue
+                    for obj in object_list:
+                        count_inner = -1
+                        sub_lists = []
+                        constant = True
+                        for obj_list_inner in new_items_list:
+                            count_inner = count_inner + 1
+                            if count_inner == count:
+                                sub_lists.append([obj])
+                            else:
+                                sub_lists.append(obj_list_inner)
+                        first_val = True
+                        this_value_to_check = None
+                        for l in product(*sub_lists):
+                            subdict = {}
+                            for k, v in zip(pars, l):
+                                subdict[k] = v
+                            if first_val:
+                                first_val = False
+                                this_value_to_check = self._simplifier.simplify(
+                                    fv.substitute(subdict)
+                                )
+                            val_now = self._simplifier.simplify(fv.substitute(subdict))
+                            if this_value_to_check != val_now:
+                                constant = False
+                        if constant:
+                            p_subdict = {}
+                            p_subdict[fv] = this_value_to_check
+                            prec_simplified = self._simplifier.simplify(
+                                prec.substitute(p_subdict)
+                            )
+                            if prec_simplified.is_bool_constant():
+                                if prec_simplified.bool_constant_value() == False:
+                                    temp_list.remove(obj)
+            return_list.append(temp_list)
+        return return_list
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
