@@ -168,7 +168,6 @@ class GrounderHelper:
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):
-                # print (grounded_params)
                 assert isinstance(grounded_params, tuple)
                 new_action = self.ground_action(old_action, grounded_params)
                 yield (old_action, grounded_params, new_action)
