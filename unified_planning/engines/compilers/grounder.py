@@ -243,33 +243,28 @@ class GrounderHelper:
                 for obj in object_list:
                     count_inner = -1
                     sub_lists = []
-                    constant = True
+                    const_f = True
                     for obj_list_inner in new_items_list:
                         count_inner = count_inner + 1
                         if count_inner == count:
                             sub_lists.append([obj])
                         else:
                             sub_lists.append(obj_list_inner)
-                    first_val = True
-                    this_value_to_check = None
+                    val_now = None
                     for l in product(*sub_lists):
                         subdict = {}
                         for k, v in zip(pars, l):
                             subdict[k] = v
-                        if first_val:
-                            first_val = False
-                            this_value_to_check = self._simplifier.simplify(
-                                cond.substitute(subdict)
-                            )
                         val_now = self._simplifier.simplify(cond.substitute(subdict))
-                        if this_value_to_check != val_now:
-                            constant = False
-                    if constant and this_value_to_check is not None:
-                        c_simplified = this_value_to_check
-                        if c_simplified.is_bool_constant():
-                            if c_simplified.bool_constant_value() == False:
-                                temp_list.remove(obj)
+                        if val_now.is_bool_constant():
+                            if not val_now.bool_constant_value() == False:
+                                const_f = False
+                        else:
+                            const_f = False
+                    if const_f and val_now is not None:
+                        temp_list.remove(obj)
             return_list.append(temp_list)
+        print(return_list)
         return return_list
 
 
