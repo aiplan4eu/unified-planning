@@ -235,49 +235,40 @@ class GrounderHelper:
     def _purge_items_list(self, items_list, pars, conds):
         new_items_list = items_list
         return_list = []
-        fve = up.model.walkers.free_vars.FreeVarsExtractor()
         count = -1
         for object_list in new_items_list:
             count = count + 1
             temp_list = object_list
-            for prec in conds:
-                free_vars = fve.get(prec)
-                for fv in free_vars:
-                    if fv.fluent() not in self._problem.get_static_fluents():
-                        continue
-                    for obj in object_list:
-                        count_inner = -1
-                        sub_lists = []
-                        constant = True
-                        for obj_list_inner in new_items_list:
-                            count_inner = count_inner + 1
-                            if count_inner == count:
-                                sub_lists.append([obj])
-                            else:
-                                sub_lists.append(obj_list_inner)
-                        first_val = True
-                        this_value_to_check = None
-                        for l in product(*sub_lists):
-                            subdict = {}
-                            for k, v in zip(pars, l):
-                                subdict[k] = v
-                            if first_val:
-                                first_val = False
-                                this_value_to_check = self._simplifier.simplify(
-                                    fv.substitute(subdict)
-                                )
-                            val_now = self._simplifier.simplify(fv.substitute(subdict))
-                            if this_value_to_check != val_now:
-                                constant = False
-                        if constant:
-                            p_subdict = {}
-                            p_subdict[fv] = this_value_to_check
-                            prec_simplified = self._simplifier.simplify(
-                                prec.substitute(p_subdict)
+            for cond in conds:
+                for obj in object_list:
+                    count_inner = -1
+                    sub_lists = []
+                    constant = True
+                    for obj_list_inner in new_items_list:
+                        count_inner = count_inner + 1
+                        if count_inner == count:
+                            sub_lists.append([obj])
+                        else:
+                            sub_lists.append(obj_list_inner)
+                    first_val = True
+                    this_value_to_check = None
+                    for l in product(*sub_lists):
+                        subdict = {}
+                        for k, v in zip(pars, l):
+                            subdict[k] = v
+                        if first_val:
+                            first_val = False
+                            this_value_to_check = self._simplifier.simplify(
+                                cond.substitute(subdict)
                             )
-                            if prec_simplified.is_bool_constant():
-                                if prec_simplified.bool_constant_value() == False:
-                                    temp_list.remove(obj)
+                        val_now = self._simplifier.simplify(cond.substitute(subdict))
+                        if this_value_to_check != val_now:
+                            constant = False
+                    if constant and this_value_to_check is not None:
+                        c_simplified = this_value_to_check
+                        if c_simplified.is_bool_constant():
+                            if c_simplified.bool_constant_value() == False:
+                                temp_list.remove(obj)
             return_list.append(temp_list)
         return return_list
 
