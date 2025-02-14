@@ -299,6 +299,7 @@ def replace_action(
             action_instance.actual_parameters,
             action_instance.agent,
             action_instance.motion_paths,
+            action_instance.attachments,
         )
     else:
         return None
