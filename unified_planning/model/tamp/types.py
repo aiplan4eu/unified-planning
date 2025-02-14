@@ -13,9 +13,9 @@
 # limitations under the License.
 #
 
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
 from dataclasses import dataclass
-from unified_planning.model.tamp.objects import ConfigurationKind
+from unified_planning.model.tamp.objects import SE2, SE3, ConfigurationKind
 from unified_planning.model.types import _UserType, Type
 from unified_planning.exceptions import UPTypeError
 
@@ -44,7 +44,7 @@ class OccupancyMap:
     """
 
     filename: str
-    reference_frame: Tuple[int, ...]
+    reference_frame: Union[SE2, SE3]
 
 
 class _ConfigurationType(_UserType):

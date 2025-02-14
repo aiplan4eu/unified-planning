@@ -25,16 +25,15 @@ import unified_planning.model.types
 class ConfigurationKind(Enum):
     SE2 = auto()
     SE3 = auto()
-    REALVECTOR = auto()
     JOINT = auto()
-    KINEMATICCHAIN = auto()
+    MULTILINK = auto()
 
 
 class ConfigurationInstance:
     pass
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class SE2(ConfigurationInstance):
     """
     This dataclass represents a configuration of type (x, y, theta)
@@ -45,7 +44,7 @@ class SE2(ConfigurationInstance):
     theta: float
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class SE3(ConfigurationInstance):
     """
     This dataclass represents a configuration of type (x, y, z, rx, ry, rz, rw)
@@ -60,16 +59,7 @@ class SE3(ConfigurationInstance):
     rw: float
 
 
-@dataclass
-class RealVector(ConfigurationInstance):
-    """
-    This dataclass represents a configuration of type real vector.
-    """
-
-    values = List[float]
-
-
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Joint(ConfigurationInstance):
     """
     This dataclass represents a configuration of a (eventually) torque controlled joint.
@@ -87,18 +77,15 @@ class Joint(ConfigurationInstance):
     effort: Optional[float] = None
 
 
-@dataclass
-class KinematicChain(ConfigurationInstance):
+@dataclass(eq=True, frozen=True)
+class MultiLink(ConfigurationInstance):
     """
-    This class represents the configuration of a kinematic chain,
-    combining configurations of type SE2, SE2, RealVector or Joint.
+    This class represents the configuration of a multi link object.
 
-    All lists should have the same size, or be empty.
-    This is the only way to uniquely associate a name to its correct state.
     """
 
-    names = List[str]
-    configs = List[Union[SE2, SE3, RealVector, Joint]]
+    base_link = Tuple[str, Union[SE2, SE3]]
+    joints = Dict[str, Joint]
 
 
 class MotionModels(Enum):

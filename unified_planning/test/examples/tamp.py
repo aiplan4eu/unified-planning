@@ -32,7 +32,9 @@ def get_example_problems():
     Robot = MovableType("robot")
 
     # representation of the free and occupied working space, fixed obstacles are located on the occupied areas (e.g., Octomap)
-    map = OccupancyMap(os.path.join(FILE_PATH, "..", "tamp", "test-map.yaml"), (0, 0))
+    map = OccupancyMap(
+        os.path.join(FILE_PATH, "..", "tamp", "test-map.yaml"), SE2(0, 0, 0)
+    )
 
     # representation of the state of a movable object
     # the input is equals to the number of variables useful to define this state
@@ -80,7 +82,7 @@ def get_example_problems():
     problem.add_goal(robot_at(r1, c2))
 
     motion_paths: Dict[MotionConstraint, Path] = {
-        Waypoints(ObjectExp(r1), ObjectExp(c1), [ObjectExp(c2)]): ReedsSheppPath(
+        Waypoints(ObjectExp(r1), ObjectExp(c1), [ObjectExp(c2)]): SE2Path(
             [
                 (SE2(4.0, 26.0, -1.570796326794897), 0.0),
                 (SE2(4.024090241148528, 25.495925130590077, -1.5068310794722208), 0.0),
