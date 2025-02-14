@@ -19,22 +19,22 @@ from unified_planning.model.tamp.action import (
     MotionConstraint,
     Waypoints,
     Attachment,
-    Transform,
+    TransformConstraint,
 )
 from unified_planning.model.tamp.objects import (
     ConfigurationKind,
     ConfigurationInstance,
     SE2,
     SE3,
-    RealVector,
     Joint,
-    KinematicChain,
+    MultiLink,
     MotionModels,
     MovableObject,
     ConfigurationObject,
 )
 from unified_planning.model.tamp.types import OccupancyMap
-from unified_planning.model.tamp.path import Path, ReedsSheppPath
+from unified_planning.model.tamp.path import Path, SE2Path, SE3Path, SE2WithControlsPath
+from unified_planning.model.tamp.transform import Transform
 
 __all__ = [
     "InstantaneousMotionAction",
@@ -42,18 +42,20 @@ __all__ = [
     "MotionConstraint",
     "Waypoints",
     "Attachment",
-    "Transform",
+    "TransformConstraint",
     "ConfigurationKind",
     "ConfigurationInstance",
     "SE2",
     "SE3",
-    "RealVector",
     "Joint",
-    "KinematicChain",
+    "MultiLink",
     "MotionModels",
     "MovableObject",
     "ConfigurationObject",
     "OccupancyMap",
     "Path",
-    "ReedsSheppPath",
+    "SE2Path",
+    "SE3Path",
+    "SE2WithControlsPath",
+    "Transform",
 ]

@@ -52,12 +52,14 @@ class SE3Path(Path):
 
 
 @dataclass(eq=True, frozen=True)
-class ReedsSheppPath(Path):
+class SE2WithControlsPath(Path):
     """
     This class represents a ReedsShepp Path.
     It is composed of a list of tuple where:
     - the first element is the waypoint (e.g., pose of the robot in N-d space);
-    - the second element is the steering to be applied at that waypoint.
+    - the second element is the linear velocity to be applied at that waypoint.
+    - the third element is the angular velocity to be applied at that waypoint.
+    - the fourth element is the duration of the applied control.
     """
 
-    path: List[Tuple[SE2, float]]
+    path: List[Tuple[SE2, float, float, float]]

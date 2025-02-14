@@ -42,6 +42,9 @@ class ActionInstance:
         motion_paths: Optional[
             Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
         ] = None,
+        attachments: Optional[
+            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Transform"]
+        ] = None,
     ):
         auto_promote = action.environment.expression_manager.auto_promote
         assert agent is None or isinstance(
@@ -64,6 +67,10 @@ class ActionInstance:
             motion_paths, dict
         ), "Typing not respected"
         self._motion_paths = motion_paths
+        assert attachments is None or isinstance(
+            attachments, dict
+        ), "Typing not respected"
+        self._attachments = attachments
 
     def __repr__(self) -> str:
         s = []
@@ -93,6 +100,13 @@ class ActionInstance:
     ) -> Optional[Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]]:
         """Returns the motion paths of this `ActionInstance`."""
         return self._motion_paths
+
+    @property
+    def attachments(
+        self,
+    ) -> Optional[Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Transform"]]:
+        """Returns the attachments of this `ActionInstance`."""
+        return self._attachments
 
     @property
     def action(self) -> "up.model.Action":

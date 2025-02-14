@@ -26,132 +26,6 @@ from collections import Counter, OrderedDict
 from unified_planning.model.timing import EndTiming, StartTiming, TimeInterval, Timing
 
 
-class Transform(ABC):
-    """
-    This class represents a transformation between two objects.
-
-    This is defined by the involved movable objects, their configurations,
-    and the associated links that establish their connection.
-
-    """
-
-    def __init__(
-        self,
-        movable1: "up.model.expression.Expression",
-        movable2: "up.model.expression.Expression",
-        config1: "up.model.expression.Expression",
-        config2: "up.model.expression.Expression",
-        link1: str,
-        link2: str,
-        environment: Optional[Environment] = None,
-    ):
-        self._environment = get_environment(environment)
-
-        (
-            movable1_exp,
-            movable2_exp,
-        ) = self._environment.expression_manager.auto_promote(movable1, movable2)
-        tm1 = self._environment.type_checker.get_type(movable1_exp)
-        tm2 = self._environment.type_checker.get_type(movable2_exp)
-
-        if not tm1.is_movable_type() or not tm2.is_movable_type():
-            raise UPTypeError(
-                "Objects of Transform's constructor must be of movable type!"
-            )
-
-        (
-            config1_exp,
-            config2_exp,
-        ) = self._environment.expression_manager.auto_promote(config1, config2)
-        tc1 = self._environment.type_checker.get_type(config1_exp)
-        tc2 = self._environment.type_checker.get_type(config2_exp)
-        if not tc1.is_configuration_type() or not tc2.is_configuration_type():
-            raise UPTypeError(
-                "Configurations of Transform's constructor must be of configuration type!"
-            )
-
-        if tc1.kind != tc2.kind:
-            raise UPTypeError(
-                "Configurations of Object 1 and 2 must be of the same configuration kind!"
-            )
-
-        self._movable1 = movable1_exp
-        self._movable2 = movable2_exp
-        self._config1 = config1_exp
-        self._config2 = config2_exp
-        self._link1 = link1
-        self._link2 = link2
-
-    def __eq__(self, oth) -> bool:
-        if not isinstance(oth, Transform) or self._environment != oth._environment:
-            return False
-        if (
-            self._movable1 != oth._movable1
-            or self._movable2 != oth._movable2
-            or self._config1 != oth._config1
-            or self._config2 != oth._config2
-            or self._link1 != oth._link1
-            or self._link2 != oth._link2
-        ):
-            return False
-        return True
-
-    def __hash__(self) -> int:
-        res = hash(self._movable1)
-        res += hash(self._movable2)
-        res += hash(self._config1)
-        res += hash(self._config2)
-        res += hash(self._link1)
-        res += hash(self._link2)
-        return res
-
-    def __repr__(self) -> str:
-        s = ["transform("]
-        s.append(str(self.movable1))
-        s.append(", ")
-        s.append(str(self.movable2))
-        s.append(", ")
-        s.append(str(self.config1))
-        s.append(", ")
-        s.append(str(self.config2))
-        s.append(", ")
-        s.append(self.link1)
-        s.append(", ")
-        s.append(self.link2)
-        s.append(")")
-        return "".join(s)
-
-    @property
-    def movable1(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the first involved movable object."""
-        return self._movable1
-
-    @property
-    def movable2(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the second involved movable object."""
-        return self._movable2
-
-    @property
-    def config1(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the configuration of the first involved movable object."""
-        return self._config1
-
-    @property
-    def config2(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the configuration of the second involved movable object."""
-        return self._config2
-
-    @property
-    def link1(self) -> str:
-        """Returns the name of the link of the first involved movable object."""
-        return self._link1
-
-    @property
-    def link2(self) -> str:
-        """Returns the name of the link of the second involved movable object."""
-        return self._link2
-
-
 class Attachment(ABC):
     """
     This class represents an attachment between two objects.
@@ -167,14 +41,14 @@ class Attachment(ABC):
     def __init__(
         self,
         activation_condition: List["up.model.fnode.FNode"],
-        movable1: "up.model.expression.Expression",
-        movable2: "up.model.expression.Expression",
-        attached_config1: "up.model.expression.Expression",
-        attached_config2: "up.model.expression.Expression",
-        attached_link1: str,
-        attached_link2: str,
-        touchable_links1: Optional[List[str]] = None,
-        touchable_links2: Optional[List[str]] = None,
+        obj_from: "up.model.expression.Expression",
+        obj_to: "up.model.expression.Expression",
+        attached_config_from: "up.model.expression.Expression",
+        attached_config_to: "up.model.expression.Expression",
+        attached_link_from: str,
+        attached_link_to: str,
+        touchable_links_from: Optional[List[str]] = None,
+        touchable_links_to: Optional[List[str]] = None,
         environment: Optional[Environment] = None,
     ):
         self._environment = get_environment(environment)
@@ -195,11 +69,11 @@ class Attachment(ABC):
             )
 
         (
-            movable1_exp,
-            movable2_exp,
-        ) = self._environment.expression_manager.auto_promote(movable1, movable2)
-        tm1 = self._environment.type_checker.get_type(movable1_exp)
-        tm2 = self._environment.type_checker.get_type(movable2_exp)
+            obj_from_exp,
+            obj_to_exp,
+        ) = self._environment.expression_manager.auto_promote(obj_from, obj_to)
+        tm1 = self._environment.type_checker.get_type(obj_from_exp)
+        tm2 = self._environment.type_checker.get_type(obj_to_exp)
 
         if not tm1.is_movable_type() or not tm2.is_movable_type():
             raise UPTypeError(
@@ -207,13 +81,13 @@ class Attachment(ABC):
             )
 
         (
-            attached_config1_exp,
-            attached_config2_exp,
+            attached_config_from_exp,
+            attached_config_to_exp,
         ) = self._environment.expression_manager.auto_promote(
-            attached_config1, attached_config2
+            attached_config_from, attached_config_to
         )
-        tc1 = self._environment.type_checker.get_type(attached_config1_exp)
-        tc2 = self._environment.type_checker.get_type(attached_config2_exp)
+        tc1 = self._environment.type_checker.get_type(attached_config_from_exp)
+        tc2 = self._environment.type_checker.get_type(attached_config_to_exp)
         if not tc1.is_configuration_type() or not tc2.is_configuration_type():
             raise UPTypeError(
                 "Configurations of Transform's constructor must be of configuration type!"
@@ -224,102 +98,104 @@ class Attachment(ABC):
                 "Configurations of Object 1 and 2 must be of the same configuration kind!"
             )
 
-        self._movable1 = movable1_exp
-        self._movable2 = movable2_exp
-        self._attached_config1 = attached_config1_exp
-        self._attached_config2 = attached_config2_exp
-        self._attached_link1 = attached_link1
-        self._attached_link2 = attached_link2
-        self._touchable_links1 = touchable_links1
-        self._touchable_links2 = touchable_links2
+        self._obj_from = obj_from_exp
+        self._obj_to = obj_to_exp
+        self._attached_config_from = attached_config_from_exp
+        self._attached_config_to = attached_config_to_exp
+        self._attached_link_from = attached_link_from
+        self._attached_link_to = attached_link_to
+        self._touchable_links_from = touchable_links_from
+        self._touchable_links_to = touchable_links_to
 
     def __eq__(self, oth) -> bool:
         if not isinstance(oth, Attachment) or self._environment != oth._environment:
             return False
         if (
-            self._movable1 != oth._movable1
-            or self._movable2 != oth._movable2
-            or self._attached_config1 != oth._attached_config1
-            or self._attached_config2 != oth._attached_config2
-            or self._attached_link1 != oth._attached_link1
-            or self._attached_link2 != oth._attached_link2
-            or Counter(self._touchable_links1) != Counter(self._touchable_links2)
+            self._obj_from != oth._obj_from
+            or self._obj_to != oth._obj_to
+            or self._attached_config_from != oth._attached_config_from
+            or self._attached_config_to != oth._attached_config_to
+            or self._attached_link_from != oth._attached_link_from
+            or self._attached_link_to != oth._attached_link_to
+            or Counter(self._touchable_links_from)
+            != Counter(self._touchable_links_from)
+            or Counter(self._touchable_links_to) != Counter(self._touchable_links_to)
         ):
             return False
         return True
 
     def __hash__(self) -> int:
-        res = hash(self._movable1)
-        res += hash(self._movable2)
-        res += hash(self._attached_config1)
-        res += hash(self._attached_config2)
-        res += hash(self._attached_link1)
-        res += hash(self._attached_link2)
-        for l in self._touchable_links1:
+        res = hash(self._obj_from)
+        res += hash(self._obj_to)
+        res += hash(self._attached_config_from)
+        res += hash(self._attached_config_to)
+        res += hash(self._attached_link_from)
+        res += hash(self._attached_link_to)
+        for l in self._touchable_links_from:
             res += hash(l)
-        for l in self._touchable_links2:
+        for l in self._touchable_links_to:
             res += hash(l)
         return res
 
     def __repr__(self) -> str:
         s = ["attachment("]
-        s.append(str(self.movable1))
+        s.append(str(self.obj_from))
         s.append(", ")
-        s.append(str(self.movable2))
+        s.append(str(self.obj_to))
         s.append(", ")
-        s.append(str(self.attached_config1))
+        s.append(str(self.attached_config_from))
         s.append(", ")
-        s.append(str(self.attached_config2))
+        s.append(str(self.attached_config_to))
         s.append(", ")
-        s.append(self.attached_link1)
+        s.append(self.attached_link_from)
         s.append(", ")
-        s.append(self.attached_link2)
+        s.append(self.attached_link_to)
         s.append(", ")
-        s.append("[" + ", ".join(self.touchable_links1) + "]")
+        s.append("[" + ", ".join(self.touchable_links_from) + "]")
         s.append(", ")
-        s.append("[" + ", ".join(self.touchable_links2) + "]")
+        s.append("[" + ", ".join(self.touchable_links_to) + "]")
         s.append(")")
         return "".join(s)
 
     @property
-    def movable1(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the first involved movable object."""
-        return self._movable1
+    def obj_from(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the movable object to be attached."""
+        return self._obj_from
 
     @property
-    def movable2(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the second involved movable object."""
-        return self._movable2
+    def obj_to(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the movable object to which attach."""
+        return self._obj_to
 
     @property
-    def attached_config1(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the attached configuration of the first involved movable object."""
-        return self._attached_config1
+    def attached_config_from(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the attached configuration of movable object to be attached."""
+        return self._attached_config_from
 
     @property
-    def attached_config2(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the attached configuration of the second involved movable object."""
-        return self._attached_config2
+    def attached_config_to(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the attached configuration of the movable object to which attach."""
+        return self._attached_config_to
 
     @property
-    def attached_link1(self) -> str:
-        """Returns the name of the attached link of the first involved movable object."""
-        return self._attached_link1
+    def attached_link_from(self) -> str:
+        """Returns the name of the attached link of movable object to be attached."""
+        return self._attached_link_from
 
     @property
-    def attached_link2(self) -> str:
-        """Returns the name of the attached link of the second involved movable object."""
-        return self._attached_link2
+    def attached_link_to(self) -> str:
+        """Returns the name of the attached link of the movable object to which attach."""
+        return self._attached_link_to
 
     @property
-    def touchable_links1(self) -> List[str]:
-        """Returns the name of the touchable links of the first involved movable object."""
-        return self._touchable_links1
+    def touchable_links_from(self) -> List[str]:
+        """Returns the name of the touchable links of the movable object to be attached."""
+        return self._touchable_links_from
 
     @property
-    def touchable_links2(self) -> List[str]:
-        """Returns the name of the touchable links of the second involved movable object."""
-        return self._touchable_links2
+    def touchable_links_to(self) -> List[str]:
+        """Returns the name of the touchable links of the movable object to which attach."""
+        return self._touchable_links_to
 
 
 class MotionConstraint(ABC):
@@ -345,6 +221,133 @@ class MotionConstraint(ABC):
     def environment(self) -> Environment:
         """Returns the `Environment` in which this MotionConstraint exists."""
         return self._environment
+
+
+class TransformConstraint(MotionConstraint):
+    """
+    This class represents a constraint on the existance of a transformation between two objects.
+
+    This is defined by the involved movable objects, their configurations,
+    and the associated links that establish their connection.
+
+    """
+
+    def __init__(
+        self,
+        obj_from: "up.model.expression.Expression",
+        obj_to: "up.model.expression.Expression",
+        config_from: "up.model.expression.Expression",
+        config_to: "up.model.expression.Expression",
+        link_from: str,
+        link_to: str,
+        environment: Optional[Environment] = None,
+    ):
+
+        super().__init__(environment)
+
+        (
+            obj_from_exp,
+            obj_to_exp,
+        ) = self._environment.expression_manager.auto_promote(obj_from, obj_to)
+        tm1 = self._environment.type_checker.get_type(obj_from_exp)
+        tm2 = self._environment.type_checker.get_type(obj_to_exp)
+
+        if not tm1.is_movable_type() or not tm2.is_movable_type():
+            raise UPTypeError(
+                "Objects of Transform's constructor must be of movable type!"
+            )
+
+        (
+            config_from_exp,
+            config_to_exp,
+        ) = self._environment.expression_manager.auto_promote(config_from, config_to)
+        tc1 = self._environment.type_checker.get_type(config_from_exp)
+        tc2 = self._environment.type_checker.get_type(config_to_exp)
+        if not tc1.is_configuration_type() or not tc2.is_configuration_type():
+            raise UPTypeError(
+                "Configurations of Transform's constructor must be of configuration type!"
+            )
+
+        if tc1.kind != tc2.kind:
+            raise UPTypeError(
+                "Configurations of Object 1 and 2 must be of the same configuration kind!"
+            )
+
+        self._obj_from = obj_from_exp
+        self._obj_to = obj_to_exp
+        self._config_from = config_from_exp
+        self._config_to = config_to_exp
+        self._link_from = link_from
+        self._link_to = link_to
+
+    def __eq__(self, oth) -> bool:
+        if not isinstance(oth, Transform) or self._environment != oth._environment:
+            return False
+        if (
+            self._obj_from != oth._obj_from
+            or self._obj_to != oth._obj_to
+            or self._config_from != oth._config_from
+            or self._config_to != oth._config_to
+            or self._link_from != oth._link_from
+            or self._link_to != oth._link_to
+        ):
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._obj_from)
+        res += hash(self._obj_to)
+        res += hash(self._config_from)
+        res += hash(self._config_to)
+        res += hash(self._link_from)
+        res += hash(self._link_to)
+        return res
+
+    def __repr__(self) -> str:
+        s = ["transform("]
+        s.append(str(self.obj_from))
+        s.append(", ")
+        s.append(str(self.obj_to))
+        s.append(", ")
+        s.append(str(self.config_from))
+        s.append(", ")
+        s.append(str(self.config_to))
+        s.append(", ")
+        s.append(self.link_from)
+        s.append(", ")
+        s.append(self.link_to)
+        s.append(")")
+        return "".join(s)
+
+    @property
+    def obj_from(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the movable object from which the `Transform` is computed."""
+        return self._obj_from
+
+    @property
+    def obj_to(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the movable object to which the `Transform` is computed."""
+        return self._obj_to
+
+    @property
+    def config_from(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the configuration of the movable object from which `Transform` is computed."""
+        return self._config_from
+
+    @property
+    def config_to(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the configuration of the movable object to which the `Transform` is computed."""
+        return self._config_to
+
+    @property
+    def link_from(self) -> str:
+        """Returns the name of the link of the movable object from which the `Transform` is computed."""
+        return self._link_from
+
+    @property
+    def link_to(self) -> str:
+        """Returns the name of the link of the movable object to which the `Transform` is computed."""
+        return self._link_to
 
 
 class Waypoints(MotionConstraint):
@@ -422,8 +425,6 @@ class Waypoints(MotionConstraint):
         res += hash(self._starting)
         for p in self._waypoints:
             res += hash(p)
-        for a in self._attachments:
-            res += hash(a)
         return res
 
     def __repr__(self) -> str:
