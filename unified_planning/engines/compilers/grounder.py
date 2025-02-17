@@ -268,29 +268,28 @@ class GrounderHelper:
                         sig_pos = i
                         break
                 if sig_pos != -1:
-                    m = self._static_fluent_to_valid_object(static_fluent)
-                    valid_obj = m[sig_pos]
+                    valid_obj = self._bool_static_fluent_valid_parameters(
+                        static_fluent, sig_pos
+                    )
                     for obj in object_list:
                         if obj not in valid_obj:
                             temp_list.remove(obj)
             return_list.append(temp_list)
         return return_list
 
-    def _static_fluent_to_valid_object(self, sf: FNode) -> Dict[int, Set[FNode]]:
-        ret_val: dict = {}
-        for i, _ in enumerate(sf.args):
-            ret_val[i] = set()
+    def _bool_static_fluent_valid_parameters(self, sf: FNode, sp: int) -> Set[FNode]:
+        assert sf.fluent() in self._problem.get_static_fluents()
+        ret_val = set()
         default_value = self._problem.fluents_defaults[sf.fluent()]
         if default_value.is_false():
+            # if default is false, check only explicit instead of all values
             for key, value in self._problem.explicit_initial_values.items():
                 if key.fluent() == sf.fluent() and value.is_true():
-                    for i, val in enumerate(key.args):
-                        ret_val[i].add(val)
+                    ret_val.add(key.args[sp])
         else:
             for key, value in self._problem.initial_values.items():
                 if key.fluent() == sf.fluent() and value.is_true():
-                    for i, val in enumerate(key.args):
-                        ret_val[i].add(val)
+                    ret_val.add(key.args[sp])
         return ret_val
 
 
