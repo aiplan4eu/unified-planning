@@ -211,17 +211,19 @@ class GrounderHelper:
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
+
+                problem_static_fluents = self._problem.get_static_fluents()
                 if self._prune_actions and isinstance(
                     action, up.model.action.InstantaneousAction
                 ):
                     bool_conditions = []
                     for c in action.preconditions:
-                        if c.is_fluent_exp():
-                            if (
-                                c.fluent().type.is_bool_type()
-                                and c.fluent() in self._problem.get_static_fluents()
-                            ):
-                                bool_conditions.append(c)
+                        if (
+                            c.is_fluent_exp()
+                            and c.fluent().type.is_bool_type()
+                            and c.fluent() in problem_static_fluents
+                        ):
+                            bool_conditions.append(c)
                     items_list = self._purge_items_list(
                         items_list=items_list,
                         params=action.parameters,
@@ -235,12 +237,12 @@ class GrounderHelper:
                         condlist.extend(cl)
                     bool_conditions = []
                     for c in condlist:
-                        if c.is_fluent_exp():
-                            if (
-                                c.fluent().type.is_bool_type()
-                                and c.fluent() in self._problem.get_static_fluents()
-                            ):
-                                bool_conditions.append(c)
+                        if (
+                            c.is_fluent_exp()
+                            and c.fluent().type.is_bool_type()
+                            and c.fluent() in problem_static_fluents
+                        ):
+                            bool_conditions.append(c)
                     items_list = self._purge_items_list(
                         items_list=items_list,
                         params=action.parameters,
@@ -280,8 +282,8 @@ class GrounderHelper:
     def _bool_static_fluent_valid_parameters(self, sf: FNode, sp: int) -> Set[FNode]:
         assert sf.fluent() in self._problem.get_static_fluents()
         ret_val = set()
-        default_value = self._problem.fluents_defaults[sf.fluent()]
-        if default_value.is_false():
+        default_value = self._problem.fluents_defaults.get(sf.fluent(), None)
+        if default_value is not None and default_value.is_false():
             # if default is false, check only explicit instead of all values
             for key, value in self._problem.explicit_initial_values.items():
                 if key.fluent() == sf.fluent() and value.is_true():
