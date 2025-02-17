@@ -38,7 +38,17 @@ from unified_planning.engines.compilers.utils import (
     create_action_with_given_subs,
 )
 from unified_planning.exceptions import UPUsageError
-from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Iterator, cast
+from typing import (
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    OrderedDict,
+    Set,
+    Tuple,
+    Iterator,
+    cast,
+)
 from itertools import product
 from functools import partial
 
@@ -258,7 +268,7 @@ class GrounderHelper:
 
     def _purge_items_list(
         self, items_list: List[List[FNode]], params: List[Parameter], conds: List[FNode]
-    ):
+    ) -> List[List[FNode]]:
         return_list = []
         for param, object_list in zip(params, items_list):
             temp_list = list(object_list)
@@ -280,7 +290,7 @@ class GrounderHelper:
             return_list.append(temp_list)
         return return_list
 
-    def _static_fluent_to_valid_object(self, sf):
+    def _static_fluent_to_valid_object(self, sf: FNode) -> Dict[int, Set[FNode]]:
         ret_val: dict = {}
         for i, _ in enumerate(sf.args):
             ret_val[i] = set()
