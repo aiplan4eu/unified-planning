@@ -28,6 +28,7 @@ from unified_planning.model import (
     Expression,
     FNode,
     MinimizeActionCosts,
+    Parameter,
 )
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Simplifier
@@ -37,7 +38,7 @@ from unified_planning.engines.compilers.utils import (
     create_action_with_given_subs,
 )
 from unified_planning.exceptions import UPUsageError
-from typing import Dict, Iterable, List, Optional, Tuple, Iterator, cast
+from typing import Dict, Iterable, List, Optional, OrderedDict, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
 
@@ -255,7 +256,9 @@ class GrounderHelper:
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
 
-    def _purge_items_list(self, items_list, params, conds):
+    def _purge_items_list(
+        self, items_list: List[List[FNode]], params: List[Parameter], conds: List[FNode]
+    ):
         return_list = []
         for param, object_list in zip(params, items_list):
             temp_list = list(object_list)
