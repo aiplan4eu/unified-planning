@@ -79,6 +79,7 @@ class GrounderHelper:
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
+        self._prune_actions = prune_actions
         if grounding_actions_map is not None:
             for action, params_list in grounding_actions_map.items():
                 for params in params_list:
@@ -213,18 +214,40 @@ class GrounderHelper:
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
-                if isinstance(action, up.model.action.InstantaneousAction):
+                if self._prune_actions and isinstance(
+                    action, up.model.action.InstantaneousAction
+                ):
+                    bool_conditions = []
+                    for c in action.preconditions:
+                        if c.is_fluent_exp():
+                            if (
+                                c.fluent().type.is_bool_type()
+                                and c.fluent() in self._problem.get_static_fluents()
+                            ):
+                                bool_conditions.append(c)
                     items_list = self._purge_items_list(
                         items_list=items_list,
-                        pars=action.parameters,
-                        conds=action.preconditions,
+                        params=action.parameters,
+                        conds=bool_conditions,
                     )
-                elif isinstance(action, up.model.action.DurativeAction):
+                elif self._prune_actions and isinstance(
+                    action, up.model.action.DurativeAction
+                ):
                     condlist = []
                     for _, cl in action.conditions.items():
                         condlist.extend(cl)
+                    bool_conditions = []
+                    for c in condlist:
+                        if c.is_fluent_exp():
+                            if (
+                                c.fluent().type.is_bool_type()
+                                and c.fluent() in self._problem.get_static_fluents()
+                            ):
+                                bool_conditions.append(c)
                     items_list = self._purge_items_list(
-                        items_list=items_list, pars=action.parameters, conds=condlist
+                        items_list=items_list,
+                        params=action.parameters,
+                        conds=bool_conditions,
                     )
                 res = product(*items_list)
             else:
@@ -232,40 +255,44 @@ class GrounderHelper:
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
 
-    def _purge_items_list(self, items_list, pars, conds):
-        new_items_list = items_list
+    def _purge_items_list(self, items_list, params, conds):
         return_list = []
-        count = -1
-        for object_list in new_items_list:
-            count = count + 1
-            temp_list = object_list
+        for param, object_list in zip(params, items_list):
+            temp_list = list(object_list)
             for cond in conds:
-                for obj in object_list:
-                    count_inner = -1
-                    sub_lists = []
-                    const_f = True
-                    for obj_list_inner in new_items_list:
-                        count_inner = count_inner + 1
-                        if count_inner == count:
-                            sub_lists.append([obj])
-                        else:
-                            sub_lists.append(obj_list_inner)
-                    val_now = None
-                    for l in product(*sub_lists):
-                        subdict = {}
-                        for k, v in zip(pars, l):
-                            subdict[k] = v
-                        val_now = self._simplifier.simplify(cond.substitute(subdict))
-                        if not val_now.is_bool_constant():
-                            const_f = False
-                            break
-                        if val_now.bool_constant_value() == True:
-                            const_f = False
-                            break
-                    if const_f and val_now is not None:
-                        temp_list.remove(obj)
+                static_fluent = cond
+                sig_pos = -1
+                for i, fp in enumerate(static_fluent.args):
+                    if fp == self._problem.environment.expression_manager.ParameterExp(
+                        param
+                    ):
+                        sig_pos = i
+                        break
+                if sig_pos != -1:
+                    m = self._static_fluent_to_valid_object(static_fluent)
+                    valid_obj = m[sig_pos]
+                    for obj in object_list:
+                        if obj not in valid_obj:
+                            temp_list.remove(obj)
             return_list.append(temp_list)
         return return_list
+
+    def _static_fluent_to_valid_object(self, sf):
+        ret_val: dict = {}
+        for i, _ in enumerate(sf.args):
+            ret_val[i] = set()
+        default_value = self._problem.fluents_defaults[sf.fluent()]
+        if default_value.is_false():
+            for key, value in self._problem.explicit_initial_values.items():
+                if key.fluent() == sf.fluent() and value.is_true():
+                    for i, val in enumerate(key.args):
+                        ret_val[i].add(val)
+        else:
+            for key, value in self._problem.initial_values.items():
+                if key.fluent() == sf.fluent() and value.is_true():
+                    for i, val in enumerate(key.args):
+                        ret_val[i].add(val)
+        return ret_val
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
