@@ -161,7 +161,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
                 assert res.plan is not None
                 if output_stream is not None:
-                    output_stream.write(f"\nIF planner > > plan found:\n{res.plan}\n\n")
+                    output_stream.write(f"\nIF planner > plan found:\n{res.plan}\n\n")
                 plan = res.plan.replace_action_instances(
                     comp_res.map_back_action_instance
                 )
