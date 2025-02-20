@@ -160,6 +160,8 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             res = self.engine.solve(comp_res.problem, heuristic, timeout, output_stream)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
                 assert res.plan is not None
+                if output_stream is not None:
+                    output_stream.write(f"\nIF planner > > plan found:\n{res.plan}\n\n")
                 plan = res.plan.replace_action_instances(
                     comp_res.map_back_action_instance
                 )
@@ -183,6 +185,11 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                 else:
                     raise UPException(f"Unexpected plan kind: {plan.kind}")
                 validation_result = validator.validate(problem, plan)
+
+                if output_stream is not None:
+                    output_stream.write(
+                        f"\nIF planner > plan validated as: {validation_result.status}\n\n"
+                    )
                 if validation_result.status == ValidationResultStatus.VALID:
                     return PlanGenerationResult(
                         res.status, plan, self.name, log_messages=res.log_messages
@@ -192,5 +199,14 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                         validation_result.calculated_interpreted_functions is not None
                     )
                     knowledge.update(validation_result.calculated_interpreted_functions)
+
+                    if output_stream is not None:
+                        output_stream.write(
+                            f"\nIF planner > dictionary of known interpreted functions values:\n\n"
+                        )
+                        for log_if, log_val in knowledge.items():
+                            output_stream.write(f"{log_if} : {log_val}\n")
+                        output_stream.write("\n")
+
             else:
                 return PlanGenerationResult(res.status, None, self.name)
