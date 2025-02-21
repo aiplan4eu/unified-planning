@@ -383,8 +383,6 @@ class DurativeAction(Action, TimedCondsEffs):
         :param interval: The interval in which the `increment` is applied.
         :param fluent: The `fluent` which value is incremented by the added effect.
         :param rhs: The given `fluent` is incremented according to the differential equation `d(fluent)/dt = rhs`.
-
-        NOTE placeholder _ necessary as sometimes effects functions return other parameters not used in continuous effects
         """
         (
             fluent_exp,
@@ -425,8 +423,6 @@ class DurativeAction(Action, TimedCondsEffs):
         :param interval: The interval in which the `decrement` is applied.
         :param fluent: The `fluent` which value is decremented by the added effect.
         :param rhs: The given `fluent` is decremented according to the differential equation `d(fluent)/dt = - rhs`.
-
-        NOTE placeholder _ necessary as sometimes effects functions return other parameters not used in continuous effects
         """
         (
             fluent_exp,
