@@ -1298,6 +1298,8 @@ class PDDLReader:
                     raise SyntaxError(
                         f"Type {declared_type} is declared more than once"
                     )
+                if declared_type == Object:
+                    father_name = None
                 type_declarations[declared_type] = father_name
 
         # Processes a type and adds it to the `types_map`.
