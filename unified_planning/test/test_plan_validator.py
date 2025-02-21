@@ -89,7 +89,7 @@ class TestProblem(unittest_TestCase):
                         validation_result.status, ValidationResultStatus.VALID
                     )
 
-    def test_quality_metric(self):
+    def test_sequential_quality_metric_evaluations(self):
         pv = SequentialPlanValidator()
         example = self.problems["basic"]
         problem, plan = example.problem, example.valid_plans[0]
@@ -122,6 +122,248 @@ class TestProblem(unittest_TestCase):
         for qm, val in me.items():
             self.assertIsInstance(qm, MinimizeActionCosts)
             self.assertEqual(val, 10)
+
+    def test_temporal_quality_metric_evaluations(self):
+        pv = TimeTriggeredPlanValidator()
+        example = self.problems["basic_tils"]
+        problem, plan = example.problem, example.valid_plans[0]
+        problem = problem.clone()
+        problem.add_quality_metric(MinimizeMakespan())
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeMakespan)
+            self.assertEqual(val, 8)
+
+        # Add an action to enhance tests
+        b = DurativeAction("b")
+        b_duration = Fraction(3, 2)
+        b.set_fixed_duration(b_duration)
+        b.add_effect(EndTiming(), problem.fluent("x"), True)
+        problem.add_action(b)
+        plan = up.plans.TimeTriggeredPlan([(Fraction(10), b(), b_duration)])
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeMakespan)
+            self.assertEqual(val, 10 + b_duration)
+
+        problem.add_timed_goal(
+            TimeInterval(GlobalStartTiming(11 + b_duration), GlobalEndTiming()),
+            problem.fluent("x"),
+        )
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeMakespan)
+            self.assertEqual(val, 11 + b_duration)
+
+        example = self.problems["matchcellar"]
+        problem, plan = example.problem, example.valid_plans[0]
+        problem = problem.clone()
+        light_match = problem.action("light_match")
+        problem.add_quality_metric(
+            MinimizeActionCosts({light_match: Fraction(3, 2)}, default=2)
+        )
+        res = pv.validate(problem, plan)
+        me = res.metric_evaluations
+        assert me is not None
+        self.assertEqual(len(me), 1)
+        for qm, val in me.items():
+            self.assertIsInstance(qm, MinimizeActionCosts)
+            self.assertEqual(val, Fraction(21, 2))
+
+        example = self.problems["timed_connected_locations"]
+        problem, plan = example.problem, example.valid_plans[0]
+        problem = problem.clone()
+        Location = problem.user_type("Location")
+        static_cost = problem.add_fluent(
+            "static_cost", IntType(), default_initial_value=10, destination=Location
+        )
+        dynamic_cost = problem.add_fluent(
+            "dynamic_cost", IntType(), default_initial_value=0, destination=Location
+        )
+        move = problem.action("move")
+        is_connected = problem.fluent("is_connected")
+        l_from = move.l_from
+        l_to = move.l_to
+        move.clear_conditions()
+        move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        all_locations = problem.all_objects
+        for location_obj in all_locations:
+            move.add_increase_effect(StartTiming(), dynamic_cost(location_obj), 10)
+        move_duration = Fraction(6, 1)
+        problem.clear_actions()
+        problem.add_action(move)
+        l1 = problem.object("l1")
+        l2 = problem.object("l2")
+        l3 = problem.object("l3")
+        l4 = problem.object("l4")
+        l5 = problem.object("l5")
+        problem.set_initial_value(is_connected(l1, l3), True)
+        problem.set_initial_value(is_connected(l3, l5), True)
+        problem.add_quality_metric(MinimizeActionCosts({move: static_cost(l_to)}))
+        plans_costs = [
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l3, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                20,
+            ),
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l2),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l2, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1202, 100),
+                            move(l3, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                30,
+            ),
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l2),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l2, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1202, 100),
+                            move(l3, l4),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1803, 100),
+                            move(l4, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                40,
+            ),
+        ]
+        for plan, expected_cost in plans_costs:
+            res = pv.validate(problem, plan)
+            me = res.metric_evaluations
+            assert me is not None
+            self.assertEqual(len(me), 1)
+            for qm, val in me.items():
+                self.assertIsInstance(qm, MinimizeActionCosts)
+                self.assertEqual(val, expected_cost)
+
+        problem.clear_quality_metrics()
+        problem.add_quality_metric(MinimizeActionCosts({move: dynamic_cost(l_to)}))
+        plans_costs = [
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l3, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                10,
+            ),
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l2),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l2, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1202, 100),
+                            move(l3, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                30,
+            ),
+            (
+                up.plans.TimeTriggeredPlan(
+                    [
+                        (
+                            Fraction(0, 1),
+                            move(l1, l2),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(601, 100),
+                            move(l2, l3),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1202, 100),
+                            move(l3, l4),
+                            move_duration,
+                        ),
+                        (
+                            Fraction(1803, 100),
+                            move(l4, l5),
+                            move_duration,
+                        ),
+                    ]
+                ),
+                60,
+            ),
+        ]
+        for plan, expected_cost in plans_costs:
+            res = pv.validate(problem, plan)
+            me = res.metric_evaluations
+            assert me is not None
+            self.assertEqual(len(me), 1)
+            for qm, val in me.items():
+                self.assertIsInstance(qm, MinimizeActionCosts)
+                self.assertEqual(val, expected_cost)
 
     def test_state_invariants(self):
         problem = self.problems["robot_loader_weak_bridge"].problem
