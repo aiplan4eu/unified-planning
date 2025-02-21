@@ -30,6 +30,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Set, Union, Optional, Iterable
 from collections import OrderedDict
 
+from unified_planning.model.timing import EndTiming, StartTiming
 from unified_planning.model.transition import (
     UntimedEffectMixin,
     PreconditionMixin,
@@ -152,6 +153,9 @@ class DurativeAction(Action, TimedCondsEffs):
         self._duration: "up.model.timing.DurationInterval" = (
             up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
         )
+        self._continuous_effects: Dict[
+            "up.model.timing.TimeInterval", List["up.model.effect.Effect"]
+        ] = {}
 
     def __repr__(self) -> str:
         s = []
@@ -179,6 +183,10 @@ class DurativeAction(Action, TimedCondsEffs):
             s.append(f"      {str(t)}:\n")
             for e in el:
                 s.append(f"        {str(e)}:\n")
+        for t, el in self.continuous_effects.items():
+            s.append(f"      {str(t)}:\n")
+            for e in el:
+                s.append(f"        {str(e)}:\n")
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():
@@ -199,6 +207,14 @@ class DurativeAction(Action, TimedCondsEffs):
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False
+        if len(self._continuous_effects) != len(oth._continuous_effects):
+            return False
+        for t, el in self._continuous_effects.items():
+            oth_el = oth._continuous_effects.get(t, None)
+            if oth_el is None:
+                return False
+            elif set(el) != set(oth_el):
+                return False
         return True
 
     def __hash__(self) -> int:
@@ -208,6 +224,10 @@ class DurativeAction(Action, TimedCondsEffs):
         res += TimedCondsEffs.__hash__(self)
         return res
 
+    @property
+    def continuous_effects(self):
+        return self._continuous_effects
+
     def clone(self):
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
@@ -216,6 +236,10 @@ class DurativeAction(Action, TimedCondsEffs):
         new_durative_action._duration = self._duration
 
         TimedCondsEffs._clone_to(self, new_durative_action)
+        new_durative_action._continuous_effects = {
+            t: [e.clone() for e in el] for t, el in self._continuous_effects.items()
+        }
+
         return new_durative_action
 
     @property
@@ -341,6 +365,102 @@ class DurativeAction(Action, TimedCondsEffs):
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
         # re-implemenation needed for inheritance, delegate implementation.
         return TimedCondsEffs.is_conditional(self)
+
+    def clear_continuous_effects(self):
+        self._continuous_effects = {}
+
+    def has_continuous_effects(self):
+        return len(self._continuous_effects) > 0
+
+    def add_increase_continuous_effect(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        rhs: "up.model.expression.Expression",
+    ):
+        """
+        During the given interval, adds the given `increment` to the `continuous_action's effects`.
+        :param interval: The interval in which the `increment` is applied.
+        :param fluent: The `fluent` which value is incremented by the added effect.
+        :param rhs: The given `fluent` is incremented according to the differential equation `d(fluent)/dt = rhs`.
+        """
+        (
+            fluent_exp,
+            rhs_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, rhs, True)
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_increase_continuous_effect must be a Fluent or a FluentExp"
+            )
+        if not fluent_exp.type.is_compatible(rhs_exp.type):
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {rhs_exp.type}"
+            )
+        if not fluent_exp.type.is_real_type():
+            raise UPTypeError(
+                "Increase continuous effects can be created only on real type!"
+            )
+        self._add_continuous_effect_instance(
+            interval,
+            up.model.effect.Effect(
+                fluent_exp,
+                rhs_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
+                forall=tuple(),
+            ),
+        )
+
+    def add_decrease_continuous_effect(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
+        rhs: "up.model.expression.Expression",
+    ):
+        """
+        During the given interval, adds the given `decrement` to the `continuous_action's effects`.
+        :param interval: The interval in which the `decrement` is applied.
+        :param fluent: The `fluent` which value is decremented by the added effect.
+        :param rhs: The given `fluent` is decremented according to the differential equation `d(fluent)/dt = - rhs`.
+        """
+        (
+            fluent_exp,
+            rhs_exp,
+            condition_exp,
+        ) = self._environment.expression_manager.auto_promote(fluent, rhs, True)
+        if not fluent_exp.is_fluent_exp():
+            raise UPUsageError(
+                "fluent field of add_decrease_continuous_effect must be a Fluent or a FluentExp"
+            )
+        if not fluent_exp.type.is_compatible(rhs_exp.type):
+            raise UPTypeError(
+                f"DurativeAction effect has an incompatible value type. Fluent type: {fluent_exp.type} // Value type: {rhs_exp.type}"
+            )
+        if not fluent_exp.type.is_real_type():
+            raise UPTypeError(
+                "Decrease continuous effects can be created only on real type!"
+            )
+        self._add_continuous_effect_instance(
+            interval,
+            up.model.effect.Effect(
+                fluent_exp,
+                rhs_exp,
+                condition_exp,
+                kind=up.model.effect.EffectKind.CONTINUOUS_DECREASE,
+                forall=tuple(),
+            ),
+        )
+
+    def _add_continuous_effect_instance(
+        self,
+        interval: "up.model.timing.TimeInterval",
+        continuous_effect: "up.model.effect.Effect",
+    ):
+        assert (
+            self._environment == continuous_effect.environment
+        ), "effect does not have the same environment of the action"
+        self._continuous_effects.setdefault(interval, []).append(continuous_effect)
 
 
 class SensingAction(InstantaneousAction):
