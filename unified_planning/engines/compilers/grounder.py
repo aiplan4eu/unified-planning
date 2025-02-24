@@ -14,10 +14,7 @@
 #
 
 import unified_planning as up
-import unified_planning.environment
 import unified_planning.engines as engines
-import unified_planning.engines.compilers
-from unified_planning.plans import ActionInstance
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
@@ -28,6 +25,7 @@ from unified_planning.model import (
     Expression,
     FNode,
     MinimizeActionCosts,
+    Parameter,
 )
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Simplifier
@@ -35,9 +33,9 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
+    split_all_ands,
 )
-from unified_planning.exceptions import UPUsageError
-from typing import Dict, Iterable, List, Optional, Tuple, Iterator, cast
+from typing import Dict, List, Optional, Set, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
 
@@ -79,6 +77,7 @@ class GrounderHelper:
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
+        self._prune_actions = prune_actions
         if grounding_actions_map is not None:
             for action, params_list in grounding_actions_map.items():
                 for params in params_list:
@@ -213,11 +212,100 @@ class GrounderHelper:
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
+
+                problem_static_fluents = self._problem.get_static_fluents()
+                if self._prune_actions and isinstance(
+                    action, up.model.action.InstantaneousAction
+                ):
+                    no_and_list = split_all_ands(action.preconditions)
+                    bool_conditions = []
+                    for c in no_and_list:
+                        if (
+                            c.is_fluent_exp()
+                            and c.fluent().type.is_bool_type()
+                            and c.fluent() in problem_static_fluents
+                        ):
+                            bool_conditions.append(c)
+                    items_list = self._purge_items_list(
+                        items_list=items_list,
+                        params=action.parameters,
+                        conds=bool_conditions,
+                    )
+                elif self._prune_actions and isinstance(
+                    action, up.model.action.DurativeAction
+                ):
+                    condlist = []
+                    for _, cl in action.conditions.items():
+                        condlist.extend(cl)
+
+                    no_and_list = split_all_ands(condlist)
+                    bool_conditions = []
+                    for c in no_and_list:
+                        if (
+                            c.is_fluent_exp()
+                            and c.fluent().type.is_bool_type()
+                            and c.fluent() in problem_static_fluents
+                        ):
+                            bool_conditions.append(c)
+                    items_list = self._purge_items_list(
+                        items_list=items_list,
+                        params=action.parameters,
+                        conds=bool_conditions,
+                    )
                 res = product(*items_list)
             else:
                 # The grounding_actions_map is not None, therefore it must be used to ground
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
+
+    def _purge_items_list(
+        self, items_list: List[List[FNode]], params: List[Parameter], conds: List[FNode]
+    ) -> List[List[FNode]]:
+        """
+        Calculates the combination of viable parameters to ground an action.
+        Removes from the input items_list the objects that would always be not viable due to static fluents's values.
+
+        :param items_list: The List of Lists of FNodes containing all the possible objects for the parameters.
+        :param params: The List of Parameters for the action we are grounding.
+        :param conds: The List of FNodes that represent the conditions we want to verify the validity of the parameters for.
+        :return: the items_list input pruned off of the objects that would generate always invalid actions.
+        """
+        return_list = []
+        for param, object_list in zip(params, items_list):
+            temp_list = list(object_list)
+            for cond in conds:
+                static_fluent = cond
+                sig_pos = -1
+                for i, fp in enumerate(static_fluent.args):
+                    if fp == self._problem.environment.expression_manager.ParameterExp(
+                        param
+                    ):
+                        sig_pos = i
+                        break
+                if sig_pos != -1:
+                    valid_obj = self._bool_static_fluent_valid_parameters(
+                        static_fluent, sig_pos
+                    )
+                    for obj in object_list:
+                        if obj not in valid_obj:
+                            temp_list.remove(obj)
+            return_list.append(temp_list)
+        return return_list
+
+    def _bool_static_fluent_valid_parameters(self, sf: FNode, sp: int) -> Set[FNode]:
+        assert sf.fluent() in self._problem.get_static_fluents()
+        ret_val = set()
+        default_value = self._problem.fluents_defaults.get(sf.fluent(), None)
+        if default_value is not None and default_value.is_false():
+            # if default is false, check only explicit instead of all values
+            for key, value in self._problem.explicit_initial_values.items():
+                if key.fluent() == sf.fluent() and value.is_true():
+                    ret_val.add(key.args[sp])
+        else:
+            for key, value in self._problem.initial_values.items():
+                if key.fluent() == sf.fluent() and value.is_true():
+                    ret_val.add(key.args[sp])
+        return ret_val
 
 
 class Grounder(engines.engine.Engine, CompilerMixin):
