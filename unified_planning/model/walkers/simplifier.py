@@ -18,6 +18,7 @@ from collections import OrderedDict
 from typing import List, Optional, FrozenSet, Union, cast
 import unified_planning as up
 import unified_planning.environment
+from unified_planning.exceptions import UPUnreachableCodeError
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.types import _UserType
@@ -329,6 +330,32 @@ class Simplifier(walkers.dag.DagWalker):
                 return static_value
             else:  # value is static but is not defined in the initial state
                 return new_exp
+
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List[FNode]
+    ) -> FNode:
+        new_exp = self.manager.InterpretedFunctionExp(
+            expression.interpreted_function(), tuple(args)
+        )
+        newlist = []
+        for a in args:
+            if not a.is_constant():
+                return new_exp
+            else:
+                v = a.constant_value()
+                newlist.append(v)
+        constantval = expression.interpreted_function().function(*newlist)
+        if expression.interpreted_function().return_type.is_bool_type():
+            constantval = self.manager.Bool(constantval)
+        elif expression.interpreted_function().return_type.is_int_type():
+            constantval = self.manager.Int(constantval)
+        elif expression.interpreted_function().return_type.is_real_type():
+            constantval = self.manager.Real(Fraction(constantval))
+        elif expression.interpreted_function().return_type.is_user_type():
+            constantval = self.manager.ObjectExp(constantval)
+        else:
+            raise UPUnreachableCodeError
+        return constantval
 
     def walk_dot(self, expression: FNode, args: List[FNode]) -> FNode:
         return self.manager.Dot(expression.agent(), args[0])
