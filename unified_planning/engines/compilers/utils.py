@@ -518,3 +518,24 @@ def updated_minimize_action_costs(
         else:
             new_costs[new_act] = environment.expression_manager.Int(0)
     return MinimizeActionCosts(new_costs, environment=environment)
+
+
+def split_all_ands(exp_list: List[FNode]) -> List[FNode]:
+    """
+    Helper function. Takes in input a List of FNodes and returns a list of FNodes that do not contain any AND operator as the first operator.
+
+    :param exp_list: The List of FNodes that we want to remove AND operators from.
+    :return: A list of FNodes not containing AND as the first operators such that AND(e for e in in_exp_list) is equivalent to AND(e for e in returned_list).
+    """
+    end_list = []
+    start_list = exp_list.copy()
+    while len(start_list) > 0:
+        temp_list = []
+        for exp in start_list:
+            if exp.is_and():
+                for sub_exp in exp.args:
+                    temp_list.append(sub_exp)
+            else:
+                end_list.append(exp)
+        start_list = temp_list
+    return end_list
