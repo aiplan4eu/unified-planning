@@ -16,7 +16,18 @@
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, OrderedDict, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    OrderedDict,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -732,7 +743,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
                 if not is_satisfied:
                     if opt_ai is not None:
-
+                        assert end is not None
                         return ValidationResult(
                             status=ValidationResultStatus.INVALID,
                             engine_name=self.name,
@@ -751,7 +762,11 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             metric_evaluations=None,
                             reason=FailedValidationReason.UNSATISFIED_GOALS,
                             inapplicable_action=None,
-                            trace={k: v for k, v in trace.items() if k <= end},
+                            trace={
+                                k: v
+                                for k, v in trace.items()
+                                if end is None or k <= end
+                            },
                             calculated_interpreted_functions=se.if_values,
                         )
 
@@ -821,11 +836,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             metric_evaluations=metric_evaluations,
             trace=trace,
         )
-
-    def update_knowledge(self, se):
-        for k in se.if_values.keys():
-            if k not in self._calculated_interpreted_functions.keys():
-                self._calculated_interpreted_functions[k] = se.if_values[k]
 
 
 def get_temporal_metric_evaluations(
