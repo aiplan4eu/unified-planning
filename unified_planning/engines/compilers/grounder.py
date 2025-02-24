@@ -216,8 +216,9 @@ class GrounderHelper:
                 if self._prune_actions and isinstance(
                     action, up.model.action.InstantaneousAction
                 ):
+                    no_and_list = self._split_all_ands(action.preconditions)
                     bool_conditions = []
-                    for c in action.preconditions:
+                    for c in no_and_list:
                         if (
                             c.is_fluent_exp()
                             and c.fluent().type.is_bool_type()
@@ -235,8 +236,10 @@ class GrounderHelper:
                     condlist = []
                     for _, cl in action.conditions.items():
                         condlist.extend(cl)
+
+                    no_and_list = self._split_all_ands(condlist)
                     bool_conditions = []
-                    for c in condlist:
+                    for c in no_and_list:
                         if (
                             c.is_fluent_exp()
                             and c.fluent().type.is_bool_type()
@@ -254,9 +257,38 @@ class GrounderHelper:
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
 
+    def _split_all_ands(self, in_exp_list: List[FNode]) -> List[FNode]:
+        """
+        Helper function. Takes in input a List of FNodes and returns a list of FNodes that do not contain any AND operator as the first operator.
+
+        :param in_exp_list: The List of FNodes that we want to remove AND operators from.
+        :return: A list of FNodes not containing AND as the first operators such that AND(e for e in in_exp_list) is equivalent to AND(e for e in returned_list).
+        """
+        end_list = []
+        start_list = in_exp_list.copy()
+        while len(start_list) > 0:
+            temp_list = []
+            for exp in start_list:
+                if exp.is_and():
+                    for sub_exp in exp.args:
+                        temp_list.append(sub_exp)
+                else:
+                    end_list.append(exp)
+            start_list = temp_list
+        return end_list
+
     def _purge_items_list(
         self, items_list: List[List[FNode]], params: List[Parameter], conds: List[FNode]
     ) -> List[List[FNode]]:
+        """
+        Calculates the combination of viable parameters to ground an action.
+        Removes from the input items_list the objects that would always be not viable due to static fluents's values.
+
+        :param items_list: The List of Lists of FNodes containing all the possible objects for the parameters.
+        :param params: The List of Parameters for the action we are grounding.
+        :param conds: The List of FNodes that represent the conditions we want to verify the validity of the parameters for.
+        :return: the items_list input pruned off of the objects that would generate always invalid actions.
+        """
         return_list = []
         for param, object_list in zip(params, items_list):
             temp_list = list(object_list)
