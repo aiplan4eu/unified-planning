@@ -443,8 +443,10 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ]
         ] = []
 
-        plan_duration: Fraction = max(
-            x[0] + (x[2] if x[2] else 0) for x in start_actions
+        plan_duration: Fraction = (
+            max(x[0] + (x[2] if x[2] else 0) for x in start_actions)
+            if start_actions
+            else Fraction(0)
         )
 
         next_id = 0
