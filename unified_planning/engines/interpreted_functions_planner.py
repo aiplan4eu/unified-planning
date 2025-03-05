@@ -161,7 +161,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
                 assert res.plan is not None
                 if output_stream is not None:
-                    output_stream.write(f"\nIF planner > plan found:\n{res.plan}\n\n")
+                    output_stream.write(f"\nIFPlanner -> plan found:\n{res.plan}\n\n")
                 plan = res.plan.replace_action_instances(
                     comp_res.map_back_action_instance
                 )
@@ -188,7 +188,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
                 if output_stream is not None:
                     output_stream.write(
-                        f"\nIF planner > plan validated as: {validation_result.status}\n\n"
+                        f"\nIFPlanner -> plan validated as: {validation_result.status}\n\n"
                     )
                 if validation_result.status == ValidationResultStatus.VALID:
                     return PlanGenerationResult(
@@ -202,7 +202,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
                     if output_stream is not None:
                         output_stream.write(
-                            f"\nIF planner > dictionary of known interpreted functions values:\n\n"
+                            f"\nIFPlanner -> dictionary of known interpreted functions values:\n\n"
                         )
                         for log_if, log_val in knowledge.items():
                             output_stream.write(f"{log_if} : {log_val}\n")
