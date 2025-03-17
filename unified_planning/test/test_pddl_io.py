@@ -33,6 +33,7 @@ from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
+from unified_planning.interop import convert_problem_from_pddl
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -844,15 +845,21 @@ class TestPddlIO(unittest_TestCase):
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "problem.pddl")
-        problem = reader.parse_problem(domain_filename, problem_filename)
+        problems = [
+            reader.parse_problem(domain_filename, problem_filename),
+            convert_problem_from_pddl(domain_filename, problem_filename),
+        ]
 
-        self.assertTrue(problem is not None)
-        self.assertEqual(len(problem.fluents), 10)
-        self.assertEqual(len(problem.actions), 7)
-        self.assertEqual(len(list(problem.objects(problem.user_type("junction")))), 9)
-        self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
-        self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
-        self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
+        for problem in problems:
+            self.assertTrue(problem is not None)
+            self.assertEqual(len(problem.fluents), 10)
+            self.assertEqual(len(problem.actions), 7)
+            self.assertEqual(
+                len(list(problem.objects(problem.user_type("junction")))), 9
+            )
+            self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
+            self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
+            self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
 
     def test_visit_precedence_reader(self):
         reader = PDDLReader()
