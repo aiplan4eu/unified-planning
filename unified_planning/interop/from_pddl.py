@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from itertools import chain
 import re
 
 from fractions import Fraction
@@ -29,7 +30,7 @@ from typing import (
 from warnings import warn
 
 from pddl import parse_domain, parse_problem  # type: ignore
-from pddl.logic.base import Formula, And, Or, OneOf, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
+from pddl.logic.base import Formula, And, Or, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
 from pddl.logic.effects import When, Forall, Effect  # type: ignore
 from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide  # type: ignore
 from pddl.logic.predicates import DerivedPredicate, EqualTo as EqualToPredicate, Predicate  # type: ignore
@@ -57,7 +58,6 @@ from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
 from unified_planning.environment import get_environment
 from unified_planning.exceptions import (
-    UPProblemDefinitionError,
     UPUnsupportedProblemTypeError,
     UPAIPDDLPlanningError,
 )
@@ -274,7 +274,7 @@ class _Converter:
             self.convert_function(func)
 
     def convert_objects(self):
-        for obj in self.problem.objects:
+        for obj in chain(self.domain.constants, self.problem.objects):
             if obj.type_tags is None:
                 raise UPUnsupportedProblemTypeError(
                     f"Object {obj.name} has no type tag"
@@ -446,9 +446,6 @@ class _Converter:
     def convert_initial_values(self):
         assert self.expression_converter is not None
         for init in self.problem.init:
-            # print(init)
-            # print(type(init))
-            # print(isinstance(init, EqualTo))
             if (
                 isinstance(init, EqualToFunction)
                 and isinstance(init.operands[0], NumericFunction)
@@ -457,9 +454,6 @@ class _Converter:
                 assert self.has_action_costs
                 assert self.action_costs is not None
                 continue
-            # if isinstance(init, EqualTo):
-            #     print(init)
-            #     print(type(init.left))
 
             init_expr = self.expression_converter.convert_expression(init, {}, {})
             if init_expr.is_fluent_exp():
@@ -512,6 +506,7 @@ class _Converter:
 
 
 def convert_problem_from_pddl(domain_path: str, problem_path: str) -> UPProblem:
+    # TODO add doc
     try:
         domain = parse_domain(domain_path)
         problem = parse_problem(problem_path)
@@ -588,12 +583,13 @@ def _check_requirements(requirements: List[str]) -> bool:
 def from_pddl(
     domain_path: str,
     problem_path: Optional[str],
-    force_pddl_reader: bool = False,
+    force_up_pddl_reader: bool = False,
     force_ai_planning_reader: bool = False,
     deactivate_fallback: bool = False,
+    disable_warnings: bool = False,
 ) -> UPProblem:
-
-    if force_pddl_reader or problem_path is None:
+    # TODO add doc
+    if force_up_pddl_reader or problem_path is None:
         return _convert_with_pddl_reader(domain_path, problem_path)
     if force_ai_planning_reader:
         return convert_problem_from_pddl(domain_path, problem_path)
@@ -604,13 +600,15 @@ def from_pddl(
         except UPUnsupportedProblemTypeError as e:
             if deactivate_fallback:
                 raise e
-            warn(
-                f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
-            )
+            if not disable_warnings:
+                warn(
+                    f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+                )
         except UPAIPDDLPlanningError as e:
             if deactivate_fallback:
                 raise e
-            warn(
-                f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
-            )
+            if not disable_warnings:
+                warn(
+                    f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
+                )
     return _convert_with_pddl_reader(domain_path, problem_path)
