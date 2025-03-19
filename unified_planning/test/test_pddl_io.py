@@ -33,7 +33,7 @@ from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
-from unified_planning.interop import convert_problem_from_pddl
+from unified_planning.interop import convert_problem_from_pddl, from_pddl
 
 from pddl import parse_domain, parse_problem  # type: ignore
 
@@ -914,6 +914,7 @@ class TestPddlIO(unittest_TestCase):
         problems = [
             reader.parse_problem(domain_filename, problem_filename),
             convert_problem_from_pddl(domain_filename, problem_filename),
+            from_pddl(domain_filename, problem_filename),
         ]
 
         for problem in problems:

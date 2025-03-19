@@ -13,16 +13,20 @@
 # limitations under the License.
 #
 
+import re
+
 from fractions import Fraction
 from typing import (
     Callable,
     Dict,
     Iterator,
+    List,
     Optional,
     OrderedDict,
     Tuple,
     Type as TypingType,
 )
+from warnings import warn
 
 from pddl import parse_domain, parse_problem  # type: ignore
 from pddl.logic.base import Formula, And, Or, OneOf, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
@@ -52,7 +56,12 @@ from unified_planning.model import (
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
 from unified_planning.environment import get_environment
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError,
+    UPUnsupportedProblemTypeError,
+    UPAIPDDLPlanningError,
+)
+from unified_planning.io import PDDLReader
 
 
 def assert_not_none_type(t: Optional[Type]) -> Type:
@@ -107,9 +116,9 @@ class _ExpressionConverter:
     ) -> FNode:
         em = self.em
         if isinstance(formula, NumericValue):
-            v = Fraction(formula.value)
-            if v.denominator == 1:
-                return em.Int(v.numerator)
+            formula_value = Fraction(formula.value)
+            if formula_value.denominator == 1:
+                return em.Int(formula_value.numerator)
             return em.Real(Fraction(formula.value))
         elif type(formula) in self.direct_matching_expressions:
             args = [
@@ -132,7 +141,9 @@ class _ExpressionConverter:
             ]
             return self.fluents[formula.name](*children)
         elif isinstance(formula, DerivedPredicate):
-            raise UPProblemDefinitionError(f"Derived predicate {formula} not supported")
+            raise UPUnsupportedProblemTypeError(
+                f"Derived predicate {formula} not supported"
+            )
         elif isinstance(formula, EqualToPredicate):
             left = self.convert_expression(
                 formula.left, action_parameters, quantifier_variables
@@ -169,13 +180,12 @@ class _ExpressionConverter:
             elif formula.name in action_parameters:
                 return em.ParameterExp(action_parameters[formula.name])
             else:
-                raise Exception(
+                raise UPUnsupportedProblemTypeError(
                     f"Variable {formula.name} not found in action parameters or quantifier variables"
                 )
 
         else:
-            print(type(formula))  # TODO debug print
-            raise UPProblemDefinitionError(f"{formula} not supported!")
+            raise UPUnsupportedProblemTypeError(f"{formula} not supported!")
 
 
 class _Converter:
@@ -220,13 +230,19 @@ class _Converter:
                 chances -= 1
 
         if remaining_types:
-            raise ValueError(f"Could not convert types: {remaining_types}")
+            raise UPUnsupportedProblemTypeError(
+                f"Could not convert types: {remaining_types}"
+            )
 
     def variable_type(self, variable: Variable) -> Type:
         if len(variable.type_tags) == 0:
-            raise ValueError(f"Variable {variable.name} has no type tag")
+            raise UPUnsupportedProblemTypeError(
+                f"Variable {variable.name} has no type tag"
+            )
         if len(variable.type_tags) != 1:
-            raise ValueError(f"Variable {variable.name} has more than one type tag")
+            raise UPUnsupportedProblemTypeError(
+                f"Variable {variable.name} has more than one type tag"
+            )
         tt = next(iter(variable.type_tags))
         return assert_not_none_type(self.up_type(tt))
 
@@ -260,7 +276,9 @@ class _Converter:
     def convert_objects(self):
         for obj in self.problem.objects:
             if obj.type_tags is None:
-                raise ValueError(f"Object {obj.name} has no type tag")
+                raise UPUnsupportedProblemTypeError(
+                    f"Object {obj.name} has no type tag"
+                )
             # TODO understand what to do with objects of type "object"
             # Probably a flag "has_object_type" should be added
             obj = Object(obj.name, assert_not_none_type(self.up_type(obj.type_tag)))
@@ -396,7 +414,9 @@ class _Converter:
                 forall=tuple(quantifier_variables.values()),
             )
         else:
-            raise Exception(f"Effect {effect} of type {type(effect)} not supported")
+            raise UPUnsupportedProblemTypeError(
+                f"Effect {effect} of type {type(effect)} not supported"
+            )
 
     def convert_action(self, action: Action):
         assert self.expression_converter is not None
@@ -452,7 +472,9 @@ class _Converter:
                 assert fluent.is_fluent_exp()
                 self.up_problem.set_initial_value(fluent, value)
             else:
-                raise ValueError(f"Initial value {init_expr} not supported")
+                raise UPUnsupportedProblemTypeError(
+                    f"Initial value {init_expr} not supported"
+                )
 
     def convert_goals(self):
         assert self.expression_converter is not None
@@ -490,80 +512,105 @@ class _Converter:
 
 
 def convert_problem_from_pddl(domain_path: str, problem_path: str) -> UPProblem:
-    domain = parse_domain(domain_path)
-    problem = parse_problem(problem_path)
+    try:
+        domain = parse_domain(domain_path)
+        problem = parse_problem(problem_path)
+    except Exception as e:
+        raise UPAIPDDLPlanningError(f"Error parsing PDDL: {str(e)}")
     converter = _Converter(domain, problem)
     up_problem = converter.convert()
     return up_problem
 
 
-# TODO leftover code to remove
-# domain = parse_domain('domain.pddl')
-# problem = parse_problem('problem.pddl')
-
-# def print_formula(f: Formula):
-#     stack = [f]
-#     while stack:
-#         f = stack.pop()
-#         print(f"Class: {str(type(f)):<50} Formula {f}")
-#         try:
-#             stack.extend(reversed(f._operands))
-#         except:
-#             try:
-#                 stack.append(f._args)
-#             except:
-#                 print("no operands")
+def _convert_with_pddl_reader(
+    domain_path: str, problem_path: Optional[str]
+) -> UPProblem:
+    reader = PDDLReader()
+    problem = reader.parse_problem(domain_path, problem_path)
+    return problem
 
 
-# def print_domain(domain: Domain):
-#     print(f"Domain Name: {domain.name} (type: {type(domain)})")
-#     print()
-#     print("Requirements:")
-#     for req in domain.requirements:
-#         print(f"  {req} (type: {type(req)})")
-#     print()
-#     print("Types:")
-#     for t in domain.types:
-#         print(f"  {t} (type: {type(t)})")
-#     print()
-#     print("Predicates:")
-#     for pred in domain.predicates:
-#         print(f"  {pred} (type: {type(pred)})")
-#     print()
-#     print("Functions:")
-#     for pred in domain.functions:
-#         print(f"  {pred} (type: {type(pred)})")
-#     print()
-#     print("Actions:")
-#     for action in domain.actions:
-#         print(f"  Action Name: {action.name} (type: {type(action)})")
-#         print("  Parameters:")
-#         for param in action.parameters:
-#             print(f"    {param.name}: {param.type_tags} (type: {type(param)})")
-#         print("  Preconditions:")
-#         print_formula(action.precondition)
-#         print("  Effects:")
-#         print_formula(action.effect)
-#         print()
+def _extract_requirements(domain_path: str) -> List[str]:
+    requirements_lines = []
+    found_requirements = False
 
-# def print_problem(problem: Problem):
-#     print(f"Problem Name: {problem.name} (type: {type(problem)})")
-#     print(f"Domain: {problem.domain_name} (type: {type(problem.domain_name)})")
-#     print()
-#     print("Objects:")
-#     for obj in problem.objects:
-#         print(f"  {obj.name}: {obj.type_tags} (type: {type(obj)})")
-#     print()
-#     print("Initial State:")
-#     for init in problem.init:
-#         print_formula(init)
-#     print()
-#     print("Goals:")
-#     print_formula(problem.goal)
+    with open(domain_path, "r") as f:
+        for line in f:
+            if ":requirements" in line:
+                assert not found_requirements
+                found_requirements = True
+            if found_requirements:
+                requirements_lines.append(line)
+                if ")" in line:
+                    break
 
-# print("Domain Details:")
-# print_domain(domain)
-# print()
+    requirements_str = " ".join(requirements_lines)
+    match = re.search(r"\(:requirements\s+([^)]+)\)", requirements_str)
+    if match:
+        requirements = match.group(1).split()
+        return requirements
+    else:
+        return []
 
-# print("Problem Details:")
-# print_problem(problem)
+
+def _check_requirements(requirements: List[str]) -> bool:
+    ai_pddl_planning_supported_requirements = {
+        ":strips",
+        ":typing",
+        ":negative-preconditions",
+        ":disjunctive-preconditions",
+        ":equality",
+        ":existential-preconditions",
+        ":universal-preconditions",
+        ":quantified-preconditions",
+        ":conditional-effects",
+        ":numeric-fluents",
+        ":non-deterministic",
+        ":adl",
+        ":action-costs",
+    }
+    ai_pddl_planning_supported_requirements_not_up_supported = {
+        ":derived-predicates",
+    }
+    non_up_supported_requirements = (
+        ai_pddl_planning_supported_requirements_not_up_supported.intersection(
+            requirements
+        )
+    )
+    if non_up_supported_requirements:
+        unsupported_req_str = ", ".join(non_up_supported_requirements)
+        raise UPUnsupportedProblemTypeError(
+            f"Problem requirements contain unsupported requirements: {unsupported_req_str}"
+        )
+    return all(req in ai_pddl_planning_supported_requirements for req in requirements)
+
+
+def from_pddl(
+    domain_path: str,
+    problem_path: Optional[str],
+    force_pddl_reader: bool = False,
+    force_ai_planning_reader: bool = False,
+    deactivate_fallback: bool = False,
+) -> UPProblem:
+
+    if force_pddl_reader or problem_path is None:
+        return _convert_with_pddl_reader(domain_path, problem_path)
+    if force_ai_planning_reader:
+        return convert_problem_from_pddl(domain_path, problem_path)
+    requirements = _extract_requirements(domain_path)
+    if _check_requirements(requirements):
+        try:
+            return convert_problem_from_pddl(domain_path, problem_path)
+        except UPUnsupportedProblemTypeError as e:
+            if deactivate_fallback:
+                raise e
+            warn(
+                f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+            )
+        except UPAIPDDLPlanningError as e:
+            if deactivate_fallback:
+                raise e
+            warn(
+                f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
+            )
+    return _convert_with_pddl_reader(domain_path, problem_path)
