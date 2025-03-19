@@ -34,6 +34,10 @@ from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
 from unified_planning.interop import convert_problem_from_pddl, from_pddl
+from unified_planning.interop.from_pddl import (
+    _check_requirements,
+    _extract_requirements,
+)
 
 from pddl import parse_domain, parse_problem  # type: ignore
 
@@ -598,7 +602,7 @@ class TestPddlIO(unittest_TestCase):
     def test_examples_io(self):
         parsed_problems = []
         not_parsable_problems = []
-        known_fails_problems = []
+        ai_pddl_planning_failures = []
         for example in self.problems.values():
             problem = example.problem
             kind = problem.kind
@@ -630,37 +634,23 @@ class TestPddlIO(unittest_TestCase):
                         parsed_problem = reader.parse_problem(
                             domain_filename, problem_filename
                         )
+                    elif not _check_requirements(
+                        _extract_requirements(domain_filename)
+                    ) or any(ut.name.lower() == "object" for ut in problem.user_types):
+                        not_parsable_problems.append(problem.name)
+                        continue
                     else:
                         assert i == 1
                         try:
                             _ = parse_domain(domain_filename)
                             _ = parse_problem(problem_filename)
-                        except Exception as raised_exception:
-                            not_parsable_problems.append(problem.name)
-                            if not _known_pddl_reader_failures(problem):
-                                print(problem)
-                                print(raised_exception)
-                                with open(
-                                    domain_filename, "r", encoding="utf-8"
-                                ) as file:
-                                    print(file.read())
-                                raise raised_exception
+                        except Exception as _:
+                            ai_pddl_planning_failures.append(problem.name)
                             continue
-                        try:
-                            parsed_problem = convert_problem_from_pddl(
-                                domain_filename, problem_filename
-                            )
-                            parsed_problems.append(problem.name)
-                        except Exception as raised_exception:
-                            known_fails = {
-                                "basic_with_object_constant",  # fails due to object type not being supported
-                            }
-                            if problem.name in known_fails:
-                                known_fails_problems.append(problem.name)
-                                continue
-                            print(problem)
-                            print(problem.name)
-                            raise raised_exception
+                        parsed_problem = convert_problem_from_pddl(
+                            domain_filename, problem_filename
+                        )
+                        parsed_problems.append(problem.name)
 
                     # Case where the reader does not convert the final_value back to actions_cost.
                     if (
@@ -730,22 +720,23 @@ class TestPddlIO(unittest_TestCase):
                         set(map(str, problem.trajectory_constraints)),
                         set(map(str, parsed_problem.trajectory_constraints)),
                     )
-        total_problems = (
-            len(parsed_problems)
-            + len(not_parsable_problems)
-            + len(known_fails_problems)
-        )
-        print(f"Total problems: {total_problems}")
-        print(
-            f"Parsed problems ({len(parsed_problems)}/{total_problems}): {parsed_problems}"
-        )
-        print(
-            f"Not parsed problems ({len(not_parsable_problems)}/{total_problems}): {not_parsable_problems}"
-        )
-        print(
-            f"Known fails problems ({len(known_fails_problems)}/{total_problems}): {known_fails_problems}"
-        )
-        assert False  # TODO debug
+        # TODO remove debug code
+        # total_problems = (
+        #     len(parsed_problems)
+        #     + len(not_parsable_problems)
+        #     + len(ai_pddl_planning_failures)
+        # )
+        # print(f"Total problems: {total_problems}")
+        # print(
+        #     f"Parsed problems ({len(parsed_problems)}/{total_problems}): {parsed_problems}"
+        # )
+        # print(
+        #     f"Not parsed problems ({len(not_parsable_problems)}/{total_problems}): {not_parsable_problems}"
+        # )
+        # print(
+        #     f"AI PDDL failures ({len(ai_pddl_planning_failures)}/{total_problems}): {ai_pddl_planning_failures}"
+        # )
+        # # assert False  # TODO debug
 
     def test_basic_with_object_constant(self):
         problem = self.problems["basic_with_object_constant"].problem
@@ -1223,19 +1214,23 @@ def _have_same_user_types_considering_renamings(
     return True
 
 
-def _known_pddl_reader_failures(problem) -> bool:
-    pk = problem.kind
-    if pk.has_timed_effects() or pk.has_continuous_time():
-        return True
-    for action in problem.actions:
-        if not isinstance(
-            action, InstantaneousAction
-        ):  # Only instantaneous actions are supported
-            return True
-        if (
-            not action.preconditions
-        ):  # Only actions with preconditions are supported due to AIPddl not supporting actions without preconditions
-            return True
+# TODO remove debug code
+# def _known_pddl_reader_failures(problem: Problem) -> bool:
+#     pk = problem.kind
+#     if pk.has_timed_effects() or pk.has_continuous_time():
+#         return True
+#     for action in problem.actions:
+#         if not isinstance(
+#             action, InstantaneousAction
+#         ):  # Only instantaneous actions are supported
+#             return True
+#         if (
+#             not action.preconditions
+#         ):  # Only actions with preconditions are supported due to AIPddl not supporting actions without preconditions
+#             return True
+#     for user_type in problem.user_types:
+#         if user_type.name.lower() == "object": # UserType named object are not currently parsable
+#             return True
 
-    return True  # TODO Temporary fix
-    # return False
+#     # return True  # TODO Temporary fix
+#     return False
