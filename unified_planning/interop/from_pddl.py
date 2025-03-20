@@ -359,7 +359,7 @@ class AIPDDLConverter:
         if (
             function.name == "total-cost"
             and function.arity == 0
-            and (self.problem is None or self.problem_has_minimize_total_cost_metric)
+            and (self.problem is None or self.problem_has_minimize_total_cost_metric())
         ):
             self.has_action_costs = True
             self.action_costs = {}
@@ -600,7 +600,9 @@ class AIPDDLConverter:
                     metric.expression, {}, {}
                 )
                 if metric.optimization == Metric.MINIMIZE:
-                    up_metric = MinimizeExpressionOnFinalState(expression)
+                    up_metric: Union[
+                        MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState
+                    ] = MinimizeExpressionOnFinalState(expression)
                 else:
                     up_metric = MaximizeExpressionOnFinalState(expression)
                 self.up_problem.add_quality_metric(up_metric)
