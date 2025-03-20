@@ -193,12 +193,13 @@ class AIPDDLConverter:
     def __init__(
         self,
         domain: Domain,
-        problem: Problem,
+        problem: Optional[Problem],
         environment: Optional[Environment] = None,
     ):
         self.domain = domain
         self.problem = problem
-        self.up_problem = UPProblem(problem.name)
+        problem_name = domain.name if problem is None else problem.name
+        self.up_problem = UPProblem(problem_name)
         self.types: Dict[name, Optional[Type]] = {"object": None}
         self.fluents: Dict[name, Fluent] = {}
         self.objects: Dict[name, Object] = {}
@@ -279,17 +280,23 @@ class AIPDDLConverter:
         for func in self.domain.functions:
             self.convert_function(func)
 
+    def add_object(self, obj: Constant):
+        if obj.type_tags is None:
+            raise UPUnsupportedProblemTypeError(f"Object {obj.name} has no type tag")
+        # TODO understand what to do with objects of type "object"
+        # Probably a flag "has_object_type" should be added
+        obj = Object(obj.name, assert_not_none_type(self.up_type(obj.type_tag)))
+        self.objects[obj.name] = obj
+        self.up_problem.add_object(obj)
+
+    def convert_constants(self):
+        for obj in self.domain.constants:
+            self.add_object(obj)
+
     def convert_objects(self):
-        for obj in chain(self.domain.constants, self.problem.objects):
-            if obj.type_tags is None:
-                raise UPUnsupportedProblemTypeError(
-                    f"Object {obj.name} has no type tag"
-                )
-            # TODO understand what to do with objects of type "object"
-            # Probably a flag "has_object_type" should be added
-            obj = Object(obj.name, assert_not_none_type(self.up_type(obj.type_tag)))
-            self.objects[obj.name] = obj
-            self.up_problem.add_object(obj)
+        assert self.problem is not None
+        for obj in self.problem.objects:
+            self.add_object(obj)
 
     def convert_effects(
         self,
@@ -451,6 +458,7 @@ class AIPDDLConverter:
 
     def convert_initial_values(self):
         assert self.expression_converter is not None
+        assert self.problem is not None
         for init in self.problem.init:
             if (
                 isinstance(init, EqualToFunction)
@@ -478,11 +486,14 @@ class AIPDDLConverter:
 
     def convert_goals(self):
         assert self.expression_converter is not None
+        assert self.problem is not None
         self.up_problem.add_goal(
             self.expression_converter.convert_expression(self.problem.goal, {}, {})
         )
 
     def add_quality_metric(self):
+        assert self.problem is not None
+        # TODO understand how to handle minize or maximize expression on final state metrics
         if self.has_action_costs:
             action_costs: Dict[UPAction, UPExpression] = {}
             assert self.action_costs is not None
@@ -491,9 +502,10 @@ class AIPDDLConverter:
             self.up_problem.add_quality_metric(MinimizeActionCosts(action_costs))
 
     def convert(self) -> UPProblem:
-        self.up_problem = UPProblem(self.problem.name)
+        # domain parsing
         self.convert_types()
         self.convert_fluents()
+        self.convert_constants()
         self.convert_objects()
 
         expression_converter = _ExpressionConverter(
@@ -504,15 +516,24 @@ class AIPDDLConverter:
         for action in self.domain.actions:
             self.convert_action(action)
 
-        self.convert_initial_values()
-        self.convert_goals()
-        self.add_quality_metric()
+        # problem parsing
+        if self.problem is not None:
+            self.convert_initial_values()
+            self.convert_goals()
+            self.add_quality_metric()
 
         return self.up_problem
 
 
 def extract_requirements(domain_str: str) -> List[str]:
-    # TODO add doc
+    """
+    Extract the requirements from the given domain in a List of requirements strings.
+    For example if the requirements are `(:requirements :strips :typing)` returns:
+    `[":strips", ":typing"]`
+
+    :param domain_str: the domain str from which the requirements have to be extracted.
+    :return: The `List[str]` of requirements extracted from the domain.
+    """
     requirements_lines = []
     found_requirements = False
 
@@ -535,7 +556,16 @@ def extract_requirements(domain_str: str) -> List[str]:
 
 
 def check_ai_pddl_requirements(requirements: List[str]) -> bool:
-    # TODO add doc
+    """
+    Checks that all the given requirements are supported by the ai pddl parser.
+
+    :param requirements: The `List` of requirements specified in the domain that
+        is tested.
+    :raises UPUnsupportedProblemTypeError: if the given requirements specify
+        features that are not supported by the unified planning
+    :return: `True` if all the specified requirements are supported by the ai
+        planning pddl parser, `False` otherwise.
+    """
     ai_pddl_planning_supported_requirements = {
         ":strips",
         ":typing",
@@ -569,20 +599,35 @@ def check_ai_pddl_requirements(requirements: List[str]) -> bool:
 
 def from_ai_pddl(
     ai_domain_or_domain_str: Union[Domain, str],
-    ai_problem_or_problem_str: Union[Problem, str],
+    ai_problem_or_problem_str: Optional[Union[Problem, str]],
     environment: Optional[Environment] = None,
 ) -> UPProblem:
-    # TODO add doc
+    """
+    Creates a :class:`~unified_planning.model.Problem` from the ai planning pddl
+    Domain and Problem classes or from their `PDDL` str representations.
+
+    If the given problem is None an incomplete UP Problem will be returned.
+
+    :param ai_domain_or_domain_str: the domain to parse, either in the ai planning
+        pddl format or in the pddl string representation.
+    :param ai_problem_or_problem_str: the problem to parse, either in the ai planning
+        pddl format or in the pddl string representation; can be `None`.
+    :param environment: the environment in which the `UP Problem` is created,
+        defaults to `None`.
+    :return: the `UP Problem` parsed from the given `PDDL` domain and problem.
+    """
     domain = (
         ai_domain_or_domain_str
         if isinstance(ai_domain_or_domain_str, Domain)
         else DomainParser()(ai_domain_or_domain_str)
     )
-    problem = (
-        ai_problem_or_problem_str
-        if isinstance(ai_problem_or_problem_str, Problem)
-        else ProblemParser()(ai_problem_or_problem_str)
-    )
+    problem = None
+    if ai_problem_or_problem_str is not None:
+        problem = (
+            ai_problem_or_problem_str
+            if isinstance(ai_problem_or_problem_str, Problem)
+            else ProblemParser()(ai_problem_or_problem_str)
+        )
     converter = AIPDDLConverter(domain, problem, get_environment(environment))
     up_problem = converter.convert()
     return up_problem
@@ -590,11 +635,24 @@ def from_ai_pddl(
 
 def from_ai_pddl_filenames(
     domain_filename: str,
-    problem_filename: str,
+    problem_filename: Optional[str],
     environment: Optional[Environment] = None,
 ) -> UPProblem:
-    # TODO add doc
+    """
+    Creates a :class:`~unified_planning.model.Problem` from the ai planning pddl
+    Domain and Problem classes or from their `PDDL` str representations.
+
+    If the given problem is None an incomplete UP Problem will be returned.
+
+    :param domain_filename: the path to the file containing the domain to parse
+        with ai pddl planning and then convert to a `UP Problem`.
+    :param problem_filename: the path to the file containing the problem to parse
+        with ai pddl planning and then convert to a `UP Problem`; can be `None`.
+    :param environment: the environment in which the `UP Problem` is created,
+        defaults to `None`.
+    :return: the `UP Problem` parsed from the given `PDDL` domain and problem.
+    """
     domain = parse_domain(domain_filename)
-    problem = parse_problem(problem_filename)
+    problem = parse_problem(problem_filename) if problem_filename is not None else None
     up_problem = from_ai_pddl(domain, problem, environment)
     return up_problem

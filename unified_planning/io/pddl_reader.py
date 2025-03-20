@@ -2245,9 +2245,9 @@ class UPPDDLReader:
 
 
 class PDDLReader:
-    # TODO update doc
     """
-    Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
+    Uses the `unified_planning.interop.from_pddl.from_ai_pddl` if the requirements are respected, otherwise uses the `UPPDDLReader`
+    to parse the `PDDL` domain and the `PDDL` problem; generates the equivalent :class:`~unified_planning.model.Problem`.
 
     Note: in the error report messages, a tabulation counts as one column; and due to PDDL case-insensitivity, everything in the
     PDDL files will be turned to lower case, so the names of fluents, actions etc. and the error report
@@ -2262,6 +2262,15 @@ class PDDLReader:
         deactivate_fallback: bool = False,
         disable_warnings: bool = False,
     ):
+        """
+        Creates the `PDDLReader` with the specified parameters.
+
+        :param environment: the environment used to create the problems/plans, defaults to None
+        :param force_up_pddl_reader: when `True` forces the `parse_problem` methods to use the `UPPDDLReader`, defaults to False
+        :param force_ai_planning_reader: when `True` forces `parse_problem` methods to use the `from_ai_pddl` method, defaults to False
+        :param deactivate_fallback: when `True` disables the fallback on the `UPPDDLReader` if `from_ai_pddl` fails, defaults to False
+        :param disable_warnings: when `True` the warnings when `from_ai_pddl` fails but the requirements are respected are not raised, defaults to False
+        """
         self._env = get_environment(environment)
         self._up_pddl_reader = UPPDDLReader(self._env)
         self._force_up_pddl_reader = force_up_pddl_reader
@@ -2272,10 +2281,12 @@ class PDDLReader:
     def parse_problem(
         self, domain_filename: str, problem_filename: typing.Optional[str] = None
     ) -> "up.model.Problem":
-        # TODO update doc
         """
         Takes in input a filename containing the `PDDL` domain and optionally a filename
-        containing the `PDDL` problem and returns the parsed `Problem`.
+        containing the `PDDL` problem and returns the parsed `Problem`; the Problem
+        is parsed using `from_ai_pddl` if all the requirements specified in the domain
+        are supported, if this fails or the requirements specified are not supported,
+        falls back to the `UPPDDLReader`.
 
         Note: that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
 
@@ -2302,7 +2313,10 @@ class PDDLReader:
     ) -> "up.model.Problem":
         """
         Takes in input a str representing the `PDDL` domain and optionally a str
-        representing the `PDDL` problem and returns the parsed `Problem`.
+        representing the `PDDL` problem and returns the parsed `Problem`; the Problem
+        is parsed using `from_ai_pddl` if all the requirements specified in the domain
+        are supported, if this fails or the requirements specified are not supported,
+        falls back to the `UPPDDLReader`.
 
         Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
 
@@ -2314,7 +2328,6 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        # TODO update doc
         if self._force_up_pddl_reader or problem_str is None:
             return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
         if self._force_ai_planning_reader:
@@ -2395,4 +2408,4 @@ class PDDLReader:
             linked to that renaming; if None the problem is used to retrieve the actions and objects in the
             plan from their name.:return: The up.plans.Plan corresponding to the parsed plan from the string
         """
-        self._up_pddl_reader.parse_plan_string(problem, plan_str, get_item_named)
+        return self._up_pddl_reader.parse_plan_string(problem, plan_str, get_item_named)
