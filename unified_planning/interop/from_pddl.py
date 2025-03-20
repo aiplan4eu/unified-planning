@@ -121,8 +121,6 @@ class _ExpressionConverter:
         result_stack: List[Any] = []
 
         while stack:
-            print("Stack:", stack)
-            print("Result stack", result_stack)
             (
                 current_formula,
                 current_action_parameters,
