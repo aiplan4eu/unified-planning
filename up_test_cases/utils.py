@@ -83,7 +83,7 @@ def _get_pddl_test_cases(
     domain_filename = domain_filenames[0]
     assert problem_filenames, "No problem files detected, check filter and block"
     res = {}
-    reader = PDDLReader()
+    reader = PDDLReader(disable_warnings=True)
     for problem_filename in problem_filenames:
         problem = reader.parse_problem(domain_filename, problem_filename)
         problem.name = os.path.basename(problem_filename).split(".")[0]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.io.pddl_reader import PDDLReader
+from unified_planning.io.pddl_reader import UPPDDLReader, PDDLReader
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.io.anml_writer import ANMLWriter
 from unified_planning.io.anml_reader import ANMLReader

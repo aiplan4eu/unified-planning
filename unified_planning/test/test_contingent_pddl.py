@@ -30,7 +30,7 @@ class TestPddlIO(unittest_TestCase):
         self.problems = get_example_problems()
 
     def test_logistic_conf_reader(self):
-        reader = PDDLReader()
+        reader = PDDLReader(disable_warnings=True)
 
         domain_filename = os.path.join(
             CONTINGENT_PDDL_DOMAINS_PATH, "logistic_conf", "domain.pddl"
@@ -53,7 +53,7 @@ class TestPddlIO(unittest_TestCase):
             self.assertEqual(len(sa.observed_fluents), 1)
 
     def test_colorballs_reader(self):
-        reader = PDDLReader()
+        reader = PDDLReader(disable_warnings=True)
 
         domain_filename = os.path.join(
             CONTINGENT_PDDL_DOMAINS_PATH, "colorballs", "domain.pddl"

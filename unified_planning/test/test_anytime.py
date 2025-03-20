@@ -38,7 +38,7 @@ class TestAnytimePlanning(unittest_TestCase):
         up.engines.AnytimeGuarantee.INCREASING_QUALITY,
     )
     def test_counters(self):
-        reader = PDDLReader()
+        reader = PDDLReader(disable_warnings=True)
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem2.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)

@@ -19,6 +19,7 @@ from fractions import Fraction
 import re
 from typing import Dict, Union, Callable, List, cast, Tuple
 import typing
+from warnings import warn
 import unified_planning as up
 import unified_planning.model.htn as htn
 import unified_planning.model.walkers
@@ -28,6 +29,12 @@ from unified_planning.exceptions import (
     UPUsageError,
     UPException,
     UPUnsupportedProblemTypeError,
+    UPAIPDDLPlanningError,
+)
+from unified_planning.interop.from_pddl import (
+    extract_requirements,
+    check_ai_pddl_requirements,
+    from_ai_pddl,
 )
 from unified_planning.io.utils import parse_string, set_results_name, Located
 
@@ -385,7 +392,7 @@ class PDDLGrammar:
         return self._parameters
 
 
-class PDDLReader:
+class UPPDDLReader:
     """
     Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
 
@@ -2235,3 +2242,157 @@ class PDDLReader:
             return up.plans.TimeTriggeredPlan(actions)
         else:
             return up.plans.SequentialPlan(actions)
+
+
+class PDDLReader:
+    # TODO update doc
+    """
+    Parse a `PDDL` domain file and, optionally, a `PDDL` problem file and generate the equivalent :class:`~unified_planning.model.Problem`.
+
+    Note: in the error report messages, a tabulation counts as one column; and due to PDDL case-insensitivity, everything in the
+    PDDL files will be turned to lower case, so the names of fluents, actions etc. and the error report
+    will all be in lower-case.
+    """
+
+    def __init__(
+        self,
+        environment: typing.Optional[Environment] = None,
+        force_up_pddl_reader: bool = False,
+        force_ai_planning_reader: bool = False,
+        deactivate_fallback: bool = False,
+        disable_warnings: bool = False,
+    ):
+        self._env = get_environment(environment)
+        self._up_pddl_reader = UPPDDLReader(self._env)
+        self._force_up_pddl_reader = force_up_pddl_reader
+        self._force_ai_planning_reader = force_ai_planning_reader
+        self._deactivate_fallback = deactivate_fallback
+        self._disable_warnings = disable_warnings
+
+    def parse_problem(
+        self, domain_filename: str, problem_filename: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        # TODO update doc
+        """
+        Takes in input a filename containing the `PDDL` domain and optionally a filename
+        containing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note: that if the `problem_filename` is `None`, an incomplete `Problem` will be returned.
+
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
+
+        :param domain_filename: The path to the file containing the `PDDL` domain.
+        :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        with open(domain_filename, "r") as domain_file:
+            domain_str = domain_file.read()
+
+        problem_str = None
+        if problem_filename is not None:
+            with open(problem_filename, "r") as problem_file:
+                problem_str = problem_file.read()
+
+        return self.parse_problem_string(domain_str, problem_str)
+
+    def parse_problem_string(
+        self, domain_str: str, problem_str: typing.Optional[str] = None
+    ) -> "up.model.Problem":
+        """
+        Takes in input a str representing the `PDDL` domain and optionally a str
+        representing the `PDDL` problem and returns the parsed `Problem`.
+
+        Note that if the `problem_str` is `None`, an incomplete `Problem` will be returned.
+
+        Note: due to PDDL case-insensitivity, everything in the PDDL files will be turned to
+        lower case, so the names of fluents, actions etc. and the error report will all be
+        in lower-case.
+
+        :param domain_filename: The string representing the `PDDL` domain.
+        :param problem_filename: Optionally the string representing the `PDDL` problem.
+        :return: The `Problem` parsed from the given pddl domain + problem.
+        """
+        # TODO update doc
+        if self._force_up_pddl_reader or problem_str is None:
+            return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
+        if self._force_ai_planning_reader:
+            return from_ai_pddl(domain_str, problem_str, self._env)
+        requirements = extract_requirements(domain_str)
+        if check_ai_pddl_requirements(requirements):
+            try:
+                return self._up_pddl_reader.parse_problem_string(
+                    domain_str, problem_str
+                )
+            except UPUnsupportedProblemTypeError as e:
+                if self._deactivate_fallback:
+                    raise e
+                if not self._disable_warnings:
+                    warn(
+                        f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+                    )
+            except UPAIPDDLPlanningError as e:
+                if self._deactivate_fallback:
+                    raise e
+                if not self._disable_warnings:
+                    warn(
+                        f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
+                    )
+        return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
+
+    def parse_plan(
+        self,
+        problem: "up.model.Problem",
+        plan_filename: str,
+        get_item_named: typing.Optional[
+            Callable[
+                [str],
+                "up.io.pddl_writer.WithName",
+            ]
+        ] = None,
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a filename and optionally a map of renaming and returns the plan parsed from the file.
+
+        The format of the file must be:
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
+        where ``[duration]`` is optional and not specified for InstantaneousActions.
+
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_filename: The path of the file in which the plan is written.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming; if None the problem is used to retrieve the actions and objects in the
+            plan from their name.
+        :return: The up.plans.Plan corresponding to the parsed plan from the file
+        """
+        with open(plan_filename) as plan:
+            return self.parse_plan_string(problem, plan.read(), get_item_named)
+
+    def parse_plan_string(
+        self,
+        problem: "up.model.Problem",
+        plan_str: str,
+        get_item_named: typing.Optional[
+            Callable[
+                [str],
+                "up.io.pddl_writer.WithName",
+            ]
+        ] = None,
+    ) -> "up.plans.Plan":
+        """
+        Takes a problem, a string and optionally a map of renaming and returns the plan parsed from the string.
+
+        The format of the file must be:
+        ``(action-name param1 param2 ... paramN)`` in each line for SequentialPlans
+        ``start-time: (action-name param1 param2 ... paramN) [duration]`` in each line for TimeTriggeredPlans,
+        where ``[duration]`` is optional and not specified for InstantaneousActions.
+
+        :param problem: The up.model.problem.Problem instance for which the plan is generated.
+        :param plan_str: The plan in string.
+        :param get_item_named: A function that takes a name and returns the original up.model element instance
+            linked to that renaming; if None the problem is used to retrieve the actions and objects in the
+            plan from their name.:return: The up.plans.Plan corresponding to the parsed plan from the string
+        """
+        self._up_pddl_reader.parse_plan_string(problem, plan_str, get_item_named)

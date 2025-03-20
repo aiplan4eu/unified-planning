@@ -26,10 +26,13 @@ from typing import (
     OrderedDict,
     Tuple,
     Type as TypingType,
+    Union,
 )
 from warnings import warn
 
 from pddl import parse_domain, parse_problem  # type: ignore
+from pddl.parser.domain import DomainParser  # type: ignore
+from pddl.parser.problem import ProblemParser  # type: ignore
 from pddl.logic.base import Formula, And, Or, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
 from pddl.logic.effects import When, Forall, Effect  # type: ignore
 from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide  # type: ignore
@@ -56,12 +59,10 @@ from unified_planning.model import (
 )
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
-from unified_planning.environment import get_environment
+from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
-    UPAIPDDLPlanningError,
 )
-from unified_planning.io import PDDLReader
 
 
 def assert_not_none_type(t: Optional[Type]) -> Type:
@@ -188,8 +189,13 @@ class _ExpressionConverter:
             raise UPUnsupportedProblemTypeError(f"{formula} not supported!")
 
 
-class _Converter:
-    def __init__(self, domain: Domain, problem: Problem):
+class AIPDDLConverter:
+    def __init__(
+        self,
+        domain: Domain,
+        problem: Problem,
+        environment: Optional[Environment] = None,
+    ):
         self.domain = domain
         self.problem = problem
         self.up_problem = UPProblem(problem.name)
@@ -197,7 +203,7 @@ class _Converter:
         self.fluents: Dict[name, Fluent] = {}
         self.objects: Dict[name, Object] = {}
         self.expression_converter: Optional[_ExpressionConverter] = None
-        self.environment = get_environment()
+        self.environment = get_environment(environment)
         self.em: ExpressionManager = self.environment.expression_manager
         self.tm: TypeManager = self.environment.type_manager
         self.has_action_costs = False
@@ -505,39 +511,19 @@ class _Converter:
         return self.up_problem
 
 
-def convert_problem_from_pddl(domain_path: str, problem_path: str) -> UPProblem:
+def extract_requirements(domain_str: str) -> List[str]:
     # TODO add doc
-    try:
-        domain = parse_domain(domain_path)
-        problem = parse_problem(problem_path)
-    except Exception as e:
-        raise UPAIPDDLPlanningError(f"Error parsing PDDL: {str(e)}")
-    converter = _Converter(domain, problem)
-    up_problem = converter.convert()
-    return up_problem
-
-
-def _convert_with_pddl_reader(
-    domain_path: str, problem_path: Optional[str]
-) -> UPProblem:
-    reader = PDDLReader()
-    problem = reader.parse_problem(domain_path, problem_path)
-    return problem
-
-
-def _extract_requirements(domain_path: str) -> List[str]:
     requirements_lines = []
     found_requirements = False
 
-    with open(domain_path, "r") as f:
-        for line in f:
-            if ":requirements" in line:
-                assert not found_requirements
-                found_requirements = True
-            if found_requirements:
-                requirements_lines.append(line)
-                if ")" in line:
-                    break
+    for line in domain_str.splitlines():
+        if ":requirements" in line:
+            assert not found_requirements
+            found_requirements = True
+        if found_requirements:
+            requirements_lines.append(line)
+            if ")" in line:
+                break
 
     requirements_str = " ".join(requirements_lines)
     match = re.search(r"\(:requirements\s+([^)]+)\)", requirements_str)
@@ -548,7 +534,8 @@ def _extract_requirements(domain_path: str) -> List[str]:
         return []
 
 
-def _check_requirements(requirements: List[str]) -> bool:
+def check_ai_pddl_requirements(requirements: List[str]) -> bool:
+    # TODO add doc
     ai_pddl_planning_supported_requirements = {
         ":strips",
         ":typing",
@@ -580,35 +567,34 @@ def _check_requirements(requirements: List[str]) -> bool:
     return all(req in ai_pddl_planning_supported_requirements for req in requirements)
 
 
-def from_pddl(
-    domain_path: str,
-    problem_path: Optional[str],
-    force_up_pddl_reader: bool = False,
-    force_ai_planning_reader: bool = False,
-    deactivate_fallback: bool = False,
-    disable_warnings: bool = False,
+def from_ai_pddl(
+    ai_domain_or_domain_str: Union[Domain, str],
+    ai_problem_or_problem_str: Union[Problem, str],
+    environment: Optional[Environment] = None,
 ) -> UPProblem:
     # TODO add doc
-    if force_up_pddl_reader or problem_path is None:
-        return _convert_with_pddl_reader(domain_path, problem_path)
-    if force_ai_planning_reader:
-        return convert_problem_from_pddl(domain_path, problem_path)
-    requirements = _extract_requirements(domain_path)
-    if _check_requirements(requirements):
-        try:
-            return convert_problem_from_pddl(domain_path, problem_path)
-        except UPUnsupportedProblemTypeError as e:
-            if deactivate_fallback:
-                raise e
-            if not disable_warnings:
-                warn(
-                    f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
-                )
-        except UPAIPDDLPlanningError as e:
-            if deactivate_fallback:
-                raise e
-            if not disable_warnings:
-                warn(
-                    f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
-                )
-    return _convert_with_pddl_reader(domain_path, problem_path)
+    domain = (
+        ai_domain_or_domain_str
+        if isinstance(ai_domain_or_domain_str, Domain)
+        else DomainParser()(ai_domain_or_domain_str)
+    )
+    problem = (
+        ai_problem_or_problem_str
+        if isinstance(ai_problem_or_problem_str, Problem)
+        else ProblemParser()(ai_problem_or_problem_str)
+    )
+    converter = AIPDDLConverter(domain, problem, get_environment(environment))
+    up_problem = converter.convert()
+    return up_problem
+
+
+def from_ai_pddl_filenames(
+    domain_filename: str,
+    problem_filename: str,
+    environment: Optional[Environment] = None,
+) -> UPProblem:
+    # TODO add doc
+    domain = parse_domain(domain_filename)
+    problem = parse_problem(problem_filename)
+    up_problem = from_ai_pddl(domain, problem, environment)
+    return up_problem
