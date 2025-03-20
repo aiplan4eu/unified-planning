@@ -36,7 +36,7 @@ from pddl.parser.domain import DomainParser  # type: ignore
 from pddl.parser.problem import ProblemParser  # type: ignore
 from pddl.logic.base import Formula, And, Or, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
 from pddl.logic.effects import When, Forall, Effect  # type: ignore
-from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide  # type: ignore
+from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide, Metric  # type: ignore
 from pddl.logic.predicates import DerivedPredicate, EqualTo as EqualToPredicate, Predicate  # type: ignore
 from pddl.logic.terms import Constant, Variable  # type: ignore
 from pddl.core import Domain, Problem  # type: ignore
@@ -57,6 +57,8 @@ from unified_planning.model import (
     Action as UPAction,
     EffectKind,
     MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
 )
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
@@ -340,9 +342,25 @@ class AIPDDLConverter:
         self.fluents[predicate.name] = f
         self.up_problem.add_fluent(f, default_initial_value=self.em.FALSE())
 
+    def problem_has_minimize_total_cost_metric(self) -> bool:
+        assert self.problem is not None
+        metric = self.problem.metric
+        if metric is None:
+            return False
+
+        return (
+            metric.optimization == Metric.MINIMIZE
+            and isinstance(metric.expression, NumericFunction)
+            and metric.expression.name == "total-cost"
+            and metric.expression.arity == 0
+        )
+
     def convert_function(self, function: NumericFunction):
-        # TODO Understand what is the second part of domain.function (Optional[name_like])
-        if function.name == "total-cost":
+        if (
+            function.name == "total-cost"
+            and function.arity == 0
+            and (self.problem is None or self.problem_has_minimize_total_cost_metric)
+        ):
             self.has_action_costs = True
             self.action_costs = {}
             return
@@ -354,7 +372,6 @@ class AIPDDLConverter:
     def convert_fluents(self):
         for pred in self.domain.predicates:
             self.convert_predicate(pred)
-        # TODO Understand what is the second part of domain.function (Optional[name_like])
         for func in self.domain.functions:
             self.convert_function(func)
 
@@ -384,7 +401,6 @@ class AIPDDLConverter:
         condition: FNode,
         action_name: str,
     ) -> Iterator[UPEffect]:
-        # TODO EqualTo and NumericFunctions
         assert self.expression_converter is not None
         if isinstance(effect, Predicate):
             fluent = self.expression_converter.convert_expression(
@@ -570,14 +586,24 @@ class AIPDDLConverter:
         )
 
     def add_quality_metric(self):
-        assert self.problem is not None
-        # TODO understand how to handle minize or maximize expression on final state metrics
         if self.has_action_costs:
             action_costs: Dict[UPAction, UPExpression] = {}
             assert self.action_costs is not None
             for action_name, cost in self.action_costs.items():
                 action_costs[self.up_problem.action(action_name)] = cost
             self.up_problem.add_quality_metric(MinimizeActionCosts(action_costs))
+        elif self.problem is not None:
+            metric = self.problem.metric
+            if metric is not None:
+                assert self.expression_converter is not None
+                expression = self.expression_converter.convert_expression(
+                    metric.expression, {}, {}
+                )
+                if metric.optimization == Metric.MINIMIZE:
+                    up_metric = MinimizeExpressionOnFinalState(expression)
+                else:
+                    up_metric = MaximizeExpressionOnFinalState(expression)
+                self.up_problem.add_quality_metric(up_metric)
 
     def convert(self) -> UPProblem:
         # domain parsing
@@ -594,12 +620,12 @@ class AIPDDLConverter:
         for action in self.domain.actions:
             self.convert_action(action)
 
+        self.add_quality_metric()
+
         # problem parsing
         if self.problem is not None:
             self.convert_initial_values()
             self.convert_goals()
-            self.add_quality_metric()
-
         return self.up_problem
 
 
