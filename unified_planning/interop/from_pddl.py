@@ -18,6 +18,7 @@ import re
 
 from fractions import Fraction
 from typing import (
+    Any,
     Callable,
     Dict,
     Iterator,
@@ -116,77 +117,156 @@ class _ExpressionConverter:
         quantifier_variables: Dict[str, UPVariable],
     ) -> FNode:
         em = self.em
-        if isinstance(formula, NumericValue):
-            formula_value = Fraction(formula.value)
-            if formula_value.denominator == 1:
-                return em.Int(formula_value.numerator)
-            return em.Real(Fraction(formula.value))
-        elif type(formula) in self.direct_matching_expressions:
-            args = [
-                self.convert_expression(arg, action_parameters, quantifier_variables)
-                for arg in formula.operands
-            ]
-            return self.direct_matching_expressions[type(formula)](*args)
-        elif isinstance(formula, Not):
-            return em.Not(
-                self.convert_expression(
-                    formula.argument, action_parameters, quantifier_variables
-                )
-            )
-        elif isinstance(formula, Constant):
-            return em.ObjectExp(self.objects[formula.name])
-        elif isinstance(formula, (Predicate, NumericFunction)):
-            children = [
-                self.convert_expression(f, action_parameters, quantifier_variables)
-                for f in formula.terms
-            ]
-            return self.fluents[formula.name](*children)
-        elif isinstance(formula, DerivedPredicate):
-            raise UPUnsupportedProblemTypeError(
-                f"Derived predicate {formula} not supported"
-            )
-        elif isinstance(formula, EqualToPredicate):
-            left = self.convert_expression(
-                formula.left, action_parameters, quantifier_variables
-            )
-            right = self.convert_expression(
-                formula.right, action_parameters, quantifier_variables
-            )
-            return em.Equals(left, right)
-        elif isinstance(formula, ForallCondition):
-            up_variables = [self.convert_variable(v) for v in formula.variables]
-            new_quantifier_variables = quantifier_variables.copy()
-            for v in up_variables:
-                new_quantifier_variables[v.name] = v
-            return em.Forall(
-                self.convert_expression(
-                    formula.condition, action_parameters, new_quantifier_variables
-                ),
-                *up_variables,
-            )
-        elif isinstance(formula, ExistsCondition):
-            up_variables = [self.convert_variable(v) for v in formula.variables]
-            new_quantifier_variables = quantifier_variables.copy()
-            for v in up_variables:
-                new_quantifier_variables[v.name] = v
-            return em.Exists(
-                self.convert_expression(
-                    formula.condition, action_parameters, new_quantifier_variables
-                ),
-                *up_variables,
-            )
-        elif isinstance(formula, Variable):
-            if formula.name in quantifier_variables:
-                return em.VariableExp(quantifier_variables[formula.name])
-            elif formula.name in action_parameters:
-                return em.ParameterExp(action_parameters[formula.name])
-            else:
-                raise UPUnsupportedProblemTypeError(
-                    f"Variable {formula.name} not found in action parameters or quantifier variables"
-                )
+        stack = [(formula, action_parameters, quantifier_variables)]
+        result_stack: List[Any] = []
 
-        else:
-            raise UPUnsupportedProblemTypeError(f"{formula} not supported!")
+        while stack:
+            print("Stack:", stack)
+            print("Result stack", result_stack)
+            (
+                current_formula,
+                current_action_parameters,
+                current_quantifier_variables,
+            ) = stack.pop()
+
+            if isinstance(current_formula, NumericValue):
+                formula_value = Fraction(current_formula.value)
+                if formula_value.denominator == 1:
+                    result_stack.append(em.Int(formula_value.numerator))
+                else:
+                    result_stack.append(em.Real(Fraction(current_formula.value)))
+            elif type(current_formula) in self.direct_matching_expressions:
+                for operand in current_formula.operands:
+                    stack.append(
+                        (
+                            operand,
+                            current_action_parameters,
+                            current_quantifier_variables,
+                        )
+                    )
+                result_stack.append(
+                    (type(current_formula), len(current_formula.operands))
+                )
+            elif isinstance(current_formula, Not):
+                stack.append(
+                    (
+                        current_formula.argument,
+                        current_action_parameters,
+                        current_quantifier_variables,
+                    )
+                )
+                result_stack.append(Not)
+            elif isinstance(current_formula, Constant):
+                result_stack.append(em.ObjectExp(self.objects[current_formula.name]))
+            elif isinstance(current_formula, (Predicate, NumericFunction)):
+                for term in current_formula.terms:
+                    stack.append(
+                        (term, current_action_parameters, current_quantifier_variables)
+                    )
+                result_stack.append((current_formula.name, len(current_formula.terms)))
+            elif isinstance(current_formula, DerivedPredicate):
+                raise UPUnsupportedProblemTypeError(
+                    f"Derived predicate {current_formula} not supported"
+                )
+            elif isinstance(current_formula, EqualToPredicate):
+                stack.append(
+                    (
+                        current_formula.left,
+                        current_action_parameters,
+                        current_quantifier_variables,
+                    )
+                )
+                stack.append(
+                    (
+                        current_formula.right,
+                        current_action_parameters,
+                        current_quantifier_variables,
+                    )
+                )
+                result_stack.append(EqualToPredicate)
+            elif isinstance(current_formula, ForallCondition):
+                up_variables = [
+                    self.convert_variable(v) for v in current_formula.variables
+                ]
+                new_quantifier_variables = current_quantifier_variables.copy()
+                for v in up_variables:
+                    new_quantifier_variables[v.name] = v
+                stack.append(
+                    (
+                        current_formula.condition,
+                        current_action_parameters,
+                        new_quantifier_variables,
+                    )
+                )
+                result_stack.append((ForallCondition, up_variables))
+            elif isinstance(current_formula, ExistsCondition):
+                up_variables = [
+                    self.convert_variable(v) for v in current_formula.variables
+                ]
+                new_quantifier_variables = current_quantifier_variables.copy()
+                for v in up_variables:
+                    new_quantifier_variables[v.name] = v
+                stack.append(
+                    (
+                        current_formula.condition,
+                        current_action_parameters,
+                        new_quantifier_variables,
+                    )
+                )
+                result_stack.append((ExistsCondition, up_variables))
+            elif isinstance(current_formula, Variable):
+                if current_formula.name in current_quantifier_variables:
+                    result_stack.append(
+                        em.VariableExp(
+                            current_quantifier_variables[current_formula.name]
+                        )
+                    )
+                elif current_formula.name in current_action_parameters:
+                    result_stack.append(
+                        em.ParameterExp(current_action_parameters[current_formula.name])
+                    )
+                else:
+                    raise UPUnsupportedProblemTypeError(
+                        f"Variable {current_formula.name} not found in action parameters or quantifier variables"
+                    )
+            else:
+                raise UPUnsupportedProblemTypeError(f"{current_formula} not supported!")
+
+        # Second pass to construct the final expression
+        final_stack: List[FNode] = []
+        while result_stack:
+            item = result_stack.pop()
+            if isinstance(item, tuple):
+                if item[0] in [ForallCondition, ExistsCondition]:
+                    op_type, up_variables = item
+                    condition = final_stack.pop()
+                    if op_type == ForallCondition:
+                        final_stack.append(em.Forall(condition, *up_variables))
+                    else:
+                        final_stack.append(em.Exists(condition, *up_variables))
+                elif isinstance(item[0], str):
+                    name, arity = item
+                    args = [final_stack.pop() for _ in range(arity)]
+                    final_stack.append(self.fluents[name](*reversed(args)))
+                else:
+                    op_type, arity = item
+                    args = [final_stack.pop() for _ in range(arity)]
+                    final_stack.append(
+                        self.direct_matching_expressions[op_type](*reversed(args))
+                    )
+            elif item == Not:
+                arg = final_stack.pop()
+                final_stack.append(em.Not(arg))
+            elif item == EqualToPredicate:
+                right = final_stack.pop()
+                left = final_stack.pop()
+                final_stack.append(em.Equals(left, right))
+            else:
+                final_stack.append(item)
+
+        result = final_stack.pop()
+        assert isinstance(result, FNode)
+        return result
 
 
 class AIPDDLConverter:
