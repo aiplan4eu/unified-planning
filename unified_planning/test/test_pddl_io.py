@@ -36,7 +36,7 @@ from unified_planning.model.types import _UserType
 from unified_planning.interop import (
     check_ai_pddl_requirements,
     extract_requirements,
-    from_ai_pddl,  # TODO add tests with these
+    from_ai_pddl,
     from_ai_pddl_filenames,
 )
 
@@ -626,6 +626,14 @@ class TestPddlIO(unittest_TestCase):
                 w.write_domain(domain_filename)
                 w.write_problem(problem_filename)
 
+                # if problem.kind.has_final_value():
+                #     with open(domain_filename, "r") as domain_file:
+                #         print(domain_file.read())
+                #     with open(problem_filename, "r") as problem_file:
+                #         print(problem_file.read())
+                #     print(problem.name)
+                #     assert False
+
                 with open(domain_filename, "r") as domain_file:
                     domain_str = domain_file.read()
 
@@ -724,6 +732,14 @@ class TestPddlIO(unittest_TestCase):
                         set(map(str, problem.trajectory_constraints)),
                         set(map(str, parsed_problem.trajectory_constraints)),
                     )
+                    if problem.quality_metrics:
+                        self.assertTrue(
+                            parsed_problem.quality_metrics, f"{problem.name}, {i}"
+                        )
+                        self.assertEqual(
+                            type(problem.quality_metrics[0]),
+                            type(parsed_problem.quality_metrics[0]),
+                        )
 
     def test_basic_with_object_constant(self):
         problem = self.problems["basic_with_object_constant"].problem
