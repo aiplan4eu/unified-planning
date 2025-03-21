@@ -16,8 +16,6 @@
 from unified_planning.interop.from_tarski import convert_problem_from_tarski
 from unified_planning.interop.to_tarski import convert_problem_to_tarski
 from unified_planning.interop.from_pddl import (
-    extract_requirements,
     check_ai_pddl_requirements,
-    from_ai_pddl,
-    from_ai_pddl_filenames,
+    convert_problem_from_ai_pddl,
 )

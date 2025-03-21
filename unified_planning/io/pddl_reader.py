@@ -32,9 +32,8 @@ from unified_planning.exceptions import (
     UPAIPDDLPlanningError,
 )
 from unified_planning.interop.from_pddl import (
-    extract_requirements,
     check_ai_pddl_requirements,
-    from_ai_pddl,
+    convert_problem_from_ai_pddl,
 )
 from unified_planning.io.utils import parse_string, set_results_name, Located
 
@@ -50,6 +49,9 @@ if pyparsing.__version__ < "3.0.0":
 else:
     from pyparsing import one_of
     from pyparsing import rest_of_line
+
+from pddl.parser.domain import DomainParser  # type: ignore
+from pddl.parser.problem import ProblemParser  # type: ignore
 
 
 class CustomParseResults:
@@ -2328,30 +2330,40 @@ class PDDLReader:
         :param problem_filename: Optionally the string representing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        if self._force_up_pddl_reader or problem_str is None:
+        if self._force_up_pddl_reader:
             return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
         if self._force_ai_planning_reader:
-            return from_ai_pddl(domain_str, problem_str, self._env)
-        requirements = extract_requirements(domain_str)
+            ai_domain = DomainParser()(domain_str)
+            ai_problem = (
+                ProblemParser()(problem_str) if problem_str is not None else None
+            )
+            return convert_problem_from_ai_pddl(ai_domain, ai_problem, self._env)
+        requirements = extract_pddl_requirements(domain_str)
         if check_ai_pddl_requirements(requirements):
+            ai_pddl_parsing_failed = False
             try:
-                return self._up_pddl_reader.parse_problem_string(
-                    domain_str, problem_str
-                )
-            except UPUnsupportedProblemTypeError as e:
-                if self._deactivate_fallback:
-                    raise e
-                if not self._disable_warnings:
-                    warn(
-                        f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
-                    )
-            except UPAIPDDLPlanningError as e:
+                ai_domain = DomainParser()(domain_str)
+                ai_problem = ProblemParser()(problem_str)
+            except Exception as e:
+                ai_pddl_parsing_failed = True
                 if self._deactivate_fallback:
                     raise e
                 if not self._disable_warnings:
                     warn(
                         f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
                     )
+            if not ai_pddl_parsing_failed:
+                try:
+                    return convert_problem_from_ai_pddl(
+                        ai_domain, ai_problem, self._env
+                    )
+                except UPUnsupportedProblemTypeError as e:
+                    if self._deactivate_fallback:
+                        raise e
+                    if not self._disable_warnings:
+                        warn(
+                            f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+                        )
         return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
 
     def parse_plan(
@@ -2409,3 +2421,33 @@ class PDDLReader:
             plan from their name.:return: The up.plans.Plan corresponding to the parsed plan from the string
         """
         return self._up_pddl_reader.parse_plan_string(problem, plan_str, get_item_named)
+
+
+def extract_pddl_requirements(domain_str: str) -> List[str]:
+    """
+    Extract the requirements from the given domain in a List of requirements strings.
+    For example if the requirements are `(:requirements :strips :typing)` returns:
+    `[":strips", ":typing"]`
+
+    :param domain_str: the domain str from which the requirements have to be extracted.
+    :return: The `List[str]` of requirements extracted from the domain.
+    """
+    requirements_lines = []
+    found_requirements = False
+
+    for line in domain_str.splitlines():
+        if ":requirements" in line:
+            assert not found_requirements
+            found_requirements = True
+        if found_requirements:
+            requirements_lines.append(line)
+            if ")" in line:
+                break
+
+    requirements_str = " ".join(requirements_lines)
+    match = re.search(r"\(:requirements\s+([^)]+)\)", requirements_str)
+    if match:
+        requirements = match.group(1).split()
+        return requirements
+    else:
+        return []

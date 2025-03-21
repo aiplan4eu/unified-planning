@@ -23,7 +23,12 @@ from unified_planning.test import (
     main,
     skipIfNoOneshotPlannerForProblemKind,
 )
-from unified_planning.io import PDDLWriter, UPPDDLReader, PDDLReader
+from unified_planning.io import (
+    PDDLWriter,
+    UPPDDLReader,
+    PDDLReader,
+    extract_pddl_requirements,
+)
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
@@ -35,9 +40,7 @@ from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
 from unified_planning.interop import (
     check_ai_pddl_requirements,
-    extract_requirements,
-    from_ai_pddl,
-    from_ai_pddl_filenames,
+    convert_problem_from_ai_pddl,
 )
 
 from pddl import parse_domain, parse_problem  # type: ignore
@@ -650,7 +653,7 @@ class TestPddlIO(unittest_TestCase):
                             domain_filename, problem_filename
                         )
                     elif not check_ai_pddl_requirements(
-                        extract_requirements(domain_str)
+                        extract_pddl_requirements(domain_str)
                     ):  # skip problems with ai_pddl that do not respect the requirements
                         assert i == 2
                         continue
@@ -662,7 +665,9 @@ class TestPddlIO(unittest_TestCase):
                         except Exception as _:
                             # skip problems where ai_pddl parsing fails; they are out of the scope of this testing
                             continue
-                        parsed_problem = from_ai_pddl(ai_problem, ai_domain)
+                        parsed_problem = convert_problem_from_ai_pddl(
+                            ai_problem, ai_domain
+                        )
 
                     # Case where the reader does not convert the final_value back to actions_cost.
                     if (
@@ -907,7 +912,9 @@ class TestPddlIO(unittest_TestCase):
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "problem.pddl")
         problems = [
             reader.parse_problem(domain_filename, problem_filename),
-            from_ai_pddl_filenames(domain_filename, problem_filename),
+            PDDLReader(force_ai_planning_reader=True).parse_problem(
+                domain_filename, problem_filename
+            ),
         ]
 
         for problem in problems:
