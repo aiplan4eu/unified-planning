@@ -105,8 +105,35 @@ def non_numeric():
 
     return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
+def optional():
+    pb = SchedulingProblem(name="sched:optional")
+    busy = pb.add_fluent("busy", default_initial_value=False)
+
+    def create_activiy(name: str) -> Activity:
+        a = pb.add_activity(name, duration=5, optional=True)
+        a.add_condition(a.start, Not(busy))
+        a.add_effect(a.start + 1, busy, True)
+        a.add_effect(a.end, busy, False)
+        return a
+
+    a = create_activiy("a")
+    b = create_activiy("b")
+
+    pb.add_constraint(LE(b.end, a.start), [a.present, b.present])
+
+    a.add_deadline(10)
+
+    print(pb.all_constraints())
+
+    sol = unified_planning.plans.Schedule(
+        [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
+    )
+
+    return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
 if __name__ == "__main__":
     print(resource_set().problem)
     print("=========")
     print(non_numeric().problem)
+    print("=========")
+    print(optional().problem)

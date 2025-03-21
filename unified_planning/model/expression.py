@@ -35,6 +35,7 @@ BoolExpression = Union[
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
     "up.model.variable.Variable",
+    "up.model.presence.Presence",
     bool,
 ]
 NumericConstant = Union[int, float, Fraction, str]
@@ -555,6 +556,11 @@ class ExpressionManager(object):
         """
         return self.create_node(
             node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=timing
+        )
+
+    def PresenceExp(self, presence: "up.model.presence.Presence") -> "up.model.fnode.FNode":
+        return self.create_node(
+            node_type=OperatorKind.IS_PRESENT_EXP, args=tuple(), payload=presence.container
         )
 
     def TRUE(self) -> "up.model.fnode.FNode":

@@ -16,12 +16,21 @@
 from typing import Optional, List, OrderedDict, Union
 
 from unified_planning.model.fnode import FNode
+from unified_planning.model.expression import BoolExpression
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.model import Parameter
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.types import Type
 
+
+Scope = List[BoolExpression]
+Constraint = Union[
+                "up.model.fnode.FNode",
+                "up.model.fluent.Fluent",
+                "up.model.parameter.Parameter",
+                bool,
+            ]
 
 class Chronicle(TimedCondsEffs):
     """Core structure to represent a set of variables, constraints, timed conditions and effects in scheduling problems."""
@@ -35,7 +44,7 @@ class Chronicle(TimedCondsEffs):
     ):
         TimedCondsEffs.__init__(self, _env)
         self._name = name
-        self._constraints: List["up.model.fnode.FNode"] = []
+        self._constraints: List[("up.model.fnode.FNode", Scope)] = []
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
         )
@@ -155,14 +164,10 @@ class Chronicle(TimedCondsEffs):
         """Returns the `list` of the `Action parameters`."""
         return list(self._parameters.values())
 
-    def add_constraint(
+    def _add_constraint(
         self,
-        constraint: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.parameter.Parameter",
-            bool,
-        ],
+        constraint: Constraint,
+        scope: List[BoolExpression]
     ):
         """
         Adds the given expression to the `chronicle's constraints`.
@@ -172,7 +177,7 @@ class Chronicle(TimedCondsEffs):
         )
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
         if constraint_exp not in self._constraints:
-            self._constraints.append(constraint_exp)
+            self._constraints.append((constraint_exp, scope))
 
     @property
     def constraints(self) -> List[FNode]:
