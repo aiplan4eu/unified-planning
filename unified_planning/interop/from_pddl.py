@@ -21,6 +21,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Iterator,
     List,
     Optional,
@@ -29,16 +30,12 @@ from typing import (
     Type as TypingType,
     Union,
 )
-from warnings import warn
 
-from pddl import parse_domain, parse_problem  # type: ignore
-from pddl.parser.domain import DomainParser  # type: ignore
-from pddl.parser.problem import ProblemParser  # type: ignore
 from pddl.logic.base import Formula, And, Or, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
 from pddl.logic.effects import When, Forall, Effect  # type: ignore
 from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide, Metric  # type: ignore
 from pddl.logic.predicates import DerivedPredicate, EqualTo as EqualToPredicate, Predicate  # type: ignore
-from pddl.logic.terms import Constant, Variable  # type: ignore
+from pddl.logic.terms import Constant, Variable, Term  # type: ignore
 from pddl.core import Domain, Problem  # type: ignore
 from pddl.action import Action  # type: ignore
 from pddl.custom_types import name  # type: ignore
@@ -134,7 +131,7 @@ class _ExpressionConverter:
                 if formula_value.denominator == 1:
                     result_stack.append(em.Int(formula_value.numerator))
                 else:
-                    result_stack.append(em.Real(Fraction(current_formula.value)))
+                    result_stack.append(em.Real(formula_value))
             elif type(current_formula) in self.direct_matching_expressions:
                 for operand in current_formula.operands:
                     stack.append(
@@ -276,33 +273,64 @@ class AIPDDLConverter:
         problem: Optional[Problem],
         environment: Optional[Environment] = None,
     ):
-        self.domain = domain
-        self.problem = problem
-        problem_name = domain.name if problem is None else problem.name
-        self.up_problem = UPProblem(problem_name)
-        self.types: Dict[name, Optional[Type]] = {"object": None}
-        self.fluents: Dict[name, Fluent] = {}
-        self.objects: Dict[name, Object] = {}
-        self.expression_converter: Optional[_ExpressionConverter] = None
         self.environment = get_environment(environment)
         self.em: ExpressionManager = self.environment.expression_manager
         self.tm: TypeManager = self.environment.type_manager
+        self.domain = domain
+        self.problem = problem
+        self.up_problem: Optional[UPProblem] = None
+        self.types: Dict[name, Optional[Type]] = {}
+        if self._has_object_user_type():
+            self.types["object"] = self.tm.UserType("object")
+        else:
+            self.types["object"] = None
+        self.fluents: Dict[name, Fluent] = {}
+        self.objects: Dict[name, Object] = {}
+        self.expression_converter: Optional[_ExpressionConverter] = None
         self.has_action_costs = False
         self.action_costs: Optional[Dict[str, UPExpression]] = None
 
-    def up_type(self, type_name: name) -> Optional[Type]:
+    def _has_object_user_type(self) -> bool:
+        # check in all fluents, action and objects if they use the "object" type
+        check_type_tags: Iterable[Union[Constant, Term, Variable]] = (
+            self.domain.constants
+            if self.problem is None
+            else chain(self.domain.constants, self.problem.objects)
+        )
+
+        def get_all_fluents_terms() -> Iterator[Term]:
+            for fluent in chain(self.domain.predicates, self.domain.functions):
+                for term in fluent.terms:
+                    yield term
+
+        def get_all_actions_params() -> Iterator[Variable]:
+            for action in self.domain.actions:
+                for param in action.parameters:
+                    yield param
+
+        check_type_tags = chain(
+            check_type_tags, get_all_fluents_terms(), get_all_actions_params()
+        )
+
+        for obj in check_type_tags:
+            if "object" in obj.type_tags:
+                return True
+
+        return False
+
+    def _up_type(self, type_name: name) -> Optional[Type]:
         return self.types[type_name]
 
-    def convert_type(self, type_name: name, type_father: Optional[Type]):
+    def _convert_type(self, type_name: name, type_father: Optional[Type]):
         ut = self.tm.UserType(type_name, type_father)
         self.types[type_name] = ut
 
-    def convert_types(self):
+    def _convert_types(self):
         remaining_types = []
         for type_name, type_father_name in self.domain.types.items():
             if type_father_name is None or type_father_name in self.types:
                 type_father = self.types.get(type_father_name)
-                self.convert_type(type_name, type_father)
+                self._convert_type(type_name, type_father)
             else:
                 remaining_types.append((type_name, type_father_name))
         chances = len(remaining_types)
@@ -310,7 +338,7 @@ class AIPDDLConverter:
             type_name, type_father_name = remaining_types.pop(0)
             type_father = self.types.get(type_father_name)
             if type_father is not None:
-                self.convert_type(type_name, type_father)
+                self._convert_type(type_name, type_father)
                 chances = len(remaining_types)
             else:
                 remaining_types.append((type_name, type_father_name))
@@ -321,7 +349,7 @@ class AIPDDLConverter:
                 f"Could not convert types: {remaining_types}"
             )
 
-    def variable_type(self, variable: Variable) -> Type:
+    def _variable_type(self, variable: Variable) -> Type:
         if len(variable.type_tags) == 0:
             raise UPUnsupportedProblemTypeError(
                 f"Variable {variable.name} has no type tag"
@@ -331,18 +359,19 @@ class AIPDDLConverter:
                 f"Variable {variable.name} has more than one type tag"
             )
         tt = next(iter(variable.type_tags))
-        return assert_not_none_type(self.up_type(tt))
+        return assert_not_none_type(self._up_type(tt))
 
-    def variable_to_param(self, variable: Variable) -> Parameter:
-        return Parameter(variable.name, self.variable_type(variable))
+    def _variable_to_param(self, variable: Variable) -> Parameter:
+        return Parameter(variable.name, self._variable_type(variable))
 
-    def convert_predicate(self, predicate: Predicate):
-        params = OrderedDict((v.name, self.variable_type(v)) for v in predicate.terms)
+    def _convert_predicate(self, predicate: Predicate):
+        assert self.up_problem is not None
+        params = OrderedDict((v.name, self._variable_type(v)) for v in predicate.terms)
         f = Fluent(predicate.name, self.tm.BoolType(), **params)
         self.fluents[predicate.name] = f
         self.up_problem.add_fluent(f, default_initial_value=self.em.FALSE())
 
-    def problem_has_minimize_total_cost_metric(self) -> bool:
+    def _problem_has_minimize_total_cost_metric(self) -> bool:
         assert self.problem is not None
         metric = self.problem.metric
         if metric is None:
@@ -355,45 +384,45 @@ class AIPDDLConverter:
             and metric.expression.arity == 0
         )
 
-    def convert_function(self, function: NumericFunction):
+    def _convert_function(self, function: NumericFunction):
+        assert self.up_problem is not None
         if (
             function.name == "total-cost"
             and function.arity == 0
-            and (self.problem is None or self.problem_has_minimize_total_cost_metric())
+            and (self.problem is None or self._problem_has_minimize_total_cost_metric())
         ):
             self.has_action_costs = True
             self.action_costs = {}
             return
-        params = OrderedDict((v.name, self.variable_type(v)) for v in function.terms)
+        params = OrderedDict((v.name, self._variable_type(v)) for v in function.terms)
         f = Fluent(function.name, self.tm.RealType(), **params)
         self.fluents[function.name] = f
         self.up_problem.add_fluent(f, default_initial_value=self.em.Int(0))
 
-    def convert_fluents(self):
+    def _convert_fluents(self):
         for pred in self.domain.predicates:
-            self.convert_predicate(pred)
+            self._convert_predicate(pred)
         for func in self.domain.functions:
-            self.convert_function(func)
+            self._convert_function(func)
 
-    def add_object(self, obj: Constant):
+    def _add_object(self, obj: Constant):
+        assert self.up_problem is not None
         if obj.type_tags is None:
             raise UPUnsupportedProblemTypeError(f"Object {obj.name} has no type tag")
-        # TODO understand what to do with objects of type "object"
-        # Probably a flag "has_object_type" should be added
-        obj = Object(obj.name, assert_not_none_type(self.up_type(obj.type_tag)))
+        obj = Object(obj.name, assert_not_none_type(self._up_type(obj.type_tag)))
         self.objects[obj.name] = obj
         self.up_problem.add_object(obj)
 
-    def convert_constants(self):
+    def _convert_constants(self):
         for obj in self.domain.constants:
-            self.add_object(obj)
+            self._add_object(obj)
 
-    def convert_objects(self):
+    def _convert_objects(self):
         assert self.problem is not None
         for obj in self.problem.objects:
-            self.add_object(obj)
+            self._add_object(obj)
 
-    def convert_effects(
+    def _convert_effects(
         self,
         action_parameters_expression: Dict[str, Parameter],
         effect: Effect,
@@ -440,7 +469,7 @@ class AIPDDLConverter:
             new_condition = self.expression_converter.convert_expression(
                 effect.condition, action_parameters_expression, quantifier_variables
             )
-            for e in self.convert_effects(
+            for e in self._convert_effects(
                 action_parameters_expression,
                 effect.effect,
                 quantifier_variables,
@@ -452,9 +481,9 @@ class AIPDDLConverter:
             new_quantifier_variables = quantifier_variables.copy()
             for v in effect.variables:
                 new_quantifier_variables[v.name] = UPVariable(
-                    v.name, self.variable_type(v)
+                    v.name, self._variable_type(v)
                 )
-            for e in self.convert_effects(
+            for e in self._convert_effects(
                 action_parameters_expression,
                 effect.effect,
                 new_quantifier_variables,
@@ -464,7 +493,7 @@ class AIPDDLConverter:
                 yield e
         elif isinstance(effect, And):
             for sub_effect in effect.operands:
-                for e in self.convert_effects(
+                for e in self._convert_effects(
                     action_parameters_expression,
                     sub_effect,
                     quantifier_variables,
@@ -525,10 +554,11 @@ class AIPDDLConverter:
                 f"Effect {effect} of type {type(effect)} not supported"
             )
 
-    def convert_action(self, action: Action):
+    def _convert_action(self, action: Action):
+        assert self.up_problem is not None
         assert self.expression_converter is not None
         action_parameters = OrderedDict(
-            (v.name, self.variable_type(v)) for v in action.parameters
+            (v.name, self._variable_type(v)) for v in action.parameters
         )
         action_parameters_expression = {
             p_name: Parameter(p_name, p_type)
@@ -543,14 +573,15 @@ class AIPDDLConverter:
             )
         )
 
-        for e in self.convert_effects(
+        for e in self._convert_effects(
             action_parameters_expression, action.effect, {}, self.em.TRUE(), action.name
         ):
             up_action._add_effect_instance(e)
 
         self.up_problem.add_action(up_action)
 
-    def convert_initial_values(self):
+    def _convert_initial_values(self):
+        assert self.up_problem is not None
         assert self.expression_converter is not None
         assert self.problem is not None
         for init in self.problem.init:
@@ -578,14 +609,16 @@ class AIPDDLConverter:
                     f"Initial value {init_expr} not supported"
                 )
 
-    def convert_goals(self):
+    def _convert_goals(self):
+        assert self.up_problem is not None
         assert self.expression_converter is not None
         assert self.problem is not None
         self.up_problem.add_goal(
             self.expression_converter.convert_expression(self.problem.goal, {}, {})
         )
 
-    def add_quality_metric(self):
+    def _add_quality_metric(self):
+        assert self.up_problem is not None
         if self.has_action_costs:
             action_costs: Dict[UPAction, UPExpression] = {}
             assert self.action_costs is not None
@@ -608,11 +641,27 @@ class AIPDDLConverter:
                 self.up_problem.add_quality_metric(up_metric)
 
     def convert(self) -> UPProblem:
+        """
+        Converts the AI planning PDDL domains and problems given at the constructor
+        and returns the equivalent UP Problem.
+
+        :return: the unified_planning Problem equivalent to the AI planning PDDL domain
+            and problem given at constructor
+        """
+        # if problem is cached, return it
+        if self.up_problem is not None:
+            problem_clone = self.up_problem.clone()
+            return problem_clone
+
+        # create and populate the problem
+        problem_name = self.domain.name if self.problem is None else self.problem.name
+        self.up_problem = UPProblem(problem_name, self.environment)
+
         # domain parsing
-        self.convert_types()
-        self.convert_fluents()
-        self.convert_constants()
-        self.convert_objects()
+        self._convert_types()
+        self._convert_fluents()
+        self._convert_constants()
+        self._convert_objects()
 
         expression_converter = _ExpressionConverter(
             self.em, self.types, self.fluents, self.objects
@@ -620,45 +669,15 @@ class AIPDDLConverter:
         self.expression_converter = expression_converter
 
         for action in self.domain.actions:
-            self.convert_action(action)
+            self._convert_action(action)
 
-        self.add_quality_metric()
+        self._add_quality_metric()
 
         # problem parsing
         if self.problem is not None:
-            self.convert_initial_values()
-            self.convert_goals()
+            self._convert_initial_values()
+            self._convert_goals()
         return self.up_problem
-
-
-def extract_requirements(domain_str: str) -> List[str]:
-    """
-    Extract the requirements from the given domain in a List of requirements strings.
-    For example if the requirements are `(:requirements :strips :typing)` returns:
-    `[":strips", ":typing"]`
-
-    :param domain_str: the domain str from which the requirements have to be extracted.
-    :return: The `List[str]` of requirements extracted from the domain.
-    """
-    requirements_lines = []
-    found_requirements = False
-
-    for line in domain_str.splitlines():
-        if ":requirements" in line:
-            assert not found_requirements
-            found_requirements = True
-        if found_requirements:
-            requirements_lines.append(line)
-            if ")" in line:
-                break
-
-    requirements_str = " ".join(requirements_lines)
-    match = re.search(r"\(:requirements\s+([^)]+)\)", requirements_str)
-    if match:
-        requirements = match.group(1).split()
-        return requirements
-    else:
-        return []
 
 
 def check_ai_pddl_requirements(requirements: List[str]) -> bool:
@@ -703,62 +722,24 @@ def check_ai_pddl_requirements(requirements: List[str]) -> bool:
     return all(req in ai_pddl_planning_supported_requirements for req in requirements)
 
 
-def from_ai_pddl(
-    ai_domain_or_domain_str: Union[Domain, str],
-    ai_problem_or_problem_str: Optional[Union[Problem, str]],
+def convert_problem_from_ai_pddl(
+    domain: Domain,
+    problem: Optional[Problem],
     environment: Optional[Environment] = None,
 ) -> UPProblem:
     """
     Creates a :class:`~unified_planning.model.Problem` from the ai planning pddl
-    Domain and Problem classes or from their `PDDL` str representations.
+    Domain and Problem classes.
 
-    If the given problem is None an incomplete UP Problem will be returned.
+    If the given problem is `None` an incomplete UP Problem will be returned.
 
-    :param ai_domain_or_domain_str: the domain to parse, either in the ai planning
-        pddl format or in the pddl string representation.
-    :param ai_problem_or_problem_str: the problem to parse, either in the ai planning
-        pddl format or in the pddl string representation; can be `None`.
+    :param domain: the ai planning pddl Domain to convert.
+    :param problem: the ai planning pddl Problem to convert; can be `None`.
     :param environment: the environment in which the `UP Problem` is created,
         defaults to `None`.
-    :return: the `UP Problem` parsed from the given `PDDL` domain and problem.
+    :return: the `UP Problem` parsed from the given ai planning `PDDL` Domain
+        and Problem.
     """
-    domain = (
-        ai_domain_or_domain_str
-        if isinstance(ai_domain_or_domain_str, Domain)
-        else DomainParser()(ai_domain_or_domain_str)
-    )
-    problem = None
-    if ai_problem_or_problem_str is not None:
-        problem = (
-            ai_problem_or_problem_str
-            if isinstance(ai_problem_or_problem_str, Problem)
-            else ProblemParser()(ai_problem_or_problem_str)
-        )
     converter = AIPDDLConverter(domain, problem, get_environment(environment))
     up_problem = converter.convert()
-    return up_problem
-
-
-def from_ai_pddl_filenames(
-    domain_filename: str,
-    problem_filename: Optional[str],
-    environment: Optional[Environment] = None,
-) -> UPProblem:
-    """
-    Creates a :class:`~unified_planning.model.Problem` from the ai planning pddl
-    Domain and Problem classes or from their `PDDL` str representations.
-
-    If the given problem is None an incomplete UP Problem will be returned.
-
-    :param domain_filename: the path to the file containing the domain to parse
-        with ai pddl planning and then convert to a `UP Problem`.
-    :param problem_filename: the path to the file containing the problem to parse
-        with ai pddl planning and then convert to a `UP Problem`; can be `None`.
-    :param environment: the environment in which the `UP Problem` is created,
-        defaults to `None`.
-    :return: the `UP Problem` parsed from the given `PDDL` domain and problem.
-    """
-    domain = parse_domain(domain_filename)
-    problem = parse_problem(problem_filename) if problem_filename is not None else None
-    up_problem = from_ai_pddl(domain, problem, environment)
     return up_problem
