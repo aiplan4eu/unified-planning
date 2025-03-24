@@ -56,6 +56,7 @@ from unified_planning.model import (
     MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
     MaximizeExpressionOnFinalState,
+    MinimizeSequentialPlanLength,
 )
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
@@ -78,36 +79,36 @@ class _ExpressionConverter:
         fluents: Dict[name, Fluent],
         objects: Dict[name, Object],
     ):
-        self.types = types
-        self.fluents = fluents
-        self.objects = objects
-        self.em = expression_manager
-        self.variables: Dict[Tuple[str, Type], UPVariable] = {}
-        self.direct_matching_expressions: Dict[
+        self._types = types
+        self._fluents = fluents
+        self._objects = objects
+        self._em = expression_manager
+        self._variables: Dict[Tuple[str, Type], UPVariable] = {}
+        self._direct_matching_expressions: Dict[
             TypingType[BinaryFunction], Callable[..., FNode]
         ] = {
-            And: self.em.And,
-            Or: self.em.Or,
-            Imply: self.em.Implies,
-            EqualToFunction: self.em.Equals,
-            LesserThan: self.em.LT,
-            LesserEqualThan: self.em.LE,
-            GreaterThan: self.em.GT,
-            GreaterEqualThan: self.em.GE,
-            Minus: self.em.Minus,
-            Plus: self.em.Plus,
-            Times: self.em.Times,
-            Divide: self.em.Div,
+            And: self._em.And,
+            Or: self._em.Or,
+            Imply: self._em.Implies,
+            EqualToFunction: self._em.Equals,
+            LesserThan: self._em.LT,
+            LesserEqualThan: self._em.LE,
+            GreaterThan: self._em.GT,
+            GreaterEqualThan: self._em.GE,
+            Minus: self._em.Minus,
+            Plus: self._em.Plus,
+            Times: self._em.Times,
+            Divide: self._em.Div,
         }
 
-    def convert_variable(self, variable: Variable) -> UPVariable:
+    def _convert_variable(self, variable: Variable) -> UPVariable:
         tt = next(iter(variable.type_tags))
-        key = (variable.name, assert_not_none_type(self.types[tt]))
-        if key not in self.variables:
-            self.variables[key] = UPVariable(
-                variable.name, assert_not_none_type(self.types[tt])
+        key = (variable.name, assert_not_none_type(self._types[tt]))
+        if key not in self._variables:
+            self._variables[key] = UPVariable(
+                variable.name, assert_not_none_type(self._types[tt])
             )
-        return self.variables[key]
+        return self._variables[key]
 
     def convert_expression(
         self,
@@ -115,7 +116,7 @@ class _ExpressionConverter:
         action_parameters: Dict[str, Parameter],
         quantifier_variables: Dict[str, UPVariable],
     ) -> FNode:
-        em = self.em
+        em = self._em
         stack = [(formula, action_parameters, quantifier_variables)]
         result_stack: List[Any] = []
 
@@ -132,7 +133,7 @@ class _ExpressionConverter:
                     result_stack.append(em.Int(formula_value.numerator))
                 else:
                     result_stack.append(em.Real(formula_value))
-            elif type(current_formula) in self.direct_matching_expressions:
+            elif type(current_formula) in self._direct_matching_expressions:
                 for operand in current_formula.operands:
                     stack.append(
                         (
@@ -154,7 +155,7 @@ class _ExpressionConverter:
                 )
                 result_stack.append(Not)
             elif isinstance(current_formula, Constant):
-                result_stack.append(em.ObjectExp(self.objects[current_formula.name]))
+                result_stack.append(em.ObjectExp(self._objects[current_formula.name]))
             elif isinstance(current_formula, (Predicate, NumericFunction)):
                 for term in current_formula.terms:
                     stack.append(
@@ -183,7 +184,7 @@ class _ExpressionConverter:
                 result_stack.append(EqualToPredicate)
             elif isinstance(current_formula, ForallCondition):
                 up_variables = [
-                    self.convert_variable(v) for v in current_formula.variables
+                    self._convert_variable(v) for v in current_formula.variables
                 ]
                 new_quantifier_variables = current_quantifier_variables.copy()
                 for v in up_variables:
@@ -198,7 +199,7 @@ class _ExpressionConverter:
                 result_stack.append((ForallCondition, up_variables))
             elif isinstance(current_formula, ExistsCondition):
                 up_variables = [
-                    self.convert_variable(v) for v in current_formula.variables
+                    self._convert_variable(v) for v in current_formula.variables
                 ]
                 new_quantifier_variables = current_quantifier_variables.copy()
                 for v in up_variables:
@@ -244,12 +245,12 @@ class _ExpressionConverter:
                 elif isinstance(item[0], str):
                     name, arity = item
                     args = [final_stack.pop() for _ in range(arity)]
-                    final_stack.append(self.fluents[name](*reversed(args)))
+                    final_stack.append(self._fluents[name](*reversed(args)))
                 else:
                     op_type, arity = item
                     args = [final_stack.pop() for _ in range(arity)]
                     final_stack.append(
-                        self.direct_matching_expressions[op_type](*reversed(args))
+                        self._direct_matching_expressions[op_type](*reversed(args))
                     )
             elif item == Not:
                 arg = final_stack.pop()
@@ -267,76 +268,95 @@ class _ExpressionConverter:
 
 
 class AIPDDLConverter:
+    """
+    Through the `convert` method creates a :class:`~unified_planning.model.Problem`
+    from the ai planning pddl Domain and Problem classes.
+
+    If the given problem is `None` an incomplete UP Problem will be returned.
+
+    :param domain: the ai planning pddl Domain to convert.
+    :param problem: the ai planning pddl Problem to convert; can be `None`.
+    :param environment: the environment in which the `UP Problem` is created,
+        defaults to `None`.
+    :return: the `UP Problem` parsed from the given ai planning `PDDL` Domain
+        and Problem.
+    """
+
     def __init__(
         self,
         domain: Domain,
         problem: Optional[Problem],
         environment: Optional[Environment] = None,
     ):
-        self.environment = get_environment(environment)
-        self.em: ExpressionManager = self.environment.expression_manager
-        self.tm: TypeManager = self.environment.type_manager
-        self.domain = domain
-        self.problem = problem
-        self.up_problem: Optional[UPProblem] = None
-        self.types: Dict[name, Optional[Type]] = {}
+        self._environment = get_environment(environment)
+        self._em: ExpressionManager = self._environment.expression_manager
+        self._tm: TypeManager = self._environment.type_manager
+        self._domain = domain
+        self._problem = problem
+        self._up_problem: Optional[UPProblem] = None
+        self._types: Dict[name, Optional[Type]] = {}
         if self._has_object_user_type():
-            self.types["object"] = self.tm.UserType("object")
+            self._types["object"] = self._tm.UserType("object")
         else:
-            self.types["object"] = None
-        self.fluents: Dict[name, Fluent] = {}
-        self.objects: Dict[name, Object] = {}
-        self.expression_converter: Optional[_ExpressionConverter] = None
-        self.has_action_costs = False
-        self.action_costs: Optional[Dict[str, UPExpression]] = None
+            self._types["object"] = None
+        self._fluents: Dict[name, Fluent] = {}
+        self._objects: Dict[name, Object] = {}
+        self._expression_converter: Optional[_ExpressionConverter] = None
+        self._has_action_costs = False
+        self._action_costs: Optional[Dict[str, UPExpression]] = None
 
     def _has_object_user_type(self) -> bool:
-        # check in all fluents, action and objects if they use the "object" type
-        check_type_tags: Iterable[Union[Constant, Term, Variable]] = (
-            self.domain.constants
-            if self.problem is None
-            else chain(self.domain.constants, self.problem.objects)
+        objects: Iterator[Constant] = (
+            self._domain.constants
+            if self._problem is None
+            else chain(self._domain.constants, self._problem.objects)
         )
 
+        # extracts all the parameters of the fluents
         def get_all_fluents_terms() -> Iterator[Term]:
-            for fluent in chain(self.domain.predicates, self.domain.functions):
+            for fluent in chain(self._domain.predicates, self._domain.functions):
                 for term in fluent.terms:
                     yield term
 
+        # extracts all the parameters of the actions
         def get_all_actions_params() -> Iterator[Variable]:
-            for action in self.domain.actions:
+            for action in self._domain.actions:
                 for param in action.parameters:
                     yield param
 
-        check_type_tags = chain(
-            check_type_tags, get_all_fluents_terms(), get_all_actions_params()
-        )
-
-        for obj in check_type_tags:
-            if "object" in obj.type_tags:
+        for typed_element in chain(
+            objects, get_all_fluents_terms(), get_all_actions_params()
+        ):
+            if "object" in typed_element.type_tags:
                 return True
 
         return False
 
     def _up_type(self, type_name: name) -> Optional[Type]:
-        return self.types[type_name]
+        return self._types[type_name]
 
     def _convert_type(self, type_name: name, type_father: Optional[Type]):
-        ut = self.tm.UserType(type_name, type_father)
-        self.types[type_name] = ut
+        ut = self._tm.UserType(type_name, type_father)
+        self._types[type_name] = ut
 
     def _convert_types(self):
+        # remaining_types contains the type that were not possible to convert
+        # because the father_type was not converted yet. So those are stored
+        # and populated later
         remaining_types = []
-        for type_name, type_father_name in self.domain.types.items():
-            if type_father_name is None or type_father_name in self.types:
-                type_father = self.types.get(type_father_name)
+        for type_name, type_father_name in self._domain.types.items():
+            if type_father_name is None or type_father_name in self._types:
+                type_father = self._types.get(type_father_name)
                 self._convert_type(type_name, type_father)
             else:
                 remaining_types.append((type_name, type_father_name))
+
+        # counter to avoid infinite loops; should never reach 0 unless a
+        # type_father of a type is not defined
         chances = len(remaining_types)
         while remaining_types and chances > 0:
             type_name, type_father_name = remaining_types.pop(0)
-            type_father = self.types.get(type_father_name)
+            type_father = self._types.get(type_father_name)
             if type_father is not None:
                 self._convert_type(type_name, type_father)
                 chances = len(remaining_types)
@@ -364,16 +384,16 @@ class AIPDDLConverter:
     def _variable_to_param(self, variable: Variable) -> Parameter:
         return Parameter(variable.name, self._variable_type(variable))
 
-    def _convert_predicate(self, predicate: Predicate):
-        assert self.up_problem is not None
+    def _convert_predicate_to_fluent(self, predicate: Predicate):
+        assert self._up_problem is not None
         params = OrderedDict((v.name, self._variable_type(v)) for v in predicate.terms)
-        f = Fluent(predicate.name, self.tm.BoolType(), **params)
-        self.fluents[predicate.name] = f
-        self.up_problem.add_fluent(f, default_initial_value=self.em.FALSE())
+        fluent = Fluent(predicate.name, self._tm.BoolType(), **params)
+        self._fluents[predicate.name] = fluent
+        self._up_problem.add_fluent(fluent, default_initial_value=self._em.FALSE())
 
     def _problem_has_minimize_total_cost_metric(self) -> bool:
-        assert self.problem is not None
-        metric = self.problem.metric
+        assert self._problem is not None
+        metric = self._problem.metric
         if metric is None:
             return False
 
@@ -384,179 +404,218 @@ class AIPDDLConverter:
             and metric.expression.arity == 0
         )
 
-    def _convert_function(self, function: NumericFunction):
-        assert self.up_problem is not None
+    def _convert_function_to_fluent(self, function: NumericFunction):
+        assert self._up_problem is not None
         if (
             function.name == "total-cost"
             and function.arity == 0
-            and (self.problem is None or self._problem_has_minimize_total_cost_metric())
+            and (
+                self._problem is None or self._problem_has_minimize_total_cost_metric()
+            )
         ):
-            self.has_action_costs = True
-            self.action_costs = {}
+            self._has_action_costs = True
+            self._action_costs = {}
             return
         params = OrderedDict((v.name, self._variable_type(v)) for v in function.terms)
-        f = Fluent(function.name, self.tm.RealType(), **params)
-        self.fluents[function.name] = f
-        self.up_problem.add_fluent(f, default_initial_value=self.em.Int(0))
+        f = Fluent(function.name, self._tm.RealType(), **params)
+        self._fluents[function.name] = f
+        self._up_problem.add_fluent(f, default_initial_value=self._em.Int(0))
 
     def _convert_fluents(self):
-        for pred in self.domain.predicates:
-            self._convert_predicate(pred)
-        for func in self.domain.functions:
-            self._convert_function(func)
+        for pred in self._domain.predicates:
+            self._convert_predicate_to_fluent(pred)
+        for func in self._domain.functions:
+            self._convert_function_to_fluent(func)
 
     def _add_object(self, obj: Constant):
-        assert self.up_problem is not None
+        assert self._up_problem is not None
         if obj.type_tags is None:
             raise UPUnsupportedProblemTypeError(f"Object {obj.name} has no type tag")
         obj = Object(obj.name, assert_not_none_type(self._up_type(obj.type_tag)))
-        self.objects[obj.name] = obj
-        self.up_problem.add_object(obj)
+        self._objects[obj.name] = obj
+        self._up_problem.add_object(obj)
 
     def _convert_constants(self):
-        for obj in self.domain.constants:
+        for obj in self._domain.constants:
             self._add_object(obj)
 
     def _convert_objects(self):
-        assert self.problem is not None
-        for obj in self.problem.objects:
+        assert self._problem is not None
+        for obj in self._problem.objects:
             self._add_object(obj)
 
     def _convert_effects(
         self,
         action_parameters_expression: Dict[str, Parameter],
         effect: Effect,
-        quantifier_variables: Dict[str, UPVariable],
-        condition: FNode,
         action_name: str,
     ) -> Iterator[UPEffect]:
-        assert self.expression_converter is not None
-        if isinstance(effect, Predicate):
-            fluent = self.expression_converter.convert_expression(
-                effect, action_parameters_expression, quantifier_variables
-            )
-            yield UPEffect(
-                fluent,
-                self.em.TRUE(),
-                condition,
-                forall=tuple(quantifier_variables.values()),
-            )
-        elif isinstance(effect, Not):
-            fluent = self.expression_converter.convert_expression(
-                effect.argument, action_parameters_expression, quantifier_variables
-            )
-            yield UPEffect(
-                fluent,
-                self.em.FALSE(),
-                condition,
-                forall=tuple(quantifier_variables.values()),
-            )
-        elif isinstance(effect, Assign):
-            fluent = self.expression_converter.convert_expression(
-                effect.operands[0], action_parameters_expression, quantifier_variables
-            )
-            value = self.expression_converter.convert_expression(
-                effect.operands[1], action_parameters_expression, quantifier_variables
-            )
-            yield UPEffect(
-                fluent,
-                value,
-                condition,
-                forall=tuple(quantifier_variables.values()),
-            )
-        elif isinstance(effect, When):
-            assert condition == self.em.TRUE()
-            new_condition = self.expression_converter.convert_expression(
-                effect.condition, action_parameters_expression, quantifier_variables
-            )
-            for e in self._convert_effects(
-                action_parameters_expression,
-                effect.effect,
-                quantifier_variables,
-                new_condition,
-                action_name,
-            ):
-                yield e
-        elif isinstance(effect, Forall):
-            new_quantifier_variables = quantifier_variables.copy()
-            for v in effect.variables:
-                new_quantifier_variables[v.name] = UPVariable(
-                    v.name, self._variable_type(v)
-                )
-            for e in self._convert_effects(
-                action_parameters_expression,
-                effect.effect,
-                new_quantifier_variables,
-                condition,
-                action_name,
-            ):
-                yield e
-        elif isinstance(effect, And):
-            for sub_effect in effect.operands:
-                for e in self._convert_effects(
+        assert self._expression_converter is not None
+        stack: List[Tuple[Effect, Dict[str, UPVariable], FNode]] = [
+            (effect, {}, self._em.TRUE())
+        ]
+
+        while stack:
+            (
+                current_effect,
+                current_quantifier_variables,
+                current_condition,
+            ) = stack.pop()
+
+            # one to one effect conversion
+            if isinstance(current_effect, Predicate):
+                fluent = self._expression_converter.convert_expression(
+                    current_effect,
                     action_parameters_expression,
-                    sub_effect,
-                    quantifier_variables,
-                    condition,
-                    action_name,
-                ):
-                    yield e
-        elif isinstance(effect, Increase):
-            pddl_fluent = effect.operands[0]
-            pddl_value = effect.operands[1]
-            if (
-                isinstance(pddl_fluent, NumericFunction)
-                and pddl_fluent.name == "total-cost"
-            ):
-                assert self.has_action_costs
-                assert self.action_costs is not None
-                assert quantifier_variables == {}
-                assert condition == self.em.TRUE()
-                self.action_costs[
-                    action_name
-                ] = self.expression_converter.convert_expression(
-                    pddl_value, action_parameters_expression, quantifier_variables
+                    current_quantifier_variables,
                 )
-            else:
-                fluent = self.expression_converter.convert_expression(
-                    pddl_fluent, action_parameters_expression, quantifier_variables
+                yield UPEffect(
+                    fluent,
+                    self._em.TRUE(),
+                    current_condition,
+                    forall=current_quantifier_variables.values(),
                 )
-                assert fluent.is_fluent_exp()
-                value = self.expression_converter.convert_expression(
-                    pddl_value, action_parameters_expression, quantifier_variables
+            elif isinstance(current_effect, Not):
+                fluent = self._expression_converter.convert_expression(
+                    current_effect.argument,
+                    action_parameters_expression,
+                    current_quantifier_variables,
+                )
+                yield UPEffect(
+                    fluent,
+                    self._em.TRUE(),
+                    current_condition,
+                    forall=current_quantifier_variables.values(),
+                )
+            elif isinstance(current_effect, Assign):
+                fluent = self._expression_converter.convert_expression(
+                    current_effect.operands[0],
+                    action_parameters_expression,
+                    current_quantifier_variables,
+                )
+                value = self._expression_converter.convert_expression(
+                    current_effect.operands[1],
+                    action_parameters_expression,
+                    current_quantifier_variables,
                 )
                 yield UPEffect(
                     fluent,
                     value,
-                    condition,
-                    kind=EffectKind.INCREASE,
-                    forall=tuple(quantifier_variables.values()),
+                    current_condition,
+                    forall=current_quantifier_variables.values(),
                 )
-        elif isinstance(effect, Decrease):
-            pddl_fluent = effect.operands[0]
-            pddl_value = effect.operands[1]
-            fluent = self.expression_converter.convert_expression(
-                pddl_fluent, action_parameters_expression, quantifier_variables
-            )
-            assert fluent.is_fluent_exp()
-            value = self.expression_converter.convert_expression(
-                pddl_value, action_parameters_expression, quantifier_variables
-            )
-            yield UPEffect(
-                fluent,
-                value,
-                condition,
-                kind=EffectKind.DECREASE,
-                forall=tuple(quantifier_variables.values()),
-            )
-        else:
-            raise UPUnsupportedProblemTypeError(
-                f"Effect {effect} of type {type(effect)} not supported"
-            )
+            elif isinstance(current_effect, Increase):
+                pddl_fluent = current_effect.operands[0]
+                pddl_value = current_effect.operands[1]
+                # check if action_cost is increased
+                if (
+                    isinstance(pddl_fluent, NumericFunction)
+                    and pddl_fluent.name == "total-cost"
+                    and pddl_fluent.arity == 0
+                ):
+                    assert self._has_action_costs
+                    assert self._action_costs is not None
+                    assert current_quantifier_variables == {}
+                    assert current_condition == self._em.TRUE()
+                    self._action_costs[
+                        action_name
+                    ] = self._expression_converter.convert_expression(
+                        pddl_value,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                else:
+                    fluent = self._expression_converter.convert_expression(
+                        pddl_fluent,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                    assert fluent.is_fluent_exp()
+                    value = self._expression_converter.convert_expression(
+                        pddl_value,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                    yield UPEffect(
+                        fluent,
+                        value,
+                        current_condition,
+                        EffectKind.INCREASE,
+                        current_quantifier_variables.values(),
+                    )
+            elif isinstance(current_effect, Decrease):
+                pddl_fluent = current_effect.operands[0]
+                pddl_value = current_effect.operands[1]
+                # check if it is decreasing the action cost
+                if (
+                    isinstance(pddl_fluent, NumericFunction)
+                    and pddl_fluent.name == "total-cost"
+                    and pddl_fluent.arity == 0
+                ):
+                    assert self._has_action_costs
+                    assert self._action_costs is not None
+                    assert current_quantifier_variables == {}
+                    assert current_condition == self._em.TRUE()
+                    positive_value = self._expression_converter.convert_expression(
+                        pddl_value,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                    negative_value = self._em.Minus(0, positive_value).simplify()
+                    self._action_costs[action_name] = negative_value
+                else:
+                    fluent = self._expression_converter.convert_expression(
+                        pddl_fluent,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                    assert fluent.is_fluent_exp()
+                    value = self._expression_converter.convert_expression(
+                        pddl_value,
+                        action_parameters_expression,
+                        current_quantifier_variables,
+                    )
+                    yield UPEffect(
+                        fluent,
+                        value,
+                        current_condition,
+                        EffectKind.DECREASE,
+                        current_quantifier_variables.values(),
+                    )
+            # one to (possibly) many effects conversion; add all sub_effects to
+            # stack with additional info (condition or quantifier variables)
+            elif isinstance(current_effect, When):
+                assert current_condition == self._em.TRUE()
+                new_condition = self._expression_converter.convert_expression(
+                    current_effect.condition,
+                    action_parameters_expression,
+                    current_quantifier_variables,
+                )
+                stack.append(
+                    (current_effect.effect, current_quantifier_variables, new_condition)
+                )
+            elif isinstance(current_effect, Forall):
+                new_quantifier_variables = current_quantifier_variables.copy()
+                for v in current_effect.variables:
+                    new_quantifier_variables[v.name] = UPVariable(
+                        v.name, self._variable_type(v)
+                    )
+                stack.append(
+                    (current_effect.effect, new_quantifier_variables, current_condition)
+                )
+            elif isinstance(current_effect, And):
+                for sub_effect in current_effect.operands:
+                    stack.append(
+                        (sub_effect, current_quantifier_variables, current_condition)
+                    )
+            else:
+                raise UPUnsupportedProblemTypeError(
+                    f"Effect {current_effect} of type {type(current_effect)} not supported"
+                )
 
     def _convert_action(self, action: Action):
-        assert self.up_problem is not None
-        assert self.expression_converter is not None
+        assert self._up_problem is not None
+        assert self._expression_converter is not None
         action_parameters = OrderedDict(
             (v.name, self._variable_type(v)) for v in action.parameters
         )
@@ -568,68 +627,83 @@ class AIPDDLConverter:
         up_action = InstantaneousAction(action.name, **action_parameters)
 
         up_action.add_precondition(
-            self.expression_converter.convert_expression(
+            self._expression_converter.convert_expression(
                 action.precondition, action_parameters_expression, {}
             )
         )
 
         for e in self._convert_effects(
-            action_parameters_expression, action.effect, {}, self.em.TRUE(), action.name
+            action_parameters_expression, action.effect, action.name
         ):
             up_action._add_effect_instance(e)
 
-        self.up_problem.add_action(up_action)
+        self._up_problem.add_action(up_action)
 
     def _convert_initial_values(self):
-        assert self.up_problem is not None
-        assert self.expression_converter is not None
-        assert self.problem is not None
-        for init in self.problem.init:
+        assert self._up_problem is not None
+        assert self._expression_converter is not None
+        assert self._problem is not None
+        for init in self._problem.init:
             if (
                 isinstance(init, EqualToFunction)
                 and isinstance(init.operands[0], NumericFunction)
                 and init.operands[0].name == "total-cost"
+                and init.operands[0].arity == 0
             ):
-                assert self.has_action_costs
-                assert self.action_costs is not None
+                assert self._has_action_costs
+                assert self._action_costs is not None
                 continue
 
-            init_expr = self.expression_converter.convert_expression(init, {}, {})
+            init_expr = self._expression_converter.convert_expression(init, {}, {})
             if init_expr.is_fluent_exp():
-                self.up_problem.set_initial_value(init_expr, self.em.TRUE())
+                self._up_problem.set_initial_value(init_expr, self._em.TRUE())
             elif init_expr.is_equals():
                 fluent = init_expr.arg(0)
                 value = init_expr.arg(1)
                 if value.is_fluent_exp():
                     fluent, value = value, fluent
                 assert fluent.is_fluent_exp()
-                self.up_problem.set_initial_value(fluent, value)
+                self._up_problem.set_initial_value(fluent, value)
             else:
                 raise UPUnsupportedProblemTypeError(
                     f"Initial value {init_expr} not supported"
                 )
 
     def _convert_goals(self):
-        assert self.up_problem is not None
-        assert self.expression_converter is not None
-        assert self.problem is not None
-        self.up_problem.add_goal(
-            self.expression_converter.convert_expression(self.problem.goal, {}, {})
+        assert self._up_problem is not None
+        assert self._expression_converter is not None
+        assert self._problem is not None
+        self._up_problem.add_goal(
+            self._expression_converter.convert_expression(self._problem.goal, {}, {})
         )
 
     def _add_quality_metric(self):
-        assert self.up_problem is not None
-        if self.has_action_costs:
+        assert self._up_problem is not None
+        if self._has_action_costs:
             action_costs: Dict[UPAction, UPExpression] = {}
-            assert self.action_costs is not None
-            for action_name, cost in self.action_costs.items():
-                action_costs[self.up_problem.action(action_name)] = cost
-            self.up_problem.add_quality_metric(MinimizeActionCosts(action_costs))
-        elif self.problem is not None:
-            metric = self.problem.metric
+            assert self._action_costs is not None
+
+            is_minimize_sequential_plan = True
+            cost_1_set = {self._em.Int(1), self._em.Real(Fraction(1))}
+            for action in self._up_problem.actions:
+                cost = self._action_costs.get(action.name)
+                if cost not in cost_1_set:
+                    is_minimize_sequential_plan = False
+            if is_minimize_sequential_plan:
+                self._up_problem.add_quality_metric(
+                    MinimizeSequentialPlanLength(self._environment)
+                )
+            else:
+                for action_name, cost in self._action_costs.items():
+                    action_costs[self._up_problem.action(action_name)] = cost
+                self._up_problem.add_quality_metric(
+                    MinimizeActionCosts(action_costs, self._em.Int(0))
+                )
+        elif self._problem is not None:
+            metric = self._problem.metric
             if metric is not None:
-                assert self.expression_converter is not None
-                expression = self.expression_converter.convert_expression(
+                assert self._expression_converter is not None
+                expression = self._expression_converter.convert_expression(
                     metric.expression, {}, {}
                 )
                 if metric.optimization == Metric.MINIMIZE:
@@ -638,7 +712,7 @@ class AIPDDLConverter:
                     ] = MinimizeExpressionOnFinalState(expression)
                 else:
                     up_metric = MaximizeExpressionOnFinalState(expression)
-                self.up_problem.add_quality_metric(up_metric)
+                self._up_problem.add_quality_metric(up_metric)
 
     def convert(self) -> UPProblem:
         """
@@ -649,13 +723,15 @@ class AIPDDLConverter:
             and problem given at constructor
         """
         # if problem is cached, return it
-        if self.up_problem is not None:
-            problem_clone = self.up_problem.clone()
+        if self._up_problem is not None:
+            problem_clone = self._up_problem.clone()
             return problem_clone
 
         # create and populate the problem
-        problem_name = self.domain.name if self.problem is None else self.problem.name
-        self.up_problem = UPProblem(problem_name, self.environment)
+        problem_name = (
+            self._domain.name if self._problem is None else self._problem.name
+        )
+        self._up_problem = UPProblem(problem_name, self._environment)
 
         # domain parsing
         self._convert_types()
@@ -664,20 +740,20 @@ class AIPDDLConverter:
         self._convert_objects()
 
         expression_converter = _ExpressionConverter(
-            self.em, self.types, self.fluents, self.objects
+            self._em, self._types, self._fluents, self._objects
         )
-        self.expression_converter = expression_converter
+        self._expression_converter = expression_converter
 
-        for action in self.domain.actions:
+        for action in self._domain.actions:
             self._convert_action(action)
 
         self._add_quality_metric()
 
         # problem parsing
-        if self.problem is not None:
+        if self._problem is not None:
             self._convert_initial_values()
             self._convert_goals()
-        return self.up_problem
+        return self._up_problem
 
 
 def check_ai_pddl_requirements(requirements: List[str]) -> bool:
