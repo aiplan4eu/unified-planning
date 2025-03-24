@@ -42,6 +42,10 @@ class Activity(Chronicle):
         self._start = Timepoint(TimepointKind.START, container=name)
         self._end = Timepoint(TimepointKind.END, container=name)
         self._optional = optional
+        if optional:
+            self._present = self._environment.expression_manager.PresentExp(Presence(name))
+        else:
+            self._present = self._environment.expression_manager.TRUE()
 
         self.set_fixed_duration(duration)
 
@@ -56,8 +60,13 @@ class Activity(Chronicle):
         return self._end
 
     @property
-    def present(self) -> Presence:
-        return Presence(self.name)
+    def optional(self) -> bool:
+        """Returns whether this activity is optional or not."""
+        return self._optional
+
+    @property
+    def present(self) -> FNode:
+        return self._present
 
     @property
     def duration(self) -> "up.model.timing.DurationInterval":

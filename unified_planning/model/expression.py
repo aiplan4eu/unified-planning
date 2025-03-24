@@ -147,6 +147,8 @@ class ExpressionManager(object):
                 res.append(self.TimingExp(e))
             elif isinstance(e, up.model.timing.Timepoint):
                 res.append(self.TimingExp(up.model.timing.Timing(delay=0, timepoint=e)))
+            elif isinstance(e, up.model.presence.Presence):
+                res.append(self.PresentExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
             elif (
@@ -179,6 +181,7 @@ class ExpressionManager(object):
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
                 "up.model.timing.Timing",
+                "up.model.presence.Presence",
                 str,
                 bool,
                 int,
@@ -558,9 +561,9 @@ class ExpressionManager(object):
             node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=timing
         )
 
-    def PresenceExp(self, presence: "up.model.presence.Presence") -> "up.model.fnode.FNode":
+    def PresentExp(self, presence: "up.model.presence.Presence") -> "up.model.fnode.FNode":
         return self.create_node(
-            node_type=OperatorKind.IS_PRESENT_EXP, args=tuple(), payload=presence.container
+            node_type=OperatorKind.IS_PRESENT_EXP, args=tuple(), payload=presence
         )
 
     def TRUE(self) -> "up.model.fnode.FNode":

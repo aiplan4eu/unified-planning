@@ -111,7 +111,7 @@ class Walker(object, metaclass=MetaNodeTypeHandler):
 
     @handles(OperatorKind)
     def walk_error(self, expression: FNode, **kwargs):
-        raise NotImplementedError
+        raise NotImplementedError("unsupported operator kind for expression: " + str(expression))
 
 
 # EOC Walker

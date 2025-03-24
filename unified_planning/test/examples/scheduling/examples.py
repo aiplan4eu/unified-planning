@@ -118,22 +118,47 @@ def optional():
 
     a = create_activiy("a")
     b = create_activiy("b")
+    c = create_activiy("c")
 
     pb.add_constraint(LE(b.end, a.start), [a.present, b.present])
+    pb.add_constraint(And(a.present, b.present))
 
-    a.add_deadline(10)
+    a.add_deadline(12)
+    c.add_release_date(5)
+    c.add_deadline(10)
 
-    print(pb.all_constraints())
+    print(pb)
 
     sol = unified_planning.plans.Schedule(
         [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
     )
+    print(sol)
 
     return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
+def test_protobuf(problem):
+    import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
+    from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+    from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
+    pb_writer = ProtobufWriter()
+    pb_reader = ProtobufReader()
+    problem_pb = pb_writer.convert(problem)
+    with open("/tmp/osched.upp", "wb") as file:
+        file.write(problem_pb.SerializeToString())
+    problem_up = pb_reader.convert(problem_pb)
+
+    pb_features = set(
+        [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
+    )
+    assert set(problem.kind.features) == pb_features
+    assert problem == problem_up
+
 if __name__ == "__main__":
-    print(resource_set().problem)
-    print("=========")
-    print(non_numeric().problem)
-    print("=========")
-    print(optional().problem)
+    # print(resource_set().problem)
+    # print("=========")
+    # print(non_numeric().problem)
+    # print("=========")
+    # print(optional().problem)
+    pb = optional().problem
+    test_protobuf(pb)

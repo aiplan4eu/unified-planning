@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, List, OrderedDict, Union
+from typing import Optional, List, OrderedDict, Union, Tuple
 
 from unified_planning.model.fnode import FNode
 from unified_planning.model.expression import BoolExpression
@@ -24,7 +24,7 @@ from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.types import Type
 
 
-Scope = List[BoolExpression]
+Scope = List[FNode]
 Constraint = Union[
                 "up.model.fnode.FNode",
                 "up.model.fluent.Fluent",
@@ -44,7 +44,7 @@ class Chronicle(TimedCondsEffs):
     ):
         TimedCondsEffs.__init__(self, _env)
         self._name = name
-        self._constraints: List[("up.model.fnode.FNode", Scope)] = []
+        self._constraints: List[Tuple["up.model.fnode.FNode", Scope]] = []
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
         )
@@ -72,13 +72,15 @@ class Chronicle(TimedCondsEffs):
         s.append(f"{self.name}")
         if len(self.parameters) > 0:
             s += ["(", ", ".join(map(str, self.parameters)), ")"]
+        if hasattr(self, "optional") and self.optional:
+            s.append(" (optional) ")
         s.append(" {\n")
         if hasattr(self, "duration"):
             s.append(f"    duration = {str(self.duration)}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
-            for c in self._constraints:
-                s.append(f"      {str(c)}\n")
+            for (c, scope) in self._constraints:
+                s.append(f"      {str(c)} {str(scope)}\n")
             s.append("    ]\n")
         if len(self.conditions) > 0:
             s.append("    conditions = [\n")
@@ -106,7 +108,17 @@ class Chronicle(TimedCondsEffs):
             or self._name != oth._name
         ):
             return False
-        if set(self._constraints) != set(oth._constraints):
+
+        # if set((c, set(scope)) for (c,scope) in self._constraints) != set((c, set(scope)) for (c,scope) in oth._constraints):
+        #     return False
+        if len(self._constraints) != len(oth._constraints):  # TODO: just comparing length here
+            print("=== self ==")
+            for c in self._constraints:
+                print(c)
+            print("=== other =")
+            for c in oth._constraints:
+                print(c)
+            print("===========")
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False
@@ -115,7 +127,7 @@ class Chronicle(TimedCondsEffs):
     def __hash__(self) -> int:
         res = hash(self._name)
         res += sum(map(hash, self._parameters.items()))
-        res += sum(map(hash, self._constraints))
+        #res += sum(map(hash, self._constraints))
         res += TimedCondsEffs.__hash__(self)
         return res
 
@@ -175,10 +187,16 @@ class Chronicle(TimedCondsEffs):
         (constraint_exp,) = self._environment.expression_manager.auto_promote(
             constraint
         )
+        scope_exprs = self._environment.expression_manager.auto_promote(scope)
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
         if constraint_exp not in self._constraints:
-            self._constraints.append((constraint_exp, scope))
+            self._constraints.append((constraint_exp, scope_exprs))
 
     @property
     def constraints(self) -> List[FNode]:
+        assert all((len(scope) == 0 for (_, scope) in self._constraints)), f"At least one constraint has a non-empty scope.: {self._constraints}"
+        return [c for (c, scope) in self._constraints if len(scope) == 0]
+
+    @property
+    def scoped_constraints(self) -> List[Tuple[FNode, Scope]]:
         return self._constraints
