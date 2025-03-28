@@ -139,10 +139,11 @@ class Activity(Chronicle):
         self.add_increase_effect(self.end, resource, amount)
 
     def add_constraint(
-            self,
-            constraint: Constraint,
-        ):
-        self._add_constraint(constraint, scope=[self.present])
+        self,
+        constraint: Constraint,
+    ):
+        scope = [self.present] if self.optional else []
+        self._add_constraint(constraint, scope=scope)
 
     def add_release_date(self, date: NumericExpression):
         """Sets the earliest date at which the activity can be started."""
