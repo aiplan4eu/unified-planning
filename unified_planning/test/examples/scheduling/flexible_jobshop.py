@@ -97,7 +97,7 @@ def create_scheduling_problem(instance: str) -> SchedulingProblem:
         for t, task in enumerate(job):
             for processing_time, machine in task:
                 act = problem.add_activity(
-                    f"job{j}_task{t}_machine{machine}",
+                    f"job{j}_task{t}_machine{machine + 1}",
                     duration=processing_time,
                     optional=True,
                 )
@@ -119,9 +119,10 @@ def create_scheduling_problem(instance: str) -> SchedulingProblem:
             for i1, act1 in enumerate(task_activities[t]):
                 for i2, act2 in enumerate(task_activities[t]):
                     if i1 != i2:
+                        # act1.add_constraint(Not(act2.present))
                         # problem.add_constraint(Not(act2.present), scope=[act1.present])
-                        act1.add_constraint(Not(act2.present))
-                        # problem.add_constraint(Or(Not(act1.present), Not(act2.present)))
+                        # problem.add_constraint(Implies(act1.present, Not(act2.present)))
+                        problem.add_constraint(Or(Not(act1.present), Not(act2.present)))
 
     problem.add_quality_metric(unified_planning.model.metrics.MinimizeMakespan())
     return problem
@@ -131,17 +132,17 @@ if __name__ == "__main__":
 
     from unified_planning.engines import ValidationResultStatus
 
-    pb = create_scheduling_problem(MT10C1)
+    pb = create_scheduling_problem(MT06_modified)
     print(pb)
     print(pb.kind)
 
-    with OneshotPlanner() as planner:
+    with OneshotPlanner(problem_kind=pb.kind) as planner:
         res = planner.solve(pb)
         print(res)
 
-        # with PlanValidator(problem_kind=pb.kind, plan_kind=res.plan.kind) as validator:
-        #     check = validator.validate(pb, res.plan)
-        #     if check.status is ValidationResultStatus.VALID:
-        #         print("Valid plan")
-        #     else:
-        #         print("Invalid plan")
+        with PlanValidator(problem_kind=pb.kind, plan_kind=res.plan.kind) as validator:
+            check = validator.validate(pb, res.plan)
+            if check.status is ValidationResultStatus.VALID:
+                print("Valid plan")
+            else:
+                print("Invalid plan")
