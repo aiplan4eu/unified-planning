@@ -182,14 +182,18 @@ class SchedulingProblem(  # type: ignore[misc]
         for _, cond, _ in self.all_conditions():
             factory.update_problem_kind_expression(cond)
 
-        for (constraint, _scope) in self.base_scoped_constraints:
+        for constraint, scope in self.base_scoped_constraints:
             factory.update_problem_kind_expression(constraint)
-            # TODO: handle non empty scope?
+            if len(scope) > 0:
+                factory.kind.set_scheduling("SCOPED_CONSTRAINTS")
 
         for _, eff in self.base_effects:
             factory.update_problem_kind_effect(eff)
 
         for act in self.activities:
+            if act.optional:
+                factory.kind.set_scheduling("OPTIONAL_ACTIVITIES")
+
             factory.update_action_duration(act.duration)
             for param in act.parameters:
                 factory.update_action_parameter(param)
@@ -199,9 +203,10 @@ class SchedulingProblem(  # type: ignore[misc]
             for span, conds in act.conditions.items():
                 for cond in conds:
                     factory.update_action_timed_condition(span, cond)
-            for (constraint, _scope) in act.scoped_constraints:
+            for constraint, scope in act.scoped_constraints:
                 factory.update_problem_kind_expression(constraint)
-                # TODO: handle non empty scope?
+                if len(scope) > 0:
+                    factory.kind.set_scheduling("SCOPED_CONSTRAINTS")
 
         factory.update_problem_kind_initial_state(self)
 
@@ -367,14 +372,14 @@ class SchedulingProblem(  # type: ignore[misc]
         return vars
 
     def all_constraints(self) -> List[FNode]:
-        """Returns all constraints enforced in this problem or in any of its activities.
-        For each constraint, the activity in which it was defined is also given."""
+        """Returns all constraints enforced in this problem or in any of its activities."""
         cs = self._base.constraints.copy()
         for a in self.activities:
             cs += a.constraints
         return cs
 
     def all_scoped_constraints(self) -> List[Tuple[FNode, Scope]]:
+        """Returns all scoped constraints enforced in this problem or in any of its activities."""
         cs = self._base.scoped_constraints.copy()
         for a in self.activities:
             cs += a.scoped_constraints

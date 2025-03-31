@@ -1,15 +1,3 @@
-from unified_planning.environment import Environment
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import (
-    NumericConstant,
-    uniform_numeric_constant,
-    TimeExpression,
-)
-from abc import ABC
-from enum import Enum, auto
-from fractions import Fraction
-from typing import Union, Optional
-
 class Presence:
     def __init__(self, container: str):
         self._container = container

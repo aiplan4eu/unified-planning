@@ -189,8 +189,11 @@ class Chronicle(TimedCondsEffs):
         )
         scope_exprs = self._environment.expression_manager.auto_promote(scope)
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
-        if constraint_exp not in self._constraints:
-            self._constraints.append((constraint_exp, scope_exprs))
+        assert all(
+            self._environment.type_checker.get_type(scope_expr).is_bool_type()
+            for scope_expr in scope_exprs
+        )
+        self._constraints.append((constraint_exp, scope_exprs))
 
     @property
     def constraints(self) -> List[FNode]:
