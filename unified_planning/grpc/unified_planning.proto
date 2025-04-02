@@ -384,10 +384,20 @@ message Hierarchy {
 
 // ============= Scheduling =======================
 
+message ScopedConstraint {
+    Expression constraint = 1;
+    // a list of boolean expressiosn that condition the constraint
+    // If all expressions in the scope are true, then constraint must hold
+    repeated Expression scope = 2;
+}
+
 // Activity in a scheduling problem.
 message Activity {
     // Name of the activity that must uniquely identify it.
     string name = 1;
+
+    // If true, the activity is optional and might absent from a solution.
+    bool optional = 7;
 
     // Typed and named parameters of the activity.
     repeated Parameter parameters = 2;
@@ -403,6 +413,7 @@ message Activity {
 
     // Conjunction of static constraints that must hold if the activity is present.
     repeated Expression constraints = 6;
+
 }
 
 // Extension of `Problem` for scheduling
@@ -415,6 +426,9 @@ message SchedulingExtension {
 
     // All constraints in the base problem.
     repeated Expression constraints = 5;
+
+    // feature: OPTIONAL_SCHEDULING
+    repeated ScopedConstraint scoped_constraints = 6;
 }
 
 message Schedule {

@@ -14,7 +14,7 @@ check-mypy:
 
 # Generate protobuf bindings
 gen-protobuf:
-    pip show grpcio-tools | grep "Version: 1.54.2"  # Check installed version for reproducibility
+    uv pip show grpcio-tools | grep "Version: 1.54.2"  # Check installed version for reproducibility
     bash scripts/generate_protobuf_bindings.sh
 
 # Test one (or more) engine with report
@@ -32,4 +32,4 @@ open-doc browser="firefox":
 
 # Install unified-planning from sources
 install:
-    pip install .
+    uv pip install .

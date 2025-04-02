@@ -26,21 +26,26 @@ from unified_planning.model import (
     TimepointKind,
     Fluent,
     NumericConstant,
+    Presence,
 )
 import unified_planning as up
-from unified_planning.model.scheduling.chronicle import Chronicle
-
+from unified_planning.model.scheduling.chronicle import Chronicle, Constraint
 
 class Activity(Chronicle):
     """Activity is essentially an interval with start and end timepoint that facilitates defining constraints in the
     associated :class:`SchedulingProblem`"""
 
     def __init__(
-        self, name: str, duration: int = 1, _env: Optional[Environment] = None
+        self, name: str, duration: int = 1, optional: bool = False, _env: Optional[Environment] = None
     ):
         Chronicle.__init__(self, name, _env=_env)
         self._start = Timepoint(TimepointKind.START, container=name)
         self._end = Timepoint(TimepointKind.END, container=name)
+        self._optional = optional
+        if optional:
+            self._present = self._environment.expression_manager.PresentExp(Presence(name))
+        else:
+            self._present = self._environment.expression_manager.TRUE()
 
         self.set_fixed_duration(duration)
 
@@ -53,6 +58,15 @@ class Activity(Chronicle):
     def end(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._end
+
+    @property
+    def optional(self) -> bool:
+        """Returns whether this activity is optional or not."""
+        return self._optional
+
+    @property
+    def present(self) -> FNode:
+        return self._present
 
     @property
     def duration(self) -> "up.model.timing.DurationInterval":
@@ -123,6 +137,13 @@ class Activity(Chronicle):
         """
         self.add_decrease_effect(self.start, resource, amount)
         self.add_increase_effect(self.end, resource, amount)
+
+    def add_constraint(
+        self,
+        constraint: Constraint,
+    ):
+        scope = [self.present] if self.optional else []
+        self._add_constraint(constraint, scope=scope)
 
     def add_release_date(self, date: NumericExpression):
         """Sets the earliest date at which the activity can be started."""

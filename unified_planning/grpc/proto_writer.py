@@ -183,6 +183,27 @@ class FNode2Protobuf(walkers.DagWalker):
             type=proto_type(expression.object().type),
         )
 
+    def walk_is_present_exp(
+        self, expression: model.FNode, args: List[proto.Expression]
+    ) -> proto.Expression:
+        presence = expression.presence()
+        args = [
+            proto.Expression(
+                atom=proto.Atom(symbol="up:present"),
+                kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
+            ),
+            proto.Expression(
+                atom=proto.Atom(symbol=presence.container),
+                type="up:container",
+                kind=proto.ExpressionKind.Value("CONTAINER_ID"),
+            )
+        ]
+        return proto.Expression(
+            list=args,
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
+            type=proto_type(expression.type),
+        )
+
     def walk_timing_exp(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
@@ -435,11 +456,12 @@ class ProtobufWriter(Converter):
     def _convert_activity(self, a: model.scheduling.Activity) -> proto.Activity:
         return proto.Activity(
             name=a.name,
+            optional=a.optional,
             parameters=[self.convert(p) for p in a.parameters],
             duration=self.convert(a.duration),
             conditions=self._convert_timed_conditions(a.conditions),
             effects=self._convert_timed_effects(a.effects),
-            constraints=[self.convert(c) for c in a.constraints],
+            constraints=[self.convert(c) for (c, scope) in a.scoped_constraints], # TODO: handle scope
         )
 
     @handles(model.timing.Timepoint)
@@ -620,6 +642,7 @@ class ProtobufWriter(Converter):
             else None,
         )
 
+
     @handles(model.scheduling.SchedulingProblem)
     def _convert_scheduling_problem(
         self, problem: model.scheduling.SchedulingProblem
@@ -630,10 +653,26 @@ class ProtobufWriter(Converter):
             for t, g in problem.base_conditions
         ]
 
+        constraints = []
+        scoped_constraints = []
+        for (c, scope) in problem.base_scoped_constraints:
+            constraint = self.convert(c)
+            print(scope)
+            scope = [self.convert(scope_item) for scope_item in scope]
+            for x in scope:
+                print(x)
+                print("===============")
+            scoped_constraints.append(
+                proto.ScopedConstraint(constraint=constraint, scope=scope)
+            )
+            if len(scope) == 0:
+                constraints.append(constraint)
+
         sched = proto.SchedulingExtension(
             activities=[self.convert(a) for a in problem.activities],
             variables=[self.convert(v) for v in problem.base_variables],
-            constraints=[self.convert(c) for c in problem.base_constraints],
+            constraints=constraints,
+            scoped_constraints=scoped_constraints
         )
 
         return proto.Problem(
