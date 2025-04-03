@@ -18,7 +18,6 @@
 from itertools import chain, product
 import unified_planning as up
 from unified_planning.model.effect import EffectKind
-import unified_planning.model.tamp
 from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (

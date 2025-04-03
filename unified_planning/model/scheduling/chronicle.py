@@ -94,7 +94,7 @@ class Chronicle(TimedCondsEffs):
             for t, el in self.effects.items():
                 s.append(f"      {str(t)}:\n")
                 for e in el:
-                    s.append(f"        {str(e)}:\n")
+                    s.append(f"        {str(e)}\n")
             s.append("    ]\n")
         s.append("  }")
         return "".join(s)

@@ -54,7 +54,7 @@ def get_example_problems():
         Robot,
         footprint=[(-1.0, 0.5), (1.0, 0.5), (1.0, -0.5), (-1.0, -0.5)],
         motion_model=MotionModels.REEDSSHEPP,
-        parameters={"turning_radius": 4.0},
+        control_parameters={"turning_radius": 4.0},
     )
 
     move = InstantaneousMotionAction(

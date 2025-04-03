@@ -20,10 +20,11 @@ from unified_planning.model import InstantaneousAction, DurativeAction
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.exceptions import UPTypeError, UPUnboundedVariablesError
 from abc import ABC, abstractmethod
-from typing import Optional, List, Iterable, Dict, Union
+from typing import Optional, List, Iterable, Dict, Union, Tuple
 from collections import Counter, OrderedDict
 
 from unified_planning.model.timing import EndTiming, StartTiming, TimeInterval, Timing
+from unified_planning.model.scheduling.activity import Activity
 
 
 class Attachment(ABC):
@@ -254,7 +255,7 @@ class TransformConstraint(MotionConstraint):
 
         if not tm1.is_movable_type() or not tm2.is_movable_type():
             raise UPTypeError(
-                "Objects of Transform's constructor must be of movable type!"
+                "Objects of TransformConstraint's constructor must be of movable type!"
             )
 
         (
@@ -265,7 +266,7 @@ class TransformConstraint(MotionConstraint):
         tc2 = self._environment.type_checker.get_type(config_to_exp)
         if not tc1.is_configuration_type() or not tc2.is_configuration_type():
             raise UPTypeError(
-                "Configurations of Transform's constructor must be of configuration type!"
+                "Configurations of TransformConstraint's constructor must be of configuration type!"
             )
 
         if tc1.kind != tc2.kind:
@@ -281,7 +282,10 @@ class TransformConstraint(MotionConstraint):
         self._link_to = link_to
 
     def __eq__(self, oth) -> bool:
-        if not isinstance(oth, Transform) or self._environment != oth._environment:
+        if (
+            not isinstance(oth, TransformConstraint)
+            or self._environment != oth._environment
+        ):
             return False
         if (
             self._obj_from != oth._obj_from
@@ -321,32 +325,32 @@ class TransformConstraint(MotionConstraint):
 
     @property
     def obj_from(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the movable object from which the `Transform` is computed."""
+        """Returns the `FNode` representing the movable object from which the `TransformConstraint` is computed."""
         return self._obj_from
 
     @property
     def obj_to(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the movable object to which the `Transform` is computed."""
+        """Returns the `FNode` representing the movable object to which the `TransformConstraint` is computed."""
         return self._obj_to
 
     @property
     def config_from(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the configuration of the movable object from which `Transform` is computed."""
+        """Returns the `FNode` representing the configuration of the movable object from which `TransformConstraint` is computed."""
         return self._config_from
 
     @property
     def config_to(self) -> "up.model.fnode.FNode":
-        """Returns the `FNode` representing the configuration of the movable object to which the `Transform` is computed."""
+        """Returns the `FNode` representing the configuration of the movable object to which the `TransformConstraint` is computed."""
         return self._config_to
 
     @property
     def link_from(self) -> str:
-        """Returns the name of the link of the movable object from which the `Transform` is computed."""
+        """Returns the name of the link of the movable object from which the `TransformConstraint` is computed."""
         return self._link_from
 
     @property
     def link_to(self) -> str:
-        """Returns the name of the link of the movable object to which the `Transform` is computed."""
+        """Returns the name of the link of the movable object to which the `TransformConstraint` is computed."""
         return self._link_to
 
 
@@ -369,10 +373,10 @@ class Waypoints(MotionConstraint):
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
         static_obstacles: Optional[
-            Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
+            Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]
         ] = None,
         dynamic_obstacles_at_start: Optional[
-            Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]
+            Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]
         ] = None,
         attachments: Optional[List[Attachment]] = None,
         environment: Optional[Environment] = None,
@@ -464,14 +468,14 @@ class Waypoints(MotionConstraint):
     @property
     def static_obstacles(
         self,
-    ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
+    ) -> Optional[Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]]:
         """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration during all the constraint (static obstacles)."""
         return self._static_obstacles
 
     @property
     def dynamic_obstacles_at_start(
         self,
-    ) -> Optional[Dict["up.model.tamp.objects.MovableObject", "up.model.fnode.FNode"]]:
+    ) -> Optional[Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]]:
         """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration at the beginning of the constraint (possibly dynamic obstacles)."""
         return self._dynamic_obstacles_at_start
 
@@ -654,3 +658,239 @@ class DurativeMotionAction(DurativeAction):
             self._timed_motion_constraints[interval].append(motion_constraint)
         else:
             self._timed_motion_constraints[interval] = [motion_constraint]
+
+
+class ActivityWaypoints(MotionConstraint):
+
+    def __init__(
+        self,
+        movable: "up.model.expression.Expression",
+        starting: "up.model.expression.Expression",
+        waypoints: List["up.model.expression.Expression"],
+        static_obstacles: Optional[
+            Union[List["up.model.tamp.MovableObject"], Dict]
+        ] = None,
+        dynamic_obstacles_at_start: Optional[
+            Union[List["up.model.tamp.MovableObject"], Dict]
+        ] = None,
+        attachments: Optional[List[Attachment]] = None,
+        environment: Optional[Environment] = None,
+    ):
+        super().__init__(environment)
+        (movable_exp,) = self._environment.expression_manager.auto_promote(movable)
+        if not self._environment.type_checker.get_type(movable_exp).is_movable_type():
+            raise UPTypeError(
+                "First parameter of Waypoints's constructor must be of movable type!"
+            )
+        (
+            starting_exp,
+            *waypoints_exp,
+        ) = self._environment.expression_manager.auto_promote(starting, *waypoints)
+        t = self._environment.type_checker.get_type(starting_exp)
+        if not t.is_configuration_type():
+            raise UPTypeError(
+                "starting parameter of Waypoints's constructor must be of configuration type!"
+            )
+        for p in waypoints_exp:
+            pt = self._environment.type_checker.get_type(p)
+            if not pt.is_configuration_type():
+                raise UPTypeError(
+                    "waypoints parameter of Waypoints's constructor must be a list of configuration type objects!"
+                )
+            if t != pt:
+                raise UPTypeError(
+                    "starting and waypoints must be of the same configuration type!"
+                )
+        self._movable = movable_exp
+        self._starting = starting_exp
+        self._waypoints = waypoints_exp
+        self._static_obstacles = static_obstacles
+        self._dynamic_obstacles_at_start = dynamic_obstacles_at_start
+        self._attachments = attachments
+
+    def __eq__(self, oth) -> bool:
+        if not isinstance(oth, Waypoints) or self._environment != oth._environment:
+            return False
+        if self._movable != oth._movable or self._starting != oth._starting:
+            return False
+        if set(self._waypoints) != set(oth._waypoints):
+            return False
+        if self._attachments != oth._attachments:
+            return False
+        return True
+
+    def __hash__(self) -> int:
+        res = hash(self._movable)
+        res += hash(self._starting)
+        for p in self._waypoints:
+            res += hash(p)
+        return res
+
+    def __repr__(self) -> str:
+        s = ["waypoints("]
+        s.append(str(self.movable))
+        s.append(", ")
+        s.append(str(self.starting))
+        s.append(", ")
+        s.append(str(self.waypoints))
+        if self.static_obstacles is not None:
+            s.append(", ")
+            s.append(str(self.static_obstacles))
+        if self.dynamic_obstacles_at_start is not None:
+            s.append(", ")
+            s.append(str(self.dynamic_obstacles_at_start))
+        if self.attachments is not None:
+            s.append(", ")
+            s.append(str(self.attachments))
+        s.append(")")
+        return "".join(s)
+
+    @property
+    def movable(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the involved movable object."""
+        return self._movable
+
+    @property
+    def starting(self) -> "up.model.fnode.FNode":
+        """Returns the `FNode` representing the starting configuration of the involved movable object."""
+        return self._starting
+
+    @property
+    def waypoints(self) -> List["up.model.fnode.FNode"]:
+        """Returns the `list` of `FNode` representing the set of waypoints that the involved movable object should traverse."""
+        return self._waypoints
+
+    @property
+    def static_obstacles(
+        self,
+    ) -> Optional[Union[List["up.model.tamp.MovableObject"], Dict]]:
+        return self._static_obstacles
+
+    @property
+    def dynamic_obstacles_at_start(
+        self,
+    ) -> Optional[Union[List["up.model.tamp.MovableObject"], Dict]]:
+        return self._dynamic_obstacles_at_start
+
+    @property
+    def attachments(self) -> List[Attachment]:
+        """Returns the list `Attachment` for this motion constraint."""
+        return self._attachments
+
+    # def _get_obstacles(
+    #     self,
+    #     obstacles: Dict[
+    #         "up.model.expression.Expression",
+    #         List[Tuple[Optional[Activity], "up.model.expression.Expression"]],
+    #     ],
+    # ) -> Dict["up.model.FNode", List[Tuple[Optional[Activity], "up.model.FNode"]]]:
+    #     res_obstacles = {}
+    #     for movable, activity_config_pairs in obstacles.items():
+    #         (movable_exp,) = self._environment.expression_manager.auto_promote(movable)
+    #         if not self._environment.type_checker.get_type(
+    #             movable_exp
+    #         ).is_movable_type():
+    #             raise UPTypeError("must be of movable type!")
+
+    #         res_obstacles[movable_exp] = []
+    #         for activity, config in activity_config_pairs:
+    #             (config_exp,) = self._environment.expression_manager.auto_promote(
+    #                 config
+    #             )
+    #             if not self._environment.type_checker.get_type(
+    #                 config_exp
+    #             ).is_configuration_type():
+    #                 raise UPTypeError("config parameter must be of configuration type!")
+
+    #             res_obstacles[movable_exp].append((activity, config_exp))
+
+    #     return res_obstacles
+
+
+class MotionActivity(Activity):
+    """This class represents a motion activity."""
+
+    def __init__(
+        self,
+        name: str,
+        duration: int = 1,
+        optional: bool = False,
+        _env: Optional[Environment] = None,
+    ):
+        Activity.__init__(self, name, duration, optional, _env)
+        self._motion_constraints: List[MotionConstraint] = []
+        self._motion_effects: List[Tuple["up.model.FNode", "up.model.FNode"]] = []
+
+    def __eq__(self, oth: object) -> bool:
+        if not isinstance(oth, MotionActivity):
+            return False
+        if self._motion_constraints != oth._motion_constraints:
+            # FIXME
+            return False
+        if self._motion_effects != oth._motion_effects:
+            return False
+        return super().__eq__(oth)
+
+    def __hash__(self) -> int:
+        res = super().__hash__()
+        res += sum(map(hash, self.motion_constraints))
+        res += sum(map(hash, self.motion_effects))
+        return res
+
+    def __repr__(self) -> str:
+        s = ["motion-activity {"]
+        s.append(super().__repr__().replace("/n", "\n  "))
+        s.append("  motion-constraints")
+        s.append("  " + repr(self.motion_constraints))
+        s.append("  motion-effects")
+        s.append("  " + repr(self.motion_effects))
+        s.append("}")
+        return "\n".join(s)
+
+    def clone(self):
+        new = MotionActivity(self.name, optional=self.optional, _env=self._environment)
+        self._clone_to(new)
+        new._duration = self._duration
+        new._motion_constraints = self.motion_constraints
+        new._motion_effects = self.motion_effects
+        return new
+
+    @property
+    def motion_constraints(self) -> List[MotionConstraint]:
+        return self._motion_constraints
+
+    @property
+    def motion_effects(
+        self,
+    ) -> List[
+        Tuple["up.model.expression.Expression", "up.model.expression.Expression"]
+    ]:
+        return self._motion_effects
+
+    def clear_motion_constraints(self):
+        """Removes all `motion_constraints`."""
+        self._motion_constraints = []
+
+    def clear_motion_constraints(self):
+        """Removes all `motion_effects`."""
+        self._motion_effects = []
+
+    def add_motion_constraint(self, motion_constraint: MotionConstraint):
+        self._motion_constraints.append(motion_constraint)
+
+    def add_motion_effect(
+        self,
+        movable: "up.model.expression.Expression",
+        config: "up.model.expression.Expression",
+    ):
+        (movable_exp, config_exp) = self._environment.expression_manager.auto_promote(
+            movable, config
+        )
+        if not self._environment.type_checker.get_type(movable_exp).is_movable_type():
+            raise UPTypeError("movable parameter must be of movable type!")
+        if not self._environment.type_checker.get_type(
+            config_exp
+        ).is_configuration_type():
+            raise UPTypeError("config parameter must be of configuration type!")
+
+        self._motion_effects.append((movable_exp, config_exp))

@@ -125,8 +125,8 @@ class SchedulingProblem(  # type: ignore[misc]
 
         s.append("\n\nActivities:\n  ")
         for act in self._activities:
-            s.append(str(act))
-            s.append("\n  ")
+            s.append(str(act).replace("\n", "\n  "))
+            s.append("\n")
 
         return "".join(s)
 

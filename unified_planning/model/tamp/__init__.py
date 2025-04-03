@@ -16,8 +16,10 @@
 from unified_planning.model.tamp.action import (
     InstantaneousMotionAction,
     DurativeMotionAction,
+    MotionActivity,
     MotionConstraint,
     Waypoints,
+    ActivityWaypoints,
     Attachment,
     TransformConstraint,
 )
@@ -35,12 +37,17 @@ from unified_planning.model.tamp.objects import (
 from unified_planning.model.tamp.types import OccupancyMap
 from unified_planning.model.tamp.path import Path, SE2Path, SE3Path, SE2WithControlsPath
 from unified_planning.model.tamp.transform import Transform
+from unified_planning.model.tamp.scheduling_motion_problem import (
+    SchedulingMotionProblem,
+)
 
 __all__ = [
     "InstantaneousMotionAction",
     "DurativeMotionAction",
+    "MotionActivity",
     "MotionConstraint",
     "Waypoints",
+    "ActivityWaypoints",
     "Attachment",
     "TransformConstraint",
     "ConfigurationKind",
@@ -58,4 +65,5 @@ __all__ = [
     "SE3Path",
     "SE2WithControlsPath",
     "Transform",
+    "SchedulingMotionProblem",
 ]
