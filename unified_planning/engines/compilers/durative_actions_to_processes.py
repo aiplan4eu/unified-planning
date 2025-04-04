@@ -21,37 +21,34 @@ from unified_planning.model import (
     Problem,
     ProblemKind,
     Fluent,
-    Parameter,
-    BoolExpression,
-    NumericConstant,
     Action,
     InstantaneousAction,
     DurativeAction,
-    TimeInterval,
-    Effect,
-    FNode,
-    Object,
-    Oversubscription,
-    TemporalOversubscription,
-    Variable,
+    Process,
+    Event,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
 )
-from typing import Dict, List, Optional, Tuple, OrderedDict
+from typing import Dict, Optional, OrderedDict
 from functools import partial
 
-class DurativeActionRemover(engines.engine.Engine, CompilerMixin):
-    def __init__(self):
+
+class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
+    def __init__(self, use_counter: bool = True):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.DURATIVE_ACTION_REMOVER)
-    
+        CompilerMixin.__init__(
+            self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+        )
+        self._use_counter = use_counter
+
     @property
     def name(self):
-        return "darm"
-    
+        return "datp"
+
     @staticmethod
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
@@ -113,15 +110,17 @@ class DurativeActionRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
         return supported_kind
-    
+
     @staticmethod
     def supports(problem_kind):
-        return problem_kind <= DurativeActionRemover.supported_kind()
-    
+        return problem_kind <= DurativeActionToProcesses.supported_kind()
+
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.DURATIVE_ACTION_REMOVER
-    
+        return (
+            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+        )
+
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
@@ -129,7 +128,7 @@ class DurativeActionRemover(engines.engine.Engine, CompilerMixin):
         new_kind = problem_kind.clone()
         # ...
         return new_kind
-    
+
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
@@ -141,34 +140,55 @@ class DurativeActionRemover(engines.engine.Engine, CompilerMixin):
         tm = env.type_manager
         new_to_old: Dict[Action, Optional[Action]] = {}
 
-        new_problem=problem.clone()
-        new_problem.name = f"{problem.name}_DurativeActionRemove"
+        new_problem = problem.clone()
+        new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
         new_problem.clear_actions()
 
-        new_fluent=Fluent("process_active", tm.IntType(), environment=env)
-        new_problem.add_fluent(new_fluent, default_initial_value = 0)
-
+        if self._use_counter:
+            new_fluent = Fluent("process_active", tm.IntType(), environment=env)
+            new_problem.add_fluent(new_fluent, default_initial_value=0)
 
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
-                new_action=action.clone()
-                new_to_old[new_action]=action
+                new_action = action.clone()
+                new_to_old[new_action] = action
                 new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
                 params = OrderedDict(((p.name, p.type) for p in action.parameters))
 
-                
-                new_fluent_running = Fluent(f"{action.name}_Running", tm.BoolType(), params, env)
-                new_problem.add_fluent(new_fluent_running, default_initial_value = em.FALSE())
-                new_fluent_clock = Fluent(f"{action.name}_Clock", tm.RealType(), params, env)
-                new_problem.add_fluent(new_fluent_clock, default_initial_value = 0)
+                new_fluent_running = Fluent(
+                    f"{get_fresh_name(new_problem, action.name)}_running",
+                    tm.BoolType(),
+                    params,
+                    env,
+                )
+                new_problem.add_fluent(
+                    new_fluent_running, default_initial_value=em.FALSE()
+                )
+                new_fluent_clock = Fluent(
+                    f"{get_fresh_name(new_problem, action.name)}_clock",
+                    tm.RealType(),
+                    params,
+                    env,
+                )
+                new_problem.add_fluent(new_fluent_clock, default_initial_value=0)
 
-                
-                new_action = InstantaneousAction(f"{action.name}_Start", _parameters=params, _env=env)
-                new_process = Process(f"{action.name}_During", _parameters=params, _env=env)
-                new_event = Event(f"{action.name}_Stop", _parameters=params, _env=env)
+                new_action = InstantaneousAction(
+                    f"{get_fresh_name(new_problem, action.name)}_start",
+                    _parameters=params,
+                    _env=env,
+                )
+                new_process = Process(
+                    f"{get_fresh_name(new_problem, action.name)}_during",
+                    _parameters=params,
+                    _env=env,
+                )
+                new_event = Event(
+                    f"{get_fresh_name(new_problem, action.name)}_stop",
+                    _parameters=params,
+                    _env=env,
+                )
 
-                
                 for t, cond in action.conditions.items():
                     if t.lower.is_from_start() and t.upper.is_from_start():
                         for c in cond:
@@ -193,36 +213,62 @@ class DurativeActionRemover(engines.engine.Engine, CompilerMixin):
                     else:
                         raise NotImplementedError
 
-                
-                
-                new_action.add_precondition(em.Not(em.FluentExp(new_fluent_running, params=new_action.parameters)))
-                new_action.add_effect(em.FluentExp(new_fluent_running, params=new_action.parameters), em.TRUE())
-                new_action.add_effect(em.FluentExp(new_fluent_clock, params=new_action.parameters), 0)
-                new_action.add_increase_effect(new_fluent, 1)
+                new_action.add_precondition(
+                    em.Not(
+                        em.FluentExp(new_fluent_running, params=new_action.parameters)
+                    )
+                )
+                new_action.add_effect(
+                    em.FluentExp(new_fluent_running, params=new_action.parameters),
+                    em.TRUE(),
+                )
+                new_action.add_effect(
+                    em.FluentExp(new_fluent_clock, params=new_action.parameters), 0
+                )
+                if self._use_counter:
+                    new_action.add_increase_effect(new_fluent, 1)
 
-                
-                new_process.add_precondition(em.FluentExp(new_fluent_running, params=new_action.parameters))
-                new_process.add_increase_continuous_effect(em.FluentExp(new_fluent_clock, params=new_action.parameters),1)
+                new_process.add_precondition(
+                    em.FluentExp(new_fluent_running, params=new_action.parameters)
+                )
+                new_process.add_increase_continuous_effect(
+                    em.FluentExp(new_fluent_clock, params=new_action.parameters), 1
+                )
 
-                
-                duration=action.duration.upper
-                new_event.add_precondition(em.Equals(em.FluentExp(new_fluent_clock, params=new_action.parameters), duration))
-                new_event.add_precondition(em.FluentExp(new_fluent_running, params=new_action.parameters))
-                new_event.add_effect(em.FluentExp(new_fluent_running, params=new_action.parameters), em.FALSE())
-                new_event.add_decrease_effect(new_fluent, 1)
+                duration = action.duration.upper
+                new_event.add_precondition(
+                    em.Equals(
+                        em.FluentExp(new_fluent_clock, params=new_action.parameters),
+                        duration,
+                    )
+                )
+                new_event.add_precondition(
+                    em.FluentExp(new_fluent_running, params=new_action.parameters)
+                )
+                new_event.add_effect(
+                    em.FluentExp(new_fluent_running, params=new_action.parameters),
+                    em.FALSE(),
+                )
+                if self._use_counter:
+                    new_event.add_decrease_effect(new_fluent, 1)
 
-                new_to_old[new_action]=action
-                new_to_old[new_process]=action
-                new_to_old[new_event]=action
+                new_to_old[new_action] = action
+                new_to_old[new_process] = action
+                new_to_old[new_event] = action
 
                 new_problem.add_action(new_action)
                 new_problem.add_process(new_process)
                 new_problem.add_event(new_event)
 
+                if not (self._use_counter):
+                    for g in get_all_fluent_exp(new_problem, new_fluent_running):
+                        new_problem.add_goal(em.Not(g))
+
             else:
                 raise NotImplementedError
 
-        new_problem.add_goal(em.Equals(new_fluent, 0))
+        if self._use_counter:
+            new_problem.add_goal(em.Equals(new_fluent, 0))
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
