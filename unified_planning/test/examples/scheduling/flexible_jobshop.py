@@ -15,7 +15,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.model.scheduling import *
 from unified_planning.model.scheduling import SchedulingProblem, Activity
-from typing import List
+from typing import List, Tuple
 
 # Text representation
 MINI_FSP = """2   2   1
@@ -88,13 +88,24 @@ def parse_instance(instance: str):
     return jobs, num_machines
 
 
-def create_scheduling_problem(instance: str) -> SchedulingProblem:
+def create_scheduling_problem(instance: str, resource_encoding: bool=False) -> SchedulingProblem:
+    """Encodes a Flexible Jobshop problem as a scheduling problems.
+    Encoding can be in two styles:
+        - resource (resource_encoding=True): model machine usage on numeric state variables
+        - direct (resource_encoding=False): activities on the same machine are explicitly required not to overlap
+    """
     jobs, num_machines = parse_instance(instance)
 
     problem = SchedulingProblem(f"sched:flexible-jobshop")
-    machine_objects = [
-        problem.add_resource(f"m{i}", capacity=1) for i in range(num_machines)
-    ]
+    machine_objects = []
+    if resource_encoding:
+        # create one resource per machine
+        machine_objects = [
+            problem.add_resource(f"m{i}", capacity=1) for i in range(num_machines)
+        ]
+
+    # list of all activites together with their machine index
+    all_activities: List[Tuple[Activity, int]] = []
 
     for j, job in enumerate(jobs):
         task_activities: List[List[Activity]] = [[] for t in range(len(job))]
@@ -105,8 +116,11 @@ def create_scheduling_problem(instance: str) -> SchedulingProblem:
                     duration=processing_time,
                     optional=True,
                 )
-                act.uses(machine_objects[machine])
+                if resource_encoding:
+                    # state that the activity borrows the machine for its entire duration
+                    act.uses(machine_objects[machine])
                 task_activities[t].append(act)
+                all_activities.append((act, machine))
 
             # precedence constraints
             if t > 0:
@@ -128,15 +142,29 @@ def create_scheduling_problem(instance: str) -> SchedulingProblem:
                         # problem.add_constraint(Implies(act1.present, Not(act2.present)))
                         problem.add_constraint(Or(Not(act1.present), Not(act2.present)))
 
+    if not resource_encoding:
+        # Directly encode machine usage constraints as no overlaps between any two activities on the same machine
+        for (a1, m1) in all_activities:
+            for (a2, m2) in all_activities:
+                if a1.name < a2.name and m1 == m2:
+                    problem.add_constraint(Or(LE(a1.end, a2.start), LE(a2.end, a1.start)), scope=[a1.present, a2.present])
+
     problem.add_quality_metric(unified_planning.model.metrics.MinimizeMakespan())
     return problem
 
 
 if __name__ == "__main__":
 
-    pb = create_scheduling_problem(MT06_modified)
+    pb = create_scheduling_problem(MT10C1, resource_encoding=False)
     print(pb)
     print(pb.kind)
+
+    # # Export to protobuf for independent usage
+    # from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+    # pb_writer = ProtobufWriter()
+    # problem_pb = pb_writer.convert(pb)
+    # with open("/tmp/osched.upp", "wb") as file:
+    #     file.write(problem_pb.SerializeToString())
 
     with OneshotPlanner(name="aries") as planner:
         res = planner.solve(pb)
