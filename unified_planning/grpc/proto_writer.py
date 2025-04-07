@@ -657,11 +657,7 @@ class ProtobufWriter(Converter):
         scoped_constraints = []
         for (c, scope) in problem.base_scoped_constraints:
             constraint = self.convert(c)
-            print(scope)
             scope = [self.convert(scope_item) for scope_item in scope]
-            for x in scope:
-                print(x)
-                print("===============")
             scoped_constraints.append(
                 proto.ScopedConstraint(constraint=constraint, scope=scope)
             )
