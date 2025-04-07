@@ -17,7 +17,7 @@ check-mypy:
 check-protobuf-version:
     #!/usr/bin/env python
     import grpc
-    assert grpc.__version__ == '1.54.2'
+    assert grpc.__version__ == '1.66.2'
 
 # Generate protobuf bindings
 gen-protobuf: check-protobuf-version

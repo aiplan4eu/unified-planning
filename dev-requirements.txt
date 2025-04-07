@@ -1,6 +1,6 @@
 -r requirements.txt
-grpcio==1.54.2
-grpcio-tools==1.54.2
+grpcio==1.66.2
+grpcio-tools==1.66.2
 grpc-stubs
 pytest
 pytest-cov
