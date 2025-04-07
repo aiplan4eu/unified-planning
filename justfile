@@ -12,9 +12,15 @@ check-format:
 check-mypy:
     python3 -m mypy unified_planning
 
+
+# Simple job that will fail if the installed grpc version is not the one expected for binding generation (old for wide compatibility)
+check-protobuf-version:
+    #!/usr/bin/env python
+    import grpc
+    assert grpc.__version__ == '1.54.2'
+
 # Generate protobuf bindings
-gen-protobuf:
-    uv pip show grpcio-tools | grep "Version: 1.54.2"  # Check installed version for reproducibility
+gen-protobuf: check-protobuf-version
     bash scripts/generate_protobuf_bindings.sh
 
 # Test one (or more) engine with report
