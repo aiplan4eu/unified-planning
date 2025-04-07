@@ -240,7 +240,9 @@ class SchedulingProblem(  # type: ignore[misc]
         """Returns the existing decision variable with the given name."""
         return self._base.get_parameter(name)
 
-    def add_activity(self, name: str, duration: int = 0, optional: bool = False) -> "Activity":
+    def add_activity(
+        self, name: str, duration: int = 0, optional: bool = False
+    ) -> "Activity":
         """Creates a new activity with the given `name` in the problem.
 
         :param name: Name that uniquely identifies the activity.
@@ -285,7 +287,7 @@ class SchedulingProblem(  # type: ignore[misc]
             "up.model.parameter.Parameter",
             bool,
         ],
-        scope: Optional[Scope] = None
+        scope: Optional[Scope] = None,
     ):
         """Enforce a boolean expression to be true in any solution"""
 

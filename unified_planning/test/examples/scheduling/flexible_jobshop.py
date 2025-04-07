@@ -55,7 +55,6 @@ MT10C1 = """10  11  1
 
 
 def parse_instance(instance: str):
-
     def ints(line: str) -> List[int]:
         return list(map(int, line.rstrip().split()))
 
@@ -88,7 +87,9 @@ def parse_instance(instance: str):
     return jobs, num_machines
 
 
-def create_scheduling_problem(instance: str, resource_encoding: bool=False) -> SchedulingProblem:
+def create_scheduling_problem(
+    instance: str, resource_encoding: bool = False
+) -> SchedulingProblem:
     """Encodes a Flexible Jobshop problem as a scheduling problems.
     Encoding can be in two styles:
         - resource (resource_encoding=True): model machine usage on numeric state variables
@@ -147,7 +148,10 @@ def create_scheduling_problem(instance: str, resource_encoding: bool=False) -> S
         for (a1, m1) in all_activities:
             for (a2, m2) in all_activities:
                 if a1.name < a2.name and m1 == m2:
-                    problem.add_constraint(Or(LE(a1.end, a2.start), LE(a2.end, a1.start)), scope=[a1.present, a2.present])
+                    problem.add_constraint(
+                        Or(LE(a1.end, a2.start), LE(a2.end, a1.start)),
+                        scope=[a1.present, a2.present],
+                    )
 
     problem.add_quality_metric(unified_planning.model.metrics.MinimizeMakespan())
     return problem
@@ -171,5 +175,5 @@ if __name__ == "__main__":
         print(res)
 
     with AnytimePlanner(name="aries") as planner:
-      for res in planner.get_solutions(pb):
-        print(res)
+        for res in planner.get_solutions(pb):
+            print(res)

@@ -177,8 +177,9 @@ class ProtobufReader(Converter):
             else:
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif (
-        msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
-        and msg.list[0].atom.symbol == "up:present"):
+            msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+            and msg.list[0].atom.symbol == "up:present"
+        ):
             container = msg.list[1].atom.symbol
             presence = model.Presence(container)
             return problem.environment.expression_manager.PresentExp(presence)
@@ -418,7 +419,7 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_condition(self.convert(timing), goal)
 
-        for sc in msg.scheduling_extension.scoped_constraints: # TODO: scoped
+        for sc in msg.scheduling_extension.scoped_constraints:  # TODO: scoped
             c = self.convert(sc.constraint, problem)
             print(">>>>> ", sc.scope)
             scope = [self.convert(sc_item, problem) for sc_item in sc.scope]

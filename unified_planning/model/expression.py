@@ -561,7 +561,9 @@ class ExpressionManager(object):
             node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=timing
         )
 
-    def PresentExp(self, presence: "up.model.presence.Presence") -> "up.model.fnode.FNode":
+    def PresentExp(
+        self, presence: "up.model.presence.Presence"
+    ) -> "up.model.fnode.FNode":
         return self.create_node(
             node_type=OperatorKind.IS_PRESENT_EXP, args=tuple(), payload=presence
         )

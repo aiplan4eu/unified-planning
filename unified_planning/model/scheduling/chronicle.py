@@ -26,11 +26,12 @@ from unified_planning.model.types import Type
 
 Scope = List[FNode]
 Constraint = Union[
-                "up.model.fnode.FNode",
-                "up.model.fluent.Fluent",
-                "up.model.parameter.Parameter",
-                bool,
-            ]
+    "up.model.fnode.FNode",
+    "up.model.fluent.Fluent",
+    "up.model.parameter.Parameter",
+    bool,
+]
+
 
 class Chronicle(TimedCondsEffs):
     """Core structure to represent a set of variables, constraints, timed conditions and effects in scheduling problems."""
@@ -111,7 +112,9 @@ class Chronicle(TimedCondsEffs):
 
         # if set((c, set(scope)) for (c,scope) in self._constraints) != set((c, set(scope)) for (c,scope) in oth._constraints):
         #     return False
-        if len(self._constraints) != len(oth._constraints):  # TODO: just comparing length here
+        if len(self._constraints) != len(
+            oth._constraints
+        ):  # TODO: just comparing length here
             print("=== self ==")
             for c in self._constraints:
                 print(c)
@@ -127,7 +130,7 @@ class Chronicle(TimedCondsEffs):
     def __hash__(self) -> int:
         res = hash(self._name)
         res += sum(map(hash, self._parameters.items()))
-        #res += sum(map(hash, self._constraints))
+        # res += sum(map(hash, self._constraints))
         res += TimedCondsEffs.__hash__(self)
         return res
 
@@ -176,11 +179,7 @@ class Chronicle(TimedCondsEffs):
         """Returns the `list` of the `Action parameters`."""
         return list(self._parameters.values())
 
-    def _add_constraint(
-        self,
-        constraint: Constraint,
-        scope: List[BoolExpression]
-    ):
+    def _add_constraint(self, constraint: Constraint, scope: List[BoolExpression]):
         """
         Adds the given expression to the `chronicle's constraints`.
         """
@@ -197,7 +196,9 @@ class Chronicle(TimedCondsEffs):
 
     @property
     def constraints(self) -> List[FNode]:
-        assert all((len(scope) == 0 for (_, scope) in self._constraints)), f"At least one constraint has a non-empty scope.: {self._constraints}"
+        assert all(
+            (len(scope) == 0 for (_, scope) in self._constraints)
+        ), f"At least one constraint has a non-empty scope.: {self._constraints}"
         return [c for (c, scope) in self._constraints if len(scope) == 0]
 
     @property
