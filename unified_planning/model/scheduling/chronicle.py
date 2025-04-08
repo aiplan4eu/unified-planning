@@ -174,6 +174,19 @@ class Chronicle(TimedCondsEffs):
             )
         return self._parameters[name]
 
+    def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        if parameter_name.startswith("_"):
+            # guard access as pickling relies on attribute error to be thrown even when
+            # no attributes of the object have been set.
+            # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
+            raise AttributeError(f"Transition has no attribute '{parameter_name}'")
+        if parameter_name not in self._parameters:
+            print(self._parameters)
+            raise AttributeError(
+                f"Transition '{self.name}' has no attribute or parameter '{parameter_name}'"
+            )
+        return self._parameters[parameter_name]
+
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:
         """Returns the `list` of the `Action parameters`."""
