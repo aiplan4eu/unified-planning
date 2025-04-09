@@ -60,7 +60,7 @@ class SchedulingMotionProblem(SchedulingProblem):
     def kind(self) -> "up.model.problem_kind.ProblemKind":
         # TODO
         problem_kind = super().kind
-        problem_kind.set_problem_class("TAMP")
+        problem_kind.set_problem_class("SAMP")
         return problem_kind
 
     def clone(self):
@@ -83,7 +83,7 @@ class SchedulingMotionProblem(SchedulingProblem):
         """Returns the list of motion activities in this problem."""
         return self._motion_activities
 
-    def set_inital_configuration(
+    def set_initial_configuration(
         self,
         movable: "up.model.expression.Expression",
         config: "up.model.expression.Expression",
