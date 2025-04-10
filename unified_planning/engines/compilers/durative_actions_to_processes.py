@@ -206,10 +206,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 for t, eff in action.effects.items():
                     if t.is_from_start():
                         for e in eff:
-                            new_action.add_effect(e.fluent, e.value)
+                            new_action._add_effect_instance(e)
                     elif t.is_from_end():
                         for e in eff:
-                            new_event.add_effect(e.fluent, e.value)
+                            new_event._add_effect_instance(e)
                     else:
                         raise NotImplementedError
 
