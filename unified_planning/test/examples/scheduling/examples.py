@@ -106,7 +106,149 @@ def non_numeric():
     return TestCase(problem=pb, solvable=True, valid_plans=[sol])
 
 
+def optional():
+    pb = SchedulingProblem(name="sched:optional")
+    busy = pb.add_fluent("busy", default_initial_value=False)
+
+    def create_activiy(name: str) -> Activity:
+        a = pb.add_activity(name, duration=5, optional=True)
+        a.add_condition(a.start, Not(busy))
+        a.add_effect(a.start + 1, busy, True)
+        a.add_effect(a.end, busy, False)
+        return a
+
+    a = create_activiy("a")
+    b = create_activiy("b")
+    c = create_activiy("c")
+
+    pb.add_constraint(LE(b.end, a.start), [a.present, b.present])
+    pb.add_constraint(And(a.present, b.present))
+
+    a.add_deadline(12)
+    c.add_release_date(5)
+    c.add_deadline(10)
+
+    sol = unified_planning.plans.Schedule(
+        [a, b], {a.start: 5, a.end: 10, b.start: 0, b.end: 5}
+    )
+
+    return TestCase(problem=pb, solvable=True, valid_plans=[sol])
+
+
+def optional_activities_constraints():
+    problem = SchedulingProblem(name="sched:optional_activities_constraints")
+
+    activity1 = problem.add_activity("activity1", 10, optional=True)
+    activity2 = problem.add_activity("activity2", 3, optional=True)
+    int_var = problem.add_variable("int_var", IntType())
+    bool_var = problem.add_variable("bool_var", BoolType())
+
+    problem.add_constraint(
+        Or(
+            And(activity1.present, Not(activity2.present)),
+            And(activity2.present, Not(activity1.present)),
+        )
+    )
+    problem.add_constraint(activity1.present)
+
+    problem.add_constraint(bool_var, scope=[activity1.present])
+    problem.add_constraint(Not(bool_var), scope=[activity1.present, activity2.present])
+
+    activity1.add_constraint(Equals(int_var, 4))
+    activity2.add_constraint(Equals(int_var, 6))
+
+    problem.add_quality_metric(MinimizeMakespan())
+
+    sol = unified_planning.plans.Schedule(
+        [activity1], {activity1.start: 0, activity1.end: 10, int_var: 4, bool_var: True}
+    )
+    return TestCase(problem=problem, solvable=True, valid_plans=[sol])
+
+
+def optional_activities_effects():
+    problem = SchedulingProblem(name="sched:optional_activities_effects")
+
+    activity1 = problem.add_activity("activity1", 10, optional=True)
+    activity2 = problem.add_activity("activity2", 3, optional=True)
+    fluent = problem.add_fluent(
+        "fluent", IntType(lower_bound=0, upper_bound=1), default_initial_value=0
+    )
+
+    problem.add_constraint(
+        Or(
+            And(activity1.present, Not(activity2.present)),
+            And(activity2.present, Not(activity1.present)),
+        )
+    )
+    problem.add_constraint(activity2.present)
+    activity2.add_constraint(Equals(activity2.start, 0))
+
+    activity1.add_increase_effect(activity1.start + 1, fluent, 1)
+    activity2.add_increase_effect(activity2.start, fluent, 1)
+
+    sol = unified_planning.plans.Schedule(
+        [activity2], {activity2.start: 0, activity2.end: 3}
+    )
+    return TestCase(problem=problem, solvable=True, valid_plans=[sol])
+
+
+def optional_activities_conditions():
+    problem = SchedulingProblem(name="sched:optional_activities_conditions")
+
+    activity1 = problem.add_activity("activity1", 10, optional=True)
+    activity2 = problem.add_activity("activity2", 3, optional=True)
+    int_var = problem.add_variable("int_var", IntType())
+
+    problem.add_constraint(
+        Or(
+            And(activity1.present, Not(activity2.present)),
+            And(activity2.present, Not(activity1.present)),
+        )
+    )
+    problem.add_constraint(activity1.present)
+    activity1.add_constraint(Equals(activity1.start, 0))
+
+    activity1.add_condition(
+        ClosedTimeInterval(Timing(3, activity1.start), Timing(-2, activity1.end)),
+        Equals(int_var, 4),
+    )
+
+    activity2.add_condition(
+        ClosedTimeInterval(Timing(3, activity1.start), Timing(-2, activity1.end)),
+        Equals(int_var, 6),
+    )
+
+    sol = unified_planning.plans.Schedule(
+        [activity1], {activity1.start: 0, activity1.end: 10, int_var: 4}
+    )
+    return TestCase(problem=problem, solvable=True, valid_plans=[sol])
+
+
+def test_protobuf(problem):
+    # TODO
+    import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
+    from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
+    from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+
+    pb_writer = ProtobufWriter()
+    pb_reader = ProtobufReader()
+    problem_pb = pb_writer.convert(problem)
+    with open("/tmp/osched.upp", "wb") as file:
+        file.write(problem_pb.SerializeToString())
+    problem_up = pb_reader.convert(problem_pb)
+
+    pb_features = set(
+        [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
+    )
+    assert set(problem.kind.features) == pb_features
+    assert problem == problem_up
+
+
 if __name__ == "__main__":
-    print(resource_set().problem)
-    print("=========")
-    print(non_numeric().problem)
+    # print(resource_set().problem)
+    # print("=========")
+    # print(non_numeric().problem)
+    # print("=========")
+    # print(optional().problem)
+    pb = optional().problem
+    test_protobuf(pb)

@@ -437,6 +437,7 @@ class Simplifier(walkers.dag.DagWalker):
         op.OperatorKind.VARIABLE_EXP,
         op.OperatorKind.OBJECT_EXP,
         op.OperatorKind.TIMING_EXP,
+        op.OperatorKind.IS_PRESENT_EXP,
     )
     def walk_identity(self, expression: FNode, args: List[FNode]) -> FNode:
         return expression
