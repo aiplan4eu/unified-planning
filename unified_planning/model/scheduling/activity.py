@@ -165,14 +165,17 @@ class Activity(Chronicle):
         new = Activity(self.name, _env=self._environment)
         self._clone_to(new)
         new._duration = self._duration
+        new._optional = self._optional
+        new._present= self._present
         return new
 
     def __hash__(self):
-        return Chronicle.__hash__(self) + hash(self._duration)
+        return Chronicle.__hash__(self) + hash(self._duration) + hash(self._optional)
 
     def __eq__(self, other):
         return (
             isinstance(other, Activity)
             and Chronicle.__eq__(self, other)
             and self._duration == other._duration
+            and self._optional == other._optional
         )
