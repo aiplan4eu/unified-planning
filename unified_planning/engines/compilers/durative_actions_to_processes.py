@@ -33,7 +33,7 @@ from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
 )
-from typing import Dict, Optional, OrderedDict
+from typing import Dict, Optional, OrderedDict, Union
 from functools import partial
 
 
@@ -138,7 +138,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         env = problem.environment
         em = env.expression_manager
         tm = env.type_manager
-        new_to_old: Dict[Action, Optional[Action]] = {}
+        new_to_old: Dict[
+            Union[Action, Process, Event], Optional[Union[Action, Process, Event]]
+        ] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
@@ -183,11 +185,18 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     _parameters=params,
                     _env=env,
                 )
-                new_event = Event(
-                    f"{get_fresh_name(new_problem, action.name)}_stop",
-                    _parameters=params,
-                    _env=env,
-                )
+                if action.duration.lower == action.duration.upper:
+                    new_event_or_action = Event(
+                        f"{get_fresh_name(new_problem, action.name)}_stop",
+                        _parameters=params,
+                        _env=env,
+                    )
+                else:
+                    new_event_or_action = InstantaneousAction(
+                        f"{get_fresh_name(new_problem, action.name)}_stop",
+                        _parameters=params,
+                        _env=env,
+                    )
 
                 for t, cond in action.conditions.items():
                     if t.lower.is_from_start() and t.upper.is_from_start():
@@ -195,11 +204,11 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             new_action.add_precondition(c)
                     elif t.lower.is_from_end() and t.upper.is_from_end():
                         for c in cond:
-                            new_event.add_precondition(c)
+                            new_event_or_action.add_precondition(c)
                     elif t.lower.is_from_start() and t.upper.is_from_end():
                         for c in cond:
                             new_action.add_precondition(c)
-                            new_event.add_precondition(c)
+                            new_event_or_action.add_precondition(c)
                     else:
                         raise NotImplementedError
 
@@ -209,7 +218,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             new_action._add_effect_instance(e)
                     elif t.is_from_end():
                         for e in eff:
-                            new_event._add_effect_instance(e)
+                            new_event_or_action._add_effect_instance(e)
                     else:
                         raise NotImplementedError
 
@@ -235,30 +244,115 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     em.FluentExp(new_fluent_clock, params=new_action.parameters), 1
                 )
 
-                duration = action.duration.upper
-                new_event.add_precondition(
-                    em.Equals(
-                        em.FluentExp(new_fluent_clock, params=new_action.parameters),
-                        duration,
+                if action.duration.lower == action.duration.upper:
+                    new_event_or_action.add_precondition(
+                        em.Equals(
+                            em.FluentExp(
+                                new_fluent_clock, params=new_action.parameters
+                            ),
+                            action.duration.lower,
+                        )
                     )
-                )
-                new_event.add_precondition(
+                else:
+                    if action.duration.is_left_open():
+                        if action.duration.is_right_open():
+                            new_event_or_action.add_precondition(
+                                em.And(
+                                    em.GT(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.lower,
+                                    ),
+                                    em.LT(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.upper,
+                                    ),
+                                )
+                            )
+                        else:
+                            new_event_or_action.add_precondition(
+                                em.And(
+                                    em.GT(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.lower,
+                                    ),
+                                    em.LE(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.upper,
+                                    ),
+                                )
+                            )
+                    else:
+                        if action.duration.is_right_open():
+                            new_event_or_action.add_precondition(
+                                em.And(
+                                    em.GE(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.lower,
+                                    ),
+                                    em.LT(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.upper,
+                                    ),
+                                )
+                            )
+                        else:
+                            new_event_or_action.add_precondition(
+                                em.And(
+                                    em.GE(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.lower,
+                                    ),
+                                    em.LE(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        action.duration.upper,
+                                    ),
+                                )
+                            )
+
+                new_event_or_action.add_precondition(
                     em.FluentExp(new_fluent_running, params=new_action.parameters)
                 )
-                new_event.add_effect(
+                new_event_or_action.add_effect(
                     em.FluentExp(new_fluent_running, params=new_action.parameters),
                     em.FALSE(),
                 )
                 if self._use_counter:
-                    new_event.add_decrease_effect(new_fluent, 1)
+                    new_event_or_action.add_decrease_effect(new_fluent, 1)
 
                 new_to_old[new_action] = action
                 new_to_old[new_process] = action
-                new_to_old[new_event] = action
+                new_to_old[new_event_or_action] = action
 
                 new_problem.add_action(new_action)
                 new_problem.add_process(new_process)
-                new_problem.add_event(new_event)
+                if action.duration.lower == action.duration.upper:
+                    new_problem.add_event(new_event_or_action)
+                else:
+                    new_problem.add_action(new_event_or_action)
 
                 if not (self._use_counter):
                     for g in get_all_fluent_exp(new_problem, new_fluent_running):
