@@ -777,6 +777,7 @@ class ActivityWaypoints(MotionConstraint):
         """Returns the list `Attachment` for this motion constraint."""
         return self._attachments
 
+    # TODO: remove
     # def _get_obstacles(
     #     self,
     #     obstacles: Dict[
@@ -819,7 +820,7 @@ class MotionActivity(Activity):
     ):
         Activity.__init__(self, name, duration, optional, _env)
         self._motion_constraints: List[MotionConstraint] = []
-        self._motion_effects: List[Tuple["up.model.FNode", "up.model.FNode"]] = []
+        self._motion_effects: Dict["up.model.FNode", "up.model.FNode"] = {}
 
     def __eq__(self, oth: object) -> bool:
         if not isinstance(oth, MotionActivity):
@@ -862,9 +863,7 @@ class MotionActivity(Activity):
     @property
     def motion_effects(
         self,
-    ) -> List[
-        Tuple["up.model.expression.Expression", "up.model.expression.Expression"]
-    ]:
+    ) -> Dict["up.model.FNode", "up.model.FNode"]:
         return self._motion_effects
 
     def clear_motion_constraints(self):
@@ -873,7 +872,7 @@ class MotionActivity(Activity):
 
     def clear_motion_constraints(self):
         """Removes all `motion_effects`."""
-        self._motion_effects = []
+        self._motion_effects = {}
 
     def add_motion_constraint(self, motion_constraint: MotionConstraint):
         self._motion_constraints.append(motion_constraint)
@@ -893,4 +892,4 @@ class MotionActivity(Activity):
         ).is_configuration_type():
             raise UPTypeError("config parameter must be of configuration type!")
 
-        self._motion_effects.append((movable_exp, config_exp))
+        self._motion_effects[movable_exp] = config_exp

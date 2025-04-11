@@ -20,6 +20,14 @@ from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.scheduling import SchedulingProblem
 from unified_planning.model.tamp import MotionActivity
 from unified_planning.exceptions import UPTypeError
+from unified_planning.model.mixins import (
+    UserTypesSetMixin,
+    TimeModelMixin,
+    FluentsSetMixin,
+    ObjectsSetMixin,
+    InitialStateMixin,
+    MetricsMixin,
+)
 
 
 class SchedulingMotionProblem(SchedulingProblem):
@@ -35,12 +43,14 @@ class SchedulingMotionProblem(SchedulingProblem):
             self, name, environment, initial_defaults=initial_defaults
         )
         self._motion_activities: List[MotionActivity] = []
-        self._inital_configuration: List[Tuple["up.model.FNode", "up.model.FNode"]] = []
+        self._initial_configuration: List[Tuple["up.model.FNode", "up.model.FNode"]] = (
+            []
+        )
 
     def __repr__(self) -> str:
         s = [super().__repr__()]
         s.append("initial configuration:")
-        for (movable, config) in self._inital_configuration:
+        for movable, config in self._initial_configuration:
             s.append(f"  {movable}: {config}")
         return "\n".join(s)
 
@@ -65,8 +75,19 @@ class SchedulingMotionProblem(SchedulingProblem):
 
     def clone(self):
         """Returns an equivalent problem."""
-        new_p = super().clone()
-        new_p._motion_activities = self.motion_activities
+        # FIXME: duplicated code
+        new_p = SchedulingMotionProblem(self._name, self._env)
+        UserTypesSetMixin._clone_to(self, new_p)
+        ObjectsSetMixin._clone_to(self, new_p)
+        FluentsSetMixin._clone_to(self, new_p)
+        TimeModelMixin._clone_to(self, new_p)
+        InitialStateMixin._clone_to(self, new_p)
+        MetricsMixin._clone_to(self, new_p, new_actions=None)
+
+        new_p._base = self._base.clone()
+        new_p._activities = [a.clone() for a in self._activities]
+        new_p._motion_activities = [a.clone() for a in self.motion_activities]
+        new_p._initial_configuration = self.initial_configuration
         return new_p
 
     def add_motion_activity(
@@ -98,4 +119,8 @@ class SchedulingMotionProblem(SchedulingProblem):
         ).is_configuration_type():
             raise UPTypeError("config parameter must be of configuration type!")
 
-        self._inital_configuration.append((movable_exp, config_exp))
+        self._initial_configuration.append((movable_exp, config_exp))
+
+    @property
+    def initial_configuration(self) -> List[Tuple["up.model.FNode", "up.model.FNode"]]:
+        return self._initial_configuration
