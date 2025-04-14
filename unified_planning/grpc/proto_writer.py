@@ -196,7 +196,7 @@ class FNode2Protobuf(walkers.DagWalker):
                 atom=proto.Atom(symbol=presence.container),
                 type="up:container",
                 kind=proto.ExpressionKind.Value("CONTAINER_ID"),
-            )
+            ),
         ]
         return proto.Expression(
             list=args,
@@ -461,7 +461,9 @@ class ProtobufWriter(Converter):
             duration=self.convert(a.duration),
             conditions=self._convert_timed_conditions(a.conditions),
             effects=self._convert_timed_effects(a.effects),
-            constraints=[self.convert(c) for (c, scope) in a.scoped_constraints], # TODO: handle scope
+            constraints=[
+                self.convert(c) for (c, scope) in a.scoped_constraints
+            ],  # TODO: handle scope
         )
 
     @handles(model.timing.Timepoint)
@@ -642,7 +644,6 @@ class ProtobufWriter(Converter):
             else None,
         )
 
-
     @handles(model.scheduling.SchedulingProblem)
     def _convert_scheduling_problem(
         self, problem: model.scheduling.SchedulingProblem
@@ -657,11 +658,7 @@ class ProtobufWriter(Converter):
         scoped_constraints = []
         for (c, scope) in problem.base_scoped_constraints:
             constraint = self.convert(c)
-            print(scope)
             scope = [self.convert(scope_item) for scope_item in scope]
-            for x in scope:
-                print(x)
-                print("===============")
             scoped_constraints.append(
                 proto.ScopedConstraint(constraint=constraint, scope=scope)
             )
@@ -672,7 +669,7 @@ class ProtobufWriter(Converter):
             activities=[self.convert(a) for a in problem.activities],
             variables=[self.convert(v) for v in problem.base_variables],
             constraints=constraints,
-            scoped_constraints=scoped_constraints
+            scoped_constraints=scoped_constraints,
         )
 
         return proto.Problem(

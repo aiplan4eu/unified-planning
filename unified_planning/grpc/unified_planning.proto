@@ -680,6 +680,9 @@ enum Feature {
     // INITIAL_STATE
     UNDEFINED_INITIAL_NUMERIC = 68;
     UNDEFINED_INITIAL_SYMBOLIC = 69;
+    // SCHEDULING
+    OPTIONAL_ACTIVITIES = 70;
+    SCOPED_CONSTRAINTS = 71;
 }
 
 // =================== Plan ================
