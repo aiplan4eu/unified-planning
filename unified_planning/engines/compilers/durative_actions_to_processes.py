@@ -186,13 +186,13 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     _env=env,
                 )
                 if action.duration.lower == action.duration.upper:
-                    new_event_or_action = Event(
+                    new_stop_event = Event(
                         f"{get_fresh_name(new_problem, action.name)}_stop",
                         _parameters=params,
                         _env=env,
                     )
                 else:
-                    new_event_or_action = InstantaneousAction(
+                    new_stop_action = InstantaneousAction(
                         f"{get_fresh_name(new_problem, action.name)}_stop",
                         _parameters=params,
                         _env=env,
@@ -204,21 +204,30 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             new_action.add_precondition(c)
                     elif t.lower.is_from_end() and t.upper.is_from_end():
                         for c in cond:
-                            new_event_or_action.add_precondition(c)
+                            if action.duration.lower == action.duration.upper:
+                                new_stop_event.add_precondition(c)
+                            else:
+                                new_stop_action.add_precondition(c)
                     elif t.lower.is_from_start() and t.upper.is_from_end():
                         for c in cond:
                             new_action.add_precondition(c)
-                            new_event_or_action.add_precondition(c)
+                            if action.duration.lower == action.duration.upper:
+                                new_stop_event.add_precondition(c)
+                            else:
+                                new_stop_action.add_precondition(c)
                     else:
                         raise NotImplementedError
 
-                for t, eff in action.effects.items():
-                    if t.is_from_start():
+                for te, eff in action.effects.items():
+                    if te.is_from_start():
                         for e in eff:
                             new_action._add_effect_instance(e)
-                    elif t.is_from_end():
+                    elif te.is_from_end():
                         for e in eff:
-                            new_event_or_action._add_effect_instance(e)
+                            if action.duration.lower == action.duration.upper:
+                                new_stop_event._add_effect_instance(e)
+                            else:
+                                new_stop_action._add_effect_instance(e)
                     else:
                         raise NotImplementedError
 
@@ -245,7 +254,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 )
 
                 if action.duration.lower == action.duration.upper:
-                    new_event_or_action.add_precondition(
+                    new_stop_event.add_precondition(
                         em.Equals(
                             em.FluentExp(
                                 new_fluent_clock, params=new_action.parameters
@@ -256,7 +265,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 else:
                     if action.duration.is_left_open():
                         if action.duration.is_right_open():
-                            new_event_or_action.add_precondition(
+                            new_stop_action.add_precondition(
                                 em.And(
                                     em.GT(
                                         em.FluentExp(
@@ -275,7 +284,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 )
                             )
                         else:
-                            new_event_or_action.add_precondition(
+                            new_stop_action.add_precondition(
                                 em.And(
                                     em.GT(
                                         em.FluentExp(
@@ -295,7 +304,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             )
                     else:
                         if action.duration.is_right_open():
-                            new_event_or_action.add_precondition(
+                            new_stop_action.add_precondition(
                                 em.And(
                                     em.GE(
                                         em.FluentExp(
@@ -314,7 +323,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 )
                             )
                         else:
-                            new_event_or_action.add_precondition(
+                            new_stop_action.add_precondition(
                                 em.And(
                                     em.GE(
                                         em.FluentExp(
@@ -333,26 +342,39 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 )
                             )
 
-                new_event_or_action.add_precondition(
-                    em.FluentExp(new_fluent_running, params=new_action.parameters)
-                )
-                new_event_or_action.add_effect(
-                    em.FluentExp(new_fluent_running, params=new_action.parameters),
-                    em.FALSE(),
-                )
-                if self._use_counter:
-                    new_event_or_action.add_decrease_effect(new_fluent, 1)
+                if action.duration.lower == action.duration.upper:
+                    new_stop_event.add_precondition(
+                        em.FluentExp(new_fluent_running, params=new_action.parameters)
+                    )
+                    new_stop_event.add_effect(
+                        em.FluentExp(new_fluent_running, params=new_action.parameters),
+                        em.FALSE(),
+                    )
+                    if self._use_counter:
+                        new_stop_event.add_decrease_effect(new_fluent, 1)
+                else:
+                    new_stop_action.add_precondition(
+                        em.FluentExp(new_fluent_running, params=new_action.parameters)
+                    )
+                    new_stop_action.add_effect(
+                        em.FluentExp(new_fluent_running, params=new_action.parameters),
+                        em.FALSE(),
+                    )
+                    if self._use_counter:
+                        new_stop_action.add_decrease_effect(new_fluent, 1)
 
                 new_to_old[new_action] = action
                 new_to_old[new_process] = action
-                new_to_old[new_event_or_action] = action
+
+                if action.duration.lower == action.duration.upper:
+                    new_to_old[new_stop_event] = action
+                    new_problem.add_event(new_stop_event)
+                else:
+                    new_to_old[new_stop_action] = action
+                    new_problem.add_action(new_stop_action)
 
                 new_problem.add_action(new_action)
                 new_problem.add_process(new_process)
-                if action.duration.lower == action.duration.upper:
-                    new_problem.add_event(new_event_or_action)
-                else:
-                    new_problem.add_action(new_event_or_action)
 
                 if not (self._use_counter):
                     for g in get_all_fluent_exp(new_problem, new_fluent_running):
