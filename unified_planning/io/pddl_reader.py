@@ -768,7 +768,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -879,7 +879,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:

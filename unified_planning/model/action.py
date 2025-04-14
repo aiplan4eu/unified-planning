@@ -460,6 +460,9 @@ class DurativeAction(Action, TimedCondsEffs):
         assert (
             self._environment == continuous_effect.environment
         ), "effect does not have the same environment of the action"
+        assert (
+            not continuous_effect.is_forall()
+        ), "Continuous effects with forall variables are not supported yet"
         self._continuous_effects.setdefault(interval, []).append(continuous_effect)
 
 
