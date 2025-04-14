@@ -629,14 +629,6 @@ class TestPddlIO(unittest_TestCase):
                 w.write_domain(domain_filename)
                 w.write_problem(problem_filename)
 
-                # if problem.kind.has_final_value():
-                #     with open(domain_filename, "r") as domain_file:
-                #         print(domain_file.read())
-                #     with open(problem_filename, "r") as problem_file:
-                #         print(problem_file.read())
-                #     print(problem.name)
-                #     assert False
-
                 with open(domain_filename, "r") as domain_file:
                     domain_str = domain_file.read()
 
