@@ -146,6 +146,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
         new_problem.clear_actions()
 
+        alive_fluent = Fluent("alive", tm.BoolType(), environment=env)
+        new_problem.add_fluent(alive_fluent, default_initial_value=em.TRUE())
+
         if self._use_counter:
             new_fluent = Fluent("process_active", tm.IntType(), environment=env)
             new_problem.add_fluent(new_fluent, default_initial_value=0)
@@ -153,6 +156,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
+                # new_action.add_precondition(alive_fluent)
+                # new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                 new_to_old[new_action] = action
                 new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
@@ -191,12 +196,17 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         _parameters=params,
                         _env=env,
                     )
+                    new_stop_event.add_precondition(alive_fluent)
                 else:
                     new_stop_action = InstantaneousAction(
                         f"{get_fresh_name(new_problem, action.name)}_stop",
                         _parameters=params,
                         _env=env,
                     )
+                    new_stop_action.add_precondition(alive_fluent)
+
+                new_action.add_precondition(alive_fluent)
+                new_process.add_precondition(alive_fluent)
 
                 for t, cond in action.conditions.items():
                     if t.lower.is_from_start() and t.upper.is_from_start():
@@ -246,6 +256,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 if self._use_counter:
                     new_action.add_increase_effect(new_fluent, 1)
 
+                new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                 new_process.add_precondition(
                     em.FluentExp(new_fluent_running, params=new_action.parameters)
                 )
@@ -350,6 +361,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         em.FluentExp(new_fluent_running, params=new_action.parameters),
                         em.FALSE(),
                     )
+                    new_stop_event.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                     if self._use_counter:
                         new_stop_event.add_decrease_effect(new_fluent, 1)
                 else:
@@ -360,6 +372,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         em.FluentExp(new_fluent_running, params=new_action.parameters),
                         em.FALSE(),
                     )
+                    new_stop_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                     if self._use_counter:
                         new_stop_action.add_decrease_effect(new_fluent, 1)
 
@@ -383,6 +396,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             else:
                 raise NotImplementedError
 
+        new_problem.add_goal(alive_fluent)
         if self._use_counter:
             new_problem.add_goal(em.Equals(new_fluent, 0))
 

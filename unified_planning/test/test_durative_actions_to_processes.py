@@ -50,14 +50,14 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
             len(new_problem.fluents),
-            (len(problem.fluents) + (len(problem.actions) * 2) + 1),
+            (len(problem.fluents) + (len(problem.actions) * 2) + 2),
         )
         self.assertEqual(len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes))
         self.assertEqual(len(problem.processes), 0)
         self.assertEqual(len(problem.actions), len(new_problem.events))
         self.assertEqual(len(problem.events), 0)
-        self.assertEqual(len(new_problem.goals), len(problem.goals) + 1)
+        self.assertEqual(len(new_problem.goals), len(problem.goals) + 2)
 
     @skipIfNoPlanValidatorForProblemKind(basic_temporal_kind)
     def test_base_temporal_counter_2(self):
@@ -77,7 +77,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
             len(new_problem.fluents),
-            (len(problem.fluents) + (len(problem.actions) * 2)),
+            (len(problem.fluents) + ((len(problem.actions) * 2) + 1)),
         )
         self.assertEqual(len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes))
@@ -224,7 +224,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
-        self.assertEqual(len(problem.goals) + 1, len(new_problem.goals))
+        self.assertEqual(len(problem.goals) + 2, len(new_problem.goals))
 
     def test_ad_hoc_2(self):
         Robot = UserType("robot")
