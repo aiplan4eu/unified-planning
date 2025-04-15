@@ -42,6 +42,7 @@ from unified_planning.engines.compilers.utils import (
 from unified_planning.model.timing import StartTiming
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
+from unified_planning.model.walkers import Simplifier
 
 
 class ElementKind(Enum):
@@ -254,6 +255,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 a, new_fluents, new_objects, if_known, is_unknown_fluents
             ):
                 new_a = self._clone_action_with_extras(a, new_params, conds, dur, effs)
+                if new_a is None:
+                    continue
                 new_a.name = get_fresh_name(new_problem, a.name)
                 new_problem.add_action(new_a)
                 new_to_old[new_a] = a
@@ -412,8 +415,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for t, se in a.simulated_effects.items():
                     new_dur_a.set_simulated_effect(t, se)
             new_dur_a.clear_conditions()
+            da_simp = Simplifier(new_dur_a.environment)
             for ii, c in conditions:
-                new_dur_a.add_condition(ii, c)
+                simplified_c = da_simp.simplify(c)
+                if simplified_c.constant_value == False:
+                    return None
+                new_dur_a.add_condition(ii, simplified_c)
             new_dur_a.set_closed_duration_interval(duration[0], duration[1])
             new_a = new_dur_a
         elif isinstance(a, up.model.InstantaneousAction):
@@ -423,7 +430,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             if a.simulated_effect is not None:
                 new_ia.set_simulated_effect(a.simulated_effect)
             new_ia.clear_preconditions()
+            ia_simp = Simplifier(new_ia.environment)
             for c in conditions:
+                simplified_c = ia_simp.simplify(c[1])
+                if simplified_c.constant_value == False:
+                    return None
                 new_ia.add_precondition(c[1])
             new_a = new_ia
         else:
