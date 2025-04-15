@@ -225,6 +225,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(len(problem.goals) + 2, len(new_problem.goals))
+        self.assertEqual(len(new_problem.events), len(problem.actions) + 2)
 
     def test_ad_hoc_2(self):
         Robot = UserType("robot")
@@ -326,6 +327,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
+        self.assertEqual(len(new_problem.events), len(problem.actions) + 2)
         self.assertGreater(len(new_problem.goals), len(problem.goals))
 
     def test_ad_hoc3(self):
@@ -338,11 +340,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             "is_connected", BoolType(), l_from=Location, l_to=Location
         )
         distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        prova = Fluent("prova", RealType())
         problem.add_fluent(is_at, default_initial_value=False)
         problem.add_fluent(is_connected, default_initial_value=False)
         problem.add_fluent(distance, default_initial_value=1)
-        problem.add_fluent(prova, default_initial_value=1)
 
         dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
         r = dur_move.parameter("r")
@@ -398,11 +398,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             "is_connected", BoolType(), l_from=Location, l_to=Location
         )
         distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        prova = Fluent("prova", RealType())
         problem.add_fluent(is_at, default_initial_value=False)
         problem.add_fluent(is_connected, default_initial_value=False)
         problem.add_fluent(distance, default_initial_value=1)
-        problem.add_fluent(prova, default_initial_value=1)
 
         dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
         r = dur_move.parameter("r")
