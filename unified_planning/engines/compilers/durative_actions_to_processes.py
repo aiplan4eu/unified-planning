@@ -156,8 +156,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
-                # new_action.add_precondition(alive_fluent)
-                # new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
+                new_action.add_precondition(alive_fluent)
+                new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                 new_to_old[new_action] = action
                 new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
@@ -219,12 +219,36 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             else:
                                 new_stop_action.add_precondition(c)
                     elif t.lower.is_from_start() and t.upper.is_from_end():
+                        new_event_over_all = Event(
+                            f"{get_fresh_name(new_problem, action.name)}_error",
+                            _parameters=params,
+                            _env=env,
+                        )
+                        new_event_over_all.add_precondition(alive_fluent)
+                        new_event_over_all.add_precondition(
+                            em.FluentExp(
+                                new_fluent_running, params=new_event_over_all.parameters
+                            )
+                        )
                         for c in cond:
-                            new_action.add_precondition(c)
-                            if action.duration.lower == action.duration.upper:
-                                new_stop_event.add_precondition(c)
-                            else:
-                                new_stop_action.add_precondition(c)
+                            new_event_over_all.add_precondition(em.Not(c))
+                            if not (action.duration.is_left_open()):
+                                new_action.add_precondition(c)
+                            if not (action.duration.is_right_open()):
+                                if action.duration.lower == action.duration.upper:
+                                    new_stop_event.add_precondition(c)
+                                else:
+                                    new_stop_action.add_precondition(c)
+                        new_event_over_all.add_effect(
+                            em.FluentExp(alive_fluent), em.FALSE()
+                        )
+                        new_event_over_all.add_effect(
+                            em.FluentExp(
+                                new_fluent_running, params=new_event_over_all.parameters
+                            ),
+                            em.FALSE(),
+                        )
+                        new_problem.add_event(new_event_over_all)
                     else:
                         raise NotImplementedError
 
