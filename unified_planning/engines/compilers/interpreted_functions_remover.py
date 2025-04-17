@@ -418,8 +418,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             da_simp = Simplifier(new_dur_a.environment)
             for ii, c in conditions:
                 simplified_c = da_simp.simplify(c)
-                if simplified_c.constant_value == False:
-                    return None
+                if simplified_c.is_bool_constant():
+                    if simplified_c.constant_value() == False:
+                        return None
+                    elif simplified_c.constant_value() == True:
+                        continue
                 new_dur_a.add_condition(ii, simplified_c)
             new_dur_a.set_closed_duration_interval(duration[0], duration[1])
             new_a = new_dur_a
@@ -433,8 +436,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             ia_simp = Simplifier(new_ia.environment)
             for c in conditions:
                 simplified_c = ia_simp.simplify(c[1])
-                if simplified_c.constant_value == False:
-                    return None
+                if simplified_c.is_bool_constant():
+                    if simplified_c.constant_value() == False:
+                        return None
+                    elif simplified_c.constant_value() == True:
+                        continue
                 new_ia.add_precondition(c[1])
             new_a = new_ia
         else:
