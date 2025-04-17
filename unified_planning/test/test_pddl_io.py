@@ -1065,7 +1065,7 @@ class TestPddlIO(unittest_TestCase):
                 "Continuous change with forall effects is not supported",
             )
 
-    def test_continuous_forall(self):
+    def test_type_self_subtype(self):
         domain = """
 (define (domain shape-stacking)
     (:requirements :strips :typing)
