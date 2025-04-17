@@ -1065,6 +1065,26 @@ class TestPddlIO(unittest_TestCase):
                 "Continuous change with forall effects is not supported",
             )
 
+    def test_continuous_forall(self):
+        domain = """
+(define (domain shape-stacking)
+    (:requirements :strips :typing)
+    (:types
+        shape
+        square triangle - shape
+    )
+)
+"""
+        reader = PDDLReader()
+        with self.assertRaises(SyntaxError) as e:
+            reader.parse_problem_string(
+                domain,
+            )
+        self.assertEqual(
+            str(e.exception),
+            "Type 'shape' is defined as a subtype of itself",
+        )
+
 
 def _have_same_user_types_considering_renamings(
     original_problem: unified_planning.model.Problem,
