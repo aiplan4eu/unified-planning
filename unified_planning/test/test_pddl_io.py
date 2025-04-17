@@ -25,7 +25,10 @@ from unified_planning.test import (
 )
 from unified_planning.io import PDDLWriter, PDDLReader
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import (
+    UPProblemDefinitionError,
+    UPUnsupportedProblemTypeError,
+)
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
@@ -1016,6 +1019,51 @@ class TestPddlIO(unittest_TestCase):
         #    "(when (at start (<= 10 (battery_charge))) (decrease (battery_charge) (* #t 1)))",
         #    pddl_domain,
         # )
+
+    def test_continuous_forall(self):
+        process_domain = """
+(define
+    (domain continuous_forall)
+    (:types car)
+
+    (:functions
+        (distance_traveled ?car - car)
+    )
+
+    (:process all_cars_travel
+        :parameters ()
+        :effect (forall (?c - car)
+        (increase (distance_traveled(?c)) (* #t (1.0))))
+    )
+)
+"""
+        durative_act_domain = """
+(define
+    (domain continuous_forall)
+    (:types car)
+
+    (:functions
+        (distance_traveled ?car - car)
+    )
+
+    (:durative-action all_cars_travel
+        :parameters ()
+        :duration (and (>= ?duration 4) (<= ?duration 4))
+        :effect (
+            forall (?c - car)
+            (increase (distance_traveled(?c)) (* #t (1.0)))
+        )
+    )
+)
+"""
+        for domain in [process_domain, durative_act_domain]:
+            reader = PDDLReader()
+            with self.assertRaises(UPUnsupportedProblemTypeError) as e:
+                reader.parse_problem_string(domain)
+            self.assertEqual(
+                str(e.exception),
+                "Continuous change with forall effects is not supported",
+            )
 
 
 def _have_same_user_types_considering_renamings(

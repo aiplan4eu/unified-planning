@@ -692,6 +692,10 @@ class PDDLReader:
                                 complete_str,
                             ),
                         )
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -722,6 +726,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -768,7 +776,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -803,6 +811,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_decrease_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -833,6 +845,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_decrease_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -851,6 +867,10 @@ class PDDLReader:
                             1,
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff_without)
                         elif isinstance(act, up.model.DurativeAction):
@@ -879,7 +899,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
