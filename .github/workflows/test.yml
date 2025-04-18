@@ -89,8 +89,8 @@ jobs:
         run: make html
         working-directory: ./docs
 
-  run-tests-ubuntu-20-04:
-    runs-on: ubuntu-20.04
+  run-tests-ubuntu-22-04:
+    runs-on: ubuntu-22.04
     needs: [
         basic-check,
         check-protobuf,
