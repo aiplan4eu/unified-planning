@@ -710,6 +710,11 @@ class TestANMLReader(unittest_TestCase):
                 not kind.has_action_based()
                 or kind.has_increase_continuous_effects()
                 or kind.has_decrease_continuous_effects()
+                or kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+                or kind.has_interpreted_functions_in_conditions()
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:
