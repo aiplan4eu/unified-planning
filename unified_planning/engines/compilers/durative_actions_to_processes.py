@@ -138,9 +138,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         env = problem.environment
         em = env.expression_manager
         tm = env.type_manager
-        new_to_old: Dict[
-            Union[Action, Process, Event], Optional[Union[Action, Process, Event]]
-        ] = {}
+        new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
@@ -157,7 +155,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             if isinstance(action, InstantaneousAction):
                 new_action = action.clone()
                 new_action.add_precondition(alive_fluent)
-                new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                 new_to_old[new_action] = action
                 new_problem.add_action(new_action)
             elif isinstance(action, DurativeAction):
@@ -230,8 +227,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 new_fluent_running, params=new_event_over_all.parameters
                             )
                         )
+                        new_event_over_all.add_precondition(em.Not(em.And(cond)))
                         for c in cond:
-                            new_event_over_all.add_precondition(em.Not(c))
                             if not (action.duration.is_left_open()):
                                 new_action.add_precondition(c)
                             if not (action.duration.is_right_open()):
@@ -280,7 +277,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 if self._use_counter:
                     new_action.add_increase_effect(new_fluent, 1)
 
-                new_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                 new_process.add_precondition(
                     em.FluentExp(new_fluent_running, params=new_action.parameters)
                 )
@@ -385,7 +381,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         em.FluentExp(new_fluent_running, params=new_action.parameters),
                         em.FALSE(),
                     )
-                    new_stop_event.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                     if self._use_counter:
                         new_stop_event.add_decrease_effect(new_fluent, 1)
                 else:
@@ -396,15 +391,12 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         em.FluentExp(new_fluent_running, params=new_action.parameters),
                         em.FALSE(),
                     )
-                    new_stop_action.add_effect(em.FluentExp(alive_fluent), em.TRUE())
                     if self._use_counter:
                         new_stop_action.add_decrease_effect(new_fluent, 1)
 
                 new_to_old[new_action] = action
-                new_to_old[new_process] = action
 
                 if action.duration.lower == action.duration.upper:
-                    new_to_old[new_stop_event] = action
                     new_problem.add_event(new_stop_event)
                 else:
                     new_to_old[new_stop_action] = action
