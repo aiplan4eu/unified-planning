@@ -1400,6 +1400,10 @@ class PDDLReader:
             elif father_name in types_map:
                 father = types_map[father_name]
             elif father_name in type_declarations:
+                if type == father_name:
+                    raise SyntaxError(
+                        f"Type '{type}' is defined as a subtype of itself"
+                    )
                 # father exists but was not processed yet. Force processing immediately
                 declare_type(father_name, type_declarations[father_name])
                 father = types_map[father_name]
