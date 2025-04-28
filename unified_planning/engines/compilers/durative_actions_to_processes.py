@@ -446,3 +446,58 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
+
+    def plantoplan(
+        self,
+        plan_result: "up.plans.TimeTriggeredPlan",
+        map: Dict["up.model.Action", Optional["up.model.Action"]],
+    ) -> Optional["up.plans.TimeTriggeredPlan"]:
+        translatePlan: List[
+            Tuple[Fraction, "plans.plan.ActionInstance", Optional[Fraction]]
+        ] = []
+        if isinstance(plan_result, TimeTriggeredPlan):
+            for action_plans in plan_result.timed_actions:
+                fraction = action_plans[0]
+                action_durative = map[action_plans[1].action]
+                if isinstance(action_durative, DurativeAction):
+                    index = plan_result.timed_actions.index(action_plans)
+                    if action_durative is not None:
+                        if not (
+                            action_durative.duration.lower
+                            == action_durative.duration.upper
+                        ):
+                            target_name = action_durative.name + "_stop"
+                            (found_action, _) = next(
+                                (
+                                    (i, action_start)
+                                    for i, (_, action_start, _) in enumerate(
+                                        plan_result.timed_actions[index:]
+                                    )
+                                    if action_start.action.name == target_name
+                                    and action_plans[1].actual_parameters
+                                    == action_start.actual_parameters
+                                ),
+                                (None, None),
+                            )
+                            if found_action == 0 or found_action == None:
+                                continue
+                            else:
+                                found_action = index + found_action
+                                action_time = (
+                                    plan_result.timed_actions[found_action][0]
+                                    - fraction
+                                )
+
+                        else:
+                            if action_durative.duration.lower.is_int_constant():
+                                action_time = Fraction(
+                                    action_durative.duration.lower.int_constant_value()
+                                )
+                            else:
+                                action_time = None
+                        translateAction = ActionInstance(
+                            action_durative, action_plans[1].actual_parameters
+                        )
+                        translatePlan.append((fraction, translateAction, action_time))
+
+        return TimeTriggeredPlan(translatePlan)
