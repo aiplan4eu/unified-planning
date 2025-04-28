@@ -38,6 +38,7 @@ from functools import partial
 import unified_planning.plans as plans
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 from fractions import Fraction
+from unified_planning.exceptions import UPUsageError
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
@@ -459,7 +460,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             for action_plans in plan_result.timed_actions:
                 fraction = action_plans[0]
                 action_durative = map[action_plans[1].action]
-                if isinstance(action_durative, DurativeAction):
+                if (
+                    isinstance(action_durative, DurativeAction)
+                    and "_start" in action_plans[1].action.name
+                ):
                     index = plan_result.timed_actions.index(action_plans)
                     if action_durative is not None:
                         if not (
@@ -479,8 +483,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 ),
                                 (None, None),
                             )
-                            if found_action == 0 or found_action == None:
-                                continue
+                            if found_action == None:
+                                raise UPUsageError(
+                                    "The Action of the given ActionInstance does not have a valid replacement."
+                                )
                             else:
                                 found_action = index + found_action
                                 action_time = (
