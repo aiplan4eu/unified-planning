@@ -33,8 +33,11 @@ from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
 )
-from typing import Dict, Optional, OrderedDict, Union
+from typing import Dict, Optional, OrderedDict, Union, Tuple, List
 from functools import partial
+import unified_planning.plans as plans
+from unified_planning.plans import ActionInstance, TimeTriggeredPlan
+from fractions import Fraction
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
@@ -252,7 +255,31 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 for te, eff in action.effects.items():
                     if te.is_from_start():
                         for e in eff:
-                            new_action._add_effect_instance(e)
+                            if te.delay > 0:
+                                new_delay_event = Event(
+                                    f"{get_fresh_name(new_problem, new_action.name)}_start_delay",
+                                    _parameters=params,
+                                    _env=env,
+                                )
+                                new_delay_event.add_precondition(alive_fluent)
+                                new_delay_event.add_precondition(
+                                    em.FluentExp(
+                                        new_fluent_running, params=new_action.parameters
+                                    )
+                                )
+                                new_delay_event.add_precondition(
+                                    em.Equals(
+                                        em.FluentExp(
+                                            new_fluent_clock,
+                                            params=new_action.parameters,
+                                        ),
+                                        te.delay,
+                                    )
+                                )
+                                new_delay_event._add_effect_instance(e)
+                                new_problem.add_event(new_delay_event)
+                            else:
+                                new_action._add_effect_instance(e)
                     elif te.is_from_end():
                         for e in eff:
                             if action.duration.lower == action.duration.upper:
