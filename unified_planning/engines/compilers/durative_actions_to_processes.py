@@ -284,7 +284,38 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     elif te.is_from_end():
                         for e in eff:
                             if action.duration.lower == action.duration.upper:
-                                new_stop_event._add_effect_instance(e)
+                                if te.delay < 0:
+                                    if action.duration.lower.is_int_constant():
+                                        new_end_delay_event_c = Event(
+                                            f"{get_fresh_name(new_problem, new_action.name)}_end_delay",
+                                            _parameters=params,
+                                            _env=env,
+                                        )
+                                        new_end_delay_event_c.add_precondition(
+                                            alive_fluent
+                                        )
+                                        new_end_delay_event_c.add_precondition(
+                                            em.FluentExp(
+                                                new_fluent_running,
+                                                params=new_action.parameters,
+                                            )
+                                        )
+                                        new_end_delay_event_c.add_precondition(
+                                            em.Equals(
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
+                                                action.duration.lower.int_constant_value()
+                                                + te.delay,
+                                            )
+                                        )
+                                        new_end_delay_event_c._add_effect_instance(e)
+                                        new_problem.add_event(new_end_delay_event_c)
+                                    else:
+                                        raise NotImplementedError
+                                else:
+                                    new_stop_event._add_effect_instance(e)
                             else:
                                 new_stop_action._add_effect_instance(e)
                     else:
