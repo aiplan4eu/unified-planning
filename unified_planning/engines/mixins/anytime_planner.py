@@ -20,6 +20,12 @@ from typing import IO, Optional, Iterator
 from warnings import warn
 
 
+class _GetSolutionsWithParamsNotImplementedError(Exception):
+    """
+    Exception raised when the planner does not override the `_get_solutions_with_params` method.
+    """
+
+
 class AnytimeGuarantee(Enum):
     INCREASING_QUALITY = auto()
     OPTIMAL_PLANS = auto()
@@ -49,6 +55,7 @@ class AnytimePlannerMixin(ABC):
         problem: "up.model.AbstractProblem",
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        **kwargs,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
         """
         This method takes a `AbstractProblem` and returns an iterator of `PlanGenerationResult`,
@@ -73,8 +80,29 @@ class AnytimePlannerMixin(ABC):
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = f"The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
             raise up.exceptions.UPUsageError(msg)
-        for res in self._get_solutions(problem, timeout, output_stream):
-            yield res
+        try:
+            yield from self._get_solutions_with_params(
+                problem=problem,
+                timeout=timeout,
+                output_stream=output_stream,
+                **kwargs,
+            )
+        except _GetSolutionsWithParamsNotImplementedError:
+            yield from self._get_solutions(
+                problem=problem,
+                timeout=timeout,
+                output_stream=output_stream,
+            )
+
+    def _get_solutions_with_params(
+        self,
+        problem: "up.model.AbstractProblem",
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+        **kwargs,
+    ) -> Iterator["up.engines.results.PlanGenerationResult"]:
+        """Method called by the AnytimePlannerMixin.get_solutions method."""
+        raise _GetSolutionsWithParamsNotImplementedError
 
     @abstractmethod
     def _get_solutions(
@@ -84,7 +112,16 @@ class AnytimePlannerMixin(ABC):
         output_stream: Optional[IO[str]] = None,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
         """
-        Method called by the AnytimePlannerMixin.get_solutions method that has to be implemented
-        by the engines that implement this operation mode.
+        Method called by the AnytimePlannerMixin.get_solutions method.
+
+        This method is deprecated in favor of `_get_solutions_with_params`.
+        This method is kept for backward compatibility with older versions of UPF.
+
+        If you are implementing a new planner, you should override this method and
+        transfer the call to `_get_solutions_with_params`:
+        ```python
+        def _get_solutions(self, problem, timeout=None, output_stream=None):
+            return self._get_solutions_with_params(problem, timeout, output_stream)
+        ```
         """
         raise NotImplementedError

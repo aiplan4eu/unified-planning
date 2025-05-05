@@ -20,6 +20,10 @@ from enum import Enum, auto
 from typing import IO, Optional, Callable
 
 
+class _SolveWithParamsNotImplementedError(Exception):
+    """Exception raised when the planner does not override the `_solve_with_params` method."""
+
+
 class OptimalityGuarantee(Enum):
     SATISFICING = auto()
     SOLVED_OPTIMALLY = auto()
@@ -50,6 +54,7 @@ class OneshotPlannerMixin(ABC):
         heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        **kwargs,
     ) -> "up.engines.results.PlanGenerationResult":
         """
         This method takes a `AbstractProblem` and returns a `PlanGenerationResult`,
@@ -77,7 +82,27 @@ class OneshotPlannerMixin(ABC):
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
-        return self._solve(problem, heuristic, timeout, output_stream)
+        try:
+            return self._solve_with_params(
+                problem=problem,
+                heuristic=heuristic,
+                timeout=timeout,
+                output_stream=output_stream,
+                **kwargs,
+            )
+        except _SolveWithParamsNotImplementedError:
+            return self._solve(problem, heuristic, timeout, output_stream)
+
+    def _solve_with_params(
+        self,
+        problem: "up.model.AbstractProblem",
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+        timeout: Optional[float] = None,
+        output_stream: Optional[IO[str]] = None,
+        **kwargs,
+    ) -> "up.engines.results.PlanGenerationResult":
+        """Method called by the OneshotPlannerMixin.solve method."""
+        raise _SolveWithParamsNotImplementedError
 
     @abstractmethod
     def _solve(
@@ -87,5 +112,17 @@ class OneshotPlannerMixin(ABC):
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
-        """Method called by the OneshotPlannerMixin.solve method."""
+        """
+        Method called by the OneshotPlannerMixin.solve method.
+
+        This method is deprecated in favor of `_solve_with_params`.
+        This method is kept for backward compatibility with older versions of UPF.
+
+        If you are implementing a new planner, you should override this method and
+        transfer the call to `_solve_with_params`:
+        ```python
+        def _solve(self, problem, heuristic=None, timeout=None, output_stream=None):
+            return self._solve_with_params(problem, heuristic, timeout, output_stream)
+        ```
+        """
         raise NotImplementedError
