@@ -462,7 +462,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 if action.duration.lower == action.duration.upper:
                     new_problem.add_event(new_stop_event)
                 else:
-                    new_to_old[new_stop_action] = action
                     new_problem.add_action(new_stop_action)
 
                 new_problem.add_action(new_action)
@@ -494,11 +493,11 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         if isinstance(plan_result, TimeTriggeredPlan):
             for action_plans in plan_result.timed_actions:
                 fraction = action_plans[0]
-                action_durative = map[action_plans[1].action]
-                if (
-                    isinstance(action_durative, DurativeAction)
-                    and "_start" in action_plans[1].action.name
-                ):
+                try:
+                    action_durative = map[action_plans[1].action]
+                except:
+                    action_durative = None
+                if isinstance(action_durative, DurativeAction):
                     index = plan_result.timed_actions.index(action_plans)
                     if action_durative is not None:
                         if not (
@@ -540,5 +539,12 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             action_durative, action_plans[1].actual_parameters
                         )
                         translatePlan.append((fraction, translateAction, action_time))
+                elif isinstance(action_durative, InstantaneousAction):
+                    translateAction = ActionInstance(
+                        action_durative, action_plans[1].actual_parameters
+                    )
+                    translatePlan.append((fraction, translateAction, Fraction(0)))
+                elif action_durative is not None:
+                    raise NotImplementedError
 
         return TimeTriggeredPlan(translatePlan)
