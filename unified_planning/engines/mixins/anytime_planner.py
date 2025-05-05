@@ -55,6 +55,7 @@ class AnytimePlannerMixin(ABC):
         problem: "up.model.AbstractProblem",
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        warm_start_plan: Optional["up.plans.Plan"] = None,
         **kwargs,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
         """
@@ -65,6 +66,7 @@ class AnytimePlannerMixin(ABC):
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to `None`.
         :param output_stream: is a stream of strings where the planner writes his
             output (and also errors) while it is solving the problem; defaults to `None`.
+        :param warm_start_plan: is a plan that the planner can use to warm start the search, defaults to `None`.
         :return: an iterator of `PlanGenerationResult` created by the planner.
 
         The only required parameter is `problem` but the planner should warn the user if `timeout` or
@@ -81,6 +83,7 @@ class AnytimePlannerMixin(ABC):
             msg = f"The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
             raise up.exceptions.UPUsageError(msg)
         try:
+            kwargs.setdefault("warm_start_plan", warm_start_plan)
             yield from self._get_solutions_with_params(
                 problem=problem,
                 timeout=timeout,
@@ -99,6 +102,7 @@ class AnytimePlannerMixin(ABC):
         problem: "up.model.AbstractProblem",
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        warm_start_plan: Optional["up.plans.Plan"] = None,
         **kwargs,
     ) -> Iterator["up.engines.results.PlanGenerationResult"]:
         """Method called by the AnytimePlannerMixin.get_solutions method."""

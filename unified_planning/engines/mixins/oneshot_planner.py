@@ -54,6 +54,7 @@ class OneshotPlannerMixin(ABC):
         heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        warm_start_plan: Optional["up.plans.Plan"] = None,
         **kwargs,
     ) -> "up.engines.results.PlanGenerationResult":
         """
@@ -65,6 +66,7 @@ class OneshotPlannerMixin(ABC):
         :param timeout: is the time in seconds that the planner has at max to solve the problem, defaults to `None`.
         :param output_stream: is a stream of strings where the planner writes his
             output (and also errors) while it is solving the problem; defaults to `None`.
+        :param warm_start_plan: is a plan that the planner can use to warm start the search, defaults to `None`.
         :return: the `PlanGenerationResult` created by the planner; a data structure containing the :class:`~unified_planning.plans.Plan` found
             and some additional information about it.
 
@@ -83,6 +85,7 @@ class OneshotPlannerMixin(ABC):
             msg = f"The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         try:
+            kwargs.setdefault("warm_start_plan", warm_start_plan)
             return self._solve_with_params(
                 problem=problem,
                 heuristic=heuristic,
@@ -99,6 +102,7 @@ class OneshotPlannerMixin(ABC):
         heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
+        warm_start_plan: Optional["up.plans.Plan"] = None,
         **kwargs,
     ) -> "up.engines.results.PlanGenerationResult":
         """Method called by the OneshotPlannerMixin.solve method."""
