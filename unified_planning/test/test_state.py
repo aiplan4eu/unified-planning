@@ -16,6 +16,7 @@ from random import shuffle
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
+from unified_planning.exceptions import UPValueError
 
 
 class TestUPState(unittest_TestCase):
@@ -72,3 +73,14 @@ class TestUPState(unittest_TestCase):
         state_2 = state_2.make_child({c: n5})
 
         self.assert_same_state(state_2, state_4)
+
+    def test_non_constant_values(self):
+        fluents = [FluentExp(Fluent(f"{n}", IntType())) for n in "ab"]
+        a, b = fluents
+        n0 = Int(0)
+
+        with self.assertRaises(UPValueError):
+            UPState({a: b})
+
+        with self.assertRaises(UPValueError):
+            UPState({a: n0 + b})
