@@ -269,28 +269,38 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     if te.is_from_start():
                         for e in eff:
                             if te.delay > 0:
-                                new_delay_event = Event(
-                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_start_delay",
-                                    _parameters=params,
-                                    _env=env,
-                                )
-                                new_delay_event.add_precondition(alive_fluent)
-                                new_delay_event.add_precondition(
-                                    em.FluentExp(
-                                        new_fluent_running, params=new_action.parameters
-                                    )
-                                )
-                                new_delay_event.add_precondition(
-                                    em.Equals(
-                                        em.FluentExp(
-                                            new_fluent_clock,
-                                            params=new_action.parameters,
-                                        ),
-                                        te.delay,
-                                    )
-                                )
-                                new_delay_event._add_effect_instance(e)
-                                new_problem.add_event(new_delay_event)
+                                if action.duration.lower.is_int_constant():
+                                    if (
+                                        action.duration.lower.int_constant_value()
+                                        > te.delay
+                                    ):
+                                        new_delay_event = Event(
+                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_start_delay",
+                                            _parameters=params,
+                                            _env=env,
+                                        )
+                                        new_delay_event.add_precondition(alive_fluent)
+                                        new_delay_event.add_precondition(
+                                            em.FluentExp(
+                                                new_fluent_running,
+                                                params=new_action.parameters,
+                                            )
+                                        )
+                                        new_delay_event.add_precondition(
+                                            em.Equals(
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
+                                                te.delay,
+                                            )
+                                        )
+                                        new_delay_event._add_effect_instance(e)
+                                        new_problem.add_event(new_delay_event)
+                                    else:
+                                        raise NotImplementedError
+                                else:
+                                    raise NotImplementedError
                             elif te.delay == 0:
                                 new_action._add_effect_instance(e)
                             else:
@@ -300,32 +310,41 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             if action.duration.lower == action.duration.upper:
                                 if te.delay < 0:
                                     if action.duration.lower.is_int_constant():
-                                        new_end_delay_event_c = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_delay",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_end_delay_event_c.add_precondition(
-                                            alive_fluent
-                                        )
-                                        new_end_delay_event_c.add_precondition(
-                                            em.FluentExp(
-                                                new_fluent_running,
-                                                params=new_action.parameters,
+                                        if (
+                                            action.duration.lower.int_constant_value()
+                                            + te.delay
+                                            > 0
+                                        ):
+                                            new_end_delay_event_c = Event(
+                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_delay",
+                                                _parameters=params,
+                                                _env=env,
                                             )
-                                        )
-                                        new_end_delay_event_c.add_precondition(
-                                            em.Equals(
+                                            new_end_delay_event_c.add_precondition(
+                                                alive_fluent
+                                            )
+                                            new_end_delay_event_c.add_precondition(
                                                 em.FluentExp(
-                                                    new_fluent_clock,
+                                                    new_fluent_running,
                                                     params=new_action.parameters,
-                                                ),
-                                                action.duration.lower.int_constant_value()
-                                                + te.delay,
+                                                )
                                             )
-                                        )
-                                        new_end_delay_event_c._add_effect_instance(e)
-                                        new_problem.add_event(new_end_delay_event_c)
+                                            new_end_delay_event_c.add_precondition(
+                                                em.Equals(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    action.duration.lower.int_constant_value()
+                                                    + te.delay,
+                                                )
+                                            )
+                                            new_end_delay_event_c._add_effect_instance(
+                                                e
+                                            )
+                                            new_problem.add_event(new_end_delay_event_c)
+                                        else:
+                                            raise NotImplementedError
                                     else:
                                         raise NotImplementedError
                                 elif te.delay == 0:
@@ -334,102 +353,109 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                     raise NotImplementedError
                             else:
                                 if delay_variable_duration_effect:
-                                    if (
-                                        action.duration.lower.is_int_constant()
-                                        and action.duration.upper.is_int_constant()
-                                    ):
-                                        new_fluent_clock_delay_end = Fluent(
-                                            f"{get_fresh_name(new_problem, e.fluent.fluent().name)}_clock",
-                                            tm.RealType(),
-                                            params,
-                                            env,
-                                        )
-                                        new_problem.add_fluent(
-                                            new_fluent_clock_delay_end,
-                                            default_initial_value=0,
-                                        )
-                                        new_action_delay = InstantaneousAction(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem,e.fluent.fluent().name)}_end_delay",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_action_delay.add_precondition(alive_fluent)
-                                        new_action_delay.add_precondition(
-                                            em.FluentExp(
-                                                new_fluent_running,
-                                                params=new_action.parameters,
+                                    if te.delay < 0:
+                                        if (
+                                            action.duration.lower.is_int_constant()
+                                            and action.duration.upper.is_int_constant()
+                                        ):
+                                            new_fluent_clock_delay_end = Fluent(
+                                                f"{get_fresh_name(new_problem, e.fluent.fluent().name)}_clock",
+                                                tm.RealType(),
+                                                params,
+                                                env,
                                             )
-                                        )
-                                        if action.duration.is_left_open():
-                                            new_action_delay.add_precondition(
-                                                em.GT(
-                                                    em.FluentExp(
-                                                        new_fluent_clock,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.lower.int_constant_value()
-                                                    + te.delay,
-                                                )
-                                            )
-                                        else:
-                                            new_action_delay.add_precondition(
-                                                em.GE(
-                                                    em.FluentExp(
-                                                        new_fluent_clock,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.lower.int_constant_value()
-                                                    + te.delay,
-                                                )
-                                            )
-                                        if action.duration.is_right_open():
-                                            new_action_delay.add_precondition(
-                                                em.LT(
-                                                    em.FluentExp(
-                                                        new_fluent_clock,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.upper.int_constant_value()
-                                                    + te.delay,
-                                                )
-                                            )
-                                        else:
-                                            new_action_delay.add_precondition(
-                                                em.LE(
-                                                    em.FluentExp(
-                                                        new_fluent_clock,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.upper.int_constant_value()
-                                                    + te.delay,
-                                                )
-                                            )
-                                        new_action_delay._add_effect_instance(e)
-                                        new_action_delay.add_effect(
-                                            em.FluentExp(
+                                            new_problem.add_fluent(
                                                 new_fluent_clock_delay_end,
-                                                params=new_action.parameters,
-                                            ),
-                                            em.FluentExp(
-                                                new_fluent_clock,
-                                                params=new_action.parameters,
-                                            ),
-                                        )
-                                        new_problem.add_action(new_action_delay)
-
-                                        new_stop_event.add_precondition(
-                                            em.Equals(
+                                                default_initial_value=0,
+                                            )
+                                            new_action_delay = InstantaneousAction(
+                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem,e.fluent.fluent().name)}_end_delay",
+                                                _parameters=params,
+                                                _env=env,
+                                            )
+                                            new_action_delay.add_precondition(
+                                                alive_fluent
+                                            )
+                                            new_action_delay.add_precondition(
                                                 em.FluentExp(
-                                                    new_fluent_clock,
+                                                    new_fluent_running,
                                                     params=new_action.parameters,
                                                 )
-                                                - em.FluentExp(
+                                            )
+                                            if action.duration.is_left_open():
+                                                new_action_delay.add_precondition(
+                                                    em.GT(
+                                                        em.FluentExp(
+                                                            new_fluent_clock,
+                                                            params=new_action.parameters,
+                                                        ),
+                                                        action.duration.lower.int_constant_value()
+                                                        + te.delay,
+                                                    )
+                                                )
+                                            else:
+                                                new_action_delay.add_precondition(
+                                                    em.GE(
+                                                        em.FluentExp(
+                                                            new_fluent_clock,
+                                                            params=new_action.parameters,
+                                                        ),
+                                                        action.duration.lower.int_constant_value()
+                                                        + te.delay,
+                                                    )
+                                                )
+                                            if action.duration.is_right_open():
+                                                new_action_delay.add_precondition(
+                                                    em.LT(
+                                                        em.FluentExp(
+                                                            new_fluent_clock,
+                                                            params=new_action.parameters,
+                                                        ),
+                                                        action.duration.upper.int_constant_value()
+                                                        + te.delay,
+                                                    )
+                                                )
+                                            else:
+                                                new_action_delay.add_precondition(
+                                                    em.LE(
+                                                        em.FluentExp(
+                                                            new_fluent_clock,
+                                                            params=new_action.parameters,
+                                                        ),
+                                                        action.duration.upper.int_constant_value()
+                                                        + te.delay,
+                                                    )
+                                                )
+                                            new_action_delay._add_effect_instance(e)
+                                            new_action_delay.add_effect(
+                                                em.FluentExp(
                                                     new_fluent_clock_delay_end,
                                                     params=new_action.parameters,
                                                 ),
-                                                (te.delay * (-1)),
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
                                             )
-                                        )
+                                            new_problem.add_action(new_action_delay)
+
+                                            new_stop_event.add_precondition(
+                                                em.Equals(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    )
+                                                    - em.FluentExp(
+                                                        new_fluent_clock_delay_end,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    (te.delay * (-1)),
+                                                )
+                                            )
+                                        else:
+                                            raise NotImplementedError
+                                    elif te.delay == 0:
+                                        new_stop_event._add_effect_instance(e)
                                     else:
                                         raise NotImplementedError
                                 else:
