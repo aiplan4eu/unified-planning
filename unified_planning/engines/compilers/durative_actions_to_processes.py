@@ -33,7 +33,7 @@ from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
 )
-from typing import Dict, Optional, OrderedDict, Union, Tuple, List
+from typing import Dict, Optional, OrderedDict, Tuple, List
 from functools import partial
 import unified_planning.plans as plans
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
@@ -621,9 +621,55 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 (None, None),
                             )
                             if found_action == None:
-                                raise UPUsageError(
-                                    "The Action of the given ActionInstance does not have a valid replacement."
+                                (delay_variable_duration_effect, te_delay) = next(
+                                    (
+                                        (eff_control, te_control.delay)
+                                        for te_control, eff_control in action_durative.effects.items()
+                                        if te_control.delay < 0
+                                    ),
+                                    (None, None),
                                 )
+                                if (
+                                    delay_variable_duration_effect is not None
+                                    and te_delay is not None
+                                ):
+                                    delay_found = []
+                                    for i, (_, action_start, _) in enumerate(
+                                        plan_result.timed_actions[index:]
+                                    ):
+                                        for (
+                                            delay_effect
+                                        ) in delay_variable_duration_effect:
+                                            if (
+                                                delay_effect.fluent.fluent().name
+                                                in action_start.action.name
+                                                and "_end_delay"
+                                                in action_start.action.name
+                                                and action_durative.name
+                                                in action_start.action.name
+                                                and action_plans[1].actual_parameters
+                                                == action_start.actual_parameters
+                                            ):
+                                                delay_found.append(i)
+                                    found_action = next(
+                                        ((i) for i in delay_found if i is not None),
+                                        None,
+                                    )
+                                    if found_action is not None:
+                                        found_action = index + found_action
+                                        action_time = (
+                                            plan_result.timed_actions[found_action][0]
+                                            + (te_delay * (-1))
+                                            - fraction
+                                        )
+                                    else:
+                                        raise UPUsageError(
+                                            "The Action of the given ActionInstance does not have a valid replacement."
+                                        )
+                                else:
+                                    raise UPUsageError(
+                                        "The Action of the given ActionInstance does not have a valid replacement."
+                                    )
                             else:
                                 found_action = index + found_action
                                 action_time = (
