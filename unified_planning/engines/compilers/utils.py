@@ -137,7 +137,7 @@ def create_effect_with_given_subs(
     subs: Dict[Expression, Expression],
 ) -> Optional[Effect]:
     new_fluent = old_effect.fluent.substitute(subs)
-    new_value = old_effect.value.substitute(subs)
+    new_value = simplifier.simplify(old_effect.value.substitute(subs))
     new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
     if new_condition == problem.environment.expression_manager.FALSE():
         return None
