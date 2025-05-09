@@ -309,7 +309,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 reset_tracker_eff = self._create_tracking_effect(
                     ef, is_unknown_fluents, em
                 )
-                effs.append((time, reset_tracker_eff))
+                if reset_tracker_eff is not None:
+                    effs.append((time, reset_tracker_eff))
 
         lower, upper = None, None
         if isinstance(a, up.model.DurativeAction):
@@ -380,7 +381,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         reset_tracker_eff = self._create_tracking_effect(
                             eff_instance, is_unknown_fluents, em
                         )
-                        new_effs.append((t, reset_tracker_eff))
+                        if reset_tracker_eff is not None:
+                            new_effs.append((t, reset_tracker_eff))
                     elif case == ElementKind.CONDITION:
                         new_conds.append((t, exp.substitute(subs)))
                     else:
@@ -441,7 +443,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         return None
                     elif simplified_c.constant_value() == True:
                         continue
-                new_ia.add_precondition(c[1])
+                new_ia.add_precondition(simplified_c)
             new_a = new_ia
         else:
             raise NotImplementedError
@@ -504,6 +506,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         o_e = em.Or([em.FluentExp(is_unknown_fluents[vf]) for vf in f_list])
         tracking_fluent_exp = em.FluentExp(is_unknown_fluents[f])
+
+        if tracking_fluent_exp == o_e:
+            return None
+
         reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
         return reset_tracker_eff
 
