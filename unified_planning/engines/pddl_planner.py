@@ -121,7 +121,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             linked to that renaming.
         :return: The up.plans.Plan corresponding to the parsed plan from the file
         """
-        with open(plan_filename) as plan:
+        with open(plan_filename, encoding="utf-8-sig") as plan:
             return self._plan_from_str(problem, plan.read(), get_item_named)
 
     def _plan_from_str(
