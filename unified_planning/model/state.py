@@ -68,11 +68,11 @@ class UPState(State):
         for fluent, value in values.items():
             if not fluent.is_fluent_exp():
                 raise UPValueError(
-                    f"The fluent {fluent} is not a fluent, but a {type(fluent)}"
+                    f"The fluent '{fluent}' is not a fluent expression, but a '{fluent.node_type.name}'"
                 )
             if not value.is_constant():
                 raise UPValueError(
-                    f"The value {value} is not a constant, but a {type(value)}"
+                    f"The value '{value}' assigned to the fluent '{fluent}' is not a constant, but a '{value.node_type.name}'"
                 )
             self._values[fluent] = value
         if _father is None:
