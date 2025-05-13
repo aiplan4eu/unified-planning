@@ -1,5 +1,5 @@
 (define (domain miconic)
-  (:requirements :adl)
+  (:requirements :adl :typing)
   (:types passenger - object
           floor - object
          )
