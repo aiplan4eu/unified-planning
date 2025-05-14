@@ -309,6 +309,16 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             params,
                                             env,
                                         )
+                                        new_intermediate_condition_stop = Event(
+                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
+                                            _parameters=params,
+                                            _env=env,
+                                        )
+                                        new_intermediate_condition_error = Event(
+                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
+                                            _parameters=params,
+                                            _env=env,
+                                        )
                                     else:
                                         new_intermediate_condition_start = Event(
                                             f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_start",
@@ -321,34 +331,21 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             params,
                                             env,
                                         )
-                                    new_problem.add_fluent(
-                                        new_intermediate_running,
-                                        default_initial_value=em.FALSE(),
-                                    )
-                                    if c.is_fluent_exp():
-                                        new_intermediate_condition_stop = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    else:
                                         new_intermediate_condition_stop = Event(
                                             f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_stop",
                                             _parameters=params,
                                             _env=env,
                                         )
-                                    if c.is_fluent_exp():
-                                        new_intermediate_condition_error = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    else:
                                         new_intermediate_condition_error = Event(
                                             f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_error",
                                             _parameters=params,
                                             _env=env,
                                         )
+                                    new_problem.add_fluent(
+                                        new_intermediate_running,
+                                        default_initial_value=em.FALSE(),
+                                    )
+
                                     new_intermediate_condition_start.add_precondition(
                                         alive_fluent
                                     )
@@ -576,6 +573,16 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                     params,
                                                     env,
                                                 )
+                                                new_intermediate_condition_stop = Event(
+                                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
+                                                    _parameters=params,
+                                                    _env=env,
+                                                )
+                                                new_intermediate_condition_error = Event(
+                                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
+                                                    _parameters=params,
+                                                    _env=env,
+                                                )
                                             else:
                                                 new_intermediate_condition_start = Event(
                                                     f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_end",
@@ -588,34 +595,21 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                     params,
                                                     env,
                                                 )
-                                            new_problem.add_fluent(
-                                                new_intermediate_running,
-                                                default_initial_value=em.FALSE(),
-                                            )
-                                            if c.is_fluent_exp():
-                                                new_intermediate_condition_stop = Event(
-                                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
-                                                    _parameters=params,
-                                                    _env=env,
-                                                )
-                                            else:
                                                 new_intermediate_condition_stop = Event(
                                                     f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_stop",
                                                     _parameters=params,
                                                     _env=env,
                                                 )
-                                            if c.is_fluent_exp():
-                                                new_intermediate_condition_error = Event(
-                                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
-                                                    _parameters=params,
-                                                    _env=env,
-                                                )
-                                            else:
                                                 new_intermediate_condition_error = Event(
                                                     f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_error",
                                                     _parameters=params,
                                                     _env=env,
                                                 )
+                                            new_problem.add_fluent(
+                                                new_intermediate_running,
+                                                default_initial_value=em.FALSE(),
+                                            )
+
                                             new_intermediate_condition_start.add_precondition(
                                                 alive_fluent
                                             )
