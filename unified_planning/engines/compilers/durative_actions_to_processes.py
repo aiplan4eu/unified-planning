@@ -772,7 +772,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                 else:
                                     raise NotImplementedError
                             else:
-                                new_stop_action.add_precondition(c)
+                                if t.lower.delay == 0 and t.upper.delay == 0:
+                                    new_stop_action.add_precondition(c)
+                                else:
+                                    raise NotImplementedError
                     elif t.lower.is_from_start() and t.upper.is_from_end():
                         if t.lower.delay > 0 and t.upper.delay < 0:
                             if action.duration.lower == action.duration.upper:
