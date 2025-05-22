@@ -254,7 +254,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for new_params, dur, conds, effs in self._expand_action(
                 a, new_fluents, new_objects, if_known, is_unknown_fluents
             ):
-                new_a = self._clone_action_with_extras(a, new_params, conds, dur, effs)
+                new_a = self._clone_action_with_extras(
+                    a, new_params, conds, dur, effs, em
+                )
                 if new_a is None:
                     continue
                 new_a.name = get_fresh_name(new_problem, a.name)
@@ -403,7 +405,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         new_effs.append((t, n_e))
             yield new_params, (lower, upper), conds + new_conds, effs + new_effs
 
-    def _clone_action_with_extras(self, a, new_params, conditions, duration, effects):
+    def _clone_action_with_extras(
+        self, a, new_params, conditions, duration, effects, em
+    ):
         updated_params = OrderedDict((p.name, p.type) for p in a.parameters)
         for n in new_params:
             updated_params[n.name] = n.type
@@ -443,7 +447,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         return None
                     elif simplified_c.constant_value() == True:
                         continue
-                new_ia.add_precondition(simplified_c)
+                if em.Not(simplified_c) not in new_ia.preconditions:
+                    new_ia.add_precondition(simplified_c)
+                else:
+                    return None
             new_a = new_ia
         else:
             raise NotImplementedError
