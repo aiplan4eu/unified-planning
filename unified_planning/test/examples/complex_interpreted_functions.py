@@ -292,7 +292,7 @@ def get_example_problems():
 
     robot_at = Fluent("robot_at", BoolType(), l=Location)
 
-    money = Fluent("moeny", IntType())
+    money = Fluent("money", IntType())
 
     location_1 = Object("location_1", Location)
     location_2 = Object("location_2", Location)
@@ -319,6 +319,7 @@ def get_example_problems():
     l_from = move.parameter("l_from")
     l_to = move.parameter("l_to")
     move.add_precondition(robot_at(l_from))
+    move.add_precondition(Not(Equals(l_from, l_to)))
     move.add_effect(robot_at(l_from), False)
     move.add_effect(robot_at(l_to), True)
 
