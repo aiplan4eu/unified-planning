@@ -103,6 +103,8 @@ def op_to_node_type(op: str) -> OperatorKind:
         return OperatorKind.SOMETIME_AFTER
     elif op == "up:sometime_before":
         return OperatorKind.SOMETIME_BEFORE
+    elif op == "up:present":
+        return OperatorKind.IS_PRESENT_EXP
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -176,6 +178,13 @@ class ProtobufReader(Converter):
                 raise UPException(f"Unable to form fluent expression {msg}")
         elif (
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
+            and msg.list[0].atom.symbol == "up:present"
+        ):
+            container = msg.list[1].atom.symbol
+            presence = model.Presence(container)
+            return problem.environment.expression_manager.PresentExp(presence)
+        elif (
+            msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.type != "up:time"
         ):
             node_type = None
@@ -193,7 +202,15 @@ class ProtobufReader(Converter):
                 payload = tuple(
                     [self.convert(var, problem).variable() for var in variables]
                 )
+            elif node_type == OperatorKind.IS_PRESENT_EXP:
+                print(msg)
+                container = msg.list[1].atom.symbol
+                print(container)
+                assert False
             else:
+                print("-----------------")
+                print(msg)
+                print("-----------------")
                 args.extend([self.convert(m, problem) for m in msg.list])
 
             assert node_type is not None
@@ -402,8 +419,13 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_condition(self.convert(timing), goal)
 
-        for c in msg.scheduling_extension.constraints:
-            problem.add_constraint(self.convert(c, problem))
+        for sc in msg.scheduling_extension.scoped_constraints:  # TODO: scoped
+            c = self.convert(sc.constraint, problem)
+            print(">>>>> ", sc.scope)
+            scope = [self.convert(sc_item, problem) for sc_item in sc.scope]
+            print("<<<<<")
+
+            problem.add_constraint(c, scope)
 
         assert len(msg.trajectory_constraints) == 0
 

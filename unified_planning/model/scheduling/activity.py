@@ -26,9 +26,10 @@ from unified_planning.model import (
     TimepointKind,
     Fluent,
     NumericConstant,
+    Presence,
 )
 import unified_planning as up
-from unified_planning.model.scheduling.chronicle import Chronicle
+from unified_planning.model.scheduling.chronicle import Chronicle, Constraint
 
 
 class Activity(Chronicle):
@@ -36,11 +37,22 @@ class Activity(Chronicle):
     associated :class:`SchedulingProblem`"""
 
     def __init__(
-        self, name: str, duration: int = 1, _env: Optional[Environment] = None
+        self,
+        name: str,
+        duration: int = 1,
+        optional: bool = False,
+        _env: Optional[Environment] = None,
     ):
         Chronicle.__init__(self, name, _env=_env)
         self._start = Timepoint(TimepointKind.START, container=name)
         self._end = Timepoint(TimepointKind.END, container=name)
+        self._optional = optional
+        if optional:
+            self._present = self._environment.expression_manager.PresentExp(
+                Presence(name)
+            )
+        else:
+            self._present = self._environment.expression_manager.TRUE()
 
         self.set_fixed_duration(duration)
 
@@ -53,6 +65,15 @@ class Activity(Chronicle):
     def end(self) -> Timepoint:
         """Returns a reference to the start time of this activity."""
         return self._end
+
+    @property
+    def optional(self) -> bool:
+        """Returns whether this activity is optional or not."""
+        return self._optional
+
+    @property
+    def present(self) -> FNode:
+        return self._present
 
     @property
     def duration(self) -> "up.model.timing.DurationInterval":
@@ -124,6 +145,13 @@ class Activity(Chronicle):
         self.add_decrease_effect(self.start, resource, amount)
         self.add_increase_effect(self.end, resource, amount)
 
+    def add_constraint(
+        self,
+        constraint: Constraint,
+    ):
+        scope = [self.present] if self.optional else []
+        self._add_constraint(constraint, scope=scope)
+
     def add_release_date(self, date: NumericExpression):
         """Sets the earliest date at which the activity can be started."""
         self.add_constraint(get_environment().expression_manager.LE(date, self.start))
@@ -137,14 +165,17 @@ class Activity(Chronicle):
         new = Activity(self.name, _env=self._environment)
         self._clone_to(new)
         new._duration = self._duration
+        new._optional = self._optional
+        new._present= self._present
         return new
 
     def __hash__(self):
-        return Chronicle.__hash__(self) + hash(self._duration)
+        return Chronicle.__hash__(self) + hash(self._duration) + hash(self._optional)
 
     def __eq__(self, other):
         return (
             isinstance(other, Activity)
             and Chronicle.__eq__(self, other)
             and self._duration == other._duration
+            and self._optional == other._optional
         )

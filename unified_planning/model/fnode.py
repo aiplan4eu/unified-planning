@@ -83,6 +83,8 @@ class FNode(object):
             return self.object().name
         elif self.is_timing_exp():
             return str(self.timing())
+        elif self.is_presence_exp():
+            return str(self.presence())
         elif self.is_and():
             return self.get_nary_expression_string(" and ", self.args)
         elif self.is_or():
@@ -126,7 +128,7 @@ class FNode(object):
         elif self.is_equals():
             return self.get_nary_expression_string(" == ", self.args)
         else:
-            raise ValueError("Unknown FNode type found")
+            raise ValueError("Unknown FNode type found: " + str(self.node_type))
 
     @property
     def node_id(self) -> int:
@@ -223,6 +225,11 @@ class FNode(object):
     def timing(self) -> "unified_planning.model.timing.Timing":
         """Return the `Timing` stored in this expression."""
         assert self.is_timing_exp()
+        return self._content.payload
+
+    def presence(self) -> "unified_planning.model.presence.Presence":
+        """Return the `PresenceExpression` stored in this expression."""
+        assert self.is_presence_exp()
         return self._content.payload
 
     def agent(self) -> str:
@@ -344,6 +351,10 @@ class FNode(object):
     def is_timing_exp(self) -> bool:
         """Test whether the node is a :class:`~unified_planning.model.Timing` Expression."""
         return self.node_type == OperatorKind.TIMING_EXP
+
+    def is_presence_exp(self) -> bool:
+        """Test whether the node is a :class:`~unified_planning.model.PresenceExpression` Expression."""
+        return self.node_type == OperatorKind.IS_PRESENT_EXP
 
     def is_plus(self) -> bool:
         """Test whether the node is the `Plus` operator."""
