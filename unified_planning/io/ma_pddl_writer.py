@@ -238,6 +238,7 @@ class MAPDDLWriter:
                     temp_domain_objects: Dict[_UserType, Set[Object]] = {}
                     for ag in self.problem.agents:
                         self._populate_domain_objects(obe, ag)
+                        assert self.domain_objects is not None
                         temp_domain_objects = temp_domain_objects | self.domain_objects
                         self.domain_objects = None
                     self.domain_objects = temp_domain_objects
@@ -604,6 +605,7 @@ class MAPDDLWriter:
                     temp_domain_objects: Dict[_UserType, Set[Object]] = {}
                     for ag in self.problem.agents:
                         self._populate_domain_objects(ObjectsExtractor(), ag)
+                        assert self.domain_objects is not None
                         temp_domain_objects = temp_domain_objects | self.domain_objects
                         self.domain_objects = None
                     self.domain_objects = temp_domain_objects
