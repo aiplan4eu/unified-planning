@@ -86,7 +86,9 @@ class SchedulingMotionProblem(SchedulingProblem):
 
         new_p._base = self._base.clone()
         new_p._activities = [a.clone() for a in self._activities]
-        new_p._motion_activities = [a.clone() for a in self.motion_activities]
+        new_p._motion_activities = list(
+            filter(lambda a: isinstance(a, MotionActivity), new_p._activities)
+        )
         new_p._initial_configuration = self.initial_configuration
         return new_p
 
