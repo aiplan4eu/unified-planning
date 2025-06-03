@@ -113,6 +113,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
+        supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return supported_kind
 
     @staticmethod
@@ -223,7 +224,17 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         )
                         new_problem.add_fluent(
                             new_fluent_clock_delay_end,
-                            default_initial_value=action.duration.upper,
+                            default_initial_value=0,
+                        )
+                        delay_control_end = Fluent(
+                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, delay_variable_duration_effect[0].fluent.fluent().name)}_end_triggered",
+                            tm.BoolType(),
+                            params,
+                            env,
+                        )
+                        new_problem.add_fluent(
+                            delay_control_end,
+                            default_initial_value=em.FALSE(),
                         )
                     else:
                         new_stop_action = InstantaneousAction(
@@ -1118,19 +1129,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                 _parameters=params,
                                                 _env=env,
                                             )
-                                            delay_control = Fluent(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
-                                                tm.BoolType(),
-                                                params,
-                                                env,
-                                            )
-                                            new_problem.add_fluent(
-                                                delay_control,
-                                                default_initial_value=em.FALSE(),
-                                            )
+
                                             new_action.add_effect(
                                                 em.FluentExp(
-                                                    delay_control,
+                                                    delay_control_end,
                                                     params=new_action.parameters,
                                                 ),
                                                 em.FALSE(),
@@ -1192,7 +1194,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             new_action_delay.add_precondition(
                                                 em.Not(
                                                     em.FluentExp(
-                                                        delay_control,
+                                                        delay_control_end,
                                                         params=new_action.parameters,
                                                     )
                                                 )
@@ -1210,7 +1212,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             )
                                             new_action_delay.add_effect(
                                                 em.FluentExp(
-                                                    delay_control,
+                                                    delay_control_end,
                                                     params=new_action.parameters,
                                                 ),
                                                 em.TRUE(),
@@ -1228,6 +1230,12 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                         params=new_action.parameters,
                                                     ),
                                                     (te.delay * (-1)),
+                                                )
+                                            )
+                                            new_stop_event.add_precondition(
+                                                em.FluentExp(
+                                                    delay_control_end,
+                                                    params=new_action.parameters,
                                                 )
                                             )
                                         else:
@@ -1283,6 +1291,12 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                         delay_control,
                                                         params=new_action.parameters,
                                                     )
+                                                )
+                                            )
+                                            new_event_delay.add_precondition(
+                                                em.FluentExp(
+                                                    delay_control_end,
+                                                    params=new_action.parameters,
                                                 )
                                             )
 
