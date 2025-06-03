@@ -369,7 +369,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                         )
                                     new_intermediate_condition_start.add_effect(
                                         em.FluentExp(
-                                            new_fluent_running,
+                                            new_intermediate_running,
                                             params=new_action.parameters,
                                         ),
                                         em.TRUE(),
@@ -405,7 +405,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                         )
                                     new_intermediate_condition_stop.add_effect(
                                         em.FluentExp(
-                                            new_fluent_running,
+                                            new_intermediate_running,
                                             params=new_action.parameters,
                                         ),
                                         em.FALSE(),
@@ -621,7 +621,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             )
                                         new_intermediate_condition_start.add_effect(
                                             em.FluentExp(
-                                                new_fluent_running,
+                                                new_intermediate_running,
                                                 params=new_action.parameters,
                                             ),
                                             em.TRUE(),
@@ -657,7 +657,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             )
                                         new_intermediate_condition_stop.add_effect(
                                             em.FluentExp(
-                                                new_fluent_running,
+                                                new_intermediate_running,
                                                 params=new_action.parameters,
                                             ),
                                             em.FALSE(),
