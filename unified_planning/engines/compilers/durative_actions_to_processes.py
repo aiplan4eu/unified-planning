@@ -991,6 +991,22 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                     _parameters=params,
                                     _env=env,
                                 )
+                                delay_control = Fluent(
+                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_start_triggered",
+                                    tm.BoolType(),
+                                    params,
+                                    env,
+                                )
+                                new_problem.add_fluent(
+                                    delay_control, default_initial_value=em.FALSE()
+                                )
+                                new_action.add_effect(
+                                    em.FluentExp(
+                                        delay_control, params=new_action.parameters
+                                    ),
+                                    em.FALSE(),
+                                )
+
                                 new_delay_event.add_precondition(alive_fluent)
                                 new_delay_event.add_precondition(
                                     em.FluentExp(
@@ -1007,7 +1023,20 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                         te.delay,
                                     )
                                 )
+                                new_delay_event.add_precondition(
+                                    em.Not(
+                                        em.FluentExp(
+                                            delay_control, params=new_action.parameters
+                                        )
+                                    )
+                                )
                                 new_delay_event._add_effect_instance(e)
+                                new_delay_event.add_effect(
+                                    em.FluentExp(
+                                        delay_control, params=new_action.parameters
+                                    ),
+                                    em.TRUE(),
+                                )
                                 new_problem.add_event(new_delay_event)
                             elif te.delay == 0:
                                 new_action._add_effect_instance(e)
@@ -1022,6 +1051,22 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                         _parameters=params,
                                         _env=env,
                                     )
+                                    delay_control = Fluent(
+                                        f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
+                                        tm.BoolType(),
+                                        params,
+                                        env,
+                                    )
+                                    new_problem.add_fluent(
+                                        delay_control, default_initial_value=em.FALSE()
+                                    )
+                                    new_action.add_effect(
+                                        em.FluentExp(
+                                            delay_control, params=new_action.parameters
+                                        ),
+                                        em.FALSE(),
+                                    )
+
                                     new_end_delay_event_c.add_precondition(alive_fluent)
                                     new_end_delay_event_c.add_precondition(
                                         em.FluentExp(
@@ -1038,7 +1083,21 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             action.duration.lower + (te.delay),
                                         )
                                     )
+                                    new_end_delay_event_c.add_precondition(
+                                        em.Not(
+                                            em.FluentExp(
+                                                delay_control,
+                                                params=new_action.parameters,
+                                            )
+                                        )
+                                    )
                                     new_end_delay_event_c._add_effect_instance(e)
+                                    new_end_delay_event_c.add_effect(
+                                        em.FluentExp(
+                                            delay_control, params=new_action.parameters
+                                        ),
+                                        em.TRUE(),
+                                    )
                                     new_problem.add_event(new_end_delay_event_c)
                                 elif te.delay == 0:
                                     new_stop_event._add_effect_instance(e)
@@ -1059,6 +1118,24 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                 _parameters=params,
                                                 _env=env,
                                             )
+                                            delay_control = Fluent(
+                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
+                                                tm.BoolType(),
+                                                params,
+                                                env,
+                                            )
+                                            new_problem.add_fluent(
+                                                delay_control,
+                                                default_initial_value=em.FALSE(),
+                                            )
+                                            new_action.add_effect(
+                                                em.FluentExp(
+                                                    delay_control,
+                                                    params=new_action.parameters,
+                                                ),
+                                                em.FALSE(),
+                                            )
+
                                             new_action_delay.add_precondition(
                                                 alive_fluent
                                             )
@@ -1112,6 +1189,14 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                         + (te.delay),
                                                     )
                                                 )
+                                            new_action_delay.add_precondition(
+                                                em.Not(
+                                                    em.FluentExp(
+                                                        delay_control,
+                                                        params=new_action.parameters,
+                                                    )
+                                                )
+                                            )
                                             new_action_delay._add_effect_instance(e)
                                             new_action_delay.add_effect(
                                                 em.FluentExp(
@@ -1122,6 +1207,13 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                     new_fluent_clock,
                                                     params=new_action.parameters,
                                                 ),
+                                            )
+                                            new_action_delay.add_effect(
+                                                em.FluentExp(
+                                                    delay_control,
+                                                    params=new_action.parameters,
+                                                ),
+                                                em.TRUE(),
                                             )
                                             new_problem.add_action(new_action_delay)
 
@@ -1144,6 +1236,24 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                 _parameters=params,
                                                 _env=env,
                                             )
+                                            delay_control = Fluent(
+                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
+                                                tm.BoolType(),
+                                                params,
+                                                env,
+                                            )
+                                            new_problem.add_fluent(
+                                                delay_control,
+                                                default_initial_value=em.FALSE(),
+                                            )
+                                            new_action.add_effect(
+                                                em.FluentExp(
+                                                    delay_control,
+                                                    params=new_action.parameters,
+                                                ),
+                                                em.FALSE(),
+                                            )
+
                                             new_event_delay.add_precondition(
                                                 alive_fluent
                                             )
@@ -1167,8 +1277,23 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                     + te.delay,
                                                 )
                                             )
+                                            new_event_delay.add_precondition(
+                                                em.Not(
+                                                    em.FluentExp(
+                                                        delay_control,
+                                                        params=new_action.parameters,
+                                                    )
+                                                )
+                                            )
 
                                             new_event_delay._add_effect_instance(e)
+                                            new_event_delay.add_effect(
+                                                em.FluentExp(
+                                                    delay_control,
+                                                    params=new_action.parameters,
+                                                ),
+                                                em.TRUE(),
+                                            )
 
                                             new_problem.add_event(new_event_delay)
                                     elif te.delay == 0:
