@@ -42,6 +42,16 @@ In the example above, it suffices to invoke the OM as ``OneshotPlanner(problem_k
 Note that in the example above, we used the automated engine selection  offered by the `UP`, because we did not indicate the name of the engine we wanted to use. We could specify an exact engine to be used by invoking the OM as ``OneshotPlanner(name=”tamer”)``. When specifying an engine to be used, it is also possible to pass engine-specific parameters to control the engine behaviors, for example:
 ``OneshotPlanner(name=”tamer”, param={“heuristic”: “hadd”, “weight”: 0.8})``
 
+In parallel of the engine-specific parameters, it is also possible to provide per-solve parameters in order to tune the behavior of the engine for a specific problem. For example:
+``planner.solve(problem, memory_limit="1GB")``.
+As for the engine-specific parameters, if the planner does not support the specified parameter (``memory_limit`` in this example), it will be ignored.
+Classical (optional) per-solve parameters are:
+
+- ``heuristic``: is a function that given a state returns its heuristic value or ``None`` if the state is a dead-end;
+- ``timeout``: is the time in seconds that the planner has at max to solve the problem;
+- ``output_stream``: is a stream of strings where the planner writes his output (and also errors) while it is solving the problem;
+- ``warm_start_plan``: is a plan that the planner can use to warm start the search;
+
 Finally, it is possible to execute more than one `OneshotPlanner` in parallel by simply specifying the list of names and the specific parameters of every parallel execution as shown in the example below.
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
