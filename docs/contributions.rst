@@ -23,6 +23,7 @@ Contributors to the repository include:
 - Luca Framba <framba@fbk.eu>
 - Luigi Bonassi <l.bonassi005@unibs.it>
 - Miguel Ramirez <miquel.ramirez@gmail.com>
+- Oliver Zahn <oliver.zahn2@web.de>
 - Roland Godet <roland.godet@laas.fr>
 - Samuel Gobbi <sgobbi@fbk.eu>
 - Sebastian Stock <sebastian.stock@gmail.com>
