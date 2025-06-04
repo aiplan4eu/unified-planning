@@ -365,18 +365,29 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             )
                                         )
                                     )
-                                    new_intermediate_condition_start.add_precondition(
-                                        em.Equals(
-                                            em.FluentExp(
-                                                new_fluent_clock,
-                                                params=new_action.parameters,
-                                            ),
-                                            t.lower.delay,
-                                        )
-                                    )
+
                                     if not (t.is_left_open()):
                                         new_intermediate_condition_start.add_precondition(
                                             c
+                                        )
+                                        new_intermediate_condition_start.add_precondition(
+                                            em.Equals(
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
+                                                t.lower.delay,
+                                            )
+                                        )
+                                    else:
+                                        new_intermediate_condition_start.add_precondition(
+                                            em.GT(
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
+                                                t.lower.delay,
+                                            )
                                         )
                                     new_intermediate_condition_start.add_effect(
                                         em.FluentExp(
@@ -401,18 +412,31 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                             params=new_action.parameters,
                                         )
                                     )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        em.Equals(
-                                            em.FluentExp(
-                                                new_fluent_clock,
-                                                params=new_action.parameters,
-                                            ),
-                                            t.upper.delay,
-                                        )
-                                    )
+
                                     if not (t.is_right_open()):
                                         new_intermediate_condition_stop.add_precondition(
                                             c
+                                        )
+                                        new_intermediate_condition_stop.add_precondition(
+                                            em.Equals(
+                                                em.FluentExp(
+                                                    new_fluent_clock,
+                                                    params=new_action.parameters,
+                                                ),
+                                                t.upper.delay,
+                                            )
+                                        )
+                                    else:
+                                        new_intermediate_condition_stop.add_precondition(
+                                            em.Not(
+                                                em.LT(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    t.upper.delay,
+                                                )
+                                            )
                                         )
                                     new_intermediate_condition_stop.add_effect(
                                         em.FluentExp(
@@ -617,18 +641,31 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                 )
                                             )
                                         )
-                                        new_intermediate_condition_start.add_precondition(
-                                            em.Equals(
-                                                em.FluentExp(
-                                                    new_fluent_clock,
-                                                    params=new_action.parameters,
-                                                ),
-                                                action.duration.lower + (t.lower.delay),
-                                            )
-                                        )
+
                                         if not (t.is_left_open()):
                                             new_intermediate_condition_start.add_precondition(
                                                 c
+                                            )
+                                            new_intermediate_condition_start.add_precondition(
+                                                em.Equals(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    action.duration.lower
+                                                    + (t.lower.delay),
+                                                )
+                                            )
+                                        else:
+                                            new_intermediate_condition_start.add_precondition(
+                                                em.GT(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    action.duration.lower
+                                                    + (t.lower.delay),
+                                                )
                                             )
                                         new_intermediate_condition_start.add_effect(
                                             em.FluentExp(
@@ -653,18 +690,33 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                                                 params=new_action.parameters,
                                             )
                                         )
-                                        new_intermediate_condition_stop.add_precondition(
-                                            em.Equals(
-                                                em.FluentExp(
-                                                    new_fluent_clock,
-                                                    params=new_action.parameters,
-                                                ),
-                                                action.duration.lower + (t.upper.delay),
-                                            )
-                                        )
+
                                         if not (t.is_right_open()):
                                             new_intermediate_condition_stop.add_precondition(
                                                 c
+                                            )
+                                            new_intermediate_condition_stop.add_precondition(
+                                                em.Equals(
+                                                    em.FluentExp(
+                                                        new_fluent_clock,
+                                                        params=new_action.parameters,
+                                                    ),
+                                                    action.duration.lower
+                                                    + (t.upper.delay),
+                                                )
+                                            )
+                                        else:
+                                            new_intermediate_condition_stop.add_precondition(
+                                                em.Not(
+                                                    em.LT(
+                                                        em.FluentExp(
+                                                            new_fluent_clock,
+                                                            params=new_action.parameters,
+                                                        ),
+                                                        action.duration.lower
+                                                        + (t.upper.delay),
+                                                    )
+                                                )
                                             )
                                         new_intermediate_condition_stop.add_effect(
                                             em.FluentExp(
