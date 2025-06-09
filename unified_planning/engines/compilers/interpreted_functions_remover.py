@@ -447,6 +447,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         return None
                     elif simplified_c.constant_value() == True:
                         continue
+                for nii, ncs in new_dur_a.conditions.items():
+                    if nii == ii and da_simp.simplify(em.Not(simplified_c)) in ncs:
+                        # NOTE this does not catch incompatibilities if the original condition is not simplified
+                        return None
                 new_dur_a.add_condition(ii, simplified_c)
             new_dur_a.set_closed_duration_interval(duration[0], duration[1])
             new_a = new_dur_a
@@ -465,7 +469,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         return None
                     elif simplified_c.constant_value() == True:
                         continue
-                if em.Not(simplified_c) not in new_ia.preconditions:
+                if ia_simp.simplify(em.Not(simplified_c)) not in new_ia.preconditions:
+                    # NOTE this does not catch incompatibilities if the original condition is not simplified
                     new_ia.add_precondition(simplified_c)
                 else:
                     return None
