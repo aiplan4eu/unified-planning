@@ -218,7 +218,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         kNums: Dict = {}
         for ifun_exp, val in self._interpreted_functions_values.items():
             ifun = ifun_exp.interpreted_function()
-            if ifun.name in kNums.keys():
+            if ifun.name in kNums:
                 kNum = kNums[ifun.name]
             else:
                 kNum = env.type_manager.UserType(
@@ -227,7 +227,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 kNums[ifun.name] = kNum
             if ifun.name not in if_known:
                 if_known[ifun.name] = []
-            if ifun.name not in new_fluents.keys():
+            if ifun.name not in new_fluents:
                 f_name = get_fresh_name(new_problem, f"_f_{ifun.name}")
                 f = Fluent(f_name, ifun.return_type, p=kNum)
                 new_fluents[ifun.name] = f
@@ -237,12 +237,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_fluent(f, default_initial_value=default_value)
             else:
                 f = new_fluents[ifun.name]
-            if ifun_exp.interpreted_function().name not in new_objects.keys():
+            if ifun_exp.interpreted_function().name not in new_objects:
                 new_objects[ifun_exp.interpreted_function().name] = {}
 
             if (
                 tuple(ifun_exp.args)
-                in new_objects[ifun_exp.interpreted_function().name].keys()
+                in new_objects[ifun_exp.interpreted_function().name]
             ):
                 o = new_objects[ifun_exp.interpreted_function().name][
                     tuple(ifun_exp.args)
@@ -289,7 +289,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             all_fluents = []
             for f_fnode in all_fluents_fnodes:
                 all_fluents.append(f_fnode.fluent())
-            for k in is_unknown_fluents.keys():
+            for k in is_unknown_fluents:
                 if k in all_fluents:
                     g_c = em.Or(goal_c, is_unknown_fluents[k])
             new_problem.add_goal(g_c)
@@ -322,7 +322,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 f = ef.fluent.fluent()
                 # only if the fluent is one of the changing ones
                 # we need to set the tracker
-                if f not in is_unknown_fluents.keys():
+                if f not in is_unknown_fluents:
                     continue
                 reset_tracker_eff = self._create_tracking_effect(
                     ef, is_unknown_fluents, em
@@ -531,7 +531,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         f = ef.fluent.fluent()
         f_list = []
         for v in self.free_vars_extractor.get(ef.value):
-            if v.fluent() in is_unknown_fluents.keys():
+            if v.fluent() in is_unknown_fluents:
                 f_list.append(v.fluent())
 
         o_e = em.Or([em.FluentExp(is_unknown_fluents[vf]) for vf in f_list])
