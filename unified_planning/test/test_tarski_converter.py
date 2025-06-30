@@ -59,11 +59,17 @@ class TestTarskiConverter(unittest_TestCase):
             "robot_locations_connected",
             "robot_locations_visited",
         ]
+        # import here so if tarski is not installed the test does not fail
+        from unified_planning.interop.tarski import (
+            convert_problem_from_tarski,
+            convert_problem_to_tarski,
+        )
+
         for n in problems_to_test:
             example = self.problems[n]
             problem, plan = example.problem, example.valid_plans[0]
-            tarski_problem = up.interop.convert_problem_to_tarski(problem)
-            new_problem = up.interop.convert_problem_from_tarski(
+            tarski_problem = convert_problem_to_tarski(problem)
+            new_problem = convert_problem_from_tarski(
                 problem.environment, tarski_problem
             )
             new_plan = _switch_plan(plan, new_problem)
@@ -73,12 +79,16 @@ class TestTarskiConverter(unittest_TestCase):
     @skipIfEngineNotAvailable("tarski_grounder")
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_object_as_root(self):
+        # import here so if tarski is not installed the test does not fail
+        from unified_planning.interop.tarski import (
+            convert_problem_from_tarski,
+            convert_problem_to_tarski,
+        )
+
         example = self.problems["hierarchical_blocks_world_object_as_root"]
         problem, plan = example.problem, example.valid_plans[0]
-        tarski_problem = up.interop.convert_problem_to_tarski(problem)
-        new_problem = up.interop.convert_problem_from_tarski(
-            problem.environment, tarski_problem
-        )
+        tarski_problem = convert_problem_to_tarski(problem)
+        new_problem = convert_problem_from_tarski(problem.environment, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
             self.assertIsNotNone(new_plan)
@@ -87,12 +97,16 @@ class TestTarskiConverter(unittest_TestCase):
     @skipIfEngineNotAvailable("tarski_grounder")
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_with_object(self):
+        # import here so if tarski is not installed the test does not fail
+        from unified_planning.interop.tarski import (
+            convert_problem_from_tarski,
+            convert_problem_to_tarski,
+        )
+
         example = self.problems["hierarchical_blocks_world_with_object"]
         problem, plan = example.problem, example.valid_plans[0]
-        tarski_problem = up.interop.convert_problem_to_tarski(problem)
-        new_problem = up.interop.convert_problem_from_tarski(
-            problem.environment, tarski_problem
-        )
+        tarski_problem = convert_problem_to_tarski(problem)
+        new_problem = convert_problem_from_tarski(problem.environment, tarski_problem)
         with OneshotPlanner(problem_kind=new_problem.kind) as planner:
             new_plan = planner.solve(new_problem).plan
             self.assertIsNotNone(new_plan)

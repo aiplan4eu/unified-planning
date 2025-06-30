@@ -13,7 +13,5 @@
 # limitations under the License.
 #
 
-from unified_planning.interop.from_pddl import (
-    check_ai_pddl_requirements,
-    convert_problem_from_ai_pddl,
-)
+from unified_planning.interop.from_tarski import convert_problem_from_tarski
+from unified_planning.interop.to_tarski import convert_problem_to_tarski

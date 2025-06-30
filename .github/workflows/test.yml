@@ -113,11 +113,6 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
-      - name: Install tarski
-        run: |
-          python3 -m pip install tarski[arithmetic]
-          sudo apt install -y gringo
-
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -253,10 +248,6 @@ jobs:
 
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
-
-      - name: Install tarski
-        run: |
-          python3 -m pip install tarski[arithmetic]
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -405,11 +396,6 @@ jobs:
 
       - name: Install plot Python dependencies
         run: python3 -m pip install -r plot-requirements.txt
-
-      - name: Install tarski
-        run: |
-          python3 -m pip install tarski[arithmetic]
-          sudo apt install -y gringo
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
