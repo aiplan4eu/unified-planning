@@ -27,6 +27,7 @@ from unified_planning.interop.from_pddl import (
     check_ai_pddl_requirements,
     convert_problem_from_ai_pddl,
 )
+from unified_planning.io.up_pddl_reader import UPPDDLReader
 
 from pddl.parser.domain import DomainParser  # type: ignore
 from pddl.parser.problem import ProblemParser  # type: ignore

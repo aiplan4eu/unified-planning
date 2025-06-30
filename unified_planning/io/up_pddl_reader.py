@@ -90,7 +90,7 @@ class CustomParseResults:
 
 
 Object = "object"
-TypesMap = Dict[str, unified_planning.model.Type]
+TypesMap = Dict[str, up.model.Type]
 
 
 def nested_expr():
