@@ -19,7 +19,6 @@ from fractions import Fraction
 import re
 from typing import Dict, Union, Callable, List, cast, Tuple
 import typing
-from warnings import warn
 import unified_planning as up
 import unified_planning.model.htn as htn
 from unified_planning.model import ContingentProblem
@@ -91,7 +90,7 @@ class CustomParseResults:
 
 
 Object = "object"
-TypesMap = Dict[str, up.model.Type]
+TypesMap = Dict[str, unified_planning.model.Type]
 
 
 def nested_expr():
@@ -1399,6 +1398,10 @@ class UPPDDLReader:
             elif father_name in types_map:
                 father = types_map[father_name]
             elif father_name in type_declarations:
+                if type == father_name:
+                    raise SyntaxError(
+                        f"Type '{type}' is defined as a subtype of itself"
+                    )
                 # father exists but was not processed yet. Force processing immediately
                 declare_type(father_name, type_declarations[father_name])
                 father = types_map[father_name]
@@ -2076,12 +2079,12 @@ class UPPDDLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        with open(domain_filename, "r") as domain_file:
+        with open(domain_filename, encoding="utf-8-sig") as domain_file:
             domain_str = domain_file.read()
 
         problem_str = None
         if problem_filename is not None:
-            with open(problem_filename, "r") as problem_file:
+            with open(problem_filename, encoding="utf-8-sig") as problem_file:
                 problem_str = problem_file.read()
 
         return self.parse_problem_string(domain_str, problem_str)
@@ -2140,7 +2143,7 @@ class UPPDDLReader:
             plan from their name.
         :return: The up.plans.Plan corresponding to the parsed plan from the file
         """
-        with open(plan_filename) as plan:
+        with open(plan_filename, encoding="utf-8-sig") as plan:
             return self.parse_plan_string(problem, plan.read(), get_item_named)
 
     def parse_plan_string(
