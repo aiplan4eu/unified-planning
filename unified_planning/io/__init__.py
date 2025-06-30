@@ -13,10 +13,10 @@
 # limitations under the License.
 #
 from unified_planning.io.pddl_reader import (
-    UPPDDLReader,
     PDDLReader,
     extract_pddl_requirements,
 )
+from unified_planning.io.up_pddl_reader import UPPDDLReader
 from unified_planning.io.pddl_writer import PDDLWriter
 from unified_planning.io.anml_writer import ANMLWriter
 from unified_planning.io.anml_reader import ANMLReader
