@@ -7,5 +7,6 @@ linkify-it-py
 jupyter
 tarski
 networkx
+pddl
 pyparsing
 numpy<2  # work around to avoid incompatibilities in transitive dependencies
