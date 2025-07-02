@@ -234,7 +234,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
 
 def run_command(
     cmd: List[str],
-    output_stream: Union[Tuple[IO[str], IO[str]], IO[str]],
+    output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
     timeout: Optional[float] = None,
 ) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     """
@@ -245,7 +245,7 @@ def run_command(
         # If we do not have an output stream to write to, we simply call
         # a subprocess and retrieve the final output and error with communicate
         kwargs = (
-            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
             if sys.platform == "win32"
             else {"start_new_session": True}
         )
@@ -303,7 +303,7 @@ async def run_command_asyncio(
     """
     start = time.time()
     kwargs = (
-        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
         if sys.platform == "win32"
         else {"start_new_session": True}
     )
@@ -362,7 +362,7 @@ def run_command_posix_select(
     proc_err_buff: List[str] = []
 
     kwargs = (
-        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
         if sys.platform == "win32"
         else {"start_new_session": True}
     )
