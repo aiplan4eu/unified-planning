@@ -361,13 +361,8 @@ def run_command_posix_select(
     proc_out_buff: List[str] = []
     proc_err_buff: List[str] = []
 
-    kwargs = (
-        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
-        if sys.platform == "win32"
-        else {"start_new_session": True}
-    )
     process = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
     )
     timeout_occurred: bool = False
     start_time = time.time()
