@@ -121,7 +121,6 @@ class PDDLReader:
         """
         if self._force_up_pddl_reader:
             assert self._up_pddl_reader is not None
-            self._up_pddl_reader.intermediate_times = self.intermediate_times
             return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
         if self._force_ai_planning_reader:
             ai_domain = DomainParser()(domain_str)
@@ -215,6 +214,9 @@ class PDDLReader:
             linked to that renaming; if None the problem is used to retrieve the actions and objects in the
             plan from their name.:return: The up.plans.Plan corresponding to the parsed plan from the string
         """
+        if self._up_pddl_reader is None:
+            self._up_pddl_reader = UPPDDLReader(self._env)
+        assert self._up_pddl_reader is not None
         return self._up_pddl_reader.parse_plan_string(problem, plan_str, get_item_named)
 
 
