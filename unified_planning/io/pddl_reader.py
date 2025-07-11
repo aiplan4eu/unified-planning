@@ -61,7 +61,9 @@ class PDDLReader:
         :param disable_warnings: when `True` the warnings when `from_ai_pddl` fails but the requirements are respected are not raised, defaults to False
         """
         self._env = get_environment(environment)
-        self._up_pddl_reader = UPPDDLReader(self._env)
+        self._up_pddl_reader = (
+            UPPDDLReader(self._env) if force_up_pddl_reader else None
+        )  # Lazy initialization
         self._force_up_pddl_reader = force_up_pddl_reader
         self._force_ai_planning_reader = force_ai_planning_reader
         self._deactivate_fallback = deactivate_fallback
@@ -118,6 +120,8 @@ class PDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         if self._force_up_pddl_reader:
+            assert self._up_pddl_reader is not None
+            self._up_pddl_reader.intermediate_times = self.intermediate_times
             return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
         if self._force_ai_planning_reader:
             ai_domain = DomainParser()(domain_str)
@@ -125,6 +129,7 @@ class PDDLReader:
                 ProblemParser()(problem_str) if problem_str is not None else None
             )
             return convert_problem_from_ai_pddl(ai_domain, ai_problem, self._env)
+
         requirements = extract_pddl_requirements(domain_str)
         if check_ai_pddl_requirements(requirements):
             ai_pddl_parsing_failed = False
@@ -151,6 +156,9 @@ class PDDLReader:
                         warn(
                             f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
                         )
+        if self._up_pddl_reader is None:
+            self._up_pddl_reader = UPPDDLReader(self._env)
+        assert self._up_pddl_reader is not None
         return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
 
     def parse_plan(
