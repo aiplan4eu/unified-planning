@@ -14,14 +14,12 @@
 #
 
 from itertools import chain
-import re
 
 from fractions import Fraction
 from typing import (
     Any,
     Callable,
     Dict,
-    Iterable,
     Iterator,
     List,
     Optional,
@@ -249,6 +247,8 @@ class _ExpressionConverter:
                 else:
                     op_type, arity = item
                     args = [final_stack.pop() for _ in range(arity)]
+                    if op_type == Minus and len(args) == 1:
+                        args.append(0)
                     final_stack.append(
                         self._direct_matching_expressions[op_type](*reversed(args))
                     )

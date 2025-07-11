@@ -10,6 +10,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (domain mt-plant-watering)
+    (:requirements :strips :typing :numeric-fluents)
     (:types thing - object
         agent plant tap - thing)
 
