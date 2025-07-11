@@ -247,11 +247,25 @@ class _ExpressionConverter:
                 else:
                     op_type, arity = item
                     args = [final_stack.pop() for _ in range(arity)]
+                    # unary minus, when constant perform the operation, when non constant add Times(-1, args[0])
                     if op_type == Minus and len(args) == 1:
-                        args.append(0)
-                    final_stack.append(
-                        self._direct_matching_expressions[op_type](*reversed(args))
-                    )
+                        negated_arg = args[0]
+                        if negated_arg.is_int_constant():
+                            final_stack.append(
+                                self._em.Int(-negated_arg.int_constant_value())
+                            )
+                        elif negated_arg.is_real_constant():
+                            final_stack.append(
+                                self._em.Real(-negated_arg.real_constant_value())
+                            )
+                        else:
+                            final_stack.append(
+                                self._em.Times(self._em.Int(-1), negated_arg)
+                            )
+                    else:
+                        final_stack.append(
+                            self._direct_matching_expressions[op_type](*reversed(args))
+                        )
             elif item == Not:
                 arg = final_stack.pop()
                 final_stack.append(em.Not(arg))
