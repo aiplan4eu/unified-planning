@@ -157,21 +157,14 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     )
             with InterpretedFunctionsRemover(knowledge) as if_remover:
                 comp_res = if_remover.compile(problem)
-            with problem.environment.factory.Compiler(
-                problem_kind=comp_res.problem.kind, compilation_kind="GROUNDING"
-            ) as compiler:
-                grounding_result = compiler.compile(comp_res.problem)
-            res = self.engine.solve(
-                grounding_result.problem, heuristic, timeout, output_stream
-            )
+            res = self.engine.solve(comp_res.problem, heuristic, timeout, output_stream)
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
                 assert res.plan is not None
-                plan = res.plan.replace_action_instances(
-                    grounding_result.map_back_action_instance
-                )
                 if output_stream is not None:
-                    output_stream.write(f"\nIFPlanner -> plan found:\n{plan}\n\n")
-                plan = plan.replace_action_instances(comp_res.map_back_action_instance)
+                    output_stream.write(f"\nIFPlanner -> plan found:\n{res.plan}\n\n")
+                plan = res.plan.replace_action_instances(
+                    comp_res.map_back_action_instance
+                )
                 validator: Optional[
                     Union[SequentialPlanValidator, TimeTriggeredPlanValidator]
                 ] = None
