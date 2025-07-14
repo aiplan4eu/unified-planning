@@ -37,7 +37,9 @@ class TestPDDLPlanner(unittest_TestCase):
         with OneshotPlanner(name="opt-pddl-planner") as planner:
             self.assertNotEqual(planner, None)
 
-            final_report = planner.solve(problem)
+            import sys
+
+            final_report = planner.solve(problem, output_stream=sys.stdout)
             plan = final_report.plan
             self.assertEqual(
                 final_report.status, PlanGenerationResultStatus.SOLVED_OPTIMALLY
