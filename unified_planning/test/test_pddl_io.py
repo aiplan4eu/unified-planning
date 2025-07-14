@@ -1139,6 +1139,7 @@ class TestPddlIO(unittest_TestCase):
         process_domain = """
 (define
     (domain continuous_forall)
+    (:requirements :continuous-effects :typing)
     (:types car)
 
     (:functions
@@ -1155,6 +1156,7 @@ class TestPddlIO(unittest_TestCase):
         durative_act_domain = """
 (define
     (domain continuous_forall)
+    (:requirements :continuous-effects :typing)
     (:types car)
 
     (:functions
