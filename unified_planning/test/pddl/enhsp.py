@@ -78,6 +78,7 @@ class ENHSP(PDDLAnytimePlanner):
             "-s",
             "gbfs",
             "-anytime",
+            "-npm",
         ]
 
     def _result_status(
@@ -102,6 +103,9 @@ class ENHSP(PDDLAnytimePlanner):
 
     def _parse_plan_line(self, plan_line: str) -> str:
         return plan_line.split(":")[1]
+
+    def _skip_plan_line(self, plan_line: str) -> bool:
+        return ": -----waiting---- [" in plan_line
 
     @staticmethod
     def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
