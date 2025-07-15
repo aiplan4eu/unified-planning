@@ -13,7 +13,7 @@ env:
   up_tamer_commit: "6e6f7641465d9db22060bbeab80092a948662a32"
   up_pyperplan_commit: "a24854213caf5038e1540e31613d24b93825fbb3"
   up_fast_downward_commit: "59f9d5fc9ebc84f7c96963ce459f821e64114447"
-  up_enhsp_commit: "304e0a7c5791c4ad640e725dd6b42747952d1f53"
+  up_enhsp_commit: "afcb3c25ed524e5ce03d8cb85e4537e7421cbbe6"
   up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
 
 jobs:
