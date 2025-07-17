@@ -117,6 +117,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.ma_conditional_effects_remover",
         "MAConditionalEffectsRemover",
     ),
+    "up_durative_actions_to_processes": (
+        "unified_planning.engines.compilers.durative_actions_to_processes",
+        "DurativeActionToProcesses",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -163,6 +167,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fmap",
     "aries",
     "aries-val",
+    "up_durative_actions_to_processes",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "replanner"]
