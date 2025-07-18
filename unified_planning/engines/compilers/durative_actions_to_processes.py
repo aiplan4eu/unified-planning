@@ -29,7 +29,9 @@ from unified_planning.model import (
     Event,
     Timing,
     TimeInterval,
+    ExpressionManager,
 )
+from unified_planning.model.effect import Effect
 from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.fluent import get_all_fluent_exp
@@ -39,7 +41,12 @@ from unified_planning.engines.compilers.utils import (
 )
 from typing import Dict, Iterator, Optional, OrderedDict, Tuple, List, Union
 from functools import partial
-from unified_planning.model.timing import DurationInterval
+from unified_planning.model.timing import (
+    DurationInterval,
+    Timepoint,
+    TimepointKind,
+    TimePointInterval,
+)
 import unified_planning.plans as plans
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 from fractions import Fraction
@@ -47,13 +54,14 @@ from unified_planning.exceptions import UPUsageError
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
-    # def __init__(self, use_counter: bool = True):
     def __init__(self):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(
             self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
         )
-        # self._use_counter = use_counter
+        # interesting flags to support:
+        # use_counters (instead of a big and at the end to check actions running)
+        # a flag to add conditions to end effects
 
     @property
     def name(self):
@@ -147,7 +155,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         assert isinstance(problem, Problem)
         env = problem.environment
-        mgr = env.expression_manager
+        mgr: ExpressionManager = env.expression_manager
         tm = env.type_manager
         new_to_old: Dict[Action, Optional[Action]] = {}  # TODO should not be needed
 
@@ -165,15 +173,28 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         #     new_fluent = Fluent("process_active", tm.IntType(), environment=env)
         #     new_problem.add_fluent(new_fluent, default_initial_value=0)
 
+        # timing to end the action
+        start_timing = Timepoint(TimepointKind.START)
+        start_interval = TimePointInterval(start_timing)
+        end_timing = Timing(0, Timepoint(TimepointKind.END))
+        action_running_fluents: List[FNode] = []
+
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
-                new_action = action.clone()
-                new_action.name = get_fresh_name(new_problem, new_action.name)
-                new_action.add_precondition(alive)
-                new_to_old[new_action] = action
-                new_problem.add_action(new_action)
+                start_action = action.clone()
+                start_action.name = get_fresh_name(new_problem, start_action.name)
+                start_action.add_precondition(alive)
+                new_to_old[start_action] = action
+                new_problem.add_action(start_action)
             elif isinstance(action, DurativeAction):
                 params = OrderedDict(((p.name, p.type) for p in action.parameters))
+
+                start_action = InstantaneousAction(
+                    get_fresh_name(new_problem, action.name, trailing_info="start"),
+                    _parameters=params,
+                    _env=env,
+                )
+                new_problem.add_action(start_action)
 
                 action_running_fluent = Fluent(
                     get_fresh_name(new_problem, action.name, trailing_info="running"),
@@ -184,7 +205,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 new_problem.add_fluent(
                     action_running_fluent, default_initial_value=mgr.FALSE()
                 )
-                action_running = action_running_fluent(new_action.parameters)
+                action_running_fluents.append(action_running_fluent)
+                action_running = action_running_fluent(start_action.parameters)
+
                 new_clock_fluent = Fluent(
                     get_fresh_name(new_problem, action.name, trailing_info="clock"),
                     tm.RealType(),
@@ -192,13 +215,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     env,
                 )
                 new_problem.add_fluent(new_clock_fluent, default_initial_value=0)
-                action_clock = new_clock_fluent(new_action.parameters)
+                action_clock = new_clock_fluent(start_action.parameters)
 
-                new_action = InstantaneousAction(
-                    get_fresh_name(new_problem, action.name, trailing_info="start"),
-                    _parameters=params,
-                    _env=env,
-                )
                 action_running_process = Process(
                     get_fresh_name(new_problem, action.name, trailing_info="during"),
                     _parameters=params,
@@ -209,8 +227,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
                 # TODO stop event has to be added
                 has_variable_duration = action_variable_duration(action)
-                first_end_timing = None
-                action_duration = None
+                first_end_timing: Optional[Timing] = None
+                action_duration_exp: Optional[FNode] = None
 
                 if has_variable_duration:
                     first_end_timing = get_first_end_timing(action)
@@ -225,1302 +243,179 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     new_problem.add_fluent(
                         action_duration_fluent, default_initial_value=0
                     )  # TODO which should be the default here? Could zero be a problem? The initial action should set this to a non-problematic number
-                    action_duration = action_duration_fluent(new_action.parameters)
-
-                for interval, conditions in action.conditions:
-                    fail_condition_event = mgr.Or(map(mgr.Not, conditions))
-
-                # for effects we add an Event that does the effect. If it's the same as effect
-                # for effect_timing, effects_list in
-
-                # if action.duration.lower == action.duration.upper:
-                #     new_stop_event = Event(
-                #         f"{get_fresh_name(new_problem, action.name)}_stop",
-                #         _parameters=params,
-                #         _env=env,
-                #     )
-                #     new_stop_event.add_precondition(alive)
-                # else:
-                #     (delay_variable_duration_effect, delay_variable_duration) = min(
-                #         (
-                #             (eff_control, te_control.delay)
-                #             for te_control, eff_control in action.effects.items()
-                #             if te_control.delay < 0
-                #         ),
-                #         key=lambda x: x[1],
-                #         default=(None, 0),
-                #     )
-                #     if delay_variable_duration_effect is not None:
-                #         new_stop_event = Event(
-                #             f"{get_fresh_name(new_problem, action.name)}_stop",
-                #             _parameters=params,
-                #             _env=env,
-                #         )
-                #         new_stop_event.add_precondition(alive)
-                #         new_fluent_clock_delay_end = Fluent(
-                #             f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, delay_variable_duration_effect[0].fluent.fluent().name)}_clock",
-                #             tm.RealType(),
-                #             params,
-                #             env,
-                #         )
-                #         new_problem.add_fluent(
-                #             new_fluent_clock_delay_end,
-                #             default_initial_value=0,
-                #         )
-                #         delay_control_end = Fluent(
-                #             f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, delay_variable_duration_effect[0].fluent.fluent().name)}_end_triggered",
-                #             tm.BoolType(),
-                #             params,
-                #             env,
-                #         )
-                #         new_problem.add_fluent(
-                #             delay_control_end,
-                #             default_initial_value=em.FALSE(),
-                #         )
-                #     else:
-                #         new_stop_action = InstantaneousAction(
-                #             f"{get_fresh_name(new_problem, action.name)}_stop",
-                #             _parameters=params,
-                #             _env=env,
-                #         )
-                #         new_stop_action.add_precondition(alive)
-
-                new_action.add_precondition(alive)
-                action_running_process.add_precondition(alive)
-
-                for t, cond in action.conditions.items():
-                    if t.lower.is_from_start() and t.upper.is_from_start():
-                        for c in cond:
-                            if t.lower.delay > 0 and t.upper.delay > 0:
-                                if t.lower.delay == t.upper.delay:
-                                    if c.is_fluent_exp():
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    else:
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    new_intermediate_condition_start.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.Equals(
-                                            mgr.FluentExp(
-                                                new_clock_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            t.lower.delay,
-                                        )
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.Not(c)
-                                    )
-                                    new_intermediate_condition_start.add_effect(
-                                        mgr.FluentExp(alive), mgr.FALSE()
-                                    )
-                                    new_intermediate_condition_start.add_effect(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_start
-                                    )
-                                elif t.lower.delay < t.upper.delay:
-                                    if c.is_fluent_exp():
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_running = Fluent(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_running",
-                                            tm.BoolType(),
-                                            params,
-                                            env,
-                                        )
-                                        new_intermediate_condition_stop = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_error = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    else:
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_running = Fluent(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_running",
-                                            tm.BoolType(),
-                                            params,
-                                            env,
-                                        )
-                                        new_intermediate_condition_stop = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_stop",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_error = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_error",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                    new_problem.add_fluent(
-                                        new_intermediate_running,
-                                        default_initial_value=mgr.FALSE(),
-                                    )
-
-                                    new_intermediate_condition_start.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.Not(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                    )
-
-                                    if not (t.is_left_open()):
-                                        new_intermediate_condition_start.add_precondition(
-                                            c
-                                        )
-                                        new_intermediate_condition_start.add_precondition(
-                                            mgr.Equals(
-                                                mgr.FluentExp(
-                                                    new_clock_fluent,
-                                                    params=new_action.parameters,
-                                                ),
-                                                t.lower.delay,
-                                            )
-                                        )
-                                    else:
-                                        new_intermediate_condition_start.add_precondition(
-                                            mgr.GT(
-                                                mgr.FluentExp(
-                                                    new_clock_fluent,
-                                                    params=new_action.parameters,
-                                                ),
-                                                t.lower.delay,
-                                            )
-                                        )
-                                    new_intermediate_condition_start.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.TRUE(),
-                                    )
-
-                                    new_intermediate_condition_stop.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-
-                                    if not (t.is_right_open()):
-                                        new_intermediate_condition_stop.add_precondition(
-                                            c
-                                        )
-                                        new_intermediate_condition_stop.add_precondition(
-                                            mgr.Equals(
-                                                mgr.FluentExp(
-                                                    new_clock_fluent,
-                                                    params=new_action.parameters,
-                                                ),
-                                                t.upper.delay,
-                                            )
-                                        )
-                                    else:
-                                        new_intermediate_condition_stop.add_precondition(
-                                            mgr.Not(
-                                                mgr.LT(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    t.upper.delay,
-                                                )
-                                            )
-                                        )
-                                    new_intermediate_condition_stop.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-
-                                    new_intermediate_condition_error.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_error.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    if t.is_left_open():
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                    else:
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.Or(
-                                                mgr.FluentExp(
-                                                    new_intermediate_running,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.And(
-                                                    mgr.Not(
-                                                        mgr.FluentExp(
-                                                            new_intermediate_running,
-                                                            params=new_action.parameters,
-                                                        )
-                                                    ),
-                                                    mgr.Equals(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        t.lower.delay,
-                                                    ),
-                                                ),
-                                            )
-                                        )
-                                    new_intermediate_condition_error.add_precondition(
-                                        mgr.Not(c)
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(alive), mgr.FALSE()
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-
-                                    new_problem.add_event(
-                                        new_intermediate_condition_start
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_stop
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_error
-                                    )
-                                else:
-                                    raise NotImplementedError
-                            elif t.lower.delay == 0:
-                                new_action.add_precondition(c)
-                            else:
-                                raise NotImplementedError
-                    elif t.lower.is_from_end() and t.upper.is_from_end():
-                        for c in cond:
-                            if action.duration.lower == action.duration.upper:
-                                if t.lower.delay < 0 and t.upper.delay < 0:
-                                    if t.lower.delay == t.upper.delay:
-                                        if c.is_fluent_exp():
-                                            new_intermediate_condition_end = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_end",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                        else:
-                                            new_intermediate_condition_end = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_end",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                        new_intermediate_condition_end.add_precondition(
-                                            alive
-                                        )
-                                        new_intermediate_condition_end.add_precondition(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                        new_intermediate_condition_end.add_precondition(
-                                            mgr.Equals(
-                                                mgr.FluentExp(
-                                                    new_clock_fluent,
-                                                    params=new_action.parameters,
-                                                ),
-                                                action.duration.lower + (t.lower.delay),
-                                            )
-                                        )
-                                        new_intermediate_condition_end.add_precondition(
-                                            mgr.Not(c)
-                                        )
-                                        new_intermediate_condition_end.add_effect(
-                                            mgr.FluentExp(alive),
-                                            mgr.FALSE(),
-                                        )
-                                        new_intermediate_condition_end.add_effect(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            mgr.FALSE(),
-                                        )
-                                        new_problem.add_event(
-                                            new_intermediate_condition_end
-                                        )
-                                    elif t.lower.delay < t.upper.delay:
-                                        if c.is_fluent_exp():
-                                            new_intermediate_condition_start = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_end",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                            new_intermediate_running = Fluent(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_running",
-                                                tm.BoolType(),
-                                                params,
-                                                env,
-                                            )
-                                            new_intermediate_condition_stop = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_stop",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                            new_intermediate_condition_error = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                        else:
-                                            new_intermediate_condition_start = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_end",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                            new_intermediate_running = Fluent(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_running",
-                                                tm.BoolType(),
-                                                params,
-                                                env,
-                                            )
-                                            new_intermediate_condition_stop = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_stop",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                            new_intermediate_condition_error = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_error",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                        new_problem.add_fluent(
-                                            new_intermediate_running,
-                                            default_initial_value=mgr.FALSE(),
-                                        )
-
-                                        new_intermediate_condition_start.add_precondition(
-                                            alive
-                                        )
-                                        new_intermediate_condition_start.add_precondition(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                        new_intermediate_condition_start.add_precondition(
-                                            mgr.Not(
-                                                mgr.FluentExp(
-                                                    new_intermediate_running,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-                                        )
-
-                                        if not (t.is_left_open()):
-                                            new_intermediate_condition_start.add_precondition(
-                                                c
-                                            )
-                                            new_intermediate_condition_start.add_precondition(
-                                                mgr.Equals(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.lower
-                                                    + (t.lower.delay),
-                                                )
-                                            )
-                                        else:
-                                            new_intermediate_condition_start.add_precondition(
-                                                mgr.GT(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.lower
-                                                    + (t.lower.delay),
-                                                )
-                                            )
-                                        new_intermediate_condition_start.add_effect(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            ),
-                                            mgr.TRUE(),
-                                        )
-
-                                        new_intermediate_condition_stop.add_precondition(
-                                            alive
-                                        )
-                                        new_intermediate_condition_stop.add_precondition(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                        new_intermediate_condition_stop.add_precondition(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-
-                                        if not (t.is_right_open()):
-                                            new_intermediate_condition_stop.add_precondition(
-                                                c
-                                            )
-                                            new_intermediate_condition_stop.add_precondition(
-                                                mgr.Equals(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    action.duration.lower
-                                                    + (t.upper.delay),
-                                                )
-                                            )
-                                        else:
-                                            new_intermediate_condition_stop.add_precondition(
-                                                mgr.Not(
-                                                    mgr.LT(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        action.duration.lower
-                                                        + (t.upper.delay),
-                                                    )
-                                                )
-                                            )
-                                        new_intermediate_condition_stop.add_effect(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            ),
-                                            mgr.FALSE(),
-                                        )
-
-                                        new_intermediate_condition_error.add_precondition(
-                                            alive
-                                        )
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                        if t.is_left_open():
-                                            new_intermediate_condition_error.add_precondition(
-                                                mgr.FluentExp(
-                                                    new_intermediate_running,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-                                        else:
-                                            new_intermediate_condition_error.add_precondition(
-                                                mgr.Or(
-                                                    mgr.FluentExp(
-                                                        new_intermediate_running,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    mgr.And(
-                                                        mgr.Not(
-                                                            mgr.FluentExp(
-                                                                new_intermediate_running,
-                                                                params=new_action.parameters,
-                                                            )
-                                                        ),
-                                                        mgr.Equals(
-                                                            mgr.FluentExp(
-                                                                new_clock_fluent,
-                                                                params=new_action.parameters,
-                                                            ),
-                                                            action.duration.lower
-                                                            + (t.lower.delay),
-                                                        ),
-                                                    ),
-                                                )
-                                            )
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.Not(c)
-                                        )
-                                        new_intermediate_condition_error.add_effect(
-                                            mgr.FluentExp(alive), mgr.FALSE()
-                                        )
-                                        new_intermediate_condition_error.add_effect(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            ),
-                                            mgr.FALSE(),
-                                        )
-                                        new_intermediate_condition_error.add_effect(
-                                            mgr.FluentExp(
-                                                action_running_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            mgr.FALSE(),
-                                        )
-
-                                        new_problem.add_event(
-                                            new_intermediate_condition_start
-                                        )
-                                        new_problem.add_event(
-                                            new_intermediate_condition_stop
-                                        )
-                                        new_problem.add_event(
-                                            new_intermediate_condition_error
-                                        )
-                                    else:
-                                        raise NotImplementedError
-                                elif t.lower.delay == 0:
-                                    new_stop_event.add_precondition(c)
-                                else:
-                                    raise NotImplementedError
-                            else:
-                                if t.lower.delay == 0 and t.upper.delay == 0:
-                                    new_stop_action.add_precondition(c)
-                                else:
-                                    raise NotImplementedError
-                    elif t.lower.is_from_start() and t.upper.is_from_end():
-                        if t.lower.delay > 0 and t.upper.delay < 0:
-                            if action.duration.lower == action.duration.upper:
-                                for c in cond:
-                                    if c.is_fluent_exp():
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_stop = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_end",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_error = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_intermediate_codition_error",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_running = Fluent(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.fluent().name)}_running",
-                                            tm.BoolType(),
-                                            params,
-                                            env,
-                                        )
-                                    else:
-                                        new_intermediate_condition_start = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_start",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_stop = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_end",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_condition_error = Event(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_intermediate_codition_error",
-                                            _parameters=params,
-                                            _env=env,
-                                        )
-                                        new_intermediate_running = Fluent(
-                                            f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, c.args[0].fluent().name)}_running",
-                                            tm.BoolType(),
-                                            params,
-                                            env,
-                                        )
-                                    new_problem.add_fluent(
-                                        new_intermediate_running,
-                                        default_initial_value=mgr.FALSE(),
-                                    )
-
-                                    new_intermediate_condition_start.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.Not(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                    )
-                                    new_intermediate_condition_start.add_precondition(
-                                        mgr.Equals(
-                                            mgr.FluentExp(
-                                                new_clock_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            t.lower.delay,
-                                        )
-                                    )
-                                    if not (t.is_left_open()):
-                                        new_intermediate_condition_start.add_precondition(
-                                            c
-                                        )
-                                    new_intermediate_condition_start.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.TRUE(),
-                                    )
-
-                                    new_intermediate_condition_stop.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_intermediate_condition_stop.add_precondition(
-                                        mgr.Equals(
-                                            mgr.FluentExp(
-                                                new_clock_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            action.duration.lower + (t.upper.delay),
-                                        )
-                                    )
-                                    if not (t.is_right_open()):
-                                        new_intermediate_condition_stop.add_precondition(
-                                            c
-                                        )
-                                    new_intermediate_condition_stop.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-
-                                    new_intermediate_condition_error.add_precondition(
-                                        alive
-                                    )
-                                    new_intermediate_condition_error.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    if t.is_left_open():
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.FluentExp(
-                                                new_intermediate_running,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                    else:
-                                        new_intermediate_condition_error.add_precondition(
-                                            mgr.Or(
-                                                mgr.FluentExp(
-                                                    new_intermediate_running,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.And(
-                                                    mgr.Not(
-                                                        mgr.FluentExp(
-                                                            new_intermediate_running,
-                                                            params=new_action.parameters,
-                                                        )
-                                                    ),
-                                                    mgr.Equals(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        t.lower.delay,
-                                                    ),
-                                                ),
-                                            )
-                                        )
-                                    new_intermediate_condition_error.add_precondition(
-                                        mgr.Not(c)
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(alive),
-                                        mgr.FALSE(),
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(
-                                            new_intermediate_running,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-                                    new_intermediate_condition_error.add_effect(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_start
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_stop
-                                    )
-                                    new_problem.add_event(
-                                        new_intermediate_condition_error
-                                    )
-                            else:
-                                raise NotImplementedError
-                        elif t.lower.delay == 0 and t.upper.delay == 0:
-                            new_event_over_all = Event(
-                                f"{get_fresh_name(new_problem, action.name)}_error",
-                                _parameters=params,
-                                _env=env,
-                            )
-                            new_event_over_all.add_precondition(alive)
-                            new_event_over_all.add_precondition(
-                                mgr.FluentExp(
-                                    action_running_fluent,
-                                    params=new_event_over_all.parameters,
-                                )
-                            )
-                            new_event_over_all.add_precondition(mgr.Not(mgr.And(cond)))
-                            for c in cond:
-                                if not (t.is_left_open()):
-                                    new_action.add_precondition(c)
-                                if not (t.is_right_open()):
-                                    if action.duration.lower == action.duration.upper:
-                                        new_stop_event.add_precondition(c)
-                                    else:
-                                        new_stop_action.add_precondition(c)
-                            new_event_over_all.add_effect(
-                                mgr.FluentExp(alive), mgr.FALSE()
-                            )
-                            new_event_over_all.add_effect(
-                                mgr.FluentExp(
-                                    action_running_fluent,
-                                    params=new_event_over_all.parameters,
-                                ),
-                                mgr.FALSE(),
-                            )
-                            new_problem.add_event(new_event_over_all)
-                        else:
-                            raise NotImplementedError
-                    else:
-                        raise NotImplementedError
-
-                for te, eff in action.effects.items():
-                    if te.is_from_start():
-                        for e in eff:
-                            if te.delay > 0:
-                                new_delay_event = Event(
-                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_start_delay",
-                                    _parameters=params,
-                                    _env=env,
-                                )
-                                delay_control = Fluent(
-                                    f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_start_triggered",
-                                    tm.BoolType(),
-                                    params,
-                                    env,
-                                )
-                                new_problem.add_fluent(
-                                    delay_control, default_initial_value=mgr.FALSE()
-                                )
-                                new_action.add_effect(
-                                    mgr.FluentExp(
-                                        delay_control, params=new_action.parameters
-                                    ),
-                                    mgr.FALSE(),
-                                )
-
-                                new_delay_event.add_precondition(alive)
-                                new_delay_event.add_precondition(
-                                    mgr.FluentExp(
-                                        action_running_fluent,
-                                        params=new_action.parameters,
-                                    )
-                                )
-                                new_delay_event.add_precondition(
-                                    mgr.Equals(
-                                        mgr.FluentExp(
-                                            new_clock_fluent,
-                                            params=new_action.parameters,
-                                        ),
-                                        te.delay,
-                                    )
-                                )
-                                new_delay_event.add_precondition(
-                                    mgr.Not(
-                                        mgr.FluentExp(
-                                            delay_control, params=new_action.parameters
-                                        )
-                                    )
-                                )
-                                new_delay_event._add_effect_instance(e)
-                                new_delay_event.add_effect(
-                                    mgr.FluentExp(
-                                        delay_control, params=new_action.parameters
-                                    ),
-                                    mgr.TRUE(),
-                                )
-                                new_problem.add_event(new_delay_event)
-                            elif te.delay == 0:
-                                new_action._add_effect_instance(e)
-                            else:
-                                raise NotImplementedError
-                    elif te.is_from_end():
-                        for e in eff:
-                            if action.duration.lower == action.duration.upper:
-                                if te.delay < 0:
-                                    new_end_delay_event_c = Event(
-                                        f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_delay",
-                                        _parameters=params,
-                                        _env=env,
-                                    )
-                                    delay_control = Fluent(
-                                        f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
-                                        tm.BoolType(),
-                                        params,
-                                        env,
-                                    )
-                                    new_problem.add_fluent(
-                                        delay_control, default_initial_value=mgr.FALSE()
-                                    )
-                                    new_action.add_effect(
-                                        mgr.FluentExp(
-                                            delay_control, params=new_action.parameters
-                                        ),
-                                        mgr.FALSE(),
-                                    )
-
-                                    new_end_delay_event_c.add_precondition(alive)
-                                    new_end_delay_event_c.add_precondition(
-                                        mgr.FluentExp(
-                                            action_running_fluent,
-                                            params=new_action.parameters,
-                                        )
-                                    )
-                                    new_end_delay_event_c.add_precondition(
-                                        mgr.Equals(
-                                            mgr.FluentExp(
-                                                new_clock_fluent,
-                                                params=new_action.parameters,
-                                            ),
-                                            action.duration.lower + (te.delay),
-                                        )
-                                    )
-                                    new_end_delay_event_c.add_precondition(
-                                        mgr.Not(
-                                            mgr.FluentExp(
-                                                delay_control,
-                                                params=new_action.parameters,
-                                            )
-                                        )
-                                    )
-                                    new_end_delay_event_c._add_effect_instance(e)
-                                    new_end_delay_event_c.add_effect(
-                                        mgr.FluentExp(
-                                            delay_control, params=new_action.parameters
-                                        ),
-                                        mgr.TRUE(),
-                                    )
-                                    new_problem.add_event(new_end_delay_event_c)
-                                elif te.delay == 0:
-                                    new_stop_event._add_effect_instance(e)
-                                else:
-                                    raise NotImplementedError
-                            else:
-                                if delay_variable_duration_effect is not None:
-                                    if te.delay < 0:
-                                        if (
-                                            delay_variable_duration_effect[0]
-                                            .fluent.fluent()
-                                            .name
-                                            == e.fluent.fluent().name
-                                            and delay_variable_duration == te.delay
-                                        ):
-                                            new_action_delay = InstantaneousAction(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem,e.fluent.fluent().name)}_end_delay",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-
-                                            new_action.add_effect(
-                                                mgr.FluentExp(
-                                                    delay_control_end,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.FALSE(),
-                                            )
-
-                                            new_action_delay.add_precondition(alive)
-                                            new_action_delay.add_precondition(
-                                                mgr.FluentExp(
-                                                    action_running_fluent,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-                                            if action.duration.is_left_open():
-                                                new_action_delay.add_precondition(
-                                                    mgr.GT(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        action.duration.lower
-                                                        + (te.delay),
-                                                    )
-                                                )
-                                            else:
-                                                new_action_delay.add_precondition(
-                                                    mgr.GE(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        action.duration.lower
-                                                        + (te.delay),
-                                                    )
-                                                )
-                                            if action.duration.is_right_open():
-                                                new_action_delay.add_precondition(
-                                                    mgr.LT(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        action.duration.upper
-                                                        + (te.delay),
-                                                    )
-                                                )
-                                            else:
-                                                new_action_delay.add_precondition(
-                                                    mgr.LE(
-                                                        mgr.FluentExp(
-                                                            new_clock_fluent,
-                                                            params=new_action.parameters,
-                                                        ),
-                                                        action.duration.upper
-                                                        + (te.delay),
-                                                    )
-                                                )
-                                            new_action_delay.add_precondition(
-                                                mgr.Not(
-                                                    mgr.FluentExp(
-                                                        delay_control_end,
-                                                        params=new_action.parameters,
-                                                    )
-                                                )
-                                            )
-                                            new_action_delay._add_effect_instance(e)
-                                            new_action_delay.add_effect(
-                                                mgr.FluentExp(
-                                                    new_fluent_clock_delay_end,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.FluentExp(
-                                                    new_clock_fluent,
-                                                    params=new_action.parameters,
-                                                ),
-                                            )
-                                            new_action_delay.add_effect(
-                                                mgr.FluentExp(
-                                                    delay_control_end,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.TRUE(),
-                                            )
-                                            new_problem.add_action(new_action_delay)
-
-                                            new_stop_event.add_precondition(
-                                                mgr.Equals(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    )
-                                                    - mgr.FluentExp(
-                                                        new_fluent_clock_delay_end,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    (te.delay * (-1)),
-                                                )
-                                            )
-                                            new_stop_event.add_precondition(
-                                                mgr.FluentExp(
-                                                    delay_control_end,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-                                        else:
-                                            new_event_delay = Event(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem,e.fluent.fluent().name)}_end_delay",
-                                                _parameters=params,
-                                                _env=env,
-                                            )
-                                            delay_control = Fluent(
-                                                f"{get_fresh_name(new_problem, action.name)}_{get_fresh_name(new_problem, e.fluent.fluent().name)}_end_triggered",
-                                                tm.BoolType(),
-                                                params,
-                                                env,
-                                            )
-                                            new_problem.add_fluent(
-                                                delay_control,
-                                                default_initial_value=mgr.FALSE(),
-                                            )
-                                            new_action.add_effect(
-                                                mgr.FluentExp(
-                                                    delay_control,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.FALSE(),
-                                            )
-
-                                            new_event_delay.add_precondition(alive)
-                                            new_event_delay.add_precondition(
-                                                mgr.FluentExp(
-                                                    action_running_fluent,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-                                            new_event_delay.add_precondition(
-                                                mgr.Equals(
-                                                    mgr.FluentExp(
-                                                        new_clock_fluent,
-                                                        params=new_action.parameters,
-                                                    )
-                                                    - mgr.FluentExp(
-                                                        new_fluent_clock_delay_end,
-                                                        params=new_action.parameters,
-                                                    ),
-                                                    (delay_variable_duration * (-1))
-                                                    + te.delay,
-                                                )
-                                            )
-                                            new_event_delay.add_precondition(
-                                                mgr.Not(
-                                                    mgr.FluentExp(
-                                                        delay_control,
-                                                        params=new_action.parameters,
-                                                    )
-                                                )
-                                            )
-                                            new_event_delay.add_precondition(
-                                                mgr.FluentExp(
-                                                    delay_control_end,
-                                                    params=new_action.parameters,
-                                                )
-                                            )
-
-                                            new_event_delay._add_effect_instance(e)
-                                            new_event_delay.add_effect(
-                                                mgr.FluentExp(
-                                                    delay_control,
-                                                    params=new_action.parameters,
-                                                ),
-                                                mgr.TRUE(),
-                                            )
-
-                                            new_problem.add_event(new_event_delay)
-                                    elif te.delay == 0:
-                                        new_stop_event._add_effect_instance(e)
-                                    else:
-                                        raise NotImplementedError
-                                else:
-                                    new_stop_action._add_effect_instance(e)
-                    else:
-                        raise NotImplementedError
-
-                new_action.add_precondition(
-                    mgr.Not(
-                        mgr.FluentExp(
-                            action_running_fluent, params=new_action.parameters
-                        )
+                    action_duration_exp = action_duration_fluent(
+                        start_action.parameters
                     )
-                )
-                new_action.add_effect(
-                    mgr.FluentExp(action_running_fluent, params=new_action.parameters),
-                    mgr.TRUE(),
-                )
-                new_action.add_effect(
-                    mgr.FluentExp(new_clock_fluent, params=new_action.parameters), 0
-                )
-                # if self._use_counter:
-                #     new_action.add_increase_effect(new_fluent, 1)
 
-                if action.duration.lower == action.duration.upper:
-                    new_stop_event.add_precondition(
-                        mgr.Equals(
-                            mgr.FluentExp(
-                                new_clock_fluent, params=new_action.parameters
+                first_end_timing_conditions: List[
+                    FNode
+                ] = []  # TODO check if this is needed. It should not be
+                # TODO maybe we need to save conditions at the end?
+                for i, (interval, conditions) in enumerate(action.conditions.items()):
+                    if interval == start_interval:
+                        start_action.add_precondition(mgr.And(conditions))
+                        continue
+                        # TODO consider here if duration intervals that contains start should be added as
+                        # precond to start_actions (in case, we have to ensure that it's not an empty interval
+                        # which might not be too easy, expecially if we support fluents in duration)
+                    if (
+                        interval.lower == first_end_timing
+                        or interval.upper == first_end_timing
+                    ):
+                        first_end_timing_conditions.append(mgr.And(conditions))
+                    fail_condition = mgr.Or(map(mgr.Not, conditions))
+                    inside_interval = inside_interval_condition(
+                        interval,
+                        first_end_timing,
+                        action_clock,
+                        action_duration_exp,
+                        action.duration,
+                        mgr,
+                    )
+                    # TODO we are missing the booleans that ensure previous end_event happened. Is it actually needed?
+                    # I think if we put a correct default for the duration fluent it could be avoided but I am not sure
+                    condition_failed_event = Event(
+                        get_fresh_name(
+                            new_problem,
+                            action.name,
+                            trailing_info=f"condition_{i}_failed",
+                        ),
+                        _parameters=params,
+                        _env=env,
+                    )
+                    new_problem.add_event(condition_failed_event)
+                    condition_failed_event.add_precondition(alive)
+                    condition_failed_event.add_precondition(action_running)
+                    condition_failed_event.add_precondition(inside_interval)
+                    condition_failed_event.add_precondition(fail_condition)
+                    condition_failed_event.add_effect(alive, False)
+                    condition_failed_event.add_effect(
+                        action_running, False
+                    )  # TODO this might be not needed but might help?
+
+                # flag that decides if we need to create the first_end instantaneous action
+                first_end_action_created = not has_variable_duration
+                end_action_event_created = False
+
+                for i, (timing, effects) in action.effects.items():
+                    if timing == start_timing:
+                        for eff in effects:
+                            start_action._add_effect_instance(eff)
+                        continue
+                    effect_ev_or_act: Union[Event, InstantaneousAction]
+                    if timing == first_end_timing:
+                        effect_ev_or_act = InstantaneousAction(
+                            get_fresh_name(
+                                new_problem, action.name, trailing_info="first_end"
                             ),
-                            action.duration.lower,
+                            _parameters=params,
+                            _env=env,
+                        )
+                        new_problem.add_action(effect_ev_or_act)
+                        effect_ev_or_act.add_effect(
+                            mgr.Equals(action_duration_exp, action_clock)
+                        )
+                        assert first_end_action_created == False
+                        first_end_action_created = True
+                    else:
+                        effect_ev_or_act = Event(
+                            get_fresh_name(
+                                new_problem, action.name, trailing_info=f"effects_{i}"
+                            ),
+                            _parameters=params,
+                            _env=env,
+                        )
+                        new_problem.add_event(effect_ev_or_act)
+
+                    event_moment = mgr.Equals(
+                        *get_relative_timing(
+                            timing,
+                            first_end_timing,
+                            action_clock,
+                            action_duration_exp,
+                            action.duration,
+                            mgr,
                         )
                     )
-                else:
-                    if not (delay_variable_duration_effect):
-                        if action.duration.is_left_open():
-                            new_stop_action.add_precondition(
-                                mgr.GT(
-                                    mgr.FluentExp(
-                                        new_clock_fluent, params=new_action.parameters
-                                    ),
-                                    action.duration.lower,
-                                )
-                            )
-                        else:
-                            new_stop_action.add_precondition(
-                                mgr.GE(
-                                    mgr.FluentExp(
-                                        new_clock_fluent, params=new_action.parameters
-                                    ),
-                                    action.duration.lower,
-                                )
-                            )
-                        if action.duration.is_right_open():
-                            new_stop_action.add_precondition(
-                                mgr.LT(
-                                    mgr.FluentExp(
-                                        new_clock_fluent, params=new_action.parameters
-                                    ),
-                                    action.duration.upper,
-                                )
-                            )
-                        else:
-                            new_stop_action.add_precondition(
-                                mgr.LE(
-                                    mgr.FluentExp(
-                                        new_clock_fluent, params=new_action.parameters
-                                    ),
-                                    action.duration.upper,
-                                )
-                            )
+                    effect_ev_or_act.add_precondition(alive)
+                    effect_ev_or_act.add_precondition(action_running)
+                    effect_ev_or_act.add_precondition(event_moment)
 
-                if (
-                    action.duration.lower == action.duration.upper
-                    or delay_variable_duration_effect is not None
-                ):
-                    new_stop_event.add_precondition(
-                        mgr.FluentExp(
-                            action_running_fluent, params=new_action.parameters
+                    for eff in effects:
+                        effect_ev_or_act._add_effect_instance(eff)
+
+                    if timing == end_timing:
+                        # TODO this also has to reset the duration fluent to the safe value, whenever we decide what it is
+                        # the safe value should be returned by a method, to refactor.
+                        effect_ev_or_act.add_effect(action_running, False)
+                        end_action_event_created = True
+                    else:
+                        # fluent to avoid infinite trigger fo the event
+                        effect_done_fluent = Fluent(
+                            get_fresh_name(
+                                new_problem,
+                                action.name,
+                                trailing_info=f"effects_{i}_done",
+                            ),
+                            tm.BoolType(),
+                            environment=env,
                         )
-                    )
-                    new_stop_event.add_effect(
-                        mgr.FluentExp(
-                            action_running_fluent, params=new_action.parameters
-                        ),
-                        mgr.FALSE(),
-                    )
-                    # if self._use_counter:
-                    #     new_stop_event.add_decrease_effect(new_fluent, 1)
-                else:
-                    new_stop_action.add_precondition(
-                        mgr.FluentExp(
-                            action_running_fluent, params=new_action.parameters
+                        new_problem.add_fluent(
+                            effect_done_fluent, default_initial_value=False
                         )
-                    )
-                    new_stop_action.add_effect(
-                        mgr.FluentExp(
-                            action_running_fluent, params=new_action.parameters
-                        ),
-                        mgr.FALSE(),
-                    )
-                    # if self._use_counter:
-                    #     new_stop_action.add_decrease_effect(new_fluent, 1)
+                        start_action.add_effect(effect_done_fluent, False)
+                        effect_ev_or_act.add_precondition(mgr.Not(effect_done_fluent))
+                        effect_ev_or_act.add_effect(effect_done_fluent, True)
 
-                new_to_old[new_action] = action
+                if not end_action_event_created:
+                    if has_variable_duration and not first_end_action_created:
+                        end_action_ev_or_act = InstantaneousAction(
+                            get_fresh_name(
+                                new_problem, action.name, trailing_info="end"
+                            ),
+                            _parameters=params,
+                            _env=env,
+                        )
+                        new_problem.add_action(end_action_ev_or_act)
+                        end_action_ev_or_act.add_effect(
+                            mgr.Equals(action_duration_exp, action_clock)
+                        )
+                    else:
+                        end_action_ev_or_act = Event(
+                            get_fresh_name(
+                                new_problem, action.name, trailing_info="end"
+                            ),
+                            _parameters=params,
+                            _env=env,
+                        )
+                        new_problem.add_event(end_action_ev_or_act)
+                    end_action_ev_or_act.add_precondition(alive)
+                    end_action_ev_or_act.add_precondition(action_running)
+                    end_action_ev_or_act.add_effect(action_running, False)
 
-                if (
-                    action.duration.lower == action.duration.upper
-                    or delay_variable_duration_effect is not None
-                ):
-                    new_problem.add_event(new_stop_event)
-                else:
-                    new_problem.add_action(new_stop_action)
+                duration_exceeded_event = Event(
+                    get_fresh_name(
+                        new_problem,
+                        action.name,
+                        trailing_info="duration_exceeded_error",
+                    ),
+                    _parameters=params,
+                    _env=env,
+                )
+                new_problem.add_event(duration_exceeded_event)
 
-                new_problem.add_action(new_action)
-                new_problem.add_process(action_running_process)
+                duration_exceeded_condition = (
+                    mgr.GE if action.duration.is_right_open() else mgr.GT
+                )  # TODO check this I am not 200% positive
 
-                if not (self._use_counter):
-                    for g in get_all_fluent_exp(new_problem, action_running_fluent):
-                        new_problem.add_goal(mgr.Not(g))
+                duration_exceeded_event.add_precondition(alive)
+                duration_exceeded_event.add_precondition(action_running)
+                duration_exceeded_event.add_precondition(duration_exceeded_condition)
+                duration_exceeded_event.add_effect(alive, False)
+                duration_exceeded_event.add_effect(action_running, False)
+
+                for g in get_all_fluent_exp(new_problem, action_running_fluent):
+                    new_problem.add_goal(mgr.Not(g))
 
             else:
                 raise NotImplementedError
@@ -1670,7 +565,7 @@ def get_first_end_timing(action: DurativeAction) -> Optional[Timing]:
     for timing_or_interval, conds_or_effs in chain(
         action.conditions.items(), action.effects.items()
     ):
-        for timing in timing_from_interval(timing_or_interval):
+        for timing in timing_from_interval(timing_or_interval, conds_or_effs):
             assert isinstance(
                 timing, Timing
             ), f"Wrong durative action {action.name} typing associated to {conds_or_effs}"
@@ -1688,8 +583,9 @@ def get_relative_timing(
     action_clock: FNode,
     action_duration_exp: Optional[FNode],
     action_duration: DurationInterval,
-    mgr,
+    mgr: ExpressionManager,
 ) -> Tuple[FNode, Union[int, Fraction, FNode]]:
+    assert not timing.is_global()
     if timing.is_from_start():
         return action_clock, timing.delay
     assert timing.delay <= 0
@@ -1701,4 +597,34 @@ def get_relative_timing(
     assert action_duration_exp is not None and first_end_timing is not None
     return mgr.Minus(action_clock, action_duration_exp), mgr.Minus(
         timing.delay, first_end_timing.delay
+    )
+
+
+def inside_interval_condition(
+    interval: TimeInterval,
+    first_end_timing: Optional[Timing],
+    action_clock: FNode,
+    action_duration_exp: Optional[FNode],
+    action_duration: DurationInterval,
+    mgr: ExpressionManager,
+) -> FNode:
+    # define a utility function to get the relative timing without passing 5 args that are the same
+    relative_timing = partial(
+        get_relative_timing,
+        first_end_timing=first_end_timing,
+        action_clock=action_clock,
+        action_duration_exp=action_duration_exp,
+        action_duration=action_duration,
+        mgr=mgr,
+    )
+
+    if interval.lower == interval.upper:
+        if interval.is_left_open() or interval.is_right_open():
+            return mgr.FALSE()
+        return mgr.Equals(*relative_timing(interval.lower))
+    left_operand = mgr.GT if interval.is_left_open() else mgr.GE
+    right_operand = mgr.LT if interval.is_right_open() else mgr.LE
+    return mgr.And(
+        left_operand(*relative_timing(interval.lower)),
+        right_operand(*relative_timing(interval.upper)),
     )
