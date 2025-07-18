@@ -33,9 +33,16 @@ FEATURES_VERSIONS = {
     "REAL_NUMBERS_IN_ACTIONS_COST": (2, None),
     "INT_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
     "REAL_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
+    "UNDEFINED_INITIAL_NUMERIC": (3, None),
+    "UNDEFINED_INITIAL_SYMBOLIC": (3, None),
+    "PROCESSES": (3, None),
+    "EVENTS": (3, None),
+    "INCREASE_CONTINUOUS_EFFECTS": (3, None),
+    "DECREASE_CONTINUOUS_EFFECTS": (3, None),
+    "NON_LINEAR_CONTINUOUS_EFFECTS": (3, None),
 }
 
-LATEST_PROBLEM_KIND_VERSION = 2
+LATEST_PROBLEM_KIND_VERSION = 3
 
 # Version changes:
 # Version 2: Added granularity to the numeric side in different part of the problem
@@ -95,8 +102,31 @@ def downgrade_2_1(version_2_features: Set[str]) -> Set[str]:
     return version_1_features
 
 
+def downgrade_3_2(version_3_features: Set[str]) -> Set[str]:
+    """
+    Method to downgrade the features of a ProblemKind of version 3 to the features
+    of a ProblemKind of version 2.
+    """
+    version_2_features = version_3_features.copy()
+
+    features_to_remove = (
+        "UNDEFINED_INITIAL_NUMERIC",
+        "UNDEFINED_INITIAL_SYMBOLIC",
+        "PROCESSES",
+        "EVENTS",
+        "INCREASE_CONTINUOUS_EFFECTS",
+        "DECREASE_CONTINUOUS_EFFECTS",
+        "NON_LINEAR_CONTINUOUS_EFFECTS",
+    )
+
+    for f in features_to_remove:
+        version_2_features.discard(f)
+
+    return version_2_features
+
+
 # A mapping from a tuple from a version to another and the function that does that conversion
-downgrade_functions_map = {(2, 1): downgrade_2_1}
+downgrade_functions_map = {(2, 1): downgrade_2_1, (3, 2): downgrade_3_2}
 
 
 def equalize_versions(
