@@ -353,6 +353,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_conds: List = []
             new_effs: List = []
             i = 0
+            name_and_pars_to_knum: Dict[
+                tuple[str, list[up.model.fnode.FNode]], up.model.Parameter
+            ] = {}
+            name_and_pars_and_timestamp_to_knum: Dict[
+                tuple[str, list[up.model.fnode.FNode], up.model.timing.Timing],
+                up.model.Parameter,
+            ] = {}
             for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
                 subs = {}
                 implies = []
@@ -365,9 +372,47 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         i += 1
                         f = new_fluents[ifun.name]
                         kNum = f.signature[0].type
-                        p_n = get_fresh_parameter_name(a, f"_p_{ifun.name}_" + str(i))
-                        new_param = up.model.Parameter(p_n, kNum)
-                        new_params.append(new_param)
+                        fluents_in_if_pars = self.free_vars_extractor.get(ifun_exp)
+                        # if only pars -> map (ifun.name, [pars]) -> parameter object
+                        # we don't have to worry about them changing over time
+                        # if has fluents -> map (ifun.name, [pars], timestamp) -> parameter object
+                        # at the same time we can use the same object, but different times might require different objects
+                        if len(fluents_in_if_pars) > 0:
+                            if (
+                                ifun.name,
+                                ifun_exp.args,
+                                t,
+                            ) not in name_and_pars_and_timestamp_to_knum.keys():
+                                p_n = get_fresh_parameter_name(
+                                    a, f"_p_{ifun.name}_" + str(i)
+                                )
+                                new_param = up.model.Parameter(p_n, kNum)
+                                new_params.append(new_param)
+                                name_and_pars_and_timestamp_to_knum[
+                                    (ifun.name, ifun_exp.args, t)
+                                ] = new_param
+                            else:
+                                new_param = name_and_pars_and_timestamp_to_knum[
+                                    (ifun.name, ifun_exp.args, t)
+                                ]
+                        else:
+                            if (
+                                ifun.name,
+                                ifun_exp.args,
+                            ) not in name_and_pars_to_knum.keys():
+                                p_n = get_fresh_parameter_name(
+                                    a, f"_p_{ifun.name}_" + str(i)
+                                )
+                                new_param = up.model.Parameter(p_n, kNum)
+                                new_params.append(new_param)
+                                name_and_pars_to_knum[
+                                    (ifun.name, ifun_exp.args)
+                                ] = new_param
+                            else:
+                                new_param = name_and_pars_to_knum[
+                                    (ifun.name, ifun_exp.args)
+                                ]
+
                         subs[ifun_exp] = f(new_param)
                     l2 = []
                     for p_known in if_known[ifun.name]:
