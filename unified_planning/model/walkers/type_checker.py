@@ -78,6 +78,18 @@ class TypeChecker(walkers.dag.DagWalker):
                 return None
         return f.type
 
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression.is_interpreted_function_exp()
+        f = expression.interpreted_function()
+        if len(args) != len(f.signature):
+            return None
+        for (param, arg) in zip(f.signature, args):
+            if not param.type.is_compatible(arg):
+                return None
+        return f.return_type
+
     def walk_param_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> "unified_planning.model.types.Type":
