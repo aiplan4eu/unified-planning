@@ -33,8 +33,8 @@ FEATURES_VERSIONS = {
     "REAL_NUMBERS_IN_ACTIONS_COST": (2, None),
     "INT_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
     "REAL_NUMBERS_IN_OVERSUBSCRIPTION": (2, None),
-    "UNDEFINED_INITIAL_NUMERIC": (3, None),
-    "UNDEFINED_INITIAL_SYMBOLIC": (3, None),
+    "UNDEFINED_INITIAL_NUMERIC": (2, None),
+    "UNDEFINED_INITIAL_SYMBOLIC": (2, None),
     "PROCESSES": (3, None),
     "EVENTS": (3, None),
     "INCREASE_CONTINUOUS_EFFECTS": (3, None),
@@ -64,84 +64,71 @@ LATEST_PROBLEM_KIND_VERSION = 3
 # NUMERIC_FLUENTS
 
 
-def downgrade_2_1(version_2_features: Set[str]) -> Set[str]:
-    """
-    Method to downgrade the features of a ProblemKind of version 2 to the features
-    of a ProblemKind of version 1.
-    """
-    version_1_features = version_2_features.copy()
-    continuous_numbers_features = ("REAL_FLUENTS", "REAL_ACTION_PARAMETERS")
-    discrete_numbers_features = (
-        "BOUNDED_INT_FLUENT_PARAMETERS",
-        "BOUNDED_INT_ACTION_PARAMETERS",
-        "UNBOUNDED_INT_ACTION_PARAMETERS",
-        "INT_FLUENTS",
+def upgrade_1_2(version_1_features: Set[str]) -> Set[str]:
+    """Upgrade features from version 1 to version 2."""
+    version_2_features = version_1_features.copy()
+
+    if "CONTINUOUS_NUMBERS" in version_1_features:
+        if "NUMERIC_FLUENTS" in version_1_features:
+            version_2_features.update({"REAL_FLUENTS"})
+
+    if "DISCRETE_NUMBERS" in version_1_features:
+        if "NUMERIC_FLUENTS" in version_1_features:
+            version_2_features.update({"INT_FLUENTS"})
+
+    if "ACTIONS_COST" in version_1_features:
+        version_2_features.update(
+            {"INT_NUMBERS_IN_ACTIONS_COST", "REAL_NUMBERS_IN_ACTIONS_COST"}
+        )
+
+    if "OVERSUBSCRIPTION" in version_1_features:
+        version_2_features.update(
+            {"INT_NUMBERS_IN_OVERSUBSCRIPTION", "REAL_NUMBERS_IN_OVERSUBSCRIPTION"}
+        )
+
+    if "CONTINUOUS_TIME" in version_1_features:
+        version_2_features.update({"REAL_TYPE_DURATIONS", "INT_TYPE_DURATIONS"})
+
+    if "DISCRETE_TIME" in version_1_features:
+        version_2_features.update({"INT_TYPE_DURATIONS"})
+
+    # Remove deprecated features
+    version_2_features.difference_update(
+        {
+            "CONTINUOUS_NUMBERS",
+            "DISCRETE_NUMBERS",
+            "NUMERIC_FLUENTS",
+        }
     )
-    numeric_fluents_features = ("INT_FLUENTS", "REAL_FLUENTS")
-
-    if any(f in version_2_features for f in continuous_numbers_features):
-        version_1_features.add("CONTINUOUS_NUMBERS")
-    if any(f in version_2_features for f in discrete_numbers_features):
-        version_1_features.add("DISCRETE_NUMBERS")
-    if any(f in version_2_features for f in numeric_fluents_features):
-        version_1_features.add("NUMERIC_FLUENTS")
-
-    features_to_remove = (
-        "REAL_FLUENTS",
-        "INT_FLUENTS",
-        "REAL_TYPE_DURATIONS",
-        "INT_TYPE_DURATIONS",
-        "REAL_NUMBERS_IN_ACTIONS_COST",
-        "INT_NUMBERS_IN_ACTIONS_COST",
-        "REAL_NUMBERS_IN_OVERSUBSCRIPTION",
-        "INT_NUMBERS_IN_OVERSUBSCRIPTION",
-    )
-    for f in features_to_remove:
-        version_1_features.discard(f)
-
-    return version_1_features
-
-
-def downgrade_3_2(version_3_features: Set[str]) -> Set[str]:
-    """
-    Method to downgrade the features of a ProblemKind of version 3 to the features
-    of a ProblemKind of version 2.
-    """
-    version_2_features = version_3_features.copy()
-
-    features_to_remove = (
-        "UNDEFINED_INITIAL_NUMERIC",
-        "UNDEFINED_INITIAL_SYMBOLIC",
-        "PROCESSES",
-        "EVENTS",
-        "INCREASE_CONTINUOUS_EFFECTS",
-        "DECREASE_CONTINUOUS_EFFECTS",
-        "NON_LINEAR_CONTINUOUS_EFFECTS",
-    )
-
-    for f in features_to_remove:
-        version_2_features.discard(f)
 
     return version_2_features
 
 
-# A mapping from a tuple from a version to another and the function that does that conversion
-downgrade_functions_map = {(2, 1): downgrade_2_1, (3, 2): downgrade_3_2}
+def upgrade_2_3(version_2_features: Set[str]) -> Set[str]:
+    """Upgrade features from version 2 to version 3."""
+    return version_2_features.copy()
+
+
+# Mapping of upgrade functions
+upgrade_functions_map = {
+    (1, 2): upgrade_1_2,
+    (2, 3): upgrade_2_3,
+}
 
 
 def equalize_versions(
     features_1: Set[str], features_2: Set[str], version_1: int, version_2: int
 ) -> Tuple[Set[str], Set[str], int]:
-    """Method that equalizes 2 ProblemKind's versions."""
-    while version_1 > version_2:
-        downgrade_function = downgrade_functions_map[(version_1, version_1 - 1)]
-        features_1 = downgrade_function(features_1)
-        version_1 -= 1
+    """Equalizes two ProblemKind versions by upgrading the older one."""
+    while version_1 < version_2:
+        upgrade_function = upgrade_functions_map[(version_1, version_1 + 1)]
+        features_1 = upgrade_function(features_1)
+        version_1 += 1
 
-    while version_2 > version_1:
-        downgrade_function = downgrade_functions_map[(version_2, version_2 - 1)]
-        features_2 = downgrade_function(features_2)
-        version_2 -= 1
+    while version_2 < version_1:
+        upgrade_function = upgrade_functions_map[(version_2, version_2 + 1)]
+        features_2 = upgrade_function(features_2)
+        version_2 += 1
 
     assert version_1 == version_2
     return features_1, features_2, version_1
