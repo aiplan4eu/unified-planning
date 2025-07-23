@@ -19,7 +19,7 @@ from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model import AbstractProblem, Problem, PlanQualityMetric
-from unified_planning.plans import ActionInstance, TimeTriggeredPlan
+from unified_planning.plans import ActionInstance, TimeTriggeredPlan, Plan
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Dict, Optional, List, Union
@@ -320,16 +320,23 @@ class CompilerResult(Result):
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
+    plan_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance are consistent with each other
-        if self.problem is None and self.map_back_action_instance is not None:
+        if self.problem is None:
+            if self.map_back_action_instance is not None:
+                raise UPUsageError(
+                    "The compiled Problem is None but the map_back_action_instance Callable is not None."
+                )
+            if self.plan_conversion is not None:
+                raise UPUsageError(
+                    "The compiled Problem is None but the plan_conversion Callable is not None."
+                )
+        elif self.map_back_action_instance is None and self.plan_conversion is None:
             raise UPUsageError(
-                f"The compiled Problem is None but the map_back_action_instance Callable is not None."
-            )
-        if self.problem is not None and self.map_back_action_instance is None:
-            raise UPUsageError(
-                f"The compiled Problem is {str(self.problem)} but the map_back_action_instance Callable is None."
+                f"The compiled Problem is {str(self.problem)} but both the map_back_action_instance \
+                Callable and the plan_conversion Callable are None."
             )
 
     def __str__(self) -> str:
