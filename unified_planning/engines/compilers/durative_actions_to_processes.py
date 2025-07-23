@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from collections import defaultdict
 from itertools import chain
 import unified_planning as up
 import unified_planning.engines as engines
@@ -21,6 +22,7 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
     Problem,
     ProblemKind,
+    Parameter,
     Fluent,
     Action,
     InstantaneousAction,
@@ -37,7 +39,6 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
-    replace_action,
 )
 from typing import (
     Dict,
@@ -170,11 +171,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         env = problem.environment
         mgr: ExpressionManager = env.expression_manager
         tm = env.type_manager
-        new_to_old: Dict[
-            Action, Optional[Action]
-        ] = (
-            {}
-        )  # TODO should contain both info if an action starts or ends the original action
+        start_actions: Dict[Action, Action] = {}
+        first_end_actions: Dict[Action, Tuple[Action, Timing]] = {}
 
         new_problem = problem.clone()
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
@@ -195,7 +193,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 start_action = action.clone()
                 start_action.name = get_fresh_name(new_problem, start_action.name)
                 start_action.add_precondition(alive)
-                new_to_old[start_action] = action
+                start_actions[start_action] = action
                 new_problem.add_action(start_action)
             elif isinstance(action, DurativeAction):
                 (
@@ -213,6 +211,11 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     alive,
                     end_timing,
                 )
+                start_actions[start_action] = action
+
+                # store the conditions that have to be added to first_end and end actions/events
+                first_end_conditions: List[FNode] = []
+                end_conditions: List[FNode] = []
 
                 # utility function to call add_new_action_or_event without passing the same parameters
                 add_new_action_or_event = partial(
@@ -249,6 +252,21 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     condition_failed_event.add_effect(alive, False)
                     condition_failed_event.add_effect(action_running, False)
 
+                    if (
+                        interval.lower == first_end_timing
+                        and not interval.is_left_open()
+                    ) or (
+                        interval.upper == first_end_timing
+                        and not interval.is_right_open()
+                    ):
+                        first_end_conditions.extend(conditions)
+                    elif (
+                        interval.lower == end_timing and not interval.is_left_open()
+                    ) or (
+                        interval.upper == end_timing and not interval.is_right_open()
+                    ):
+                        end_conditions.extend(conditions)
+
                 first_end_action, end_action_event = _handle_effects(
                     action,
                     new_problem,
@@ -271,6 +289,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             add_new_action_or_event("first_end", True),
                         )
                     assert first_end_action is not None and first_end_timing is not None
+                    first_end_actions[first_end_action] = action, first_end_timing
 
                     # duration constraint
                     lower_operand = mgr.LT if action.duration.is_left_open() else mgr.LE
@@ -289,6 +308,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                             upper_operand(action_clock, upper_bound),
                         )
                     )
+                    for cond in first_end_conditions:
+                        first_end_action.add_precondition(cond)
                     first_end_action.add_effect(
                         cast(FNode, action_duration_exp), action_clock
                     )
@@ -302,6 +323,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 if end_action_event is None:
                     assert first_end_timing != end_timing
                     end_action_event = add_new_action_or_event("end", False)
+                for cond in end_conditions:
+                    end_action_event.add_precondition(cond)
                 end_action_event.add_effect(action_running, False)
                 if has_variable_duration:
                     end_action_event.add_effect(cast(FNode, first_end_triggered), False)
@@ -330,7 +353,14 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         new_problem.add_goal(alive)
 
         return CompilerResult(
-            new_problem, partial(replace_action, map=new_to_old), self.name
+            new_problem,
+            None,
+            self.name,
+            plan_back_conversion=partial(
+                _plan_to_plan,
+                start_actions=start_actions,
+                end_actions=first_end_actions,
+            ),
         )
 
 
@@ -653,3 +683,60 @@ def _inside_interval_condition(
         left_bound,
         right_bound,
     )
+
+
+# TODO think what happens if the first end has the same timing (or before) the start of the action
+def _plan_to_plan(
+    plan: TimeTriggeredPlan,
+    start_actions: Dict[Action, Action],
+    end_actions: Dict[Action, Tuple[Action, Timing]],
+) -> TimeTriggeredPlan:
+    if not isinstance(plan, TimeTriggeredPlan):
+        raise NotImplementedError()
+
+    new_actions: Dict[
+        Tuple[Action, Tuple[Parameter, ...]],
+        List[Tuple[Fraction, ActionInstance, Optional[Fraction]]],
+    ] = defaultdict(list)
+    for trigger_time, old_action_instance, _ in sorted(
+        plan.timed_actions, key=lambda x: x[1]
+    ):
+        assert isinstance(old_action_instance, ActionInstance)
+        old_action = old_action_instance.action
+        if not isinstance(old_action, InstantaneousAction):
+            raise NotImplementedError()
+        parameters = old_action_instance.actual_parameters
+
+        new_action = start_actions.get(old_action)
+        # represents a start_action
+        if new_action is not None:
+            new_actions[new_action, parameters].append(
+                (trigger_time, new_action(*parameters), None)
+            )
+            continue
+        new_action, timing = end_actions.get(old_action, (None, None))
+        # represents a first_end action
+        if new_action is not None:
+            assert isinstance(new_action, DurativeAction)
+            assert isinstance(timing, Timing)
+            new_actions_list = new_actions[new_action, parameters]
+            start_trigger_time, new_action_instance, duration = new_actions_list.pop()
+            assert duration is None
+            assert trigger_time >= start_trigger_time
+            assert timing.delay <= 0
+            duration = trigger_time - start_trigger_time - timing.delay
+            new_actions_list.append((start_trigger_time, new_action_instance, duration))
+        else:
+            raise NotImplementedError()  # TODO change these raises to meaningful exceptions
+
+    timed_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
+    for trigger_time, action_instance, duration in chain(*new_actions.values()):
+        if isinstance(action_instance.action, InstantaneousAction):
+            assert duration is None
+        elif isinstance(action_instance.action, DurativeAction):
+            assert duration is not None
+        else:
+            raise NotImplementedError
+        timed_actions.append((trigger_time, action_instance, duration))
+
+    return TimeTriggeredPlan(timed_actions)
