@@ -22,7 +22,6 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
     Problem,
     ProblemKind,
-    Parameter,
     Fluent,
     Action,
     InstantaneousAction,
@@ -197,6 +196,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 new_problem.add_action(start_action)
             elif isinstance(action, DurativeAction):
                 (
+                    start_action,
                     params,
                     action_running,
                     first_end_timing,
@@ -218,8 +218,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 end_conditions: List[FNode] = []
 
                 # utility function to call add_new_action_or_event without passing the same parameters
-                add_new_action_or_event = partial(
-                    _add_new_action_or_event,
+                add_new_event = partial(
+                    _add_new_event,
                     new_problem=new_problem,
                     params=params,
                     action=action,
@@ -234,6 +234,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         if interval == start_interval:
                             # no need to create an event
                             continue
+                        elif interval == TimePointInterval(first_end_timing):
+                            first_end_conditions.extend(conditions)
+                            continue
+
                     fail_condition = mgr.Or(map(mgr.Not, conditions))
                     inside_interval = _inside_interval_condition(
                         interval,
@@ -244,9 +248,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         action.duration,
                         mgr,
                     )
-                    condition_failed_event = add_new_action_or_event(
-                        f"condition_{i}_failed", False
-                    )
+                    condition_failed_event = add_new_event(f"condition_{i}_failed")
                     condition_failed_event.add_precondition(inside_interval)
                     condition_failed_event.add_precondition(fail_condition)
                     condition_failed_event.add_effect(alive, False)
@@ -274,20 +276,29 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     start_timing,
                     start_action,
                     first_end_timing,
-                    add_new_action_or_event,
+                    add_new_event,
                     end_timing,
                     first_end_triggered,
                     action_clock,
                     action_duration_exp,
+                    params,
+                    alive,
+                    action_running,
                 )
 
                 # populate first_end_action
                 if has_variable_duration:
                     if first_end_action is None:
-                        first_end_action = cast(
-                            InstantaneousAction,
-                            add_new_action_or_event("first_end", True),
+                        first_end_action = InstantaneousAction(
+                            get_fresh_name(
+                                new_problem, action.name, trailing_info="first_end"
+                            ),
+                            _parameters=params,
+                            _env=new_problem.environment,
                         )
+                        new_problem.add_action(first_end_action)
+                        first_end_action.add_precondition(alive)
+                        first_end_action.add_precondition(action_running)
                     assert first_end_action is not None and first_end_timing is not None
                     first_end_actions[first_end_action] = action, first_end_timing
 
@@ -310,31 +321,35 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     )
                     for cond in first_end_conditions:
                         first_end_action.add_precondition(cond)
-                    first_end_action.add_effect(
-                        cast(FNode, action_duration_exp), action_clock
-                    )
-                    first_end_action.add_effect(cast(FNode, first_end_triggered), True)
+
                     if first_end_timing == end_timing:
                         end_action_event = first_end_action
+                    else:
+                        first_end_action.add_effect(
+                            cast(FNode, first_end_triggered), True
+                        )
+                        first_end_action.add_effect(
+                            cast(FNode, action_duration_exp), action_clock
+                        )
                 else:
                     assert first_end_action is None
 
                 # populate end_action_event
                 if end_action_event is None:
                     assert first_end_timing != end_timing
-                    end_action_event = add_new_action_or_event("end", False)
-                for cond in end_conditions:
-                    end_action_event.add_precondition(cond)
+                    end_action_event = add_new_event("end")
+                if isinstance(end_action_event, InstantaneousAction):
+                    for cond in end_conditions:
+                        end_action_event.add_precondition(cond)
                 end_action_event.add_effect(action_running, False)
+                end_action_event.add_effect(action_clock, 0)
                 if has_variable_duration:
                     end_action_event.add_effect(cast(FNode, first_end_triggered), False)
                     end_action_event.add_effect(cast(FNode, action_duration_exp), 0)
 
                 # add an event that sets alive to False if the duration of the action is exceeded
                 # and the action is still running
-                duration_exceeded_event = add_new_action_or_event(
-                    "duration_exceeded_error", False
-                )
+                duration_exceeded_event = add_new_event("duration_exceeded_error")
                 duration_exceeded_operand = (
                     mgr.GE if action.duration.is_right_open() else mgr.GT
                 )
@@ -402,6 +417,7 @@ def _initialize_variables_durative_action(
         _parameters=params,
         _env=env,
     )
+    new_problem.add_process(action_running_process)
     action_running_process.add_precondition(alive)
     action_running_process.add_precondition(action_running)
     action_running_process.add_increase_continuous_effect(action_clock, 1)
@@ -442,16 +458,17 @@ def _initialize_variables_durative_action(
         first_end_triggered = first_end_triggered_fluent(*start_action.parameters)
         start_action.add_effect(first_end_triggered, False)
 
-        return (
-            params,
-            action_running,
-            first_end_timing,
-            first_end_triggered,
-            action_clock,
-            action_duration_exp,
-            has_variable_duration,
-            action_running_fluent,
-        )
+    return (
+        start_action,
+        params,
+        action_running,
+        first_end_timing,
+        first_end_triggered,
+        action_clock,
+        action_duration_exp,
+        has_variable_duration,
+        action_running_fluent,
+    )
 
 
 def _handle_effects(
@@ -461,11 +478,14 @@ def _handle_effects(
     start_timing: Timing,
     start_action: InstantaneousAction,
     first_end_timing: Timing,
-    add_new_action_or_event,
+    add_new_event,
     end_timing: Timing,
     first_end_triggered: Optional[FNode],
     action_clock: FNode,
     action_duration_exp: FNode,
+    params,
+    alive,
+    action_running,
 ):
     env = new_problem.environment
     tm = env.type_manager
@@ -483,14 +503,23 @@ def _handle_effects(
 
         effect_ev_or_act: Union[Event, InstantaneousAction]
         if timing == first_end_timing:
-            effect_ev_or_act = add_new_action_or_event("first_end", True)
+
+            effect_ev_or_act = InstantaneousAction(
+                get_fresh_name(new_problem, action.name, trailing_info="first_end"),
+                _parameters=params,
+                _env=new_problem.environment,
+            )
+            new_problem.add_action(effect_ev_or_act)
+            effect_ev_or_act.add_precondition(alive)
+            effect_ev_or_act.add_precondition(action_running)
+
             assert first_end_action_created == False
             first_end_action_created = True
             first_end_action = cast(InstantaneousAction, effect_ev_or_act)
             # first_end_action preconditions and effects are populated later
         else:
             name = "end" if timing == end_timing else f"effects_{i}"
-            effect_ev_or_act = add_new_action_or_event(name, False)
+            effect_ev_or_act = add_new_event(name)
             clock_exp, timing_exp, additional_constraint = _get_relative_timing(
                 timing,
                 first_end_timing,
@@ -528,34 +557,24 @@ def _handle_effects(
         return first_end_action, end_action_event
 
 
-def _add_new_action_or_event(
+def _add_new_event(
     trailing_info: str,
-    is_instantaneous_action: bool,
     new_problem: Problem,
     params: OrderedDict[str, Type],
     action: DurativeAction,
     alive: Fluent,
     action_running: FNode,
-) -> Union[Event, InstantaneousAction]:
-    effect_ev_or_act: Union[Event, InstantaneousAction]
-    if is_instantaneous_action:
-        effect_ev_or_act = InstantaneousAction(
-            get_fresh_name(new_problem, action.name, trailing_info=trailing_info),
-            _parameters=params,
-            _env=new_problem.environment,
-        )
-        new_problem.add_action(cast(InstantaneousAction, effect_ev_or_act))
-    else:
-        effect_ev_or_act = Event(
-            get_fresh_name(new_problem, action.name, trailing_info=trailing_info),
-            _parameters=params,
-            _env=new_problem.environment,
-        )
-        new_problem.add_event(cast(Event, effect_ev_or_act))
+) -> Event:
+    event = Event(
+        get_fresh_name(new_problem, action.name, trailing_info=trailing_info),
+        _parameters=params,
+        _env=new_problem.environment,
+    )
+    new_problem.add_event(event)
 
-    effect_ev_or_act.add_precondition(alive)
-    effect_ev_or_act.add_precondition(action_running)
-    return effect_ev_or_act
+    event.add_precondition(alive)
+    event.add_precondition(action_running)
+    return event
 
 
 def _action_variable_duration(action: DurativeAction) -> bool:
@@ -676,7 +695,8 @@ def _inside_interval_condition(
         # the end has been triggered and the constraint is valid
         right_bound = mgr.Or(
             mgr.Not(right_additional_constraint),
-            mgr.And(right_additional_constraint, right_bound),
+            # mgr.And(right_additional_constraint, right_bound), # TODO only right bound should be enough. in the whole OR the right_additional_constraint is redundant
+            right_bound,
         )
 
     return mgr.And(
@@ -695,11 +715,11 @@ def _plan_to_plan(
         raise NotImplementedError()
 
     new_actions: Dict[
-        Tuple[Action, Tuple[Parameter, ...]],
+        Tuple[Action, Tuple[FNode, ...]],
         List[Tuple[Fraction, ActionInstance, Optional[Fraction]]],
     ] = defaultdict(list)
     for trigger_time, old_action_instance, _ in sorted(
-        plan.timed_actions, key=lambda x: x[1]
+        plan.timed_actions, key=lambda x: x[0]
     ):
         assert isinstance(old_action_instance, ActionInstance)
         old_action = old_action_instance.action

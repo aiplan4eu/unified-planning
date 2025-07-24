@@ -352,6 +352,15 @@ class CompilerResult(Result):
                 )
             )
 
+        if self.map_back_action_instance is not None:
+            if self.plan_conversion is not None:
+                raise UPUsageError(
+                    "Both map_back_action_instance and plan_conversion can't be specified"
+                )
+            self.plan_conversion = lambda x: x.replace_action_instances(
+                self.map_back_action_instance
+            )
+
     def __str__(self) -> str:
         ret = [
             f"problem: {self.problem}",
