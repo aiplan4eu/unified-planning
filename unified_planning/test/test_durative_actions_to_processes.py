@@ -43,21 +43,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
 
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
             len(new_problem.fluents),
-            (len(problem.fluents) + (len(problem.actions) * 2) + 2),
+            (len(problem.fluents) + (len(problem.actions) * 2) + 1),
         )
         self.assertEqual(len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes))
         self.assertEqual(len(problem.processes), 0)
-        self.assertEqual(len(problem.actions), len(new_problem.events))
+        self.assertEqual(len(new_problem.events), len(problem.actions) * 2)
         self.assertEqual(len(problem.events), 0)
-        self.assertEqual(len(new_problem.goals), len(problem.goals) + 2)
+        self.assertEqual(
+            len(new_problem.goals), len(problem.goals) + len(problem.actions) + 1
+        )
 
     @skipIfNoPlanValidatorForProblemKind(basic_temporal_kind)
     def test_base_temporal_counter_2(self):
@@ -82,7 +83,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes))
         self.assertEqual(len(problem.processes), 0)
-        self.assertEqual(len(problem.actions), len(new_problem.events))
+        self.assertEqual(len(new_problem.events), len(problem.actions) * 2)
         self.assertEqual(len(problem.events), 0)
         self.assertGreater(len(new_problem.goals), len(problem.goals))
 
@@ -97,7 +98,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, InstantaneousAction))
             self.assertTrue(isinstance(na, InstantaneousAction))
@@ -220,12 +220,21 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
-            self.assertTrue(isinstance(a, DurativeAction))
-            self.assertFalse(isinstance(na, DurativeAction))
-        self.assertEqual(len(problem.goals) + 2, len(new_problem.goals))
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 2)
+            self.assertIsInstance(a, DurativeAction)
+            self.assertIsInstance(na, InstantaneousAction)
+        goal_counter = len(problem.goals) + 1  # old goals + alive
+        for a in problem.actions:
+            if isinstance(a, DurativeAction):
+                running_fluents = 1
+                for p in a.parameters:
+                    running_fluents *= len(tuple(problem.objects(p.type)))
+                goal_counter += running_fluents
+        self.assertEqual(goal_counter, len(new_problem.goals))
+        # every action has an end event, a duration exceeded event and
+        # the 2 overall conditions of pick_up and put_down actions
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_2(self):
         Robot = UserType("robot")
@@ -327,7 +336,8 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 2)
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
         self.assertGreater(len(new_problem.goals), len(problem.goals))
 
     def test_ad_hoc3(self):
@@ -384,7 +394,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
         self.assertEqual(2 * len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes))
 
@@ -497,13 +506,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 1)
+        events = len(problem.actions) * 2 + 1
+        self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_6(self):
         problem = Problem("robot_with_variable_duration")
@@ -555,13 +563,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 1)
+        events = len(problem.actions) * 2 + 1
+        self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_7(self):
         problem = Problem("robot_with_variable_duration")
@@ -613,13 +620,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions))
+        events = len(problem.actions) * 2
+        self.assertEqual(len(new_problem.events), events)
         self.assertEqual(len(new_problem.actions), len(problem.actions) + 1)
 
     def test_ad_hoc_8(self):
@@ -731,13 +737,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 1)
+        events = len(problem.actions) * 2 + 1
+        self.assertEqual(len(new_problem.events), events)
         self.assertEqual(len(new_problem.actions), len(problem.actions))
 
     def test_ad_hoc_10(self):
@@ -838,8 +843,8 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 6)
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_11(self):
         Robot = UserType("robot")
@@ -934,13 +939,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 6)
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_12(self):
         Robot = UserType("robot")
@@ -1035,10 +1039,24 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             problem_kind=problem.kind,
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
         ) as cer:
-            cer._use_counter = True
             res = cer.compile(
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 4)
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
+
+    # TODO complete this test after checks on supported ProblemKind
+    # def test_all(self):
+    #     with Compiler(
+    #         name="up_durative_actions_to_processes",
+    #         compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+    #     ) as cer:
+    #         for problem_name, tc in self.problems.items():
+    #             problem = tc.problem
+    #             kind = problem.kind
+    #             if cer.supports(kind):
+    #                 res = cer.compile(
+    #                     problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+    #                 )
+    #             new_problem = res.problem
