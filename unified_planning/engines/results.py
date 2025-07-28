@@ -358,7 +358,10 @@ class CompilerResult(Result):
                     "Both map_back_action_instance and plan_conversion can't be specified"
                 )
             self.plan_conversion = lambda x: x.replace_action_instances(
-                self.map_back_action_instance
+                cast(
+                    Callable[[ActionInstance], Optional[ActionInstance]],
+                    self.map_back_action_instance,
+                )
             )
 
     def __str__(self) -> str:
