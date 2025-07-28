@@ -624,7 +624,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2
+        events = len(problem.actions) * 3
         self.assertEqual(len(new_problem.events), events)
         self.assertEqual(len(new_problem.actions), len(problem.actions) + 1)
 
