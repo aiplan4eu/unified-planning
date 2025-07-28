@@ -205,6 +205,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     action_duration_exp,
                     has_variable_duration,
                     action_running_fluent,
+                    first_end_action,
+                    end_action_event,
                 ) = _initialize_variables_durative_action(
                     action,
                     new_problem,
@@ -212,10 +214,14 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     end_timing,
                 )
                 start_actions[start_action] = action
+                if first_end_action is not None:
+                    first_end_actions[first_end_action] = action, first_end_timing
 
-                # store the conditions that have to be added to first_end and end actions/events
-                first_end_conditions: List[FNode] = []
-                end_conditions: List[FNode] = []
+                first_end_interval = (
+                    TimePointInterval(first_end_timing)
+                    if first_end_timing is not None
+                    else None
+                )
 
                 # utility function to call add_new_action_or_event without passing the same parameters
                 add_new_event = partial(
@@ -229,15 +235,34 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
                 # conditions create an event that sets alive to False when violated
                 for i, (interval, conditions) in enumerate(action.conditions.items()):
+                    # check special cases
                     if interval.lower == start_timing and not interval.is_left_open():
                         start_action.add_precondition(mgr.And(conditions))
                         if interval == start_interval:
-                            # no need to create an event
                             continue
-                        elif interval == TimePointInterval(first_end_timing):
-                            first_end_conditions.extend(conditions)
+                    if (
+                        interval.lower == first_end_timing
+                        and not interval.is_left_open()
+                    ) or (
+                        interval.upper == first_end_timing
+                        and not interval.is_right_open()
+                    ):
+                        # TODO check here that the interval is not empty, otherwise we might be adding conditions that would not exist.
+                        # Maybe we could put those conditions in an OR with a "not-inside-interval" condition (note that the method that returns
+                        # this needs a flag if it should use action_clock instead of duration_clock because duration_clock still has not been set
+                        # (but would be set to action_clock by this action))
+                        # TODO this problem appears also above and below actually, but it's a very very edge case
+                        first_end_action.add_precondition(mgr.And(conditions))
+                        if interval == first_end_interval:
                             continue
+                    elif (
+                        interval.lower == end_timing and not interval.is_left_open()
+                    ) or (
+                        interval.upper == end_timing and not interval.is_right_open()
+                    ):
+                        end_action_event.add_precondition(mgr.And(conditions))
 
+                    # default case
                     fail_condition = mgr.Or(map(mgr.Not, conditions))
                     inside_interval = _inside_interval_condition(
                         interval,
@@ -254,25 +279,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     condition_failed_event.add_effect(alive, False)
                     condition_failed_event.add_effect(action_running, False)
 
-                    if (
-                        interval.lower == first_end_timing
-                        and not interval.is_left_open()
-                    ) or (
-                        interval.upper == first_end_timing
-                        and not interval.is_right_open()
-                    ):
-                        first_end_conditions.extend(conditions)
-                    elif (
-                        interval.lower == end_timing and not interval.is_left_open()
-                    ) or (
-                        interval.upper == end_timing and not interval.is_right_open()
-                    ):
-                        end_conditions.extend(conditions)
-
-                first_end_action, end_action_event = _handle_effects(
+                _handle_effects(
                     action,
                     new_problem,
-                    has_variable_duration,
                     start_timing,
                     start_action,
                     first_end_timing,
@@ -282,70 +291,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     action_clock,
                     action_duration_exp,
                     params,
-                    alive,
-                    action_running,
+                    first_end_action,
+                    end_action_event,
                 )
-
-                # populate first_end_action
-                if has_variable_duration:
-                    if first_end_action is None:
-                        first_end_action = InstantaneousAction(
-                            get_fresh_name(
-                                new_problem, action.name, trailing_info="first_end"
-                            ),
-                            _parameters=params,
-                            _env=new_problem.environment,
-                        )
-                        new_problem.add_action(first_end_action)
-                        first_end_action.add_precondition(alive)
-                        first_end_action.add_precondition(action_running)
-                    assert first_end_action is not None and first_end_timing is not None
-                    first_end_actions[first_end_action] = action, first_end_timing
-
-                    # duration constraint
-                    lower_operand = mgr.LT if action.duration.is_left_open() else mgr.LE
-                    upper_operand = (
-                        mgr.LT if action.duration.is_right_open() else mgr.LE
-                    )
-                    lower_bound = mgr.Plus(
-                        action.duration.lower, first_end_timing.delay
-                    )
-                    upper_bound = mgr.Plus(
-                        action.duration.upper, first_end_timing.delay
-                    )
-                    first_end_action.add_precondition(
-                        mgr.And(
-                            lower_operand(lower_bound, action_clock),
-                            upper_operand(action_clock, upper_bound),
-                        )
-                    )
-                    for cond in first_end_conditions:
-                        first_end_action.add_precondition(cond)
-
-                    if first_end_timing == end_timing:
-                        end_action_event = first_end_action
-                    else:
-                        first_end_action.add_effect(
-                            cast(FNode, first_end_triggered), True
-                        )
-                        first_end_action.add_effect(
-                            cast(FNode, action_duration_exp), action_clock
-                        )
-                else:
-                    assert first_end_action is None
-
-                # populate end_action_event
-                if end_action_event is None:
-                    assert first_end_timing != end_timing
-                    end_action_event = add_new_event("end")
-                if isinstance(end_action_event, InstantaneousAction):
-                    for cond in end_conditions:
-                        end_action_event.add_precondition(cond)
-                end_action_event.add_effect(action_running, False)
-                end_action_event.add_effect(action_clock, 0)
-                if has_variable_duration:
-                    end_action_event.add_effect(cast(FNode, first_end_triggered), False)
-                    end_action_event.add_effect(cast(FNode, action_duration_exp), 0)
 
                 # add an event that sets alive to False if the duration of the action is exceeded
                 # and the action is still running
@@ -359,6 +307,21 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 duration_exceeded_event.add_precondition(duration_exceeded_condition)
                 duration_exceeded_event.add_effect(alive, False)
                 duration_exceeded_event.add_effect(action_running, False)
+
+                # add an event that checks that the first_end_action is performed in time
+                if has_variable_duration and first_end_timing != end_timing:
+                    first_end_late_event = add_new_event("first_end_late_error")
+                    first_end_late_operand = (
+                        mgr.GE if action.duration.is_right_open() else mgr.GT
+                    )
+                    assert first_end_timing.delay <= 0
+                    first_end_late_condition = first_end_late_operand(
+                        action_clock,
+                        mgr.Plus(action.duration.upper, first_end_timing.delay),
+                    )
+                    first_end_late_event.add_precondition(first_end_late_condition)
+                    first_end_late_event.add_effect(alive, False)
+                    first_end_late_event.add_effect(action_running, False)
 
                 for g in get_all_fluent_exp(new_problem, action_running_fluent):
                     new_problem.add_goal(mgr.Not(g))
@@ -430,6 +393,7 @@ def _initialize_variables_durative_action(
     first_end_timing: Optional[Timing] = None
     action_duration_exp: Optional[FNode] = None
     first_end_triggered: Optional[FNode] = None
+    first_end_action: Optional[InstantaneousAction] = None
 
     if has_variable_duration:
         first_end_timing = _get_first_end_timing(action)
@@ -446,17 +410,81 @@ def _initialize_variables_durative_action(
         action_duration_exp = action_duration_fluent(*start_action.parameters)
         start_action.add_effect(action_duration_exp, 0)
 
-        first_end_triggered_fluent = Fluent(
-            get_fresh_name(
-                new_problem, action.name, trailing_info="first_end_triggered"
-            ),
-            tm.BoolType(),
-            params,
-            env,
+        if first_end_timing != end_timing:
+            first_end_triggered_fluent = Fluent(
+                get_fresh_name(
+                    new_problem, action.name, trailing_info="first_end_triggered"
+                ),
+                tm.BoolType(),
+                params,
+                env,
+            )
+            new_problem.add_fluent(
+                first_end_triggered_fluent, default_initial_value=False
+            )
+            first_end_triggered = first_end_triggered_fluent(*start_action.parameters)
+            start_action.add_effect(first_end_triggered, False)
+
+        first_end_action = InstantaneousAction(
+            get_fresh_name(new_problem, action.name, trailing_info="first_end"),
+            _parameters=params,
+            _env=new_problem.environment,
         )
-        new_problem.add_fluent(first_end_triggered_fluent, default_initial_value=False)
-        first_end_triggered = first_end_triggered_fluent(*start_action.parameters)
-        start_action.add_effect(first_end_triggered, False)
+        new_problem.add_action(first_end_action)
+        first_end_action.add_precondition(alive)
+        first_end_action.add_precondition(action_running)
+
+        # duration constraint
+        lower_operand = mgr.LT if action.duration.is_left_open() else mgr.LE
+        upper_operand = mgr.LT if action.duration.is_right_open() else mgr.LE
+        lower_bound = mgr.Plus(action.duration.lower, first_end_timing.delay)
+        upper_bound = mgr.Plus(action.duration.upper, first_end_timing.delay)
+        first_end_action.add_precondition(
+            mgr.And(
+                lower_operand(lower_bound, action_clock),
+                upper_operand(action_clock, upper_bound),
+            )
+        )
+        if first_end_timing != end_timing:
+            first_end_action.add_effect(cast(FNode, first_end_triggered), True)
+            first_end_action.add_effect(cast(FNode, action_duration_exp), action_clock)
+
+    end_action: Union[Event, InstantaneousAction]
+    if first_end_timing != end_timing:
+        end_action = _add_new_event(
+            "end",
+            new_problem,
+            params,
+            action,
+            alive,
+            action_running,
+        )
+    else:
+        assert has_variable_duration
+        assert first_end_action is not None
+        end_action = first_end_action
+
+    end_action.add_effect(action_running, False)
+    end_action.add_effect(action_clock, 0)
+    if has_variable_duration:
+        assert action_duration_exp is not None
+        end_action.add_effect(action_duration_exp, 0)
+        if first_end_timing != end_timing:
+            assert first_end_triggered is not None
+            end_action.add_effect(first_end_triggered, False)
+            clock_exp, timing_exp, additional_constraint = _get_relative_timing(
+                end_timing,
+                first_end_timing,
+                first_end_triggered,
+                action_clock,
+                action_duration_exp,
+                action.duration,
+                mgr,
+            )
+            time_constraint = mgr.Equals(clock_exp, timing_exp)
+            if additional_constraint is not None:
+                time_constraint = mgr.And(additional_constraint, time_constraint)
+            end_action.add_precondition(time_constraint)
 
     return (
         start_action,
@@ -468,13 +496,14 @@ def _initialize_variables_durative_action(
         action_duration_exp,
         has_variable_duration,
         action_running_fluent,
+        first_end_action,
+        end_action,
     )
 
 
 def _handle_effects(
     action: DurativeAction,
     new_problem: Problem,
-    has_variable_duration: bool,
     start_timing: Timing,
     start_action: InstantaneousAction,
     first_end_timing: Timing,
@@ -484,16 +513,12 @@ def _handle_effects(
     action_clock: FNode,
     action_duration_exp: FNode,
     params,
-    alive,
-    action_running,
+    first_end_action: Optional[InstantaneousAction],
+    end_action_event: Union[Event, InstantaneousAction],
 ):
     env = new_problem.environment
     tm = env.type_manager
     mgr: ExpressionManager = env.expression_manager
-    # flag that decides if we need to create the first_end instantaneous action
-    first_end_action_created = not has_variable_duration
-    first_end_action: Optional[InstantaneousAction] = None
-    end_action_event: Optional[Union[Event, InstantaneousAction]] = None
 
     for i, (timing, effects) in enumerate(action.effects.items()):
         if timing == start_timing:
@@ -503,23 +528,12 @@ def _handle_effects(
 
         effect_ev_or_act: Union[Event, InstantaneousAction]
         if timing == first_end_timing:
-
-            effect_ev_or_act = InstantaneousAction(
-                get_fresh_name(new_problem, action.name, trailing_info="first_end"),
-                _parameters=params,
-                _env=new_problem.environment,
-            )
-            new_problem.add_action(effect_ev_or_act)
-            effect_ev_or_act.add_precondition(alive)
-            effect_ev_or_act.add_precondition(action_running)
-
-            assert first_end_action_created == False
-            first_end_action_created = True
-            first_end_action = cast(InstantaneousAction, effect_ev_or_act)
-            # first_end_action preconditions and effects are populated later
+            assert first_end_action is not None
+            effect_ev_or_act = first_end_action
+        elif timing == end_timing:
+            effect_ev_or_act = end_action_event
         else:
-            name = "end" if timing == end_timing else f"effects_{i}"
-            effect_ev_or_act = add_new_event(name)
+            effect_ev_or_act = add_new_event(f"effects_{i}")
             clock_exp, timing_exp, additional_constraint = _get_relative_timing(
                 timing,
                 first_end_timing,
@@ -529,17 +543,12 @@ def _handle_effects(
                 action.duration,
                 mgr,
             )
-            effect_ev_or_act.add_precondition(mgr.Equals(clock_exp, timing_exp))
+            time_constraint = mgr.Equals(clock_exp, timing_exp)
             if additional_constraint is not None:
-                effect_ev_or_act.add_precondition(additional_constraint)
+                time_constraint = mgr.And(additional_constraint, time_constraint)
+            effect_ev_or_act.add_precondition(time_constraint)
 
-        for eff in effects:
-            effect_ev_or_act._add_effect_instance(eff)
-
-        if timing == end_timing:
-            end_action_event = effect_ev_or_act
-        elif isinstance(effect_ev_or_act, Event):
-            # add fluent to avoid infinite trigger fo the event
+            # add fluent to avoid infinite trigger of the event
             effect_done_fluent = Fluent(
                 get_fresh_name(
                     new_problem,
@@ -547,14 +556,17 @@ def _handle_effects(
                     trailing_info=f"effects_{i}_done",
                 ),
                 tm.BoolType(),
+                _signature=params,
                 environment=env,
             )
             new_problem.add_fluent(effect_done_fluent, default_initial_value=False)
-            start_action.add_effect(effect_done_fluent, False)
-            effect_ev_or_act.add_precondition(mgr.Not(effect_done_fluent))
-            effect_ev_or_act.add_effect(effect_done_fluent, True)
+            effect_done = effect_done_fluent(*start_action.parameters)
+            start_action.add_effect(effect_done, False)
+            effect_ev_or_act.add_precondition(mgr.Not(effect_done))
+            effect_ev_or_act.add_effect(effect_done, True)
 
-        return first_end_action, end_action_event
+        for eff in effects:
+            effect_ev_or_act._add_effect_instance(eff)
 
 
 def _add_new_event(
@@ -632,11 +644,7 @@ def _get_relative_timing(
         # duration is not variable, so end_timing can be returned as timing from start
         return action_clock, mgr.Plus(action_duration.lower, timing.delay), None
     # complex case where the timing is from end and the action duration is variable
-    assert (
-        action_duration_exp is not None
-        and first_end_timing is not None
-        and first_end_triggered is not None
-    )
+    assert action_duration_exp is not None and first_end_timing is not None
     return (
         mgr.Minus(action_clock, action_duration_exp),
         mgr.Minus(timing.delay, first_end_timing.delay),
