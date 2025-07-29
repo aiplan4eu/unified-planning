@@ -84,28 +84,38 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
-        supported_kind.set_typing("FLAT_TYPING")
-        supported_kind.set_typing("HIERARCHICAL_TYPING")
-        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
-        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
-        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
-        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
-        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
-        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
-        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
-        supported_kind.set_fluents_type("INT_FLUENTS")
-        supported_kind.set_fluents_type("REAL_FLUENTS")
-        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+
+        supported_kind.set_time("CONTINUOUS_TIME")
+        # supported_kind.set_time("DISCRETE_TIME") # TODO
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECTS")
+        supported_kind.set_time("TIMED_GOALS")
+        supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_time("PROCESSES")
+        supported_kind.set_time("EVENTS")
+
+        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        # supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS") # TODO
+        supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
+        supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+
+        supported_kind.set_numbers("BOUNDED_TYPES")
+
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        # supported_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS") # TODO #
+        # supported_kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS") # TODO
+        # supported_kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS") # TODO
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
@@ -113,34 +123,42 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FORALL_EFFECTS")
-        supported_kind.set_time("CONTINUOUS_TIME")
-        supported_kind.set_time("DISCRETE_TIME")
-        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("TIMED_EFFECTS")
-        supported_kind.set_time("TIMED_GOALS")
-        supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_time("SELF_OVERLAPPING")
-        supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-        supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
-        supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
-        supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
-        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
-        supported_kind.set_constraints_kind("STATE_INVARIANTS")
-        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-        supported_kind.set_quality_metrics("ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
-        supported_kind.set_quality_metrics("PLAN_LENGTH")
+
+        supported_kind.set_typing("FLAT_TYPING")
+        supported_kind.set_typing("HIERARCHICAL_TYPING")
+
+        supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
+
+        supported_kind.set_fluents_type("INT_FLUENTS")
+        supported_kind.set_fluents_type("REAL_FLUENTS")
+        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+
+        # supported_kind.set_quality_metrics("ACTIONS_COST") # TODO add support to this
+        # supported_kind.set_quality_metrics("PLAN_LENGTH") # TODO this should not be generally supported
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
-        supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+
+        # TODO supported after action_cost is added
+        # supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        # supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        # supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        # supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
+
+        supported_kind.set_constraints_kind("STATE_INVARIANTS")
+        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+
         supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
+        supported_kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
         return supported_kind
 
     @staticmethod
@@ -158,7 +176,23 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        # TODO this removed durative actions, adds processes and events. and increasing_cont_effects
+        new_kind.unset_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        if new_kind.has("DURATION_INEQUALITIES"):
+            new_kind.unset_time("DURATION_INEQUALITIES")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        new_kind.unset_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+
+        new_kind.unset_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        new_kind.unset_expression_duration(
+            "FLUENTS_IN_DURATIONS"
+        )  # TODO keep this if kept in the supported_kind
+        new_kind.unset_expression_duration("INT_TYPE_DURATIONS")
+        new_kind.unset_expression_duration("REAL_TYPE_DURATIONS")
+
+        new_kind.set_time("PROCESSES")
+        new_kind.set_time("EVENTS")
+        # new_kind.set_fluents_type("INT_FLUENTS") # TODO should not do that
+        new_kind.set_fluents_type("REAL_FLUENTS")
         return new_kind
 
     def _compile(
