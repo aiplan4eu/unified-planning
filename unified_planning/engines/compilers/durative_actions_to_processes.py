@@ -235,6 +235,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
                 # conditions create an event that sets alive to False when violated
                 for i, (interval, conditions) in enumerate(action.conditions.items()):
+
                     # check special cases
                     if interval.lower == start_timing and not interval.is_left_open():
                         start_action.add_precondition(mgr.And(conditions))
@@ -247,14 +248,49 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         interval.upper == first_end_timing
                         and not interval.is_right_open()
                     ):
-                        # TODO check here that the interval is not empty, otherwise we might be adding conditions that would not exist.
-                        # Maybe we could put those conditions in an OR with a "not-inside-interval" condition (note that the method that returns
-                        # this needs a flag if it should use action_clock instead of duration_clock because duration_clock still has not been set
-                        # (but would be set to action_clock by this action))
-                        # TODO this problem appears also above and below actually, but it's a very very edge case
-                        first_end_action.add_precondition(mgr.And(conditions))
                         if interval == first_end_interval:
                             continue
+
+                        # we need to check that the interval is not empty
+                        is_empty_interval: Optional[FNode] = None
+                        operand = None
+                        always_empty = False
+                        if (
+                            interval.lower == first_end_timing
+                            and interval.upper.is_from_start()
+                        ):
+                            operand = mgr.GE if interval.is_right_open() else mgr.GT
+                            is_empty_interval = operand(
+                                action_clock, interval.upper.delay
+                            )
+                        elif (
+                            interval.upper == first_end_timing
+                            and interval.lower.is_from_start()
+                        ):
+                            operand = mgr.LE if interval.is_left_open() else mgr.LT
+                            is_empty_interval = operand(
+                                action_clock, interval.lower.delay
+                            )
+                        elif (
+                            interval.upper == first_end_timing
+                            and interval.lower.is_from_end()
+                        ):
+                            always_empty = True
+                            # lower comes after upper
+                            assert (
+                                interval.upper.delay < interval.lower.delay
+                                or interval.is_right_open()
+                            )
+                        if always_empty:
+                            continue
+                        and_conditions = mgr.And(conditions)
+                        if is_empty_interval is not None:
+                            # activate the requirement of the conditions only if the interval is not empty
+                            first_end_action.add_precondition(
+                                mgr.Or(is_empty_interval, and_conditions)
+                            )
+                        else:
+                            first_end_action.add_precondition(and_conditions)
                     elif (
                         interval.lower == end_timing and not interval.is_left_open()
                     ) or (
