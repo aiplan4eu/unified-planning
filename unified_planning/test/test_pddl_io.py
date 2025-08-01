@@ -151,6 +151,39 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:init (y o1))", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
 
+    def test_basic_tils_writer(self):
+        problem = self.problems["basic_tils"].problem
+
+        w = PDDLWriter(problem)
+
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(:requirements :strips :durative-actions :timed-initial-literals)",
+            pddl_domain,
+        )
+        self.assertIn("(:predicates (x) (y))", pddl_domain)
+        self.assertIn("(:durative-action a", pddl_domain)
+        self.assertIn(":parameters ()", pddl_domain)
+        self.assertIn(":duration (= ?duration 1)", pddl_domain)
+        self.assertIn(
+            ":condition (and (at start (y))(over all (y))(at end (y)))",
+            pddl_domain,
+        )
+        self.assertIn(":effect (and (at end (x)))", pddl_domain)
+
+        norm_pddl_problem = self._normalized_pddl_str(w.get_problem())
+        self.assertIn("(:domain basic_tils-domain)", norm_pddl_problem)
+        self.assertIn(
+            "(:init (at 5.0 (not (x))) (at 2.0 (y)) (at 8.0 (not (y))))",
+            norm_pddl_problem,
+        )
+        self.assertIn("(:goal (and (x)))", norm_pddl_problem)
+
+        pddl_problem = w.get_problem()
+        self.assertIn("(at 5.0 (not (x)))", pddl_problem)
+        self.assertIn("(at 2.0 (y))", pddl_problem)
+        self.assertIn("(at 8.0 (not (y)))", pddl_problem)
+
     def test_robot_writer(self):
         problem = self.problems["robot"].problem
 
