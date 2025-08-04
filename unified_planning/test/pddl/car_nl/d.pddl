@@ -42,8 +42,6 @@
                 )
     )
 
-    
-
     (:action decelerate
         :parameters ()
         :precondition (and (> (a) (min_acceleration)) (engine_running))
@@ -79,6 +77,6 @@
             (engine_stopped)
         )
     )
-    
+
 
 )

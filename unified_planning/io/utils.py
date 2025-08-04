@@ -35,7 +35,7 @@ def parse_file(obj, problem_filename: Union[str, Sequence[str]], parse_all):
         problem_parts: List[str] = []
         for filename in problem_filename:
             assert isinstance(filename, str), "Typing not respected"
-            with open(filename) as file:
+            with open(filename, encoding="utf-8-sig") as file:
                 problem_parts.append(file.read())
         return parse_string(obj, "\n".join(problem_parts), parse_all)
 

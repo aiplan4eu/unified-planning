@@ -234,8 +234,17 @@ class MAPDDLWriter:
                 out.write(" )\n")
 
             if self.domain_objects is None:
-                # This method populates the self._domain_objects map
-                self._populate_domain_objects(obe, ag)
+                if self.unfactored:
+                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
+                    for ag in self.problem.agents:
+                        self._populate_domain_objects(obe, ag)
+                        assert self.domain_objects is not None
+                        temp_domain_objects = temp_domain_objects | self.domain_objects
+                        self.domain_objects = None
+                    self.domain_objects = temp_domain_objects
+                else:
+                    # This method populates the self._domain_objects map
+                    self._populate_domain_objects(obe, ag)
             assert self.domain_objects is not None
 
             if len(self.all_public_fluents) == 0:
@@ -271,7 +280,7 @@ class MAPDDLWriter:
                     )
                     if len(predicates_agent) > 0:
                         predicates_agents.append(
-                            f"  (:private agent - {ag.name + '_type'}\n   {nl.join(predicates_agent)})\n"
+                            f"  (:private ?agent - {ag.name + '_type'}\n   {nl.join(predicates_agent)})\n"
                         )
             else:
                 predicates_agents, functions_agent = self.get_predicates_functions(
@@ -592,8 +601,17 @@ class MAPDDLWriter:
             out.write(f"(define (problem {name}-problem)\n")
             out.write(f" (:domain {name}-domain)\n")
             if self.domain_objects is None:
-                # This method populates the self._domain_objects map
-                self._populate_domain_objects(ObjectsExtractor(), ag)
+                if self.unfactored:
+                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
+                    for ag in self.problem.agents:
+                        self._populate_domain_objects(ObjectsExtractor(), ag)
+                        assert self.domain_objects is not None
+                        temp_domain_objects = temp_domain_objects | self.domain_objects
+                        self.domain_objects = None
+                    self.domain_objects = temp_domain_objects
+                else:
+                    # This method populates the self._domain_objects map
+                    self._populate_domain_objects(ObjectsExtractor(), ag)
             assert self.domain_objects is not None
             if len(self.problem.user_types) > 0:
                 out.write(" (:objects")
