@@ -801,8 +801,8 @@ class PDDLWriter:
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
-                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
                 out.write(f"\n             ")
+                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
                 _write_effect(
                     e,
                     None,
@@ -811,7 +811,7 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-                out.write(f"\n          )")
+                out.write(f")")
         out.write(f"\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):

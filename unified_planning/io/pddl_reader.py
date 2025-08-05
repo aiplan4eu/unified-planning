@@ -692,6 +692,10 @@ class PDDLReader:
                                 complete_str,
                             ),
                         )
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -722,6 +726,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -768,7 +776,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_increase_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_increase_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -803,6 +811,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_decrease_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -833,6 +845,10 @@ class PDDLReader:
                             ),
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_decrease_continuous_effect(*con_eff)
                         elif isinstance(act, up.model.DurativeAction):
@@ -851,6 +867,10 @@ class PDDLReader:
                             1,
                         )
 
+                        if forall_variables:
+                            raise UPUnsupportedProblemTypeError(
+                                "Continuous change with forall effects is not supported"
+                            )
                         if isinstance(act, up.model.Process):
                             act.add_increase_continuous_effect(*con_eff_without)
                         elif isinstance(act, up.model.DurativeAction):
@@ -879,7 +899,7 @@ class PDDLReader:
                         ),
                         cond,
                     )
-                    act.add_decrease_effect(*eff if timing is None else (timing, *eff))  # type: ignore
+                    act.add_decrease_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -1380,6 +1400,10 @@ class PDDLReader:
             elif father_name in types_map:
                 father = types_map[father_name]
             elif father_name in type_declarations:
+                if type == father_name:
+                    raise SyntaxError(
+                        f"Type '{type}' is defined as a subtype of itself"
+                    )
                 # father exists but was not processed yet. Force processing immediately
                 declare_type(father_name, type_declarations[father_name])
                 father = types_map[father_name]
@@ -2057,12 +2081,12 @@ class PDDLReader:
         :param problem_filename: Optionally the path to the file containing the `PDDL` problem.
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
-        with open(domain_filename, "r") as domain_file:
+        with open(domain_filename, encoding="utf-8-sig") as domain_file:
             domain_str = domain_file.read()
 
         problem_str = None
         if problem_filename is not None:
-            with open(problem_filename, "r") as problem_file:
+            with open(problem_filename, encoding="utf-8-sig") as problem_file:
                 problem_str = problem_file.read()
 
         return self.parse_problem_string(domain_str, problem_str)
@@ -2121,7 +2145,7 @@ class PDDLReader:
             plan from their name.
         :return: The up.plans.Plan corresponding to the parsed plan from the file
         """
-        with open(plan_filename) as plan:
+        with open(plan_filename, encoding="utf-8-sig") as plan:
             return self.parse_plan_string(problem, plan.read(), get_item_named)
 
     def parse_plan_string(

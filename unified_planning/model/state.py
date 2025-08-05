@@ -64,7 +64,17 @@ class UPState(State):
                 f"The max_ancestor field of a class extending UPState must be > 0 or None: in the class {type(self)} it is set to {type(self).MAX_ANCESTORS}"
             )
         self._father = _father
-        self._values = values.copy()
+        self._values = {}
+        for fluent, value in values.items():
+            if not fluent.is_fluent_exp():
+                raise UPValueError(
+                    f"The fluent '{fluent}' is not a fluent expression, but a '{fluent.node_type.name}'"
+                )
+            if not value.is_constant():
+                raise UPValueError(
+                    f"The value '{value}' assigned to the fluent '{fluent}' is not a constant, but a '{value.node_type.name}'"
+                )
+            self._values[fluent] = value
         if _father is None:
             self._ancestors = 0
         else:

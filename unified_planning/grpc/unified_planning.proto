@@ -766,6 +766,9 @@ message PlanRequest {
 
     // Engine specific options to be passed to the engine
     map<string, string> engine_options = 4;
+
+    // Plan that can be used to warm start the search.
+    Plan warm_start_plan = 5;
 }
 
 message ValidationRequest {

@@ -78,6 +78,7 @@ class ENHSP(PDDLAnytimePlanner):
             "-s",
             "gbfs",
             "-anytime",
+            "-npm",
         ]
 
     def _result_status(
@@ -103,6 +104,9 @@ class ENHSP(PDDLAnytimePlanner):
     def _parse_plan_line(self, plan_line: str) -> str:
         return plan_line.split(":")[1]
 
+    def _skip_plan_line(self, plan_line: str) -> bool:
+        return ": -----waiting---- [" in plan_line
+
     @staticmethod
     def satisfies(optimality_guarantee: up.engines.OptimalityGuarantee) -> bool:
         return True
@@ -117,7 +121,6 @@ class ENHSP(PDDLAnytimePlanner):
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
-        supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
@@ -133,7 +136,8 @@ class ENHSP(PDDLAnytimePlanner):
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
+        supported_kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS")
         supported_kind.set_fluents_type("INT_FLUENTS")
         supported_kind.set_fluents_type("REAL_FLUENTS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
@@ -142,8 +146,9 @@ class ENHSP(PDDLAnytimePlanner):
         supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
-        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_time("PROCESSES")
+        supported_kind.set_time("EVENTS")
+        supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return supported_kind
 
     @staticmethod
