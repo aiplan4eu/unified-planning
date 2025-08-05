@@ -3,6 +3,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (domain fn-counters)
+(:requirements :typing :numeric-fluents)
     (:types
         counter
     )
