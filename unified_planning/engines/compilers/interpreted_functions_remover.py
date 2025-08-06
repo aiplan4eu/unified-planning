@@ -43,6 +43,7 @@ from unified_planning.model.timing import StartTiming
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
 from unified_planning.model.walkers import Simplifier
+from unified_planning.exceptions import UPUnsupportedProblemTypeError
 
 
 class ElementKind(Enum):
@@ -310,6 +311,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_c = em.Or([exp] + extra_c)
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
+                if t is not None:
+                    if t.lower != t.upper:
+                        raise UPUnsupportedProblemTypeError(
+                            "Interpreted Functions planning does not support durative conditions that contain Interpreted Functions"
+                        )
                 ifs.append((t, new_c, ifuns, ElementKind.CONDITION, None))
             else:
                 conds.append((t, new_c))
