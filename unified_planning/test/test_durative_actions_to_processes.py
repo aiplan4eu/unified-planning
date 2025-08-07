@@ -25,6 +25,12 @@ from unified_planning.test import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
+from unified_planning.engines.results import (
+    ValidationResultStatus,
+    PlanGenerationResultStatus,
+)
+from unified_planning.exceptions import UPNoSuitableEngineAvailableException
+from unified_planning.plans import TimeTriggeredPlan
 
 
 class TestDurativeActionsToProcesses(unittest_TestCase):
@@ -1046,17 +1052,66 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         events = len(problem.actions) * 2 + 2
         self.assertEqual(len(new_problem.events), events)
 
-    # TODO complete this test after checks on supported ProblemKind
-    # def test_all(self):
-    #     with Compiler(
-    #         name="up_durative_actions_to_processes",
-    #         compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-    #     ) as cer:
-    #         for problem_name, tc in self.problems.items():
-    #             problem = tc.problem
-    #             kind = problem.kind
-    #             if cer.supports(kind):
-    #                 res = cer.compile(
-    #                     problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-    #                 )
-    #             new_problem = res.problem
+    def test_all(self):
+        known_skips = {
+            # "temporal_conditional",
+            # "matchcellar",
+            # "timed_connected_locations",
+            # ""
+        }
+
+        timeouts = []
+        with Compiler(
+            name="up_durative_actions_to_processes",
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+        ) as cer:
+            for problem_name, tc in self.problems.items():
+                if problem_name in known_skips:
+                    continue
+                problem = tc.problem
+                # debug
+                if problem_name != "robot_with_static_fluents_duration":
+                    continue
+
+                if not isinstance(problem, Problem):
+                    continue
+                kind = problem.kind
+                if any(
+                    not isinstance(a, (DurativeAction, InstantaneousAction))
+                    for a in problem.actions
+                ):
+                    continue
+                if all(isinstance(a, InstantaneousAction) for a in problem.actions):
+                    continue
+                if cer.supports(kind):
+                    print(problem_name)
+                    res = cer.compile(
+                        problem,
+                        CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+                    )
+                new_problem = res.problem
+                try:
+                    with OneshotPlanner(problem_kind=new_problem.kind) as planner:
+                        solver_res = planner.solve(new_problem, timeout=5)
+                        plan = solver_res.plan
+                        # if plan is None:
+                        #     with open(f"{problem_name}_problem.txt", "w") as f:
+                        #         f.write(str(problem))
+                        #     with open(f"{problem_name}_new_problem.txt", "w") as f:
+                        #         f.write(str(new_problem))
+                        # print("problem_name: ", problem_name)
+                        # print("status: ", solver_res.status)
+                        if solver_res.status == PlanGenerationResultStatus.TIMEOUT:
+                            timeouts.append(problem_name)
+                            continue
+                        self.assertIsInstance(plan, TimeTriggeredPlan, problem_name)
+                        original_plan = res.plan_conversion(plan)
+
+                except UPNoSuitableEngineAvailableException as e:
+                    continue
+                with PlanValidator(problem_kind=problem.kind) as validator:
+                    val_res = validator.validate(problem, original_plan)
+                    self.assertEqual(val_res.status, ValidationResultStatus.VALID)
+        print("30 seconds")
+        print(timeouts)
+        assert False
