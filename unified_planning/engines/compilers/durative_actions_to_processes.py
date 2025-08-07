@@ -30,6 +30,7 @@ from unified_planning.model import (
     Event,
     Timing,
     TimeInterval,
+    Expression,
     ExpressionManager,
     Type,
 )
@@ -38,6 +39,7 @@ from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.type_manager import TypeManager
+from unified_planning.model.walkers import Simplifier
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
 )
@@ -197,6 +199,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        assert (
+            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+        ), "Not supported compilation kind"
         assert isinstance(problem, Problem)
         env = problem.environment
         mgr: ExpressionManager = env.expression_manager
@@ -207,6 +212,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         new_problem = problem.clone()
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
         new_problem.clear_actions()
+
+        simplifier = Simplifier(new_problem.environment, problem)
 
         alive = Fluent(
             get_fresh_name(new_problem, "alive"), tm.BoolType(), environment=env
@@ -225,7 +232,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     start_action,
                     first_end_action,
                     first_end_timing,
-                ) = _compile_durative_action(action, new_problem, alive)
+                ) = _compile_durative_action(action, new_problem, alive, simplifier)
                 start_actions[start_action] = action
                 if first_end_action is not None:
                     assert first_end_timing is not None
@@ -246,12 +253,16 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 _plan_to_plan,
                 start_actions=start_actions,
                 end_actions=first_end_actions,
+                simplifier=simplifier,
             ),
         )
 
 
 def _compile_durative_action(
-    action: DurativeAction, new_problem: Problem, alive: Fluent
+    action: DurativeAction,
+    new_problem: Problem,
+    alive: Fluent,
+    simplifier: Simplifier,
 ) -> Tuple[InstantaneousAction, Optional[InstantaneousAction], Optional[Timing]]:
     env = new_problem.environment
     tm: TypeManager = env.type_manager
@@ -306,20 +317,20 @@ def _compile_durative_action(
         if first_end_timing is None:
             first_end_timing = EndTiming()
 
-        action_duration_exp: FNode = add_new_fluent(
+        action_duration_exp = add_new_fluent(
             "duration",
             tm.RealType(),
             mgr.Int(0),
         )
-        start_action.add_effect(action_duration_exp, 0)
+        start_action.add_effect(cast(FNode, action_duration_exp), 0)
 
         if not _is_end_timing(first_end_timing):
-            first_end_triggered: FNode = add_new_fluent(
+            first_end_triggered = add_new_fluent(
                 "first_end_triggered",
                 tm.BoolType(),
                 mgr.FALSE(),
             )
-            start_action.add_effect(first_end_triggered, False)
+            start_action.add_effect(cast(FNode, first_end_triggered), False)
 
         first_end_action = InstantaneousAction(
             get_fresh_name(new_problem, action.name, trailing_info="first_end"),
@@ -330,11 +341,13 @@ def _compile_durative_action(
         first_end_action.add_precondition(alive)
         first_end_action.add_precondition(action_running)
         first_end_action.add_precondition(
-            _first_end_action_duration_constraint(
-                action,
-                first_end_timing,
-                action_clock,
-                mgr,
+            simplifier.simplify(
+                _first_end_action_duration_constraint(
+                    action,
+                    first_end_timing,
+                    action_clock,
+                    mgr,
+                )
             )
         )
         if not _is_end_timing(first_end_timing):
@@ -381,72 +394,57 @@ def _compile_durative_action(
             time_constraint = mgr.Equals(clock_exp, timing_exp)
             if additional_constraint is not None:
                 time_constraint = mgr.And(additional_constraint, time_constraint)
-            end_action.add_precondition(time_constraint)
+            end_action.add_precondition(simplifier.simplify(time_constraint))
+    else:
+        duration_constraint = mgr.Equals(action_clock, action.duration.lower)
+        end_action.add_precondition(simplifier.simplify(duration_constraint))
 
     # conditions create an event that sets alive to False when violated
     for i, (interval, conditions) in enumerate(action.conditions.items()):
         assert isinstance(interval, TimeInterval)
 
-        inside_interval_condition = _inside_interval_condition(
-            interval,
-            first_end_timing,
-            first_end_triggered,
-        )
-        # TODO HERE. The idea is to get the inside_interval_condition, and
-        # use substitutions to check whether it is always empty, only sometimes or never,
-        # in the specific cases of start, first_end, and end.
-        # Also:
-        # - refactor with code below
-        # -also below, if it is always empty, don't create the event
-
+        # check start timing
         if _is_start_timing(interval.lower) and not interval.is_left_open():
-            if _is_start_timing(interval.upper):
-                if not interval.is_right_open():
-                    start_action.add_precondition(mgr.And(conditions))
+            start_action.add_precondition(mgr.And(conditions))
+            if _is_start_timing(interval.upper) and not interval.is_right_open():
                 continue
-            # TODO this needs to be fixed. ideas: we also need to check that the interval is not empty
-            # maybe a refactoring method that returns:
-            # - the 2 bounds (if included, otherwise None)
-            # - a condition that determines if the interval is, can be, or can't be empty
 
-        if (interval.lower == first_end_timing and not interval.is_left_open()) or (
-            interval.upper == first_end_timing and not interval.is_right_open()
+        # check first end timing
+        operand = None
+        from_start_timing = None
+        if interval.lower == first_end_timing and interval.upper.is_from_start():
+            operand = (
+                mgr.GT
+                if interval.is_right_open() and interval.is_left_open()
+                else mgr.GE
+            )
+            from_start_timing = interval.upper
+        elif interval.upper == first_end_timing and interval.lower.is_from_start():
+            operand = (
+                mgr.LT
+                if interval.is_right_open() and interval.is_left_open()
+                else mgr.LE
+            )
+            from_start_timing = interval.upper
+        if operand is not None:
+            assert from_start_timing is not None
+            assert first_end_action is not None
+            first_end_action.add_precondition(
+                simplifier.simplify(
+                    mgr.Or(
+                        mgr.Not(operand(from_start_timing.delay, action_clock)),
+                        mgr.And(conditions),
+                    )
+                )
+            )
+        elif first_end_timing is not None and _is_timepoint_interval(
+            interval, first_end_timing
         ):
             assert first_end_action is not None
-            assert first_end_timing is not None
-            if _is_timepoint_interval(interval, first_end_timing):
-                for c in conditions:
-                    first_end_action.add_precondition(c)
-                continue
-
-            # check if the interval is empty and add condition
-            is_empty_interval = _empty_interval_condition(
-                interval,
-                first_end_timing,
-                action_clock,
-                mgr,
-            )
-            # always empty
-            if is_empty_interval.is_true():
-                continue
-            and_conditions = mgr.And(conditions)
-            # never empty
-            if is_empty_interval.is_false():
-                first_end_action.add_precondition(and_conditions)
-            else:
-                # activate the conditions only when the interval is not empty
-                first_end_action.add_precondition(
-                    mgr.Or(is_empty_interval, and_conditions)
-                )
-        elif (_is_end_timing(interval.lower) and not interval.is_left_open()) or (
-            _is_end_timing(interval.upper) and not interval.is_right_open()
-        ):
-            end_action.add_precondition(mgr.And(conditions))
-            # TODO understand if here we also need to check for empty interval.
-            # Probably yes
+            first_end_action.add_precondition(simplifier.simplify(mgr.And(conditions)))
+            continue
 
         # default case
-        condition_failed_event = add_new_event(f"condition_{i}_failed")
         inside_interval = _inside_interval_condition(
             interval,
             first_end_timing,
@@ -457,8 +455,9 @@ def _compile_durative_action(
             mgr,
         )
         fail_condition = mgr.Or(map(mgr.Not, conditions))
-        condition_failed_event.add_precondition(inside_interval)
-        condition_failed_event.add_precondition(fail_condition)
+        condition_failed_event = add_new_event(f"condition_{i}_failed")
+        condition_failed_event.add_precondition(simplifier.simplify(inside_interval))
+        condition_failed_event.add_precondition(simplifier.simplify(fail_condition))
         condition_failed_event.add_effect(alive, False)
         condition_failed_event.add_effect(action_running, False)
 
@@ -489,7 +488,7 @@ def _compile_durative_action(
             time_constraint = mgr.Equals(clock_exp, timing_exp)
             if additional_constraint is not None:
                 time_constraint = mgr.And(additional_constraint, time_constraint)
-            effect_ev_or_act.add_precondition(time_constraint)
+            effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
 
             # add fluent to avoid infinite trigger of the event
             effect_done = add_new_fluent(
@@ -511,7 +510,9 @@ def _compile_durative_action(
     duration_exceeded_condition = duration_exceeded_operand(
         action_clock, action.duration.upper
     )
-    duration_exceeded_event.add_precondition(duration_exceeded_condition)
+    duration_exceeded_event.add_precondition(
+        simplifier.simplify(duration_exceeded_condition)
+    )
     duration_exceeded_event.add_effect(alive, False)
     duration_exceeded_event.add_effect(action_running, False)
 
@@ -525,7 +526,9 @@ def _compile_durative_action(
             action_clock,
             mgr.Plus(action.duration.upper, first_end_timing.delay),
         )
-        first_end_late_event.add_precondition(first_end_late_condition)
+        first_end_late_event.add_precondition(
+            simplifier.simplify(first_end_late_condition)
+        )
         first_end_late_event.add_effect(alive, False)
         first_end_late_event.add_effect(action_running, False)
 
@@ -552,54 +555,6 @@ def _add_new_fluent(
     new_problem.add_fluent(fluent, default_initial_value=default_initial_value)
     fluent_exp: FNode = fluent(*action.parameters)
     return fluent_exp
-
-
-def _empty_interval_condition_2(
-    interval: TimeInterval,
-    first_end_timing: Optional[Timing],
-    first_end_triggered: Optional[FNode],
-    action_clock: FNode,
-    action_duration_exp: Optional[FNode],
-    action_duration: DurationInterval,
-    mgr: ExpressionManager,
-) -> FNode:
-
-    inside_interval = _inside_interval_condition(
-        interval,
-        first_end_timing,
-        first_end_triggered,
-        action_clock,
-        action_duration_exp,
-        action_duration,
-        mgr,
-    )
-
-
-# # TODO redesign this method to work on general timings
-# def _empty_interval_condition(interval: TimeInterval, first_end_timing: Timing, action_clock: FNode, mgr: ExpressionManager) -> FNode:
-#     is_empty_interval: FNode = mgr.FALSE()
-#     if (
-#         interval.lower == first_end_timing
-#         and interval.upper.is_from_start()
-#     ):
-#         operand = mgr.GE if interval.is_right_open() else mgr.GT
-#         is_empty_interval = operand(action_clock, interval.upper.delay)
-#     elif (
-#         interval.upper == first_end_timing
-#         and interval.lower.is_from_start()
-#     ):
-#         operand = mgr.LE if interval.is_left_open() else mgr.LT
-#         is_empty_interval = operand(action_clock, interval.lower.delay)
-#     elif (
-#         interval.upper == first_end_timing and interval.lower.is_from_end()
-#     ):
-#         # lower comes after upper
-#         assert (
-#             interval.upper.delay < interval.lower.delay
-#             or interval.is_right_open()
-#         )
-#         is_empty_interval = mgr.TRUE()
-#     return is_empty_interval
 
 
 def _first_end_action_duration_constraint(
@@ -784,6 +739,7 @@ def _plan_to_plan(
     plan: TimeTriggeredPlan,
     start_actions: Dict[Action, Action],
     end_actions: Dict[Action, Tuple[Action, Timing]],
+    simplifier: Simplifier,
 ) -> TimeTriggeredPlan:
     if not isinstance(plan, TimeTriggeredPlan):
         raise NotImplementedError()
@@ -801,27 +757,40 @@ def _plan_to_plan(
             raise NotImplementedError()
         parameters = old_action_instance.actual_parameters
 
-        new_action = start_actions.get(old_action)
+        original_action = start_actions.get(old_action)
         # represents a start_action
-        if new_action is not None:
-            new_actions[new_action, parameters].append(
-                (trigger_time, new_action(*parameters), None)
+        if original_action is not None:
+            duration: Optional[Fraction] = None
+            if isinstance(
+                original_action, DurativeAction
+            ) and not _action_variable_duration(original_action):
+                # TODO this fails with fluents in duration
+                assert len(original_action.parameters) == len(parameters)
+                subs: Dict[Expression, Expression] = dict(
+                    zip(original_action.parameters, parameters)
+                )
+                duration_lower = simplifier.simplify(
+                    original_action.duration.lower.substitute(subs)
+                )
+                assert duration_lower.is_constant(), duration_lower
+                duration = Fraction(duration_lower.constant_value())
+            new_actions[original_action, parameters].append(
+                (trigger_time, original_action(*parameters), duration)
             )
             continue
-        new_action, timing = end_actions.get(old_action, (None, None))
+        original_action, timing = end_actions.get(old_action, (None, None))
+        if original_action is None:
+            raise NotImplementedError()  # TODO change these raises to meaningful exceptions because there is an action in the plan that does not come from the original problem
         # represents a first_end action
-        if new_action is not None:
-            assert isinstance(new_action, DurativeAction)
-            assert isinstance(timing, Timing)
-            new_actions_list = new_actions[new_action, parameters]
-            start_trigger_time, new_action_instance, duration = new_actions_list.pop()
-            assert duration is None
-            assert trigger_time >= start_trigger_time
-            assert timing.delay <= 0
-            duration = trigger_time - start_trigger_time - timing.delay
-            new_actions_list.append((start_trigger_time, new_action_instance, duration))
-        else:
-            raise NotImplementedError()  # TODO change these raises to meaningful exceptions
+        assert isinstance(original_action, DurativeAction)
+        assert isinstance(timing, Timing)
+        new_actions_list = new_actions[original_action, parameters]
+        start_trigger_time, new_action_instance, duration = new_actions_list.pop()
+        assert duration is None
+        assert trigger_time >= start_trigger_time
+        assert timing.delay <= 0
+        duration = trigger_time - start_trigger_time - timing.delay
+        new_actions_list.append((start_trigger_time, new_action_instance, duration))
 
     timed_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
     for trigger_time, action_instance, duration in chain(*new_actions.values()):
