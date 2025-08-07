@@ -237,7 +237,7 @@ class FNode(object):
             "unified_planning.model.expression.Expression",
             "unified_planning.model.expression.Expression",
         ],
-    ):
+    ) -> "FNode":
         """
         Returns the version of this expression where every expression that is a key of the substitutions
         map is substituted with it's value in the map.
