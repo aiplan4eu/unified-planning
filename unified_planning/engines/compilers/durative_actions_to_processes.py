@@ -34,7 +34,11 @@ from unified_planning.model import (
     ExpressionManager,
     Type,
 )
-from unified_planning.model.expression import ConstantExpression
+from unified_planning.model.expression import (
+    ConstantExpression,
+    NumericConstant,
+    uniform_numeric_constant,
+)
 from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.fluent import get_all_fluent_exp
@@ -63,11 +67,14 @@ from fractions import Fraction
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
-    def __init__(self):
+    def __init__(self, default_epsilon: NumericConstant = Fraction(1, 100)):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(
             self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
         )
+        if default_epsilon < 0:
+            raise NotImplementedError()  # TODO raise decent expression
+        self._default_epsilon = Fraction(uniform_numeric_constant(default_epsilon))
         # interesting flags to support:
         # use_counters (instead of a big and at the end to check actions running)
         # a flag to add conditions to end effects
@@ -213,6 +220,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
         new_problem.clear_actions()
 
+        epsilon: Fraction = (
+            problem.epsilon if problem.epsilon is not None else self._default_epsilon
+        )
+
         simplifier = Simplifier(new_problem.environment, problem)
 
         alive = Fluent(
@@ -232,7 +243,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     start_action,
                     first_end_action,
                     first_end_timing,
-                ) = _compile_durative_action(action, new_problem, alive, simplifier)
+                ) = _compile_durative_action(
+                    action, new_problem, alive, simplifier, epsilon
+                )
                 start_actions[start_action] = action
                 if first_end_action is not None:
                     assert first_end_timing is not None
@@ -263,6 +276,7 @@ def _compile_durative_action(
     new_problem: Problem,
     alive: Fluent,
     simplifier: Simplifier,
+    epsilon: Fraction,
 ) -> Tuple[InstantaneousAction, Optional[InstantaneousAction], Optional[Timing]]:
     env = new_problem.environment
     tm: TypeManager = env.type_manager
@@ -391,12 +405,16 @@ def _compile_durative_action(
                 action.duration,
                 mgr,
             )
-            time_constraint = mgr.Equals(clock_exp, timing_exp)
+            # use GE instead of Equals to avoid equality among floats
+            time_constraint = mgr.GE(clock_exp, mgr.Plus(timing_exp, epsilon))
             if additional_constraint is not None:
                 time_constraint = mgr.And(additional_constraint, time_constraint)
             end_action.add_precondition(simplifier.simplify(time_constraint))
     else:
-        duration_constraint = mgr.Equals(action_clock, action.duration.lower)
+        # use GE instead of Equals to avoid equality among floats
+        duration_constraint = mgr.GE(
+            action_clock, mgr.Plus(action.duration.lower, epsilon)
+        )
         end_action.add_precondition(simplifier.simplify(duration_constraint))
 
     # conditions create an event that sets alive to False when violated
@@ -485,7 +503,7 @@ def _compile_durative_action(
                 action.duration,
                 mgr,
             )
-            time_constraint = mgr.Equals(clock_exp, timing_exp)
+            time_constraint = mgr.Equals(clock_exp, mgr.Plus(timing_exp, epsilon))
             if additional_constraint is not None:
                 time_constraint = mgr.And(additional_constraint, time_constraint)
             effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
@@ -508,7 +526,7 @@ def _compile_durative_action(
     duration_exceeded_event = add_new_event("duration_exceeded_error")
     duration_exceeded_operand = mgr.GE if action.duration.is_right_open() else mgr.GT
     duration_exceeded_condition = duration_exceeded_operand(
-        action_clock, action.duration.upper
+        action_clock, mgr.Plus(action.duration.upper, 2 * epsilon)
     )
     duration_exceeded_event.add_precondition(
         simplifier.simplify(duration_exceeded_condition)
