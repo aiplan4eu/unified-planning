@@ -72,9 +72,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         CompilerMixin.__init__(
             self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
         )
-        if default_epsilon < 0:
-            raise NotImplementedError()  # TODO raise decent expression
         self._default_epsilon = Fraction(uniform_numeric_constant(default_epsilon))
+        if self._default_epsilon < 0:
+            raise NotImplementedError()  # TODO raise decent expression
         # interesting flags to support:
         # use_counters (instead of a big and at the end to check actions running)
         # a flag to add conditions to end effects
