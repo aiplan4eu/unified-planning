@@ -1053,18 +1053,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(new_problem.events), events)
 
     def test_all(self):
-        known_skips = {
-            # "temporal_conditional",
-            # "matchcellar",
-            # "timed_connected_locations",
-            # ""
-        }
 
-        timeouts = []
-        solved = []
-        # set epsilon as 0.001
         with OneshotPlanner(
-            name="opt-pddl-planner", params={"params": "-d 0.001"}
+            name="opt-pddl-planner",
+            params={"params": "-d 0.001"},  # set epsilon as 0.001
         ) as solver:
 
             with Compiler(
@@ -1072,13 +1064,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
             ) as cer:
                 for problem_name, tc in self.problems.items():
-                    if problem_name in known_skips:
-                        continue
                     problem = tc.problem
-                    # # debug
-                    # if problem_name != "robot_with_static_fluents_duration":
-                    #     continue
-
                     if not isinstance(problem, Problem):
                         continue
                     kind = problem.kind
@@ -1091,31 +1077,16 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         continue
                     if not cer.supports(kind):
                         continue
-                    print(problem_name)
                     res = cer.compile(
                         problem,
                         CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
                     )
                     new_problem = res.problem
                     if not solver.supports(new_problem.kind):
-                        print(f"{problem_name} skipped because not supported")
-                        print(
-                            new_problem.kind.features.difference(
-                                solver.supported_kind().features
-                            )
-                        )
                         continue
-                    solver_res = solver.solve(new_problem, timeout=30)
+                    solver_res = solver.solve(new_problem, timeout=5)
                     plan = solver_res.plan
-                    # if plan is None:
-                    #     with open(f"{problem_name}_problem.txt", "w") as f:
-                    #         f.write(str(problem))
-                    #     with open(f"{problem_name}_new_problem.txt", "w") as f:
-                    #         f.write(str(new_problem))
-                    # print("problem_name: ", problem_name)
-                    # print("status: ", solver_res.status)
                     if solver_res.status == PlanGenerationResultStatus.TIMEOUT:
-                        timeouts.append(problem_name)
                         continue
                     self.assertIsInstance(plan, TimeTriggeredPlan, problem_name)
                     original_plan = res.plan_conversion(plan)
@@ -1125,10 +1096,3 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         self.assertEqual(
                             val_res.status, ValidationResultStatus.VALID, problem_name
                         )
-                    solved.append(problem_name)
-        print("timeouts")
-        print(timeouts)
-
-        print("solved")
-        print(solved)
-        assert False
