@@ -137,7 +137,7 @@ def create_effect_with_given_subs(
     subs: Dict[Expression, Expression],
 ) -> Optional[Effect]:
     new_fluent = old_effect.fluent.substitute(subs)
-    new_value = old_effect.value.substitute(subs)
+    new_value = simplifier.simplify(old_effect.value.substitute(subs))
     new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
     if new_condition == problem.environment.expression_manager.FALSE():
         return None
@@ -266,6 +266,19 @@ def get_fresh_name(
     count = 0
     while problem.has_name(new_name):
         new_name = f"{base_name}_{str(count)}"
+        count += 1
+    return new_name
+
+
+def get_fresh_parameter_name(action: Action, name: str):
+    """This method returns a fresh name for a parameter in the action, given a name and the action"""
+    name_list: List[str] = []
+    for p in action.parameters:
+        name_list.append(p.name)
+    count = 0
+    new_name = name
+    while new_name in name_list:
+        new_name = f"{name}_{str(count)}"
         count += 1
     return new_name
 
