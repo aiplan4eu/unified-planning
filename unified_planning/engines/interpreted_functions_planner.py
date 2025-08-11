@@ -19,6 +19,7 @@ import unified_planning as up
 from unified_planning.engines.compilers.interpreted_functions_remover import (
     InterpretedFunctionsRemover,
 )
+from unified_planning.engines.compilers.grounder import Grounder
 import unified_planning.engines.mixins as mixins
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.plan_validator import (
@@ -143,13 +144,6 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
-        # clean memoization values for interpreted functions as we cannot guarantee that the callables are the same as in the last metaengine call
-        memoization_keys_to_delete = []
-        for key, _ in problem.environment.simplifier.memoization.items():
-            if key.is_interpreted_function_exp():
-                memoization_keys_to_delete.append(key)
-        for key_to_del in memoization_keys_to_delete:
-            del problem.environment.simplifier.memoization[key_to_del]
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
         start = time.time()
         knowledge: Dict[up.model.InterpretedFunction, up.model.FNode] = {}
