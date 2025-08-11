@@ -14,11 +14,13 @@
 #
 
 from collections import defaultdict
+from fractions import Fraction
 from itertools import chain
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model import (
     Action,
     Problem,
@@ -63,7 +65,6 @@ from unified_planning.model.timing import (
     EndTiming,
 )
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
-from fractions import Fraction
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
@@ -74,7 +75,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         )
         self._default_epsilon = Fraction(uniform_numeric_constant(default_epsilon))
         if self._default_epsilon < 0:
-            raise NotImplementedError()  # TODO raise decent expression
+            raise UPUsageError(
+                f"Default epsilon must be >= 0. Default epsilon given: {self._default_epsilon}"
+            )
         # interesting flags to support:
         # use_counters (instead of a big and at the end to check actions running)
         # a flag to add conditions to end effects
@@ -104,7 +107,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_time("EVENTS")
 
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-        # supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS") # TODO
+        # supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS") # TODO to support this check comments in the code
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
 
@@ -119,7 +122,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
-        # supported_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS") # TODO #
+        # supported_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS") # TODO
         # supported_kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS") # TODO
         # supported_kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS") # TODO
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -197,7 +200,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
         new_kind.set_time("PROCESSES")
         new_kind.set_time("EVENTS")
-        # new_kind.set_fluents_type("INT_FLUENTS") # TODO should not do that
+        # new_kind.set_fluents_type("INT_FLUENTS") # TODO should not do that unless we support the counter fluent
         new_kind.set_fluents_type("REAL_FLUENTS")
         return new_kind
 
@@ -726,7 +729,6 @@ def _inside_interval_condition(
         # the end has been triggered and the constraint is valid
         right_bound = mgr.Or(
             mgr.Not(right_additional_constraint),
-            # mgr.And(right_additional_constraint, right_bound), # TODO only right bound should be enough. in the whole OR the right_additional_constraint is redundant
             right_bound,
         )
 
@@ -752,7 +754,6 @@ def _is_timepoint_interval(interval: TimeInterval, timing: Timing) -> bool:
     )
 
 
-# TODO think what happens if the first end has the same timing (or before) the start of the action
 def _plan_to_plan(
     plan: TimeTriggeredPlan,
     start_actions: Dict[Action, Action],
@@ -783,6 +784,8 @@ def _plan_to_plan(
                 original_action, DurativeAction
             ) and not _action_variable_duration(original_action):
                 # TODO this fails with fluents in duration
+                # this is the hardest part about supporting fluents in duration:
+                # to revert a plan you need to simulate it and know the value of the duration in the state where the action is started
                 assert len(original_action.parameters) == len(parameters)
                 subs: Dict[Expression, Expression] = dict(
                     zip(original_action.parameters, parameters)
@@ -798,7 +801,9 @@ def _plan_to_plan(
             continue
         original_action, timing = end_actions.get(old_action, (None, None))
         if original_action is None:
-            raise NotImplementedError()  # TODO change these raises to meaningful exceptions because there is an action in the plan that does not come from the original problem
+            raise UPValueError(
+                f"The action {old_action.name} in the given plan is neither a start_action or an end_action originated from the {DurativeActionToProcesses.__name__} compiler"
+            )
         # represents a first_end action
         assert isinstance(original_action, DurativeAction)
         assert isinstance(timing, Timing)
