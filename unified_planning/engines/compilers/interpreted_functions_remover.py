@@ -44,6 +44,7 @@ from unified_planning.plans.plan import ActionInstance
 from unified_planning.shortcuts import BoolType
 from unified_planning.model.walkers import Simplifier
 from unified_planning.exceptions import UPUnsupportedProblemTypeError
+from unified_planning.model.interpreted_function import InterpretedFunction
 
 
 class ElementKind(Enum):
@@ -352,11 +353,16 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_conds: List = []
             new_effs: List = []
             i = 0
-            name_and_pars_to_knum: Dict[
-                tuple[str, list[up.model.fnode.FNode]], up.model.Parameter
+            IF_and_pars_to_knum: Dict[
+                tuple[InterpretedFunction, list[up.model.fnode.FNode]],
+                up.model.Parameter,
             ] = {}
-            name_and_pars_and_timestamp_to_knum: Dict[
-                tuple[str, list[up.model.fnode.FNode], up.model.timing.Timing],
+            IF_and_pars_and_timestamp_to_knum: Dict[
+                tuple[
+                    InterpretedFunction,
+                    list[up.model.fnode.FNode],
+                    up.model.timing.Timing,
+                ],
                 up.model.Parameter,
             ] = {}
             for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
@@ -381,32 +387,32 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 ifun,
                                 ifun_exp.args,
                                 t,
-                            ) not in name_and_pars_and_timestamp_to_knum.keys():
+                            ) not in IF_and_pars_and_timestamp_to_knum.keys():
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
                                 new_param = up.model.Parameter(p_n, kNum)
                                 new_params.append(new_param)
-                                name_and_pars_and_timestamp_to_knum[
+                                IF_and_pars_and_timestamp_to_knum[
                                     (ifun, ifun_exp.args, t)
                                 ] = new_param
                             else:
-                                new_param = name_and_pars_and_timestamp_to_knum[
+                                new_param = IF_and_pars_and_timestamp_to_knum[
                                     (ifun, ifun_exp.args, t)
                                 ]
                         else:
                             if (
                                 ifun,
                                 ifun_exp.args,
-                            ) not in name_and_pars_to_knum.keys():
+                            ) not in IF_and_pars_to_knum.keys():
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
                                 new_param = up.model.Parameter(p_n, kNum)
                                 new_params.append(new_param)
-                                name_and_pars_to_knum[(ifun, ifun_exp.args)] = new_param
+                                IF_and_pars_to_knum[(ifun, ifun_exp.args)] = new_param
                             else:
-                                new_param = name_and_pars_to_knum[(ifun, ifun_exp.args)]
+                                new_param = IF_and_pars_to_knum[(ifun, ifun_exp.args)]
 
                         subs[ifun_exp] = f(new_param)
                     l2 = []
