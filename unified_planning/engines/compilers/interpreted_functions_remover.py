@@ -219,43 +219,36 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         kNums: Dict = {}
         for ifun_exp, val in self._interpreted_functions_values.items():
             ifun = ifun_exp.interpreted_function()
-            if ifun.name in kNums:
-                kNum = kNums[ifun.name]
+            if ifun in kNums:
+                kNum = kNums[ifun]
             else:
                 kNum = env.type_manager.UserType(
                     get_fresh_name(new_problem, f"kNum_{ifun.name}")
                 )
-                kNums[ifun.name] = kNum
-            if ifun.name not in if_known:
-                if_known[ifun.name] = []
-            if ifun.name not in new_fluents:
+                kNums[ifun] = kNum
+            if ifun not in if_known:
+                if_known[ifun] = []
+            if ifun not in new_fluents:
                 f_name = get_fresh_name(new_problem, f"_f_{ifun.name}")
                 f = Fluent(f_name, ifun.return_type, p=kNum)
-                new_fluents[ifun.name] = f
+                new_fluents[ifun] = f
                 default_value = self._default_value_given_type(
                     ifun.return_type, problem
                 )
                 new_problem.add_fluent(f, default_initial_value=default_value)
             else:
-                f = new_fluents[ifun.name]
-            if ifun_exp.interpreted_function().name not in new_objects:
-                new_objects[ifun_exp.interpreted_function().name] = {}
+                f = new_fluents[ifun]
+            if ifun_exp.interpreted_function() not in new_objects:
+                new_objects[ifun_exp.interpreted_function()] = {}
 
-            if (
-                tuple(ifun_exp.args)
-                in new_objects[ifun_exp.interpreted_function().name]
-            ):
-                o = new_objects[ifun_exp.interpreted_function().name][
-                    tuple(ifun_exp.args)
-                ]
+            if tuple(ifun_exp.args) in new_objects[ifun_exp.interpreted_function()]:
+                o = new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)]
             else:
                 o = Object(get_fresh_name(new_problem, f"_o_{kNum.name}"), kNum)
-                new_objects[ifun_exp.interpreted_function().name][
-                    tuple(ifun_exp.args)
-                ] = o
+                new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)] = o
                 new_problem.add_object(o)
-            if tuple(ifun_exp.args) not in if_known[ifun.name]:
-                if_known[ifun.name].append(tuple(ifun_exp.args))
+            if tuple(ifun_exp.args) not in if_known[ifun]:
+                if_known[ifun].append(tuple(ifun_exp.args))
             new_problem.set_initial_value(f(o), val)
 
         is_unknown_fluents: Dict = {}
@@ -372,20 +365,20 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 l1 = []
                 for ifun_exp in ifuns:
                     ifun = ifun_exp.interpreted_function()
-                    if ifun.name not in if_known:
+                    if ifun not in if_known:
                         continue
                     if known:
                         i += 1
-                        f = new_fluents[ifun.name]
+                        f = new_fluents[ifun]
                         kNum = f.signature[0].type
                         fluents_in_if_pars = self.free_vars_extractor.get(ifun_exp)
-                        # if only pars -> map (ifun.name, [pars]) -> parameter object
+                        # if only pars -> map (ifun, [pars]) -> parameter object
                         # we don't have to worry about them changing over time
-                        # if has fluents -> map (ifun.name, [pars], timestamp) -> parameter object
+                        # if has fluents -> map (ifun, [pars], timestamp) -> parameter object
                         # at the same time we can use the same object, but different times might require different objects
                         if len(fluents_in_if_pars) > 0:
                             if (
-                                ifun.name,
+                                ifun,
                                 ifun_exp.args,
                                 t,
                             ) not in name_and_pars_and_timestamp_to_knum.keys():
@@ -395,15 +388,15 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 new_param = up.model.Parameter(p_n, kNum)
                                 new_params.append(new_param)
                                 name_and_pars_and_timestamp_to_knum[
-                                    (ifun.name, ifun_exp.args, t)
+                                    (ifun, ifun_exp.args, t)
                                 ] = new_param
                             else:
                                 new_param = name_and_pars_and_timestamp_to_knum[
-                                    (ifun.name, ifun_exp.args, t)
+                                    (ifun, ifun_exp.args, t)
                                 ]
                         else:
                             if (
-                                ifun.name,
+                                ifun,
                                 ifun_exp.args,
                             ) not in name_and_pars_to_knum.keys():
                                 p_n = get_fresh_parameter_name(
@@ -411,17 +404,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 )
                                 new_param = up.model.Parameter(p_n, kNum)
                                 new_params.append(new_param)
-                                name_and_pars_to_knum[
-                                    (ifun.name, ifun_exp.args)
-                                ] = new_param
+                                name_and_pars_to_knum[(ifun, ifun_exp.args)] = new_param
                             else:
-                                new_param = name_and_pars_to_knum[
-                                    (ifun.name, ifun_exp.args)
-                                ]
+                                new_param = name_and_pars_to_knum[(ifun, ifun_exp.args)]
 
                         subs[ifun_exp] = f(new_param)
                     l2 = []
-                    for p_known in if_known[ifun.name]:
+                    for p_known in if_known[ifun]:
                         pf = em.And(
                             [
                                 em.EqualsOrIff(v1, v2)
@@ -429,9 +418,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             ]
                         )
                         if known:
-                            o = new_objects[ifun_exp.interpreted_function().name][
-                                p_known
-                            ]
+                            o = new_objects[ifun_exp.interpreted_function()][p_known]
                             implies.append((t, em.Implies(pf, em.Equals(new_param, o))))
                         l2.append(pf)
                     if len(l2) != 0:
@@ -688,7 +675,7 @@ def knowledge_compatible(ifs, known, key_list):
                 else:
                     kifuns.append((t, ifun))
 
-                if ifun.interpreted_function().name not in key_list:
+                if ifun.interpreted_function() not in key_list:
                     retval = False
         else:
             for ifun in ifuns:
