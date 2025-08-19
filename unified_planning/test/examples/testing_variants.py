@@ -14,6 +14,7 @@
 
 
 from itertools import product
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -368,6 +369,73 @@ def get_example_problems():
         problem=problem, solvable=True, valid_plans=[plan]
     )
     problems["robot_loader_weak_bridge"] = robot_loader_weak_bridge
+
+    # robot with variable duration. the variants have different constraints on the action duration
+    base_problem = Problem("robot_with_variable_duration")
+    Location = UserType("Location")
+    Robot = UserType("Robot")
+
+    is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
+    is_connected = Fluent("is_connected", BoolType(), l_from=Location, l_to=Location)
+    distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+    base_problem.add_fluent(is_at, default_initial_value=False)
+    base_problem.add_fluent(is_connected, default_initial_value=False)
+    base_problem.add_fluent(distance, default_initial_value=1)
+
+    r1 = Object("r1", Robot)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    base_problem.add_objects([r1, l1, l2, l3, l4, l5])
+
+    base_problem.set_initial_value(is_at(l1, r1), True)
+    base_problem.set_initial_value(is_connected(l1, l2), True)
+    base_problem.set_initial_value(is_connected(l2, l3), True)
+    base_problem.set_initial_value(is_connected(l3, l4), True)
+    base_problem.set_initial_value(is_connected(l4, l5), True)
+    base_problem.set_initial_value(distance(l1, l2), 10)
+    base_problem.set_initial_value(distance(l2, l3), 10)
+    base_problem.set_initial_value(distance(l3, l4), 10)
+    base_problem.set_initial_value(distance(l4, l5), 10)
+    base_problem.add_goal(is_at(l5, r1))
+
+    base_dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
+    r = base_dur_move.parameter("r")
+    l_from = base_dur_move.parameter("l_from")
+    l_to = base_dur_move.parameter("l_to")
+    base_dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+
+    durations = [
+        ("[5, 7]", DurationInterval(Int(5), Int(7), False, False)),
+        ("(5, 7)", DurationInterval(Int(5), Int(7), True, True)),
+        ("[5, 5]", DurationInterval(Int(5), Int(7), True, True)),
+    ]
+    delays = [0, 1]
+
+    for (
+        (duration_str, duration_interval),
+        start_delay_cond,
+        start_delay_eff,
+        end_delay_eff,
+    ) in product(durations, delays, delays, delays):
+        problem = base_problem.clone()
+        dur_move = base_dur_move.clone()
+        dur_move.add_condition(StartTiming() + start_delay_cond, Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming() + start_delay_eff, is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming() - end_delay_eff, is_at(l_to, r), True)
+        dur_move.set_duration_constraint(duration_interval)
+        problem.add_action(dur_move)
+        problem_name_list = [cast(str, base_problem.name), duration_str]
+        if start_delay_cond != 0:
+            problem_name_list.append(f"start delay cond: {start_delay_cond}")
+        if start_delay_eff != 0:
+            problem_name_list.append(f"start delay eff: {start_delay_eff}")
+        if end_delay_eff != 0:
+            problem_name_list.append(f"end delay eff: {end_delay_eff}")
+        problem.name = " ".join(problem_name_list)
+        problems[problem.name] = TestCase(problem, True)
 
     # hierarchical blocks world exists
     Entity = UserType("Entity", None)  # None can be avoided

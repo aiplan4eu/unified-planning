@@ -20,6 +20,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model import (
     Action,
@@ -34,6 +35,7 @@ from unified_planning.model import (
     TimeInterval,
     Expression,
     ExpressionManager,
+    MinimizeActionCosts,
     Type,
 )
 from unified_planning.model.expression import (
@@ -97,7 +99,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
 
         supported_kind.set_time("CONTINUOUS_TIME")
-        # supported_kind.set_time("DISCRETE_TIME") # TODO
+        supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("TIMED_EFFECTS")
@@ -119,12 +121,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 
-        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
-        # supported_kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS") # TODO
-        # supported_kind.set_effects_kind("DECREASE_CONTINUOUS_EFFECTS") # TODO
-        # supported_kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS") # TODO
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
@@ -147,18 +145,16 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_fluents_type("REAL_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
 
-        # supported_kind.set_quality_metrics("ACTIONS_COST") # TODO add support to this
-        # supported_kind.set_quality_metrics("PLAN_LENGTH") # TODO this should not be generally supported
+        supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
 
-        # TODO supported after action_cost is added
-        # supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
-        # supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
-        # supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
-        # supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
 
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
@@ -261,15 +257,39 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
         new_problem.add_goal(alive)
 
+        new_problem.clear_quality_metrics()
+        for qm in problem.quality_metrics:
+            if isinstance(qm, MinimizeActionCosts):
+                new_problem.add_quality_metric(
+                    _convert_action_costs(qm, start_actions, first_end_actions)
+                )
+            else:
+                new_problem.add_quality_metric(qm)
+
         return CompilerResult(
             new_problem,
             None,
             self.name,
             plan_back_conversion=partial(
-                _plan_to_plan,
+                _back_plan_to_plan,
                 start_actions=start_actions,
                 end_actions=first_end_actions,
                 simplifier=simplifier,
+            ),
+            plan_forward_conversion=partial(
+                _forward_plan_to_plan,
+                start_actions_forward={
+                    original_action: compiled_action
+                    for compiled_action, original_action in start_actions.items()
+                },
+                end_actions_forward={
+                    original_action: (compiled_action, first_end_timing)
+                    for compiled_action, (
+                        original_action,
+                        first_end_timing,
+                    ) in first_end_actions.items()
+                },
+                environment=env,
             ),
         )
 
@@ -754,7 +774,22 @@ def _is_timepoint_interval(interval: TimeInterval, timing: Timing) -> bool:
     )
 
 
-def _plan_to_plan(
+def _convert_action_costs(
+    qm: MinimizeActionCosts,
+    start_actions: Dict[Action, Action],
+    first_end_actions: Dict[Action, Tuple[Action, Timing]],
+) -> MinimizeActionCosts:
+    new_costs: Dict[Action, Expression] = {}
+    for compiled_action, original_action in start_actions.items():
+        cost = qm.get_action_cost(original_action)
+        if cost is not None:
+            new_costs[compiled_action] = cost
+    for compiled_action in first_end_actions.keys():
+        new_costs[compiled_action] = 0
+    return MinimizeActionCosts(new_costs, qm.default, qm.environment)
+
+
+def _back_plan_to_plan(
     plan: TimeTriggeredPlan,
     start_actions: Dict[Action, Action],
     end_actions: Dict[Action, Tuple[Action, Timing]],
@@ -826,3 +861,36 @@ def _plan_to_plan(
         timed_actions.append((trigger_time, action_instance, duration))
 
     return TimeTriggeredPlan(timed_actions)
+
+
+def _forward_plan_to_plan(
+    plan: TimeTriggeredPlan,
+    start_actions_forward: Dict[Action, Action],
+    end_actions_forward: Dict[Action, Tuple[Action, Timing]],
+    environment: Environment,
+) -> TimeTriggeredPlan:
+    if not isinstance(plan, TimeTriggeredPlan):
+        raise NotImplementedError()
+
+    actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
+    original_action_instance: ActionInstance
+    for trigger_time, original_action_instance, duration in plan.timed_actions:
+        original_action, params = (
+            original_action_instance.action,
+            original_action_instance.actual_parameters,
+        )
+        compiled_start_action = start_actions_forward[original_action]
+        assert isinstance(compiled_start_action, InstantaneousAction)
+        actions.append((trigger_time, compiled_start_action(*params), None))
+
+        compiled_end_action, first_end_timing = end_actions_forward.get(
+            original_action, (None, None)
+        )
+        if compiled_end_action is not None:
+            assert first_end_timing is not None and duration is not None
+            end_trigger_time_delay = duration + first_end_timing.delay
+            assert 0 < end_trigger_time_delay <= duration
+            end_trigger_time = trigger_time + end_trigger_time_delay
+            actions.append((end_trigger_time, compiled_end_action(*params), None))
+
+    return TimeTriggeredPlan(actions, environment)
