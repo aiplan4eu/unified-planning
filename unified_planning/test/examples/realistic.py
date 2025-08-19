@@ -909,6 +909,117 @@ def get_example_problems():
     problem.add_timed_goal(GlobalStartTiming() + 50, is_at(l5, r1))
     problems[name] = TestCase(problem=problem, solvable=True, valid_plans=[t_plan])
 
+    # robot holding
+    Room = UserType("Room")
+    Obj = UserType("Obj")
+    Table = UserType("Table")
+
+    robot_in = Fluent("robot_in", robot=Robot, room=Room)
+    connect = Fluent("connect", l_from=Room, l_to=Room)
+    handvoid = Fluent("handvoid", robot=Robot)
+    holding = Fluent("holding", robot=Robot, obj=Obj)
+    obj_on = Fluent("obj_on", obj=Obj, table=Table)
+    inside = Fluent("inside", table=Table, room=Room)
+
+    pick_up = DurativeAction("pick_up", robot=Robot, obj=Obj, table=Table, room=Room)
+    pick_up.set_fixed_duration(2)
+    robot = pick_up.parameter("robot")
+    obj = pick_up.parameter("obj")
+    table = pick_up.parameter("table")
+    room = pick_up.parameter("room")
+    pick_up.add_condition(StartTiming(), handvoid(robot))
+    pick_up.add_condition(StartTiming(), inside(table, room))
+    pick_up.add_condition(StartTiming(), obj_on(obj, table))
+    pick_up.add_condition(StartTiming(), Not(holding(robot, obj)))
+    pick_up.add_condition(
+        ClosedTimeInterval(StartTiming(), EndTiming()), robot_in(robot, room)
+    )
+    pick_up.add_effect(StartTiming(), handvoid(robot), False)
+    pick_up.add_effect(StartTiming(), obj_on(obj, table), False)
+    pick_up.add_effect(EndTiming(), holding(robot, obj), True)
+
+    put_down = DurativeAction("put_down", robot=Robot, obj=Obj, table=Table, room=Room)
+    put_down.set_fixed_duration(2)
+    robot = put_down.parameter("robot")
+    obj = put_down.parameter("obj")
+    table = put_down.parameter("table")
+    room = put_down.parameter("room")
+    put_down.add_condition(StartTiming(), Not(handvoid(robot)))
+    put_down.add_condition(StartTiming(), inside(table, room))
+    put_down.add_condition(StartTiming(), Not(obj_on(obj, table)))
+    put_down.add_condition(StartTiming(), holding(robot, obj))
+    put_down.add_condition(
+        ClosedTimeInterval(StartTiming(), EndTiming()), robot_in(robot, room)
+    )
+    put_down.add_effect(EndTiming(), obj_on(obj, table), True)
+    put_down.add_effect(StartTiming(), holding(robot, obj), False)
+    put_down.add_effect(EndTiming(), handvoid(robot), True)
+
+    move = DurativeAction("move", robot=Robot, l_from=Room, l_to=Room)
+    move.set_fixed_duration(5)
+    robot = move.parameter("robot")
+    l_from = move.parameter("l_from")
+    l_to = move.parameter("l_to")
+    move.add_condition(StartTiming(), robot_in(robot, l_from))
+    move.add_condition(StartTiming(), Or(connect(l_from, l_to), connect(l_to, l_from)))
+    move.add_effect(StartTiming(), robot_in(robot, l_from), False)
+    move.add_effect(EndTiming(), robot_in(robot, l_to), True)
+
+    problem = Problem("robot_holding")
+    problem.add_fluent(robot_in, default_initial_value=False)
+    problem.add_fluent(connect, default_initial_value=False)
+    problem.add_fluent(handvoid, default_initial_value=True)
+    problem.add_fluent(holding, default_initial_value=False)
+    problem.add_fluent(obj_on, default_initial_value=False)
+    problem.add_fluent(inside, default_initial_value=False)
+    problem.add_action(pick_up)
+    problem.add_action(put_down)
+    problem.add_action(move)
+    NLOC = 6
+    locations = [Object("l%s" % i, Room) for i in range(NLOC)]
+    problem.add_objects(locations)
+    l0, l1, l2, l3, l4, l5 = locations
+    NTAB = 6
+    tables = [Object("t%s" % i, Table) for i in range(NTAB)]
+    problem.add_objects(tables)
+    t0, t1, t2, t3, t4, t5 = tables
+
+    rob = Object("r", Robot)
+    problem.add_object(rob)
+    objects = [Object("o%s" % i, Obj) for i in range(2)]
+    problem.add_objects(objects)
+    o0, o1 = objects
+    for i in range(NLOC - 1):
+        problem.set_initial_value(connect(locations[i], locations[i + 1]), True)
+    for i in range(NLOC):
+        problem.set_initial_value(inside(tables[i], locations[i]), True)
+    problem.set_initial_value(robot_in(r, locations[0]), True)
+    problem.set_initial_value(obj_on(objects[0], tables[0]), True)
+    problem.set_initial_value(obj_on(objects[1], tables[1]), True)
+    problem.add_goal(obj_on(objects[0], tables[-1]))
+    problem.add_goal(obj_on(objects[1], tables[2]))
+
+    t_plan = up.plans.TimeTriggeredPlan(
+        [
+            (Fraction(0, 1), move(r, l0, l1), Fraction(5)),
+            (Fraction(501, 100), pick_up(r, o1, t1, l1), Fraction(2)),
+            (Fraction(701, 100), move(r, l1, l2), Fraction(5)),
+            (Fraction(1202, 100), put_down(r, o1, t2, l2), Fraction(2)),
+            (Fraction(1402, 100), move(r, l2, l1), Fraction(5)),
+            (Fraction(1903, 100), move(r, l1, l0), Fraction(5)),
+            (Fraction(2404, 100), pick_up(r, o0, t0, l0), Fraction(2)),
+            (Fraction(2604, 100), move(r, l0, l1), Fraction(5)),
+            (Fraction(3105, 100), move(r, l1, l2), Fraction(5)),
+            (Fraction(3606, 100), move(r, l2, l3), Fraction(5)),
+            (Fraction(4107, 100), move(r, l3, l4), Fraction(5)),
+            (Fraction(4608, 100), move(r, l4, l5), Fraction(5)),
+            (Fraction(5109, 100), put_down(r, o0, t5, l5), Fraction(2)),
+        ]
+    )
+
+    robot_holding = TestCase(problem=problem, solvable=True, valid_plans=[t_plan])
+    problems["robot_holding"] = robot_holding
+
     # travel
     problem = Problem("travel")
 
@@ -1051,9 +1162,9 @@ def get_example_problems():
     unload.add_effect(package_at(unload.package, unload.position), True)
     problem.add_action(unload)
 
-    for rob, v in zip(robots, velocities):
+    for rob, vel in zip(robots, velocities):
         problem.set_initial_value(robot_at(rob, locations[0]), True)
-        problem.set_initial_value(velocity(rob), v)
+        problem.set_initial_value(velocity(rob), vel)
     for p in packages:
         problem.set_initial_value(package_at(p, locations[0]), True)
     for l1, l2, d in zip(locations[:-1], locations[1:], distances):

@@ -321,6 +321,7 @@ class CompilerResult(Result):
     log_messages: Optional[List[LogMessage]] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
     plan_back_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
+    plan_forward_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance or plan_back_conversion are consistent with each other
@@ -346,18 +347,6 @@ class CompilerResult(Result):
                     "Both map_back_action_instance and plan_back_conversion can't be specified"
                 )
             self.plan_back_conversion = lambda x: x.replace_action_instances(
-                cast(
-                    Callable[[ActionInstance], Optional[ActionInstance]],
-                    self.map_back_action_instance,
-                )
-            )
-
-        if self.map_back_action_instance is not None:
-            if self.plan_conversion is not None:
-                raise UPUsageError(
-                    "Both map_back_action_instance and plan_conversion can't be specified"
-                )
-            self.plan_conversion = lambda x: x.replace_action_instances(
                 cast(
                     Callable[[ActionInstance], Optional[ActionInstance]],
                     self.map_back_action_instance,
