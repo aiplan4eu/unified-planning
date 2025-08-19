@@ -320,7 +320,8 @@ class CompilerResult(Result):
     engine_name: str
     log_messages: Optional[List[LogMessage]] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
-    plan_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
+    plan_back_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
+    plan_forward_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance are consistent with each other
@@ -329,22 +330,24 @@ class CompilerResult(Result):
                 raise UPUsageError(
                     "The compiled Problem is None but the map_back_action_instance Callable is not None."
                 )
-            if self.plan_conversion is not None:
+            if self.plan_back_conversion is not None:
                 raise UPUsageError(
-                    "The compiled Problem is None but the plan_conversion Callable is not None."
+                    "The compiled Problem is None but the plan_back_conversion Callable is not None."
                 )
-        elif self.map_back_action_instance is None and self.plan_conversion is None:
+        elif (
+            self.map_back_action_instance is None and self.plan_back_conversion is None
+        ):
             raise UPUsageError(
                 f"The compiled Problem is {str(self.problem)} but both the map_back_action_instance \
-                Callable and the plan_conversion Callable are None."
+                Callable and the plan_back_conversion Callable are None."
             )
 
         if self.map_back_action_instance is not None:
-            if self.plan_conversion is not None:
+            if self.plan_back_conversion is not None:
                 raise UPUsageError(
-                    "Both map_back_action_instance and plan_conversion can't be specified"
+                    "Both map_back_action_instance and plan_back_conversion can't be specified"
                 )
-            self.plan_conversion = lambda x: x.replace_action_instances(
+            self.plan_back_conversion = lambda x: x.replace_action_instances(
                 cast(
                     Callable[[ActionInstance], Optional[ActionInstance]],
                     self.map_back_action_instance,
