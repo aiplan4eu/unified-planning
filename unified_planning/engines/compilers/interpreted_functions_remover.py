@@ -308,7 +308,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if t is not None:
                     if t.lower != t.upper:
                         raise UPUnsupportedProblemTypeError(
-                            "Interpreted Functions planning does not support durative conditions that contain Interpreted Functions"
+                            "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
                         )
                 ifs.append((t, new_c, ifuns, ElementKind.CONDITION, None))
             else:
