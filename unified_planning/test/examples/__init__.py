@@ -19,7 +19,7 @@ import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.hierarchical as hierarchical
 import unified_planning.test.examples.scheduling as scheduling
 import unified_planning.test.examples.processes as processes
-import unified_planning.test.examples.complex_interpreted_functions as complex_interpreted_functions
+import unified_planning.test.examples.interpreted_functions_examples as interpreted_functions_examples
 
 
 def get_example_problems():
@@ -30,6 +30,6 @@ def get_example_problems():
         hierarchical,
         scheduling,
         processes,
-        complex_interpreted_functions,
+        interpreted_functions_examples,
     ]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())
