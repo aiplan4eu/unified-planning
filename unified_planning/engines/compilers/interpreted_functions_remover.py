@@ -215,6 +215,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_actions()
 
         new_objects: Dict = {}
+        new_obj_vals: Dict = {}
         new_fluents: Dict = {}
         if_known: Dict = {}
         kNums: Dict = {}
@@ -241,13 +242,23 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 f = new_fluents[ifun]
             if ifun_exp.interpreted_function() not in new_objects:
                 new_objects[ifun_exp.interpreted_function()] = {}
-
-            if tuple(ifun_exp.args) in new_objects[ifun_exp.interpreted_function()]:
-                o = new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)]
+            if ifun_exp.interpreted_function() not in new_obj_vals:
+                new_obj_vals[ifun_exp.interpreted_function()] = {}
+            if val in new_obj_vals[ifun_exp.interpreted_function()]:
+                o = new_obj_vals[ifun_exp.interpreted_function()][val]
             else:
                 o = Object(get_fresh_name(new_problem, f"_o_{kNum.name}"), kNum)
-                new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)] = o
+                new_obj_vals[ifun_exp.interpreted_function()][val] = o
                 new_problem.add_object(o)
+
+            # TODO clean up is no problems are found
+            if tuple(ifun_exp.args) in new_objects[ifun_exp.interpreted_function()]:
+                # o = new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)]
+                pass
+            else:
+                # o = Object(get_fresh_name(new_problem, f"_o_{kNum.name}"), kNum)
+                new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)] = o
+                # new_problem.add_object(o)
             if tuple(ifun_exp.args) not in if_known[ifun]:
                 if_known[ifun].append(tuple(ifun_exp.args))
             new_problem.set_initial_value(f(o), val)
