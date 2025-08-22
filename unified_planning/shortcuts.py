@@ -180,6 +180,23 @@ def FluentExp(
     return get_environment().expression_manager.FluentExp(fluent, params)
 
 
+def InterpretedFunctionExp(
+    interpreted_function: "unified_planning.model.InterpretedFunction",
+    params: Sequence[Expression] = tuple(),  # -------
+) -> FNode:
+    """
+    | Creates an expression for the given ``interpreted_function`` and ``parameters``.
+    | Restriction: ``parameters type`` must be compatible with the ``InterpretedFunction`` :func:``signature <unified_planning.model.InterpretedFunction.signature>``
+
+    :param interpreted_function: The ``InterpretedFunction`` that will be set as the ``payload`` of this expression.
+    :param params: The Iterable of expressions acting as ``parameters`` for this ``InterpretedFunction``.
+    :return: The created ``InterpretedFunction`` Expression.
+    """
+    return get_environment().expression_manager.InterpretedFunctionExp(
+        interpreted_function, params
+    )
+
+
 def Always(expression: BoolExpression) -> FNode:
     """
     Creates an expression of the form:
@@ -433,6 +450,19 @@ def Equals(left: Expression, right: Expression) -> FNode:
     :return: The created ``Equals`` expression.
     """
     return get_environment().expression_manager.Equals(left, right)
+
+
+def EqualsOrIff(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of either one of the following forms:
+        ``left <-> right``
+        ``left == right``
+
+    :param left: The ``left`` member of the ``EqualsOrIff expression``.
+    :param right: The ``right`` member of the ``EqualsOrIff expression``.
+    :return: The created ``Equals`` or ``Iff`` expression.
+    """
+    return get_environment().expression_manager.EqualsOrIff(left, right)
 
 
 def Dot(

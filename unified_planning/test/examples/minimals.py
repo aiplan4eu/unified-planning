@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from typing import OrderedDict
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
