@@ -993,7 +993,7 @@ def get_example_problems():
         problem.set_initial_value(connect(locations[i], locations[i + 1]), True)
     for i in range(NLOC):
         problem.set_initial_value(inside(tables[i], locations[i]), True)
-    problem.set_initial_value(robot_in(r, locations[0]), True)
+    problem.set_initial_value(robot_in(rob, locations[0]), True)
     problem.set_initial_value(obj_on(objects[0], tables[0]), True)
     problem.set_initial_value(obj_on(objects[1], tables[1]), True)
     problem.add_goal(obj_on(objects[0], tables[-1]))
@@ -1001,19 +1001,19 @@ def get_example_problems():
 
     t_plan = up.plans.TimeTriggeredPlan(
         [
-            (Fraction(0, 1), move(r, l0, l1), Fraction(5)),
-            (Fraction(501, 100), pick_up(r, o1, t1, l1), Fraction(2)),
-            (Fraction(701, 100), move(r, l1, l2), Fraction(5)),
-            (Fraction(1202, 100), put_down(r, o1, t2, l2), Fraction(2)),
-            (Fraction(1402, 100), move(r, l2, l1), Fraction(5)),
-            (Fraction(1903, 100), move(r, l1, l0), Fraction(5)),
-            (Fraction(2404, 100), pick_up(r, o0, t0, l0), Fraction(2)),
-            (Fraction(2604, 100), move(r, l0, l1), Fraction(5)),
-            (Fraction(3105, 100), move(r, l1, l2), Fraction(5)),
-            (Fraction(3606, 100), move(r, l2, l3), Fraction(5)),
-            (Fraction(4107, 100), move(r, l3, l4), Fraction(5)),
-            (Fraction(4608, 100), move(r, l4, l5), Fraction(5)),
-            (Fraction(5109, 100), put_down(r, o0, t5, l5), Fraction(2)),
+            (Fraction(0, 1), move(rob, l0, l1), Fraction(5)),
+            (Fraction(501, 100), pick_up(rob, o1, t1, l1), Fraction(2)),
+            (Fraction(702, 100), move(rob, l1, l2), Fraction(5)),
+            (Fraction(1203, 100), put_down(rob, o1, t2, l2), Fraction(2)),
+            (Fraction(1404, 100), move(rob, l2, l1), Fraction(5)),
+            (Fraction(1905, 100), move(rob, l1, l0), Fraction(5)),
+            (Fraction(2406, 100), pick_up(rob, o0, t0, l0), Fraction(2)),
+            (Fraction(2607, 100), move(rob, l0, l1), Fraction(5)),
+            (Fraction(3108, 100), move(rob, l1, l2), Fraction(5)),
+            (Fraction(3609, 100), move(rob, l2, l3), Fraction(5)),
+            (Fraction(4110, 100), move(rob, l3, l4), Fraction(5)),
+            (Fraction(4611, 100), move(rob, l4, l5), Fraction(5)),
+            (Fraction(5112, 100), put_down(rob, o0, t5, l5), Fraction(2)),
         ]
     )
 
