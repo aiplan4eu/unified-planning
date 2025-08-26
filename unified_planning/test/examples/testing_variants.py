@@ -406,11 +406,14 @@ def get_example_problems():
     l_from = base_dur_move.parameter("l_from")
     l_to = base_dur_move.parameter("l_to")
     base_dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+    base_dur_move.add_condition(StartTiming(), is_at(l_from, r))
 
     durations = [
-        ("[5, 7]", DurationInterval(Int(5), Int(7), False, False)),
-        ("(5, 7)", DurationInterval(Int(5), Int(7), True, True)),
-        ("[5, 5]", DurationInterval(Int(5), Int(7), True, True)),
+        ("[5, 7]", ClosedDurationInterval(Int(5), Int(7))),
+        ("(5, 7)", OpenDurationInterval(Int(5), Int(7))),
+        ("[5, 5]", FixedDuration(Int(5))),
+        ("[7, 7]", FixedDuration(Int(7))),
+        ("[3, 5]", ClosedDurationInterval(Int(3), Int(5))),
     ]
     delays = [0, 1]
 
@@ -418,22 +421,26 @@ def get_example_problems():
         (duration_str, duration_interval),
         start_delay_cond,
         start_delay_eff,
+        end_delay_cond,
         end_delay_eff,
-    ) in product(durations, delays, delays, delays):
+    ) in product(durations, delays, delays, delays, delays):
         problem = base_problem.clone()
         dur_move = base_dur_move.clone()
         dur_move.add_condition(StartTiming() + start_delay_cond, Not(is_at(l_to, r)))
         dur_move.add_effect(StartTiming() + start_delay_eff, is_at(l_from, r), False)
         dur_move.add_effect(EndTiming() - end_delay_eff, is_at(l_to, r), True)
         dur_move.set_duration_constraint(duration_interval)
-        problem.add_action(dur_move)
         problem_name_list = [cast(str, base_problem.name), duration_str]
         if start_delay_cond != 0:
             problem_name_list.append(f"start delay cond: {start_delay_cond}")
         if start_delay_eff != 0:
             problem_name_list.append(f"start delay eff: {start_delay_eff}")
+        if end_delay_cond != 0:
+            dur_move.add_condition(EndTiming() - end_delay_cond, Not(is_at(l_to, r)))
+            problem_name_list.append(f"end delay cond: {end_delay_cond}")
         if end_delay_eff != 0:
             problem_name_list.append(f"end delay eff: {end_delay_eff}")
+        problem.add_action(dur_move)
         problem.name = " ".join(problem_name_list)
         problems[problem.name] = TestCase(problem, True)
 

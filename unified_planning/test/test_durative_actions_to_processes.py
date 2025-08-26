@@ -30,7 +30,6 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
     PlanGenerationResultStatus,
 )
-from unified_planning.exceptions import UPNoSuitableEngineAvailableException
 from unified_planning.plans import TimeTriggeredPlan
 
 
@@ -346,7 +345,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         # problem.add_goal(is_at(l5, r1))
 
         problem = self.problems[
-            "robot_with_variable_duration [5, 5] start delay eff 1"
+            "robot_with_variable_duration [5, 5] start delay eff: 1"
         ].problem
 
         with Compiler(
@@ -407,7 +406,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         # problem.add_goal(is_at(l5, r1))
 
         problem = self.problems[
-            "robot_with_variable_duration [5, 5] end delay eff 1"
+            "robot_with_variable_duration [5, 5] end delay eff: 1"
         ].problem
 
         with Compiler(
@@ -468,7 +467,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         # problem.add_goal(is_at(l5, r1))
 
         problem = self.problems[
-            "robot_with_variable_duration [3, 5] end delay eff 1"
+            "robot_with_variable_duration [3, 5] end delay eff: 1"
         ].problem
 
         with Compiler(
@@ -530,7 +529,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         # problem.add_goal(is_at(l5, r1))
 
         problem = self.problems[
-            "robot_with_variable_duration [7, 7] start delay cond 1"
+            "robot_with_variable_duration [7, 7] start delay cond: 1"
         ].problem
 
         with Compiler(
@@ -593,7 +592,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         # problem.add_goal(is_at(l5, r1))
 
         problem = self.problems[
-            "robot_with_variable_duration [7, 7] end delay cond 1"
+            "robot_with_variable_duration [7, 7] end delay cond: 1"
         ].problem
 
         with Compiler(
@@ -938,96 +937,151 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         problem,
                         CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
                     )
-                    new_problem = res.problem
-                    if not solver.supports(new_problem.kind):
+                    compiled_problem = res.problem
+                    if not solver.supports(compiled_problem.kind):
                         continue
-                    solver_res = solver.solve(new_problem, timeout=5)
-                    plan = solver_res.plan
+                    solver_res = solver.solve(compiled_problem, timeout=5)
+                    compiled_plan = solver_res.plan
                     if solver_res.status == PlanGenerationResultStatus.TIMEOUT:
                         continue
-                    self.assertIsInstance(plan, TimeTriggeredPlan, problem_name)
-                    original_plan = res.plan_back_conversion(plan)
+                    self.assertIsInstance(
+                        compiled_plan,
+                        TimeTriggeredPlan,
+                        f"{problem_name}: {solver_res}",
+                    )
+                    original_plan = res.plan_back_conversion(compiled_plan)
+                    if "robot_with_variable_duration" in problem_name:
+                        # need to add an epsilon here because enhsp considers the end_effects of the action in the same state the action is performed
+                        original_plan = add_epsilon_to_plan(
+                            original_plan, Fraction(1, 10)
+                        )
 
                     with PlanValidator(problem_kind=problem.kind) as validator:
                         val_res = validator.validate(problem, original_plan)
+
+                        # debug
+                        if val_res.status != ValidationResultStatus.VALID:
+                            print(problem)
+                            print(compiled_problem)
+                            print(original_plan)
+                            print(compiled_plan)
+
                         self.assertEqual(
                             val_res.status, ValidationResultStatus.VALID, problem_name
                         )
 
     # TODO this test is local to have proof and does not work in CI
-    # def test_all_val(self):
-    #     env = get_environment()
-    #     try:
-    #         env.factory.add_engine("val", "up_val.VAL","VAL")
-    #     except Exception as e:
-    #         return
+    def test_all_val(self):
+        env = get_environment()
+        try:
+            env.factory.add_engine("val", "up_val.VAL", "VAL")
+        except Exception as e:
+            return
 
-    #     validator = PlanValidator(name="val")
-    #     solved, skipped = [], []
+        validator = PlanValidator(
+            name="val",
+        )
+        assert isinstance(
+            validator, unified_planning.engines.mixins.plan_validator.PlanValidatorMixin
+        )
+        solved, skipped = [], []
 
-    #     with Compiler(
-    #         name="up_durative_actions_to_processes",
-    #         compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-    #         params={"default_epsilon": "1/10000"}
-    #     ) as cer:
-    #         for problem_name, tc in self.problems.items():
-    #             known_skips = {
-    #                 "timed_connected_locations", # TODO understand why no output
-    #             }
-    #             if problem_name in known_skips:
-    #                 continue
-    #             problem = tc.problem
-    #             if not isinstance(problem, Problem):
-    #                 continue
-    #             kind = problem.kind
-    #             if any(
-    #                 not isinstance(a, (DurativeAction, InstantaneousAction))
-    #                 for a in problem.actions
-    #             ):
-    #                 continue
-    #             if all(isinstance(a, InstantaneousAction) for a in problem.actions):
-    #                 continue
-    #             if not cer.supports(kind):
-    #                 continue
-    #             res = cer.compile(
-    #                 problem,
-    #                 CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-    #             )
-    #             compiled_problem = res.problem
-    #             print("-"*50, end="")
-    #             print("PROBLEM NAME: ", problem_name)
-    #             print(validator.supports(compiled_problem.kind))
-    #             # print(problem)
-    #             for original_plan in tc.valid_plans:
-    #                 compiled_plan = res.plan_forward_conversion(original_plan)
-    #                 self.assertIsInstance(compiled_plan, TimeTriggeredPlan, problem_name)
-    #                 new_problem, compiled_plan = _add_end_action(original_plan, compiled_plan, compiled_problem)
-    #                 if not validator.supports(new_problem.kind):
-    #                     skipped.append(problem_name)
-    #                     continue
+        with Compiler(
+            name="up_durative_actions_to_processes",
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            params={
+                "default_epsilon": "1/1000"
+            },  # making this little fails due to float errors, making it too big fails because matchcellar_static_duration uses an epsilon of 1/100
+        ) as cer:
+            for problem_name, tc in self.problems.items():
+                known_skips = {
+                    "timed_connected_locations",  # TODO understand why no output
+                }
+                if problem_name in known_skips:
+                    continue
 
-    #                 # with PlanValidator(problem_kind=new_problem.kind) as validator:
-    #                 # with PlanValidator(name="val") as validator:
-    #                 val_res = validator.validate(new_problem, compiled_plan)
+                problem = tc.problem
+                if not isinstance(problem, Problem):
+                    continue
+                kind = problem.kind
+                if any(
+                    not isinstance(a, (DurativeAction, InstantaneousAction))
+                    for a in problem.actions
+                ):
+                    continue
+                if all(isinstance(a, InstantaneousAction) for a in problem.actions):
+                    continue
+                if not cer.supports(kind):
+                    continue
+                res = cer.compile(
+                    problem,
+                    CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+                )
+                compiled_problem = res.problem
+                print("-" * 50, end="")
+                print("PROBLEM NAME: ", problem_name)
+                print(validator.supports(compiled_problem.kind))
 
-    #                 if val_res.status != ValidationResultStatus.VALID:
-    #                     from pprint import pprint
-    #                     print(new_problem.goals)
-    #                     print(compiled_plan)
-    #                     print(val_res)
-    #                     for k, v in val_res.trace.items():
-    #                         print(f"Time: {k}")
-    #                         print(f"State: {v}")
+                plan_it = tc.valid_plans
 
-    #                     # pprint(val_res.trace)
-    #                 self.assertEqual(
-    #                     val_res.status, ValidationResultStatus.VALID, problem_name
-    #                 )
-    #                 solved.append(problem_name)
+                if not plan_it:
+                    with OneshotPlanner(problem_kind=problem.kind) as p:
+                        os_res = p.solve(problem)
+                        assert os_res.status in (
+                            PlanGenerationResultStatus.SOLVED_SATISFICING,
+                            PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                        )
+                        new_acts = []
+                        for i, (time, ai, dur) in enumerate(os_res.plan.timed_actions):
+                            new_acts.append(
+                                (
+                                    time
+                                    + i
+                                    * Fraction(
+                                        1,
+                                    ),
+                                    ai,
+                                    dur,
+                                )
+                            )
 
-    #     print(skipped)
-    #     print(solved)
-    #     assert False
+                        plan_it = [TimeTriggeredPlan(new_acts)]
+
+                for original_plan in plan_it:
+                    compiled_plan = res.plan_forward_conversion(original_plan)
+                    self.assertIsInstance(
+                        compiled_plan, TimeTriggeredPlan, problem_name
+                    )
+                    new_problem, compiled_plan = _add_end_action(
+                        original_plan, compiled_plan, compiled_problem
+                    )
+                    if not validator.supports(new_problem.kind):
+                        skipped.append(problem_name)
+                        continue
+
+                    # with PlanValidator(problem_kind=new_problem.kind) as validator:
+                    # with PlanValidator(name="val") as validator:
+                    val_res = validator.validate(new_problem, compiled_plan)
+
+                    # if val_res.status != ValidationResultStatus.VALID:
+                    #     from pprint import pprint
+                    #     print(compiled_plan)
+                    #     print(val_res)
+                    #     for k, v in val_res.trace.items():
+                    #         print(f"Time: {k}")
+                    #         print(f"State: {v}")
+
+                    #     print(compiled_problem)
+                    #     # pprint(val_res.trace)
+                    self.assertEqual(
+                        val_res.status, ValidationResultStatus.VALID, problem_name
+                    )
+                    solved.append(problem_name)
+        print("-----------test result---------------")
+        print("Skipped problems:")
+        print(skipped)
+        print("Solved problems:")
+        print(solved)
 
 
 def _add_end_action(
@@ -1055,3 +1109,19 @@ def _add_end_action(
     compiled_plan_actions.append((original_plan_duration, useless_action(), None))
 
     return new_problem, TimeTriggeredPlan(compiled_plan_actions)
+
+
+def add_epsilon_to_plan(
+    plan: TimeTriggeredPlan, epsilon: Fraction
+) -> TimeTriggeredPlan:
+    new_actions = []
+    i = 0
+    prev_trigger_time = None
+    for trigger_time, action, duration in sorted(
+        plan.timed_actions, key=lambda x: x[0]
+    ):
+        new_actions.append((trigger_time + i * epsilon, action, duration))
+        if trigger_time != prev_trigger_time:
+            i = i + 1
+        prev_trigger_time = trigger_time
+    return TimeTriggeredPlan(new_actions)

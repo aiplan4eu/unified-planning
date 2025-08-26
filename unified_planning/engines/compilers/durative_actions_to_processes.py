@@ -526,11 +526,6 @@ def _compile_durative_action(
                 action.duration,
                 mgr,
             )
-            time_constraint = mgr.Equals(clock_exp, mgr.Plus(timing_exp, epsilon))
-            if additional_constraint is not None:
-                time_constraint = mgr.And(additional_constraint, time_constraint)
-            effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
-
             # add fluent to avoid infinite trigger of the event
             effect_done = add_new_fluent(
                 f"effects_{i}_done",
@@ -540,6 +535,12 @@ def _compile_durative_action(
             start_action.add_effect(effect_done, False)
             effect_ev_or_act.add_precondition(mgr.Not(effect_done))
             effect_ev_or_act.add_effect(effect_done, True)
+
+            # GE and not equals to avoid floating points errors
+            time_constraint = mgr.GE(clock_exp, mgr.Plus(timing_exp, epsilon))
+            if additional_constraint is not None:
+                time_constraint = mgr.And(additional_constraint, time_constraint)
+            effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
 
         for eff in effects:
             effect_ev_or_act._add_effect_instance(eff)
