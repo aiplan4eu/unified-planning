@@ -23,6 +23,7 @@ from unified_planning.model.problem_kind import (
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
+    skipIfEngineNotAvailable,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
@@ -970,14 +971,8 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                             val_res.status, ValidationResultStatus.VALID, problem_name
                         )
 
-    # TODO this test is local to have proof and does not work in CI
+    @skipIfEngineNotAvailable("val")
     def test_all_val(self):
-        env = get_environment()
-        try:
-            env.factory.add_engine("val", "up_val.VAL", "VAL")
-        except Exception as e:
-            return
-
         validator = PlanValidator(
             name="val",
         )
@@ -1018,9 +1013,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                     CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
                 )
                 compiled_problem = res.problem
-                print("-" * 50, end="")
-                print("PROBLEM NAME: ", problem_name)
-                print(validator.supports(compiled_problem.kind))
 
                 plan_it = tc.valid_plans
 
@@ -1059,29 +1051,12 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         skipped.append(problem_name)
                         continue
 
-                    # with PlanValidator(problem_kind=new_problem.kind) as validator:
-                    # with PlanValidator(name="val") as validator:
                     val_res = validator.validate(new_problem, compiled_plan)
 
-                    # if val_res.status != ValidationResultStatus.VALID:
-                    #     from pprint import pprint
-                    #     print(compiled_plan)
-                    #     print(val_res)
-                    #     for k, v in val_res.trace.items():
-                    #         print(f"Time: {k}")
-                    #         print(f"State: {v}")
-
-                    #     print(compiled_problem)
-                    #     # pprint(val_res.trace)
                     self.assertEqual(
                         val_res.status, ValidationResultStatus.VALID, problem_name
                     )
                     solved.append(problem_name)
-        print("-----------test result---------------")
-        print("Skipped problems:")
-        print(skipped)
-        print("Solved problems:")
-        print(solved)
 
 
 def _add_end_action(
