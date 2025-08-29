@@ -197,8 +197,7 @@ class SparseState(State):
 
     def _is_nondefault(self, fluent: "up.model.FNode", value: "up.model.FNode"):
         return (fluent.fluent() not in self._fluent_set.fluents_defaults or
-                self._fluent_set.fluents_defaults[fluent.fluent()] != value or
-                fluent.type.is_bool_type() and value.is_true())
+                self._fluent_set.fluents_defaults[fluent.fluent()] != value)
 
     def __repr__(self) -> str:
         return str(self._values)
@@ -229,9 +228,6 @@ class SparseState(State):
         default_found = self._fluent_set.fluents_defaults.get(fluent.fluent(),None)
         if default_found is not None:
             return default_found
-
-        if fluent.type.is_bool_type():
-            return get_environment().expression_manager.FALSE()
 
         raise UPUsageError(
             f"The state {self} does not have a value for the value {fluent}"
