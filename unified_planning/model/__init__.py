@@ -48,7 +48,7 @@ from unified_planning.model.problem import Problem, generate_causal_graph
 from unified_planning.model.contingent_problem import ContingentProblem
 from unified_planning.model.delta_stn import DeltaSimpleTemporalNetwork
 from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.model.state import State, UPState
+from unified_planning.model.state import State, UPState, SparseState
 from unified_planning.model.timing import (
     Timepoint,
     TimepointKind,
@@ -114,6 +114,7 @@ __all__ = [
     "ProblemKind",
     "State",
     "UPState",
+    "SparseState",
     "Timepoint",
     "TimepointKind",
     "Timing",
