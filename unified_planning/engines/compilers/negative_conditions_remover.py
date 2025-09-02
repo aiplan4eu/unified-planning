@@ -57,19 +57,44 @@ class NegativeFluentRemover(IdentityDagWalker):
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         assert len(args) == 1
-        if not args[0].is_fluent_exp():
+        if args[0].is_fluent_exp():
+            neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
+            if neg_fluent is not None:
+                return self._env.expression_manager.FluentExp(
+                    neg_fluent, tuple(args[0].args)
+                )
+            f = args[0].fluent()
+            nf = Fluent(
+                get_fresh_name(self._problem, f.name), f.type, f.signature, f._env
+            )
+            self._fluent_mapping[f] = nf
+            return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
+        elif args[0].is_equals():
+            # TODO
+            # !(x == n)
+            # should become
+            # if number: x > n or x < n
+            # if object: x == other_object or x == another_other_object ...
+            raise NotImplementedError()
+        elif args[0].is_le():
+            # !(x <= n)
+            # should become
+            # x > n
+            return self._env.expression_manager.GT(
+                *args[0].args
+            )  # TODO check if this works
+        elif args[0].is_lt():
+            # !(x < n)
+            # should become
+            # x >= n
+            return self._env.expression_manager.GE(
+                *args[0].args
+            )  # TODO check if this works
+        else:
+            # TODO not(... or ...) / not(... and ...) with de morgan? make sure walker will be called on children
             raise UPExpressionDefinitionError(
-                f"Expression: {expression} is not in NNF."
+                f"Expression: {expression} is not in NNF."  # TODO change with better error message
             )
-        neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
-        if neg_fluent is not None:
-            return self._env.expression_manager.FluentExp(
-                neg_fluent, tuple(args[0].args)
-            )
-        f = args[0].fluent()
-        nf = Fluent(get_fresh_name(self._problem, f.name), f.type, f.signature, f._env)
-        self._fluent_mapping[f] = nf
-        return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
 
     @property
     def fluent_mapping(self) -> Dict[Fluent, Fluent]:
