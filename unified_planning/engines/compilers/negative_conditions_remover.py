@@ -58,10 +58,6 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self.walk(expression)
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
-        # TODO check if "complex" expressions are compiled correctly e.g.:(Not(Or(bx, And(bx, Not(by))))), XOr, ...
-
-        # print ("in walk not, exp:")
-        # print (expression)
         assert len(args) == 1
         if args[0].is_fluent_exp():
             neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
@@ -356,7 +352,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 )
             elif qm.is_oversubscription():
                 assert isinstance(qm, Oversubscription)
-                os_dict = {}
+                os_dict: dict = {}
                 for g, v in qm.goals.items():
                     ng = g
                     while OperatorKind.NOT in op_extractor.get(ng):
@@ -395,11 +391,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             if fneg is not None:
                 new_problem.add_fluent(fneg)
 
-        for fl, v in problem.initial_values.items():
+        for fl, init_val in problem.initial_values.items():
             fneg = fluent_mapping.get(fl.fluent(), None)
-            new_problem.set_initial_value(fl, v)
+            new_problem.set_initial_value(fl, init_val)
             if fneg is not None:
-                if v.bool_constant_value():
+                if init_val.bool_constant_value():
                     new_problem.set_initial_value(
                         env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                         env.expression_manager.FALSE(),
@@ -415,15 +411,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
-                    fl, v = e.fluent, e.value
-                    fneg = fluent_mapping.get(fl.fluent(), None)
+                    efl, ev = e.fluent, e.value
+                    fneg = fluent_mapping.get(efl.fluent(), None)
                     if fneg is not None:
                         simplified_not_v = simplifier.simplify(
-                            env.expression_manager.Not(v)
+                            env.expression_manager.Not(ev)
                         )
                         new_effects.append(
                             Effect(
-                                env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                                env.expression_manager.FluentExp(fneg, tuple(efl.args)),
                                 simplified_not_v,
                                 e.condition,
                                 e.kind,
@@ -440,17 +436,17 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
                 for t, el in new_durative_action.effects.items():
                     for e in el:
-                        fl, v = e.fluent, e.value
-                        fneg = fluent_mapping.get(fl.fluent(), None)
+                        efl, ev = e.fluent, e.value
+                        fneg = fluent_mapping.get(efl.fluent(), None)
                         if fneg is not None:
                             simplified_not_v = simplifier.simplify(
-                                env.expression_manager.Not(v)
+                                env.expression_manager.Not(ev)
                             )
                             new_durative_action._add_effect_instance(
                                 t,
                                 Effect(
                                     env.expression_manager.FluentExp(
-                                        fneg, tuple(fl.args)
+                                        fneg, tuple(efl.args)
                                     ),
                                     simplified_not_v,
                                     e.condition,
@@ -465,16 +461,16 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for t, el in new_problem.timed_effects.items():
             for e in el:
-                fl, v = e.fluent, e.value
-                fneg = fluent_mapping.get(fl.fluent(), None)
+                efl, ev = e.fluent, e.value
+                fneg = fluent_mapping.get(efl.fluent(), None)
                 if fneg is not None:
                     simplified_not_v = simplifier.simplify(
-                        env.expression_manager.Not(v)
+                        env.expression_manager.Not(ev)
                     )
                     new_problem._add_effect_instance(
                         t,
                         Effect(
-                            env.expression_manager.FluentExp(fneg, tuple(fl.args)),
+                            env.expression_manager.FluentExp(fneg, tuple(efl.args)),
                             simplified_not_v,
                             e.condition,
                             e.kind,
