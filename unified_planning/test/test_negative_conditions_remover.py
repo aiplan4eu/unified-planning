@@ -194,6 +194,7 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         )
         npr = NegativeConditionsRemover()
         res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+        assert isinstance(res.problem, Problem)
         self.assertFalse(res.problem.kind.has_negative_conditions())
 
     def test_ad_hoc_2(self):
@@ -269,6 +270,8 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         ncr = NegativeConditionsRemover()
         comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
 
+        assert isinstance(comp_res.problem, Problem)
+
         self.assertEqual(compiled_action, comp_res.problem.action("test_action"))
 
     def test_equals_numbers(self):
@@ -301,6 +304,8 @@ class TestNegativeConditionsRemover(unittest_TestCase):
 
         ncr = NegativeConditionsRemover()
         comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+
+        assert isinstance(comp_res.problem, Problem)
 
         self.assertEqual(compiled_action, comp_res.problem.action("test_action"))
 
