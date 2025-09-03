@@ -122,12 +122,14 @@ class NegativeFluentRemover(IdentityDagWalker):
             )
             return self._env.expression_manager.Or(exp_1, exp_2)
         elif args[0].is_and():
+            # TODO FIXME now only works with 2 args, should work with more
             exp_t = self._env.expression_manager.Or(
                 self._env.expression_manager.Not(args[0].args[0]),
                 self._env.expression_manager.Not(args[0].args[1]),
             )
             return exp_t
         elif args[0].is_or():
+            # TODO FIXME now only works with 2 args, should work with more
             exp_t = self._env.expression_manager.And(
                 self._env.expression_manager.Not(args[0].args[0]),
                 self._env.expression_manager.Not(args[0].args[1]),

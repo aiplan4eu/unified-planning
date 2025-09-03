@@ -173,9 +173,7 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         self.assertTrue(problem.kind.has_negative_conditions())
         self.assertFalse(positive_problem.kind.has_negative_conditions())
 
-    @pytest.mark.skip(reason="this case is now supported, no raise exception anymore")
     def test_ad_hoc_1(self):
-        # TODO change this ???
         x = Fluent("x")
         y = Fluent("y")
         a = InstantaneousAction("a")
@@ -195,9 +193,8 @@ class TestNegativeConditionsRemover(unittest_TestCase):
             ClosedTimeInterval(GlobalStartTiming(3), GlobalStartTiming(4)), x
         )
         npr = NegativeConditionsRemover()
-        with self.assertRaises(UPExpressionDefinitionError) as e:
-            res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
-        self.assertIn(f"Expression: {Not(Iff(x, y))} is not in NNF.", str(e.exception))
+        res = npr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+        self.assertFalse(res.problem.kind.has_negative_conditions())
 
     def test_ad_hoc_2(self):
         x = Fluent("x")
@@ -228,6 +225,84 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         test_problem.set_initial_value(y__negated__, True)
         test_problem.add_goal(x)
         self.assertEqual(positive_problem, test_problem)
+
+    def test_equals_object(self):
+        problem = Problem("wompwomp")
+
+        ut = UserType("ut")
+
+        u1 = Object("u1", ut)
+        u2 = Object("u2", ut)
+        u3 = Object("u3", ut)
+
+        problem.add_objects([u1, u2, u3])
+
+        ux = Fluent("lx", ut)
+        uy = Fluent("ly", ut)
+
+        b = Fluent("b", BoolType())
+
+        problem.add_fluent(b)
+        problem.add_fluent(ux)
+        problem.add_fluent(uy)
+
+        problem.set_initial_value(ux, u1)
+        problem.set_initial_value(uy, u2)
+        problem.set_initial_value(b, False)
+
+        test_action = InstantaneousAction("test_action")
+        test_action.add_precondition(Not(Equals(ux, uy)))
+        test_action.add_effect(b, True)
+        problem.add_action(test_action)
+        problem.add_goal(Iff(b, True))
+
+        compiled_action = test_action.clone()
+        compiled_action.clear_preconditions()
+        c1 = And(Equals(ux, u1), Equals(uy, u2))
+        c2 = And(Equals(ux, u1), Equals(uy, u3))
+        c3 = And(Equals(ux, u2), Equals(uy, u1))
+        c4 = And(Equals(ux, u2), Equals(uy, u3))
+        c5 = And(Equals(ux, u3), Equals(uy, u1))
+        c6 = And(Equals(ux, u3), Equals(uy, u2))
+        compiled_action.add_precondition(Or(c1, c2, c3, c4, c5, c6))
+
+        ncr = NegativeConditionsRemover()
+        comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+
+        self.assertEqual(compiled_action, comp_res.problem.action("test_action"))
+
+    def test_equals_numbers(self):
+        problem = Problem("wompwomp")
+
+        x = Fluent("x", IntType())
+        y = Fluent("y", IntType())
+
+        b = Fluent("b", BoolType())
+
+        problem.add_fluent(b)
+        problem.add_fluent(x)
+        problem.add_fluent(y)
+
+        problem.set_initial_value(x, 3)
+        problem.set_initial_value(y, 5)
+        problem.set_initial_value(b, False)
+
+        test_action = InstantaneousAction("test_action")
+        test_action.add_precondition(Not(Equals(x, y)))
+        test_action.add_effect(b, True)
+        problem.add_action(test_action)
+        problem.add_goal(Iff(b, True))
+
+        compiled_action = test_action.clone()
+        compiled_action.clear_preconditions()
+        c1 = GT(x, y)
+        c2 = LT(x, y)
+        compiled_action.add_precondition(Or(c1, c2))
+
+        ncr = NegativeConditionsRemover()
+        comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+
+        self.assertEqual(compiled_action, comp_res.problem.action("test_action"))
 
 
 # TODO need more tests for new cases
