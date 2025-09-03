@@ -30,6 +30,8 @@ from unified_planning.model import (
     Oversubscription,
     TemporalOversubscription,
 )
+from unified_planning.model.walkers import OperatorsExtractor
+from unified_planning.model.operators import OperatorKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.engines.compilers.utils import (
@@ -56,6 +58,10 @@ class NegativeFluentRemover(IdentityDagWalker):
         return self.walk(expression)
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        # TODO check if "complex" expressions are compiled correctly e.g.:(Not(Or(bx, And(bx, Not(by))))), XOr, ...
+
+        # print ("in walk not, exp:")
+        # print (expression)
         assert len(args) == 1
         if args[0].is_fluent_exp():
             neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
@@ -64,36 +70,76 @@ class NegativeFluentRemover(IdentityDagWalker):
                     neg_fluent, tuple(args[0].args)
                 )
             f = args[0].fluent()
-            nf = Fluent(
-                get_fresh_name(self._problem, f.name), f.type, f.signature, f._env
-            )
+            if f in self._fluent_mapping.keys():
+                nf = self._fluent_mapping[f]
+            elif f in self._fluent_mapping.values():
+                for k, v in self._fluent_mapping.items():
+                    if v == f:
+                        nf = k
+                        break
+            else:
+                # make a new one
+                nf = Fluent(
+                    get_fresh_name(self._problem, f"not_{f.name}"),
+                    f.type,
+                    f.signature,
+                    f._env,
+                )
             self._fluent_mapping[f] = nf
             return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
         elif args[0].is_equals():
-            # TODO
-            # !(x == n)
-            # should become
-            # if number: x > n or x < n
-            # if object: x == other_object or x == another_other_object ...
-            raise NotImplementedError()
+            assert args[0].args[0].is_fluent_exp()
+            type_here = args[0].args[0].fluent().type
+            assert not type_here.is_bool_type()
+            for a in args[0].args:
+                assert a.fluent().type == type_here
+            if type_here.is_user_type():
+                exps = []
+                for arg_1_obj in self._problem.objects(type_here):
+                    for arg_2_obj in self._problem.objects(type_here):
+                        if arg_1_obj == arg_2_obj:
+                            continue
+                        temp_exp = self._env.expression_manager.And(
+                            self._env.expression_manager.Equals(
+                                args[0].args[0], arg_1_obj
+                            ),
+                            self._env.expression_manager.Equals(
+                                args[0].args[1], arg_2_obj
+                            ),
+                        )
+                        exps.append(temp_exp)
+                return self._env.expression_manager.Or(exps)
+            else:
+                exp_1 = self._env.expression_manager.GT(*args[0].args)
+                exp_2 = self._env.expression_manager.LT(*args[0].args)
+                return self._env.expression_manager.Or(exp_1, exp_2)
         elif args[0].is_le():
-            # !(x <= n)
-            # should become
-            # x > n
-            return self._env.expression_manager.GT(
-                *args[0].args
-            )  # TODO check if this works
+            return self._env.expression_manager.GT(*args[0].args)
         elif args[0].is_lt():
-            # !(x < n)
-            # should become
-            # x >= n
-            return self._env.expression_manager.GE(
-                *args[0].args
-            )  # TODO check if this works
+            return self._env.expression_manager.GE(*args[0].args)
+        elif args[0].is_iff():
+            exp_1 = self._env.expression_manager.Iff(
+                args[0].args[0], self._env.expression_manager.Not(args[0].args[1])
+            )
+            exp_2 = self._env.expression_manager.Iff(
+                args[0].args[1], self._env.expression_manager.Not(args[0].args[0])
+            )
+            return self._env.expression_manager.Or(exp_1, exp_2)
+        elif args[0].is_and():
+            exp_t = self._env.expression_manager.Or(
+                self._env.expression_manager.Not(args[0].args[0]),
+                self._env.expression_manager.Not(args[0].args[1]),
+            )
+            return exp_t
+        elif args[0].is_or():
+            exp_t = self._env.expression_manager.And(
+                self._env.expression_manager.Not(args[0].args[0]),
+                self._env.expression_manager.Not(args[0].args[1]),
+            )
+            return exp_t
         else:
-            # TODO not(... or ...) / not(... and ...) with de morgan? make sure walker will be called on children
             raise UPExpressionDefinitionError(
-                f"Expression: {expression} is not in NNF."  # TODO change with better error message
+                f"Expression: {expression} is not supported."
             )
 
     @property
@@ -223,6 +269,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         fluent_remover = NegativeFluentRemover(problem, env)
 
+        op_extractor = OperatorsExtractor()
+
         new_to_old: Dict[Action, Optional[Action]] = {}
 
         new_problem = Problem(f"{self.name}_{problem.name}", env)
@@ -236,12 +284,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_action.name = get_fresh_name(new_problem, action.name)
                 new_action.clear_preconditions()
                 for p in action.preconditions:
-                    np = fluent_remover.remove_negative_fluents(p)
+                    np = p
+                    while OperatorKind.NOT in op_extractor.get(np):
+                        np = fluent_remover.remove_negative_fluents(np)
                     new_action.add_precondition(np)
                 for ce in new_action.conditional_effects:
-                    ce.set_condition(
-                        fluent_remover.remove_negative_fluents(ce.condition)
-                    )
+                    nc = ce.condition
+                    while OperatorKind.NOT in op_extractor.get(nc):
+                        nc = fluent_remover.remove_negative_fluents(nc)
+                    ce.set_condition(nc)
                 name_action_map[action.name] = new_action
             elif isinstance(action, DurativeAction):
                 new_durative_action = action.clone()
@@ -249,13 +300,16 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_durative_action.clear_conditions()
                 for i, cl in action.conditions.items():
                     for c in cl:
-                        nc = fluent_remover.remove_negative_fluents(c)
+                        nc = c
+                        while OperatorKind.NOT in op_extractor.get(nc):
+                            nc = fluent_remover.remove_negative_fluents(nc)
                         new_durative_action.add_condition(i, nc)
                 for t, cel in new_durative_action.conditional_effects.items():
                     for ce in cel:
-                        ce.set_condition(
-                            fluent_remover.remove_negative_fluents(ce.condition)
-                        )
+                        nc = ce.condition
+                        while OperatorKind.NOT in op_extractor.get(nc):
+                            nc = fluent_remover.remove_negative_fluents(nc)
+                        ce.set_condition(nc)
                 name_action_map[action.name] = new_durative_action
             else:
                 raise NotImplementedError
@@ -267,19 +321,30 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         for t, el in new_problem.timed_effects.items():
             for e in el:
                 if e.is_conditional():
-                    e.set_condition(fluent_remover.remove_negative_fluents(e.condition))
+
+                    nc = e.condition
+                    while OperatorKind.NOT in op_extractor.get(nc):
+                        nc = fluent_remover.remove_negative_fluents(nc)
+                    e.set_condition(nc)
 
         for i, gl in problem.timed_goals.items():
             for g in gl:
-                ng = fluent_remover.remove_negative_fluents(g)
+                ng = g
+                while OperatorKind.NOT in op_extractor.get(ng):
+                    ng = fluent_remover.remove_negative_fluents(ng)
                 new_problem.add_timed_goal(i, ng)
 
         for g in problem.goals:
-            ng = fluent_remover.remove_negative_fluents(g)
+            ng = g
+            while OperatorKind.NOT in op_extractor.get(ng):
+                ng = fluent_remover.remove_negative_fluents(ng)
             new_problem.add_goal(ng)
 
         for tc in problem.trajectory_constraints:
-            ntc = fluent_remover.remove_negative_fluents(tc)
+
+            ntc = tc
+            while OperatorKind.NOT in op_extractor.get(ntc):
+                ntc = fluent_remover.remove_negative_fluents(ntc)
             new_problem.add_trajectory_constraint(ntc)
 
         for qm in problem.quality_metrics:
@@ -291,23 +356,29 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 )
             elif qm.is_oversubscription():
                 assert isinstance(qm, Oversubscription)
+                os_dict = {}
+                for g, v in qm.goals.items():
+                    ng = g
+                    while OperatorKind.NOT in op_extractor.get(ng):
+                        ng = fluent_remover.remove_negative_fluents(ng)
+                    os_dict[ng] = v
                 new_problem.add_quality_metric(
                     Oversubscription(
-                        {
-                            fluent_remover.remove_negative_fluents(g): v
-                            for g, v in qm.goals.items()
-                        },
+                        os_dict,
                         environment=new_problem.environment,
                     )
                 )
             elif qm.is_temporal_oversubscription():
                 assert isinstance(qm, TemporalOversubscription)
+                os_dict = {}
+                for (t, g), v in qm.goals.items():
+                    ng = g
+                    while OperatorKind.NOT in op_extractor.get(ng):
+                        ng = fluent_remover.remove_negative_fluents(ng)
+                    os_dict[(t, ng)] = v
                 new_problem.add_quality_metric(
                     TemporalOversubscription(
-                        {
-                            (t, fluent_remover.remove_negative_fluents(g)): v
-                            for (t, g), v in qm.goals.items()
-                        },
+                        os_dict,
                         environment=new_problem.environment,
                     )
                 )
