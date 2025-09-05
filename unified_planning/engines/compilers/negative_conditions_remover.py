@@ -114,26 +114,20 @@ class NegativeFluentRemover(IdentityDagWalker):
         elif args[0].is_lt():
             return self._env.expression_manager.GE(*args[0].args)
         elif args[0].is_iff():
-            exp_1 = self._env.expression_manager.Iff(
+            return self._env.expression_manager.Iff(
                 args[0].args[0], self._env.expression_manager.Not(args[0].args[1])
             )
-            exp_2 = self._env.expression_manager.Iff(
-                args[0].args[1], self._env.expression_manager.Not(args[0].args[0])
-            )
-            return self._env.expression_manager.Or(exp_1, exp_2)
         elif args[0].is_and():
-            # TODO FIXME now only works with 2 args, should work with more
-            exp_t = self._env.expression_manager.Or(
-                self._env.expression_manager.Not(args[0].args[0]),
-                self._env.expression_manager.Not(args[0].args[1]),
-            )
+            not_args = []
+            for old_arg in args[0].args:
+                not_args.append(self._env.expression_manager.Not(old_arg))
+            exp_t = self._env.expression_manager.Or(not_args)
             return exp_t
         elif args[0].is_or():
-            # TODO FIXME now only works with 2 args, should work with more
-            exp_t = self._env.expression_manager.And(
-                self._env.expression_manager.Not(args[0].args[0]),
-                self._env.expression_manager.Not(args[0].args[1]),
-            )
+            not_args = []
+            for old_arg in args[0].args:
+                not_args.append(self._env.expression_manager.Not(old_arg))
+            exp_t = self._env.expression_manager.And(not_args)
             return exp_t
         else:
             raise UPExpressionDefinitionError(
