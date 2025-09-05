@@ -228,7 +228,7 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         self.assertEqual(positive_problem, test_problem)
 
     def test_objects(self):
-        problem = Problem("wompwomp")
+        problem = Problem("test_objects")
         ut = UserType("ut")
         u1 = Object("u1", ut)
         u2 = Object("u2", ut)
@@ -263,7 +263,7 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         self.assertEqual(compiled_action, comp_res.problem.action("test_action"))
 
     def test_booleans(self):
-        problem = Problem("wompwomp")
+        problem = Problem("test_booleans")
         bx = Fluent("bx", BoolType())
         by = Fluent("by", BoolType())
         bz = Fluent("bz", BoolType())
@@ -322,8 +322,8 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         )
         self.assertEqual(compiled_iff_action, comp_res.problem.action("iff_action"))
 
-    def test_numbers(self):
-        problem = Problem("wompwomp")
+    def test_numeric(self):
+        problem = Problem("test_numeric")
         x = Fluent("x", IntType())
         y = Fluent("y", IntType())
         b = Fluent("b", BoolType())
@@ -381,7 +381,7 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         self.assertEqual(compiled_le_action, comp_res.problem.action("le_action"))
 
     def test_mixed(self):
-        problem = Problem("wompwomp")
+        problem = Problem("test_mix")
         x = Fluent("x", IntType())
         y = Fluent("y", IntType())
         bx = Fluent("bx", BoolType())
