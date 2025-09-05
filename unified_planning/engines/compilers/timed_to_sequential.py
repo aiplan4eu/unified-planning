@@ -162,19 +162,19 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             end = EndTiming()
             old_end_effects: Dict = {}
             old_start_effects: Dict = {}  # NOTE also used for substitution
-            for i, oel in action.effects.items():
+            for timepoint, oel in action.effects.items():
                 # TODO FIXME this probably does not work with non assignment effects
-                if i == start:
+                if timepoint == start:
                     for oe in oel:
                         old_start_effects[oe.fluent] = oe.value
-                elif i == end:
+                elif timepoint == end:
                     for oe in oel:
                         old_end_effects[oe.fluent] = oe.value
                 else:
                     raise BaseException
 
-            for i, ocl in action.conditions.items():
-                if i.upper == start and i.lower == start:
+            for timeinterval, ocl in action.conditions.items():
+                if timeinterval.upper == start and timeinterval.lower == start:
                     for oc in ocl:
                         new_action.add_precondition(oc)
                 else:

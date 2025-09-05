@@ -83,4 +83,5 @@ class TestT2S(unittest_TestCase):
 
         t2s = TimedToSequential()
         comp_res = t2s.compile(problem, CompilationKind.TIMED_TO_SEQUENTIAL)
+        assert comp_res.problem is not None
         self.assertTrue(not comp_res.problem.kind.has_continuous_time())
