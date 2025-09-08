@@ -13,34 +13,13 @@
 # limitations under the License.
 
 
-from fractions import Fraction
-import os
-from unified_planning.plans import ActionInstance
-import unified_planning
 from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     unittest_TestCase,
-    main,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import (
-    basic_classical_kind,
-    classical_kind,
-    basic_temporal_kind,
-    full_classical_kind,
-)
-from unified_planning.engines.compilers import NegativeConditionsRemover
-from unified_planning.engines import SequentialPlanValidator as PV, CompilationKind
-from unified_planning.exceptions import (
-    UPExpressionDefinitionError,
-    UPProblemDefinitionError,
-)
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-
-from unified_planning.model.problem_kind import ProblemKind
+from unified_planning.engines import CompilationKind
 
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 

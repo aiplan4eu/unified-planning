@@ -21,7 +21,6 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
     Problem,
     ProblemKind,
-    Fluent,
     InstantaneousAction,
     DurativeAction,
     Action,
@@ -29,7 +28,7 @@ from unified_planning.model import (
 from unified_planning.model.timing import StartTiming, EndTiming
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 from functools import partial
 
 
@@ -70,9 +69,9 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
-        supported_kind.set_effects_kind("INCREASE_EFFECTS")
-        supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")  #
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")  #
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")  #
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
@@ -100,12 +99,12 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("PLAN_LENGTH")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
-        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
+        supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")  #
         supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
-        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
+        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")  #
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
@@ -164,8 +163,14 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             old_start_effects: Dict = {}  # NOTE also used for substitution
             for timepoint, oel in action.effects.items():
                 # TODO FIXME this probably does not work with non assignment effects
+                # assign ok
+                # continuous increase/decrease -> raise TODO
+                # increase/decrease FIXME
+                print(oel)
                 if timepoint == start:
                     for oe in oel:
+                        print(oe.fluent)
+                        print(oe.value)
                         old_start_effects[oe.fluent] = oe.value
                 elif timepoint == end:
                     for oe in oel:
