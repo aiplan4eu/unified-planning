@@ -30,19 +30,15 @@ from unified_planning.model import (
     Oversubscription,
     TemporalOversubscription,
 )
-from unified_planning.model.walkers import OperatorsExtractor
-from unified_planning.model.operators import OperatorKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.walkers.dnf import Nnf
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
     updated_minimize_action_costs,
 )
-from unified_planning.exceptions import (
-    UPExpressionDefinitionError,
-    UPProblemDefinitionError,
-)
+from unified_planning.exceptions import UPExpressionDefinitionError
 from typing import List, Dict, Union, Optional
 from functools import partial
 
@@ -53,12 +49,12 @@ class NegativeFluentRemover(IdentityDagWalker):
         IdentityDagWalker.__init__(self, self._env)
         self._fluent_mapping: Dict[Fluent, Fluent] = {}
         self._problem = problem
-        self._op_extractor = OperatorsExtractor()
+        self._nnf = Nnf(self._env)
 
     def remove_negative_fluents(self, expression: FNode) -> FNode:
         exp = expression
-        while OperatorKind.NOT in self._op_extractor.get(exp):
-            exp = self.walk(exp)
+        nnf_exp = self._nnf.get_nnf_expression(exp)
+        exp = self.walk(self._env.simplifier.simplify(nnf_exp))
         return exp
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
@@ -117,25 +113,11 @@ class NegativeFluentRemover(IdentityDagWalker):
             return self._env.expression_manager.GT(*args[0].args)
         elif args[0].is_lt():
             return self._env.expression_manager.GE(*args[0].args)
-        elif args[0].is_iff():
-            return self._env.expression_manager.Iff(
-                args[0].args[0], self._env.expression_manager.Not(args[0].args[1])
-            )
-        elif args[0].is_and():
-            not_args = []
-            for old_arg in args[0].args:
-                not_args.append(self._env.expression_manager.Not(old_arg))
-            exp_t = self._env.expression_manager.Or(not_args)
-            return exp_t
-        elif args[0].is_or():
-            not_args = []
-            for old_arg in args[0].args:
-                not_args.append(self._env.expression_manager.Not(old_arg))
-            exp_t = self._env.expression_manager.And(not_args)
-            return exp_t
+        elif args[0].is_iff() or args[0].is_and() or args[0].is_or():
+            raise UPExpressionDefinitionError(f"Expression: {expression} is not NNF")
         else:
             raise UPExpressionDefinitionError(
-                f"Expression: {expression} is not supported."
+                f"Expression: {expression} contains the not supported operation {args[0]}"
             )
 
     @property
