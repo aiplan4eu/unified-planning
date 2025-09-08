@@ -172,7 +172,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 else:
                     raise BaseException
 
-            subs_dict = {}
+            subs_dict: Dict = {}
             for osef, ose in old_start_effects.items():
                 assert isinstance(ose, Effect)
                 if ose.is_assignment():

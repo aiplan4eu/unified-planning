@@ -67,9 +67,8 @@ class TestT2S(unittest_TestCase):
         comp_res = t2s.compile(problem, CompilationKind.TIMED_TO_SEQUENTIAL)
         assert comp_res.problem is not None
         self.assertTrue(not comp_res.problem.kind.has_continuous_time())
+        assert isinstance(comp_res.problem, Problem)
         comp_tda = comp_res.problem.action("tda")
-        self.assertEqual(len(comp_tda.preconditions), 2)
-        self.assertEqual(len(comp_tda.effects), 4)
         expected_tda = InstantaneousAction("tda")
         expected_tda.add_precondition(Equals(x, 1))
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
