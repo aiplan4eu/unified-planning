@@ -35,28 +35,31 @@ class TestT2S(unittest_TestCase):
 
         x = Fluent("x", IntType())
         problem.add_fluent(x)
-        problem.set_initial_value(x, 1)
+        problem.set_initial_value(x, 10)
 
         y = Fluent("y", IntType())
         problem.add_fluent(y)
-        problem.set_initial_value(y, 1)
+        problem.set_initial_value(y, 10)
 
         z = Fluent("z", IntType())
         problem.add_fluent(z)
-        problem.set_initial_value(z, 1)
+        problem.set_initial_value(z, 10)
+
+        w = Fluent("w", IntType())
+        problem.add_fluent(w)
+        problem.set_initial_value(w, 10)
 
         tda = DurativeAction("tda")
         tda.set_closed_duration_interval(5, 10)
-        tda.add_effect(StartTiming(), x, x + 1)
-        tda.add_effect(EndTiming(), x, x + 1)
-        tda.add_effect(StartTiming(), y, y + 1)
-        tda.add_effect(EndTiming(), z, y + 1)
+
+        tda.add_increase_effect(StartTiming(), x, 1)
+        tda.add_decrease_effect(EndTiming(), x, 2)
+        tda.add_increase_effect(StartTiming(), y, 3)
+        tda.add_effect(EndTiming(), z, y + 4)
+        tda.add_decrease_effect(EndTiming(), w, x)
+
         tda.add_condition(StartTiming(), Equals(x, 1))
         tda.add_condition(EndTiming(), Not(Equals(y, 1)))
-
-        # start 1, 1, 1
-        # during 2, 2, 1
-        # end 3, 2, 3
 
         problem.add_action(tda)
 
@@ -64,3 +67,20 @@ class TestT2S(unittest_TestCase):
         comp_res = t2s.compile(problem, CompilationKind.TIMED_TO_SEQUENTIAL)
         assert comp_res.problem is not None
         self.assertTrue(not comp_res.problem.kind.has_continuous_time())
+        comp_tda = comp_res.problem.action("tda")
+        self.assertEqual(len(comp_tda.preconditions), 2)
+        self.assertEqual(len(comp_tda.effects), 4)
+        expected_tda = InstantaneousAction("tda")
+        expected_tda.add_precondition(Equals(x, 1))
+        expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
+        expected_tda.add_effect(x, Minus(Plus(x, 1), 2))
+        # expected_tda.add_effect(y, Plus(y, 3))
+        expected_tda.add_increase_effect(y, 3)
+        expected_tda.add_effect(z, Plus(Plus(y, 3), 4))
+        expected_tda.add_effect(w, Minus(w, Plus(x, 1)))
+
+        self.assertEqual(expected_tda, comp_tda)
+
+        print("expected preconds:\nx==1\n!(y+3==1)")
+
+        print("expected effects:\nx=x+1-2\ny=y+3\nz=y+3+4\nw=w-(x+1)")

@@ -24,6 +24,7 @@ from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
     Action,
+    Effect,
 )
 from unified_planning.model.timing import StartTiming, EndTiming
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
@@ -104,7 +105,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
-        supported_kind.set_simulated_entities("SIMULATED_EFFECTS")  #
+        # supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
         return supported_kind
@@ -133,16 +134,16 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         """
         TODO
         """
+        # NOTE: assumes that there are no multiple inc/dec effects on same variables at all, THEY WILL GET OVERWRITTEN AS OF NOW
         assert isinstance(problem, Problem)
 
         # if problem is already sequential return problem? or raise
 
-        # TODO conditions at start -> preconditions copypaste
-        # TODO conditions during and at end -> preconditions but substitute with start effects dict
-        # TODO effects:
+        # conditions at start -> preconditions copypaste
+        # conditions during and at end -> preconditions but substitute with start_effects_dict
+        # effects:
         # > effects_start \ effects_end (remove from start_effects effects on fluents that are also modified at end)
         # > effects_end but substitute with start_effects_dict on values
-        # TODO start effects dict -> start effects transition encoded in dict that can be used by substituter walker
         env = problem.environment
         tm = env.type_manager
         em = env.expression_manager
@@ -160,21 +161,26 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             start = StartTiming()
             end = EndTiming()
             old_end_effects: Dict = {}
-            old_start_effects: Dict = {}  # NOTE also used for substitution
+            old_start_effects: Dict = {}
             for timepoint, oel in action.effects.items():
-                # TODO FIXME this probably does not work with non assignment effects
-                # assign ok
-                # continuous increase/decrease -> raise TODO
-                # increase/decrease FIXME
-                print(oel)
                 if timepoint == start:
                     for oe in oel:
-                        print(oe.fluent)
-                        print(oe.value)
-                        old_start_effects[oe.fluent] = oe.value
+                        old_start_effects[oe.fluent] = oe
                 elif timepoint == end:
                     for oe in oel:
-                        old_end_effects[oe.fluent] = oe.value
+                        old_end_effects[oe.fluent] = oe
+                else:
+                    raise BaseException
+
+            subs_dict = {}
+            for osef, ose in old_start_effects.items():
+                assert isinstance(ose, Effect)
+                if ose.is_assignment():
+                    subs_dict[ose.fluent] = ose.value
+                elif ose.is_increase():
+                    subs_dict[ose.fluent] = em.Plus(ose.fluent, ose.value)
+                elif ose.is_decrease():
+                    subs_dict[ose.fluent] = em.Minus(ose.fluent, ose.value)
                 else:
                     raise BaseException
 
@@ -184,16 +190,37 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_action.add_precondition(oc)
                 else:
                     for oc in ocl:
-                        new_action.add_precondition(oc.substitute(old_start_effects))
+                        new_action.add_precondition(oc.substitute(subs_dict))
 
-            for oeef, oeev in old_end_effects.items():
-                new_v = oeev.substitute(old_start_effects)
-                new_action.add_effect(oeef, new_v)
-            for osef, osev in old_start_effects.items():
+            # TODO find a way to keep increase/decrease instead of turning everything into assignments
+            for oeef, oee in old_end_effects.items():
+                assert isinstance(oee, Effect)
+                if oee.is_assignment():
+                    new_value = oee.value.substitute(subs_dict)
+                    new_action.add_effect(oeef, new_value)
+                elif oee.is_increase():
+                    new_value = em.Plus(oeef, oee.value)
+                    new_value = new_value.substitute(subs_dict)
+                    new_action.add_effect(oeef, new_value)
+                elif oee.is_decrease():
+                    new_value = em.Minus(oeef, oee.value)
+                    new_value = new_value.substitute(subs_dict)
+                    new_action.add_effect(oeef, new_value)
+                else:
+                    raise BaseException
+                new_value = None
+            for osef, ose in old_start_effects.items():
+                assert isinstance(ose, Effect)
                 if osef not in old_end_effects.keys():
-                    new_action.add_effect(osef, osev)
+                    if ose.is_assignment():
+                        new_action.add_effect(osef, ose.value)
+                    elif ose.is_increase():
+                        new_action.add_increase_effect(osef, ose.value)
+                    elif ose.is_decrease():
+                        new_action.add_increase_effect(osef, ose.value)
+                    else:
+                        raise BaseException
 
-            # other things like simulated effects ... TODO
             new_problem.add_action(new_action)
 
         return CompilerResult(
