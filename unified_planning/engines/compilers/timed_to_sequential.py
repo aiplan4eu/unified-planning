@@ -31,6 +31,10 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from unified_planning.engines.compilers.utils import replace_action
 from typing import Dict, Optional
 from functools import partial
+from unified_planning.exceptions import (
+    UPUnsupportedProblemTypeError,
+    UPConflictingEffectsException,
+)
 
 
 class TimedToSequential(engines.engine.Engine, CompilerMixin):
@@ -70,7 +74,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")  #
+        # supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")  #
         supported_kind.set_effects_kind("INCREASE_EFFECTS")  #
         supported_kind.set_effects_kind("DECREASE_EFFECTS")  #
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -82,13 +86,12 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
-        # supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS") #
-        # supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")  #
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")  #
         # supported_kind.set_time("TIMED_EFFECTS") #
         # supported_kind.set_time("TIMED_GOALS") #
         supported_kind.set_time("DURATION_INEQUALITIES")
         # supported_kind.set_time("SELF_OVERLAPPING") #
-        # supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS") #
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
@@ -130,11 +133,17 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
-    ) -> CompilerResult:
+    ) -> CompilerResult:  # TODO better description
         """
-        TODO
+        Takes an instance of a (timed) :class:`~unified_planning.model.Problem` that contains Durative Actions
+        and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>`
+        field instead only contains instantaneous actions (sequential problem).
+
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without state innvariants.
+        :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem (optional);
+            only :class:`~unified_planning.engines.CompilationKind.TIMED_TO_SEQUENTIAL` is supported by this compiler
+        :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
         """
-        # NOTE: assumes that there are no multiple inc/dec effects on same variables at all, THEY WILL GET OVERWRITTEN AS OF NOW
         assert isinstance(problem, Problem)
 
         # if problem is already sequential return problem? or raise
@@ -145,7 +154,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         # > effects_start \ effects_end (remove from start_effects effects on fluents that are also modified at end)
         # > effects_end but substitute with start_effects_dict on values
         env = problem.environment
-        tm = env.type_manager
         em = env.expression_manager
 
         new_to_old: Dict[Action, Optional[Action]] = {}
@@ -165,12 +173,22 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             for timepoint, oel in action.effects.items():
                 if timepoint == start:
                     for oe in oel:
+                        if oe.fluent in old_start_effects.keys():
+                            raise UPConflictingEffectsException(
+                                "Duplicate (increase/decrease) effects at the same timepoint are not supported"
+                            )
                         old_start_effects[oe.fluent] = oe
                 elif timepoint == end:
                     for oe in oel:
+                        if oe.fluent in old_end_effects.keys():
+                            raise UPConflictingEffectsException(
+                                "Duplicate (increase/decrease) effects at the same timepoint are not supported"
+                            )
                         old_end_effects[oe.fluent] = oe
                 else:
-                    raise BaseException
+                    raise UPUnsupportedProblemTypeError(
+                        "Intermediate effects are not supported"
+                    )
 
             subs_dict: Dict = {}
             for osef, ose in old_start_effects.items():
@@ -182,7 +200,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 elif ose.is_decrease():
                     subs_dict[ose.fluent] = em.Minus(ose.fluent, ose.value)
                 else:
-                    raise BaseException
+                    raise UPUnsupportedProblemTypeError
 
             for timeinterval, ocl in action.conditions.items():
                 if timeinterval.upper == start and timeinterval.lower == start:
@@ -207,7 +225,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     new_value = new_value.substitute(subs_dict)
                     new_action.add_effect(oeef, new_value)
                 else:
-                    raise BaseException
+                    raise UPUnsupportedProblemTypeError
                 new_value = None
             for osef, ose in old_start_effects.items():
                 assert isinstance(ose, Effect)
@@ -219,7 +237,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     elif ose.is_decrease():
                         new_action.add_increase_effect(osef, ose.value)
                     else:
-                        raise BaseException
+                        raise UPUnsupportedProblemTypeError
+
+            # TODO : how do we make it that a sequential plan maps to a time triggered one?
+            new_to_old[new_action] = action
 
             new_problem.add_action(new_action)
 

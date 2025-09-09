@@ -22,6 +22,10 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPUnsupportedProblemTypeError,
+)
 
 
 class TestT2S(unittest_TestCase):
@@ -59,18 +63,20 @@ class TestT2S(unittest_TestCase):
         tda.add_decrease_effect(EndTiming(), w, x)
 
         tda.add_condition(StartTiming(), Equals(x, 1))
+        tda.add_condition(StartTiming() + 2, Equals(x, 5))
         tda.add_condition(EndTiming(), Not(Equals(y, 1)))
 
         problem.add_action(tda)
 
         t2s = TimedToSequential()
-        comp_res = t2s.compile(problem, CompilationKind.TIMED_TO_SEQUENTIAL)
+        comp_res = t2s.compile(problem)
         assert comp_res.problem is not None
         self.assertTrue(not comp_res.problem.kind.has_continuous_time())
         assert isinstance(comp_res.problem, Problem)
         comp_tda = comp_res.problem.action("tda")
         expected_tda = InstantaneousAction("tda")
         expected_tda.add_precondition(Equals(x, 1))
+        expected_tda.add_precondition(Equals(Plus(x, 1), 5))
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
         expected_tda.add_effect(x, Minus(Plus(x, 1), 2))
         # expected_tda.add_effect(y, Plus(y, 3))
@@ -83,3 +89,46 @@ class TestT2S(unittest_TestCase):
         print("expected preconds:\nx==1\n!(y+3==1)")
 
         print("expected effects:\nx=x+1-2\ny=y+3\nz=y+3+4\nw=w-(x+1)")
+
+    def test_exceptions(self):
+        p = Problem("p")
+        f = Fluent("f", IntType())
+        p.add_fluent(f)
+        p.set_initial_value(f, 5)
+        p.add_goal(Equals(f, 10))
+        a = DurativeAction("a")
+        a.set_fixed_duration(5)
+        a.add_increase_effect(StartTiming(), f, 1)
+        a.add_increase_effect(StartTiming(), f, 1)
+        p.add_action(a)
+
+        t2s = TimedToSequential()
+
+        try:
+            comp_res = t2s.compile(p)
+        except UPConflictingEffectsException as e:
+            self.assertEqual(
+                str(e),
+                "Duplicate (increase/decrease) effects at the same timepoint are not supported",
+            )
+        except Exception as e:
+            self.assertEqual(
+                repr(e),
+                "received as exception instead of 'UPConflictingEffectsException'",
+            )
+
+        p.clear_actions()
+        b = DurativeAction("b")
+        b.set_fixed_duration(5)
+        b.add_effect(StartTiming() + 1, f, 1)
+        p.add_action(b)
+        print(p)
+        try:
+            comp_res = t2s.compile(p)
+        except UPUnsupportedProblemTypeError as e:
+            self.assertEqual(str(e), "Intermediate effects are not supported")
+        except Exception as e:
+            self.assertEqual(
+                repr(e),
+                "received as exception instead of 'UPUnsupportedProblemTypeError'",
+            )
