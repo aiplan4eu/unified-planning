@@ -145,7 +145,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
 
         for action in problem.actions:
             new_action = InstantaneousAction(action.name)
-            # TODO if action is instant clone and add then continue
+            if isinstance(action, InstantaneousAction):
+                new_to_old[new_action] = action
+                new_problem.add_action(new_action)
+                continue
             assert isinstance(action, DurativeAction)
             start = StartTiming()
             end = EndTiming()
@@ -156,34 +159,37 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             for timepoint, oel in action.effects.items():
                 if timepoint == start:
                     for oe in oel:
-                        if oe.fluent in old_start_effects.keys():
-                            raise UPConflictingEffectsException(
-                                "Duplicate (increase/decrease) effects at the same timepoint are not supported"
-                            )
-                        old_start_effects[oe.fluent] = oe
+                        if oe.fluent not in old_start_effects.keys():
+                            old_start_effects[oe.fluent] = []
+                        old_start_effects[oe.fluent].append(oe)
                 elif timepoint == end:
                     for oe in oel:
-                        if oe.fluent in old_end_effects.keys():
-                            raise UPConflictingEffectsException(
-                                "Duplicate (increase/decrease) effects at the same timepoint are not supported"
-                            )
-                        old_end_effects[oe.fluent] = oe
+                        if oe.fluent not in old_end_effects.keys():
+                            old_end_effects[oe.fluent] = []
+                        old_end_effects[oe.fluent].append(oe)
                 else:
                     raise UPUnsupportedProblemTypeError(
                         "Intermediate effects are not supported"
                     )
 
             subs_dict: Dict = {}
-            for osef, ose in old_start_effects.items():
-                assert isinstance(ose, Effect)
-                if ose.is_assignment():
-                    subs_dict[ose.fluent] = ose.value
-                elif ose.is_increase():
-                    subs_dict[ose.fluent] = em.Plus(ose.fluent, ose.value)
-                elif ose.is_decrease():
-                    subs_dict[ose.fluent] = em.Minus(ose.fluent, ose.value)
-                else:
-                    raise UPUnsupportedProblemTypeError
+            for osef, osel in old_start_effects.items():
+                subs_dict[osef] = osef
+                for ose in osel:
+                    assert isinstance(ose, Effect)
+                    if ose.is_assignment():
+                        # NOTE we should never find assignments associated with any other kind of effect
+                        subs_dict[ose.fluent] = ose.value
+                    elif ose.is_increase():
+                        subs_dict[ose.fluent] = em.Plus(
+                            subs_dict[ose.fluent], ose.value
+                        )
+                    elif ose.is_decrease():
+                        subs_dict[ose.fluent] = em.Minus(
+                            subs_dict[ose.fluent], ose.value
+                        )
+                    else:
+                        raise UPUnsupportedProblemTypeError
 
             for timeinterval, ocl in action.conditions.items():
                 if timeinterval.upper == start and timeinterval.lower == start:
@@ -194,33 +200,35 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_action.add_precondition(oc.substitute(subs_dict))
 
             # TODO find a way to keep increase/decrease instead of turning everything into assignments
-            for oeef, oee in old_end_effects.items():
-                assert isinstance(oee, Effect)
-                if oee.is_assignment():
-                    new_value = oee.value.substitute(subs_dict)
-                    new_action.add_effect(oeef, new_value)
-                elif oee.is_increase():
-                    new_value = em.Plus(oeef, oee.value)
-                    new_value = new_value.substitute(subs_dict)
-                    new_action.add_effect(oeef, new_value)
-                elif oee.is_decrease():
-                    new_value = em.Minus(oeef, oee.value)
-                    new_value = new_value.substitute(subs_dict)
-                    new_action.add_effect(oeef, new_value)
-                else:
-                    raise UPUnsupportedProblemTypeError
-                new_value = None
-            for osef, ose in old_start_effects.items():
-                assert isinstance(ose, Effect)
-                if osef not in old_end_effects.keys():
-                    if ose.is_assignment():
-                        new_action.add_effect(osef, ose.value)
-                    elif ose.is_increase():
-                        new_action.add_increase_effect(osef, ose.value)
-                    elif ose.is_decrease():
-                        new_action.add_increase_effect(osef, ose.value)
+            for oeef, oeel in old_end_effects.items():
+                for oee in oeel:
+                    assert isinstance(oee, Effect)
+                    if oee.is_assignment():
+                        new_value = oee.value.substitute(subs_dict)
+                        new_action.add_effect(oeef, new_value)
+                    elif oee.is_increase():
+                        new_value = em.Plus(oeef, oee.value)
+                        new_value = new_value.substitute(subs_dict)
+                        new_action.add_effect(oeef, new_value)
+                    elif oee.is_decrease():
+                        new_value = em.Minus(oeef, oee.value)
+                        new_value = new_value.substitute(subs_dict)
+                        new_action.add_effect(oeef, new_value)
                     else:
                         raise UPUnsupportedProblemTypeError
+                    new_value = None
+            for osef, osel in old_start_effects.items():
+                for ose in osel:
+                    assert isinstance(ose, Effect)
+                    if osef not in old_end_effects.keys():
+                        if ose.is_assignment():
+                            new_action.add_effect(osef, ose.value)
+                        elif ose.is_increase():
+                            new_action.add_increase_effect(osef, ose.value)
+                        elif ose.is_decrease():
+                            new_action.add_increase_effect(osef, ose.value)
+                        else:
+                            raise UPUnsupportedProblemTypeError
 
             # TODO : how do we make it that a sequential plan maps to a time triggered one?
             new_to_old[new_action] = action
