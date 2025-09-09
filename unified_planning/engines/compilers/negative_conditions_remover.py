@@ -118,7 +118,7 @@ class NegativeFluentRemover(IdentityDagWalker):
             raise UPExpressionDefinitionError(f"Expression: {expression} is not NNF")
         else:
             raise UPExpressionDefinitionError(
-                f"Expression: {expression} contains the not supported operation {args[0]}"
+                f"Unable to remove negative conditions from expression: {expression}"
             )
 
     @property
@@ -317,23 +317,23 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 )
             elif qm.is_oversubscription():
                 assert isinstance(qm, Oversubscription)
-                os_dict: dict = {}
-                for g, v in qm.goals.items():
-                    os_dict[fluent_remover.remove_negative_fluents(g)] = v
                 new_problem.add_quality_metric(
                     Oversubscription(
-                        os_dict,
+                        {
+                            fluent_remover.remove_negative_fluents(g): v
+                            for g, v in qm.goals.items()
+                        },
                         environment=new_problem.environment,
                     )
                 )
             elif qm.is_temporal_oversubscription():
                 assert isinstance(qm, TemporalOversubscription)
-                os_dict = {}
-                for (t, g), v in qm.goals.items():
-                    os_dict[(t, fluent_remover.remove_negative_fluents(g))] = v
                 new_problem.add_quality_metric(
                     TemporalOversubscription(
-                        os_dict,
+                        {
+                            (t, fluent_remover.remove_negative_fluents(g)): v
+                            for (t, g), v in qm.goals.items()
+                        },
                         environment=new_problem.environment,
                     )
                 )
@@ -350,11 +350,11 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             if fneg is not None:
                 new_problem.add_fluent(fneg)
 
-        for fl, init_val in problem.initial_values.items():
+        for fl, v in problem.initial_values.items():
             fneg = fluent_mapping.get(fl.fluent(), None)
-            new_problem.set_initial_value(fl, init_val)
+            new_problem.set_initial_value(fl, v)
             if fneg is not None:
-                if init_val.bool_constant_value():
+                if v.bool_constant_value():
                     new_problem.set_initial_value(
                         env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                         env.expression_manager.FALSE(),
@@ -370,15 +370,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_action = name_action_map[action.name]
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
-                    efl, ev = e.fluent, e.value
-                    fneg = fluent_mapping.get(efl.fluent(), None)
+                    fl, v = e.fluent, e.value
+                    fneg = fluent_mapping.get(fl.fluent(), None)
                     if fneg is not None:
                         simplified_not_v = simplifier.simplify(
-                            env.expression_manager.Not(ev)
+                            env.expression_manager.Not(v)
                         )
                         new_effects.append(
                             Effect(
-                                env.expression_manager.FluentExp(fneg, tuple(efl.args)),
+                                env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                                 simplified_not_v,
                                 e.condition,
                                 e.kind,
@@ -395,17 +395,17 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
                 for t, el in new_durative_action.effects.items():
                     for e in el:
-                        efl, ev = e.fluent, e.value
-                        fneg = fluent_mapping.get(efl.fluent(), None)
+                        fl, v = e.fluent, e.value
+                        fneg = fluent_mapping.get(fl.fluent(), None)
                         if fneg is not None:
                             simplified_not_v = simplifier.simplify(
-                                env.expression_manager.Not(ev)
+                                env.expression_manager.Not(v)
                             )
                             new_durative_action._add_effect_instance(
                                 t,
                                 Effect(
                                     env.expression_manager.FluentExp(
-                                        fneg, tuple(efl.args)
+                                        fneg, tuple(fl.args)
                                     ),
                                     simplified_not_v,
                                     e.condition,
@@ -420,16 +420,16 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for t, el in new_problem.timed_effects.items():
             for e in el:
-                efl, ev = e.fluent, e.value
-                fneg = fluent_mapping.get(efl.fluent(), None)
+                fl, v = e.fluent, e.value
+                fneg = fluent_mapping.get(fl.fluent(), None)
                 if fneg is not None:
                     simplified_not_v = simplifier.simplify(
-                        env.expression_manager.Not(ev)
+                        env.expression_manager.Not(v)
                     )
                     new_problem._add_effect_instance(
                         t,
                         Effect(
-                            env.expression_manager.FluentExp(fneg, tuple(efl.args)),
+                            env.expression_manager.FluentExp(fneg, tuple(fl.args)),
                             simplified_not_v,
                             e.condition,
                             e.kind,

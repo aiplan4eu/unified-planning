@@ -12,16 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from fractions import Fraction
-import os
 from unified_planning.plans import ActionInstance
-import unified_planning
 from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     unittest_TestCase,
-    main,
     skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
 )
@@ -33,12 +28,7 @@ from unified_planning.model.problem_kind import (
     full_classical_kind,
 )
 from unified_planning.engines.compilers import NegativeConditionsRemover
-from unified_planning.engines import SequentialPlanValidator as PV, CompilationKind
-from unified_planning.exceptions import (
-    UPExpressionDefinitionError,
-    UPProblemDefinitionError,
-)
-import pytest
+from unified_planning.engines import CompilationKind
 
 
 class TestNegativeConditionsRemover(unittest_TestCase):
