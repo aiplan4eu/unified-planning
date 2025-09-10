@@ -39,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
     updated_minimize_action_costs,
 )
-from unified_planning.exceptions import UPExpressionDefinitionError
+from unified_planning.exceptions import UPExpressionDefinitionError, UPException
 from typing import List, Dict, Union, Optional
 from functools import partial
 
@@ -85,25 +85,49 @@ class NegativeFluentRemover(IdentityDagWalker):
             self._fluent_mapping[f] = nf
             return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
         elif args[0].is_equals():
-            assert args[0].args[0].is_fluent_exp()
-            type_here = args[0].args[0].fluent().type
-            assert not type_here.is_bool_type()
-            for a in args[0].args:
-                assert a.fluent().type == type_here
+            type_here = args[0].args[0].type
             if type_here.is_user_type():
+                if args[0].args[0].is_constant():
+                    arg_0_list = [args[0].args[0].constant_value()]
+                else:
+                    arg_0_list = list(self._problem.objects(type_here))
+                if args[0].args[1].is_constant():
+                    arg_1_list = [args[0].args[1].constant_value()]
+                else:
+                    arg_1_list = list(self._problem.objects(type_here))
+                # if there are no objects of the usertype we cannot compile this
+                if (len(arg_0_list) <= 0) or (len(arg_1_list) <= 0):
+                    raise UPException
                 exps = []
-                for arg_1_obj in self._problem.objects(type_here):
-                    for arg_2_obj in self._problem.objects(type_here):
-                        if arg_1_obj == arg_2_obj:
+                for arg_0_obj in arg_0_list:
+                    for arg_1_obj in arg_1_list:
+                        if arg_0_obj == arg_1_obj:
                             continue
-                        temp_exp = self._env.expression_manager.And(
-                            self._env.expression_manager.Equals(
-                                args[0].args[0], arg_1_obj
-                            ),
-                            self._env.expression_manager.Equals(
-                                args[0].args[1], arg_2_obj
-                            ),
-                        )
+                        # the basic cases where we have an equals with 2 constants are already removed by the simplifier
+                        # then we can only consider cases where we have 2 variable values or 1 and 1 constant
+                        if len(arg_0_list) == 1 and len(arg_1_list) == 1:
+                            # there is only one object in the problem, the values will always be equal
+                            return self._env.expression_manager.FALSE()
+                        elif len(arg_0_list) == 1:
+                            # arg 0 is a constant
+                            temp_exp = self._env.expression_manager.Equals(
+                                args[0].args[1], arg_1_obj
+                            )
+                        elif len(arg_1_list) == 1:
+                            # arg 1 is a constant
+                            temp_exp = self._env.expression_manager.Equals(
+                                args[0].args[0], arg_0_obj
+                            )
+                        else:
+                            # neither are constants
+                            temp_exp = self._env.expression_manager.And(
+                                self._env.expression_manager.Equals(
+                                    args[0].args[0], arg_0_obj
+                                ),
+                                self._env.expression_manager.Equals(
+                                    args[0].args[1], arg_1_obj
+                                ),
+                            )
                         exps.append(temp_exp)
                 return self._env.expression_manager.Or(exps)
             else:
@@ -138,6 +162,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     Then, to every `Action` that modifies the original `Fluent`, is added an :class:`Effect <unified_planning.model.Effect>` that
     modifies the `negation Fluent` with the `negation` of the :func:`value <unified_planning.model.Effect.value>` given to `Fluent`.
     So, in every moment, the `negation Fluent` has the `inverse value` of the `original Fluent`.
+    The negations are also removed from >, <, >=, <= and == nodes preceded by a `Not` by removing
+    the condition and adding an opposite one (e.g. 'not a < b' becomes 'a >= b')
 
     This `Compiler` supports only the the `NEGATIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
