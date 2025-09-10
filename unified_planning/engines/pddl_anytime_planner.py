@@ -22,6 +22,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
+from unified_planning.engines.pddl_planner import terminate_process
 from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
@@ -252,8 +253,5 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                 yield res
         finally:
             if self._process is not None:
-                try:
-                    self._process.kill()
-                except OSError:
-                    pass  # This can happen if the process is already terminated
+                terminate_process(self._process)
             t.join()
