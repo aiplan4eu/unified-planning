@@ -26,20 +26,24 @@ from unified_planning.model import (
     Action,
     Effect,
 )
-from unified_planning.model.timing import StartTiming, EndTiming
+from unified_planning.model.timing import StartTiming, EndTiming, Interval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple
+from fractions import Fraction
 from functools import partial
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
-    UPConflictingEffectsException,
 )
+from unified_planning.plans import SequentialPlan, TimeTriggeredPlan, ActionInstance
 
 
 class TimedToSequential(engines.engine.Engine, CompilerMixin):
     """
-    TODO
+    Timed to Sequential compiler class: this class offers the capability to
+    transform a problem with durative actions into one only using instantaneous actions.
+    Every durative action is compiled into an instantaneous action by condensing
+    all all conditions at start time and all effects at end time.
     """
 
     def __init__(self):
@@ -114,14 +118,20 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        raise NotImplementedError
+        new_kind.unset_expression_duration("INT_TYPE_DURATIONS")
+        new_kind.unset_expression_duration("REAL_TYPE_DURATIONS")
+        new_kind.unset_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+        new_kind.unset_expression_duration("FLUENTS_IN_DURATIONS")
+        new_kind.unset_time("CONTINUOUS_TIME")
+        new_kind.unset_time("DISCRETE_TIME")
+        new_kind.unset_time("DURATION_INEQUALITIES")
         return new_kind
 
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
-    ) -> CompilerResult:  # TODO better description
+    ) -> CompilerResult:
         """
         Takes an instance of a (timed) :class:`~unified_planning.model.Problem` that contains Durative Actions
         and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>`
@@ -153,9 +163,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             start = StartTiming()
             end = EndTiming()
             old_end_effects: Dict = {}
-            old_start_effects: Dict = (
-                {}
-            )  # TODO dict from fluent to list of effects instead of single effect to support multiple increase/decrease
+            old_start_effects: Dict = {}
             for timepoint, oel in action.effects.items():
                 if timepoint == start:
                     for oe in oel:
@@ -199,7 +207,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     for oc in ocl:
                         new_action.add_precondition(oc.substitute(subs_dict))
 
-            # TODO find a way to keep increase/decrease instead of turning everything into assignments
+            # TODO find a way to keep increase/decrease instead of turning everything into assignments - is this necessary?
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
@@ -229,14 +237,41 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                             new_action.add_increase_effect(osef, ose.value)
                         else:
                             raise UPUnsupportedProblemTypeError
-
-            # TODO : how do we make it that a sequential plan maps to a time triggered one?
             new_to_old[new_action] = action
-
             new_problem.add_action(new_action)
+
+        # TODO setup for map_back_callable system instead of single action map back
+        def map_back_callable(sp: SequentialPlan) -> TimeTriggeredPlan:
+            MIN_TIME_STEP = Fraction(1, 100)
+            time_now: Fraction = Fraction(0)
+            ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
+            for action_instance in sp.actions:
+                if action_instance.action in new_to_old:
+                    action_for_mapback = new_to_old[action_instance.action]
+                    assert action_for_mapback is not None
+                    tinterval = action_for_mapback.duration
+                    assert isinstance(tinterval, Interval)
+                    dtime = MIN_TIME_STEP  # TODO change placeholder once we decide what to do
+                    if not tinterval.is_left_open():
+                        dtime = Fraction(
+                            tinterval.lower.constant_value()
+                        )  # TODO check is this correct?
+                else:
+                    action_for_mapback = action_instance.action
+                    assert action_for_mapback is not None
+                    dtime = MIN_TIME_STEP
+
+                new_action_instance = ActionInstance(
+                    action=action_for_mapback,
+                    params=action_instance.actual_parameters,
+                    agent=action_instance.agent,
+                    motion_paths=action_instance.motion_paths,
+                )
+                ttptuples.append((time_now, new_action_instance, dtime))
+                time_now = time_now + dtime + MIN_TIME_STEP
+            ttp = TimeTriggeredPlan(ttptuples)
+            return ttp
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
-
-    # TODO function that takes in seq plan and returns time trigger plan
