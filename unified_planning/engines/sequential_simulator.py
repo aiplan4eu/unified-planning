@@ -38,9 +38,7 @@ from unified_planning.model import (
     Fluent,
     FNode,
     ExpressionManager,
-    State,
     UPState,
-    SparseState,
     Problem,
     MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
@@ -182,7 +180,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         """
         assert isinstance(self._problem, Problem), "supported_kind not respected"
         if self._initial_state is None:
-            self._initial_state = SparseState(self._problem.explicit_initial_values,self._problem)
+            self._initial_state = UPState(
+                self._problem.explicit_initial_values, self._problem
+            )
             for si in self._state_invariants:
                 if not self._se.evaluate(si, self._initial_state).bool_constant_value():
                     raise UPProblemDefinitionError(
@@ -270,9 +270,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         action, params = self._get_action_and_parameters(
             action_or_action_instance, parameters
         )
-        if not isinstance(state, up.model.State):
+        if not isinstance(state, up.model.UPState):
             raise UPUsageError(
-                f"The UPSequentialSimulator expects a State but {type(state).__name__} is given."
+                f"The UPSequentialSimulator uses the UPState but {type(state).__name__} is given."
             )
         grounded_action = self._ground_action(action, params)
         if grounded_action is None:
@@ -557,9 +557,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                                         "Conflicting effects should be caught above"
                                     )
 
-            if not isinstance(state, up.model.State):
+            if not isinstance(state, up.model.UPState):
                 raise UPUsageError(
-                    f"The UPSequentialSimulator expects a State but {type(state).__name__} is given."
+                    f"The UPSequentialSimulator uses the UPState but {type(state).__name__} is given."
                 )
             new_partial_state = state.make_child(updated_values)
             for si in self._state_invariants:

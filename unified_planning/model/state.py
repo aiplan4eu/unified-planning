@@ -22,6 +22,7 @@ from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model.mixins import FluentsSetMixin
 from unified_planning.environment import get_environment
 
+
 class State(ABC):
     """This is an abstract class representing a classical `State`"""
 
@@ -53,12 +54,15 @@ class UPState(State):
     def __init__(
         self,
         values: Dict["up.model.FNode", "up.model.FNode"],
+        problems_fluent_set: FluentsSetMixin,
         _father: Optional["UPState"] = None,
     ):
         """
         Creates a new `UPState` where the map values represents the get_value method. The parameter `_father`
         is for internal use only.
         """
+        self._fluent_set = problems_fluent_set
+
         max_ancestors = type(self).MAX_ANCESTORS
         if max_ancestors is not None and max_ancestors < 1:
             raise UPValueError(
@@ -75,12 +79,20 @@ class UPState(State):
                 raise UPValueError(
                     f"The value '{value}' assigned to the fluent '{fluent}' is not a constant, but a '{value.node_type.name}'"
                 )
-            self._values[fluent] = value
+            if _father is not None or self._is_nondefault(fluent, value):
+                # Invariant: a UPState without a _father only stores non-default values
+                self._values[fluent] = value
         if _father is None:
             self._ancestors = 0
         else:
             self._ancestors = _father._ancestors + 1
         self._hash: Optional[int] = None
+
+    def _is_nondefault(self, fluent: "up.model.FNode", value: "up.model.FNode"):
+        return (
+            fluent.fluent() not in self._fluent_set.fluents_defaults
+            or self._fluent_set.fluents_defaults[fluent.fluent()] != value
+        )
 
     def _condense_state(self):
         """
@@ -97,7 +109,9 @@ class UPState(State):
                     condensed_values.setdefault(k, v)
                 current_instance = current_instance._father
 
-            self._values = condensed_values
+            self._values = {
+                k: v for k, v in condensed_values.items() if self._is_nondefault(k, v)
+            }
             self._ancestors = 0
             self._father = None
 
@@ -132,6 +146,11 @@ class UPState(State):
             if value_found is not None:
                 return value_found
             current_instance = current_instance._father
+
+        default_found = self._fluent_set.fluents_defaults.get(fluent.fluent(), None)
+        if default_found is not None:
+            return default_found
+
         raise UPUsageError(
             f"The state {self} does not have a value for the value {fluent}"
         )
@@ -157,101 +176,9 @@ class UPState(State):
                 for k, v in current_instance._values.items():
                     complete_values.setdefault(k, v)
                 current_instance = current_instance._father
-            return UPState(complete_values)
+            return UPState(
+                {k: v for k, v in complete_values.items() if self._is_nondefault(k, v)},
+                self._fluent_set,
+            )
         # Otherwise just return a new UPState with self as ancestor
-        return UPState(updated_values, self)
-
-class SparseState(State):
-    """
-    State representation only storing non-default values.
-
-    Has a big performance advantage over UPState in that it does not require explicitly listing
-    false boolean fluents. For this reason also does not try to implement the ancestore trick.
-    """
-
-    def __init__(
-        self,
-        values: Dict["up.model.FNode", "up.model.FNode"],
-        fluent_set: FluentsSetMixin
-    ):
-        """
-        Creates a new `SparseState` where values are those that possibly differ from
-        the defaults specified in the given fluent_set.
-        """
-        self._fluent_set = fluent_set
-
-        self._values = {}
-        for fluent, value in values.items():
-            if not fluent.is_fluent_exp():
-                raise UPValueError(
-                    f"The fluent '{fluent}' is not a fluent expression, but a '{fluent.node_type.name}'"
-                )
-            if not value.is_constant():
-                raise UPValueError(
-                    f"The value '{value}' assigned to the fluent '{fluent}' is not a constant, but a '{value.node_type.name}'"
-                )
-            if self._is_nondefault(fluent,value):
-                self._values[fluent] = value
-
-        self._hash: Optional[int] = None
-
-    def _is_nondefault(self, fluent: "up.model.FNode", value: "up.model.FNode"):
-        return (fluent.fluent() not in self._fluent_set.fluents_defaults or
-                self._fluent_set.fluents_defaults[fluent.fluent()] != value)
-
-    def __repr__(self) -> str:
-        return str(self._values)
-
-    def __hash__(self) -> int:
-        if self._hash is None:
-            self._hash = reduce(xor, map(hash, self._values.items()), 0)
-        assert self._hash is not None
-        return self._hash
-
-    def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, SparseState) and hash(self) == hash(oth):
-            return self._values == oth._values
-        return False
-
-    def get_value(self, fluent: "up.model.FNode") -> "up.model.FNode":
-        """
-        This method retrieves the value of the given fluent expression in the `State`.
-        NOTE that the value may be represented implicilty, through a default rule.
-
-        :params fluent: The fluent searched for in the `SparseState`.
-        :return: The value set for the given fluent.
-        """
-        value_found = self._values.get(fluent, None)
-        if value_found is not None:
-            return value_found
-
-        default_found = self._fluent_set.fluents_defaults.get(fluent.fluent(),None)
-        if default_found is not None:
-            return default_found
-
-        raise UPUsageError(
-            f"The state {self} does not have a value for the value {fluent}"
-        )
-
-    def make_child(
-        self,
-        updated_values: Dict["up.model.FNode", "up.model.FNode"],
-    ) -> "SparseState":
-        """
-        Returns a new `SparseState` which respects `updated_values` but
-        otherwise is the same as `self`.
-
-        :param updated_values: The dictionary that contains the `values` that need to be updated in the new `SparseState`.
-        :return: The new `SparseState` created.
-        """
-
-        new_state = SparseState({},self._fluent_set) # create as if empty
-        new_values = self._values.copy()
-        for fluent, value in updated_values.items():
-            if self._is_nondefault(fluent,value):
-                new_values[fluent] = value  # overwrite
-            else:
-                new_values.pop(fluent,None) # delete if present
-
-        new_state._values = new_values
-        return new_state
+        return UPState(updated_values, self._fluent_set, self)

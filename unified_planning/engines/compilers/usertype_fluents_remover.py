@@ -422,7 +422,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             assert (
                                 obj_exp == test_value
                             ), "Error, found True Value multiple times in the same state for a boolean fluent used to remove a UserType fluent"
-            state = UPState(original_state)
+            state = UPState(original_state, original_problem)
             # populate the ret_val list with the default returned value, when a non
             # usertype fluent is returned, while with a series of True and False
             # when a usertype is returned

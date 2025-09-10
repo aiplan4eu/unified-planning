@@ -34,13 +34,15 @@ class TestUPState(unittest_TestCase):
         self.assertNotEqual(state_2, state_1)
 
     def test_state(self):
+        dummy_problem = Problem()
+
         fluents = [FluentExp(Fluent(f"{n}", IntType())) for n in "abc"]
         a, b, c = fluents
         numbers = [Int(n) for n in range(6)]
         n0, n1, n2, n3, n4, n5 = numbers
 
-        state_1 = UPState({a: n0, b: n1, c: n2})
-        state_1_copy = UPState({a: n0, b: n1, c: n2})
+        state_1 = UPState({a: n0, b: n1, c: n2}, dummy_problem)
+        state_1_copy = UPState({a: n0, b: n1, c: n2}, dummy_problem)
 
         self.assert_same_state(state_1, state_1_copy)
 
@@ -49,7 +51,7 @@ class TestUPState(unittest_TestCase):
 
         self.assert_same_state(state_1, state_1_copy)
 
-        state_2 = UPState({a: n0, b: n1, c: n2})
+        state_2 = UPState({a: n0, b: n1, c: n2}, dummy_problem)
 
         self.assert_different_state(state_1, state_2)
 
@@ -75,12 +77,14 @@ class TestUPState(unittest_TestCase):
         self.assert_same_state(state_2, state_4)
 
     def test_non_constant_values(self):
+        dummy_problem = Problem()
+
         fluents = [FluentExp(Fluent(f"{n}", IntType())) for n in "ab"]
         a, b = fluents
         n0 = Int(0)
 
         with self.assertRaises(UPValueError):
-            UPState({a: b})
+            UPState({a: b}, dummy_problem)
 
         with self.assertRaises(UPValueError):
-            UPState({a: n0 + b})
+            UPState({a: n0 + b}, dummy_problem)
