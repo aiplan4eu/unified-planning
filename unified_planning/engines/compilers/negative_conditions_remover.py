@@ -101,13 +101,13 @@ class NegativeFluentRemover(IdentityDagWalker):
                 exps = []
                 for arg_0_obj in arg_0_list:
                     for arg_1_obj in arg_1_list:
-                        if arg_0_obj == arg_1_obj:
-                            continue
                         # the basic cases where we have an equals with 2 constants are already removed by the simplifier
                         # then we can only consider cases where we have 2 variable values or 1 and 1 constant
                         if len(arg_0_list) == 1 and len(arg_1_list) == 1:
                             # there is only one object in the problem, the values will always be equal
                             return self._env.expression_manager.FALSE()
+                        if arg_0_obj == arg_1_obj:
+                            continue
                         elif len(arg_0_list) == 1:
                             # arg 0 is a constant
                             temp_exp = self._env.expression_manager.Equals(
