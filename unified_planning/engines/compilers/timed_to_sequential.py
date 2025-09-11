@@ -32,10 +32,13 @@ from unified_planning.engines.compilers.utils import replace_action
 from typing import Dict, Optional, List, Tuple, OrderedDict
 from fractions import Fraction
 from functools import partial
-from unified_planning.exceptions import (
-    UPUnsupportedProblemTypeError,
+from unified_planning.exceptions import UPUnsupportedProblemTypeError, UPUsageError
+from unified_planning.plans import (
+    SequentialPlan,
+    TimeTriggeredPlan,
+    ActionInstance,
+    Plan,
 )
-from unified_planning.plans import SequentialPlan, TimeTriggeredPlan, ActionInstance
 
 
 class TimedToSequential(engines.engine.Engine, CompilerMixin):
@@ -244,7 +247,9 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_problem.add_action(new_action)
 
         # TODO setup for map_back_callable system instead of single action map back
-        def map_back_callable(sp: SequentialPlan) -> TimeTriggeredPlan:
+        def map_back_callable(sp: Plan) -> Plan:
+            if not isinstance(sp, SequentialPlan):
+                raise UPUsageError("Plan to map back is not sequential")
             MIN_TIME_STEP = Fraction(1, 100)
             time_now: Fraction = Fraction(0)
             ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
@@ -276,5 +281,8 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             return ttp
 
         return CompilerResult(
-            new_problem, partial(replace_action, map=new_to_old), self.name
+            problem=new_problem,
+            plan_back_conversion=map_back_callable,
+            engine_name=self.name,
+            map_back_action_instance=partial(replace_action, map=new_to_old),
         )

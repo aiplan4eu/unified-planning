@@ -22,6 +22,7 @@ from unified_planning.test.examples import get_example_problems
 
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
+from typing import Callable
 
 
 class TestT2S(unittest_TestCase):
@@ -82,6 +83,19 @@ class TestT2S(unittest_TestCase):
         expected_tda.add_effect(w, Minus(w, Plus(Plus(x, 1), 1)))
 
         self.assertEqual(expected_tda, comp_tda)
+
+        sp = SequentialPlan([comp_tda(), comp_tda()])
+        assert comp_res.plan_back_conversion is not None
+        self.assertTrue(comp_res.plan_back_conversion is not None)
+        mapped_back_ttp = comp_res.plan_back_conversion(sp)
+        self.assertTrue(isinstance(mapped_back_ttp, TimeTriggeredPlan))
+        expected_ttp = TimeTriggeredPlan(
+            [
+                (Fraction(0), tda(), Fraction(5)),
+                (Fraction(501, 100), tda(), Fraction(5)),
+            ]
+        )
+        self.assertEqual(expected_ttp, mapped_back_ttp)
 
     def test_logistic(self):
         problem = self.problems["logistic"].problem
