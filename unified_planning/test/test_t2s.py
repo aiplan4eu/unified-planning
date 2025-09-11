@@ -67,10 +67,9 @@ class TestT2S(unittest_TestCase):
 
         t2s = TimedToSequential()
         comp_res = t2s.compile(problem)
-        assert comp_res.problem is not None
+        assert isinstance(comp_res.problem, Problem)
         self.assertTrue(problem.kind.has_continuous_time())
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
-        assert isinstance(comp_res.problem, Problem)
         comp_tda = comp_res.problem.action("tda")
         expected_tda = InstantaneousAction("tda")
         expected_tda.add_precondition(Equals(x, 1))
@@ -89,6 +88,7 @@ class TestT2S(unittest_TestCase):
         assert isinstance(problem, Problem)
         t2s = TimedToSequential()
         comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
         self.assertTrue(problem.kind.has_continuous_time())
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
 
@@ -118,6 +118,7 @@ class TestT2S(unittest_TestCase):
         assert isinstance(problem, Problem)
         t2s = TimedToSequential()
         comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
         self.assertTrue(problem.kind.has_continuous_time())
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
         compiled_d = comp_res.problem.action("decrease")
