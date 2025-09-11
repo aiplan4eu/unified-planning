@@ -39,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
     updated_minimize_action_costs,
 )
-from unified_planning.exceptions import UPExpressionDefinitionError, UPException
+from unified_planning.exceptions import UPExpressionDefinitionError, UPUsageError
 from typing import List, Dict, Union, Optional
 from functools import partial
 
@@ -85,54 +85,51 @@ class NegativeFluentRemover(IdentityDagWalker):
             self._fluent_mapping[f] = nf
             return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
         elif args[0].is_equals():
-            type_here = args[0].args[0].type
+            equals_node = args[0]
+            left = equals_node.args[0]
+            right = equals_node.args[1]
+            type_here = left.type
             if type_here.is_user_type():
-                if args[0].args[0].is_constant():
-                    arg_0_list = [args[0].args[0].constant_value()]
+                # the basic cases where we have an equals with 2 constants are already removed by the simplifier
+                # then we can only consider cases where we have 2 variable values or 1 and 1 constant
+                if right.is_constant():
+                    temp = right
+                    right = left
+                    left = temp
+                if left.is_constant():
+                    left_list = [left.constant_value()]
                 else:
-                    arg_0_list = list(self._problem.objects(type_here))
-                if args[0].args[1].is_constant():
-                    arg_1_list = [args[0].args[1].constant_value()]
-                else:
-                    arg_1_list = list(self._problem.objects(type_here))
+                    left_list = list(self._problem.objects(type_here))
+                right_list = list(self._problem.objects(type_here))
                 # if there are no objects of the usertype we cannot compile this
-                if (len(arg_0_list) <= 0) or (len(arg_1_list) <= 0):
-                    raise UPException
+                if (len(left_list) <= 0) or (len(right_list) <= 0):
+                    raise UPUsageError(
+                        f"No objects present for the usertype {type_here}"
+                    )
+                if len(left_list) == 1 and len(right_list) == 1:
+                    # there is only one object in the problem, the values will always be equal
+                    return self._env.expression_manager.FALSE()
                 exps = []
-                for arg_0_obj in arg_0_list:
-                    for arg_1_obj in arg_1_list:
-                        # the basic cases where we have an equals with 2 constants are already removed by the simplifier
-                        # then we can only consider cases where we have 2 variable values or 1 and 1 constant
-                        if len(arg_0_list) == 1 and len(arg_1_list) == 1:
-                            # there is only one object in the problem, the values will always be equal
-                            return self._env.expression_manager.FALSE()
-                        if arg_0_obj == arg_1_obj:
+                for left_obj in left_list:
+                    for right_obj in right_list:
+                        if left_obj == right_obj:
                             continue
-                        elif len(arg_0_list) == 1:
-                            # arg 0 is a constant
+                        elif len(left_list) == 1:
+                            # left is a constant, only consider right
                             temp_exp = self._env.expression_manager.Equals(
-                                args[0].args[1], arg_1_obj
-                            )
-                        elif len(arg_1_list) == 1:
-                            # arg 1 is a constant
-                            temp_exp = self._env.expression_manager.Equals(
-                                args[0].args[0], arg_0_obj
+                                right, right_obj
                             )
                         else:
                             # neither are constants
                             temp_exp = self._env.expression_manager.And(
-                                self._env.expression_manager.Equals(
-                                    args[0].args[0], arg_0_obj
-                                ),
-                                self._env.expression_manager.Equals(
-                                    args[0].args[1], arg_1_obj
-                                ),
+                                self._env.expression_manager.Equals(left, left_obj),
+                                self._env.expression_manager.Equals(right, right_obj),
                             )
                         exps.append(temp_exp)
                 return self._env.expression_manager.Or(exps)
             else:
-                exp_1 = self._env.expression_manager.GT(*args[0].args)
-                exp_2 = self._env.expression_manager.LT(*args[0].args)
+                exp_1 = self._env.expression_manager.GT(*equals_node.args)
+                exp_2 = self._env.expression_manager.LT(*equals_node.args)
                 return self._env.expression_manager.Or(exp_1, exp_2)
         elif args[0].is_le():
             return self._env.expression_manager.GT(*args[0].args)
