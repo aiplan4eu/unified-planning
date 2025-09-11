@@ -29,7 +29,7 @@ from unified_planning.model import (
 from unified_planning.model.timing import StartTiming, EndTiming, Interval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Dict, Optional, List, Tuple
+from typing import Dict, Optional, List, Tuple, OrderedDict
 from fractions import Fraction
 from functools import partial
 from unified_planning.exceptions import (
@@ -154,11 +154,14 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         new_problem.clear_actions()
 
         for action in problem.actions:
-            new_action = InstantaneousAction(action.name)
             if isinstance(action, InstantaneousAction):
-                new_to_old[new_action] = action
-                new_problem.add_action(new_action)
+                new_to_old[action] = action
+                new_problem.add_action(action)
                 continue
+            pdict = OrderedDict()
+            for p in action.parameters:
+                pdict[p.name] = p.type
+            new_action = InstantaneousAction(action.name, pdict)
             assert isinstance(action, DurativeAction)
             start = StartTiming()
             end = EndTiming()
