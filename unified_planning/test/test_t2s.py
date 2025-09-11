@@ -21,12 +21,12 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
+from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 
 
 class TestT2S(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
-        self.environment = get_environment()
         self.problems = get_example_problems()
 
     def test_base_example(self):
@@ -68,7 +68,8 @@ class TestT2S(unittest_TestCase):
         t2s = TimedToSequential()
         comp_res = t2s.compile(problem)
         assert comp_res.problem is not None
-        self.assertTrue(not comp_res.problem.kind.has_continuous_time())
+        self.assertTrue(problem.kind.has_continuous_time())
+        self.assertFalse(comp_res.problem.kind.has_continuous_time())
         assert isinstance(comp_res.problem, Problem)
         comp_tda = comp_res.problem.action("tda")
         expected_tda = InstantaneousAction("tda")
@@ -77,13 +78,37 @@ class TestT2S(unittest_TestCase):
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
         expected_tda.add_precondition(Equals(Plus(Plus(x, 1), 1), 1))
         expected_tda.add_effect(x, Minus(Plus(Plus(x, 1), 1), 2))
-        # expected_tda.add_effect(y, Plus(y, 3))
         expected_tda.add_increase_effect(y, 3)
         expected_tda.add_effect(z, Plus(Plus(y, 3), 4))
         expected_tda.add_effect(w, Minus(w, Plus(Plus(x, 1), 1)))
 
         self.assertEqual(expected_tda, comp_tda)
 
-        print("expected preconds:\nx==1\n!(y+3==1)")
+    def test_logistic(self):
+        problem = self.problems["logistic"].problem
+        assert isinstance(problem, Problem)
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        self.assertTrue(problem.kind.has_continuous_time())
+        self.assertFalse(comp_res.problem.kind.has_continuous_time())
 
-        print("expected effects:\nx=x+1-2\ny=y+3\nz=y+3+4\nw=w-(x+1)")
+        compiled_move = comp_res.problem.action("move")
+        Robot = problem.user_type("Robot")
+        Location = problem.user_type("Location")
+        robot_at = problem.fluent("robot_at")
+        is_connected = problem.fluent("is_connected")
+        r1 = problem.object("r1")
+        r2 = problem.object("r2")
+        expected_move = InstantaneousAction(
+            "move", robot=Robot, l_from=Location, l_to=Location
+        )
+        robot = expected_move.parameter("robot")
+        l_from = expected_move.parameter("l_from")
+        l_to = expected_move.parameter("l_to")
+        expected_move.add_precondition(robot_at(robot, l_from))
+        expected_move.add_precondition(is_connected(l_from, l_to))
+        expected_move.add_precondition(Not(robot_at(r1, l_to)))
+        expected_move.add_precondition(Not(robot_at(r2, l_to)))
+        expected_move.add_effect(robot_at(robot, l_from), False)
+        expected_move.add_effect(robot_at(robot, l_to), True)
+        self.assertEqual(compiled_move, expected_move)
