@@ -41,6 +41,10 @@ class State(ABC):
 class UPState(State):
     """
     unified_planning implementation of the `State` interface.
+
+    It uses problems_fluent_set to be aware of problem's fluents' defaults,
+    so that default values need not be stored, which saves space.
+
     This class has an optional field `MAX_ANCESTORS` set to 20.
 
     The higher this number is, the less memory the data structure will use.
@@ -58,8 +62,16 @@ class UPState(State):
         _father: Optional["UPState"] = None,
     ):
         """
-        Creates a new `UPState` where the map values represents the get_value method. The parameter `_father`
-        is for internal use only.
+        Creates a new `UPState` where the map values represents the get_value method.
+
+        Pass the Problem your state belongs to as the parameter problems_fluent_set;
+        it will be used to retrieve fluents' defaults.
+
+        When creating problem's initial state representation it is enought to pass
+        only problem's explicit_initial_values as the parameter values
+        (and thus avoid the often expensive initial_values property of the InitialStateMixin).
+
+        The parameter `_father` is for internal use only.
         """
         self._fluent_set = problems_fluent_set
 
@@ -160,7 +172,7 @@ class UPState(State):
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
     ) -> "UPState":
         """
-        Returns a different `UPState` in which every value in updated_values.keys() is evaluated as his mapping
+        Returns a different `UPState` in which every value in updated_values.keys() is evaluated as this mapping
         in new the `updated_values` dict and every other value is evaluated as in `self`.
 
         :param updated_values: The dictionary that contains the `values` that need to be updated in the new `UPState`.
