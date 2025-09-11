@@ -112,3 +112,23 @@ class TestT2S(unittest_TestCase):
         expected_move.add_effect(robot_at(robot, l_from), False)
         expected_move.add_effect(robot_at(robot, l_to), True)
         self.assertEqual(compiled_move, expected_move)
+
+    def test_temporal_counter(self):
+        problem = self.problems["temporal_counter"].problem
+        assert isinstance(problem, Problem)
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        self.assertTrue(problem.kind.has_continuous_time())
+        self.assertFalse(comp_res.problem.kind.has_continuous_time())
+        compiled_d = comp_res.problem.action("decrease")
+        compiled_i = comp_res.problem.action("increase")
+        counter_f = problem.fluent("counter")
+        expected_i = InstantaneousAction("increase")
+        expected_i.add_precondition(LT(counter_f, 99))
+        # NOTE currently effects at end are always compiled into assignments
+        expected_i.add_effect(counter_f, Plus(counter_f, 2))
+        expected_d = InstantaneousAction("decrease")
+        expected_d.add_precondition(GT(counter_f, 0))
+        expected_d.add_effect(counter_f, Minus(counter_f, 1))
+        self.assertEqual(compiled_d, expected_d)
+        self.assertEqual(compiled_i, expected_i)
