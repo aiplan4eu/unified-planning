@@ -39,6 +39,7 @@ from unified_planning.plans import (
     ActionInstance,
     Plan,
 )
+from unified_planning.model.problem_kind import FEATURES
 
 
 class TimedToSequential(engines.engine.Engine, CompilerMixin):
@@ -121,13 +122,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        new_kind.unset_expression_duration("INT_TYPE_DURATIONS")
-        new_kind.unset_expression_duration("REAL_TYPE_DURATIONS")
-        new_kind.unset_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-        new_kind.unset_expression_duration("FLUENTS_IN_DURATIONS")
-        new_kind.unset_time("CONTINUOUS_TIME")
-        new_kind.unset_time("DISCRETE_TIME")
-        new_kind.unset_time("DURATION_INEQUALITIES")
+        for timefeat in FEATURES["TIME"]:
+            new_kind.unset_time(timefeat)
+        for durfeat in FEATURES("EXPRESSION_DURATION"):
+            new_kind.unset_expression_duration(durfeat)
         return new_kind
 
     def _compile(
