@@ -19,6 +19,8 @@ from operator import xor
 from typing import Dict, List, Optional, Tuple
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.model.mixins import FluentsSetMixin
+from unified_planning.environment import get_environment
 
 
 class State(ABC):
@@ -39,6 +41,10 @@ class State(ABC):
 class UPState(State):
     """
     unified_planning implementation of the `State` interface.
+
+    It uses problems_fluent_set to be aware of problem's fluents' defaults,
+    so that default values need not be stored, which saves space.
+
     This class has an optional field `MAX_ANCESTORS` set to 20.
 
     The higher this number is, the less memory the data structure will use.
@@ -52,12 +58,23 @@ class UPState(State):
     def __init__(
         self,
         values: Dict["up.model.FNode", "up.model.FNode"],
+        problems_fluent_set: FluentsSetMixin,
         _father: Optional["UPState"] = None,
     ):
         """
-        Creates a new `UPState` where the map values represents the get_value method. The parameter `_father`
-        is for internal use only.
+        Creates a new `UPState` where the map values represents the get_value method.
+
+        Pass the Problem your state belongs to as the parameter problems_fluent_set;
+        it will be used to retrieve fluents' defaults.
+
+        When creating problem's initial state representation it is enought to pass
+        only problem's explicit_initial_values as the parameter values
+        (and thus avoid the often expensive initial_values property of the InitialStateMixin).
+
+        The parameter `_father` is for internal use only.
         """
+        self._fluent_set = problems_fluent_set
+
         max_ancestors = type(self).MAX_ANCESTORS
         if max_ancestors is not None and max_ancestors < 1:
             raise UPValueError(
@@ -74,12 +91,20 @@ class UPState(State):
                 raise UPValueError(
                     f"The value '{value}' assigned to the fluent '{fluent}' is not a constant, but a '{value.node_type.name}'"
                 )
-            self._values[fluent] = value
+            if _father is not None or self._is_nondefault(fluent, value):
+                # Invariant: a UPState without a _father only stores non-default values
+                self._values[fluent] = value
         if _father is None:
             self._ancestors = 0
         else:
             self._ancestors = _father._ancestors + 1
         self._hash: Optional[int] = None
+
+    def _is_nondefault(self, fluent: "up.model.FNode", value: "up.model.FNode"):
+        return (
+            fluent.fluent() not in self._fluent_set.fluents_defaults
+            or self._fluent_set.fluents_defaults[fluent.fluent()] != value
+        )
 
     def _condense_state(self):
         """
@@ -96,7 +121,9 @@ class UPState(State):
                     condensed_values.setdefault(k, v)
                 current_instance = current_instance._father
 
-            self._values = condensed_values
+            self._values = {
+                k: v for k, v in condensed_values.items() if self._is_nondefault(k, v)
+            }
             self._ancestors = 0
             self._father = None
 
@@ -131,6 +158,11 @@ class UPState(State):
             if value_found is not None:
                 return value_found
             current_instance = current_instance._father
+
+        default_found = self._fluent_set.fluents_defaults.get(fluent.fluent(), None)
+        if default_found is not None:
+            return default_found
+
         raise UPUsageError(
             f"The state {self} does not have a value for the value {fluent}"
         )
@@ -140,7 +172,7 @@ class UPState(State):
         updated_values: Dict["up.model.FNode", "up.model.FNode"],
     ) -> "UPState":
         """
-        Returns a different `UPState` in which every value in updated_values.keys() is evaluated as his mapping
+        Returns a different `UPState` in which every value in updated_values.keys() is evaluated as this mapping
         in new the `updated_values` dict and every other value is evaluated as in `self`.
 
         :param updated_values: The dictionary that contains the `values` that need to be updated in the new `UPState`.
@@ -156,6 +188,9 @@ class UPState(State):
                 for k, v in current_instance._values.items():
                     complete_values.setdefault(k, v)
                 current_instance = current_instance._father
-            return UPState(complete_values)
+            return UPState(
+                {k: v for k, v in complete_values.items() if self._is_nondefault(k, v)},
+                self._fluent_set,
+            )
         # Otherwise just return a new UPState with self as ancestor
-        return UPState(updated_values, self)
+        return UPState(updated_values, self._fluent_set, self)

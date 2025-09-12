@@ -180,7 +180,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         """
         assert isinstance(self._problem, Problem), "supported_kind not respected"
         if self._initial_state is None:
-            self._initial_state = UPState(self._problem.initial_values)
+            self._initial_state = UPState(
+                self._problem.explicit_initial_values, self._problem
+            )
             for si in self._state_invariants:
                 if not self._se.evaluate(si, self._initial_state).bool_constant_value():
                     raise UPProblemDefinitionError(
