@@ -25,14 +25,20 @@ from unified_planning.model import (
     DurativeAction,
     Action,
     Effect,
+    State,
+    UPState,
 )
 from unified_planning.model.timing import StartTiming, EndTiming, Interval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Dict, Optional, List, Tuple, OrderedDict
+from typing import Dict, Optional, List, Tuple, OrderedDict, cast
 from fractions import Fraction
 from functools import partial
-from unified_planning.exceptions import UPUnsupportedProblemTypeError, UPUsageError
+from unified_planning.exceptions import (
+    UPUnsupportedProblemTypeError,
+    UPUsageError,
+    UPException,
+)
 from unified_planning.plans import (
     SequentialPlan,
     TimeTriggeredPlan,
@@ -40,6 +46,7 @@ from unified_planning.plans import (
     Plan,
 )
 from unified_planning.model.problem_kind import FEATURES
+from unified_planning.engines import UPSequentialSimulator
 
 
 class TimedToSequential(engines.engine.Engine, CompilerMixin):
@@ -124,7 +131,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         new_kind = problem_kind.clone()
         for timefeat in FEATURES["TIME"]:
             new_kind.unset_time(timefeat)
-        for durfeat in FEATURES("EXPRESSION_DURATION"):
+        for durfeat in FEATURES["EXPRESSION_DURATION"]:
             new_kind.unset_expression_duration(durfeat)
         return new_kind
 
@@ -211,7 +218,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     for oc in ocl:
                         new_action.add_precondition(oc.substitute(subs_dict))
 
-            # TODO find a way to keep increase/decrease instead of turning everything into assignments - is this necessary?
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
@@ -244,28 +250,44 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_to_old[new_action] = action
             new_problem.add_action(new_action)
 
-        # TODO setup for map_back_callable system instead of single action map back
         def map_back_callable(sp: Plan) -> Plan:
             if not isinstance(sp, SequentialPlan):
                 raise UPUsageError("Plan to map back is not sequential")
-            MIN_TIME_STEP = Fraction(1, 100)
-            time_now: Fraction = Fraction(0)
+            if problem.epsilon is not None:
+                min_time_step = problem.epsilon
+            else:
+                min_time_step = Fraction(1, 100)
+            simulator = UPSequentialSimulator(new_problem)
+            state: Optional[State] = simulator.get_initial_state()
+            assert isinstance(state, UPState)
+            time_now = Fraction(0)
             ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
             for action_instance in sp.actions:
+                # TODO this does not work with instantaneous actions right?
                 if action_instance.action in new_to_old:
                     action_for_mapback = new_to_old[action_instance.action]
                     assert action_for_mapback is not None
                     tinterval = action_for_mapback.duration
                     assert isinstance(tinterval, Interval)
-                    dtime = MIN_TIME_STEP  # TODO change placeholder once we decide what to do
+                    dtime = min_time_step
                     if not tinterval.is_left_open():
-                        dtime = Fraction(
-                            tinterval.lower.constant_value()
-                        )  # TODO check is this correct?
+                        if tinterval.lower.is_constant():
+                            dtime = Fraction(tinterval.lower.constant_value())
+                        elif tinterval.lower.is_fluent_exp():
+                            print(type(tinterval.lower))
+                            dtime = Fraction(
+                                (state.get_value(tinterval.lower)).constant_value()
+                            )
+                        else:
+                            # TODO are there other cases?
+                            raise UPException
+                    else:
+                        # TODO what if it's open?
+                        raise UPException
                 else:
                     action_for_mapback = action_instance.action
                     assert action_for_mapback is not None
-                    dtime = MIN_TIME_STEP
+                    dtime = min_time_step
 
                 new_action_instance = ActionInstance(
                     action=action_for_mapback,
@@ -274,7 +296,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     motion_paths=action_instance.motion_paths,
                 )
                 ttptuples.append((time_now, new_action_instance, dtime))
-                time_now = time_now + dtime + MIN_TIME_STEP
+                time_now = time_now + dtime + min_time_step
+                state = simulator.apply(cast(State, state), action_instance)
+                assert state is not None
+                print(state)
             ttp = TimeTriggeredPlan(ttptuples)
             return ttp
 

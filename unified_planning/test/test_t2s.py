@@ -50,7 +50,7 @@ class TestT2S(unittest_TestCase):
         problem.set_initial_value(w, 10)
 
         tda = DurativeAction("tda")
-        tda.set_closed_duration_interval(5, 10)
+        tda.set_closed_duration_interval(z, 100)
 
         tda.add_increase_effect(StartTiming(), x, 1)
         tda.add_increase_effect(StartTiming(), x, 1)
@@ -59,10 +59,10 @@ class TestT2S(unittest_TestCase):
         tda.add_effect(EndTiming(), z, y + 4)
         tda.add_decrease_effect(EndTiming(), w, x)
 
-        tda.add_condition(StartTiming(), Equals(x, 1))
+        tda.add_condition(StartTiming(), Not(Equals(x, 1)))
         # tda.add_condition(StartTiming() + 2, Equals(x, 5))
         tda.add_condition(EndTiming(), Not(Equals(y, 1)))
-        tda.add_condition(EndTiming(), Equals(x, 1))
+        tda.add_condition(EndTiming(), Not(Equals(x, 1)))
 
         problem.add_action(tda)
 
@@ -73,10 +73,10 @@ class TestT2S(unittest_TestCase):
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
         comp_tda = comp_res.problem.action("tda")
         expected_tda = InstantaneousAction("tda")
-        expected_tda.add_precondition(Equals(x, 1))
+        expected_tda.add_precondition(Not(Equals(x, 1)))
         # expected_tda.add_precondition(Equals(Plus(x, 1), 5))
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
-        expected_tda.add_precondition(Equals(Plus(Plus(x, 1), 1), 1))
+        expected_tda.add_precondition(Not(Equals(Plus(Plus(x, 1), 1), 1)))
         expected_tda.add_effect(x, Minus(Plus(Plus(x, 1), 1), 2))
         expected_tda.add_increase_effect(y, 3)
         expected_tda.add_effect(z, Plus(Plus(y, 3), 4))
@@ -91,8 +91,8 @@ class TestT2S(unittest_TestCase):
         self.assertTrue(isinstance(mapped_back_ttp, TimeTriggeredPlan))
         expected_ttp = TimeTriggeredPlan(
             [
-                (Fraction(0), tda(), Fraction(5)),
-                (Fraction(501, 100), tda(), Fraction(5)),
+                (Fraction(0), tda(), Fraction(10)),
+                (Fraction(1001, 100), tda(), Fraction(17)),
             ]
         )
         self.assertEqual(expected_ttp, mapped_back_ttp)
