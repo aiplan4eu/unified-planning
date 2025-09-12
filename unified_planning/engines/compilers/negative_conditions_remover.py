@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2025 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,15 +33,13 @@ from unified_planning.model import (
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
+from unified_planning.model.walkers.dnf import Nnf
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
     updated_minimize_action_costs,
 )
-from unified_planning.exceptions import (
-    UPExpressionDefinitionError,
-    UPProblemDefinitionError,
-)
+from unified_planning.exceptions import UPExpressionDefinitionError, UPUsageError
 from typing import List, Dict, Union, Optional
 from functools import partial
 
@@ -51,25 +50,97 @@ class NegativeFluentRemover(IdentityDagWalker):
         IdentityDagWalker.__init__(self, self._env)
         self._fluent_mapping: Dict[Fluent, Fluent] = {}
         self._problem = problem
+        self._nnf = Nnf(self._env)
 
     def remove_negative_fluents(self, expression: FNode) -> FNode:
-        return self.walk(expression)
+        exp = expression
+        nnf_exp = self._nnf.get_nnf_expression(exp)
+        exp = self.walk(self._env.simplifier.simplify(nnf_exp))
+        return exp
 
     def walk_not(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         assert len(args) == 1
-        if not args[0].is_fluent_exp():
+        if args[0].is_fluent_exp():
+            neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
+            if neg_fluent is not None:
+                return self._env.expression_manager.FluentExp(
+                    neg_fluent, tuple(args[0].args)
+                )
+            f = args[0].fluent()
+            if f in self._fluent_mapping.keys():
+                nf = self._fluent_mapping[f]
+            elif f in self._fluent_mapping.values():
+                for k, v in self._fluent_mapping.items():
+                    if v == f:
+                        nf = k
+                        break
+            else:
+                # make a new one
+                nf = Fluent(
+                    get_fresh_name(self._problem, f"not_{f.name}"),
+                    f.type,
+                    f.signature,
+                    f._env,
+                )
+            self._fluent_mapping[f] = nf
+            return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
+        elif args[0].is_equals():
+            equals_node = args[0]
+            left = equals_node.args[0]
+            right = equals_node.args[1]
+            type_here = left.type
+            if type_here.is_user_type():
+                # the basic cases where we have an equals with 2 constants are already removed by the simplifier
+                # then we can only consider cases where we have 2 variable values or 1 and 1 constant
+                if right.is_constant():
+                    temp = right
+                    right = left
+                    left = temp
+                if left.is_constant():
+                    left_list = [left.constant_value()]
+                else:
+                    left_list = list(self._problem.objects(type_here))
+                right_list = list(self._problem.objects(type_here))
+                # if there are no objects of the usertype we cannot compile this
+                if (len(left_list) <= 0) or (len(right_list) <= 0):
+                    raise UPUsageError(
+                        f"No objects present for the usertype {type_here}"
+                    )
+                if len(left_list) == 1 and len(right_list) == 1:
+                    # there is only one object in the problem, the values will always be equal
+                    return self._env.expression_manager.FALSE()
+                exps = []
+                for left_obj in left_list:
+                    for right_obj in right_list:
+                        if left_obj == right_obj:
+                            continue
+                        elif len(left_list) == 1:
+                            # left is a constant, only consider right
+                            temp_exp = self._env.expression_manager.Equals(
+                                right, right_obj
+                            )
+                        else:
+                            # neither are constants
+                            temp_exp = self._env.expression_manager.And(
+                                self._env.expression_manager.Equals(left, left_obj),
+                                self._env.expression_manager.Equals(right, right_obj),
+                            )
+                        exps.append(temp_exp)
+                return self._env.expression_manager.Or(exps)
+            else:
+                exp_1 = self._env.expression_manager.GT(*equals_node.args)
+                exp_2 = self._env.expression_manager.LT(*equals_node.args)
+                return self._env.expression_manager.Or(exp_1, exp_2)
+        elif args[0].is_le():
+            return self._env.expression_manager.GT(*args[0].args)
+        elif args[0].is_lt():
+            return self._env.expression_manager.GE(*args[0].args)
+        elif args[0].is_iff() or args[0].is_and() or args[0].is_or():
+            raise UPExpressionDefinitionError(f"Expression: {expression} is not NNF")
+        else:
             raise UPExpressionDefinitionError(
-                f"Expression: {expression} is not in NNF."
+                f"Unable to remove negative conditions from expression: {expression}"
             )
-        neg_fluent = self._fluent_mapping.get(args[0].fluent(), None)
-        if neg_fluent is not None:
-            return self._env.expression_manager.FluentExp(
-                neg_fluent, tuple(args[0].args)
-            )
-        f = args[0].fluent()
-        nf = Fluent(get_fresh_name(self._problem, f.name), f.type, f.signature, f._env)
-        self._fluent_mapping[f] = nf
-        return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
 
     @property
     def fluent_mapping(self) -> Dict[Fluent, Fluent]:
@@ -88,6 +159,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
     Then, to every `Action` that modifies the original `Fluent`, is added an :class:`Effect <unified_planning.model.Effect>` that
     modifies the `negation Fluent` with the `negation` of the :func:`value <unified_planning.model.Effect.value>` given to `Fluent`.
     So, in every moment, the `negation Fluent` has the `inverse value` of the `original Fluent`.
+    The negations are also removed from >, <, >=, <= and == nodes preceded by a `Not` by removing
+    the condition and adding an opposite one (e.g. 'not a < b' becomes 'a >= b')
 
     This `Compiler` supports only the the `NEGATIVE_CONDITIONS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
@@ -174,7 +247,10 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+        if new_kind.has_negative_conditions():
+            new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+            if new_kind.has_equalities():
+                new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -211,8 +287,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_action.name = get_fresh_name(new_problem, action.name)
                 new_action.clear_preconditions()
                 for p in action.preconditions:
-                    np = fluent_remover.remove_negative_fluents(p)
-                    new_action.add_precondition(np)
+                    new_action.add_precondition(
+                        fluent_remover.remove_negative_fluents(p)
+                    )
                 for ce in new_action.conditional_effects:
                     ce.set_condition(
                         fluent_remover.remove_negative_fluents(ce.condition)
@@ -224,8 +301,9 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_durative_action.clear_conditions()
                 for i, cl in action.conditions.items():
                     for c in cl:
-                        nc = fluent_remover.remove_negative_fluents(c)
-                        new_durative_action.add_condition(i, nc)
+                        new_durative_action.add_condition(
+                            i, fluent_remover.remove_negative_fluents(c)
+                        )
                 for t, cel in new_durative_action.conditional_effects.items():
                     for ce in cel:
                         ce.set_condition(
@@ -246,16 +324,15 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for i, gl in problem.timed_goals.items():
             for g in gl:
-                ng = fluent_remover.remove_negative_fluents(g)
-                new_problem.add_timed_goal(i, ng)
+                new_problem.add_timed_goal(i, fluent_remover.remove_negative_fluents(g))
 
         for g in problem.goals:
-            ng = fluent_remover.remove_negative_fluents(g)
-            new_problem.add_goal(ng)
+            new_problem.add_goal(fluent_remover.remove_negative_fluents(g))
 
         for tc in problem.trajectory_constraints:
-            ntc = fluent_remover.remove_negative_fluents(tc)
-            new_problem.add_trajectory_constraint(ntc)
+            new_problem.add_trajectory_constraint(
+                fluent_remover.remove_negative_fluents(tc)
+            )
 
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
