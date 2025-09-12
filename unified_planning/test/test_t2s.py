@@ -50,7 +50,7 @@ class TestT2S(unittest_TestCase):
         problem.set_initial_value(w, 10)
 
         tda = DurativeAction("tda")
-        tda.set_closed_duration_interval(z, 100)
+        tda.set_closed_duration_interval(z(), 100)
 
         tda.add_increase_effect(StartTiming(), x, 1)
         tda.add_increase_effect(StartTiming(), x, 1)
