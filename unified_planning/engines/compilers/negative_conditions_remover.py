@@ -247,7 +247,10 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+        if new_kind.has_negative_conditions():
+            new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
+            if new_kind.has_equalities():
+                new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(
