@@ -16,11 +16,10 @@ from typing import Tuple
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
-    classical_kind,
     full_classical_kind,
     basic_temporal_kind,
 )
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import unittest_TestCase
 from unified_planning.test import (
     skipIfNoPlanValidatorForProblemKind,
     skipIfEngineNotAvailable,
@@ -159,73 +158,27 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         events = len(problem.actions) * 2 + 2
         self.assertEqual(len(new_problem.events), events)
 
-    # TODO this test uses the use_counter flag
-    # def test_ad_hoc_2(self):
-    #     problem = self.problems["robot_holding"].problem
-    #     with Compiler(
-    #         problem_kind=problem.kind,
-    #         compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-    #     ) as cer:
-    #         cer._use_counter = False
-    #         res = cer.compile(
-    #             problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-    #         )
-    #     new_problem = res.problem
-    #     self.assertFalse(cer._use_counter)
-    #     for a, na in zip(problem.actions, new_problem.actions):
-    #         self.assertTrue(isinstance(a, DurativeAction))
-    #         self.assertFalse(isinstance(na, DurativeAction))
-    #     events = len(problem.actions) * 2 + 2
-    #     self.assertEqual(len(new_problem.events), events)
-    #     self.assertGreater(len(new_problem.goals), len(problem.goals))
+    def test_ad_hoc_2(self):
+        problem = self.problems["robot_holding"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+        ) as cer:
+            cer._use_counter = False
+            res = cer.compile(
+                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+            )
+        new_problem = res.problem
+        self.assertFalse(cer._use_counter)
+        for a, na in zip(problem.actions, new_problem.actions):
+            self.assertTrue(isinstance(a, DurativeAction))
+            self.assertFalse(isinstance(na, DurativeAction))
+        events = len(problem.actions) * 2 + 2
+        self.assertEqual(len(new_problem.events), events)
+        self.assertGreater(len(new_problem.goals), len(problem.goals))
 
     def test_ad_hoc3(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_closed_duration_interval(5, 7)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems["robot_with_variable_duration [5, 7]"].problem
+        problem = self.problems["robot_with_variable_duration"].problem
 
         with Compiler(
             problem_kind=problem.kind,
@@ -239,52 +192,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(problem.actions), len(new_problem.processes))
 
     def test_ad_hoc_4(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_open_duration_interval(5, 7)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems["robot_with_variable_duration (5, 7)"].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_open_duration_interval(5, 7)
+        dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -300,54 +223,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(problem.actions), len(new_problem.processes))
 
     def test_ad_hoc_5(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_fixed_duration(5)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming() + 1, is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems[
-            "robot_with_variable_duration [5, 5] start delay eff: 1"
-        ].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_fixed_duration(5)
+        dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming() + 1, is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -361,54 +252,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_6(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_fixed_duration(5)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming() - 1, is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems[
-            "robot_with_variable_duration [5, 5] end delay eff: 1"
-        ].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_fixed_duration(5)
+        dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming() - 1, is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -422,54 +281,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_7(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_closed_duration_interval(3, 5)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming() - 1, is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems[
-            "robot_with_variable_duration [3, 5] end delay eff: 1"
-        ].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_closed_duration_interval(3, 5)
+        dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming() - 1, is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -484,54 +311,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(new_problem.actions), len(problem.actions) + 1)
 
     def test_ad_hoc_8(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_fixed_duration(7)
-        # dur_move.add_condition(StartTiming() + 1, is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(StartTiming() + 1, Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems[
-            "robot_with_variable_duration [7, 7] start delay cond: 1"
-        ].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_fixed_duration(7)
+        dur_move.add_condition(StartTiming() + 1, is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(StartTiming() + 1, Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -547,54 +342,22 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         self.assertEqual(len(new_problem.actions), len(problem.actions))
 
     def test_ad_hoc_9(self):
-        # problem = Problem("robot_with_variable_duration")
-        # Location = UserType("Location")
-        # Robot = UserType("Robot")
-
-        # is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-        # is_connected = Fluent(
-        #     "is_connected", BoolType(), l_from=Location, l_to=Location
-        # )
-        # distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
-        # problem.add_fluent(is_at, default_initial_value=False)
-        # problem.add_fluent(is_connected, default_initial_value=False)
-        # problem.add_fluent(distance, default_initial_value=1)
-
-        # dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
-        # r = dur_move.parameter("r")
-        # l_from = dur_move.parameter("l_from")
-        # l_to = dur_move.parameter("l_to")
-        # dur_move.set_fixed_duration(7)
-        # dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
-        # dur_move.add_condition(StartTiming(), is_at(l_from, r))
-        # dur_move.add_condition(EndTiming() - 1, Not(is_at(l_to, r)))
-        # dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
-        # dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
-        # problem.add_action(dur_move)
-
-        # r1 = Object("r1", Robot)
-        # l1 = Object("l1", Location)
-        # l2 = Object("l2", Location)
-        # l3 = Object("l3", Location)
-        # l4 = Object("l4", Location)
-        # l5 = Object("l5", Location)
-        # problem.add_objects([r1, l1, l2, l3, l4, l5])
-
-        # problem.set_initial_value(is_at(l1, r1), True)
-        # problem.set_initial_value(is_connected(l1, l2), True)
-        # problem.set_initial_value(is_connected(l2, l3), True)
-        # problem.set_initial_value(is_connected(l3, l4), True)
-        # problem.set_initial_value(is_connected(l4, l5), True)
-        # problem.set_initial_value(distance(l1, l2), 10)
-        # problem.set_initial_value(distance(l2, l3), 10)
-        # problem.set_initial_value(distance(l3, l4), 10)
-        # problem.set_initial_value(distance(l4, l5), 10)
-
-        # problem.add_goal(is_at(l5, r1))
-
-        problem = self.problems[
-            "robot_with_variable_duration [7, 7] end delay cond: 1"
-        ].problem
+        problem = self.problems["robot_with_variable_duration"].problem
+        problem = problem.clone()
+        is_at = problem.fluent("is_at")
+        is_connected = problem.fluent("is_connected")
+        dur_move = problem.action("move")
+        dur_move.clear_conditions()
+        dur_move.clear_effects()
+        r = dur_move.parameter("r")
+        l_from = dur_move.parameter("l_from")
+        l_to = dur_move.parameter("l_to")
+        dur_move.set_fixed_duration(7)
+        dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+        dur_move.add_condition(StartTiming(), is_at(l_from, r))
+        dur_move.add_condition(EndTiming() - 1, Not(is_at(l_to, r)))
+        dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+        dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
 
         with Compiler(
             problem_kind=problem.kind,
@@ -909,8 +672,8 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         events = len(problem.actions) * 2 + 2
         self.assertEqual(len(new_problem.events), events)
 
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_all(self):
-
         with OneshotPlanner(
             name="opt-pddl-planner",
             params={"params": "-d 0.001"},  # set epsilon as 0.001
