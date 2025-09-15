@@ -23,6 +23,7 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from typing import Callable
+from fractions import Fraction
 
 
 class TestT2S(unittest_TestCase):
@@ -126,6 +127,32 @@ class TestT2S(unittest_TestCase):
         expected_move.add_effect(robot_at(robot, l_from), False)
         expected_move.add_effect(robot_at(robot, l_to), True)
         self.assertEqual(compiled_move, expected_move)
+        r1 = comp_res.problem.object("r1")
+        p1 = comp_res.problem.object("p1")
+        l1 = comp_res.problem.object("l1")
+        l2 = comp_res.problem.object("l2")
+        l3 = comp_res.problem.object("l3")
+        compiled_load = comp_res.problem.action("load")
+        compiled_unload = comp_res.problem.action("unload")
+        mini_seq_plan = SequentialPlan(
+            [
+                compiled_load(p1, r1, l1),
+                compiled_move(r1, l1, l2),
+                compiled_unload(p1, r1, l2),
+                compiled_move(r1, l2, l3),
+            ]
+        )
+        assert comp_res.plan_back_conversion is not None
+        mapped_back_ttp = comp_res.plan_back_conversion(mini_seq_plan)
+        expected_ttp = TimeTriggeredPlan(
+            [
+                (Fraction(0), problem.action("load")(p1, r1, l1), None),
+                (Fraction(1, 100), problem.action("move")(r1, l1, l2), Fraction(16)),
+                (Fraction(1602, 100), problem.action("unload")(p1, r1, l2), None),
+                (Fraction(1603, 100), problem.action("move")(r1, l2, l3), Fraction(10)),
+            ]
+        )
+        self.assertEqual(expected_ttp, mapped_back_ttp)
 
     def test_temporal_counter(self):
         problem = self.problems["temporal_counter"].problem

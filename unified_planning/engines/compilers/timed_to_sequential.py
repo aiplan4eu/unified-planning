@@ -39,6 +39,8 @@ from unified_planning.exceptions import (
     UPUsageError,
     UPException,
 )
+from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+from unified_planning.model.walkers.simplifier import Simplifier
 from unified_planning.plans import (
     SequentialPlan,
     TimeTriggeredPlan,
@@ -258,48 +260,60 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             else:
                 min_time_step = Fraction(1, 100)
             simulator = UPSequentialSimulator(new_problem)
+            fve = FreeVarsExtractor()
+            simplifier = Simplifier(problem.environment)
             state: Optional[State] = simulator.get_initial_state()
             assert isinstance(state, UPState)
             time_now = Fraction(0)
             ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
             for action_instance in sp.actions:
-                # TODO this does not work with instantaneous actions right?
-                if action_instance.action in new_to_old:
-                    action_for_mapback = new_to_old[action_instance.action]
-                    assert action_for_mapback is not None
-                    tinterval = action_for_mapback.duration
-                    assert isinstance(tinterval, Interval)
-                    dtime = min_time_step
-                    if not tinterval.is_left_open():
-                        if tinterval.lower.is_constant():
-                            dtime = Fraction(tinterval.lower.constant_value())
-                        elif tinterval.lower.is_fluent_exp():
-                            print(type(tinterval.lower))
-                            dtime = Fraction(
-                                (state.get_value(tinterval.lower)).constant_value()
-                            )
-                        else:
-                            # TODO are there other cases?
-                            raise UPException
-                    else:
-                        # TODO what if it's open?
-                        raise UPException
-                else:
-                    action_for_mapback = action_instance.action
-                    assert action_for_mapback is not None
-                    dtime = min_time_step
-
+                if action_instance.action not in new_to_old:
+                    raise UPUsageError(
+                        f"Action {action_instance.action.name} not found during compilation is present in this plan"
+                    )
+                action_for_mapback = new_to_old[action_instance.action]
+                assert action_for_mapback is not None
                 new_action_instance = ActionInstance(
                     action=action_for_mapback,
                     params=action_instance.actual_parameters,
                     agent=action_instance.agent,
                     motion_paths=action_instance.motion_paths,
                 )
-                ttptuples.append((time_now, new_action_instance, dtime))
-                time_now = time_now + dtime + min_time_step
+                if isinstance(action_for_mapback, DurativeAction):
+                    tinterval = action_for_mapback.duration
+                    assert isinstance(tinterval, Interval)
+                    dtime = min_time_step
+                    if not tinterval.is_left_open():
+                        if tinterval.lower.is_constant():
+                            dtime = Fraction(tinterval.lower.constant_value())
+                        else:
+                            par_sub_dict: Dict = {}
+                            for paramname, paramvalue in zip(
+                                action_for_mapback.parameters,
+                                action_instance.actual_parameters,
+                            ):
+                                par_sub_dict[paramname] = paramvalue
+                            tlower_with_pars = tinterval.lower.substitute(par_sub_dict)
+                            flu_subs_dict: Dict = {}
+                            for flu_obj in fve.get(tlower_with_pars):
+                                flu_subs_dict[flu_obj] = state.get_value(flu_obj)
+                            tlower_constant = simplifier.simplify(
+                                tlower_with_pars.substitute(flu_subs_dict)
+                            )
+                            dtime = Fraction(tlower_constant.constant_value())
+                    else:
+                        # NOTE if open use min step
+                        dtime = min_time_step
+                    ttptuples.append((time_now, new_action_instance, dtime))
+                    time_now = time_now + dtime + min_time_step
+                elif isinstance(action_for_mapback, InstantaneousAction):
+                    ttptuples.append((time_now, new_action_instance, None))
+                    time_now = time_now + min_time_step
+                else:
+                    # NOTE this should not happen as other kinds of transitions are not supported
+                    raise UPUsageError
                 state = simulator.apply(cast(State, state), action_instance)
                 assert state is not None
-                print(state)
             ttp = TimeTriggeredPlan(ttptuples)
             return ttp
 
