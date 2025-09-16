@@ -37,7 +37,7 @@ from functools import partial
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
     UPUsageError,
-    UPException,
+    UPUnreachableCodeError,
 )
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
 from unified_planning.model.walkers.simplifier import Simplifier
@@ -237,7 +237,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                             subs_dict[ose.fluent], ose.value
                         )
                     else:
-                        raise UPUnsupportedProblemTypeError
+                        raise UPUnreachableCodeError
 
             for timeinterval, ocl in action.conditions.items():
                 # intermediate not supported
@@ -271,7 +271,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_value = new_value.substitute(subs_dict)
                         new_action.add_effect(oeef, new_value, new_cond)
                     else:
-                        raise UPUnsupportedProblemTypeError
+                        raise UPUnreachableCodeError
                     new_value = None
             for osef, osel in old_start_effects.items():
                 for ose in osel:
@@ -288,7 +288,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 osef, ose.value, ose.condition
                             )
                         else:
-                            raise UPUnsupportedProblemTypeError
+                            raise UPUnreachableCodeError
             new_to_old[new_action] = action
             new_problem.add_action(new_action)
 
@@ -360,5 +360,5 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             problem=new_problem,
             plan_back_conversion=map_back_callable,
             engine_name=self.name,
-            map_back_action_instance=partial(replace_action, map=new_to_old),
+            map_back_action_instance=None,
         )

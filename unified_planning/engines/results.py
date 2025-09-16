@@ -337,7 +337,7 @@ class CompilerResult(Result):
             self.map_back_action_instance is None and self.plan_back_conversion is None
         ):
             raise UPUsageError(
-                f"The compiled Problem is None but the map_back_action_instance Callable is not None."
+                f"The compiled Problem is not None but both map_back_action_instance and plan_back_conversion are None."
             )
 
         if self.map_back_action_instance is not None:
