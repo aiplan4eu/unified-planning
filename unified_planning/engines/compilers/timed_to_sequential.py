@@ -155,6 +155,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
         env = problem.environment
         em = env.expression_manager
+        fve = FreeVarsExtractor()
 
         new_to_old: Dict[Action, Optional[Action]] = {}
 
@@ -199,10 +200,31 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 for ose in osel:
                     assert isinstance(ose, Effect)
                     if not ose.condition == em.TRUE():
-                        # NOTE conditional_effects is not in the supported kind, but they would work everywhere but in effects at start time
-                        raise UPUsageError(
-                            "Timed to sequential compiler only supports effects at end time for durative actions"
-                        )
+                        dangerous_fluent = ose.fluent
+                        for tinterval, ocl in action.conditions.items():
+                            if tinterval.upper == end:
+                                # postconds and invariants (time upper = end)
+                                for oc in ocl:
+                                    if dangerous_fluent in fve.get(oc):
+                                        raise UPUnsupportedProblemTypeError(
+                                            "start time conditional effects that affect fluents used in invariants/post conditions are not supported"
+                                        )
+                        for oeel in old_end_effects.values():
+                            for oee in oeel:
+                                if oee.is_increase() or oee.is_decrease():
+                                    # fluent and value sides of inc/dec posteffs
+                                    if dangerous_fluent in fve.get(
+                                        oee.fluent
+                                    ) or dangerous_fluent in fve.get(oee.value):
+                                        raise UPUnsupportedProblemTypeError(
+                                            "start time conditional effects that affect increase/descrease effects at end time are not supported"
+                                        )
+                                else:
+                                    # value side of assign posteffs
+                                    if dangerous_fluent in fve.get(oee.value):
+                                        raise UPUnsupportedProblemTypeError(
+                                            "start time conditional effects that affect values of effects at end time are not supported"
+                                        )
                     if ose.is_assignment():
                         # NOTE we should never find assignments associated with any other kind of effect
                         subs_dict[ose.fluent] = ose.value
@@ -218,10 +240,15 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         raise UPUnsupportedProblemTypeError
 
             for timeinterval, ocl in action.conditions.items():
-                if timeinterval.upper == start and timeinterval.lower == start:
+                # intermediate not supported
+                # upper = lower = start -> precond (no sub)
+                # upper = lower = end -> postcond (must sub)
+                # upper = end, lower = start -> invariant (both sub and not)
+                # so basically, if lower = start then add condition without sub, if upper = end then add condition with sub
+                if timeinterval.lower == start:
                     for oc in ocl:
                         new_action.add_precondition(oc)
-                else:
+                if timeinterval.upper == end:
                     for oc in ocl:
                         new_action.add_precondition(oc.substitute(subs_dict))
 
@@ -251,11 +278,15 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                     assert isinstance(ose, Effect)
                     if osef not in old_end_effects.keys():
                         if ose.is_assignment():
-                            new_action.add_effect(osef, ose.value)
+                            new_action.add_effect(osef, ose.value, ose.condition)
                         elif ose.is_increase():
-                            new_action.add_increase_effect(osef, ose.value)
+                            new_action.add_increase_effect(
+                                osef, ose.value, ose.condition
+                            )
                         elif ose.is_decrease():
-                            new_action.add_increase_effect(osef, ose.value)
+                            new_action.add_increase_effect(
+                                osef, ose.value, ose.condition
+                            )
                         else:
                             raise UPUnsupportedProblemTypeError
             new_to_old[new_action] = action
@@ -269,7 +300,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             else:
                 min_time_step = Fraction(1, 100)
             simulator = UPSequentialSimulator(new_problem)
-            fve = FreeVarsExtractor()
             simplifier = Simplifier(problem.environment)
             state: Optional[State] = simulator.get_initial_state()
             assert isinstance(state, UPState)
