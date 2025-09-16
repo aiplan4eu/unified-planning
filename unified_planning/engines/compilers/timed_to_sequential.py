@@ -198,6 +198,11 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 subs_dict[osef] = osef
                 for ose in osel:
                     assert isinstance(ose, Effect)
+                    if not ose.condition == em.TRUE():
+                        # NOTE conditional_effects is not in the supported kind, but they would work everywhere but in effects at start time
+                        raise UPUsageError(
+                            "Timed to sequential compiler only supports effects at end time for durative actions"
+                        )
                     if ose.is_assignment():
                         # NOTE we should never find assignments associated with any other kind of effect
                         subs_dict[ose.fluent] = ose.value
@@ -223,17 +228,21 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
+                    if not oee.condition == em.TRUE():
+                        new_cond = oee.condition.substitute(subs_dict)
+                    else:
+                        new_cond = em.TRUE()
                     if oee.is_assignment():
                         new_value = oee.value.substitute(subs_dict)
-                        new_action.add_effect(oeef, new_value)
+                        new_action.add_effect(oeef, new_value, new_cond)
                     elif oee.is_increase():
                         new_value = em.Plus(oeef, oee.value)
                         new_value = new_value.substitute(subs_dict)
-                        new_action.add_effect(oeef, new_value)
+                        new_action.add_effect(oeef, new_value, new_cond)
                     elif oee.is_decrease():
                         new_value = em.Minus(oeef, oee.value)
                         new_value = new_value.substitute(subs_dict)
-                        new_action.add_effect(oeef, new_value)
+                        new_action.add_effect(oeef, new_value, new_cond)
                     else:
                         raise UPUnsupportedProblemTypeError
                     new_value = None

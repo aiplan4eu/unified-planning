@@ -36,7 +36,7 @@ class TestT2S(unittest_TestCase):
 
         x = Fluent("x", IntType())
         problem.add_fluent(x)
-        problem.set_initial_value(x, 10)
+        problem.set_initial_value(x, 20)
 
         y = Fluent("y", IntType())
         problem.add_fluent(y)
@@ -57,8 +57,12 @@ class TestT2S(unittest_TestCase):
         tda.add_increase_effect(StartTiming(), x, 1)
         tda.add_decrease_effect(EndTiming(), x, 2)
         tda.add_increase_effect(StartTiming(), y, 3)
-        tda.add_effect(EndTiming(), z, y + 4)
+        tda.add_effect(EndTiming(), z, y + 4, GE(x, y))
         tda.add_decrease_effect(EndTiming(), w, x)
+
+        # subs after start:
+        # x = x + 1 +1
+        # y = y + 3
 
         tda.add_condition(StartTiming(), Not(Equals(x, 1)))
         # tda.add_condition(StartTiming() + 2, Equals(x, 5))
@@ -68,6 +72,7 @@ class TestT2S(unittest_TestCase):
         problem.add_action(tda)
 
         t2s = TimedToSequential()
+        t2s.skip_checks = True
         comp_res = t2s.compile(problem)
         assert isinstance(comp_res.problem, Problem)
         self.assertTrue(problem.kind.has_continuous_time())
@@ -80,7 +85,9 @@ class TestT2S(unittest_TestCase):
         expected_tda.add_precondition(Not(Equals(Plus(Plus(x, 1), 1), 1)))
         expected_tda.add_effect(x, Minus(Plus(Plus(x, 1), 1), 2))
         expected_tda.add_increase_effect(y, 3)
-        expected_tda.add_effect(z, Plus(Plus(y, 3), 4))
+        expected_tda.add_effect(
+            z, Plus(Plus(y, 3), 4), GE(Plus(Plus(x, 1), 1), Plus(y, 3))
+        )
         expected_tda.add_effect(w, Minus(w, Plus(Plus(x, 1), 1)))
 
         self.assertEqual(expected_tda, comp_tda)
