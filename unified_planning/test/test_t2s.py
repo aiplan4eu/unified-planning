@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
+from unified_planning.test import (
+    unittest_TestCase,
+    skipIfNoOneshotPlannerForProblemKind,
+)
 from unified_planning.test.examples import get_example_problems
-
+from unified_planning.model.problem_kind import classical_kind, bounded_types_kind
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.engines.results import ValidationResultStatus
 from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
-from typing import Callable
 from fractions import Fraction
 
 
@@ -182,14 +182,14 @@ class TestT2S(unittest_TestCase):
         self.assertEqual(compiled_d, expected_d)
         self.assertEqual(compiled_i, expected_i)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(bounded_types_kind))
     def test_logistic_with_planner_map_back_validity(self):
         original_problem = self.problems["logistic"].problem
         assert isinstance(original_problem, Problem)
         t2s = TimedToSequential()
         comp_res = t2s.compile(original_problem)
         assert isinstance(comp_res.problem, Problem)
-        with OneshotPlanner(name="tamer") as planner:
+        with OneshotPlanner(problem_kind=comp_res.problem.kind) as planner:
             plan_result = planner.solve(comp_res.problem)
         assert comp_res.plan_back_conversion is not None
         found_plan_mapped_back = comp_res.plan_back_conversion(plan_result.plan)
