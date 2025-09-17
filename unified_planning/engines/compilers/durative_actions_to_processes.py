@@ -466,7 +466,7 @@ def _compile_durative_action(
                 if interval.is_right_open() and interval.is_left_open()
                 else mgr.LE
             )
-            from_start_timing = interval.upper
+            from_start_timing = interval.lower
         if operand is not None:
             assert from_start_timing is not None
             assert first_end_action is not None
