@@ -13,12 +13,21 @@
 # limitations under the License.
 #
 
-
-from collections import OrderedDict
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    OrderedDict,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 import warnings
 import unified_planning as up
 import unified_planning.environment
@@ -93,6 +102,9 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         supported_kind = UPSequentialSimulator.supported_kind()
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         return supported_kind
 
     @staticmethod
@@ -159,6 +171,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
             if msg is not None:
                 logs = [LogMessage(LogLevel.INFO, msg)]
+
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -167,6 +180,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     reason=FailedValidationReason.INAPPLICABLE_ACTION,
                     inapplicable_action=ai,
                     trace=trace,
+                    calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                 )
             assert next_state is not None
             if metric is not None:
@@ -204,6 +218,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 None,
                 FailedValidationReason.UNSATISFIED_GOALS,
                 trace=trace,
+                calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
             )
 
 
@@ -244,10 +259,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_time("SELF_OVERLAPPING")
         kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         kind.set_expression_duration("INT_TYPE_DURATIONS")
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
         kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
+        kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
         return kind
 
     @staticmethod
@@ -416,7 +435,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         """
         assert isinstance(plan, TimeTriggeredPlan)
         assert isinstance(problem, Problem)
-
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
@@ -640,6 +658,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             reason=FailedValidationReason.INAPPLICABLE_ACTION,
                             inapplicable_action=opt_ai,
                             trace={k: v for k, v in trace.items() if k <= end},
+                            calculated_interpreted_functions=se.if_values,
                         )
                     else:
                         return ValidationResult(
@@ -654,6 +673,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                                 for k, v in trace.items()
                                 if end is None or k <= end
                             },
+                            calculated_interpreted_functions=se.if_values,
                         )
 
         for g in problem.goals:
@@ -666,6 +686,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     reason=FailedValidationReason.UNSATISFIED_GOALS,
                     inapplicable_action=None,
                     trace=trace,
+                    calculated_interpreted_functions=se.if_values,
                 )
 
         metric_evaluations = None
