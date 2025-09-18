@@ -321,7 +321,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
                 new_to_old[action] = action
-                new_problem.add_action(action)
+                new_problem.add_action(action.clone())
                 continue
             pdict = OrderedDict()
             for p in action.parameters:
@@ -341,7 +341,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 # upper = lower = end -> postcond (must sub)
                 # upper = end, lower = start -> invariant (both sub and not)
                 # so basically, if lower = start then add condition without sub, if upper = end then add condition with sub
-                if timeinterval.lower == StartTiming():
+                if (
+                    timeinterval.lower == StartTiming()
+                    and not timeinterval.is_left_open()
+                ):
                     for oc in ocl:
                         new_action.add_precondition(oc)
                 if timeinterval.upper == EndTiming():
