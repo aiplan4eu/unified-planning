@@ -360,7 +360,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_cond = em.TRUE()
                     if oee.is_assignment():
                         new_value = oee.value.substitute(start_effects_subs)
-                        if (new_value.is_bool_constant()):
+                        if new_value.is_bool_constant():
                             if (
                                 new_value.is_true() and oeef in new_action.preconditions
                             ) or (
