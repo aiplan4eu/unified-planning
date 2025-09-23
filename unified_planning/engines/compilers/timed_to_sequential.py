@@ -360,6 +360,22 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_cond = em.TRUE()
                     if oee.is_assignment():
                         new_value = oee.value.substitute(start_effects_subs)
+                        if (
+                            new_value.is_bool_constant()
+                            and new_cond.is_bool_constant()
+                            and new_cond.is_true()
+                        ):
+                            if (
+                                new_value.is_true() and oeef in new_action.preconditions
+                            ) or (
+                                new_value.is_false()
+                                and em.Not(oeef) in new_action.preconditions
+                            ):
+                                continue
+                        elif (
+                            em.EqualsOrIff(oeef, new_value) in new_action.preconditions
+                        ):
+                            continue
                         new_action.add_effect(oeef, new_value, new_cond)
                     elif oee.is_increase():
                         new_value = em.Plus(oeef, oee.value)

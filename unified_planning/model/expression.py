@@ -730,3 +730,22 @@ class ExpressionManager(object):
         """
         left, right = self.auto_promote(left, right)
         return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))
+
+    def EqualsOrIff(
+        self, left: Expression, right: Expression
+    ) -> "up.model.fnode.FNode":
+        """
+        Creates an expression of either one of the following forms:
+        ``left <-> right``
+        ``left == right``
+        :param left: The ``left`` member of the ``EqualsOrIff expression``.
+        :param right: The ``right`` member of the ``EqualsOrIff expression``.
+        :return: The created ``Equals`` or ``Iff`` expression.
+        """
+
+        left, right = self.auto_promote(left, right)
+        if left.type.is_bool_type() and right.type.is_bool_type():
+
+            return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
+        else:
+            return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))
