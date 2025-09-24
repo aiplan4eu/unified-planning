@@ -435,6 +435,19 @@ def Equals(left: Expression, right: Expression) -> FNode:
     return get_environment().expression_manager.Equals(left, right)
 
 
+def EqualsOrIff(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of either one of the following forms:
+        ``left <-> right``
+        ``left == right``
+
+    :param left: The ``left`` member of the ``EqualsOrIff expression``.
+    :param right: The ``right`` member of the ``EqualsOrIff expression``.
+    :return: The created ``Equals`` or ``Iff`` expression.
+    """
+    return get_environment().expression_manager.EqualsOrIff(left, right)
+
+
 def Dot(
     agent: "unified_planning.model.multi_agent.Agent",
     fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
