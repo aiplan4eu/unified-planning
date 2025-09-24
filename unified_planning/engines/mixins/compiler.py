@@ -20,12 +20,15 @@ from enum import Enum, auto
 from typing import Optional
 from warnings import warn
 
+from unified_planning.model.fnode import FNode
+
 
 class CompilationKind(Enum):
     """Enum representing the available compilation kinds currently in the library."""
 
     GROUNDING = auto()
     CONDITIONAL_EFFECTS_REMOVING = auto()
+    INTERPRETED_FUNCTIONS_REMOVING = auto()
     DISJUNCTIVE_CONDITIONS_REMOVING = auto()
     NEGATIVE_CONDITIONS_REMOVING = auto()
     QUANTIFIERS_REMOVING = auto()
