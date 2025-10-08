@@ -263,6 +263,7 @@ def run_command(
             terminate_process(engine._process)  # Terminate the process
             timeout_occurred = True
         retval = engine._process.returncode
+        engine._process = None
     else:
         if sys.platform == "win32":
             # On windows we have to use asyncio (does not work inside notebooks)
@@ -343,7 +344,9 @@ async def run_command_asyncio(
             break
 
     await engine._process.wait()  # Wait for the child process to exit
-    return timeout_occurred, process_output, cast(int, engine._process.returncode)
+    retval = engine._process.returncode
+    engine._process = None
+    return timeout_occurred, process_output, cast(int, retval)
 
 
 def run_command_posix_select(
@@ -421,8 +424,11 @@ def run_command_posix_select(
         lasterr = "".join(proc_err_buff)
         if lasterr:
             proc_err.append(lasterr + "\n")
+
     engine._process.wait()
-    return timeout_occurred, (proc_out, proc_err), cast(int, engine._process.returncode)
+    retval = engine._process.returncode
+    engine._process = None
+    return timeout_occurred, (proc_out, proc_err), cast(int, retval)
 
 
 def terminate_process(process):
@@ -431,7 +437,10 @@ def terminate_process(process):
     This function sends a termination signal to the process, which is platform-dependent.
     :param process: The process to terminate.
     """
-    if sys.platform == "win32":
-        process.send_signal(signal.CTRL_BREAK_EVENT)
-    else:
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    try:
+        if sys.platform == "win32":
+            process.send_signal(signal.CTRL_BREAK_EVENT)
+        else:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    except ProcessLookupError:
+        pass
