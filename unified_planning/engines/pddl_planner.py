@@ -442,5 +442,5 @@ def terminate_process(process):
             process.send_signal(signal.CTRL_BREAK_EVENT)
         else:
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-    except:
+    except ProcessLookupError:
         pass
