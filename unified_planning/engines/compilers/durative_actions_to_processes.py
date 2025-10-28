@@ -81,8 +81,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 f"Default epsilon must be >= 0. Default epsilon given: {self._default_epsilon}"
             )
         # interesting flags to support:
-        # use_counters (instead of a big and at the end to check actions running)
-        # a flag to add conditions to end effects
         # it would also be interesting to support fluents in duration
         # (inserting 2 fluents that represent the duration bounds values at the start of the action,
         # the rest of the code should work)
@@ -230,11 +228,72 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         )
         new_problem.add_fluent(alive, default_initial_value=mgr.TRUE())
 
+        cnt = Fluent(
+            get_fresh_name(new_problem, "actions_counter"),
+            tm.IntType(0),
+            environment=env,
+        )
+        new_problem.add_fluent(cnt, default_initial_value=mgr.Int(0))
+
+        rl_fluents = {}
+        wl_fluents = {}
+        for f in problem.fluents:
+            f_rl = Fluent(
+                get_fresh_name(new_problem, f.name, trailing_info="read_lock"),
+                tm.BoolType(),
+                f.signature,
+                environment=env,
+            )
+            rl_fluents[f] = f_rl
+            f_wl = Fluent(
+                get_fresh_name(new_problem, f.name, trailing_info="write_lock"),
+                tm.BoolType(),
+                f.signature,
+                environment=env,
+            )
+            wl_fluents[f] = f_wl
+            new_problem.add_fluent(f_rl, default_initial_value=mgr.TRUE())
+            new_problem.add_fluent(f_wl, default_initial_value=mgr.TRUE())
+
+        gc = Fluent(get_fresh_name(new_problem, "gc"), tm.RealType(), environment=env)
+        new_problem.add_fluent(gc, default_initial_value=mgr.Real(Fraction(0)))
+
+        p_mutex = Process("p_mutex", _env=env)
+        p_mutex.add_precondition(alive)
+        p_mutex.add_increase_continuous_effect(gc, 1)
+        new_problem.add_process(p_mutex)
+
+        e_mutex = Event("e_mutex", _env=env)
+        e_mutex.add_precondition(alive)
+        e_mutex.add_precondition(mgr.GT(gc, mgr.Real(Fraction(0))))
+        e_mutex.add_effect(gc, mgr.Int(0))
+        for lf in chain(rl_fluents.values(), wl_fluents.values()):
+            for lf_exp in get_all_fluent_exp(new_problem, lf):
+                e_mutex.add_effect(lf_exp, True)
+        new_problem.add_event(e_mutex)
+
+        fve = env.free_vars_extractor
+
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
                 start_action = action.clone()
                 start_action.name = get_fresh_name(new_problem, start_action.name)
                 start_action.add_precondition(alive)
+                for fv in fve.get(mgr.And(start_action.preconditions)):
+                    start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                    start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+                for eff in start_action.effects:
+                    for fv in fve.get(eff.fluent):
+                        start_action.add_precondition(rl_fluents[fv.fluent()](*fv.args))
+                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                        start_action.add_effect(
+                            wl_fluents[fv.fluent()](*fv.args), False
+                        )
+                    for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
+                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                        start_action.add_effect(
+                            rl_fluents[fv.fluent()](*fv.args), False
+                        )
                 start_actions[start_action] = action
                 new_problem.add_action(start_action)
             elif isinstance(action, DurativeAction):
@@ -243,7 +302,15 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     first_end_action,
                     first_end_timing,
                 ) = _compile_durative_action(
-                    action, new_problem, alive, simplifier, epsilon
+                    action,
+                    new_problem,
+                    alive,
+                    cnt,
+                    gc,
+                    rl_fluents,
+                    wl_fluents,
+                    simplifier,
+                    epsilon,
                 )
                 start_actions[start_action] = action
                 if first_end_action is not None:
@@ -256,6 +323,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 raise NotImplementedError
 
         new_problem.add_goal(alive)
+        new_problem.add_goal(mgr.Equals(cnt, mgr.Int(0)))
 
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
@@ -298,12 +366,17 @@ def _compile_durative_action(
     action: DurativeAction,
     new_problem: Problem,
     alive: Fluent,
+    cnt: Fluent,
+    gc: Fluent,
+    rl_fluents: Dict[Fluent, Fluent],
+    wl_fluents: Dict[Fluent, Fluent],
     simplifier: Simplifier,
     epsilon: Fraction,
 ) -> Tuple[InstantaneousAction, Optional[InstantaneousAction], Optional[Timing]]:
     env = new_problem.environment
     tm: TypeManager = env.type_manager
     mgr: ExpressionManager = env.expression_manager
+    fve = env.free_vars_extractor
     params = OrderedDict(((p.name, p.type) for p in action.parameters))
 
     add_new_fluent = partial(
@@ -339,8 +412,10 @@ def _compile_durative_action(
     )
     new_problem.add_action(start_action)
     start_action.add_precondition(alive)
+    start_action.add_precondition(mgr.Not(action_running))
     start_action.add_effect(action_running, True)
     start_action.add_effect(action_clock, 0)
+    start_action.add_increase_effect(cnt, 1)
 
     has_variable_duration = _action_variable_duration(action)
 
@@ -354,14 +429,14 @@ def _compile_durative_action(
         if first_end_timing is None:
             first_end_timing = EndTiming()
 
-        action_duration_exp = add_new_fluent(
-            "duration",
-            tm.RealType(),
-            mgr.Int(0),
-        )
-        start_action.add_effect(cast(FNode, action_duration_exp), 0)
-
         if not _is_end_timing(first_end_timing):
+            action_duration_exp = add_new_fluent(
+                "duration",
+                tm.RealType(),
+                mgr.Int(0),
+            )
+            start_action.add_effect(cast(FNode, action_duration_exp), 0)
+
             first_end_triggered = add_new_fluent(
                 "first_end_triggered",
                 tm.BoolType(),
@@ -404,50 +479,56 @@ def _compile_durative_action(
     end_action: Union[Event, InstantaneousAction]
     if first_end_timing is None or not _is_end_timing(first_end_timing):
         end_action = add_new_event("end")
+        end_action.add_precondition(mgr.Equals(gc, mgr.Real(Fraction(0))))
     else:
         assert has_variable_duration
         assert first_end_action is not None
         end_action = first_end_action
 
     end_action.add_effect(action_running, False)
-    end_action.add_effect(action_clock, 0)
-    if has_variable_duration:
+    end_action.add_decrease_effect(cnt, 1)
+    if (
+        has_variable_duration
+        and first_end_timing is not None
+        and not _is_end_timing(first_end_timing)
+    ):
         assert action_duration_exp is not None
         assert first_end_timing is not None
+        assert first_end_triggered is not None
         end_action.add_effect(action_duration_exp, 0)
-        if not _is_end_timing(first_end_timing):
-            assert first_end_triggered is not None
-            end_action.add_effect(first_end_triggered, False)
-            # add precise time constraint
-            clock_exp, timing_exp, additional_constraint = _get_relative_timing(
-                EndTiming(),
-                first_end_timing,
-                first_end_triggered,
-                action_clock,
-                action_duration_exp,
-                action.duration,
-                mgr,
-            )
-            # use GE instead of Equals to avoid equality among floats
-            time_constraint = mgr.GE(clock_exp, mgr.Plus(timing_exp, epsilon))
-            if additional_constraint is not None:
-                time_constraint = mgr.And(additional_constraint, time_constraint)
-            end_action.add_precondition(simplifier.simplify(time_constraint))
-    else:
-        # use GE instead of Equals to avoid equality among floats
-        duration_constraint = mgr.GE(
-            action_clock, mgr.Plus(action.duration.lower, epsilon)
+        end_action.add_effect(first_end_triggered, False)
+        # add precise time constraint
+        clock_exp, timing_exp, additional_constraint = _get_relative_timing(
+            EndTiming(),
+            first_end_timing,
+            first_end_triggered,
+            action_clock,
+            action_duration_exp,
+            action.duration,
+            mgr,
         )
+        # use GE instead of Equals to avoid equality among floats
+        time_constraint = mgr.GE(clock_exp, timing_exp)
+        if additional_constraint is not None:
+            time_constraint = mgr.And(additional_constraint, time_constraint)
+        end_action.add_precondition(simplifier.simplify(time_constraint))
+    elif not has_variable_duration:
+        # use GE instead of Equals to avoid equality among floats
+        duration_constraint = mgr.GE(action_clock, action.duration.lower)
         end_action.add_precondition(simplifier.simplify(duration_constraint))
 
     # conditions create an event that sets alive to False when violated
     for i, (interval, conditions) in enumerate(action.conditions.items()):
         assert isinstance(interval, TimeInterval)
+        cond = simplifier.simplify(mgr.And(conditions))
 
         # check start timing
         if _is_start_timing(interval.lower) and not interval.is_left_open():
-            start_action.add_precondition(mgr.And(conditions))
-            if _is_start_timing(interval.upper) and not interval.is_right_open():
+            for fv in fve.get(cond):
+                start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+            start_action.add_precondition(cond)
+            if _is_start_timing(interval.upper):
                 continue
 
         # check first end timing
@@ -474,7 +555,7 @@ def _compile_durative_action(
                 simplifier.simplify(
                     mgr.Or(
                         mgr.Not(operand(from_start_timing.delay, action_clock)),
-                        mgr.And(conditions),
+                        cond,
                     )
                 )
             )
@@ -482,7 +563,16 @@ def _compile_durative_action(
             interval, first_end_timing
         ):
             assert first_end_action is not None
-            first_end_action.add_precondition(simplifier.simplify(mgr.And(conditions)))
+            for fv in fve.get(cond):
+                first_end_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                first_end_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+            first_end_action.add_precondition(cond)
+            continue
+        elif first_end_timing is None and _is_timepoint_interval(interval, EndTiming()):
+            for fv in fve.get(cond):
+                end_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                end_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+            end_action.add_precondition(cond)
             continue
 
         # default case
@@ -502,9 +592,28 @@ def _compile_durative_action(
         condition_failed_event.add_effect(alive, False)
         condition_failed_event.add_effect(action_running, False)
 
+        if interval.lower == interval.upper:
+            condition_lock_event = add_new_event(f"condition_{i}_lock")
+            condition_lock_event.add_precondition(simplifier.simplify(inside_interval))
+            condition_lock_event.add_precondition(mgr.Equals(gc, mgr.Real(Fraction(0))))
+            condition_lock_event.add_precondition(alive)
+            for fv in fve.get(cond):
+                condition_lock_event.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                condition_lock_event.add_effect(
+                    rl_fluents[fv.fluent()](*fv.args), False
+                )
+
     for i, (timing, effects) in enumerate(action.effects.items()):
         if _is_start_timing(timing):
             for eff in effects:
+                for fv in fve.get(eff.fluent):
+                    start_action.add_precondition(rl_fluents[fv.fluent()](*fv.args))
+                    start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                    start_action.add_effect(wl_fluents[fv.fluent()](*fv.args), False)
+                    print(action.name, fv)
+                for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
+                    start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                    start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
                 start_action._add_effect_instance(eff)
             continue
 
@@ -543,17 +652,23 @@ def _compile_durative_action(
             effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
 
         for eff in effects:
+            for fv in fve.get(eff.fluent):
+                effect_ev_or_act.add_precondition(rl_fluents[fv.fluent()](*fv.args))
+                effect_ev_or_act.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                effect_ev_or_act.add_effect(wl_fluents[fv.fluent()](*fv.args), False)
+                print(action.name, fv)
+            for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
+                effect_ev_or_act.add_precondition(wl_fluents[fv.fluent()](*fv.args))
+                effect_ev_or_act.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
             effect_ev_or_act._add_effect_instance(eff)
 
     # add an event that sets alive to False if the duration of the action is exceeded
     # and the action is still running
     duration_exceeded_event = add_new_event("duration_exceeded_error")
-    duration_exceeded_operand = mgr.GE if action.duration.is_right_open() else mgr.GT
-    duration_exceeded_condition = duration_exceeded_operand(
-        action_clock, mgr.Plus(action.duration.upper, 2 * epsilon)
-    )
     duration_exceeded_event.add_precondition(
-        simplifier.simplify(duration_exceeded_condition)
+        simplifier.simplify(
+            mgr.GE(action_clock, mgr.Plus(action.duration.upper, epsilon))
+        )
     )
     duration_exceeded_event.add_effect(alive, False)
     duration_exceeded_event.add_effect(action_running, False)
@@ -574,8 +689,8 @@ def _compile_durative_action(
         first_end_late_event.add_effect(alive, False)
         first_end_late_event.add_effect(action_running, False)
 
-    for g in get_all_fluent_exp(new_problem, action_running.fluent()):
-        new_problem.add_goal(mgr.Not(g))
+    # for g in get_all_fluent_exp(new_problem, action_running.fluent()):
+    #     new_problem.add_goal(mgr.Not(g))
 
     return start_action, first_end_action, first_end_timing
 

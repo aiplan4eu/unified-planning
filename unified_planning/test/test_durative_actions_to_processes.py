@@ -676,7 +676,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
     def test_all(self):
         with OneshotPlanner(
             name="opt-pddl-planner",
-            params={"params": "-d 0.001"},  # set epsilon as 0.001
+            params={"params": "-d 0.01"},
         ) as solver:
 
             with Compiler(
@@ -714,11 +714,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         f"{problem_name}: {solver_res}",
                     )
                     original_plan = res.plan_back_conversion(compiled_plan)
-                    if "robot_with_variable_duration" in problem_name:
-                        # need to add an epsilon here because enhsp considers the end_effects of the action in the same state the action is performed
-                        original_plan = add_epsilon_to_plan(
-                            original_plan, Fraction(1, 10)
-                        )
 
                     with PlanValidator(problem_kind=problem.kind) as validator:
                         val_res = validator.validate(problem, original_plan)
@@ -747,9 +742,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         with Compiler(
             name="up_durative_actions_to_processes",
             compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-            params={
-                "default_epsilon": "1/1000"
-            },  # making this little fails due to float errors, making it too big fails because matchcellar_static_duration uses an epsilon of 1/100
         ) as cer:
             for problem_name, tc in self.problems.items():
                 known_skips = {
@@ -807,59 +799,13 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                     self.assertIsInstance(
                         compiled_plan, TimeTriggeredPlan, problem_name
                     )
-                    new_problem, compiled_plan = _add_end_action(
-                        original_plan, compiled_plan, compiled_problem
-                    )
-                    if not validator.supports(new_problem.kind):
+                    if not validator.supports(compiled_problem.kind):
                         skipped.append(problem_name)
                         continue
 
-                    val_res = validator.validate(new_problem, compiled_plan)
+                    val_res = validator.validate(compiled_problem, compiled_plan)
 
                     self.assertEqual(
                         val_res.status, ValidationResultStatus.VALID, problem_name
                     )
                     solved.append(problem_name)
-
-
-def _add_end_action(
-    original_plan: TimeTriggeredPlan,
-    compiled_plan: TimeTriggeredPlan,
-    compiled_problem: Problem,
-) -> Tuple[Problem, TimeTriggeredPlan]:
-    original_plan_duration = Fraction(1)
-    for trigger_time, _, duration in original_plan.timed_actions:
-        end_action = trigger_time
-        if duration is not None:
-            end_action = trigger_time + duration
-        original_plan_duration = max(original_plan_duration, end_action)
-
-    original_plan_duration = original_plan_duration + 5 * 3
-    compiled_plan_actions = list(compiled_plan.timed_actions)
-
-    new_problem = compiled_problem.clone()
-    alive = new_problem.fluent("alive")
-    useless_action = InstantaneousAction("useless")
-    useless_action.add_precondition(alive)
-    useless_action.add_effect(alive, True)
-    new_problem.add_action(useless_action)
-
-    compiled_plan_actions.append((original_plan_duration, useless_action(), None))
-
-    return new_problem, TimeTriggeredPlan(compiled_plan_actions)
-
-
-def add_epsilon_to_plan(
-    plan: TimeTriggeredPlan, epsilon: Fraction
-) -> TimeTriggeredPlan:
-    new_actions = []
-    i = 0
-    prev_trigger_time = None
-    for trigger_time, action, duration in sorted(
-        plan.timed_actions, key=lambda x: x[0]
-    ):
-        new_actions.append((trigger_time + i * epsilon, action, duration))
-        if trigger_time != prev_trigger_time:
-            i = i + 1
-        prev_trigger_time = trigger_time
-    return TimeTriggeredPlan(new_actions)
