@@ -354,16 +354,17 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 oc.substitute(start_effects_subs)
                             )
                         )
-
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
+                    new_value: Optional[FNode] = None
                     if not oee.condition == em.TRUE():
                         new_cond = problem.environment.simplifier.simplify(
                             oee.condition.substitute(start_effects_subs)
                         )
                     else:
                         new_cond = em.TRUE()
+
                     if oee.is_assignment():
                         new_value = problem.environment.simplifier.simplify(
                             oee.value.substitute(start_effects_subs)
@@ -395,7 +396,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_action.add_effect(oeef, new_value, new_cond)
                     else:
                         raise UPUnreachableCodeError
-                    new_value = None
             for osef, osel in old_start_effects.items():
                 for ose in osel:
                     assert isinstance(ose, Effect)
