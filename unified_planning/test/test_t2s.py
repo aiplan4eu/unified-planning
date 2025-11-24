@@ -82,13 +82,11 @@ class TestT2S(unittest_TestCase):
         expected_tda.add_precondition(Not(Equals(x, 1)))
         # expected_tda.add_precondition(Equals(Plus(x, 1), 5))
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
-        expected_tda.add_precondition(Not(Equals(Plus(Plus(x, 1), 1), 1)))
-        expected_tda.add_effect(x, Minus(Plus(Plus(x, 1), 1), 2))
+        expected_tda.add_precondition(Not(Equals(Plus(x, 2), 1)))
+        expected_tda.add_effect(x, Minus(Plus(x, 2), 2))
         expected_tda.add_increase_effect(y, 3)
-        expected_tda.add_effect(
-            z, Plus(Plus(y, 3), 4), GE(Plus(Plus(x, 1), 1), Plus(y, 3))
-        )
-        expected_tda.add_effect(w, Minus(w, Plus(Plus(x, 1), 1)))
+        expected_tda.add_effect(z, Plus(y, 7), GE(Plus(x, 2), Plus(y, 3)))
+        expected_tda.add_effect(w, Minus(w, Plus(x, 2)))
 
         self.assertEqual(expected_tda, comp_tda)
 
