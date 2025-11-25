@@ -286,10 +286,10 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 start_action = action.clone()
                 start_action.name = get_fresh_name(new_problem, start_action.name)
                 start_action.add_precondition(alive)
-                for fv in fve.get(mgr.And(start_action.preconditions)):
+                for fv in fve.get(mgr.And(action.preconditions)):
                     start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
                     start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
-                for eff in start_action.effects:
+                for eff in action.effects:
                     for fv in fve.get(eff.fluent):
                         start_action.add_precondition(rl_fluents[fv.fluent()](*fv.args))
                         start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
@@ -677,7 +677,6 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                         start_action.add_effect(
                             wl_fluents[fv.fluent()](*fv.args), False
                         )
-                        print(action.name, fv)
                     for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
                         start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
                         start_action.add_effect(
