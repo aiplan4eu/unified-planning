@@ -439,7 +439,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         action_clock: FNode = add_new_fluent(
             "clock",
             tm.RealType(),
-            None,
+            mgr.Int(0),
         )
 
         action_running_process = Process(
