@@ -242,8 +242,32 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             )
             new_problem.add_fluent(cnt, default_initial_value=mgr.Int(0))
 
+        fluents_in_assignments = set()
+        fluents_in_increases = set()
+        for act in problem.actions:
+            if isinstance(act, InstantaneousAction):
+                for eff in act.effects:
+                    if eff.is_assignment():
+                        fluents_in_assignments.add(eff.fluent.fluent())
+                    else:
+                        fluents_in_increases.add(eff.fluent.fluent())
+            elif isinstance(act, DurativeAction):
+                for effs in act.effects.values():
+                    for eff in effs:
+                        if eff.is_assignment():
+                            fluents_in_assignments.add(eff.fluent.fluent())
+                        else:
+                            fluents_in_increases.add(eff.fluent.fluent())
+        for effs in problem.timed_effects.values():
+            for eff in effs:
+                if eff.is_assignment():
+                    fluents_in_assignments.add(eff.fluent.fluent())
+                else:
+                    fluents_in_increases.add(eff.fluent.fluent())
+
         rl_fluents = {}
-        wl_fluents = {}
+        al_fluents = {}
+        il_fluents = {}
         for f in problem.fluents:
             f_rl = Fluent(
                 get_fresh_name(new_problem, f.name, trailing_info="read_lock"),
@@ -252,15 +276,25 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 environment=env,
             )
             rl_fluents[f] = f_rl
-            f_wl = Fluent(
-                get_fresh_name(new_problem, f.name, trailing_info="write_lock"),
-                tm.BoolType(),
-                f.signature,
-                environment=env,
-            )
-            wl_fluents[f] = f_wl
             new_problem.add_fluent(f_rl, default_initial_value=mgr.TRUE())
-            new_problem.add_fluent(f_wl, default_initial_value=mgr.TRUE())
+            if f in fluents_in_assignments:
+                f_al = Fluent(
+                    get_fresh_name(new_problem, f.name, trailing_info="assign_lock"),
+                    tm.BoolType(),
+                    f.signature,
+                    environment=env,
+                )
+                al_fluents[f] = f_al
+                new_problem.add_fluent(f_al, default_initial_value=mgr.TRUE())
+            if f in fluents_in_increases:
+                f_il = Fluent(
+                    get_fresh_name(new_problem, f.name, trailing_info="increase_lock"),
+                    tm.BoolType(),
+                    f.signature,
+                    environment=env,
+                )
+                il_fluents[f] = f_il
+                new_problem.add_fluent(f_il, default_initial_value=mgr.TRUE())
 
         gc = Fluent(get_fresh_name(new_problem, "gc"), tm.RealType(), environment=env)
         new_problem.add_fluent(gc, default_initial_value=mgr.Real(Fraction(0)))
@@ -274,7 +308,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         e_mutex.add_precondition(alive)
         e_mutex.add_precondition(mgr.GT(gc, mgr.Real(Fraction(0))))
         e_mutex.add_effect(gc, mgr.Int(0))
-        for lf in chain(rl_fluents.values(), wl_fluents.values()):
+        for lf in chain(rl_fluents.values(), al_fluents.values(), il_fluents.values()):
             for lf_exp in get_all_fluent_exp(new_problem, lf):
                 e_mutex.add_effect(lf_exp, True)
         new_problem.add_event(e_mutex)
@@ -286,21 +320,18 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 start_action = action.clone()
                 start_action.name = get_fresh_name(new_problem, start_action.name)
                 start_action.add_precondition(alive)
-                for fv in fve.get(mgr.And(action.preconditions)):
-                    start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+                _add_lock_for_preconditions(
+                    fve,
+                    mgr.And(action.preconditions),
+                    start_action,
+                    rl_fluents,
+                    al_fluents,
+                    il_fluents,
+                )
                 for eff in action.effects:
-                    for fv in fve.get(eff.fluent):
-                        start_action.add_precondition(rl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_effect(
-                            wl_fluents[fv.fluent()](*fv.args), False
-                        )
-                    for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
-                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_effect(
-                            rl_fluents[fv.fluent()](*fv.args), False
-                        )
+                    _add_locks_for_effect(
+                        fve, eff, start_action, rl_fluents, al_fluents, il_fluents
+                    )
                 start_actions[start_action] = action
                 new_problem.add_action(start_action)
             elif isinstance(action, DurativeAction):
@@ -315,7 +346,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     cnt,
                     gc,
                     rl_fluents,
-                    wl_fluents,
+                    al_fluents,
+                    il_fluents,
                     simplifier,
                     epsilon,
                 )
@@ -356,13 +388,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 time_process.add_precondition(mgr.Not(te_done))
 
             for eff in effects:
-                for fv in fve.get(eff.fluent):
-                    time_event.add_precondition(rl_fluents[fv.fluent()](*fv.args))
-                    time_event.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    time_event.add_effect(wl_fluents[fv.fluent()](*fv.args), False)
-                for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
-                    time_event.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    time_event.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+                _add_locks_for_effect(
+                    fve, eff, time_event, rl_fluents, al_fluents, il_fluents
+                )
                 time_event._add_effect_instance(eff)
             new_problem.add_event(time_event)
 
@@ -416,7 +444,8 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         cnt: Optional[Fluent],
         gc: Fluent,
         rl_fluents: Dict[Fluent, Fluent],
-        wl_fluents: Dict[Fluent, Fluent],
+        al_fluents: Dict[Fluent, Fluent],
+        il_fluents: Dict[Fluent, Fluent],
         simplifier: Simplifier,
         epsilon: Fraction,
     ) -> Tuple[InstantaneousAction, Optional[InstantaneousAction], Optional[Timing]]:
@@ -577,9 +606,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
             # check start timing
             if _is_start_timing(interval.lower) and not interval.is_left_open():
-                for fv in fve.get(cond):
-                    start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    start_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+                _add_lock_for_preconditions(
+                    fve, cond, start_action, rl_fluents, al_fluents, il_fluents
+                )
                 start_action.add_precondition(cond)
                 if _is_start_timing(interval.upper):
                     continue
@@ -616,19 +645,17 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 interval, first_end_timing
             ):
                 assert first_end_action is not None
-                for fv in fve.get(cond):
-                    first_end_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    first_end_action.add_effect(
-                        rl_fluents[fv.fluent()](*fv.args), False
-                    )
+                _add_lock_for_preconditions(
+                    fve, cond, first_end_action, rl_fluents, al_fluents, il_fluents
+                )
                 first_end_action.add_precondition(cond)
                 continue
             elif first_end_timing is None and _is_timepoint_interval(
                 interval, EndTiming()
             ):
-                for fv in fve.get(cond):
-                    end_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    end_action.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+                _add_lock_for_preconditions(
+                    fve, cond, end_action, rl_fluents, al_fluents, il_fluents
+                )
                 end_action.add_precondition(cond)
                 continue
 
@@ -660,28 +687,16 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     mgr.Equals(gc, mgr.Real(Fraction(0)))
                 )
                 condition_lock_event.add_precondition(alive)
-                for fv in fve.get(cond):
-                    condition_lock_event.add_precondition(
-                        wl_fluents[fv.fluent()](*fv.args)
-                    )
-                    condition_lock_event.add_effect(
-                        rl_fluents[fv.fluent()](*fv.args), False
-                    )
+                _add_lock_for_preconditions(
+                    fve, cond, condition_lock_event, rl_fluents, al_fluents, il_fluents
+                )
 
         for i, (timing, effects) in enumerate(action.effects.items()):
             if _is_start_timing(timing):
                 for eff in effects:
-                    for fv in fve.get(eff.fluent):
-                        start_action.add_precondition(rl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_effect(
-                            wl_fluents[fv.fluent()](*fv.args), False
-                        )
-                    for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
-                        start_action.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                        start_action.add_effect(
-                            rl_fluents[fv.fluent()](*fv.args), False
-                        )
+                    _add_locks_for_effect(
+                        fve, eff, start_action, rl_fluents, al_fluents, il_fluents
+                    )
                     start_action._add_effect_instance(eff)
                 continue
 
@@ -714,23 +729,15 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 effect_ev_or_act.add_effect(effect_done, True)
 
                 # GE and not equals to avoid floating points errors
-                time_constraint = mgr.GE(clock_exp, mgr.Plus(timing_exp, epsilon))
+                time_constraint = mgr.GE(clock_exp, timing_exp)
                 if additional_constraint is not None:
                     time_constraint = mgr.And(additional_constraint, time_constraint)
                 effect_ev_or_act.add_precondition(simplifier.simplify(time_constraint))
 
             for eff in effects:
-                for fv in fve.get(eff.fluent):
-                    effect_ev_or_act.add_precondition(rl_fluents[fv.fluent()](*fv.args))
-                    effect_ev_or_act.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    effect_ev_or_act.add_effect(
-                        wl_fluents[fv.fluent()](*fv.args), False
-                    )
-                for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
-                    effect_ev_or_act.add_precondition(wl_fluents[fv.fluent()](*fv.args))
-                    effect_ev_or_act.add_effect(
-                        rl_fluents[fv.fluent()](*fv.args), False
-                    )
+                _add_locks_for_effect(
+                    fve, eff, effect_ev_or_act, rl_fluents, al_fluents, il_fluents
+                )
                 effect_ev_or_act._add_effect_instance(eff)
 
         # add an event that sets alive to False if the duration of the action is exceeded
@@ -767,6 +774,49 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                 new_problem.add_goal(mgr.Not(g))
 
         return start_action, first_end_action, first_end_timing
+
+
+def _add_locks_for_effect(
+    fve: "up.model.walkers.FreeVarsExtractor",
+    eff: "up.model.Effect",
+    event: Union["up.model.InstantaneousAction", "up.model.Event"],
+    rl_fluents: Dict[Fluent, Fluent],
+    al_fluents: Dict[Fluent, Fluent],
+    il_fluents: Dict[Fluent, Fluent],
+):
+    fv = eff.fluent
+    event.add_precondition(rl_fluents[fv.fluent()](*fv.args))
+    if fv.fluent() in al_fluents:
+        event.add_precondition(al_fluents[fv.fluent()](*fv.args))
+    if eff.is_assignment():
+        if fv.fluent() in il_fluents:
+            event.add_precondition(il_fluents[fv.fluent()](*fv.args))
+        event.add_effect(al_fluents[fv.fluent()](*fv.args), False)
+    else:
+        event.add_effect(il_fluents[fv.fluent()](*fv.args), False)
+
+    for fv in chain(fve.get(eff.value), fve.get(eff.condition)):
+        if fv.fluent() in al_fluents:
+            event.add_precondition(al_fluents[fv.fluent()](*fv.args))
+        if fv.fluent() in il_fluents:
+            event.add_precondition(il_fluents[fv.fluent()](*fv.args))
+        event.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
+
+
+def _add_lock_for_preconditions(
+    fve: "up.model.walkers.FreeVarsExtractor",
+    cond: "up.model.FNode",
+    event: Union["up.model.InstantaneousAction", "up.model.Event"],
+    rl_fluents: Dict[Fluent, Fluent],
+    al_fluents: Dict[Fluent, Fluent],
+    il_fluents: Dict[Fluent, Fluent],
+):
+    for fv in fve.get(cond):
+        if fv.fluent() in al_fluents:
+            event.add_precondition(al_fluents[fv.fluent()](*fv.args))
+        if fv.fluent() in il_fluents:
+            event.add_precondition(il_fluents[fv.fluent()](*fv.args))
+        event.add_effect(rl_fluents[fv.fluent()](*fv.args), False)
 
 
 def _add_new_fluent(
