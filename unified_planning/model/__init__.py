@@ -45,7 +45,7 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.problem import Problem, generate_causal_graph
-from unified_planning.model.contingent_problem import ContingentProblem
+from unified_planning.model.contingent.contingent_problem import ContingentProblem
 from unified_planning.model.delta_stn import DeltaSimpleTemporalNetwork
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.state import State, UPState
