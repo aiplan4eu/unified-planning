@@ -157,7 +157,9 @@ class ContingentProblem(Problem):
         for f in self._fluents:
             for f_exp in get_all_fluent_exp(self, f):
                 if f_exp not in self._hidden_fluents:
-                    res[f_exp] = self.initial_value(f_exp)
+                    val = self.initial_value(f_exp)
+                    if val is not None:
+                        res[f_exp] = val
         return res
 
     @property
