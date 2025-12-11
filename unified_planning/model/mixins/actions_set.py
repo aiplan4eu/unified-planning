@@ -64,7 +64,7 @@ class ActionsSetMixin:
     def sensing_actions(
         self,
     ) -> Iterator["up.model.contingent.sensing_action.SensingAction"]:
-        """Returs all the sensing actions of the problem.
+        """Returns all the sensing actions of the problem.
 
         IMPORTANT NOTE: this property does some computation, so it should be called as
         seldom as possible."""
