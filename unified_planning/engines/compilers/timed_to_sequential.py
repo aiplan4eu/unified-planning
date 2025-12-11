@@ -349,17 +349,26 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_action.add_precondition(oc)
                 if timeinterval.upper == EndTiming():
                     for oc in ocl:
-                        new_action.add_precondition(oc.substitute(start_effects_subs))
-
+                        new_action.add_precondition(
+                            problem.environment.simplifier.simplify(
+                                oc.substitute(start_effects_subs)
+                            )
+                        )
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
+                    new_value: Optional[FNode] = None
                     if not oee.condition == em.TRUE():
-                        new_cond = oee.condition.substitute(start_effects_subs)
+                        new_cond = problem.environment.simplifier.simplify(
+                            oee.condition.substitute(start_effects_subs)
+                        )
                     else:
                         new_cond = em.TRUE()
+
                     if oee.is_assignment():
-                        new_value = oee.value.substitute(start_effects_subs)
+                        new_value = problem.environment.simplifier.simplify(
+                            oee.value.substitute(start_effects_subs)
+                        )
                         if new_value.is_bool_constant():
                             if (
                                 new_value.is_true() and oeef in new_action.preconditions
@@ -375,15 +384,18 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         new_action.add_effect(oeef, new_value, new_cond)
                     elif oee.is_increase():
                         new_value = em.Plus(oeef, oee.value)
-                        new_value = new_value.substitute(start_effects_subs)
+                        new_value = problem.environment.simplifier.simplify(
+                            new_value.substitute(start_effects_subs)
+                        )
                         new_action.add_effect(oeef, new_value, new_cond)
                     elif oee.is_decrease():
                         new_value = em.Minus(oeef, oee.value)
-                        new_value = new_value.substitute(start_effects_subs)
+                        new_value = problem.environment.simplifier.simplify(
+                            new_value.substitute(start_effects_subs)
+                        )
                         new_action.add_effect(oeef, new_value, new_cond)
                     else:
                         raise UPUnreachableCodeError
-                    new_value = None
             for osef, osel in old_start_effects.items():
                 for ose in osel:
                     assert isinstance(ose, Effect)
