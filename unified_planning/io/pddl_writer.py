@@ -1043,6 +1043,22 @@ class PDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+        for ev in self.problem.events:
+            for p in ev.preconditions:
+                _update_domain_objects(self.domain_objects, obe.get(p))
+            for e in ev.effects:
+                if e.is_conditional():
+                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                _update_domain_objects(self.domain_objects, obe.get(e.value))
+        for pro in self.problem.processes:
+            for p in pro.preconditions:
+                _update_domain_objects(self.domain_objects, obe.get(p))
+            for e in pro.effects:
+                if e.is_conditional():
+                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                _update_domain_objects(self.domain_objects, obe.get(e.value))
         if isinstance(self.problem, HierarchicalProblem):
             for m in self.problem.methods:
                 for p in m.preconditions:
