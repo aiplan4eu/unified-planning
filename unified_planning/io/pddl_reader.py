@@ -1591,15 +1591,19 @@ class PDDLReader:
                 elif dur[0].value == "and":
                     upper = None
                     lower = None
+                    is_left_open = None
+                    is_right_open = None
                     for j in range(1, len(dur)):
-                        if dur[j][0].value == ">=" and lower is None:
+                        if dur[j][0].value in (">=", ">") and lower is None:
                             lower = self._parse_exp(
                                 problem, dur_act, types_map, {}, dur[j][2], domain_str
                             )
-                        elif dur[j][0].value == "<=" and upper is None:
+                            is_left_open = dur[j][0].value == ">"
+                        elif dur[j][0].value in ("<=", "<") and upper is None:
                             upper = self._parse_exp(
                                 problem, dur_act, types_map, {}, dur[j][2], domain_str
                             )
+                            is_right_open = dur[j][0].value == "<"
                         else:
                             raise SyntaxError(
                                 f"Not able to handle duration constraint of action {n}"
@@ -1610,7 +1614,10 @@ class PDDLReader:
                             f"Not able to handle duration constraint of action {n}"
                             + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                         )
-                    d = up.model.ClosedDurationInterval(lower, upper)
+                    assert is_left_open is not None and is_right_open is not None
+                    d = up.model.DurationInterval(
+                        lower, upper, is_left_open, is_right_open
+                    )
                     dur_act.set_duration_constraint(d)
                 else:
                     raise SyntaxError(
