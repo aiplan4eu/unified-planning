@@ -72,6 +72,7 @@ class StateEvaluator(QuantifierSimplifier):
         copy.update(variables_assignments)
         r = new_state_evaluator.evaluate(expression, self._state, copy)
         assert r.is_constant()
+        self.if_values.update(new_state_evaluator.if_values)
         return r
 
     def walk_fluent_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
