@@ -88,6 +88,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         )
         self._use_old_algorithm = False
         self._interpreted_functions_values = interpreted_functions_values
+        self._remove_quantifiers = lambda x: x
 
         CompilerMixin.__init__(self, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
 
@@ -213,6 +214,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
+        eqr = up.model.walkers.ExpressionQuantifiersRemover(env)
+        self._remove_quantifiers = partial(
+            eqr.remove_quantifiers, objects_set=new_problem
+        )
+
+        def _def_remove_quantifiers(exp):
+            ifuns = self.interpreted_functions_extractor.get(exp)
+            if not ifuns:
+                return exp
+            return eqr.remove_quantifiers(expression=exp, objects_set=new_problem)
+
+        self._remove_quantifiers = _def_remove_quantifiers
 
         new_objects: Dict = {}
         new_obj_vals: Dict = {}
@@ -621,14 +634,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             a_conditions = a.conditions.items()
             for ii, cl in a_conditions:
                 for c in cl:
-                    fixed_c_list = _split_ands(c)
+                    fixed_c_list = _split_ands(self._remove_quantifiers(c))
                     for fc in fixed_c_list:
                         cond_list.append(fc)
                         time_list.append(ii)
         else:
             a_preconditions = a.preconditions
             for p in a_preconditions:
-                fixed_p_list = _split_ands(p)
+                fixed_p_list = _split_ands(self._remove_quantifiers(p))
                 for fp in fixed_p_list:
                     cond_list.append(fp)
                     time_list.append(None)
