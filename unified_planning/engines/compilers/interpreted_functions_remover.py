@@ -215,9 +215,6 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_actions()
         eqr = up.model.walkers.ExpressionQuantifiersRemover(env)
-        self._remove_quantifiers = partial(
-            eqr.remove_quantifiers, objects_set=new_problem
-        )
 
         def _def_remove_quantifiers(exp):
             ifuns = self.interpreted_functions_extractor.get(exp)
