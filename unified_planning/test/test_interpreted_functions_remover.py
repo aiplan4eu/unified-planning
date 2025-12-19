@@ -200,8 +200,6 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         k_t[if_exp_2] = TRUE()
 
         knum_y = UserType("kNum_y")
-        c_a_p = InstantaneousAction("a", _p_y_1=knum_y, _p_y_2=knum_y)
-        c_a_p.add_effect(x, True)
 
         with InterpretedFunctionsRemover(k_t) as if_remover:
             # we can check with just one knowledge case as the action is compiled the same way
@@ -213,9 +211,27 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             exp_12_right = ObjectExp(Object("_o_kNum_y", knum_y))
             par_2 = Parameter("_p_y_2", knum_y)
             exp_3_f = Fluent("_f_y", BoolType(), p=knum_y)
-            c_a_p.add_precondition(Equals(ParameterExp(par_1), exp_12_right))
-            c_a_p.add_precondition(Equals(ParameterExp(par_2), exp_12_right))
-            c_a_p.add_precondition(
-                Or(FluentExp(exp_3_f, [par_2]), FluentExp(exp_3_f, [par_1]))
-            )
-            self.assertEqual(ifr.problem.action("a"), c_a_p)
+
+            # the order of the arguments in the expressions can change with no real difference
+            # but this means we can't just check that they are Equal
+            es_eq_diff_args = set([ParameterExp(par_1), ParameterExp(par_2)])
+            es_eq_common_arg = exp_12_right
+            e_or_args = set([FluentExp(exp_3_f, [par_1]), FluentExp(exp_3_f, [par_2])])
+
+            self.assertEqual(len(ifr.problem.action("a").preconditions), 3)
+            for condition in ifr.problem.action("a").preconditions:
+                self.assertEqual(len(condition.args), 2)
+                if condition.is_or():
+                    for arg in condition.args:
+                        self.assertIn(arg, e_or_args)
+                        e_or_args.remove(arg)
+                elif condition.is_equals():
+                    found_common = False
+                    for arg in condition.args:
+                        if (arg == es_eq_common_arg) and not found_common:
+                            found_common = True
+                        else:
+                            self.assertIn(arg, es_eq_diff_args)
+                            es_eq_diff_args.remove(arg)
+                else:
+                    assert False
