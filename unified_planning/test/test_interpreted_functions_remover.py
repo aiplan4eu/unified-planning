@@ -30,7 +30,11 @@ from unified_planning.test import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines.compilers import ConditionalEffectsRemover
+from unified_planning.engines.compilers.interpreted_functions_remover import (
+    InterpretedFunctionsRemover,
+)
 from unified_planning.engines import CompilationKind
+from collections import OrderedDict
 
 
 class TestInterpretedFunctionsRemover(unittest_TestCase):
@@ -154,3 +158,64 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         self.assertFalse(
             compiled_problem.kind.has_interpreted_functions_in_numeric_assignments()
         )
+
+    def test_interpreted_function_remover_quantifier(self):
+        sem = UserType("Semaphore")
+        x = Fluent("x")
+
+        def y_callable(semaphore):
+            return False
+
+        signature_map = OrderedDict()
+        signature_map["semaphore"] = sem
+
+        y = InterpretedFunction("y", BoolType(), signature_map, y_callable)
+
+        o1 = Object("o1", sem)
+        o2 = Object("o2", sem)
+        s_var = Variable("s", sem)
+        a = InstantaneousAction("a")
+        a.add_precondition(Exists(InterpretedFunctionExp(y, [s_var]), s_var))
+        a.add_effect(x, True)
+        basic_exists_if = Problem("basic_exists_if")
+        basic_exists_if.add_fluent(x)
+        basic_exists_if.add_object(o1)
+        basic_exists_if.add_object(o2)
+        basic_exists_if.add_action(a)
+        basic_exists_if.set_initial_value(x, False)
+
+        c_a = InstantaneousAction("a")
+        c_a.add_effect(x, True)
+
+        with InterpretedFunctionsRemover() as if_remover:
+            ifr = if_remover.compile(
+                basic_exists_if, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertEqual(ifr.problem.action("a"), c_a)
+
+        k_t = {}
+        if_exp_1 = InterpretedFunctionExp(y, [o1])
+        if_exp_2 = InterpretedFunctionExp(y, [o2])
+        k_t[if_exp_1] = TRUE()
+        k_t[if_exp_2] = TRUE()
+
+        knum_y = UserType("kNum_y")
+        c_a_p = InstantaneousAction("a", _p_y_1=knum_y, _p_y_2=knum_y)
+        c_a_p.add_effect(x, True)
+
+        with InterpretedFunctionsRemover(k_t) as if_remover:
+            # we can check with just one knowledge case as the action is compiled the same way
+            # what changes are the initial values of the _f_y fluent
+            ifr = if_remover.compile(
+                basic_exists_if, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            par_1 = Parameter("_p_y_1", knum_y)
+            exp_12_right = ObjectExp(Object("_o_kNum_y", knum_y))
+            par_2 = Parameter("_p_y_2", knum_y)
+            exp_3_f = Fluent("_f_y", BoolType(), p=knum_y)
+            c_a_p.add_precondition(Equals(ParameterExp(par_1), exp_12_right))
+            c_a_p.add_precondition(Equals(ParameterExp(par_2), exp_12_right))
+            c_a_p.add_precondition(
+                Or(FluentExp(exp_3_f, [par_2]), FluentExp(exp_3_f, [par_1]))
+            )
+            self.assertEqual(ifr.problem.action("a"), c_a_p)
