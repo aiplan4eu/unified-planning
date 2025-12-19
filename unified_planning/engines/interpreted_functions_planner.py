@@ -188,7 +188,12 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     assert (
                         validation_result.calculated_interpreted_functions is not None
                     )
+                    before = len(knowledge)
                     knowledge.update(validation_result.calculated_interpreted_functions)
+                    if not (len(knowledge) > before):
+                        raise UPException(
+                            "Internal Error: InterpretedFunctionsPlanner was not able to retrieve InterpretedFunctions values"
+                        )
 
                     if output_stream is not None:
                         output_stream.write(
