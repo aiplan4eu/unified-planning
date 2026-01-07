@@ -214,6 +214,93 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
             contains_condition_helper(preconds_list, e_2_args, e_2_type)
             contains_condition_helper(preconds_list, e_3_args, e_3_type)
 
+    def test_interpreted_functions_in_preconditions_remover_knowledge(self):
+        problem = self.problems["IF_in_conditions_complex_1"].problem
+        ione = problem.fluent("ione")
+        itwo = problem.fluent("itwo")
+        ithree = problem.fluent("ithree")
+        knowledge = {}
+        if_obj = problem.action("f").preconditions[0].args[0].interpreted_function()
+        self.assertTrue(isinstance(if_obj, InterpretedFunction))
+
+        key = InterpretedFunctionExp(if_obj, 1)
+        knowledge[key] = 2
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+        test_1_f0 = InstantaneousAction("f_0")
+        test_1_f0.add_precondition(Not(Equals(ithree, 1)))
+        test_1_f0.add_effect(itwo, 5)
+        self.assertEqual(test_1_f0, compiled_problem.action("f_0"))
+
+        kNum_simple_int_to_int = UserType("kNum_simple_int_to_int")
+        _o_kNum_simple_int_to_int = Object(
+            "_o_kNum_simple_int_to_int", kNum_simple_int_to_int
+        )
+        test_1_f = InstantaneousAction(
+            "f", _p_simple_int_to_int_1=kNum_simple_int_to_int
+        )
+        _p_simple_int_to_int_1 = test_1_f.parameter("_p_simple_int_to_int_1")
+        _f_simple_int_to_int = Fluent(
+            "_f_simple_int_to_int", IntType(), p=kNum_simple_int_to_int
+        )
+        test_1_f.add_precondition(Equals(ithree, 1))
+        test_1_f.add_precondition(
+            Implies(
+                Equals(ithree, 1),
+                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int),
+            )
+        )
+        test_1_f.add_precondition(
+            LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        )
+        test_1_f.add_effect(itwo, 5)
+        self.assertEqual(test_1_f, compiled_problem.action("f"))
+
+        print("test with only one knowledge point worked")
+
+        key = InterpretedFunctionExp(if_obj, 3)
+        knowledge[key] = 4
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+
+        test_2_f0 = InstantaneousAction("f_0")
+        test_2_f0.add_precondition(Not(Or(Equals(ithree, 1), Equals(ithree, 3))))
+        test_2_f0.add_effect(itwo, 5)
+        self.assertEqual(test_2_f0, compiled_problem.action("f_0"))
+
+        _o_kNum_simple_int_to_int_0 = Object(
+            "_o_kNum_simple_int_to_int_0", kNum_simple_int_to_int
+        )
+        test_2_f = InstantaneousAction(
+            "f", _p_simple_int_to_int_1=kNum_simple_int_to_int
+        )
+        test_2_f.add_precondition(Or(Equals(ithree, 1), Equals(ithree, 3)))
+        test_2_f.add_precondition(
+            Implies(
+                Equals(ithree, 1),
+                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int),
+            )
+        )
+        test_2_f.add_precondition(
+            Implies(
+                Equals(ithree, 3),
+                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int_0),
+            )
+        )
+        test_2_f.add_precondition(
+            LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        )
+        test_2_f.add_effect(itwo, 5)
+        self.assertEqual(test_2_f, compiled_problem.action("f"))
+
 
 def contains_condition_helper(
     to_check: List[FNode], correct_args: List, expected_type: OperatorKind
