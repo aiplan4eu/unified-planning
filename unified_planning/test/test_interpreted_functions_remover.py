@@ -13,23 +13,9 @@
 # limitations under the License.
 
 
-import pytest
-import unified_planning
 from unified_planning.shortcuts import *
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model import GlobalStartTiming
-from unified_planning.model.problem_kind import (
-    classical_kind,
-    full_classical_kind,
-    basic_temporal_kind,
-)
-from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase, main
-from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines.compilers import ConditionalEffectsRemover
 from unified_planning.engines.compilers.interpreted_functions_remover import (
     InterpretedFunctionsRemover,
 )
@@ -214,24 +200,42 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
             # the order of the arguments in the expressions can change with no real difference
             # but this means we can't just check that they are Equal
-            es_eq_diff_args = set([ParameterExp(par_1), ParameterExp(par_2)])
-            es_eq_common_arg = exp_12_right
-            e_or_args = set([FluentExp(exp_3_f, [par_1]), FluentExp(exp_3_f, [par_2])])
+            e_1_type = OperatorKind.EQUALS
+            e_1_args = [par_1, exp_12_right]
+            e_2_type = OperatorKind.EQUALS
+            e_2_args = [par_2, exp_12_right]
+            e_3_type = OperatorKind.OR
+            e_3_args = [FluentExp(exp_3_f, [par_1]), FluentExp(exp_3_f, [par_2])]
 
-            self.assertEqual(len(ifr.problem.action("a").preconditions), 3)
-            for condition in ifr.problem.action("a").preconditions:
-                self.assertEqual(len(condition.args), 2)
-                if condition.is_or():
-                    for arg in condition.args:
-                        self.assertIn(arg, e_or_args)
-                        e_or_args.remove(arg)
-                elif condition.is_equals():
-                    found_common = False
-                    for arg in condition.args:
-                        if (arg == es_eq_common_arg) and not found_common:
-                            found_common = True
-                        else:
-                            self.assertIn(arg, es_eq_diff_args)
-                            es_eq_diff_args.remove(arg)
-                else:
-                    assert False
+            preconds_list = ifr.problem.action("a").preconditions
+
+            self.assertEqual(len(preconds_list), 3)
+            contains_condition_helper(preconds_list, e_1_args, e_1_type)
+            contains_condition_helper(preconds_list, e_2_args, e_2_type)
+            contains_condition_helper(preconds_list, e_3_args, e_3_type)
+
+
+def contains_condition_helper(
+    to_check: List[FNode], correct_args: List, expected_type: OperatorKind
+):
+    # helper function to test condition equality when operation is commutative
+    # NOTE currently we only need this with operations with 2 args, changes needed for more complex situations
+
+    if expected_type == OperatorKind.EQUALS:
+        option_1 = Equals(correct_args[0], correct_args[1])
+        option_2 = Equals(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.OR:
+        option_1 = Or(correct_args[0], correct_args[1])
+        option_2 = Or(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.AND:
+        option_1 = And(correct_args[0], correct_args[1])
+        option_2 = And(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.IFF:
+        option_1 = Iff(correct_args[0], correct_args[1])
+        option_2 = Iff(correct_args[1], correct_args[0])
+    else:
+        raise NotImplementedError(
+            "Operation is either not commutative or not supported by helper function"
+        )
+
+    assert (option_1 in to_check) or (option_2 in to_check)
