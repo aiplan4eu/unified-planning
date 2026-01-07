@@ -218,9 +218,17 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 def contains_condition_helper(
     to_check: List[FNode], correct_args: List, expected_type: OperatorKind
 ):
-    # helper function to test condition equality when operation is commutative
-    # NOTE currently we only need this with operations with 2 args, changes needed for more complex situations
+    """
+    helper function to test condition equality when operation is commutative
+    currently we only need this with operations with 2 args, changes needed for more complex situations
 
+    :param to_check: the list of expressions where we should find the expected one
+    :param correct_args: the list of arguments for the expected expression
+    :param expected_type: the OperatorKind of the expression we are checking
+    """
+
+    if len(correct_args) != 2:
+        raise ValueError("helper function only works with 2 expected arguments")
     if expected_type == OperatorKind.EQUALS:
         option_1 = Equals(correct_args[0], correct_args[1])
         option_2 = Equals(correct_args[1], correct_args[0])
