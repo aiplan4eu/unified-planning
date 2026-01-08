@@ -19,7 +19,7 @@ from functools import partial
 import itertools
 from enum import Enum, auto
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -34,6 +34,7 @@ from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
 from unified_planning.model.effect import Effect
+from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
@@ -261,14 +262,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_obj_vals[ifun_exp.interpreted_function()][val] = o
                 new_problem.add_object(o)
 
-            # TODO clean up is no problems are found
             if tuple(ifun_exp.args) in new_objects[ifun_exp.interpreted_function()]:
-                # o = new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)]
                 pass
             else:
-                # o = Object(get_fresh_name(new_problem, f"_o_{kNum.name}"), kNum)
                 new_objects[ifun_exp.interpreted_function()][tuple(ifun_exp.args)] = o
-                # new_problem.add_object(o)
             if tuple(ifun_exp.args) not in if_known[ifun]:
                 if_known[ifun].append(tuple(ifun_exp.args))
             new_problem.set_initial_value(f(o), val)
@@ -314,7 +311,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem, partial(custom_replace, map=new_to_old), self.name
         )
 
-    def _expand_action(self, a, new_fluents, new_objects, if_known, is_unknown_fluents):
+    def _expand_action(
+        self,
+        a: Action,
+        new_fluents: Dict[InterpretedFunction, Fluent],
+        new_objects: Dict[InterpretedFunction, Dict[Tuple[FNode], Object]],
+        if_known: Dict[InterpretedFunction, List[Tuple[FNode]]],
+        is_unknown_fluents: Dict[Fluent, Fluent],
+    ):
+        """
+        Computes the set of parameters, conditions, durations and effects for actions deriving from the action `a`
+
+        :param a: the action we are compiling that we need to expand into multiple actions to handle all the cases
+        :param new_fluents: the dict containing fluents that substitute the interpred functions of known values
+        :param new_objects: the dict that maps the interpreted functions with known values to the objects that represent the arguments with known values
+        :param if_known: the dict that maps the interpreted functions with the list of arguments for which we know the values
+        :param is_unknown_fluents: the dict that maps the fluents of the original problem to the new tracking fluents used to mark wether or not the value of the original fluents are currently known
+        :returns: (yield) the parameters, conditions, durations and effects necessary to create the new compiled actions
+        """
         em = a.environment.expression_manager
         conds = []
         effs = []
