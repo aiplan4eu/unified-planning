@@ -19,7 +19,7 @@ from functools import partial
 import itertools
 from enum import Enum, auto
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union, Tuple, Iterable, FrozenSet
+from typing import Dict, List, Optional, Union, Tuple, Iterable, FrozenSet, Set, Any
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -35,16 +35,16 @@ from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
 from unified_planning.model.effect import Effect
 from unified_planning.model.fnode import FNode
+from unified_planning.model.types import Type
+from unified_planning.model.expression import ExpressionManager
 from unified_planning.model.parameter import Parameter
-from unified_planning.model.timing import Timing, TimeInterval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     get_fresh_parameter_name,
 )
-from unified_planning.model.timing import StartTiming
+from unified_planning.model.timing import StartTiming, Timing, TimeInterval
 from unified_planning.plans.plan import ActionInstance
-from unified_planning.shortcuts import BoolType
 from unified_planning.model.walkers import Simplifier
 from unified_planning.exceptions import UPUnsupportedProblemTypeError
 from unified_planning.model.interpreted_function import InterpretedFunction
@@ -276,7 +276,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         changing_fluents = self._find_changing_fluents(problem)
         for f in changing_fluents:
             new_f_name = get_fresh_name(new_problem, f"_{f.name}_is_unknown")
-            new_f = Fluent(new_f_name, BoolType())
+            new_f = Fluent(new_f_name, env.type_manager.BoolType())
             new_problem.add_fluent(new_f, default_initial_value=False)
             new_problem.set_initial_value(new_f, em.FALSE())
             is_unknown_fluents[f] = new_f
@@ -286,7 +286,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 a, new_fluents, new_objects, if_known, is_unknown_fluents
             ):
                 new_a = self._clone_action_with_extras(
-                    a, new_params, conds, dur, effs, em
+                    a, new_params, dur, conds, effs, em
                 )
                 if new_a is None:
                     continue
@@ -351,21 +351,21 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 Optional[Effect],
             ]
         ] = []
-        for t, exp in self._get_conditions(a):
+        for t_interval, exp in self._get_conditions(a):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
             extra_c = [hcf for f, hcf in is_unknown_fluents.items() if f in all_f]
-            new_c = em.Or([exp] + extra_c)
+            new_c = em.Or(extra_c + [exp])
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
-                if t is not None:
-                    if t.lower != t.upper:
+                if t_interval is not None:
+                    if t_interval.lower != t_interval.upper:
                         raise UPUnsupportedProblemTypeError(
                             "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
                         )
-                ifs.append((t, new_c, ifuns, ElementKind.CONDITION, None))
+                ifs.append((t_interval, new_c, ifuns, ElementKind.CONDITION, None))
             else:
-                conds.append((t, new_c))
+                conds.append((t_interval, new_c))
         for time, ef in self._get_effects(a):
             ifuns = self.interpreted_functions_extractor.get(ef.value)
             if ifuns:
@@ -400,7 +400,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 )
                 upper = None
         for known_vec in itertools.product([True, False], repeat=len(ifs)):
-            if not knowledge_compatible(ifs, known_vec, new_fluents.keys()):
+            if not knowledge_compatible(ifs, known_vec, list(new_fluents.keys())):
                 continue
             new_params: List[Parameter] = []
             new_conds: List = []
@@ -414,12 +414,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 tuple[
                     InterpretedFunction,
                     list[up.model.fnode.FNode],
-                    up.model.timing.Timing,
+                    Optional[Union[Timing, TimeInterval]],
                 ],
                 up.model.Parameter,
             ] = {}
             for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
-                subs = {}
+                subs: Dict = {}
                 implies = []
                 l1 = []
                 for ifun_exp in ifuns:
@@ -521,10 +521,24 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             yield new_params, (lower, upper), conds + new_conds, effs + new_effs
 
     def _clone_action_with_extras(
-        self, a, new_params, conditions, duration, effects, em
-    ):
+        self,
+        a: Action,
+        new_params: List[Parameter],
+        duration: Tuple[Optional[FNode], Optional[FNode]],
+        conditions: List[Tuple[Optional[Union[Timing, TimeInterval]], FNode]],
+        effects: List[Tuple[Optional[Timing], Effect]],
+        em: ExpressionManager,
+    ) -> Optional[Action]:
         """
-        TODO
+        Creates a new action based on `a`, but with the new parameters, conditions, duration and effects, if no conflicts are found
+
+        :param a: the action we want to start off from
+        :param new_params: the new parameters that have to be added to the action
+        :param duration: the duration (lower, upper) of the new action
+        :param conditions: the conditions of the new action
+        :param effects: the effects of the new action
+        :param em: the problem's expression manager
+        :returns: the newly created action
         """
         updated_params = OrderedDict((p.name, p.type) for p in a.parameters)
         for n in new_params:
@@ -534,6 +548,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         if isinstance(a, DurativeAction):
             new_dur_a = DurativeAction(a.name, updated_params, a.environment)
             for time, eff in effects:
+                assert time is not None
                 new_dur_a._add_effect_instance(time, eff.clone())
             if a.simulated_effects is not None:
                 for t, se in a.simulated_effects.items():
@@ -550,7 +565,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for nii, ncs in new_dur_a.conditions.items():
                     if nii == ii and em.Not(simplified_c) in ncs:
                         return None
+                assert ii is not None
                 new_dur_a.add_condition(ii, simplified_c)
+            assert duration[0] is not None
+            assert duration[1] is not None
             new_dur_a.set_closed_duration_interval(duration[0], duration[1])
             new_a = new_dur_a
         elif isinstance(a, up.model.InstantaneousAction):
@@ -561,8 +579,8 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 new_ia.set_simulated_effect(a.simulated_effect)
             new_ia.clear_preconditions()
             ia_simp = Simplifier(new_ia.environment)
-            for c in conditions:
-                simplified_c = ia_simp.simplify(c[1])
+            for _, c in conditions:
+                simplified_c = ia_simp.simplify(c)
                 if simplified_c.is_bool_constant():
                     if simplified_c.constant_value() == False:
                         return None
@@ -578,13 +596,21 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
 
         return new_a
 
-    def _default_value_given_type(self, t, problem):
+    def _default_value_given_type(
+        self, t: Type, problem: Problem
+    ) -> Optional[Union[bool, int, Fraction, Object]]:
         """
-        TODO
+        Return the default value for the type `t` in the Problem `problem`
+
+        :param t: the Type object we need the default value of
+        :param problem: the problem we want the default value of the type for (only matters for UserTypes)
+        :returns: the default value
         """
         if t.is_bool_type():
             return False
         elif t.is_int_type() or t.is_real_type():
+            assert hasattr(t, "lower_bound")
+            assert hasattr(t, "upper_bound")
             c = int if t.is_int_type() else Fraction
             if t.lower_bound is None:
                 if t.upper_bound is None:
@@ -604,9 +630,12 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         else:
             raise NotImplementedError
 
-    def _find_changing_fluents(self, problem):
+    def _find_changing_fluents(self, problem: Problem) -> Set[Fluent]:
         """
-        TODO
+        Finds the set of fluents that can be modifyed by effects with interpreted functions
+
+        :param problem: the problem we want to find the changing fluents in
+        :returns: the set of
         """
         found_fluents_set: set[up.model.Fluent] = set()
         len_start = 0
@@ -629,12 +658,20 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             len_end = len(found_fluents_set)
         return found_fluents_set
 
-    def _create_tracking_effect(self, ef, is_unknown_fluents, em):
+    def _create_tracking_effect(
+        self,
+        ef: Effect,
+        is_unknown_fluents: Dict[Fluent, Fluent],
+        em: ExpressionManager,
+    ) -> Optional[Effect]:
         """
-        TODO
+        Creates, if necessary, a new tracking effect that sets the tracking fluent to unknown if at least one of the fluents in the value is unknown
+
+        :param ef: the effect that might cause a value to become unknown
+        :param is_unknown_fluents: the dict that maps the tracking fluents to the ones they track
+        :param em: the problem's expression manager
+        :return: the newely created effect
         """
-        # tracking fluent is set to is_unknown if at least one
-        # of the fluents in value is tagged with is_unknown
         f = ef.fluent.fluent()
         f_list = []
         for v in self.free_vars_extractor.get(ef.value):
@@ -675,13 +712,19 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             raise NotImplementedError
         return zip(time_list, eff_list)
 
-    def _get_conditions(self, a):
+    def _get_conditions(
+        self, a: Action
+    ) -> Iterable[Tuple[Optional[TimeInterval], FNode]]:
         """
-        TODO
+        Computes the list of times and conditions for all conditions for action `a`.
+        In the case of InstantaneousActions the times will be None
+
+        :param a: the action we want to extract the conditions from
+        :returns: the zip iterable of tuples (time, condition)
         """
         cond_list: list = []
         time_list: list = []
-        if isinstance(a, up.model.DurativeAction):
+        if isinstance(a, DurativeAction):
             a_conditions = a.conditions.items()
             for ii, cl in a_conditions:
                 for c in cl:
@@ -690,6 +733,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         cond_list.append(fc)
                         time_list.append(ii)
         else:
+            assert isinstance(a, InstantaneousAction)
             a_preconditions = a.preconditions
             for p in a_preconditions:
                 fixed_p_list = _split_ands(self._remove_quantifiers(p))
@@ -720,9 +764,9 @@ def custom_replace(
     map: Dict["up.model.Action", Optional["up.model.Action"]],
 ) -> Optional[ActionInstance]:
     """
-    TODO
+    This is the modified `replace_action` function,
+    as the one in utils does not handle actions with different number of parameters
     """
-    # the default replace can't handle a different number of parameters
     try:
         replaced_action = map[action_instance.action]
     except KeyError:
@@ -750,11 +794,22 @@ def custom_replace(
         return None
 
 
-def knowledge_compatible(ifs, known, key_list):
+def knowledge_compatible(
+    ifs: List[
+        Tuple[Optional[Union[Timing, TimeInterval]], Any, FrozenSet[FNode], Any, Any]
+    ],
+    known: Tuple[bool, ...],
+    key_list: List[InterpretedFunction],
+) -> bool:
     """
-    TODO
+    Checks if we have some values for the desired combination of known interpreted functions and no conflicts are found
+
+    Example of a conflict could be an interpreted function to be considered known in a condition at time t, but unknown in an effect at the same time t
+    :param ifs: the list of tuples with all the instances of an interpreted function appearing
+    :param known: the list of booleans with the same length as ifs for this case we want to check
+    :param key_list: the list of interpreted functions we have known values for
+    :return: true if no problems are foud, false otherwise
     """
-    # returns true if no conflicts are found and we have the necessary knowledge about the IFs in question
 
     retval = True
     kifuns = []
