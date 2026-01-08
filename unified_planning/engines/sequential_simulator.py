@@ -106,7 +106,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             else:
                 warn(msg)
         assert isinstance(self._problem, up.model.Problem)
-        self._grounder = GrounderHelper(problem, prune_actions=False)
+        self._grounder = GrounderHelper(problem)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
         self._initial_state: Optional[UPState] = None
