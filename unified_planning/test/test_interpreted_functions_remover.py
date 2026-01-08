@@ -223,7 +223,7 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         if_obj = problem.action("f").preconditions[0].args[0].interpreted_function()
         self.assertTrue(isinstance(if_obj, InterpretedFunction))
 
-        key = InterpretedFunctionExp(if_obj, 1)
+        key = InterpretedFunctionExp(if_obj, [1])
         knowledge[key] = 2
         with InterpretedFunctionsRemover(knowledge) as if_remover:
             ifr = if_remover.compile(problem)
@@ -247,22 +247,31 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         _f_simple_int_to_int = Fluent(
             "_f_simple_int_to_int", IntType(), p=kNum_simple_int_to_int
         )
-        test_1_f.add_precondition(Equals(ithree, 1))
-        test_1_f.add_precondition(
-            Implies(
-                Equals(ithree, 1),
-                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int),
-            )
+
+        test_1_precon_1_type = OperatorKind.EQUALS
+        test_1_precon_1_args = [ithree, 1]
+
+        test_1_precon_1 = Equals(ithree, 1)
+        test_1_precon_2 = Implies(
+            Equals(ithree, 1), Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int)
         )
-        test_1_f.add_precondition(
-            LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
-        )
+        test_1_precon_3 = LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        test_1_f.add_precondition(test_1_precon_1)
+        test_1_f.add_precondition(test_1_precon_2)
+        test_1_f.add_precondition(test_1_precon_3)
         test_1_f.add_effect(itwo, 5)
-        self.assertEqual(test_1_f, compiled_problem.action("f"))
+        act_to_check_1 = compiled_problem.action("f")
+        self.assertEqual(len(act_to_check_1.preconditions), 3)
+        contains_condition_helper(
+            act_to_check_1.preconditions, test_1_precon_1_args, test_1_precon_1_type
+        )
+        self.assertIn(test_1_precon_2, act_to_check_1.preconditions)
+        self.assertIn(test_1_precon_3, act_to_check_1.preconditions)
+        test_1_f.clear_preconditions()
+        act_to_check_1.clear_preconditions()
+        self.assertEqual(test_1_f, act_to_check_1)
 
-        print("test with only one knowledge point worked")
-
-        key = InterpretedFunctionExp(if_obj, 3)
+        key = InterpretedFunctionExp(if_obj, [3])
         knowledge[key] = 4
         with InterpretedFunctionsRemover(knowledge) as if_remover:
             ifr = if_remover.compile(problem)
@@ -282,24 +291,37 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         test_2_f = InstantaneousAction(
             "f", _p_simple_int_to_int_1=kNum_simple_int_to_int
         )
-        test_2_f.add_precondition(Or(Equals(ithree, 1), Equals(ithree, 3)))
-        test_2_f.add_precondition(
-            Implies(
-                Equals(ithree, 1),
-                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int),
-            )
+        _p_simple_int_to_int_1 = test_2_f.parameter("_p_simple_int_to_int_1")
+
+        test_2_precon_1_type = OperatorKind.OR
+        test_2_precon_1_args = [Equals(ithree, 1), Equals(ithree, 3)]
+
+        test_2_precon_1 = Or(Equals(ithree, 1), Equals(ithree, 3))
+        test_2_precon_2 = Implies(
+            Equals(ithree, 1), Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int)
         )
-        test_2_f.add_precondition(
-            Implies(
-                Equals(ithree, 3),
-                Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int_0),
-            )
+        test_2_precon_3 = Implies(
+            Equals(ithree, 3),
+            Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int_0),
         )
-        test_2_f.add_precondition(
-            LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
-        )
+        test_2_precon_4 = LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        test_2_f.add_precondition(test_2_precon_1)
+        test_2_f.add_precondition(test_2_precon_2)
+        test_2_f.add_precondition(test_2_precon_3)
+        test_2_f.add_precondition(test_2_precon_4)
         test_2_f.add_effect(itwo, 5)
-        self.assertEqual(test_2_f, compiled_problem.action("f"))
+
+        act_to_check_2 = compiled_problem.action("f")
+        self.assertEqual(len(act_to_check_2.preconditions), 4)
+        contains_condition_helper(
+            act_to_check_2.preconditions, test_2_precon_1_args, test_2_precon_1_type
+        )
+        self.assertIn(test_2_precon_2, act_to_check_2.preconditions)
+        self.assertIn(test_2_precon_3, act_to_check_2.preconditions)
+        self.assertIn(test_2_precon_4, act_to_check_2.preconditions)
+        test_2_f.clear_preconditions()
+        act_to_check_2.clear_preconditions()
+        self.assertEqual(test_2_f, act_to_check_2)
 
 
 def contains_condition_helper(
