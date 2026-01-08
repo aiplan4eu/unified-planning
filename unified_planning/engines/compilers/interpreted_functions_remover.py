@@ -19,7 +19,7 @@ from functools import partial
 import itertools
 from enum import Enum, auto
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union, Tuple
+from typing import Dict, List, Optional, Union, Tuple, Iterable, FrozenSet
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -35,6 +35,8 @@ from unified_planning.model.fluent import Fluent
 from unified_planning.model.object import Object
 from unified_planning.model.effect import Effect
 from unified_planning.model.fnode import FNode
+from unified_planning.model.parameter import Parameter
+from unified_planning.model.timing import Timing, TimeInterval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
@@ -318,21 +320,37 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         new_objects: Dict[InterpretedFunction, Dict[Tuple[FNode], Object]],
         if_known: Dict[InterpretedFunction, List[Tuple[FNode]]],
         is_unknown_fluents: Dict[Fluent, Fluent],
-    ):
+    ) -> Iterable[
+        Tuple[
+            List[Parameter],
+            Tuple[Optional[FNode], Optional[FNode]],
+            List[Tuple[Optional[Union[Timing, TimeInterval]], FNode]],
+            List[Tuple[Optional[Timing], Effect]],
+        ]
+    ]:
         """
         Computes the set of parameters, conditions, durations and effects for actions deriving from the action `a`
+        NOTE that for InstantaneousActions all the time related fields will be None
 
         :param a: the action we are compiling that we need to expand into multiple actions to handle all the cases
         :param new_fluents: the dict containing fluents that substitute the interpred functions of known values
         :param new_objects: the dict that maps the interpreted functions with known values to the objects that represent the arguments with known values
         :param if_known: the dict that maps the interpreted functions with the list of arguments for which we know the values
         :param is_unknown_fluents: the dict that maps the fluents of the original problem to the new tracking fluents used to mark wether or not the value of the original fluents are currently known
-        :returns: (yield) the parameters, conditions, durations and effects necessary to create the new compiled actions
+        :returns: (yield) the parameters, durations, conditions and effects necessary to create the new compiled actions
         """
         em = a.environment.expression_manager
         conds = []
         effs = []
-        ifs = []
+        ifs: List[
+            Tuple[
+                Optional[Union[Timing, TimeInterval]],
+                FNode,
+                FrozenSet[FNode],
+                ElementKind,
+                Optional[Effect],
+            ]
+        ] = []
         for t, exp in self._get_conditions(a):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
@@ -384,7 +402,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         for known_vec in itertools.product([True, False], repeat=len(ifs)):
             if not knowledge_compatible(ifs, known_vec, new_fluents.keys()):
                 continue
-            new_params: List = []
+            new_params: List[Parameter] = []
             new_conds: List = []
             new_effs: List = []
             i = 0
@@ -505,6 +523,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     def _clone_action_with_extras(
         self, a, new_params, conditions, duration, effects, em
     ):
+        """
+        TODO
+        """
         updated_params = OrderedDict((p.name, p.type) for p in a.parameters)
         for n in new_params:
             updated_params[n.name] = n.type
@@ -558,6 +579,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return new_a
 
     def _default_value_given_type(self, t, problem):
+        """
+        TODO
+        """
         if t.is_bool_type():
             return False
         elif t.is_int_type() or t.is_real_type():
@@ -581,6 +605,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             raise NotImplementedError
 
     def _find_changing_fluents(self, problem):
+        """
+        TODO
+        """
         found_fluents_set: set[up.model.Fluent] = set()
         len_start = 0
         len_end = 1
@@ -603,6 +630,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return found_fluents_set
 
     def _create_tracking_effect(self, ef, is_unknown_fluents, em):
+        """
+        TODO
+        """
         # tracking fluent is set to is_unknown if at least one
         # of the fluents in value is tagged with is_unknown
         f = ef.fluent.fluent()
@@ -620,7 +650,14 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         reset_tracker_eff = Effect(tracking_fluent_exp, o_e, em.TRUE())
         return reset_tracker_eff
 
-    def _get_effects(self, a):
+    def _get_effects(self, a: Action) -> Iterable[Tuple[Optional[Timing], Effect]]:
+        """
+        Computes the list of times and effects for all effects for action `a`.
+        In the case of InstantaneousActions the times will be None
+
+        :param a: the action we want to extract the effects from
+        :returns: the zip iterable of tuples (time, effect)
+        """
         eff_list: list = []
         time_list: list = []
         if isinstance(a, up.model.InstantaneousAction):
@@ -639,6 +676,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return zip(time_list, eff_list)
 
     def _get_conditions(self, a):
+        """
+        TODO
+        """
         cond_list: list = []
         time_list: list = []
         if isinstance(a, up.model.DurativeAction):
@@ -659,8 +699,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         return zip(time_list, cond_list)
 
 
-def _split_ands(e):
+def _split_ands(e: FNode) -> List[FNode]:
+    """
+    Given an expression `e`, returns [a, b] if e was in the form `a AND b`, returns [e] otherwise
 
+    :param e: the expression we want to split
+    :returns: the list of expressions after splitting
+    """
     templist = []
     if e.is_and():
         for sub in e.args:
@@ -674,6 +719,9 @@ def custom_replace(
     action_instance: ActionInstance,
     map: Dict["up.model.Action", Optional["up.model.Action"]],
 ) -> Optional[ActionInstance]:
+    """
+    TODO
+    """
     # the default replace can't handle a different number of parameters
     try:
         replaced_action = map[action_instance.action]
@@ -703,6 +751,9 @@ def custom_replace(
 
 
 def knowledge_compatible(ifs, known, key_list):
+    """
+    TODO
+    """
     # returns true if no conflicts are found and we have the necessary knowledge about the IFs in question
 
     retval = True
