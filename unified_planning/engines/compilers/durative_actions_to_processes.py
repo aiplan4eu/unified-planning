@@ -1,4 +1,4 @@
-# Copyright 2021-2023 AIPlan4EU project
+# Copyright 2025-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,30 +100,18 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
         supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
-
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
         supported_kind.set_time("TIMED_EFFECTS")
-        supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
-        supported_kind.set_time("PROCESSES")
-        supported_kind.set_time("EVENTS")
-
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-        # supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS") # TODO to support this check comments in the code
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
-
         supported_kind.set_numbers("BOUNDED_TYPES")
-
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
-        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
-        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -132,39 +120,28 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        supported_kind.set_effects_kind("FORALL_EFFECTS")
-
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
-
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
         supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
         supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
         supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
-
         supported_kind.set_fluents_type("INT_FLUENTS")
         supported_kind.set_fluents_type("REAL_FLUENTS")
         supported_kind.set_fluents_type("OBJECT_FLUENTS")
-
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_quality_metrics("OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
         supported_kind.set_quality_metrics("MAKESPAN")
         supported_kind.set_quality_metrics("FINAL_VALUE")
-
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
-
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
-
-        supported_kind.set_constraints_kind("STATE_INVARIANTS")
-        supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
-
         supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         supported_kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
         return supported_kind
@@ -189,17 +166,12 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             new_kind.unset_time("DURATION_INEQUALITIES")
             new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         new_kind.unset_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-
         new_kind.unset_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-        new_kind.unset_expression_duration(
-            "FLUENTS_IN_DURATIONS"
-        )  # TODO keep this if kept in the supported_kind
         new_kind.unset_expression_duration("INT_TYPE_DURATIONS")
         new_kind.unset_expression_duration("REAL_TYPE_DURATIONS")
-
         new_kind.set_time("PROCESSES")
         new_kind.set_time("EVENTS")
-        # new_kind.set_fluents_type("INT_FLUENTS") # TODO should not do that unless we support the counter fluent
+        new_kind.set_fluents_type("INT_FLUENTS")
         new_kind.set_fluents_type("REAL_FLUENTS")
         return new_kind
 

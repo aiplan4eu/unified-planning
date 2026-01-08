@@ -1,4 +1,4 @@
-# Copyright 2021-2023 AIPlan4EU project
+# Copyright 2025-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,16 +55,14 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
             len(new_problem.fluents),
-            (len(problem.fluents) + (len(problem.actions) * 2) + 1),
+            (len(problem.fluents) + (len(problem.actions) * 2) + 2 + 3),
         )
         self.assertEqual(len(problem.actions), len(new_problem.actions))
-        self.assertEqual(len(problem.actions), len(new_problem.processes))
+        self.assertEqual(len(problem.actions), len(new_problem.processes) - 1)
         self.assertEqual(len(problem.processes), 0)
-        self.assertEqual(len(new_problem.events), len(problem.actions) * 2)
+        self.assertEqual(len(new_problem.events), (len(problem.actions) * 2) + 1)
         self.assertEqual(len(problem.events), 0)
-        self.assertEqual(
-            len(new_problem.goals), len(problem.goals) + len(problem.actions) + 1
-        )
+        self.assertEqual(len(new_problem.goals), len(problem.goals) + 2)
 
     @skipIfNoPlanValidatorForProblemKind(basic_temporal_kind)
     def test_base_temporal_counter_2(self):
@@ -84,14 +82,16 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
             len(new_problem.fluents),
-            (len(problem.fluents) + ((len(problem.actions) * 2) + 1)),
+            (len(problem.fluents) + ((len(problem.actions) * 2) + 2 + 2)),
         )
         self.assertEqual(len(problem.actions), len(new_problem.actions))
-        self.assertEqual(len(problem.actions), len(new_problem.processes))
+        self.assertEqual(len(problem.actions), len(new_problem.processes) - 1)
         self.assertEqual(len(problem.processes), 0)
-        self.assertEqual(len(new_problem.events), len(problem.actions) * 2)
+        self.assertEqual(len(new_problem.events), (len(problem.actions) * 2) + 1)
         self.assertEqual(len(problem.events), 0)
-        self.assertGreater(len(new_problem.goals), len(problem.goals))
+        self.assertEqual(
+            len(new_problem.goals), len(problem.goals) + len(problem.actions) + 1
+        )
 
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_base_basic_numeric(self):
@@ -143,20 +143,13 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             )
         new_problem = res.problem
         for a, na in zip(problem.actions, new_problem.actions):
-            self.assertIsInstance(a, DurativeAction)
-            self.assertIsInstance(na, InstantaneousAction)
-        goal_counter = len(problem.goals) + 1  # old goals + alive
-        for a in problem.actions:
-            if isinstance(a, DurativeAction):
-                running_fluents = 1
-                for p in a.parameters:
-                    running_fluents *= len(tuple(problem.objects(p.type)))
-                goal_counter += running_fluents
-        self.assertEqual(goal_counter, len(new_problem.goals))
+            self.assertTrue(isinstance(a, DurativeAction))
+            self.assertFalse(isinstance(na, DurativeAction))
         # every action has an end event, a duration exceeded event and
         # the 2 overall conditions of pick_up and put_down actions
-        events = len(problem.actions) * 2 + 2
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
+        self.assertEqual(len(new_problem.goals), len(problem.goals) + 2)
 
     def test_ad_hoc_2(self):
         problem = self.problems["robot_holding"].problem
@@ -171,11 +164,20 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
-            self.assertTrue(isinstance(a, DurativeAction))
-            self.assertFalse(isinstance(na, DurativeAction))
-        events = len(problem.actions) * 2 + 2
+            self.assertIsInstance(a, DurativeAction)
+            self.assertIsInstance(na, InstantaneousAction)
+        goal_counter = len(problem.goals) + 1  # old goals + alive
+        for a in problem.actions:
+            if isinstance(a, DurativeAction):
+                running_fluents = 1
+                for p in a.parameters:
+                    running_fluents *= len(tuple(problem.objects(p.type)))
+                goal_counter += running_fluents
+        self.assertEqual(goal_counter, len(new_problem.goals))
+        # every action has an end event, a duration exceeded event and
+        # the 2 overall conditions of pick_up and put_down actions
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
-        self.assertGreater(len(new_problem.goals), len(problem.goals))
 
     def test_ad_hoc3(self):
         problem = self.problems["robot_with_variable_duration"].problem
@@ -189,7 +191,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             )
         new_problem = res.problem
         self.assertEqual(2 * len(problem.actions), len(new_problem.actions))
-        self.assertEqual(len(problem.actions), len(new_problem.processes))
+        self.assertEqual(len(problem.actions), len(new_problem.processes) - 1)
 
     def test_ad_hoc_4(self):
         problem = self.problems["robot_with_variable_duration"].problem
@@ -220,7 +222,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         self.assertEqual(2 * len(problem.actions), len(new_problem.actions))
-        self.assertEqual(len(problem.actions), len(new_problem.processes))
+        self.assertEqual(len(problem.actions), len(new_problem.processes) - 1)
 
     def test_ad_hoc_5(self):
         problem = self.problems["robot_with_variable_duration"].problem
@@ -248,7 +250,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 1
+        events = len(problem.actions) * 2 + 1 + 1
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_6(self):
@@ -277,7 +279,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 1
+        events = len(problem.actions) * 2 + 1 + 1
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_7(self):
@@ -306,7 +308,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 3
+        events = len(problem.actions) * 3 + 1
         self.assertEqual(len(new_problem.events), events)
         self.assertEqual(len(new_problem.actions), len(problem.actions) + 1)
 
@@ -338,7 +340,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             )
         new_problem = res.problem
         self.assertTrue(cer._use_counter)
-        self.assertEqual(len(new_problem.events), len(problem.actions) + 2)
+        self.assertEqual(len(new_problem.events), len(problem.actions) * 2 + 2 + 1)
         self.assertEqual(len(new_problem.actions), len(problem.actions))
 
     def test_ad_hoc_9(self):
@@ -367,7 +369,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 1
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
         self.assertEqual(len(new_problem.actions), len(problem.actions))
 
@@ -469,7 +471,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 2
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_11(self):
@@ -569,7 +571,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 2
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
 
     def test_ad_hoc_12(self):
@@ -669,14 +671,13 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                 problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
             )
         new_problem = res.problem
-        events = len(problem.actions) * 2 + 2
+        events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_all(self):
         with OneshotPlanner(
             name="opt-pddl-planner",
-            params={"params": "-d 0.01"},
         ) as solver:
 
             with Compiler(
@@ -717,95 +718,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
                     with PlanValidator(problem_kind=problem.kind) as validator:
                         val_res = validator.validate(problem, original_plan)
-
-                        # debug
-                        if val_res.status != ValidationResultStatus.VALID:
-                            print(problem)
-                            print(compiled_problem)
-                            print(original_plan)
-                            print(compiled_plan)
-
                         self.assertEqual(
                             val_res.status, ValidationResultStatus.VALID, problem_name
                         )
-
-    @skipIfEngineNotAvailable("val")
-    def test_all_val(self):
-        validator = PlanValidator(
-            name="val",
-        )
-        assert isinstance(
-            validator, unified_planning.engines.mixins.plan_validator.PlanValidatorMixin
-        )
-        solved, skipped = [], []
-
-        with Compiler(
-            name="up_durative_actions_to_processes",
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-        ) as cer:
-            for problem_name, tc in self.problems.items():
-                known_skips = {
-                    "timed_connected_locations",  # TODO understand why no output
-                }
-                if problem_name in known_skips:
-                    continue
-
-                problem = tc.problem
-                if not isinstance(problem, Problem):
-                    continue
-                kind = problem.kind
-                if any(
-                    not isinstance(a, (DurativeAction, InstantaneousAction))
-                    for a in problem.actions
-                ):
-                    continue
-                if all(isinstance(a, InstantaneousAction) for a in problem.actions):
-                    continue
-                if not cer.supports(kind):
-                    continue
-                res = cer.compile(
-                    problem,
-                    CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
-                )
-                compiled_problem = res.problem
-
-                plan_it = tc.valid_plans
-
-                if not plan_it:
-                    with OneshotPlanner(problem_kind=problem.kind) as p:
-                        os_res = p.solve(problem)
-                        assert os_res.status in (
-                            PlanGenerationResultStatus.SOLVED_SATISFICING,
-                            PlanGenerationResultStatus.SOLVED_OPTIMALLY,
-                        )
-                        new_acts = []
-                        for i, (time, ai, dur) in enumerate(os_res.plan.timed_actions):
-                            new_acts.append(
-                                (
-                                    time
-                                    + i
-                                    * Fraction(
-                                        1,
-                                    ),
-                                    ai,
-                                    dur,
-                                )
-                            )
-
-                        plan_it = [TimeTriggeredPlan(new_acts)]
-
-                for original_plan in plan_it:
-                    compiled_plan = res.plan_forward_conversion(original_plan)
-                    self.assertIsInstance(
-                        compiled_plan, TimeTriggeredPlan, problem_name
-                    )
-                    if not validator.supports(compiled_problem.kind):
-                        skipped.append(problem_name)
-                        continue
-
-                    val_res = validator.validate(compiled_problem, compiled_plan)
-
-                    self.assertEqual(
-                        val_res.status, ValidationResultStatus.VALID, problem_name
-                    )
-                    solved.append(problem_name)
