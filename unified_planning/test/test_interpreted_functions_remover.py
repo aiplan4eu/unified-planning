@@ -323,6 +323,44 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
         act_to_check_2.clear_preconditions()
         self.assertEqual(test_2_f, act_to_check_2)
 
+    def test_interpreted_functions_in_effect_remover_knowledge(self):
+        problem = self.problems["if_reals_condition_effect_pizza"].problem
+        knowledge = {}
+        if_obj = problem.action("cut").effects[0].value.interpreted_function()
+        self.assertTrue(isinstance(if_obj, InterpretedFunction))
+        key = InterpretedFunctionExp(if_obj, [Fraction(3, 4)])
+        knowledge[key] = Fraction(2, 3)
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+
+        to_check_cut = compiled_problem.action("cut")
+        to_check_cut_0 = compiled_problem.action("cut_0")
+        p = compiled_problem.fluent("pizza")
+        s = compiled_problem.fluent("slices")
+        unknown = Fluent("_pizza_is_unknown", BoolType())
+        kNum_if_cut = UserType("kNum_if_cut")
+        _o_kNum_if_cut = Object("_o_kNum_if_cut", kNum_if_cut)
+        _f_if_cut = Fluent("_f_if_cut", RealType(), p=kNum_if_cut)
+
+        test_cut_0 = InstantaneousAction("cut_0")
+        test_cut_0.add_precondition(Not(Equals(p, Fraction(3, 4))))
+        test_cut_0.add_effect(s, Plus(s, 1))
+        test_cut_0.add_effect(unknown, TRUE())
+
+        self.assertEqual(to_check_cut_0, test_cut_0)
+
+        test_cut = InstantaneousAction("cut", _p_if_cut_1=kNum_if_cut)
+        _p_if_cut_1 = test_cut.parameter("_p_if_cut_1")
+        test_cut.add_precondition(Equals(p, Fraction(3, 4)))
+        test_cut.add_precondition(
+            Implies(Equals(p, Fraction(3, 4)), Equals(_p_if_cut_1, _o_kNum_if_cut))
+        )
+        test_cut.add_effect(s, Plus(s, 1))
+        test_cut.add_effect(p, _f_if_cut(_p_if_cut_1))
+
+        self.assertEqual(to_check_cut, test_cut)
+
 
 def contains_condition_helper(
     to_check: List[FNode], correct_args: List, expected_type: OperatorKind
