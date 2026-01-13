@@ -19,14 +19,13 @@ import unified_planning.model.fluent
 import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Set, Union
 from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
 
 
 class FNode(object):
-
     """
     The `FNode` class represents an `expression tree` in the `unified_planning` library.
 
@@ -54,79 +53,73 @@ class FNode(object):
         return self._node_id
 
     def get_nary_expression_string(self, op: str, args: List["FNode"]) -> str:
-        p = []
-        if len(args) > 0:
-            p.append("(")
-            p.append(str(args[0]))
-            for x in args[1:]:
-                p.append(op)
-                p.append(str(x))
-            p.append(")")
-        return "".join(p)
+        if len(args) == 0:
+            return ""
+        return f"({op.join(str(arg) for arg in args)})"
 
     def __repr__(self) -> str:
-        if self.is_bool_constant():
-            return "true" if self.is_true() else "false"
-        elif self.is_int_constant():
-            return str(self.constant_value())
-        elif self.is_real_constant():
-            return str(self.constant_value())
-        elif self.is_fluent_exp():
-            return self.fluent().name + self.get_nary_expression_string(", ", self.args)
-        elif self.is_dot():
-            return f"{self.agent()}.{self.arg(0)}"
-        elif self.is_parameter_exp():
-            return self.parameter().name
-        elif self.is_variable_exp():
-            return self.variable().name
-        elif self.is_object_exp():
-            return self.object().name
-        elif self.is_timing_exp():
-            return str(self.timing())
-        elif self.is_and():
-            return self.get_nary_expression_string(" and ", self.args)
-        elif self.is_or():
-            return self.get_nary_expression_string(" or ", self.args)
-        elif self.is_not():
-            return f"(not {str(self.arg(0))})"
-        elif self.is_implies():
-            return self.get_nary_expression_string(" implies ", self.args)
-        elif self.is_iff():
-            return self.get_nary_expression_string(" iff ", self.args)
-        elif self.is_exists():
-            s = ", ".join(str(v) for v in self.variables())
-            return f"Exists ({s}) {str(self.arg(0))}"
-        elif self.is_always():
-            return f"Always({str(self.arg(0))})"
-        elif self.is_sometime():
-            return f"Sometime({str(self.arg(0))})"
-        elif self.is_sometime_before():
-            s = ", ".join(str(v) for v in self.args)
-            return f"Sometime-Before({str(s)})"
-        elif self.is_sometime_after():
-            s = ", ".join(str(v) for v in self.args)
-            return f"Sometime-After({str(s)})"
-        elif self.is_at_most_once():
-            return f"At-Most-Once({str(self.arg(0))})"
-        elif self.is_forall():
-            s = ", ".join(str(v) for v in self.variables())
-            return f"Forall ({s}) {str(self.arg(0))}"
-        elif self.is_plus():
-            return self.get_nary_expression_string(" + ", self.args)
-        elif self.is_minus():
-            return self.get_nary_expression_string(" - ", self.args)
-        elif self.is_times():
-            return self.get_nary_expression_string(" * ", self.args)
-        elif self.is_div():
-            return self.get_nary_expression_string(" / ", self.args)
-        elif self.is_le():
-            return self.get_nary_expression_string(" <= ", self.args)
-        elif self.is_lt():
-            return self.get_nary_expression_string(" < ", self.args)
-        elif self.is_equals():
-            return self.get_nary_expression_string(" == ", self.args)
-        else:
+        repr_map = {
+            OperatorKind.BOOL_CONSTANT: lambda: (
+                "true" if self._content.payload else "false"
+            ),
+            OperatorKind.INT_CONSTANT: lambda: str(self._content.payload),
+            OperatorKind.REAL_CONSTANT: lambda: str(self._content.payload),
+            OperatorKind.FLUENT_EXP: lambda: (
+                self._content.payload.name
+                + self.get_nary_expression_string(", ", self.args)
+            ),
+            OperatorKind.DOT: lambda: f"{self._content.payload}.{self.arg(0)}",
+            OperatorKind.PARAM_EXP: lambda: self._content.payload.name,
+            OperatorKind.VARIABLE_EXP: lambda: self._content.payload.name,
+            OperatorKind.OBJECT_EXP: lambda: self._content.payload.name,
+            OperatorKind.TIMING_EXP: lambda: str(self._content.payload),
+            OperatorKind.AND: lambda: (
+                self.get_nary_expression_string(" and ", self.args)
+            ),
+            OperatorKind.OR: lambda: self.get_nary_expression_string(" or ", self.args),
+            OperatorKind.NOT: lambda: f"(not {self.arg(0)})",
+            OperatorKind.IMPLIES: lambda: (
+                self.get_nary_expression_string(" implies ", self.args)
+            ),
+            OperatorKind.IFF: lambda: (
+                self.get_nary_expression_string(" iff ", self.args)
+            ),
+            OperatorKind.EXISTS: lambda: (
+                f"Exists {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
+            ),
+            OperatorKind.FORALL: lambda: (
+                f"Forall {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
+            ),
+            OperatorKind.ALWAYS: lambda: f"Always({self.arg(0)})",
+            OperatorKind.SOMETIME: lambda: f"Sometime({self.arg(0)})",
+            OperatorKind.SOMETIME_BEFORE: lambda: (
+                f"Sometime-Before{self.get_nary_expression_string(', ', self.args)}"
+            ),
+            OperatorKind.SOMETIME_AFTER: lambda: (
+                f"Sometime-After{self.get_nary_expression_string(', ', self.args)}"
+            ),
+            OperatorKind.AT_MOST_ONCE: lambda: f"At-Most-Once({self.arg(0)})",
+            OperatorKind.PLUS: lambda: (
+                self.get_nary_expression_string(" + ", self.args)
+            ),
+            OperatorKind.MINUS: lambda: (
+                self.get_nary_expression_string(" - ", self.args)
+            ),
+            OperatorKind.TIMES: lambda: (
+                self.get_nary_expression_string(" * ", self.args)
+            ),
+            OperatorKind.DIV: lambda: self.get_nary_expression_string(" / ", self.args),
+            OperatorKind.LE: lambda: self.get_nary_expression_string(" <= ", self.args),
+            OperatorKind.LT: lambda: self.get_nary_expression_string(" < ", self.args),
+            OperatorKind.EQUALS: lambda: (
+                self.get_nary_expression_string(" == ", self.args)
+            ),
+        }
+
+        if self.node_type not in repr_map:
             raise ValueError("Unknown FNode type found")
+
+        return repr_map[self.node_type]()
 
     @property
     def node_id(self) -> int:
@@ -271,11 +264,11 @@ class FNode(object):
 
     def is_true(self) -> bool:
         """Test whether the expression is the `True` Boolean constant."""
-        return self.is_bool_constant() and self.constant_value() == True
+        return self.is_bool_constant() and self.bool_constant_value() == True
 
     def is_false(self) -> bool:
         """Test whether the expression is the `False` Boolean constant."""
-        return self.is_bool_constant() and self.constant_value() == False
+        return self.is_bool_constant() and self.bool_constant_value() == False
 
     def is_and(self) -> bool:
         """Test whether the node is the `And` operator."""
