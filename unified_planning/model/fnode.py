@@ -85,13 +85,13 @@ class FNode(object):
                 self.get_nary_expression_string(" iff ", self.args)
             ),
             OperatorKind.EXISTS: lambda: (
-                f"Exists {self.get_nary_expression_string(", ", self._content.payload)} {self.arg(0)}"
+                f"Exists {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
             ),
-            OperatorKind.FORALL: lambda: f"Forall {self.get_nary_expression_string(", ", self._content.payload)} {self.arg(0)}",
+            OperatorKind.FORALL: lambda: f"Forall {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}",
             OperatorKind.ALWAYS: lambda: f"Always({self.arg(0)})",
             OperatorKind.SOMETIME: lambda: f"Sometime({self.arg(0)})",
-            OperatorKind.SOMETIME_BEFORE: lambda: f"Sometime-Before{self.get_nary_expression_string(", ", self.args)}",
-            OperatorKind.SOMETIME_AFTER: lambda: f"Sometime-After{self.get_nary_expression_string(", ", self.args)}",
+            OperatorKind.SOMETIME_BEFORE: lambda: f"Sometime-Before{self.get_nary_expression_string(', ', self.args)}",
+            OperatorKind.SOMETIME_AFTER: lambda: f"Sometime-After{self.get_nary_expression_string(', ', self.args)}",
             OperatorKind.AT_MOST_ONCE: lambda: f"At-Most-Once({self.arg(0)})",
             OperatorKind.PLUS: lambda: (
                 self.get_nary_expression_string(" + ", self.args)
