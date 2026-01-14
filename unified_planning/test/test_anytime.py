@@ -49,7 +49,7 @@ class TestAnytimePlanning(unittest_TestCase):
         ) as planner:
             self.assertTrue(planner.is_anytime_planner())
             solutions = []
-            for p in planner.get_solutions(problem, timeout=10):
+            for p in planner.get_solutions(problem):
                 self.assertTrue(p.plan is not None)
                 solutions.append(p)
                 if len(solutions) == 2:

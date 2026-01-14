@@ -333,7 +333,6 @@ async def run_command_asyncio(
                 output_string = (
                     lines[idx].decode(errors="replace").replace("\r\n", "\n")
                 )
-                assert False
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
                     if output_stream[idx] is not None:
