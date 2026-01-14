@@ -23,7 +23,12 @@ from unified_planning.test import (
     main,
     skipIfNoOneshotPlannerForProblemKind,
 )
-from unified_planning.io import PDDLWriter, PDDLReader
+from unified_planning.io import (
+    PDDLWriter,
+    UPPDDLReader,
+    PDDLReader,
+    extract_pddl_requirements,
+)
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
@@ -33,6 +38,12 @@ from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.plans import SequentialPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
+from unified_planning.interop import (
+    check_ai_pddl_requirements,
+    convert_problem_from_ai_pddl,
+)
+
+from pddl import parse_domain, parse_problem  # type: ignore
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -406,19 +417,19 @@ class TestPddlIO(unittest_TestCase):
         )
         plan_str = w.get_plan(plan)
 
-        r = PDDLReader()
+        r = UPPDDLReader()
         test_plan = r.parse_plan_string(problem, plan_str, w.get_item_named)
 
         self.assertEqual(plan, test_plan)
 
     def test_depot_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "depot", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "depot", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 15)
         self.assertEqual(len(problem.actions), 5)
         self.assertEqual(len(list(problem.objects(problem.user_type("object")))), 13)
@@ -432,13 +443,13 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(problem, problem_2)
 
     def test_counters_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 2)
         self.assertEqual(len(problem.actions), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("counter")))), 4)
@@ -452,13 +463,13 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(problem, problem_2)
 
     def test_sailing_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "sailing", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "sailing", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 4)
         self.assertEqual(len(problem.actions), 8)
         self.assertEqual(len(list(problem.objects(problem.user_type("boat")))), 2)
@@ -473,13 +484,13 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(problem, problem_2)
 
     def test_non_linear_car(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "car_nl", "d.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "car_nl", "p.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 8)
         n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
         n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
@@ -500,7 +511,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(found_drag_ahead)
 
     def test_matchcellar_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "matchcellar", "domain.pddl")
         problem_filename = os.path.join(
@@ -508,7 +519,7 @@ class TestPddlIO(unittest_TestCase):
         )
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 4)
         self.assertEqual(len(problem.actions), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
@@ -523,7 +534,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(problem, problem_2)
 
     def test_parking_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(
             PDDL_DOMAINS_PATH, "parking_action_cost", "domain.pddl"
@@ -573,7 +584,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(2, len(problem.task_network.subtasks))
 
     def test_htn_transport_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(
             PDDL_DOMAINS_PATH, "htn-transport", "domain.hddl"
@@ -618,66 +629,114 @@ class TestPddlIO(unittest_TestCase):
                 w.write_domain(domain_filename)
                 w.write_problem(problem_filename)
 
-                reader = PDDLReader()
-                parsed_problem = reader.parse_problem(domain_filename, problem_filename)
+                with open(domain_filename, "r") as domain_file:
+                    domain_str = domain_file.read()
 
-                # Case where the reader does not convert the final_value back to actions_cost.
-                if kind.has_actions_cost() and parsed_problem.kind.has_final_value():
-                    self.assertEqual(
-                        len(problem.fluents) + 1, len(parsed_problem.fluents)
-                    )
-                else:
-                    self.assertEqual(len(problem.fluents), len(parsed_problem.fluents))
+                general_reader = PDDLReader(disable_warnings=True)
 
-                self.assertTrue(
-                    _have_same_user_types_considering_renamings(
-                        problem, parsed_problem, w.get_item_named
-                    )
-                )
-                self.assertEqual(len(problem.actions), len(parsed_problem.actions))
-                self.assertEqual(
-                    len(problem.processes),
-                    len(parsed_problem.processes),
-                )
-                self.assertEqual(
-                    len(problem.events),
-                    len(parsed_problem.events),
-                )
-                for a in problem.actions:
-                    parsed_a = parsed_problem.action(w.get_pddl_name(a))
-                    self.assertEqual(a, w.get_item_named(parsed_a.name))
-
-                    for param, parsed_param in zip(a.parameters, parsed_a.parameters):
-                        self.assertEqual(
-                            param.type,
-                            w.get_item_named(cast(_UserType, parsed_param.type).name),
+                for i in range(3):
+                    if i == 0:
+                        parsed_problem = general_reader.parse_problem(
+                            domain_filename, problem_filename
                         )
-                    if isinstance(a, InstantaneousAction):
-                        assert isinstance(parsed_a, InstantaneousAction)
-                        if (
-                            kind.has_actions_cost()
-                            and parsed_problem.kind.has_final_value()
+                    elif i == 1:
+                        reader = UPPDDLReader()
+                        parsed_problem = reader.parse_problem(
+                            domain_filename, problem_filename
+                        )
+                    elif not check_ai_pddl_requirements(
+                        extract_pddl_requirements(domain_str)
+                    ):  # skip problems with ai_pddl that do not respect the requirements
+                        assert i == 2
+                        continue
+                    else:
+                        assert i == 2
+                        try:
+                            ai_problem = parse_domain(domain_filename)
+                            ai_domain = parse_problem(problem_filename)
+                        except Exception as _:
+                            # skip problems where ai_pddl parsing fails; they are out of the scope of this testing
+                            continue
+                        parsed_problem = convert_problem_from_ai_pddl(
+                            ai_problem, ai_domain
+                        )
+
+                    # Case where the reader does not convert the final_value back to actions_cost.
+                    if (
+                        kind.has_actions_cost()
+                        and parsed_problem.kind.has_final_value()
+                    ):
+                        self.assertEqual(
+                            len(problem.fluents) + 1, len(parsed_problem.fluents)
+                        )
+                    else:
+                        self.assertEqual(
+                            len(problem.fluents), len(parsed_problem.fluents)
+                        )
+
+                    self.assertTrue(
+                        _have_same_user_types_considering_renamings(
+                            problem, parsed_problem, w.get_item_named
+                        )
+                    )
+                    self.assertEqual(len(problem.actions), len(parsed_problem.actions))
+                    self.assertEqual(
+                        len(problem.processes),
+                        len(parsed_problem.processes),
+                    )
+                    self.assertEqual(
+                        len(problem.events),
+                        len(parsed_problem.events),
+                    )
+                    for a in problem.actions:
+                        parsed_a = parsed_problem.action(w.get_pddl_name(a))
+                        self.assertEqual(a, w.get_item_named(parsed_a.name))
+
+                        for param, parsed_param in zip(
+                            a.parameters, parsed_a.parameters
                         ):
-                            self.assertEqual(len(a.effects) + 1, len(parsed_a.effects))
-                        else:
-                            self.assertEqual(len(a.effects), len(parsed_a.effects))
-                    elif isinstance(a, DurativeAction):
-                        assert isinstance(parsed_a, DurativeAction)
-                        self.assertEqual(str(a.duration), str(parsed_a.duration))
-                        for t, e in a.effects.items():
-                            self.assertEqual(len(e), len(parsed_a.effects[t]))
-                        for i, ce in a.continuous_effects.items():
                             self.assertEqual(
-                                len(ce), len(parsed_a.continuous_effects[i])
+                                param.type,
+                                w.get_item_named(
+                                    cast(_UserType, parsed_param.type).name
+                                ),
                             )
-                self.assertEqual(
-                    len(problem.trajectory_constraints),
-                    len(parsed_problem.trajectory_constraints),
-                )
-                self.assertEqual(
-                    set(map(str, problem.trajectory_constraints)),
-                    set(map(str, parsed_problem.trajectory_constraints)),
-                )
+                        if isinstance(a, InstantaneousAction):
+                            assert isinstance(parsed_a, InstantaneousAction)
+                            if (
+                                kind.has_actions_cost()
+                                and parsed_problem.kind.has_final_value()
+                            ):
+                                self.assertEqual(
+                                    len(a.effects) + 1, len(parsed_a.effects)
+                                )
+                            else:
+                                self.assertEqual(len(a.effects), len(parsed_a.effects))
+                        elif isinstance(a, DurativeAction):
+                            assert isinstance(parsed_a, DurativeAction)
+                            self.assertEqual(str(a.duration), str(parsed_a.duration))
+                            for t, e in a.effects.items():
+                                self.assertEqual(len(e), len(parsed_a.effects[t]))
+                            for i, ce in a.continuous_effects.items():
+                                self.assertEqual(
+                                    len(ce), len(parsed_a.continuous_effects[i])
+                                )
+                    self.assertEqual(
+                        len(problem.trajectory_constraints),
+                        len(parsed_problem.trajectory_constraints),
+                    )
+                    self.assertEqual(
+                        set(map(str, problem.trajectory_constraints)),
+                        set(map(str, parsed_problem.trajectory_constraints)),
+                    )
+                    if problem.quality_metrics:
+                        self.assertTrue(
+                            parsed_problem.quality_metrics, f"{problem.name}, {i}"
+                        )
+                        self.assertEqual(
+                            type(problem.quality_metrics[0]),
+                            type(parsed_problem.quality_metrics[0]),
+                        )
 
     def test_basic_with_object_constant(self):
         problem = self.problems["basic_with_object_constant"].problem
@@ -827,35 +886,58 @@ class TestPddlIO(unittest_TestCase):
 """
 
     def test_miconic_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "miconic", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
-
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 15)
         self.assertEqual(len(problem.actions), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("passenger")))), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("floor")))), 4)
 
     def test_citycar_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "citycar", "problem.pddl")
-        problem = reader.parse_problem(domain_filename, problem_filename)
+        problems = [
+            reader.parse_problem(domain_filename, problem_filename),
+            PDDLReader(force_ai_planning_reader=True).parse_problem(
+                domain_filename, problem_filename
+            ),
+        ]
 
-        self.assertTrue(problem is not None)
-        self.assertEqual(len(problem.fluents), 10)
-        self.assertEqual(len(problem.actions), 7)
-        self.assertEqual(len(list(problem.objects(problem.user_type("junction")))), 9)
-        self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
-        self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
-        self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
+        for problem in problems:
+            em = problem.environment.expression_manager
+            self.assertIsNotNone(problem)
+            self.assertEqual(len(problem.fluents), 10)
+            self.assertEqual(len(problem.actions), 7)
+            self.assertEqual(
+                len(list(problem.objects(problem.user_type("junction")))), 9
+            )
+            self.assertEqual(len(list(problem.objects(problem.user_type("car")))), 2)
+            self.assertEqual(len(list(problem.objects(problem.user_type("garage")))), 3)
+            self.assertEqual(len(list(problem.objects(problem.user_type("road")))), 5)
+            metric = problem.quality_metrics[0]
+            self.assertTrue(metric.is_minimize_action_costs())
+            assert isinstance(metric, MinimizeActionCosts)
+            action_costs = {
+                problem.action("move_car_in_road"): em.Int(1),
+                problem.action("move_car_out_road"): em.Int(1),
+                problem.action("build_diagonal_oneway"): em.Int(30),
+                problem.action("build_straight_oneway"): em.Int(20),
+                problem.action("destroy_road"): em.Int(10),
+            }
+            for action, cost in action_costs.items():
+                parsed_action = problem.action(action.name)
+                self.assertEqual(action, parsed_action)
+                parsed_cost = metric.costs[parsed_action]
+                self.assertEqual(cost, parsed_cost)
 
     def test_visit_precedence_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(
             PDDL_DOMAINS_PATH, "visit_precedence", "domain.pddl"
@@ -913,7 +995,7 @@ class TestPddlIO(unittest_TestCase):
             self.assertEqual(g, goal_test)
 
     def test_robot_fastener_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(
             PDDL_DOMAINS_PATH, "robot_fastener", "domain.pddl"
@@ -923,20 +1005,20 @@ class TestPddlIO(unittest_TestCase):
         )
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 5)
         self.assertEqual(len(problem.actions), 1)
         self.assertEqual(len(list(problem.objects(problem.user_type("robot")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("fastener")))), 3)
 
     def test_safe_road_reader(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)
 
-        self.assertTrue(problem is not None)
+        self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 1)
         self.assertEqual(len(problem.actions), 2)
         natural_disaster = problem.action("natural_disaster")
@@ -949,7 +1031,7 @@ class TestPddlIO(unittest_TestCase):
         simple_numeric_kind, OptimalityGuarantee.SOLVED_OPTIMALLY
     )
     def test_reading_domain_only(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
         domain = reader.parse_problem(domain_filename)
@@ -1007,7 +1089,7 @@ class TestPddlIO(unittest_TestCase):
             self.assertIn(expected_goal, pddl_problem)
 
     def test_grounding_tpp_metric(self):
-        reader = PDDLReader()
+        reader = UPPDDLReader()
 
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "tpp_metric", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "tpp_metric", "problem.pddl")
@@ -1057,6 +1139,7 @@ class TestPddlIO(unittest_TestCase):
         process_domain = """
 (define
     (domain continuous_forall)
+    (:requirements :continuous-effects :typing)
     (:types car)
 
     (:functions
@@ -1073,6 +1156,7 @@ class TestPddlIO(unittest_TestCase):
         durative_act_domain = """
 (define
     (domain continuous_forall)
+    (:requirements :continuous-effects :typing)
     (:types car)
 
     (:functions
