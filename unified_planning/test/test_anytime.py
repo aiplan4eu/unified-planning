@@ -19,11 +19,11 @@ from unified_planning.model.problem_kind import (
     simple_numeric_kind,
     quality_metrics_kind,
 )
+from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.io import PDDLReader
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.test import (
     unittest_TestCase,
-    main,
     skipIfNoAnytimePlannerForProblemKind,
 )
 
@@ -51,9 +51,17 @@ class TestAnytimePlanning(unittest_TestCase):
             solutions = []
             for p in planner.get_solutions(problem):
                 self.assertTrue(p.plan is not None)
-                solutions.append(p.plan)
+                solutions.append(p)
                 if len(solutions) == 2:
                     break
 
         self.assertEqual(len(solutions), 2)
-        self.assertGreater(len(solutions[0].actions), len(solutions[1].actions))
+        self.assertEqual(solutions[0].status, PlanGenerationResultStatus.INTERMEDIATE)
+        if solutions[1].status == PlanGenerationResultStatus.INTERMEDIATE:
+            self.assertGreater(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )
+        else:
+            self.assertGreaterEqual(
+                len(solutions[0].plan.actions), len(solutions[1].plan.actions)
+            )

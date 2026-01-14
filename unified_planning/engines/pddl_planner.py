@@ -258,7 +258,7 @@ def run_command(
         proc_err: List[str] = []
         try:
             out_err_bytes = engine._process.communicate(timeout=timeout)
-            proc_out, proc_err = [[x.decode()] for x in out_err_bytes]
+            proc_out, proc_err = [[x.decode(errors="replace")] for x in out_err_bytes]
         except subprocess.TimeoutExpired:
             terminate_process(engine._process)  # Terminate the process
             timeout_occurred = True
@@ -330,7 +330,9 @@ async def run_command_asyncio(
             break
         else:
             for idx in range(2):
-                output_string = lines[idx].decode().replace("\r\n", "\n")
+                output_string = (
+                    lines[idx].decode(errors="replace").replace("\r\n", "\n")
+                )
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
                     if output_stream[idx] is not None:
@@ -388,7 +390,7 @@ def run_command_posix_select(
             timeout_occurred = True
         for readable_stream in readable_streams:
             out_in_bytes = readable_stream.readline()
-            out_str = out_in_bytes.decode().replace("\r\n", "\n")
+            out_str = out_in_bytes.decode(errors="replace").replace("\r\n", "\n")
             if readable_stream == engine._process.stdout:
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
