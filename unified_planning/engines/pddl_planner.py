@@ -439,7 +439,8 @@ def terminate_process(process):
     """
     try:
         if sys.platform == "win32":
-            process.send_signal(signal.CTRL_BREAK_EVENT)
+            taskkill = "taskkill /PID " + str(process.pid) + " /T /F"
+            subprocess.run(["cmd", "/c", taskkill], capture_output=True, text=True)
         else:
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
     except ProcessLookupError:
