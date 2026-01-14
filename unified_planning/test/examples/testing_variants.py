@@ -14,6 +14,7 @@
 
 
 from itertools import product
+from typing import cast
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -368,6 +369,50 @@ def get_example_problems():
         problem=problem, solvable=True, valid_plans=[plan]
     )
     problems["robot_loader_weak_bridge"] = robot_loader_weak_bridge
+
+    # robot with variable duration. the variants have different constraints on the action duration
+    problem = Problem("robot_with_variable_duration")
+    Location = UserType("Location")
+    Robot = UserType("Robot")
+
+    is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
+    is_connected = Fluent("is_connected", BoolType(), l_from=Location, l_to=Location)
+    distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+    problem.add_fluent(is_at, default_initial_value=False)
+    problem.add_fluent(is_connected, default_initial_value=False)
+    problem.add_fluent(distance, default_initial_value=1)
+
+    r1 = Object("r1", Robot)
+    l1 = Object("l1", Location)
+    l2 = Object("l2", Location)
+    l3 = Object("l3", Location)
+    l4 = Object("l4", Location)
+    l5 = Object("l5", Location)
+    problem.add_objects([r1, l1, l2, l3, l4, l5])
+
+    problem.set_initial_value(is_at(l1, r1), True)
+    problem.set_initial_value(is_connected(l1, l2), True)
+    problem.set_initial_value(is_connected(l2, l3), True)
+    problem.set_initial_value(is_connected(l3, l4), True)
+    problem.set_initial_value(is_connected(l4, l5), True)
+    problem.set_initial_value(distance(l1, l2), 10)
+    problem.set_initial_value(distance(l2, l3), 10)
+    problem.set_initial_value(distance(l3, l4), 10)
+    problem.set_initial_value(distance(l4, l5), 10)
+    problem.add_goal(is_at(l5, r1))
+
+    dur_move = DurativeAction("move", r=Robot, l_from=Location, l_to=Location)
+    r = dur_move.parameter("r")
+    l_from = dur_move.parameter("l_from")
+    l_to = dur_move.parameter("l_to")
+    dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
+    dur_move.add_condition(StartTiming(), is_at(l_from, r))
+    dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
+    dur_move.add_effect(StartTiming(), is_at(l_from, r), False)
+    dur_move.add_effect(EndTiming(), is_at(l_to, r), True)
+    dur_move.set_duration_constraint(ClosedDurationInterval(Int(5), Int(7)))
+    problem.add_action(dur_move)
+    problems["robot_with_variable_duration"] = TestCase(problem, True)
 
     # hierarchical blocks world exists
     Entity = UserType("Entity", None)  # None can be avoided

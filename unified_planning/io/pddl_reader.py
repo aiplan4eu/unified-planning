@@ -78,6 +78,11 @@ class CustomParseResults:
                 raise SyntaxError(f"Not able to handle: {exp}")
         return False
 
+    def __str__(self):
+        if isinstance(self.value, str):
+            return self.value
+        return f"[{', '.join(map(str, self.value))}]"
+
     def line_start(self, complete_str: str) -> int:
         return lineno(self.locn_start, complete_str)
 

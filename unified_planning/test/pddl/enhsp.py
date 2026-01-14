@@ -31,8 +31,9 @@ FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
 class ENHSP(PDDLAnytimePlanner):
-    def __init__(self):
+    def __init__(self, params: Optional[str] = None):
         PDDLAnytimePlanner.__init__(self, False, True)
+        self._params = params
 
     @property
     def name(self) -> str:
@@ -41,7 +42,7 @@ class ENHSP(PDDLAnytimePlanner):
     def _get_cmd(
         self, domanin_filename: str, problem_filename: str, plan_filename: str
     ) -> List[str]:
-        return [
+        cmd = [
             "java",
             "-jar",
             os.path.join(
@@ -57,11 +58,14 @@ class ENHSP(PDDLAnytimePlanner):
             "opt-hrmax",
             "-npm",
         ]
+        if self._params is not None:
+            cmd.extend(self._params.split())
+        return cmd
 
     def _get_anytime_cmd(
         self, domanin_filename: str, problem_filename: str, plan_filename: str
     ) -> List[str]:
-        return [
+        cmd = [
             "java",
             "-jar",
             os.path.join(
@@ -80,6 +84,9 @@ class ENHSP(PDDLAnytimePlanner):
             "-anytime",
             "-npm",
         ]
+        if self._params is not None:
+            cmd.extend(self._params.split())
+        return cmd
 
     def _result_status(
         self,

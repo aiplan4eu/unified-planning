@@ -257,10 +257,13 @@ def get_fresh_name(
     problem: AbstractProblem,
     original_name: str,
     parameters_names: Sequence[str] = tuple(),
+    trailing_info: Optional[str] = None,
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
     name_list = [original_name]
     name_list.extend(parameters_names)
+    if trailing_info:
+        name_list.append(trailing_info)
     new_name = "_".join(name_list)
     base_name = new_name
     count = 0

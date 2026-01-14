@@ -27,7 +27,18 @@ from unified_planning.exceptions import (
     UPUnboundedVariablesError,
 )
 from enum import Enum, auto
-from typing import List, Callable, Dict, Optional, Set, Union, Iterable, Tuple, Iterator
+from typing import (
+    List,
+    Callable,
+    Dict,
+    Optional,
+    Sequence,
+    Set,
+    Union,
+    Iterable,
+    Tuple,
+    Iterator,
+)
 
 
 class EffectKind(Enum):
@@ -273,7 +284,7 @@ class SimulatedEffect:
 
     def __init__(
         self,
-        fluents: List[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]],
+        fluents: Sequence[Union["up.model.fnode.FNode", "up.model.fluent.Fluent"]],
         function: Callable[
             [
                 "up.model.problem.AbstractProblem",
