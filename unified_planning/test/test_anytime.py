@@ -51,7 +51,7 @@ class TestAnytimePlanning(unittest_TestCase):
             solutions = []
             for p in planner.get_solutions(problem):
                 self.assertTrue(p.plan is not None)
-                solutions.append(p.plan)
+                solutions.append(p)
                 if len(solutions) == 2:
                     break
 
