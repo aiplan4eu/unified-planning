@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -178,6 +179,23 @@ def FluentExp(
     :return: The created ``Fluent`` Expression.
     """
     return get_environment().expression_manager.FluentExp(fluent, params)
+
+
+def InterpretedFunctionExp(
+    interpreted_function: "unified_planning.model.InterpretedFunction",
+    params: Sequence[Expression] = tuple(),  # -------
+) -> FNode:
+    """
+    | Creates an expression for the given ``interpreted_function`` and ``parameters``.
+    | Restriction: ``parameters type`` must be compatible with the ``InterpretedFunction`` :func:``signature <unified_planning.model.InterpretedFunction.signature>``
+
+    :param interpreted_function: The ``InterpretedFunction`` that will be set as the ``payload`` of this expression.
+    :param params: The Iterable of expressions acting as ``parameters`` for this ``InterpretedFunction``.
+    :return: The created ``InterpretedFunction`` Expression.
+    """
+    return get_environment().expression_manager.InterpretedFunctionExp(
+        interpreted_function, params
+    )
 
 
 def Always(expression: BoolExpression) -> FNode:

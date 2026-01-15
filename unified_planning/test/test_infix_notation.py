@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +17,7 @@
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from typing import List, Tuple
+from typing import List, OrderedDict, Tuple
 
 
 class TestInfixNotation(unittest_TestCase):
@@ -62,6 +63,18 @@ class TestInfixNotation(unittest_TestCase):
         b_1 = Parameter("b_1", BoolType(), environment)
         b_2 = Parameter("b_2", BoolType(), environment)
         b_3 = Parameter("b_3", BoolType(), environment)
+        self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
+
+    def test_infix_with_interpreted_functions(self):
+        placeholder = lambda *args: None
+        signature_empty: OrderedDict = OrderedDict()
+        i_1 = InterpretedFunction("i_1", IntType(), signature_empty, placeholder)
+        r_1 = InterpretedFunction("r_1", RealType(), signature_empty, placeholder)
+        i_2 = InterpretedFunction("i_2", IntType(), signature_empty, placeholder)
+        r_2 = InterpretedFunction("r_2", RealType(), signature_empty, placeholder)
+        b_1 = InterpretedFunction("b_1", BoolType(), signature_empty, placeholder)
+        b_2 = InterpretedFunction("b_2", BoolType(), signature_empty, placeholder)
+        b_3 = InterpretedFunction("b_3", BoolType(), signature_empty, placeholder)
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_on_objects(self):
