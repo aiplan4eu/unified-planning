@@ -17,8 +17,8 @@ setup(
     url="https://www.aiplan4eu-project.eu",
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.8",
-    install_requires=["pyparsing", "networkx", "ConfigSpace"],
+    python_requires=">=3.10",
+    install_requires=["pyparsing", "networkx", "ConfigSpace", "pddl"],
     extras_require={
         "dev": ["tarski[arithmetic]", "pytest", "pytest-cov", "mypy"],
         "grpc": ["grpcio", "grpcio-tools", "grpc-stubs"],

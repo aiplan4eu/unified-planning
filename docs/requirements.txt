@@ -10,3 +10,4 @@ tarski
 networkx
 pyparsing
 numpy<2  # work around to avoid incompatibilities in transitive dependencies
+docutils<0.21
