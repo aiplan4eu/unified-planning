@@ -15,7 +15,6 @@
 import os
 
 import unified_planning as up
-from unified_planning.io import PDDLReader
 from unified_planning.model.htn import TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *

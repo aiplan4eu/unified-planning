@@ -136,7 +136,7 @@ class TestProblem(unittest_TestCase):
             print(f"=== [{id}] {name} ===")
             domain_filename = os.path.join(domain, "domain.hddl")
             problem_filename = os.path.join(domain, "instance.1.pb.hddl")
-            reader = PDDLReader()
+            reader = PDDLReader(disable_warnings=True)
             problem = reader.parse_problem(domain_filename, problem_filename)
 
             assert isinstance(problem, up.model.htn.HierarchicalProblem)
@@ -166,7 +166,7 @@ class TestProblem(unittest_TestCase):
             print(f"=== [{id}] {name} ===")
             domain_filename = os.path.join(domain, "domain.hddl")
             problem_filename = os.path.join(domain, "instance.1.pb.hddl")
-            reader = PDDLReader()
+            reader = PDDLReader(disable_warnings=True)
             problem = reader.parse_problem(domain_filename, problem_filename)
 
             # print(problem)
@@ -177,6 +177,6 @@ class TestProblem(unittest_TestCase):
                 w.write_domain(domain_filename)
                 w.write_problem(problem_filename)
 
-                reader = PDDLReader()
+                reader = PDDLReader(disable_warnings=True)
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
                 self.assertEqual(parsed_problem.kind, problem.kind)

@@ -14,7 +14,6 @@
 
 
 import unified_planning
-from unified_planning.io.pddl_reader import PDDLReader
 from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main

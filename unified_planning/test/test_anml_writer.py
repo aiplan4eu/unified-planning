@@ -262,7 +262,7 @@ instance when_ predicate_;
     def test_forall_effects(self):
         FILE_PATH = os.path.dirname(os.path.abspath(__file__))
         PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
-        reader = PDDLReader()
+        reader = PDDLReader(disable_warnings=True)
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "domain.pddl")
         problem_filename = os.path.join(PDDL_DOMAINS_PATH, "safe_road", "problem.pddl")
         problem = reader.parse_problem(domain_filename, problem_filename)

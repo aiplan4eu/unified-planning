@@ -75,3 +75,7 @@ class ANMLSyntaxError(UPException, SyntaxError):
 
 class UPInvalidActionError(UPException):
     pass
+
+
+class UPAIPDDLPlanningError(UPException):
+    pass

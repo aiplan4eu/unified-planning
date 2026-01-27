@@ -1,7 +1,8 @@
 ;; Enrico Scala (enricos83@gmail.com) and Miquel Ramirez (miquel.ramirez@gmail.com)
 (define (domain sailing)
+    (:requirements :strips :typing :numeric-fluents)
     (:types boat -object person -object)
-    (:predicates 
+    (:predicates
         (saved ?t -person)
     )
     (:functions
@@ -47,9 +48,9 @@
     )
     (:action save_person
         :parameters(?b -boat ?t -person)
-        :precondition ( and  (>= (+ (x ?b) (y ?b)) (d ?t)) 
-                             (>= (- (y ?b) (x ?b)) (d ?t)) 
-                             (<= (+ (x ?b) (y ?b)) (+ (d ?t) 25)) 
+        :precondition ( and  (>= (+ (x ?b) (y ?b)) (d ?t))
+                             (>= (- (y ?b) (x ?b)) (d ?t))
+                             (<= (+ (x ?b) (y ?b)) (+ (d ?t) 25))
                              (<= (- (y ?b) (x ?b)) (+ (d ?t) 25))
                       )
         :effect (and(saved ?t))

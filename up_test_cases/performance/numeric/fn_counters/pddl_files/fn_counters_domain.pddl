@@ -5,7 +5,8 @@
 ;;; Same domain than counters-ineq, only the instances will differ, since the initial values are set randomly.
 
 (define (domain fn-counters)
-    ;(:requirements :strips :typing :equality :adl)
+
+    (:requirements :strips :typing :equality :adl :numeric-fluents)
     (:types counter)
 
     (:functions

@@ -21,6 +21,7 @@ import tarski
 import unified_planning as up
 import unified_planning.interop
 from unified_planning.interop.from_tarski import convert_tarski_formula
+from unified_planning.interop.to_tarski import convert_problem_to_tarski
 from unified_planning.model import Action, FNode, Problem, ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -34,6 +35,7 @@ from tarski.grounding import LPGroundingStrategy
 gringo = shutil.which("gringo")
 if gringo is None:
     raise ImportError("Tarski grounder needs gringo installed")
+
 
 credits = Credits(
     "Tarski grounder",
@@ -116,7 +118,7 @@ class TarskiGrounder(Engine, CompilerMixin):
         """
         assert isinstance(problem, Problem)
 
-        tarski_problem = up.interop.convert_problem_to_tarski(problem)
+        tarski_problem = convert_problem_to_tarski(problem)
         actions = None
         try:
             lpgs = LPGroundingStrategy(tarski_problem)
