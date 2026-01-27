@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,6 +53,7 @@ FEATURES = {
     "EXPRESSION_DURATION": [
         "STATIC_FLUENTS_IN_DURATIONS",
         "FLUENTS_IN_DURATIONS",
+        "INTERPRETED_FUNCTIONS_IN_DURATIONS",
         "INT_TYPE_DURATIONS",
         "REAL_TYPE_DURATIONS",
     ],
@@ -66,6 +68,7 @@ FEATURES = {
         "EQUALITIES",
         "EXISTENTIAL_CONDITIONS",
         "UNIVERSAL_CONDITIONS",
+        "INTERPRETED_FUNCTIONS_IN_CONDITIONS",
     ],
     "EFFECTS_KIND": [
         "CONDITIONAL_EFFECTS",
@@ -80,6 +83,9 @@ FEATURES = {
         "FLUENTS_IN_BOOLEAN_ASSIGNMENTS",
         "FLUENTS_IN_NUMERIC_ASSIGNMENTS",
         "FLUENTS_IN_OBJECT_ASSIGNMENTS",
+        "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS",
+        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS",
+        "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS",
         "FORALL_EFFECTS",
     ],
     "TYPING": ["FLAT_TYPING", "HIERARCHICAL_TYPING"],

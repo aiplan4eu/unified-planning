@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,6 +64,8 @@ class TestProblem(unittest_TestCase):
             self.assertEqual(pv.name, "sequential_plan_validator")
             for p in self.problems.values():
                 if not pv.supports(p.problem.kind):
+                    continue
+                if not p.valid_plans:
                     continue
                 problem, plan = p.problem, p.valid_plans[0]
                 validation_result = pv.validate(problem, plan)
@@ -392,3 +395,53 @@ class TestProblem(unittest_TestCase):
             problem.clear_trajectory_constraints()
             validation_result = pv.validate(problem, bad_plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
+    def test_with_interpreted_functions_time_triggered(self):
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        p = self.problems["go_home_with_rain_and_interpreted_functions"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = ttv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = ttv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+    def test_with_interpreted_functions_sequential(self):
+        spv = SequentialPlanValidator(environment=get_environment())
+
+        p = self.problems["IF_in_conditions_complex_1"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        p = self.problems["interpreted_functions_in_boolean_assignment"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        p = self.problems["interpreted_functions_in_numeric_assignment"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
+
+        p = self.problems["interpreted_functions_minimal_chain_of_assignments"]
+        problem = p.problem
+        for plan in p.valid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+        for plan in p.invalid_plans:
+            validation_result = spv.validate(problem, plan)
+            self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)

@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +41,7 @@ from unified_planning.model.expression import (
 )
 from unified_planning.model.fnode import FNode
 from unified_planning.model.fluent import Fluent
+from unified_planning.model.interpreted_function import InterpretedFunction
 from unified_planning.model.object import Object
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
@@ -105,6 +107,7 @@ __all__ = [
     "ExpressionManager",
     "FNode",
     "Fluent",
+    "InterpretedFunction",
     "Object",
     "OperatorKind",
     "Parameter",

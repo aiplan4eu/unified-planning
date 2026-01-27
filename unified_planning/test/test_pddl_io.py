@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -619,6 +620,13 @@ class TestPddlIO(unittest_TestCase):
                 or kind.has_unbounded_int_action_parameters()
                 or kind.has_real_action_parameters()
                 or kind.has_scheduling()
+                or (  # pddl can't model interpreted functions
+                    kind.has_interpreted_functions_in_durations()
+                    or kind.has_interpreted_functions_in_boolean_assignments()
+                    or kind.has_interpreted_functions_in_numeric_assignments()
+                    or kind.has_interpreted_functions_in_object_assignments()
+                    or kind.has_interpreted_functions_in_conditions()
+                )
             ):
                 continue
             with tempfile.TemporaryDirectory() as tempdir:

@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +29,7 @@ class StateEvaluator(QuantifierSimplifier):
 
     def __init__(self, problem: "up.model.problem.Problem"):
         QuantifierSimplifier.__init__(self, problem.environment, problem)
+        self.if_values: Dict[up.model.InterpretedFunction, up.model.FNode] = {}
 
     def evaluate(
         self,
@@ -71,6 +73,7 @@ class StateEvaluator(QuantifierSimplifier):
         copy.update(variables_assignments)
         r = new_state_evaluator.evaluate(expression, self._state, copy)
         assert r.is_constant()
+        self.if_values.update(new_state_evaluator.if_values)
         return r
 
     def walk_fluent_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
@@ -81,3 +84,14 @@ class StateEvaluator(QuantifierSimplifier):
         raise UPProblemDefinitionError(
             f"The StateEvaluator.evaluate should only be called on grounded expressions."
         )
+
+    def iter_walk(self, expression: FNode, **kwargs):
+        res = super(QuantifierSimplifier, self).iter_walk(expression, **kwargs)
+        for key, value in self.memoization.items():
+            if key.is_interpreted_function_exp():
+                args_values = [
+                    self.memoization[self._get_key(s, **kwargs)] for s in key.args
+                ]
+                new_key = key.interpreted_function()(*args_values)
+                self.if_values[new_key] = value
+        return res
