@@ -107,6 +107,9 @@ class Problem(  # type: ignore[misc]
         self._fluents_inc_dec: Dict[
             "up.model.timing.Timing", Set["up.model.fnode.FNode"]
         ] = {}
+        self._static_and_unused_fluents: Optional[
+            Tuple[Set["up.model.fluent.Fluent"], Set["up.model.fluent.Fluent"]]
+        ] = None
 
     def __repr__(self) -> str:
         s = []
@@ -318,6 +321,10 @@ class Problem(  # type: ignore[misc]
         and the set of the unused fluents (The fluents that are never red in the problem.
         NOTE: The fluents used only in the ActionCost quality metric are in the unused_fluents set anyway).
         """
+
+        if self._static_and_unused_fluents is not None:
+            return self._static_and_unused_fluents
+
         static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         unused_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         fve = self._env.free_vars_extractor
@@ -385,7 +392,9 @@ class Problem(  # type: ignore[misc]
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
                 for _, g in qm.goals.keys():
                     remove_used_fluents(g)
-        return static_fluents, unused_fluents
+
+        self._static_and_unused_fluents = (static_fluents, unused_fluents)
+        return self._static_and_unused_fluents
 
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """
