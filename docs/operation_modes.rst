@@ -10,7 +10,7 @@ We currently support the following operation modes:
 OneshotPlanner
 --------------
 The simplest and more obvious operation mode is called `OneshotPlanner`. The semantics of this OM is very simple: given a problem, return a solution plan for it or declare it unsolvable. This is the usual planning query which is the object of the International Planning Competition and is arguably the expected basic functionality of any “planner”.
-The example below shows a basic usage of the OM: the `OneshotPlanner` constructor selects a planning engine suitable for the given kind of problem and the OM defines a single ``solve(p: AbstractProblem)`` method to be implemented by the engine. This method returns a `PlanGenerationResult` object containing information about the the generated plan (if any), the metrics being optimized, log messages (if any) and a status flag indicating if the problem has been solved, under which optimality guarantee or if the planner encountered errors or proved the problem unsatisfiable.
+The example below shows a basic usage of the OM: the `OneshotPlanner` constructor selects a planning engine suitable for the given kind of problem and the OM defines a single ``solve(p: AbstractProblem)`` method to be implemented by the engine. This method returns a `PlanGenerationResult` object containing information about the generated plan (if any), the metrics being optimized, log messages (if any) and a status flag indicating if the problem has been solved, under which optimality guarantee or if the planner encountered errors or proved the problem unsatisfiable.
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
     :caption: OneshotPlanner with automatic Engine selection
