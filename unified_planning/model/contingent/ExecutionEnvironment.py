@@ -73,7 +73,7 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
             self._deterministic_problem, False
         )
         self._state = self._simulator.get_initial_state()
-        self._max_constraints = max_constraints or float('inf')
+        self._max_constraints = max_constraints or float("inf")
 
     def _randomly_set_full_initial_state(
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
