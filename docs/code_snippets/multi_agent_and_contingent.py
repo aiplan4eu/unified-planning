@@ -41,7 +41,7 @@ for robot in robots:
     problem.add_goal(Equals(Dot(robot, robot_position), locations[-1]))
 
 
-from unified_planning.model import ContingentProblem, SensingAction
+from unified_planning.model.contingent import ContingentProblem, SensingAction
 
 problem = ContingentProblem("lost_packages")
 Package = UserType("Package")

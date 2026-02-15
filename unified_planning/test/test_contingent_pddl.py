@@ -41,7 +41,7 @@ class TestPddlIO(unittest_TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        self.assertTrue(isinstance(problem, up.model.ContingentProblem))
+        self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 10)
         sensing_actions = [sa for sa in problem.sensing_actions]
         self.assertEqual(len(sensing_actions), 3)
@@ -64,7 +64,7 @@ class TestPddlIO(unittest_TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        self.assertTrue(isinstance(problem, up.model.ContingentProblem))
+        self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 8)
         sensing_actions = [sa for sa in problem.sensing_actions]
         self.assertEqual(len(sensing_actions), 2)
