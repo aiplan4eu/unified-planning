@@ -22,39 +22,13 @@ from pysmt.oracles import get_logic
 from typing import Dict
 
 
-class Environment:
+class ContingentSimulator:
     """
-    A base class that defines the interface for an environment in the planning domain.
-    """
+    Simulates the effects of actions on a given contingent planning problem.
 
-    def __init__(
-        self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
-    ):
-        self._problem = problem
-
-    def apply(
-        self, action: "up.plans.ActionInstance"
-    ) -> Dict["up.model.FNode", "up.model.FNode"]:
-        """
-        Applies the given action to the current state of the environment and returns the resulting observation.
-
-        :param action: A :class:`~unified_planning.plans.ActionInstance` object representing the action to apply.
-        :return: A dictionary mapping the fluent expressions observed by the sensing action to their corresponding values.
-        """
-        raise NotImplementedError
-
-    def is_goal_reached(self) -> bool:
-        """
-        Determines whether the goal of the planning problem has been reached in the current state of the environment.
-
-        :return: A boolean value indicating whether the goal has been reached.
-        """
-        raise NotImplementedError
-
-
-class SimulatedEnvironment(Environment):
-    """
-    An implementation of an environment that simulates the effects of actions on a given contingent planning problem.
+    This class creates a deterministic version of a contingent problem by randomly
+    resolving hidden fluent values (respecting oneof/or constraints), then uses a
+    sequential simulator to apply actions and return observations.
 
     :param problem: A :class:`~unified_planning.model.ContingentProblem` object representing the planning problem to simulate.
     """
@@ -62,7 +36,7 @@ class SimulatedEnvironment(Environment):
     def __init__(
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
     ):
-        super().__init__(problem)
+        self._problem = problem
         self._deterministic_problem = problem.clone()
         self._randomly_set_full_initial_state(self._deterministic_problem)
         self._simulator = up.engines.UPSequentialSimulator(
@@ -112,7 +86,7 @@ class SimulatedEnvironment(Environment):
         self, action: "up.plans.ActionInstance"
     ) -> Dict["up.model.FNode", "up.model.FNode"]:
         """
-        Applies the given action to the current state of the environment and returns the resulting observation.
+        Applies the given action to the current state and returns the resulting observation.
 
         :param action: A :class:`~unified_planning.plans.ActionInstance` object representing the action to apply.
         :return: A dictionary mapping the fluent expressions observed by the sensing action to their corresponding values.
@@ -135,7 +109,7 @@ class SimulatedEnvironment(Environment):
 
     def is_goal_reached(self) -> bool:
         """
-        Determines whether the goal of the planning problem has been reached in the current state of the environment.
+        Determines whether the goal of the planning problem has been reached in the current state.
 
         :return: A boolean value indicating whether the goal has been reached.
         """

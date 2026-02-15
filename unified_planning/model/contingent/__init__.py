@@ -15,9 +15,6 @@
 #
 
 
-from unified_planning.model.contingent.environment import (
-    Environment,
-    SimulatedEnvironment,
-)
+from unified_planning.model.contingent.contingent_simulator import ContingentSimulator
 from unified_planning.model.contingent.sensing_action import SensingAction
 from unified_planning.model.contingent.contingent_problem import ContingentProblem
