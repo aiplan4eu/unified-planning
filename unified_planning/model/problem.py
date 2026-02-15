@@ -1241,7 +1241,8 @@ def generate_causal_graph(
         the action.
     """
     if isinstance(
-        problem, (up.model.htn.HierarchicalProblem, up.model.ContingentProblem)
+        problem,
+        (up.model.htn.HierarchicalProblem, up.model.contingent.ContingentProblem),
     ):
         raise NotImplementedError
     assert type(problem) == Problem, "Error not handled."

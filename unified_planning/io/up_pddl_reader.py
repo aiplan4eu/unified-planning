@@ -21,7 +21,7 @@ from typing import Dict, Union, Callable, List, cast, Tuple
 import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
-from unified_planning.model import ContingentProblem
+from unified_planning.model.contingent import ContingentProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
     UPException,
@@ -1352,7 +1352,7 @@ class UPPDDLReader:
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
             )
         elif ":contingent" in set(domain_res.get("features", [])):
-            problem = up.model.ContingentProblem(
+            problem = ContingentProblem(
                 domain_res["name"],
                 self._env,
                 initial_defaults={self._tm.BoolType(): self._em.FALSE()},
@@ -1633,10 +1633,12 @@ class UPPDDLReader:
                 )
             else:
                 act: typing.Optional[
-                    Union[up.model.SensingAction, up.model.InstantaneousAction]
+                    Union[
+                        up.model.contingent.SensingAction, up.model.InstantaneousAction
+                    ]
                 ] = None
                 if "obs" in a:
-                    act = up.model.SensingAction(n, a_params, self._env)
+                    act = up.model.contingent.SensingAction(n, a_params, self._env)
                     obs_fluent = CustomParseResults(a["obs"][0])
                     if obs_fluent[0].value == "and":  # more than 1 fluent
                         for i in range(1, len(obs_fluent)):
