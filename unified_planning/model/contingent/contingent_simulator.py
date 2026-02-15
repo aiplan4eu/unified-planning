@@ -19,7 +19,7 @@ import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 from pysmt.shortcuts import Solver, Not, And, Symbol, Or, ExactlyOne, EqualsOrIff
 from pysmt.oracles import get_logic
-from typing import Dict
+from typing import Dict, Optional
 
 
 class ContingentSimulator:
@@ -34,7 +34,9 @@ class ContingentSimulator:
     """
 
     def __init__(
-        self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
+        self,
+        problem: "up.model.contingent.contingent_problem.ContingentProblem",
+        max_constraints: Optional[int] = None,
     ):
         self._problem = problem
         self._deterministic_problem = problem.clone()
@@ -43,6 +45,7 @@ class ContingentSimulator:
             self._deterministic_problem, False
         )
         self._state = self._simulator.get_initial_state()
+        self._max_constraints = max_constraints or float('inf')
 
     def _randomly_set_full_initial_state(
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
@@ -74,6 +77,9 @@ class ContingentSimulator:
                 else:
                     args.append(fnode_to_symbol[x])
             constraints.append(Or(args))
+
+            if len(constraints) >= self._max_constraints:
+                break
 
         res = random.choice(list(all_smt(And(constraints), symbol_to_fnode.keys())))
 
