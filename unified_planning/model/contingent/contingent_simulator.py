@@ -17,8 +17,6 @@
 import random
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
-from pysmt.shortcuts import Solver, Not, And, Symbol, Or, ExactlyOne, EqualsOrIff
-from pysmt.oracles import get_logic
 from typing import Dict, Optional
 
 
@@ -50,6 +48,9 @@ class ContingentSimulator:
     def _randomly_set_full_initial_state(
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
     ):
+        # import pysmt here to avoid making it a hard dependency for the whole contingent module
+        from pysmt.shortcuts import Not, And, Symbol, Or, ExactlyOne
+
         fnode_to_symbol = {}
         symbol_to_fnode = {}
         cnt = 0
@@ -123,6 +124,10 @@ class ContingentSimulator:
 
 
 def all_smt(formula, keys):
+    # import pysmt here to avoid making it a hard dependency for the whole contingent module
+    from pysmt.shortcuts import Solver, Not, And, EqualsOrIff
+    from pysmt.oracles import get_logic
+
     target_logic = get_logic(formula)
     with Solver(logic=target_logic) as solver:
         solver.add_assertion(formula)
