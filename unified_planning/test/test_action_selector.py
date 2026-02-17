@@ -15,6 +15,7 @@
 
 import warnings
 from unittest.mock import Mock, patch
+from typing import Dict, List
 import unified_planning as up
 import unified_planning.shortcuts as shortcuts
 from unified_planning.environment import Environment
@@ -27,12 +28,13 @@ from unified_planning.test import unittest_TestCase, main
 
 
 class DummyActionSelector(Engine, ActionSelectorMixin):
-    def __init__(self, problem, error_on_failed_checks=True, **kwargs):
+    def __init__(self, problem: Problem, error_on_failed_checks=True, **kwargs):
         Engine.__init__(self)
         self.error_on_failed_checks = error_on_failed_checks
         self.get_action_calls = 0
-        self.update_calls = []
+        self.update_calls: List[Dict[up.model.FNode, up.model.FNode]] = []
         self._switch_policy = False
+        self._actions_by_name = {action.name: action for action in problem.actions}
         ActionSelectorMixin.__init__(self, problem)
 
     @property
@@ -50,7 +52,7 @@ class DummyActionSelector(Engine, ActionSelectorMixin):
     def _get_action(self):
         self.get_action_calls += 1
         selected_name = "set_false" if self._switch_policy else "set_true"
-        return self._problem.action(selected_name)()
+        return self._actions_by_name[selected_name]()
 
     def _update(self, observation):
         self.update_calls.append(observation)
@@ -164,14 +166,22 @@ class TestActionSelector(unittest_TestCase):
 
         state = simulator.get_initial_state()
         first_action = selector.get_action()
-        state = simulator.apply(state, first_action)
+        first_state = simulator.apply(state, first_action)
+        self.assertIsNotNone(first_state)
+        if first_state is None:
+            self.fail("Expected the first action to be applicable.")
+        state = first_state
         self.assertTrue(state.get_value(self.flag()).bool_constant_value())
 
         selector.update(
             {self.flag(): self.problem.environment.expression_manager.TRUE()}
         )
         second_action = selector.get_action()
-        state = simulator.apply(state, second_action)
+        second_state = simulator.apply(state, second_action)
+        self.assertIsNotNone(second_state)
+        if second_state is None:
+            self.fail("Expected the second action to be applicable.")
+        state = second_state
         self.assertFalse(state.get_value(self.flag()).bool_constant_value())
 
     def test_action_selector_edge_case_empty_observation_does_not_switch_policy(self):

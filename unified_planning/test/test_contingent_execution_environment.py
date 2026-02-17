@@ -20,6 +20,7 @@ from unified_planning.model import (
     Fluent,
     InstantaneousAction,
     Problem,
+    State,
     generate_causal_graph,
 )
 from unified_planning.model.contingent import (
@@ -64,6 +65,9 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         self.flag = Fluent("flag", environment=self.problem.environment)
         self.problem.add_fluent(self.flag, default_initial_value=False)
 
+    def _fresh_state(self) -> State:
+        return up.engines.UPSequentialSimulator(self.problem, False).get_initial_state()
+
     def test_execution_environment_base_methods_raise_not_implemented(self):
         env = ExecutionEnvironment(self.problem)
         with self.assertRaises(NotImplementedError):
@@ -76,7 +80,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         f = Fluent("f")
         simple_problem.add_fluent(f, default_initial_value=False)
         sensing = SensingAction("sense")
-        sensing.add_observed_fluent(f)
+        sensing.add_observed_fluent(f())
         normal = InstantaneousAction("flip")
         normal.add_effect(f, True)
         simple_problem.add_actions([sensing, normal])
@@ -91,7 +95,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         f = Fluent("f")
         simple_problem.add_fluent(f, default_initial_value=False)
         sensing = SensingAction("sense")
-        sensing.add_observed_fluent(f)
+        sensing.add_observed_fluent(f())
         simple_problem.add_action(sensing)
         self.assertTrue(simple_problem.kind.has_contingent())
 
@@ -148,7 +152,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
         env._simulator = Mock()
         env._simulator.apply.return_value = None
-        env._state = object()
+        env._state = self._fresh_state()
 
         with self.assertRaises(UPUsageError):
             env.apply(ai)
@@ -156,8 +160,8 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
     def test_simulated_apply_returns_empty_observation_for_non_sensing_action(self):
         action = InstantaneousAction("noop", _env=self.problem.environment)
         ai = up.plans.ActionInstance(action)
-        old_state = object()
-        new_state = Mock()
+        old_state = self._fresh_state()
+        new_state = self._fresh_state()
         env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
@@ -188,7 +192,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
-        env._state = object()
+        env._state = self._fresh_state()
 
         observation = env.apply(ai)
         self.assertEqual(observation, {expected_key: new_state.get_value.return_value})
@@ -197,17 +201,17 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
     def test_simulated_apply_updates_internal_state_after_success(self):
         action = InstantaneousAction("noop", _env=self.problem.environment)
         ai = up.plans.ActionInstance(action)
-        new_state = object()
+        new_state = self._fresh_state()
         env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
-        env._state = object()
+        env._state = self._fresh_state()
 
         env.apply(ai)
         self.assertIs(env._state, new_state)
 
     def test_simulated_is_goal_reached_delegates_to_simulator(self):
-        state = object()
+        state = self._fresh_state()
         env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
         env._state = state
         env._simulator = Mock()
@@ -234,7 +238,11 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             side_effect=lambda models: models[0],
         ):
             env._randomly_set_full_initial_state(self.problem)
-        self.assertTrue(self.problem.initial_value(hidden()).bool_constant_value())
+        hidden_initial_value = self.problem.initial_value(hidden())
+        self.assertIsNotNone(hidden_initial_value)
+        if hidden_initial_value is None:
+            self.fail("Expected a concrete initial value for hidden fluent.")
+        self.assertTrue(hidden_initial_value.bool_constant_value())
         self.assertEqual(p_all_smt.call_count, 1)
 
     @skipIfModuleNotInstalled("pysmt")
