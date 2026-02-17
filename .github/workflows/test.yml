@@ -113,6 +113,9 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
+      - name: Install pysmt solver for contingent tests
+        run: yes | pysmt-install --z3
+
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -180,6 +183,9 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
+      
+      - name: Install pysmt solver for contingent tests
+        run: yes | pysmt-install --z3
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
@@ -249,6 +255,9 @@ jobs:
       - name: Install Development Python dependencies
         run: python3 -m pip install -r dev-requirements.txt
 
+      - name: Install pysmt solver for contingent tests
+        run: echo y | pysmt-install --z3
+
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -310,6 +319,10 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
       #          brew install gringo -- Commented because not working on github actions
+      
+      - name: Install pysmt solver for contingent tests
+        run: yes | pysmt-install --z3
+
       - name: Checkout up-tamer
         uses: actions/checkout@v2
         with:
@@ -396,6 +409,9 @@ jobs:
 
       - name: Install plot Python dependencies
         run: python3 -m pip install -r plot-requirements.txt
+
+      - name: Install pysmt solver for contingent tests
+        run: yes | pysmt-install --z3
 
       - name: Checkout up-tamer
         uses: actions/checkout@v2
