@@ -80,6 +80,46 @@ This OM defines an interactive simulator for exploring the planning space of a g
 
 Each method of the `SequentialSimulator` is stateless, meaning that it is not required to simulate a sequence of states in order, but it is possible to “jump” among different states of the same problem.
 
+ActionSelector
+--------------
+
+The ``ActionSelector`` OM defines an online decision interface for choosing the next action to execute in a closed-loop execution setting. Unlike planners, which compute a full plan in one call, an action selector returns one action at a time and updates its internal policy from execution observations.
+
+This OM is useful in at least three settings:
+
+* policy-driven online control over a planning model;
+* contingent execution loops where sensing actions reveal hidden fluents;
+* prototyping custom strategy logic (e.g., rule-based or learned selectors) that consumes observations incrementally.
+
+The API is exposed through both the engine factory and shortcuts:
+
+* ``Factory.ActionSelector(problem, name=None, params=None)``
+* ``shortcuts.ActionSelector(problem, name=None, params=None)``
+
+Custom selector engines implement ``ActionSelectorMixin`` and provide:
+
+* ``get_action()`` to return the next ``ActionInstance``;
+* ``update(observation)`` to update internal policy state from a map of observed fluent expressions to observed values.
+
+Configuration details:
+
+* Register a custom selector in a specific environment with ``env.factory.add_engine(...)``.
+* Select by ``name`` to force a specific selector implementation.
+* Omit ``name`` to let UP choose among installed selector engines that support ``problem.kind``.
+* ``params`` are forwarded to the selector constructor (engine-specific options).
+
+.. literalinclude:: ./code_snippets/action_selector_and_execution_environment.py
+    :caption: Implementing a custom ActionSelector
+    :start-after: # [action-selector-class-start]
+    :end-before: # [action-selector-class-end]
+
+.. literalinclude:: ./code_snippets/action_selector_and_execution_environment.py
+    :caption: Minimal ActionSelector flow
+    :start-after: # [action-selector-minimal-start]
+    :end-before: # [action-selector-minimal-end]
+
+For an end-to-end contingent execution loop that combines ``ActionSelector`` with a simulated execution environment, see the :doc:`Execution Environment API page <api/model/contingent/ExecutionEnvironment>` and the :doc:`ActionSelector and Contingent Execution Environment notebook <notebooks/15-action-selector-and-execution-environment>`.
+
 Compiler
 --------
 
