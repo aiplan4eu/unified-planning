@@ -149,7 +149,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
     def test_simulated_apply_raises_when_action_not_applicable(self):
         action = InstantaneousAction("noop", _env=self.problem.environment)
         ai = up.plans.ActionInstance(action)
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
         env._simulator = Mock()
         env._simulator.apply.return_value = None
         env._state = self._fresh_state()
@@ -162,11 +162,9 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         ai = up.plans.ActionInstance(action)
         old_state = self._fresh_state()
         new_state = self._fresh_state()
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
-        env._state = old_state
-
         observation = env.apply(ai)
         self.assertEqual(observation, {})
         self.assertIs(env._state, new_state)
@@ -189,7 +187,8 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         new_state.get_value.return_value = (
             self.problem.environment.expression_manager.TRUE()
         )
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
+        env._deterministic_problem.add_action(action)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
         env._state = self._fresh_state()
@@ -202,7 +201,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         action = InstantaneousAction("noop", _env=self.problem.environment)
         ai = up.plans.ActionInstance(action)
         new_state = self._fresh_state()
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
         env._simulator = Mock()
         env._simulator.apply.return_value = new_state
         env._state = self._fresh_state()
@@ -212,7 +211,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
 
     def test_simulated_is_goal_reached_delegates_to_simulator(self):
         state = self._fresh_state()
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
         env._state = state
         env._simulator = Mock()
         env._simulator.is_goal.return_value = True
@@ -224,7 +223,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         hidden = Fluent("hidden", environment=self.problem.environment)
         self.problem.add_fluent(hidden, default_initial_value=False)
         self.problem.add_unknown_initial_constraint(hidden)
-        env = SimulatedExecutionEnvironment.__new__(SimulatedExecutionEnvironment)
+        env = SimulatedExecutionEnvironment(self.problem)
         env._max_constraints = float("inf")
 
         def fake_all_smt(formula, keys):
@@ -238,7 +237,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             side_effect=lambda models: models[0],
         ):
             env._randomly_set_full_initial_state(self.problem)
-        hidden_initial_value = self.problem.initial_value(hidden())
+        hidden_initial_value = env._deterministic_problem.initial_value(hidden())
         self.assertIsNotNone(hidden_initial_value)
         if hidden_initial_value is None:
             self.fail("Expected a concrete initial value for hidden fluent.")

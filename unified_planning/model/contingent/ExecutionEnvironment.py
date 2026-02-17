@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+from collections import OrderedDict
 import random
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
@@ -67,13 +68,54 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         max_constraints: Optional[int] = None,
     ):
         super().__init__(problem)
-        self._deterministic_problem = problem.clone()
+        self._deterministic_problem = self._get_stateless_deterministic_problem_clone(
+            problem
+        )
         self._max_constraints = max_constraints or float("inf")
-        self._randomly_set_full_initial_state(self._deterministic_problem)
+        self._randomly_set_full_initial_state(problem)
         self._simulator = up.engines.UPSequentialSimulator(
             self._deterministic_problem, False
         )
         self._state = self._simulator.get_initial_state()
+
+    def _get_stateless_deterministic_problem_clone(
+        self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
+    ) -> "up.model.Problem":
+        """Convert a ContingentProblem to a regular Problem."""
+        # Create a new Problem with the same name and environment
+        deterministic_problem = up.model.Problem(problem.name, problem.environment)
+
+        for fluent in problem.fluents:
+            default_value = problem.initial_defaults.get(fluent.type, False)
+            deterministic_problem.add_fluent(
+                fluent, default_initial_value=default_value
+            )
+
+        deterministic_problem.add_objects(problem.all_objects)
+
+        for action in problem.actions:
+            if isinstance(action, up.model.contingent.sensing_action.SensingAction):
+                # Create a dummy action with no effects instead of a sensing action
+                params = OrderedDict({p.name: p.type for p in action.parameters})
+                dummy = up.model.InstantaneousAction(
+                    action.name,
+                    _parameters=params,
+                    _env=problem.environment,
+                )
+                for precond in action.preconditions:
+                    dummy.add_precondition(precond)
+                deterministic_problem.add_action(dummy)
+            else:
+                deterministic_problem.add_action(action.clone())
+
+        for g in problem.goals:
+            deterministic_problem.add_goal(g)
+
+        # Copy metrics
+        for metric in problem.quality_metrics:
+            deterministic_problem.add_quality_metric(metric)
+
+        return deterministic_problem
 
     def _randomly_set_full_initial_state(
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
@@ -117,7 +159,7 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         for k, v in res.items():
             f = symbol_to_fnode[k]
             assert v.is_bool_constant()
-            problem.set_initial_value(f, v.is_true())
+            self._deterministic_problem.set_initial_value(f, v.is_true())
 
     def apply(
         self, action: "up.plans.ActionInstance"
@@ -128,8 +170,16 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         :param action: A :class:`~unified_planning.plans.ActionInstance` object representing the action to apply.
         :return: A dictionary mapping the fluent expressions observed by the sensing action to their corresponding values.
         """
+        if isinstance(action.action, up.model.contingent.sensing_action.SensingAction):
+            # Convert the sensing action instance to the corresponding dummy action instance
+            # in the deterministic problem
+            dummy_action = self._deterministic_problem.action(action.action.name)
+            applied_action = dummy_action(*action.actual_parameters)
+        else:
+            applied_action = action
+
         new_state = self._simulator.apply(
-            self._state, action.action, action.actual_parameters
+            self._state, applied_action.action, action.actual_parameters
         )
         if new_state is None:
             raise UPUsageError("The given action is not applicable!")
