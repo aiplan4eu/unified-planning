@@ -29,7 +29,7 @@ from unified_planning.model.contingent import (
     SensingAction,
     SimulatedExecutionEnvironment,
 )
-from unified_planning.model.contingent.ExecutionEnvironment import all_smt
+from unified_planning.model.contingent.execution_environment import all_smt
 from unified_planning.test import (
     main,
     skipIfModuleNotInstalled,
@@ -123,7 +123,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             SimulatedExecutionEnvironment,
             "_randomly_set_full_initial_state",
         ) as random_init, patch(
-            "unified_planning.model.contingent.ExecutionEnvironment.up.engines.UPSequentialSimulator",
+            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
             new=_FakeSequentialSimulator,
         ):
             env = SimulatedExecutionEnvironment(self.problem)
@@ -140,7 +140,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             SimulatedExecutionEnvironment,
             "_randomly_set_full_initial_state",
         ), patch(
-            "unified_planning.model.contingent.ExecutionEnvironment.up.engines.UPSequentialSimulator",
+            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
             new=_FakeSequentialSimulator,
         ):
             env = SimulatedExecutionEnvironment(self.problem, max_constraints=3)
@@ -230,10 +230,10 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             yield {k: _FakeBool(True) for k in keys}
 
         with patch(
-            "unified_planning.model.contingent.ExecutionEnvironment.all_smt",
+            "unified_planning.model.contingent.execution_environment.all_smt",
             side_effect=fake_all_smt,
         ) as p_all_smt, patch(
-            "unified_planning.model.contingent.ExecutionEnvironment.random.choice",
+            "unified_planning.model.contingent.execution_environment.random.choice",
             side_effect=lambda models: models[0],
         ):
             env._randomly_set_full_initial_state(self.problem)

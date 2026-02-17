@@ -15,7 +15,7 @@
 #
 
 
-from unified_planning.model.contingent.ExecutionEnvironment import (
+from unified_planning.model.contingent.execution_environment import (
     ExecutionEnvironment,
     SimulatedExecutionEnvironment,
 )
