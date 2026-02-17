@@ -143,7 +143,9 @@ class TestActionSelector(unittest_TestCase):
         )
 
     def test_factory_returns_dummy_action_selector_named_and_unnamed(self):
-        self.env.factory.add_engine("dummy-action-selector", __name__, "DummyActionSelector")
+        self.env.factory.add_engine(
+            "dummy-action-selector", __name__, "DummyActionSelector"
+        )
         self.env.factory.preference_list = ["dummy-action-selector"]
 
         named = self.env.factory.ActionSelector(
@@ -165,7 +167,9 @@ class TestActionSelector(unittest_TestCase):
         state = simulator.apply(state, first_action)
         self.assertTrue(state.get_value(self.flag()).bool_constant_value())
 
-        selector.update({self.flag(): self.problem.environment.expression_manager.TRUE()})
+        selector.update(
+            {self.flag(): self.problem.environment.expression_manager.TRUE()}
+        )
         second_action = selector.get_action()
         state = simulator.apply(state, second_action)
         self.assertFalse(state.get_value(self.flag()).bool_constant_value())
