@@ -48,6 +48,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(problem.actions), 12)
 
         for sa in sensing_actions:
+            self.assertTrue(isinstance(sa, up.model.contingent.SensingAction))
             self.assertEqual(len(sa.parameters), 3)
             self.assertEqual(len(sa.preconditions), 1)
             self.assertEqual(len(sa.observed_fluents), 1)
@@ -71,6 +72,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(problem.actions), 5)
 
         for sa in sensing_actions:
+            self.assertTrue(isinstance(sa, up.model.contingent.SensingAction))
             self.assertEqual(len(sa.parameters), 2)
             self.assertEqual(len(sa.preconditions), 1)
             self.assertEqual(len(sa.observed_fluents), 1)
