@@ -432,6 +432,9 @@ jobs:
         with:
           distribution: "microsoft"
           java-version: "17"
+      
+      - name: Setup older setuptools for ENHSP
+        run: python3 -m pip install "setuptools<82"  # ENHSP requires pkg_resources
 
       - name: Checkout up-enhsp
         uses: actions/checkout@v2
