@@ -53,12 +53,12 @@ class ContingentProblem(Problem):
             return False
         elif self._hidden_fluents != oth._hidden_fluents:
             return False
-        elif set(set(c) for c in self._or_initial_constraints) != set(
-            set(c) for c in oth._or_initial_constraints
+        elif set(frozenset(c) for c in self._or_initial_constraints) != set(
+            frozenset(c) for c in oth._or_initial_constraints
         ):
             return False
-        elif set(set(c) for c in self._oneof_initial_constraints) != set(
-            set(c) for c in oth._oneof_initial_constraints
+        elif set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+            frozenset(c) for c in oth._oneof_initial_constraints
         ):
             return False
         else:
