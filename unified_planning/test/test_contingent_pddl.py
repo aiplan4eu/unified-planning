@@ -41,13 +41,14 @@ class TestPddlIO(unittest_TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        self.assertTrue(isinstance(problem, up.model.ContingentProblem))
+        self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 10)
         sensing_actions = [sa for sa in problem.sensing_actions]
         self.assertEqual(len(sensing_actions), 3)
         self.assertEqual(len(problem.actions), 12)
 
         for sa in sensing_actions:
+            self.assertTrue(isinstance(sa, up.model.contingent.SensingAction))
             self.assertEqual(len(sa.parameters), 3)
             self.assertEqual(len(sa.preconditions), 1)
             self.assertEqual(len(sa.observed_fluents), 1)
@@ -64,13 +65,14 @@ class TestPddlIO(unittest_TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
 
         self.assertTrue(problem is not None)
-        self.assertTrue(isinstance(problem, up.model.ContingentProblem))
+        self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 8)
         sensing_actions = [sa for sa in problem.sensing_actions]
         self.assertEqual(len(sensing_actions), 2)
         self.assertEqual(len(problem.actions), 5)
 
         for sa in sensing_actions:
+            self.assertTrue(isinstance(sa, up.model.contingent.SensingAction))
             self.assertEqual(len(sa.parameters), 2)
             self.assertEqual(len(sa.preconditions), 1)
             self.assertEqual(len(sa.observed_fluents), 1)

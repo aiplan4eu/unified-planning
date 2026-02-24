@@ -18,7 +18,6 @@ from unified_planning.model.action import (
     Action,
     InstantaneousAction,
     DurativeAction,
-    SensingAction,
 )
 
 from unified_planning.model.natural_transition import (
@@ -45,7 +44,6 @@ from unified_planning.model.operators import OperatorKind
 from unified_planning.model.parameter import Parameter
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.problem import Problem, generate_causal_graph
-from unified_planning.model.contingent_problem import ContingentProblem
 from unified_planning.model.delta_stn import DeltaSimpleTemporalNetwork
 from unified_planning.model.problem_kind import ProblemKind
 from unified_planning.model.state import State, UPState
@@ -88,6 +86,7 @@ from unified_planning.model.metrics import (
 )
 import unified_planning.model.multi_agent
 import unified_planning.model.scheduling
+import unified_planning.model.contingent
 
 __all__ = [
     "Action",
