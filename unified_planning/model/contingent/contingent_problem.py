@@ -66,12 +66,8 @@ class ContingentProblem(Problem):
 
     def __hash__(self) -> int:
         res = super().__hash__()
-        for c in self._or_initial_constraints:
-            for f in c:
-                res += hash(f)
-        for c in self._oneof_initial_constraints:
-            for f in c:
-                res += hash(f)
+        res += hash(frozenset(frozenset(c) for c in self._or_initial_constraints))
+        res += hash(frozenset(frozenset(c) for c in self._oneof_initial_constraints))
         return res
 
     def clone(self):
