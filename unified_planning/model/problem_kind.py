@@ -35,6 +35,7 @@ FEATURES = {
         "ACTION_BASED_MULTI_AGENT",
         "SCHEDULING",
         "TAMP",
+        "SAMP",
     ],
     "PROBLEM_TYPE": ["SIMPLE_NUMERIC_PLANNING", "GENERAL_NUMERIC_PLANNING"],
     "TIME": [

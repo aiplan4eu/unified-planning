@@ -13,12 +13,80 @@
 # limitations under the License.
 #
 
+from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple, List
+from typing import Dict, Optional, Any, Tuple, List, Callable, Union
 from unified_planning.model import Object
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 import unified_planning.model.types
+
+
+class ConfigurationKind(Enum):
+    SE2 = auto()
+    SE3 = auto()
+    JOINT = auto()
+    MULTILINK = auto()
+
+
+class ConfigurationInstance:
+    # TODO: should this be an abstract base class?
+    pass
+
+
+@dataclass(eq=True, frozen=True)
+class SE2(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of type (x, y, theta)
+    """
+
+    x: float
+    y: float
+    theta: float
+
+
+@dataclass(eq=True, frozen=True)
+class SE3(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of type (x, y, z, rx, ry, rz, rw)
+    """
+
+    x: float
+    y: float
+    z: float
+    rx: float
+    ry: float
+    rz: float
+    rw: float
+
+
+@dataclass(eq=True, frozen=True)
+class Joint(ConfigurationInstance):
+    """
+    This dataclass represents a configuration of a (eventually) torque controlled joint.
+
+    The configuration (revolute or prismatic) is defined by:
+    * the position of the joint (rad or m),
+    * the velocity of the joint (rad/s or m/s) and
+    * the effort that is applied in the joint (Nm or N).
+
+    Each field is optional. When e.g. your joints have no effort associated with them, you can leave the effort array empty.
+    """
+
+    position: Optional[float] = None
+    velocty: Optional[float] = None
+    effort: Optional[float] = None
+
+
+@dataclass(eq=True, frozen=True)
+class MultiLink(ConfigurationInstance):
+    """
+    This class represents the configuration of a multi link object.
+
+    """
+
+    base_link = Tuple[str, Union[SE2, SE3]]
+    joints = Dict[str, Joint]
 
 
 class MotionModels(Enum):
@@ -50,25 +118,29 @@ class MovableObject(Object):
         typename: "unified_planning.model.types.Type",
         *,
         footprint: Optional[List[Tuple[float, float]]] = None,
-        model: Optional[str] = None,
+        geometric_model: Optional[str] = None,
         motion_model: MotionModels,
-        parameters: Dict[str, Any],
+        motion_parameters: Optional[Dict[str, Any]] = None,
+        control_model: Optional[Callable] = None,
+        control_parameters: Optional[Dict[str, Any]] = None,
         env: Optional[Environment] = None,
     ):
         super().__init__(name, typename, env)
-        if model is None and footprint is None:
+        if geometric_model is None and footprint is None:
             raise UPUsageError(
-                "One of `model` or `footprint` paramters must be specified!"
+                "One of `model` or `footprint` parameters must be specified!"
             )
         self._footprint = footprint
-        self._model = model
+        self._geometric_model = geometric_model
         self._motion_model = motion_model
-        self._parameters = parameters
+        self._motion_parameters = motion_parameters
+        self._control_model = control_model
+        self._control_parameters = control_parameters
 
     @property
-    def model(self) -> Optional[str]:
-        """Returns the model of this `MovableObject` (i.e., its geometry, kinematic model, and dynamic model)."""
-        return self._model
+    def geometric_model(self) -> Optional[str]:
+        """Returns the geometric model of this `MovableObject` (i.e., its geometry, kinematic model, and dynamic model)."""
+        return self._geometric_model
 
     @property
     def footprint(self) -> Optional[List[Tuple[float, float]]]:
@@ -81,9 +153,19 @@ class MovableObject(Object):
         return self._motion_model
 
     @property
-    def parameters(self) -> Dict[str, Any]:
-        """Returns the `dict` of parameters of the motion model of this `MovableObject`."""
-        return self._parameters
+    def motion_parameters(self) -> Dict[str, Any]:
+        """Returns the `dict` of motion parameters of the motion model of this `MovableObject`."""
+        return self._motion_parameters
+
+    @property
+    def control_model(self) -> Callable:
+        """Returns the control model of this `MovableObject`."""
+        return self._control_model
+
+    @property
+    def control_parameters(self) -> Dict[str, Any]:
+        """Returns the `dict` of control parameters of the motion model of this `MovableObject`."""
+        return self._control_parameters
 
 
 class ConfigurationObject(Object):
@@ -98,13 +180,13 @@ class ConfigurationObject(Object):
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
-        configuration: Tuple[float, ...],
+        configuration: ConfigurationInstance,
         env: Optional[Environment] = None,
     ):
         super().__init__(name, typename, env)
         self._configuration = configuration
 
     @property
-    def configuration(self) -> Tuple[float, ...]:
-        """Returns the configuration of this `ConfigurationObject`."""
+    def configuration(self) -> ConfigurationInstance:
+        """Returns the `ConfigurationInstance` of this `ConfigurationObject`."""
         return self._configuration
