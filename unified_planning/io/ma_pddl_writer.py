@@ -28,13 +28,19 @@ from unified_planning.model.types import _UserType
 from typing import Dict, List, Optional, Set, Union, cast
 from io import StringIO
 from unified_planning.io.pddl_writer import (
+    GENERAL_PDDL_KEYWORDS,
     PDDL3_KEYWORDS,
+    TEMPORAL_PDDL_KEYWORDS,
     ObjectsExtractor,
     ConverterToPDDLString,
     MangleFunction,
     WithName,
     _write_effect,
     _get_pddl_name,
+)
+
+MA_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(TEMPORAL_PDDL_KEYWORDS).union(
+    PDDL3_KEYWORDS
 )
 
 
@@ -123,7 +129,7 @@ class MAPDDLWriter:
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
         self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str]
         self.all_public_fluents: Set[Fluent] = set()
-        self.pddl_keywords = PDDL3_KEYWORDS
+        self.pddl_keywords = MA_PDDL_KEYWORDS
 
     def _write_domain(self):
         ag_domains = {}

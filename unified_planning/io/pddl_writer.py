@@ -104,40 +104,36 @@ GENERAL_PDDL_KEYWORDS = {
     "continuous-effects",
 }
 
-TEMPORAL_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(
-    {
-        "durative-action",
-        "duration",
-        "condition",
-        "at",
-        "over",
-        "start",
-        "end",
-        "all",
-    }
-)
+TEMPORAL_PDDL_KEYWORDS = {
+    "durative-action",
+    "duration",
+    "condition",
+    "at",
+    "over",
+    "start",
+    "end",
+    "all",
+}
 
-PDDL3_KEYWORDS = TEMPORAL_PDDL_KEYWORDS.union(
-    {
-        "constraints",
-        "preferences",
-        "is-violated",
-        "preference",
-        "always",
-        "sometime",
-        "within",
-        "at-most-once",
-        "sometime-after",
-        "sometime-before",
-        "always-within",
-        "hold-during",
-        "hold-after",
-    }
-)
+PDDL3_KEYWORDS = {
+    "constraints",
+    "preferences",
+    "is-violated",
+    "preference",
+    "always",
+    "sometime",
+    "within",
+    "at-most-once",
+    "sometime-after",
+    "sometime-before",
+    "always-within",
+    "hold-during",
+    "hold-after",
+}
 
-PDDL_PLUS_KEYWORDS = GENERAL_PDDL_KEYWORDS.union({"process", "event"})
+PDDL_PLUS_KEYWORDS = {"process", "event"}
 
-CONTINGENT_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union({"observe", "oneof", "unknown"})
+CONTINGENT_PDDL_KEYWORDS = {"observe", "oneof", "unknown"}
 
 # The following map is used to mangle the invalid names by their class.
 INITIAL_LETTER: Dict[type, str] = {
@@ -380,21 +376,21 @@ class PDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
+        # construct keywords set
+        self.pddl_keywords = GENERAL_PDDL_KEYWORDS
         if len(self.problem.processes) > 0 or len(self.problem.events) > 0:
-            self.pddl_keywords = PDDL_PLUS_KEYWORDS
-        elif len(self.problem.trajectory_constraints) > 0:
-            self.pddl_keywords = PDDL3_KEYWORDS
-        elif any(
+            self.pddl_keywords |= PDDL_PLUS_KEYWORDS
+        if len(self.problem.trajectory_constraints) > 0:
+            self.pddl_keywords |= PDDL3_KEYWORDS
+        if any(
             map(
                 lambda action: isinstance(action, up.model.action.DurativeAction),
                 self.problem.actions,
             )
         ):
-            self.pddl_keywords = TEMPORAL_PDDL_KEYWORDS
-        elif isinstance(self.problem, ContingentProblem):
-            self.pddl_keywords = CONTINGENT_PDDL_KEYWORDS
-        else:
-            self.pddl_keywords = GENERAL_PDDL_KEYWORDS
+            self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
+        if isinstance(self.problem, ContingentProblem):
+            self.pddl_keywords |= CONTINGENT_PDDL_KEYWORDS
 
     def _write_parameters(self, out, a):
         for ap in a.parameters:
