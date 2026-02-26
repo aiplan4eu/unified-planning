@@ -18,7 +18,7 @@ from typing import Optional, List, Dict, Tuple
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.scheduling import SchedulingProblem
-from unified_planning.model.tamp import MotionActivity
+from unified_planning.model.motion import MotionActivity
 from unified_planning.exceptions import UPTypeError
 from unified_planning.model.mixins import (
     UserTypesSetMixin,

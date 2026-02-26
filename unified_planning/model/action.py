@@ -46,7 +46,7 @@ class Action(Transition):
         *args: "up.model.Expression",
         agent: Optional["up.model.multi_agent.Agent"] = None,
         motion_paths: Optional[
-            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+            Dict["up.model.motion.MotionConstraint", "up.model.motion.Path"]
         ] = None,
     ) -> "up.plans.plan.ActionInstance":
         params = tuple(args)

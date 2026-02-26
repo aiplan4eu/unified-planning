@@ -243,10 +243,10 @@ class Waypoints(MotionConstraint):
         starting: "up.model.expression.Expression",
         waypoints: List["up.model.expression.Expression"],
         static_obstacles: Optional[
-            Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]
+            Dict["up.model.motion.MovableObject", "up.model.fnode.FNode"]
         ] = None,
         dynamic_obstacles_at_start: Optional[
-            Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]
+            Dict["up.model.motion.MovableObject", "up.model.fnode.FNode"]
         ] = None,
         attachments: Optional[List[Attachment]] = None,
         environment: Optional[Environment] = None,
@@ -338,14 +338,14 @@ class Waypoints(MotionConstraint):
     @property
     def static_obstacles(
         self,
-    ) -> Optional[Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]]:
+    ) -> Optional[Dict["up.model.motion.MovableObject", "up.model.fnode.FNode"]]:
         """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration during all the constraint (static obstacles)."""
         return self._static_obstacles
 
     @property
     def dynamic_obstacles_at_start(
         self,
-    ) -> Optional[Dict["up.model.tamp.MovableObject", "up.model.fnode.FNode"]]:
+    ) -> Optional[Dict["up.model.motion.MovableObject", "up.model.fnode.FNode"]]:
         """Returns the set of `MovableObject` associated with the fluent expressions that represent their configuration at the beginning of the constraint (possibly dynamic obstacles)."""
         return self._dynamic_obstacles_at_start
 
@@ -540,14 +540,14 @@ class ActivityWaypoints(MotionConstraint):
         waypoints: List["up.model.expression.Expression"],
         static_obstacles: Optional[
             Union[
-                List["up.model.tamp.MovableObject"],
-                Dict["up.model.tamp.MovableObject", "up.model.Fluent"],
+                List["up.model.motion.MovableObject"],
+                Dict["up.model.motion.MovableObject", "up.model.Fluent"],
             ]
         ] = None,
         dynamic_obstacles_at_start: Optional[
             Union[
-                List["up.model.tamp.MovableObject"],
-                Dict["up.model.tamp.MovableObject", "up.model.Fluent"],
+                List["up.model.motion.MovableObject"],
+                Dict["up.model.motion.MovableObject", "up.model.Fluent"],
             ]
         ] = None,
         attachments: Optional[List[Attachment]] = None,
@@ -642,8 +642,8 @@ class ActivityWaypoints(MotionConstraint):
         self,
     ) -> Optional[
         Union[
-            List["up.model.tamp.MovableObject"],
-            Dict["up.model.tamp.MovableObject", "up.model.Fluent"],
+            List["up.model.motion.MovableObject"],
+            Dict["up.model.motion.MovableObject", "up.model.Fluent"],
         ]
     ]:
         return self._static_obstacles
@@ -653,8 +653,8 @@ class ActivityWaypoints(MotionConstraint):
         self,
     ) -> Optional[
         Union[
-            List["up.model.tamp.MovableObject"],
-            Dict["up.model.tamp.MovableObject", "up.model.Fluent"],
+            List["up.model.motion.MovableObject"],
+            Dict["up.model.motion.MovableObject", "up.model.Fluent"],
         ]
     ]:
         return self._dynamic_obstacles_at_start
