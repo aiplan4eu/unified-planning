@@ -68,14 +68,12 @@ class SchedulingMotionProblem(SchedulingProblem):
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":
-        # TODO
         problem_kind = super().kind
         problem_kind.set_problem_class("SAMP")
         return problem_kind
 
     def clone(self):
         """Returns an equivalent problem."""
-        # FIXME: duplicated code
         new_p = SchedulingMotionProblem(self._name, self._env)
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
@@ -86,10 +84,10 @@ class SchedulingMotionProblem(SchedulingProblem):
 
         new_p._base = self._base.clone()
         new_p._activities = [a.clone() for a in self._activities]
-        new_p._motion_activities = list(
-            filter(lambda a: isinstance(a, MotionActivity), new_p._activities)
-        )
-        new_p._initial_configuration = self.initial_configuration
+        new_p._motion_activities = [
+            a for a in new_p._activities if isinstance(a, MotionActivity)
+        ]
+        new_p._initial_configuration = list(self.initial_configuration)
         return new_p
 
     def add_motion_activity(
