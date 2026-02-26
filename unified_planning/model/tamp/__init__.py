@@ -15,25 +15,49 @@
 
 from unified_planning.model.tamp.action import (
     InstantaneousMotionAction,
+    DurativeMotionAction,
+    MotionActivity,
     MotionConstraint,
     Waypoints,
+    ActivityWaypoints,
 )
 from unified_planning.model.tamp.objects import (
+    ConfigurationKind,
+    ConfigurationInstance,
+    SE2,
+    SE3,
+    Joint,
+    MultiLink,
     MotionModels,
     MovableObject,
     ConfigurationObject,
 )
 from unified_planning.model.tamp.types import OccupancyMap
-from unified_planning.model.tamp.path import Path, ReedsSheppPath
+from unified_planning.model.tamp.path import Path, SE2Path, SE3Path, SE2WithControlsPath
+from unified_planning.model.tamp.scheduling_motion_problem import (
+    SchedulingMotionProblem,
+)
 
 __all__ = [
     "InstantaneousMotionAction",
+    "DurativeMotionAction",
+    "MotionActivity",
     "MotionConstraint",
     "Waypoints",
+    "ActivityWaypoints",
+    "ConfigurationKind",
+    "ConfigurationInstance",
+    "SE2",
+    "SE3",
+    "Joint",
+    "MultiLink",
     "MotionModels",
     "MovableObject",
     "ConfigurationObject",
     "OccupancyMap",
     "Path",
-    "ReedsSheppPath",
+    "SE2Path",
+    "SE3Path",
+    "SE2WithControlsPath",
+    "SchedulingMotionProblem",
 ]
