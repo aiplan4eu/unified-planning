@@ -36,7 +36,6 @@ from unified_planning.shortcuts import (
     Not,
 )
 
-
 # Redefine the plot package methods imported above to print the plot to a temp file
 # if the exception "could not locate runnable browser" is raised. This usually happens
 # in the Continuous Integration.

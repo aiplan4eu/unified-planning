@@ -17,6 +17,7 @@ This module defines the Method class.
 A Method has a name, a list of Parameters, a list of conditions
 and a list of subtasks.
 """
+
 from collections import OrderedDict
 from typing import List, Union, Optional
 

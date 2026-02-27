@@ -3,7 +3,6 @@
 from setuptools import setup, find_packages  # type: ignore
 import unified_planning
 
-
 long_description = "Unified Planning: A library that makes it easy to formulate planning problems and to invoke automated planners."
 
 setup(

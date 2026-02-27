@@ -25,7 +25,6 @@ from unified_planning.plans import Plan
 from unified_planning.test.pddl import enhsp
 from typing import Optional, Union, List
 
-
 skipIf = unittest.skipIf
 SkipTest = unittest.SkipTest
 

@@ -30,7 +30,6 @@ from unified_planning.engines.compilers.utils import (
 )
 from typing import List, Dict, Tuple, Optional
 
-
 NUM = "num"
 CONSTRAINTS = "constraints"
 HOLD = "hold"

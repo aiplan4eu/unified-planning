@@ -14,7 +14,6 @@
 #
 from typing import Set, Tuple
 
-
 # This module handles the changing of versions of the ProblemKind class, defined in the
 # up.model.problem_kind.py file
 

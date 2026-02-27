@@ -19,7 +19,6 @@ from unified_planning.test import unittest_TestCase, main
 from unified_planning.io import PDDLReader
 from unified_planning.test.examples import get_example_problems
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 CONTINGENT_PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "contingent_pddl")
 

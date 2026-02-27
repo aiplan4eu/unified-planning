@@ -26,7 +26,6 @@ from unified_planning.environment import get_environment
 from unified_planning.io import PDDLWriter
 from typing import List, Optional
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 

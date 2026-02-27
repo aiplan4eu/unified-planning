@@ -22,7 +22,6 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional, Sequence, Tuple, Dict
 from enum import Enum, auto
 
-
 """This module defines the general `Plan` interface and the `ActionInstance` class."""
 
 

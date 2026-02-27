@@ -22,7 +22,6 @@ from unified_planning.io import ANMLReader, ANMLWriter
 from unified_planning.test.examples import get_example_problems
 import os
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")
 

@@ -27,7 +27,6 @@ from unified_planning.test import (
     skipIfNoAnytimePlannerForProblemKind,
 )
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 

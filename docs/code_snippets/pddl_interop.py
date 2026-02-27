@@ -68,7 +68,6 @@ os.remove(problem_filename)
 
 from unified_planning.interop.tarski import convert_problem_to_tarski
 
-
 # problem = ... # get or create the Problem using the UP
 tarski_problem: "tarski.fstrips.Problem" = convert_problem_to_tarski(problem)
 # You get a Tarski problem, which you can use to interact with the Tarski library
@@ -76,7 +75,6 @@ tarski_problem: "tarski.fstrips.Problem" = convert_problem_to_tarski(problem)
 
 from unified_planning.interop.tarski import convert_problem_from_tarski
 from unified_planning.shortcuts import get_environment
-
 
 # From a Tarski problem, you can generate the equivalent UP problem.
 problem = convert_problem_from_tarski(get_environment(), tarski_problem)

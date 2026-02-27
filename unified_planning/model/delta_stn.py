@@ -19,7 +19,6 @@ from dataclasses import dataclass
 from fractions import Fraction
 from typing import Deque, Dict, List, Optional, Any, Generic, Set, Tuple, TypeVar, cast
 
-
 T = TypeVar("T", Fraction, float, int)
 
 

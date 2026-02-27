@@ -14,7 +14,6 @@
 #
 """This module defines the bounded types remover class."""
 
-
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin

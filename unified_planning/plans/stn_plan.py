@@ -91,7 +91,7 @@ class STNPlanNode:
 
 
 def flatten_dict_structure(
-    d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]]
+    d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
 ) -> Iterator[Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]]:
     """
     This method takes a dict containing a List of tuples of 3 elements, and

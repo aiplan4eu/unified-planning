@@ -45,7 +45,6 @@ from unified_planning.interop import (
 
 from pddl import parse_domain, parse_problem  # type: ignore
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 

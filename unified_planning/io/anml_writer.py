@@ -468,7 +468,7 @@ def _get_anml_valid_name(
         "up.model.Parameter",
         "up.model.Fluent",
         "up.model.Object",
-    ]
+    ],
 ) -> str:
     """This function returns a valid ANML name."""
     if isinstance(item, up.model.Type):

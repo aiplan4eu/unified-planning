@@ -30,7 +30,6 @@ from unified_planning.test import TestCase
 
 from utils import Ok, Err, ResultSet, Warn, bcolors, Void, get_report_parser, _get_test_cases  # type: ignore
 
-
 get_environment().credits_stream = None  # silence credits
 factory = get_environment().factory
 # Move the sequential_plan_validator to the top of the list

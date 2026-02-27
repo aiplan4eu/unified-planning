@@ -25,7 +25,6 @@ from unified_planning.model.problem_kind_versioning import (
     LATEST_PROBLEM_KIND_VERSION,
 )
 
-
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
     "PROBLEM_CLASS": [

@@ -318,9 +318,11 @@ class ProtobufReader(Converter):
         for f in msg.fluents:
             problem.add_fluent(
                 self.convert(f, problem),
-                default_initial_value=self.convert(f.default_value, problem)
-                if f.HasField("default_value")
-                else None,
+                default_initial_value=(
+                    self.convert(f.default_value, problem)
+                    if f.HasField("default_value")
+                    else None
+                ),
             )
         for f in msg.actions:
             problem.add_action(self.convert(f, problem))
@@ -380,9 +382,11 @@ class ProtobufReader(Converter):
         for f in msg.fluents:
             problem.add_fluent(
                 self.convert(f, problem),
-                default_initial_value=self.convert(f.default_value, problem)
-                if f.HasField("default_value")
-                else None,
+                default_initial_value=(
+                    self.convert(f.default_value, problem)
+                    if f.HasField("default_value")
+                    else None
+                ),
             )
         for eff in msg.timed_effects:
             ot = self.convert(eff.occurrence_time, problem)
@@ -519,9 +523,11 @@ class ProtobufReader(Converter):
                 costs[problem.action(a)] = self.convert(cost, problem)
             return metrics.MinimizeActionCosts(
                 costs=costs,
-                default=self.convert(msg.default_action_cost, problem)
-                if msg.HasField("default_action_cost")
-                else None,
+                default=(
+                    self.convert(msg.default_action_cost, problem)
+                    if msg.HasField("default_action_cost")
+                    else None
+                ),
             )
 
         elif msg.kind == proto.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
@@ -658,9 +664,11 @@ class ProtobufReader(Converter):
         self, msg: proto.Timing, _problem: Optional[Problem] = None
     ) -> model.timing.Timing:
         return model.Timing(
-            delay=self.convert(msg.delay)
-            if msg.HasField("delay")
-            else fractions.Fraction(0),
+            delay=(
+                self.convert(msg.delay)
+                if msg.HasField("delay")
+                else fractions.Fraction(0)
+            ),
             timepoint=self.convert(msg.timepoint),
         )
 
@@ -858,9 +866,9 @@ class ProtobufReader(Converter):
 
         return unified_planning.engines.PlanGenerationResult(
             status=status,
-            plan=self.convert(result.plan, problem)
-            if result.HasField("plan")
-            else None,
+            plan=(
+                self.convert(result.plan, problem) if result.HasField("plan") else None
+            ),
             engine_name=result.engine.name,
             metrics=engine_metrics,
             log_messages=log_messages,
