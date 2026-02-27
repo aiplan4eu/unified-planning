@@ -345,9 +345,9 @@ def add_invariant_condition_apply_function_to_problem_expressions(
     for original_action in original_problem.actions:
         params = OrderedDict(((p.name, p.type) for p in original_action.parameters))
         if isinstance(original_action, InstantaneousAction):
-            new_action: Union[InstantaneousAction, DurativeAction] = (
-                InstantaneousAction(original_action.name, params, env)
-            )
+            new_action: Union[
+                InstantaneousAction, DurativeAction
+            ] = InstantaneousAction(original_action.name, params, env)
             assert isinstance(new_action, InstantaneousAction)
             new_cond = em.And(
                 *map(function, original_action.preconditions), condition
