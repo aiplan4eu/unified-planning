@@ -14,7 +14,6 @@
 #
 """This module defines the conditional effects remover class."""
 
-
 from itertools import product
 import unified_planning as up
 import unified_planning.engines as engines

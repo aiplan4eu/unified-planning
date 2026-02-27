@@ -16,7 +16,6 @@
 This module defines the Parameter class. Both actions and fluents use this class to represent their parameters.
 """
 
-
 from typing import Optional
 from unified_planning.environment import Environment, get_environment
 import unified_planning as up

@@ -22,6 +22,7 @@ from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
 from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.walkers.any import AnyGetter
 
 
 class HierarchicalProblem(up.model.problem.Problem):
@@ -131,7 +132,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         factory = self._kind_factory()
         factory.kind.set_problem_class("HIERARCHICAL")
         factory.kind.unset_problem_class("ACTION_BASED")
-        (TO, PO, TEMPORAL) = (0, 1, 2)
+        TO, PO, TEMPORAL = (0, 1, 2)
 
         def lvl(tn: AbstractTaskNetwork):
             """Determines the expressivity level of temporal constraints within a task network"""
@@ -241,3 +242,21 @@ class HierarchicalProblem(up.model.problem.Problem):
     @property
     def task_network(self):
         return self._initial_task_network
+
+    @property
+    def domain_constants(self) -> Set["up.model.Object"]:
+        extractor = AnyGetter["up.model.Object"](
+            predicate=lambda x: x.is_object_exp(), extractor=lambda x: x.object()
+        )
+        domain_constants: Set[
+            "up.model.Object"
+        ] = up.model.problem.Problem.domain_constants(self)
+        for m in self.methods:
+            for p in m.preconditions:
+                domain_constants.update(extractor.get(p))
+            for subtask in m.subtasks:
+                for targ in subtask.parameters:
+                    domain_constants.update(extractor.get(targ))
+            for c in m.non_temporal_constraints():
+                domain_constants.update(extractor.get(c))
+        return domain_constants

@@ -13,7 +13,6 @@ from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
 )
 
-
 up.shortcuts.get_environment().credits_stream = None
 
 

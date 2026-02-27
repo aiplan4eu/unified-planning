@@ -81,7 +81,7 @@ class DagWalker(Walker):
         """
 
         while self.stack:
-            (was_expanded, expression) = self.stack.pop()
+            was_expanded, expression = self.stack.pop()
             if was_expanded:
                 self._compute_node_result(expression, **kwargs)
             else:

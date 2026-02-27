@@ -33,7 +33,6 @@ from unified_planning.model.transition import (
     Transition,
 )
 
-
 """
 Below we have natural transitions. These are not controlled by the agent. Natural transitions can be of two kinds:
 Processes or Events.

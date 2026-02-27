@@ -102,7 +102,7 @@ class Parallel(
         while True:
             if processes_alive == 0:  # Every planner gave a result
                 break
-            (idx, res) = signaling_queue.get(block=True)
+            idx, res = signaling_queue.get(block=True)
             processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res

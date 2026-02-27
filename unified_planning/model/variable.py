@@ -17,7 +17,6 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
-
 from typing import List, Optional, FrozenSet
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode

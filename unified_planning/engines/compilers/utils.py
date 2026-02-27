@@ -14,7 +14,6 @@
 #
 """This module defines different utility functions for the compilers."""
 
-
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError

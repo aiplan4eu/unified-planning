@@ -26,7 +26,6 @@ from unified_planning.plans.plan import Plan, PlanKind
 from unified_planning.model.htn import Method
 from unified_planning.plans.plan import ActionInstance
 
-
 FlatPlan = Union[SequentialPlan, TimeTriggeredPlan]
 
 

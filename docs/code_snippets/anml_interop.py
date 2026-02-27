@@ -2,7 +2,6 @@ from unified_planning.io import ANMLReader
 from unified_planning.io import ANMLWriter
 import os
 
-
 problem_filename = os.path.join(
     os.getcwd(), "unified_planning", "test", "anml", "match.anml"
 )

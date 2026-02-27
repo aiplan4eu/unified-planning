@@ -161,39 +161,6 @@ WithName = Union[
 MangleFunction = Callable[[WithName], str]
 
 
-class ObjectsExtractor(walkers.DagWalker):
-    """Returns the object instances appearing in the expression."""
-
-    def __init__(self):
-        walkers.dag.DagWalker.__init__(self)
-
-    def get(self, expression: "up.model.FNode") -> Dict[_UserType, Set[Object]]:
-        """Returns all the free vars of the given expression."""
-        return self.walk(expression)
-
-    def walk_object_exp(
-        self, expression: "up.model.FNode", args: List[Dict[_UserType, Set[Object]]]
-    ) -> Dict[_UserType, Set[Object]]:
-        res: Dict[_UserType, Set[Object]] = {}
-        for a in args:
-            _update_domain_objects(res, a)
-        obj = expression.object()
-        assert obj.type.is_user_type()
-        res.setdefault(cast(_UserType, obj.type), set()).add(obj)
-        return res
-
-    @walkers.handles(
-        set(up.model.OperatorKind).difference((up.model.OperatorKind.OBJECT_EXP,))
-    )
-    def walk_all_types(
-        self, expression: "up.model.FNode", args: List[Dict[_UserType, Set[Object]]]
-    ) -> Dict[_UserType, Set[Object]]:
-        res: Dict[_UserType, Set[Object]] = {}
-        for a in args:
-            _update_domain_objects(res, a)
-        return res
-
-
 class ConverterToPDDLString(walkers.DagWalker):
     """Expression converter to a PDDL string."""
 
@@ -375,7 +342,6 @@ class PDDLWriter:
             WithName,
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
-        self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
         if len(self.problem.processes) > 0 or len(self.problem.events) > 0:
             self.pddl_keywords = PDDL_PLUS_KEYWORDS
@@ -407,7 +373,7 @@ class PDDLWriter:
             )
         if self.problem_kind.has_timed_goals():
             raise UPProblemDefinitionError("PDDL does not support timed goals.")
-        obe = ObjectsExtractor()
+
         out.write("(define ")
         if self.problem.name is None:
             name = "pddl"
@@ -505,18 +471,13 @@ class PDDLWriter:
                 f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
             )
 
-        if self.domain_objects is None:
-            # This method populates the self._domain_objects map
-            self._populate_domain_objects(obe)
-        assert self.domain_objects is not None
-
-        if len(self.domain_objects) > 0:
+        domain_objects = self.problem.domain_constants
+        if len(domain_objects) > 0:
             out.write(" (:constants")
-            for ut, os in self.domain_objects.items():
-                if len(os) > 0:
-                    out.write(
-                        f'\n   {" ".join([self._get_mangled_name(o) for o in os])} - {self._get_mangled_name(ut)}'
-                    )
+            for o in domain_objects:
+                out.write(
+                    f"\n   {self._get_mangled_name(o)} - {self._get_mangled_name(o.type)}"
+                )
             out.write("\n )\n")
 
         predicates = []
@@ -576,8 +537,6 @@ class PDDLWriter:
                 for a in self.problem.actions:
                     cost_exp = metric.get_action_cost(a)
                     costs[a] = cost_exp
-                    if cost_exp is not None:
-                        _update_domain_objects(self.domain_objects, obe.get(cost_exp))
             elif metric.is_minimize_sequential_plan_length():
                 for a in self.problem.actions:
                     costs[a] = self.problem.environment.expression_manager.Int(1)
@@ -775,24 +734,16 @@ class PDDLWriter:
             name = _get_pddl_name(self.problem, self.pddl_keywords)
         out.write(f"(define (problem {name}-problem)\n")
         out.write(f" (:domain {name}-domain)\n")
-        if self.domain_objects is None:
-            # This method populates the self._domain_objects map
-            self._populate_domain_objects(ObjectsExtractor())
-        assert self.domain_objects is not None
+        domain_objects = self.problem.domain_constants
         if len(self.problem.user_types) > 0:
             out.write(" (:objects")
             for t in self.problem.user_types:
-                constants_of_this_type = self.domain_objects.get(
-                    cast(_UserType, t), None
-                )
-                if constants_of_this_type is None:
-                    objects = [o for o in self.problem.all_objects if o.type == t]
-                else:
-                    objects = [
-                        o
-                        for o in self.problem.all_objects
-                        if o.type == t and o not in constants_of_this_type
-                    ]
+                constants_of_this_type = set(o for o in domain_objects if o.type == t)
+                objects = [
+                    o
+                    for o in self.problem.all_objects
+                    if o.type == t and o not in constants_of_this_type
+                ]
                 if len(objects) > 0:
                     out.write(
                         f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
@@ -1015,60 +966,6 @@ class PDDLWriter:
                 f"The item {item} does not correspond to any item renamed."
             )
 
-    def _populate_domain_objects(self, obe: ObjectsExtractor):
-        self.domain_objects = {}
-        # Iterate the actions to retrieve domain objects
-        for a in self.problem.actions:
-            if isinstance(a, up.model.InstantaneousAction):
-                for p in a.preconditions:
-                    _update_domain_objects(self.domain_objects, obe.get(p))
-                for e in a.effects:
-                    if e.is_conditional():
-                        _update_domain_objects(
-                            self.domain_objects, obe.get(e.condition)
-                        )
-                    _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                    _update_domain_objects(self.domain_objects, obe.get(e.value))
-            elif isinstance(a, DurativeAction):
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
-                for interval, cl in a.conditions.items():
-                    for c in cl:
-                        _update_domain_objects(self.domain_objects, obe.get(c))
-                for t, el in a.effects.items():
-                    for e in el:
-                        if e.is_conditional():
-                            _update_domain_objects(
-                                self.domain_objects, obe.get(e.condition)
-                            )
-                        _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                        _update_domain_objects(self.domain_objects, obe.get(e.value))
-        for ev in self.problem.events:
-            for p in ev.preconditions:
-                _update_domain_objects(self.domain_objects, obe.get(p))
-            for e in ev.effects:
-                if e.is_conditional():
-                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
-                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                _update_domain_objects(self.domain_objects, obe.get(e.value))
-        for pro in self.problem.processes:
-            for p in pro.preconditions:
-                _update_domain_objects(self.domain_objects, obe.get(p))
-            for e in pro.effects:
-                if e.is_conditional():
-                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
-                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                _update_domain_objects(self.domain_objects, obe.get(e.value))
-        if isinstance(self.problem, HierarchicalProblem):
-            for m in self.problem.methods:
-                for p in m.preconditions:
-                    _update_domain_objects(self.domain_objects, obe.get(p))
-                for subtask in m.subtasks:
-                    for targ in subtask.parameters:
-                        _update_domain_objects(self.domain_objects, obe.get(targ))
-                for c in m.non_temporal_constraints():
-                    _update_domain_objects(self.domain_objects, obe.get(c))
-
     def _write_task_network(
         self,
         tn: up.model.htn.task_network.AbstractTaskNetwork,
@@ -1173,15 +1070,6 @@ def _get_pddl_name(
     if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
         name = f"?{name}"
     return name
-
-
-def _update_domain_objects(
-    dict_to_update: Dict[_UserType, Set[Object]], values: Dict[_UserType, Set[Object]]
-) -> None:
-    """Small utility method that updated a UserType -> Set[Object] dict with another dict of the same type."""
-    for ut, os in values.items():
-        os_to_update = dict_to_update.setdefault(ut, set())
-        os_to_update |= os
 
 
 def _write_effect(

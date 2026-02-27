@@ -10,7 +10,6 @@ import unified_planning
 from unified_planning.io import PDDLReader
 from unified_planning.test import TestCase
 
-
 # Define the default timeout for anytime and oneshot
 DEFAULT_TIMEOUT = 3.0
 

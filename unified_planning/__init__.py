@@ -18,7 +18,6 @@ from typing import Any, Tuple, Union, TYPE_CHECKING
 
 from unified_planning.environment import Environment
 
-
 if TYPE_CHECKING:
     # can't actually subclass Any at runtime
     AnyBaseClass = Any

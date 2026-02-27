@@ -18,7 +18,6 @@ A `Transition` has a `name`, a `list` of `Parameter`, a `list` of `preconditions
 and a `list` of `effects`.
 """
 
-
 import unified_planning as up
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (

@@ -16,7 +16,6 @@
 This module defines the `Action` class and some of his extensions.
 """
 
-
 import unified_planning as up
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (

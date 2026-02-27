@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 """This module defines all the operators used by the Unified Planning library."""
+
 from enum import Enum, auto
 
 

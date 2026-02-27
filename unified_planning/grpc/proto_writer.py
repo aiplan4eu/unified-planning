@@ -312,9 +312,11 @@ class ProtobufWriter(Converter):
             name=name,
             value_type=proto_type(fluent.type),
             parameters=sig,
-            default_value=self.convert(problem.fluents_defaults[fluent])
-            if fluent in problem.fluents_defaults
-            else None,
+            default_value=(
+                self.convert(problem.fluents_defaults[fluent])
+                if fluent in problem.fluents_defaults
+                else None
+            ),
         )
 
     @handles(model.Object)
@@ -615,9 +617,9 @@ class ProtobufWriter(Converter):
             ],
             discrete_time=problem.discrete_time,
             self_overlapping=problem.self_overlapping,
-            epsilon=self.convert(problem.epsilon)
-            if problem.epsilon is not None
-            else None,
+            epsilon=(
+                self.convert(problem.epsilon) if problem.epsilon is not None else None
+            ),
         )
 
     @handles(model.scheduling.SchedulingProblem)
@@ -660,9 +662,9 @@ class ProtobufWriter(Converter):
             trajectory_constraints=None,
             discrete_time=problem.discrete_time,
             self_overlapping=problem.self_overlapping,
-            epsilon=self.convert(problem.epsilon)
-            if problem.epsilon is not None
-            else None,
+            epsilon=(
+                self.convert(problem.epsilon) if problem.epsilon is not None else None
+            ),
         )
 
     @handles(model.metrics.MinimizeActionCosts)
@@ -676,9 +678,9 @@ class ProtobufWriter(Converter):
         return proto.Metric(
             kind=proto.Metric.MINIMIZE_ACTION_COSTS,
             action_costs=action_costs,
-            default_action_cost=self.convert(metric.default)
-            if metric.default is not None
-            else None,
+            default_action_cost=(
+                self.convert(metric.default) if metric.default is not None else None
+            ),
         )
 
     @handles(model.metrics.MinimizeSequentialPlanLength)

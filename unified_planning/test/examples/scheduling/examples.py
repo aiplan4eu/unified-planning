@@ -67,7 +67,7 @@ def resource_set():
         activity.add_increase_effect(activity.end, resource_fluent(var), 1)
 
     pb = SchedulingProblem(name="sched:resource_set")
-    (rset_fluent, rset_parameter_type, rset_objects) = create_resource_set("R", 4)
+    rset_fluent, rset_parameter_type, rset_objects = create_resource_set("R", 4)
     act = pb.add_activity("a", duration=10)
     use_resource_set(act, rset_fluent, rset_parameter_type)
 

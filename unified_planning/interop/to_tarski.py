@@ -321,9 +321,11 @@ def convert_problem_to_tarski(
         if ut.father is not None:
             lang.sort(
                 ut.name if ut.name != "object" else object_freshname,
-                cast(UT, ut.father).name
-                if cast(UT, ut.father).name != "object"
-                else object_freshname,
+                (
+                    cast(UT, ut.father).name
+                    if cast(UT, ut.father).name != "object"
+                    else object_freshname
+                ),
             )
         else:
             lang.sort(ut.name if ut.name != "object" else object_freshname)

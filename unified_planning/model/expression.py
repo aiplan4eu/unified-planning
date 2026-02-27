@@ -18,7 +18,6 @@ All objects are memoized so that two syntactically equivalent expressions
 are represented by the same object.
 """
 
-
 import unified_planning as up
 import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind

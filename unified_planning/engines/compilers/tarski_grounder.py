@@ -14,7 +14,6 @@
 #
 """This module implements the grounder that uses tarski."""
 
-
 import shutil
 from typing import Optional, Tuple, Dict, List
 import tarski
@@ -30,7 +29,6 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.exceptions import UPUsageError
 from tarski.grounding import LPGroundingStrategy
-
 
 gringo = shutil.which("gringo")
 if gringo is None:

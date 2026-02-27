@@ -150,7 +150,7 @@ class ANMLReader:
         self._constant_fluents: Set["up.model.Fluent"] = set()
 
         for fluent_res in grammar.constant_fluents:
-            (up_fluent, initial_default) = self._parse_fluent(fluent_res, types_map)
+            up_fluent, initial_default = self._parse_fluent(fluent_res, types_map)
             if initial_default is not None:
                 self._problem.add_fluent(
                     up_fluent, default_initial_value=initial_default
@@ -160,7 +160,7 @@ class ANMLReader:
             self._constant_fluents.add(up_fluent)
 
         for fluent_res in grammar.fluents:
-            (up_fluent, initial_default) = self._parse_fluent(fluent_res, types_map)
+            up_fluent, initial_default = self._parse_fluent(fluent_res, types_map)
             if initial_default is not None:
                 self._problem.add_fluent(
                     up_fluent, default_initial_value=initial_default

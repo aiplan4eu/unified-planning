@@ -21,7 +21,6 @@ from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 
-
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 

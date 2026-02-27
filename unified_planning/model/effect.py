@@ -18,7 +18,6 @@ A basic `Effect` has a `fluent` and an `expression`.
 A `condition` can be added to make it a `conditional effect`.
 """
 
-
 from itertools import product
 import unified_planning as up
 from unified_planning.exceptions import (
