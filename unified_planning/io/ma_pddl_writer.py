@@ -29,7 +29,6 @@ from typing import Dict, List, Optional, Set, Union, cast
 from io import StringIO
 from unified_planning.io.pddl_writer import (
     PDDL3_KEYWORDS,
-    ObjectsExtractor,
     ConverterToPDDLString,
     MangleFunction,
     WithName,
@@ -120,8 +119,7 @@ class MAPDDLWriter:
             WithName,
         ] = {}
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
-        self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
-        self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str]
+        self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str] = {}
         self.all_public_fluents: Set[Fluent] = set()
         self.pddl_keywords = PDDL3_KEYWORDS
 
@@ -140,7 +138,6 @@ class MAPDDLWriter:
                 raise UPProblemDefinitionError(
                     "PDDL2.1 does not support timed effects or timed goals."
                 )
-            obe = ObjectsExtractor()
             out.write("(define ")
             if self.problem.name is None:
                 name = "ma-pddl"
@@ -221,36 +218,28 @@ class MAPDDLWriter:
                 )
                 out.write(" )\n")
 
-            if self.domain_objects is None:
-                if self.unfactored:
-                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
-                    for ag in self.problem.agents:
-                        self._populate_domain_objects(obe, ag)
-                        assert self.domain_objects is not None
-                        temp_domain_objects = temp_domain_objects | self.domain_objects
-                        self.domain_objects = None
-                    self.domain_objects = temp_domain_objects
-                else:
-                    # This method populates the self._domain_objects map
-                    self._populate_domain_objects(obe, ag)
-            assert self.domain_objects is not None
+            if self.unfactored:
+                for ags in self.problem.agents:
+                    self._populate_domain_objects(agent=ags)
+            else:
+                self._populate_domain_objects(agent=ag)
 
             if len(self.all_public_fluents) == 0:
                 self._all_public_fluents(self.all_public_fluents, self.problem.agents)
 
-            if len(self.domain_objects) > 0:
+            domain_objects = self.problem.domain_constants
+            if len(domain_objects) + len(self.domain_objects_agents) > 0:
                 out.write(" (:constants")
-                for ut, os in self.domain_objects.items():
-                    if len(os) > 0:
-                        out.write(
-                            f'\n   {" ".join([self._get_mangled_name(o) for o in os])} - {self._get_mangled_name(ut)}'
-                        )
-            if len(self.domain_objects_agents) > 0:
+                for o in domain_objects:
+                    out.write(
+                        f"\n   {self._get_mangled_name(o)} - {self._get_mangled_name(o.type)}"
+                    )
+
                 for k, v in self.domain_objects_agents.items():
                     if len(v) > 0:
                         out.write(f"\n   {self._get_mangled_name(k)} - {v}")
 
-            if len(self.domain_objects) > 0 or len(self.domain_objects_agents) > 0:
+            if len(domain_objects) + len(self.domain_objects_agents) > 0:
                 out.write("\n )\n")
 
             (
@@ -588,40 +577,33 @@ class MAPDDLWriter:
                 name = _get_pddl_name(self.problem, self.pddl_keywords)
             out.write(f"(define (problem {name}-problem)\n")
             out.write(f" (:domain {name}-domain)\n")
-            if self.domain_objects is None:
-                if self.unfactored:
-                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
-                    for ag in self.problem.agents:
-                        self._populate_domain_objects(ObjectsExtractor(), ag)
-                        assert self.domain_objects is not None
-                        temp_domain_objects = temp_domain_objects | self.domain_objects
-                        self.domain_objects = None
-                    self.domain_objects = temp_domain_objects
-                else:
-                    # This method populates the self._domain_objects map
-                    self._populate_domain_objects(ObjectsExtractor(), ag)
-            assert self.domain_objects is not None
-            if len(self.problem.user_types) > 0:
+
+            if self.unfactored:
+                for ag in self.problem.agents:
+                    self._populate_domain_objects(ag)
+            else:
+                # This method populates the self._domain_objects map
+                self._populate_domain_objects(ag)
+
+            domain_objects = self.problem.domain_constants
+            if len(self.problem.user_types) + len(self.problem.agents) > 0:
                 out.write(" (:objects")
                 for t in self.problem.user_types:
-                    constants_of_this_type = self.domain_objects.get(
-                        cast(_UserType, t), None
+                    constants_of_this_type = set(
+                        o for o in domain_objects if o.type == t
                     )
-                    if constants_of_this_type is None:
-                        objects = [o for o in self.problem.all_objects if o.type == t]
-                    else:
-                        objects = [
-                            o
-                            for o in self.problem.all_objects
-                            if o.type == t and o not in constants_of_this_type
-                        ]
+
+                    objects = [
+                        o
+                        for o in self.problem.all_objects
+                        if o.type == t and o not in constants_of_this_type
+                    ]
                     if len(objects) > 0:
                         out.write(
                             f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
                         )
 
-            # If agents are not defined as "constant" in the domain, they are defined in the problem
-            if len(self.problem.agents) > 0:
+                # If agents are not defined as "constant" in the domain, they are defined in the problem
                 for agent in self.problem.agents:
                     if agent not in self.domain_objects_agents.keys():
                         out.write(
@@ -630,7 +612,8 @@ class MAPDDLWriter:
                     else:
                         out.write(f"")
 
-            out.write("\n )\n")
+                out.write("\n )\n")
+
             converter = ConverterToMAPDDLString(
                 self.problem, self._get_mangled_name, ag, unfactored=self.unfactored
             )
@@ -696,7 +679,6 @@ class MAPDDLWriter:
             out.write("\n)")
             ag_problems[self._get_mangled_name(ag)] = out.getvalue()
             out.close()
-            self.domain_objects = None
             self.domain_objects_agents = {}
             # self.all_public_fluents = []
             if self.unfactored:
@@ -900,15 +882,12 @@ class MAPDDLWriter:
             for fluent in agent.public_fluents:
                 list_to_update.add(fluent)
 
-    def _populate_domain_objects(
-        self, obe: ObjectsExtractor, agent: "up.model.multi_agent.Agent"
-    ):
-        self.domain_objects = {}
+    def _populate_domain_objects(self, agent: "up.model.multi_agent.Agent"):
         self.domain_objects_agents = {}
         # Iterate the actions to retrieve domain objects
         import unified_planning.model.walkers as walkers
 
-        get_dots = walkers.AnyGetter(lambda x: x.is_dot())
+        get_dots = walkers.AnyGetter["up.model.FNode"](lambda x: x.is_dot())
         for a in agent.actions:
             if isinstance(a, up.model.InstantaneousAction):
                 for p in a.preconditions:
@@ -916,37 +895,6 @@ class MAPDDLWriter:
                         _update_domain_objects_ag(
                             self.domain_objects_agents, self.problem.agent(d.agent())
                         )
-                    _update_domain_objects(self.domain_objects, obe.get(p))
-                for e in a.effects:
-                    if e.is_conditional():
-                        _update_domain_objects(
-                            self.domain_objects, obe.get(e.condition)
-                        )
-                    _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                    _update_domain_objects(self.domain_objects, obe.get(e.value))
-            elif isinstance(a, DurativeAction):
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
-                _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
-                for cl in a.conditions.values():
-                    for c in cl:
-                        _update_domain_objects(self.domain_objects, obe.get(c))
-                for el in a.effects.values():
-                    for e in el:
-                        if e.is_conditional():
-                            _update_domain_objects(
-                                self.domain_objects, obe.get(e.condition)
-                            )
-                        _update_domain_objects(self.domain_objects, obe.get(e.fluent))
-                        _update_domain_objects(self.domain_objects, obe.get(e.value))
-
-
-def _update_domain_objects(
-    dict_to_update: Dict[_UserType, Set[Object]], values: Dict[_UserType, Set[Object]]
-) -> None:
-    """Small utility method that updated a UserType -> Set[Object] dict with another dict of the same type."""
-    for ut, os in values.items():
-        os_to_update = dict_to_update.setdefault(ut, set())
-        os_to_update |= os
 
 
 def _update_domain_objects_ag(
