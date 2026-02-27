@@ -15,11 +15,11 @@
 """This module defines the problem class."""
 
 from itertools import chain, product
-from build.lib.unified_planning.model.metrics import (
+from unified_planning.model.metrics import (
     MaximizeExpressionOnFinalState,
     MinimizeActionCosts,
 )
-from build.lib.unified_planning.model.metrics import MinimizeExpressionOnFinalState
+from unified_planning.model.metrics import MinimizeExpressionOnFinalState
 import unified_planning as up
 from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.effect import EffectKind

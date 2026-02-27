@@ -35,6 +35,7 @@ from unified_planning.model.transition import (
     PreconditionMixin,
     Transition,
 )
+from unified_planning.model.tamp import MotionConstraint, Path
 
 
 class Action(Transition):
@@ -44,9 +45,7 @@ class Action(Transition):
         self,
         *args: "up.model.Expression",
         agent: Optional["up.model.multi_agent.Agent"] = None,
-        motion_paths: Optional[
-            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
-        ] = None,
+        motion_paths: Optional[Dict[MotionConstraint, Path]] = None,
     ) -> "up.plans.plan.ActionInstance":
         params = tuple(args)
         return up.plans.plan.ActionInstance(
