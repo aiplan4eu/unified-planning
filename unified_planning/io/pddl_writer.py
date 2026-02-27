@@ -39,6 +39,7 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.htn import HierarchicalProblem
+from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
     SequentialPlan,
@@ -103,38 +104,36 @@ GENERAL_PDDL_KEYWORDS = {
     "continuous-effects",
 }
 
-TEMPORAL_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(
-    {
-        "durative-action",
-        "duration",
-        "condition",
-        "at",
-        "over",
-        "start",
-        "end",
-        "all",
-    }
-)
+TEMPORAL_PDDL_KEYWORDS = {
+    "durative-action",
+    "duration",
+    "condition",
+    "at",
+    "over",
+    "start",
+    "end",
+    "all",
+}
 
-PDDL3_KEYWORDS = TEMPORAL_PDDL_KEYWORDS.union(
-    {
-        "constraints",
-        "preferences",
-        "is-violated",
-        "preference",
-        "always",
-        "sometime",
-        "within",
-        "at-most-once",
-        "sometime-after",
-        "sometime-before",
-        "always-within",
-        "hold-during",
-        "hold-after",
-    }
-)
+PDDL3_KEYWORDS = {
+    "constraints",
+    "preferences",
+    "is-violated",
+    "preference",
+    "always",
+    "sometime",
+    "within",
+    "at-most-once",
+    "sometime-after",
+    "sometime-before",
+    "always-within",
+    "hold-during",
+    "hold-after",
+}
 
-PDDL_PLUS_KEYWORDS = GENERAL_PDDL_KEYWORDS.union({"process", "event"})
+PDDL_PLUS_KEYWORDS = {"process", "event"}
+
+CONTINGENT_PDDL_KEYWORDS = {"observe", "oneof", "unknown"}
 
 # The following map is used to mangle the invalid names by their class.
 INITIAL_LETTER: Dict[type, str] = {
@@ -377,19 +376,21 @@ class PDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
+        # construct keywords set
+        self.pddl_keywords = GENERAL_PDDL_KEYWORDS
         if len(self.problem.processes) > 0 or len(self.problem.events) > 0:
-            self.pddl_keywords = PDDL_PLUS_KEYWORDS
-        elif len(self.problem.trajectory_constraints) > 0:
-            self.pddl_keywords = PDDL3_KEYWORDS
-        elif any(
+            self.pddl_keywords |= PDDL_PLUS_KEYWORDS
+        if len(self.problem.trajectory_constraints) > 0:
+            self.pddl_keywords |= PDDL3_KEYWORDS
+        if any(
             map(
                 lambda action: isinstance(action, up.model.action.DurativeAction),
                 self.problem.actions,
             )
         ):
-            self.pddl_keywords = TEMPORAL_PDDL_KEYWORDS
-        else:
-            self.pddl_keywords = GENERAL_PDDL_KEYWORDS
+            self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
+        if isinstance(self.problem, ContingentProblem):
+            self.pddl_keywords |= CONTINGENT_PDDL_KEYWORDS
 
     def _write_parameters(self, out, a):
         for ap in a.parameters:
@@ -475,6 +476,8 @@ class PDDLWriter:
                 out.write(" :method-preconditions")
             if self.problem_kind.has_processes() or self.problem_kind.has_events():
                 out.write(" :time")
+            if isinstance(self.problem, ContingentProblem):
+                out.write(" :contingent")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
@@ -641,6 +644,17 @@ class PDDLWriter:
                 self._write_parameters(out, a)
                 out.write(")")
                 self._write_untimed_preconditions(a, converter, out)
+                if isinstance(a, SensingAction):
+                    obs = a.observed_fluents
+                    if len(obs) == 0:
+                        warn(
+                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe."
+                        )
+                    elif len(obs) == 1:
+                        out.write(f"\n  :observe {converter.convert(obs[0])}")
+                    else:
+                        obs_str = " ".join(converter.convert(f) for f in obs)
+                        out.write(f"\n  :observe (and {obs_str})")
                 self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
@@ -831,6 +845,22 @@ class PDDLWriter:
                     self._get_mangled_name,
                 )
                 out.write(f")")
+        if isinstance(self.problem, ContingentProblem):
+            for c in self.problem.or_constraints:
+                # Detect constraints produced by add_unknown_initial_constraint:
+                # they have the canonical form [NOT(f), f] and must be emitted as
+                # (unknown f) so the reader can reconstruct them faithfully.
+                if len(c) == 2 and c[0].is_not() and c[0].args[0] == c[1]:
+                    out.write(f"\n             ")
+                    out.write(f" (unknown {converter.convert(c[1])})")
+                else:
+                    or_str = " ".join(converter.convert(f) for f in c)
+                    out.write(f"\n             ")
+                    out.write(f" (or {or_str})")
+            for c in self.problem.oneof_constraints:
+                oneof_str = " ".join(converter.convert(f) for f in c)
+                out.write(f"\n             ")
+                out.write(f" (oneof {oneof_str})")
         out.write(f"\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
@@ -1029,6 +1059,9 @@ class PDDLWriter:
                         )
                     _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                     _update_domain_objects(self.domain_objects, obe.get(e.value))
+                if isinstance(a, SensingAction):
+                    for of in a.observed_fluents:
+                        _update_domain_objects(self.domain_objects, obe.get(of))
             elif isinstance(a, DurativeAction):
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
