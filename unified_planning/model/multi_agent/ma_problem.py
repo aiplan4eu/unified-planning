@@ -15,7 +15,9 @@
 """This module defines the MultiAgentProblem class."""
 
 import unified_planning as up
+from unified_planning.model import walkers
 from unified_planning.model.abstract_problem import AbstractProblem
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.operators import OperatorKind
@@ -26,7 +28,7 @@ from unified_planning.exceptions import (
     UPExpressionDefinitionError,
     UPPlanDefinitionError,
 )
-from typing import Optional, List, Dict, Union, cast, Iterable
+from typing import Optional, List, Dict, Set, Union, cast, Iterable
 from unified_planning.model.mixins import (
     ObjectsSetMixin,
     UserTypesSetMixin,
@@ -34,6 +36,8 @@ from unified_planning.model.mixins import (
 )
 from fractions import Fraction
 from itertools import chain
+
+from unified_planning.model.walkers.any import AnyGetter
 
 
 class MultiAgentProblem(  # type: ignore[misc]
@@ -458,3 +462,40 @@ class MultiAgentProblem(  # type: ignore[misc]
             else:
                 raise NotImplementedError
         return up.plans.ActionInstance(new_a, tuple(params), action_instance.agent)
+
+    @property
+    def domain_constants(self) -> Set["up.model.Object"]:
+        """
+        Returns the set of the `Objects` that are defined as `domain constants` in the `MultiAgentProblem`.
+        A `domain constant` is an `Object` that is defined in the domain and not in the problem.
+
+        :return: The set of the `Objects` that are defined as `domain constants` in the `MultiAgentProblem`.
+        """
+        domain_constants = set()
+        extractor = AnyGetter["up.model.Object"](
+            predicate=lambda x: x.is_object_exp(), extractor=lambda x: x.object()
+        )
+        for agent in self.agents:
+            for a in agent.actions:
+                if isinstance(a, InstantaneousAction):
+                    for p in a.preconditions:
+                        domain_constants.update(extractor.get(p))
+                    for e in a.effects:
+                        domain_constants.update(extractor.get(e.fluent))
+                        domain_constants.update(extractor.get(e.value))
+                        domain_constants.update(extractor.get(e.condition))
+                elif isinstance(a, DurativeAction):
+                    for _, cnds in a.conditions.items():
+                        for c in cnds:
+                            domain_constants.update(extractor.get(c))
+                        for _, effs in a.effects.items():
+                            for e in effs:
+                                domain_constants.update(extractor.get(e.fluent))
+                                domain_constants.update(extractor.get(e.value))
+                                domain_constants.update(extractor.get(e.condition))
+                        domain_constants.update(extractor.get(a.duration.lower))
+                        domain_constants.update(extractor.get(a.duration.upper))
+                else:
+                    raise ValueError(f"Unsupported action type: {type(a)}")
+
+        return domain_constants
