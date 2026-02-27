@@ -248,9 +248,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         extractor = AnyGetter["up.model.Object"](
             predicate=lambda x: x.is_object_exp(), extractor=lambda x: x.object()
         )
-        domain_constants: Set[
-            "up.model.Object"
-        ] = up.model.problem.Problem.domain_constants(self)
+        domain_constants: Set["up.model.Object"] = super().domain_constants
         for m in self.methods:
             for p in m.preconditions:
                 domain_constants.update(extractor.get(p))
