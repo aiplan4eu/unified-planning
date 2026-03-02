@@ -14,7 +14,6 @@
 #
 """This module defines different utility functions for the compilers."""
 
-
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
@@ -162,7 +161,8 @@ def create_action_with_given_subs(
     c_subs = cast(Dict[Parameter, FNode], subs)
     if isinstance(old_action, InstantaneousAction):
         new_action = InstantaneousAction(
-            get_fresh_name(problem, old_action.name, naming_list)
+            get_fresh_name(problem, old_action.name, naming_list),
+            _env=old_action.environment,
         )
         for p in old_action.preconditions:
             new_action.add_precondition(p.substitute(subs))
@@ -200,7 +200,8 @@ def create_action_with_given_subs(
         return new_action
     elif isinstance(old_action, DurativeAction):
         new_durative_action = DurativeAction(
-            get_fresh_name(problem, old_action.name, naming_list)
+            get_fresh_name(problem, old_action.name, naming_list),
+            _env=old_action.environment,
         )
         old_duration = old_action.duration
         new_duration = DurationInterval(
