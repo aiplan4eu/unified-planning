@@ -165,7 +165,6 @@ class Waypoints(MotionConstraint):
 
 
 class ActivityWaypoints(MotionConstraint):
-
     def __init__(
         self,
         movable: "up.model.expression.Expression",

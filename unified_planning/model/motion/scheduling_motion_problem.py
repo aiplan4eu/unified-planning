@@ -31,7 +31,6 @@ from unified_planning.model.mixins import (
 
 
 class SchedulingMotionProblem(SchedulingProblem):
-
     def __init__(
         self,
         name: Optional[str] = None,
@@ -43,9 +42,9 @@ class SchedulingMotionProblem(SchedulingProblem):
             self, name, environment, initial_defaults=initial_defaults
         )
         self._motion_activities: List[MotionActivity] = []
-        self._initial_configuration: List[Tuple["up.model.FNode", "up.model.FNode"]] = (
-            []
-        )
+        self._initial_configuration: List[
+            Tuple["up.model.FNode", "up.model.FNode"]
+        ] = []
 
     def __repr__(self) -> str:
         s = [super().__repr__()]
