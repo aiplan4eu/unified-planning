@@ -23,7 +23,7 @@ import unified_planning.model.types
 import unified_planning.model.multi_agent
 from unified_planning.environment import get_environment
 from unified_planning.model import *
-from unified_planning.model.tamp import *
+from unified_planning.model.motion import *
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines import (
     Engine,

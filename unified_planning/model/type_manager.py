@@ -16,7 +16,7 @@
 
 import unified_planning
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
-from unified_planning.model.tamp.objects import ConfigurationKind
+from unified_planning.model.motion.objects import ConfigurationKind
 from unified_planning.model.types import (
     Type,
     _IntType,
@@ -25,7 +25,7 @@ from unified_planning.model.types import (
     BOOL,
     TIME,
 )
-from unified_planning.model.tamp.types import (
+from unified_planning.model.motion.types import (
     _MovableType,
     _ConfigurationType,
     OccupancyMap,
