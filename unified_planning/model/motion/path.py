@@ -17,7 +17,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Tuple, List
 
-from unified_planning.model.tamp.objects import SE2, SE3
+from unified_planning.model.motion.objects import SE2, SE3
 
 
 class Path(ABC):

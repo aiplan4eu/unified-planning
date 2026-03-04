@@ -25,8 +25,6 @@ import unified_planning.model.types
 class ConfigurationKind(Enum):
     SE2 = auto()
     SE3 = auto()
-    JOINT = auto()
-    MULTILINK = auto()
 
 
 class ConfigurationInstance:
@@ -58,35 +56,6 @@ class SE3(ConfigurationInstance):
     ry: float
     rz: float
     rw: float
-
-
-@dataclass(eq=True, frozen=True)
-class Joint(ConfigurationInstance):
-    """
-    This dataclass represents a configuration of a (eventually) torque controlled joint.
-
-    The configuration (revolute or prismatic) is defined by:
-    * the position of the joint (rad or m),
-    * the velocity of the joint (rad/s or m/s) and
-    * the effort that is applied in the joint (Nm or N).
-
-    Each field is optional. When e.g. your joints have no effort associated with them, you can leave the effort array empty.
-    """
-
-    position: Optional[float] = None
-    velocty: Optional[float] = None
-    effort: Optional[float] = None
-
-
-@dataclass(eq=True, frozen=True)
-class MultiLink(ConfigurationInstance):
-    """
-    This class represents the configuration of a multi link object.
-
-    """
-
-    base_link = Tuple[str, Union[SE2, SE3]]
-    joints = Dict[str, Joint]
 
 
 class MotionModels(Enum):
@@ -173,7 +142,7 @@ class ConfigurationObject(Object):
     This class represents a configuration object.
 
     A configuration of a movable object at a certain time is the description of its state
-    (i.e., the values of its links and joints) at that moment in time.
+    at that moment in time.
     """
 
     def __init__(
