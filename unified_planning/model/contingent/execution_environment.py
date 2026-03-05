@@ -93,6 +93,9 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
 
         deterministic_problem.add_objects(problem.all_objects)
 
+        for f, v in problem.initial_values.items():
+            deterministic_problem.set_initial_value(f, v)
+
         for action in problem.actions:
             if isinstance(action, up.model.contingent.sensing_action.SensingAction):
                 # Create a dummy action with no effects instead of a sensing action

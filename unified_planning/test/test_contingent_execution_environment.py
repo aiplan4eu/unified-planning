@@ -146,6 +146,70 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
             env = SimulatedExecutionEnvironment(self.problem, max_constraints=3)
         self.assertEqual(env._max_constraints, 3)
 
+    def test_get_stateless_deterministic_problem_clone_copies_known_initial_values(
+        self,
+    ):
+        known = Fluent("known", environment=self.problem.environment)
+        hidden = Fluent("hidden", environment=self.problem.environment)
+        self.problem.add_fluent(known, default_initial_value=False)
+        self.problem.add_fluent(hidden, default_initial_value=False)
+        self.problem.set_initial_value(known, True)
+        self.problem.set_initial_value(self.flag, True)
+        self.problem.add_unknown_initial_constraint(hidden)
+
+        with patch.object(
+            SimulatedExecutionEnvironment,
+            "_randomly_set_full_initial_state",
+        ), patch(
+            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+            new=_FakeSequentialSimulator,
+        ):
+            env = SimulatedExecutionEnvironment(self.problem)
+
+        det = env._deterministic_problem
+        known_val = det.initial_value(known())
+        flag_val = det.initial_value(self.flag())
+        self.assertIsNotNone(known_val)
+        self.assertIsNotNone(flag_val)
+        if known_val is None or flag_val is None:
+            self.fail("Expected concrete initial values for known fluents.")
+        self.assertTrue(known_val.bool_constant_value())
+        self.assertTrue(flag_val.bool_constant_value())
+
+    def test_action_with_precondition_on_known_value_is_applicable(self):
+        ready = Fluent("ready", environment=self.problem.environment)
+        done = Fluent("done", environment=self.problem.environment)
+        hidden = Fluent("hidden", environment=self.problem.environment)
+        self.problem.add_fluent(ready, default_initial_value=False)
+        self.problem.add_fluent(done, default_initial_value=False)
+        self.problem.add_fluent(hidden, default_initial_value=False)
+        self.problem.set_initial_value(ready, True)
+        self.problem.add_unknown_initial_constraint(hidden)
+
+        do_work = InstantaneousAction("do_work", _env=self.problem.environment)
+        do_work.add_precondition(ready())
+        do_work.add_effect(done, True)
+        self.problem.add_action(do_work)
+        self.problem.add_goal(done())
+
+        ai = up.plans.ActionInstance(do_work)
+
+        def fake_all_smt(_formula, keys):
+            yield {k: _FakeBool(False) for k in keys}
+
+        with patch(
+            "unified_planning.model.contingent.execution_environment.all_smt",
+            side_effect=fake_all_smt,
+        ), patch(
+            "unified_planning.model.contingent.execution_environment.random.choice",
+            side_effect=lambda models: models[0],
+        ):
+            env = SimulatedExecutionEnvironment(self.problem)
+
+        observation = env.apply(ai)
+        self.assertEqual(observation, {})
+        self.assertTrue(env.is_goal_reached())
+
     def test_simulated_apply_raises_when_action_not_applicable(self):
         action = InstantaneousAction("noop", _env=self.problem.environment)
         ai = up.plans.ActionInstance(action)
@@ -226,7 +290,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         env = SimulatedExecutionEnvironment(self.problem)
         env._max_constraints = float("inf")
 
-        def fake_all_smt(formula, keys):
+        def fake_all_smt(_formula, keys):
             yield {k: _FakeBool(True) for k in keys}
 
         with patch(
