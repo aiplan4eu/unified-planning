@@ -122,17 +122,17 @@ class MovableObject(Object):
         return self._motion_model
 
     @property
-    def motion_parameters(self) -> Dict[str, Any]:
+    def motion_parameters(self) -> Optional[Dict[str, Any]]:
         """Returns the `dict` of motion parameters of the motion model of this `MovableObject`."""
         return self._motion_parameters
 
     @property
-    def control_model(self) -> Callable:
+    def control_model(self) -> Optional[Callable]:
         """Returns the control model of this `MovableObject`."""
         return self._control_model
 
     @property
-    def control_parameters(self) -> Dict[str, Any]:
+    def control_parameters(self) -> Optional[Dict[str, Any]]:
         """Returns the `dict` of control parameters of the motion model of this `MovableObject`."""
         return self._control_parameters
 

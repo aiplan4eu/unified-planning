@@ -739,7 +739,7 @@ class _KindFactory:
         self,
         pb: AbstractProblem,
         problem_class: str,
-        environment: "unified_planning.Environment",
+        environment: "up.Environment",
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
@@ -753,7 +753,7 @@ class _KindFactory:
         self.static_fluents: Set[Fluent] = pb.get_static_fluents()
         self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
 
-        self.environment: unified_planning.Environment = environment
+        self.environment: up.Environment = environment
         self.kind: up.model.ProblemKind = up.model.ProblemKind(
             version=LATEST_PROBLEM_KIND_VERSION
         )

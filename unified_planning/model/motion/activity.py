@@ -85,7 +85,7 @@ class MotionActivity(Activity):
         """Removes all `motion_constraints`."""
         self._motion_constraints = []
 
-    def clear_motion_constraints(self):
+    def clear_motion_effects(self):
         """Removes all `motion_effects`."""
         self._motion_effects = {}
 

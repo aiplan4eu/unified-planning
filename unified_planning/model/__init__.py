@@ -88,6 +88,7 @@ from unified_planning.model.metrics import (
 import unified_planning.model.multi_agent
 import unified_planning.model.scheduling
 import unified_planning.model.contingent
+import unified_planning.model.motion
 
 __all__ = [
     "Action",
