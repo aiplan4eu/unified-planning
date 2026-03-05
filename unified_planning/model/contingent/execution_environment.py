@@ -93,8 +93,9 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
 
         deterministic_problem.add_objects(problem.all_objects)
 
-        for f, v in problem.initial_values.items():
-            deterministic_problem.set_initial_value(f, v)
+        for f, v in problem.explicit_initial_values.items():
+            if f not in problem.hidden_fluents:
+                deterministic_problem.set_initial_value(f, v)
 
         for action in problem.actions:
             if isinstance(action, up.model.contingent.sensing_action.SensingAction):

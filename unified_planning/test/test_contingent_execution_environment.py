@@ -176,6 +176,48 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         self.assertTrue(known_val.bool_constant_value())
         self.assertTrue(flag_val.bool_constant_value())
 
+    def test_deterministic_problem_and_contingent_problem_initial_states_are_independent(
+        self,
+    ):
+        known = Fluent("known", environment=self.problem.environment)
+        hidden = Fluent("hidden", environment=self.problem.environment)
+        extra = Fluent("extra", environment=self.problem.environment)
+        self.problem.add_fluent(known, default_initial_value=False)
+        self.problem.add_fluent(hidden, default_initial_value=False)
+        self.problem.add_fluent(extra, default_initial_value=False)
+        self.problem.set_initial_value(known, True)
+        self.problem.add_unknown_initial_constraint(hidden)
+
+        with patch.object(
+            SimulatedExecutionEnvironment,
+            "_randomly_set_full_initial_state",
+        ), patch(
+            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+            new=_FakeSequentialSimulator,
+        ):
+            env = SimulatedExecutionEnvironment(self.problem)
+
+        det = env._deterministic_problem
+
+        # Mutate deterministic problem — must not affect the contingent problem
+        det.set_initial_value(known, False)
+        det.set_initial_value(hidden, True)
+        self.assertTrue(
+            self.problem.initial_value(known()).bool_constant_value(),  # type: ignore[union-attr]
+            "Mutating det should not change problem's known value",
+        )
+        self.assertIsNone(
+            self.problem.explicit_initial_values.get(hidden()),
+            "Mutating det should not introduce hidden value into problem",
+        )
+
+        # Mutate contingent problem — must not affect the deterministic problem
+        self.problem.set_initial_value(extra, True)
+        self.assertIsNone(
+            det.explicit_initial_values.get(extra()),
+            "Mutating problem after clone should not affect det",
+        )
+
     def test_action_with_precondition_on_known_value_is_applicable(self):
         ready = Fluent("ready", environment=self.problem.environment)
         done = Fluent("done", environment=self.problem.environment)
