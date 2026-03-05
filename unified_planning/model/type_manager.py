@@ -16,7 +16,6 @@
 
 import unified_planning
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
-from unified_planning.model.motion.objects import ConfigurationKind
 from unified_planning.model.types import (
     Type,
     _IntType,
@@ -25,6 +24,7 @@ from unified_planning.model.types import (
     BOOL,
     TIME,
 )
+from unified_planning.model.motion.objects import ConfigurationKind
 from unified_planning.model.motion.types import (
     _MovableType,
     _ConfigurationType,
@@ -44,7 +44,9 @@ class TypeManager:
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
         self._movable_types: Dict[Tuple[str, Optional[Type]], Type] = {}
-        self._configuration_types: Dict[Tuple[str, OccupancyMap, int], Type] = {}
+        self._configuration_types: Dict[
+            Tuple[str, OccupancyMap, ConfigurationKind], Type
+        ] = {}
 
     def has_type(self, type: Type) -> bool:
         """
