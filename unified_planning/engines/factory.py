@@ -115,6 +115,10 @@ DEFAULT_ENGINES = {
         "FastDownwardReachabilityGrounder",
     ),
     "up_grounder": ("unified_planning.engines.compilers.grounder", "Grounder"),
+    "up_ks0_compiler": (
+        "unified_planning.engines.compilers.ks0_compiler",
+        "Ks0Compiler",
+    ),
     "up_ma_disjunctive_conditions_remover": (
         "unified_planning.engines.compilers.ma_disjunctive_conditions_remover",
         "MADisjunctiveConditionsRemover",
@@ -176,6 +180,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fast-downward-reachability-grounder",
     "fast-downward-grounder",
     "up_grounder",
+    "up_ks0_compiler",
     "lpg",
     "lpg-anytime",
     "lpg-repairer",

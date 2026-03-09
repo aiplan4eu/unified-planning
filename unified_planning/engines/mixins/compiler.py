@@ -45,6 +45,7 @@ class CompilationKind(Enum):
     TIMED_TO_SEQUENTIAL = auto()
     DURATIVE_ACTIONS_TO_PROCESSES = auto()
     UNDEFINED_INITIAL_NUMERIC_REMOVING = auto()
+    CONFORMANT_TO_CLASSICAL_KS0 = auto()
 
 
 class CompilerMixin(ABC):
