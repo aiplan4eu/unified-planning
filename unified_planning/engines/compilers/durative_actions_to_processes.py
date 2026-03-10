@@ -70,15 +70,20 @@ from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 
 
 class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
+    """
+    DurativeActionToProcesses class: this class offers the capability
+    to compile a :class:`~unified_planning.model.Problem` with `DurativeActions` into a semantically equivalent `Problem` with `Processes` and `Events`.
+
+    For this `Compiler`, only the `DURATIVE_ACTIONS_TO_PROCESSES` :class:`~unified_planning.engines.CompilationKind` is supported.
+    """
+
     def __init__(
         self,
         default_epsilon: NumericConstant = Fraction(1, 100),
         use_counter: bool = True,
     ):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(
-            self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-        )
+        CompilerMixin.__init__(self, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         self._default_epsilon = Fraction(uniform_numeric_constant(default_epsilon))
         if self._default_epsilon < 0:
             raise UPUsageError(
@@ -152,9 +157,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return (
-            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-        )
+        return compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES
 
     @staticmethod
     def resulting_problem_kind(
@@ -180,8 +183,17 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the `DURATIVE_ACTIONS_TO_PROCESSES` `~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the `Problem` does not have `DurativeActions` and these are replaced by `Processes` and `Events`.
+
+        :param problem: The instance of the `Problem` that must be returned without `DurativeActions`.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `DURATIVE_ACTIONS_TO_PROCESSES` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         assert (
-            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
+            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES
         ), "Not supported compilation kind"
         assert isinstance(problem, Problem)
         env = problem.environment

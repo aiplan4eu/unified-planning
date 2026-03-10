@@ -43,11 +43,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem = self.problems["temporal_counter"].problem
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
 
         for a, na in zip(problem.actions, new_problem.actions):
@@ -69,12 +67,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem = self.problems["temporal_counter"].problem
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = False
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
@@ -98,11 +94,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem = self.problems["robot_decrease"].problem
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, InstantaneousAction))
@@ -116,12 +110,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem = self.problems["robot_decrease"].problem
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = False
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
@@ -136,11 +128,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         for a, na in zip(problem.actions, new_problem.actions):
             self.assertTrue(isinstance(a, DurativeAction))
@@ -155,12 +145,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem = self.problems["robot_holding"].problem
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = False
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         for a, na in zip(problem.actions, new_problem.actions):
@@ -184,11 +172,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertEqual(2 * len(problem.actions), len(new_problem.actions))
         self.assertEqual(len(problem.actions), len(new_problem.processes) - 1)
@@ -213,12 +199,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = False
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
         self.assertEqual(2 * len(problem.actions), len(new_problem.actions))
@@ -244,11 +228,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 1 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -273,11 +255,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 1 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -302,11 +282,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 3 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -332,12 +310,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = True
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertTrue(cer._use_counter)
         self.assertEqual(len(new_problem.events), len(problem.actions) * 2 + 2 + 1)
@@ -363,11 +339,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -464,12 +438,10 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_goal(obj_on(objects[1], tables[2]))
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
             cer._use_counter = True
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -565,11 +537,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_goal(obj_on(objects[1], tables[2]))
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -665,11 +635,9 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_goal(obj_on(objects[1], tables[2]))
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+            compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
         ) as cer:
-            res = cer.compile(
-                problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION
-            )
+            res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
@@ -682,7 +650,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
             with Compiler(
                 name="up_durative_actions_to_processes",
-                compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+                compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
             ) as cer:
                 for problem_name, tc in self.problems.items():
                     problem = tc.problem
@@ -700,7 +668,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         continue
                     res = cer.compile(
                         problem,
-                        CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES_CONVERSION,
+                        CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
                     )
                     compiled_problem = res.problem
                     if not solver.supports(compiled_problem.kind):
