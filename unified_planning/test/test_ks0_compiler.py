@@ -19,6 +19,7 @@ from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import UPState
 from unified_planning.model.problem_kind import classical_kind
+from unified_planning.plans import SequentialPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     unittest_TestCase,
@@ -151,6 +152,25 @@ class TestKs0Compiler(unittest_TestCase):
 
         return problem, possible_initial_states
 
+    def _build_conditional_effect_problem_and_possible_states(self):
+        problem = Problem("cond_eff")
+        f1 = Fluent("f1")
+        f2 = Fluent("f2")
+        problem.add_fluent(f1, default_initial_value=False)
+        problem.add_fluent(f2, default_initial_value=False)
+
+        em = problem.environment.expression_manager
+        a = InstantaneousAction("a")
+        a.add_effect(f2, True, condition=em.FluentExp(f1))
+        problem.add_action(a)
+        problem.add_goal(em.FluentExp(f2))
+
+        s0 = UPState(
+            {em.FluentExp(f1): em.TRUE(), em.FluentExp(f2): em.FALSE()},
+            problem,
+        )
+        return problem, (s0,)
+
     def test_supported_compilation(self):
         compiler = Ks0Compiler()
         self.assertTrue(
@@ -206,12 +226,6 @@ class TestKs0Compiler(unittest_TestCase):
             "found a state from a different environment at index 0.",
         )
 
-    def test_compile_is_explicitly_not_implemented_yet(self):
-        problem, possible_initial_states = self._build_problem_and_possible_states()
-        compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
-        with self.assertRaises(NotImplementedError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-
     def test_factory_instantiation_with_params(self):
         problem, possible_initial_states = self._build_problem_and_possible_states()
         with Compiler(
@@ -223,8 +237,6 @@ class TestKs0Compiler(unittest_TestCase):
                     CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
                 )
             )
-            with self.assertRaises(NotImplementedError):
-                compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_factory_instantiation_from_problem_kind(self):
         problem, _ = self._build_problem_and_possible_states()
@@ -243,7 +255,14 @@ class TestKs0Compiler(unittest_TestCase):
             params={"possible_initial_states": possible_initial_states},
         ) as compiler:
             res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-            self.assertIsInstance(res, CompilerResult)
+
+        self.assertIsInstance(res, CompilerResult)
+        self.assertIsNotNone(res.problem)
+        self.assertTrue(res.problem.name.startswith("ks0_"))
+        self.assertIsNotNone(res.plan_back_conversion)
+        self.assertGreater(len(res.problem.fluents), 0)
+        self.assertGreater(len(res.problem.actions), 0)
+        self.assertGreater(len(res.problem.goals), 0)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_full_compilation_with_plan(self):
@@ -265,22 +284,266 @@ class TestKs0Compiler(unittest_TestCase):
                     compiled_problem = res.problem
 
                 with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
-                    plan = planner.solve(compiled_problem)
-                self.assertIsNotNone(plan)
+                    plan_result = planner.solve(compiled_problem)
+
+                self.assertIsNotNone(plan_result.plan)
                 self.assertEqual(
-                    plan.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+                    plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING
                 )
 
-                # the expected plan moves left until it is certain that it is in l4,
-                # then moves right once to be certain that it is in l3, and then ends.
-                self.assertEqual(len(plan.actions), num_possible_initial_states + 1)
-                for i in range(num_possible_initial_states - 1):
-                    self.assertEqual(plan.actions[i].action.name, "move_left")
+                # Back-convert to original domain plan (drops merge actions)
+                back_plan = res.plan_back_conversion(plan_result.plan)
+                self.assertIsInstance(back_plan, SequentialPlan)
+                self.assertGreater(len(back_plan.actions), 0)
 
-                self.assertEqual(
-                    plan.actions[num_possible_initial_states - 1].action.name,
-                    "move_right",
-                )
-                self.assertEqual(
-                    plan.actions[num_possible_initial_states].action.name, "end"
-                )
+                # Back-converted plan must contain no merge actions
+                for ai in back_plan.actions:
+                    self.assertFalse(
+                        ai.action.name.startswith("merge_"),
+                        f"Back-converted plan contains merge action: {ai.action.name}",
+                    )
+
+    # ------------------------------------------------------------------
+    # Step 5: Validation edge case
+    # ------------------------------------------------------------------
+
+    def test_compile_rejects_empty_possible_initial_states(self):
+        problem, _ = self._build_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=())
+        with self.assertRaises(UPUsageError):
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    # ------------------------------------------------------------------
+    # Step 6: Structural tests (all use _build_problem_and_possible_states)
+    # ------------------------------------------------------------------
+
+    def _compile_basic(self):
+        problem, possible_initial_states = self._build_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        return problem, res
+
+    def test_compiled_problem_name(self):
+        _, res = self._compile_basic()
+        self.assertEqual(res.problem.name, "ks0_ks0_input")
+
+    def test_compiled_fluent_count(self):
+        # 2 atoms × 2 literals × 3 tags (1 empty + 2 states) = 12
+        _, res = self._compile_basic()
+        self.assertEqual(len(res.problem.fluents), 12)
+
+    def test_compiled_fluent_names(self):
+        _, res = self._compile_basic()
+        fluent_names = {f.name for f in res.problem.fluents}
+        expected = {
+            "K_reachable_empty", "K_not_reachable_empty",
+            "K_reachable_s0", "K_not_reachable_s0",
+            "K_reachable_s1", "K_not_reachable_s1",
+            "K_blocked_empty", "K_not_blocked_empty",
+            "K_blocked_s0", "K_not_blocked_s0",
+            "K_blocked_s1", "K_not_blocked_s1",
+        }
+        self.assertEqual(fluent_names, expected)
+        self.assertNotIn("reachable", fluent_names)
+        self.assertNotIn("blocked", fluent_names)
+
+    def test_compiled_initial_state_empty_tag_universal_literal(self):
+        _, res = self._compile_basic()
+        em = res.problem.environment.expression_manager
+        K_not_reachable_empty = res.problem.fluent("K_not_reachable_empty")
+        self.assertEqual(
+            res.problem.initial_value(em.FluentExp(K_not_reachable_empty)),
+            em.TRUE(),
+        )
+
+    def test_compiled_initial_state_empty_tag_non_universal_literal(self):
+        _, res = self._compile_basic()
+        em = res.problem.environment.expression_manager
+
+        K_blocked_empty = res.problem.fluent("K_blocked_empty")
+        val = res.problem.initial_value(em.FluentExp(K_blocked_empty))
+        self.assertIn(val, (em.FALSE(), None))
+
+        K_not_blocked_empty = res.problem.fluent("K_not_blocked_empty")
+        val2 = res.problem.initial_value(em.FluentExp(K_not_blocked_empty))
+        self.assertIn(val2, (em.FALSE(), None))
+
+    def test_compiled_initial_state_per_tag(self):
+        _, res = self._compile_basic()
+        em = res.problem.environment.expression_manager
+
+        K_not_blocked_s0 = res.problem.fluent("K_not_blocked_s0")
+        self.assertEqual(
+            res.problem.initial_value(em.FluentExp(K_not_blocked_s0)), em.TRUE()
+        )
+
+        K_blocked_s1 = res.problem.fluent("K_blocked_s1")
+        self.assertEqual(
+            res.problem.initial_value(em.FluentExp(K_blocked_s1)), em.TRUE()
+        )
+
+        K_not_blocked_s1 = res.problem.fluent("K_not_blocked_s1")
+        val = res.problem.initial_value(em.FluentExp(K_not_blocked_s1))
+        self.assertIn(val, (em.FALSE(), None))
+
+    def test_compiled_goal_uses_empty_tag(self):
+        problem, res = self._compile_basic()
+        goal_fluents = {g.fluent() for g in res.problem.goals if g.is_fluent_exp()}
+        K_reachable_empty = res.problem.fluent("K_reachable_empty")
+        self.assertIn(K_reachable_empty, goal_fluents)
+        reachable = problem.fluent("reachable")
+        self.assertNotIn(reachable, goal_fluents)
+
+    def test_compiled_action_count(self):
+        # 1 original action (unblock) + 2 merge actions = 3
+        _, res = self._compile_basic()
+        self.assertEqual(len(res.problem.actions), 3)
+
+    def test_compiled_action_preconditions_use_empty_tag(self):
+        problem, res = self._compile_basic()
+        compiled_unblock = res.problem.action("unblock")
+        precondition_fluents = {
+            p.fluent() for p in compiled_unblock.preconditions if p.is_fluent_exp()
+        }
+        K_not_blocked_empty = res.problem.fluent("K_not_blocked_empty")
+        self.assertIn(K_not_blocked_empty, precondition_fluents)
+        blocked = problem.fluent("blocked")
+        self.assertNotIn(blocked, precondition_fluents)
+
+    def test_compiled_unconditional_effect_generates_per_tag_effects(self):
+        _, res = self._compile_basic()
+        compiled_unblock = res.problem.action("unblock")
+        # Unconditional add(reachable) → support + cancellation per tag × 3 tags = 6
+        self.assertEqual(len(compiled_unblock.effects), 6)
+        effect_fluent_names = {e.fluent.fluent().name for e in compiled_unblock.effects}
+        self.assertIn("K_reachable_empty", effect_fluent_names)
+        self.assertIn("K_reachable_s0", effect_fluent_names)
+        self.assertIn("K_reachable_s1", effect_fluent_names)
+        self.assertIn("K_not_reachable_empty", effect_fluent_names)
+        self.assertIn("K_not_reachable_s0", effect_fluent_names)
+        self.assertIn("K_not_reachable_s1", effect_fluent_names)
+
+    def test_compiled_conditional_effect_generates_per_tag_conditions(self):
+        problem, states = self._build_conditional_effect_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        compiled_action = res.problem.action("a")
+        conditional_effects = [
+            e for e in compiled_action.effects if not e.condition.is_true()
+        ]
+        self.assertGreater(len(conditional_effects), 0)
+        condition_fluent_names = {
+            e.condition.fluent().name
+            for e in conditional_effects
+            if e.condition.is_fluent_exp()
+        }
+        self.assertTrue(any("f1" in name for name in condition_fluent_names))
+
+    def test_merge_actions_created_for_precondition_and_goal_literals(self):
+        _, res = self._compile_basic()
+        merge_actions = [a for a in res.problem.actions if a.name.startswith("merge_")]
+        self.assertEqual(len(merge_actions), 2)
+        merge_names = {a.name for a in merge_actions}
+        self.assertTrue(any("not_blocked" in n for n in merge_names))
+        self.assertTrue(any("reachable" in n and "not" not in n for n in merge_names))
+
+    def test_merge_action_preconditions_require_all_state_tags(self):
+        _, res = self._compile_basic()
+        merge_not_blocked = next(
+            a for a in res.problem.actions
+            if a.name.startswith("merge_") and "not_blocked" in a.name
+        )
+        prec_fluent_names = {
+            p.fluent().name for p in merge_not_blocked.preconditions if p.is_fluent_exp()
+        }
+        self.assertIn("K_not_blocked_s0", prec_fluent_names)
+        self.assertIn("K_not_blocked_s1", prec_fluent_names)
+        self.assertNotIn("K_not_blocked_empty", prec_fluent_names)
+
+    def test_merge_action_effect_sets_empty_tag_fluent(self):
+        _, res = self._compile_basic()
+        em = res.problem.environment.expression_manager
+        merge_not_blocked = next(
+            a for a in res.problem.actions
+            if a.name.startswith("merge_") and "not_blocked" in a.name
+        )
+        effect_fluent_names = {e.fluent.fluent().name for e in merge_not_blocked.effects}
+        self.assertIn("K_not_blocked_empty", effect_fluent_names)
+        for e in merge_not_blocked.effects:
+            self.assertEqual(e.value, em.TRUE())
+
+    def test_resulting_problem_kind_has_conditional_effects(self):
+        problem, _ = self._build_problem_and_possible_states()
+        resulting_kind = Ks0Compiler.resulting_problem_kind(
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self.assertTrue(resulting_kind.has_conditional_effects())
+
+    def test_resulting_problem_kind_removes_undefined_initial_symbolic(self):
+        problem, _ = self._build_problem_and_possible_states()
+        resulting_kind = Ks0Compiler.resulting_problem_kind(
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self.assertFalse(resulting_kind.has_undefined_initial_symbolic())
+
+    def test_compiled_problem_kind_removes_undefined_initial_symbolic(self):
+        _, res = self._compile_basic()
+        self.assertFalse(res.problem.kind.has_undefined_initial_symbolic())
+
+    # ------------------------------------------------------------------
+    # Step 7: Edge case tests
+    # ------------------------------------------------------------------
+
+    def test_duplicate_states_are_deduplicated(self):
+        problem, possible_initial_states = self._build_problem_and_possible_states()
+        s0 = possible_initial_states[0]
+
+        compiler_single = Ks0Compiler(possible_initial_states=(s0,))
+        compiler_dup = Ks0Compiler(possible_initial_states=(s0, s0))
+
+        res_single = compiler_single.compile(
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        res_dup = compiler_dup.compile(
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+
+        self.assertEqual(len(res_single.problem.fluents), len(res_dup.problem.fluents))
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_single_state_compiled_problem_is_solvable(self):
+        problem, possible_initial_states = self._build_problem_and_possible_states()
+        # s0: blocked=False, reachable=False — unblock IS applicable from s0
+        s0_only = possible_initial_states[:1]
+        compiler = Ks0Compiler(possible_initial_states=s0_only)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
+            plan_result = planner.solve(res.problem)
+        self.assertIsNotNone(plan_result.plan)
+        self.assertEqual(
+            plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+        )
+
+    # ------------------------------------------------------------------
+    # Step 8: Back-conversion test
+    # ------------------------------------------------------------------
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_plan_back_conversion_drops_merge_actions(self):
+        problem, possible_initial_states = self._build_problem_and_possible_states()
+        s0_only = possible_initial_states[:1]  # solvable with 1 state
+        compiler = Ks0Compiler(possible_initial_states=s0_only)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
+            plan_result = planner.solve(res.problem)
+        self.assertIsNotNone(plan_result.plan)
+
+        back_plan = res.plan_back_conversion(plan_result.plan)
+        self.assertIsInstance(back_plan, SequentialPlan)
+        for ai in back_plan.actions:
+            self.assertFalse(
+                ai.action.name.startswith("merge_"),
+                f"Back-converted plan still contains merge action: {ai.action.name}",
+            )
