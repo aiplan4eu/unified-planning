@@ -286,9 +286,7 @@ class GrounderHelper:
                     valid_obj = self._bool_static_fluent_valid_parameters(
                         static_fluent, sig_pos
                     )
-                    for obj in object_list:
-                        if obj not in valid_obj:
-                            temp_list.remove(obj)
+                    temp_list = [obj for obj in temp_list if obj in valid_obj]
             return_list.append(temp_list)
         return return_list
 
