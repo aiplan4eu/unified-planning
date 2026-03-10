@@ -321,6 +321,7 @@ class CompilerResult(Result):
     log_messages: Optional[List[LogMessage]] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
     plan_back_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
+    plan_forward_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
 
     def _post_init(self):
         # Check that compiled problem and map_back_action_instance or plan_back_conversion are consistent with each other
