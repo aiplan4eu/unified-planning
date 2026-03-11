@@ -42,6 +42,15 @@ class SE2(ConfigurationInstance):
     y: float
     theta: float
 
+    def __iter__(self):
+        return iter((self.x, self.y, self.theta))
+
+    def __len__(self):
+        return 3
+
+    def __getitem__(self, i):
+        return (self.x, self.y, self.theta)[i]
+
 
 @dataclass(eq=True, frozen=True)
 class SE3(ConfigurationInstance):
@@ -56,6 +65,15 @@ class SE3(ConfigurationInstance):
     ry: float
     rz: float
     rw: float
+
+    def __iter__(self):
+        return iter((self.x, self.y, self.z, self.rx, self.ry, self.rz, self.rw))
+
+    def __len__(self):
+        return 7
+
+    def __getitem__(self, i):
+        return (self.x, self.y, self.z, self.rx, self.ry, self.rz, self.rw)[i]
 
 
 class MotionModels(Enum):
