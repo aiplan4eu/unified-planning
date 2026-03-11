@@ -93,7 +93,7 @@ class SchedulingMotionProblem(SchedulingProblem):
         self, name: str, duration: int = 0, optional: bool = False
     ) -> "MotionActivity":
         """Adds a motion activity to the problem."""
-        act = MotionActivity(name, duration, optional)
+        act = MotionActivity(name, duration)
         self._activities.append(act)
         self._motion_activities.append(act)
         return act
