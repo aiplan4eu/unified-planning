@@ -13,27 +13,51 @@
 # limitations under the License.
 #
 
-from unified_planning.model.tamp.action import (
+from unified_planning.model.motion.action import (
     InstantaneousMotionAction,
+    DurativeMotionAction,
     MotionConstraint,
-    Waypoints,
 )
-from unified_planning.model.tamp.objects import (
+from unified_planning.model.motion.activity import MotionActivity
+from unified_planning.model.motion.constraint import Waypoints, ActivityWaypoints
+from unified_planning.model.motion.objects import (
+    ConfigurationKind,
+    ConfigurationInstance,
+    SE2,
+    SE3,
     MotionModels,
     MovableObject,
     ConfigurationObject,
 )
-from unified_planning.model.tamp.types import OccupancyMap
-from unified_planning.model.tamp.path import Path, ReedsSheppPath
+from unified_planning.model.motion.types import OccupancyMap
+from unified_planning.model.motion.path import (
+    Path,
+    SE2Path,
+    SE3Path,
+    SE2WithControlsPath,
+)
+from unified_planning.model.motion.scheduling_motion_problem import (
+    SchedulingMotionProblem,
+)
 
 __all__ = [
     "InstantaneousMotionAction",
+    "DurativeMotionAction",
+    "MotionActivity",
     "MotionConstraint",
     "Waypoints",
+    "ActivityWaypoints",
+    "ConfigurationKind",
+    "ConfigurationInstance",
+    "SE2",
+    "SE3",
     "MotionModels",
     "MovableObject",
     "ConfigurationObject",
     "OccupancyMap",
     "Path",
-    "ReedsSheppPath",
+    "SE2Path",
+    "SE3Path",
+    "SE2WithControlsPath",
+    "SchedulingMotionProblem",
 ]
