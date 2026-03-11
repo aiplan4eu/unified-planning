@@ -31,10 +31,9 @@ class MotionActivity(Activity):
         self,
         name: str,
         duration: int = 1,
-        optional: bool = False,
         _env: Optional[Environment] = None,
     ):
-        Activity.__init__(self, name, duration, optional, _env)
+        Activity.__init__(self, name, duration, _env)
         self._motion_constraints: List[MotionConstraint] = []
         self._motion_effects: Dict["up.model.FNode", "up.model.FNode"] = {}
 
@@ -64,7 +63,7 @@ class MotionActivity(Activity):
         return "\n".join(s)
 
     def clone(self):
-        new = MotionActivity(self.name, optional=self.optional, _env=self._environment)
+        new = MotionActivity(self.name, _env=self._environment)
         self._clone_to(new)
         new._duration = self._duration
         new._motion_constraints = self.motion_constraints
