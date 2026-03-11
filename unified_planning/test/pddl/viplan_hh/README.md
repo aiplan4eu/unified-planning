@@ -1,0 +1,1 @@
+The problems in this directory were taken from the [ViPlan-HH benchmark](https://github.com/merlerm/ViPlan/) (licensed under the MIT License). All PDDL files in that problem can be found [here](https://github.com/merlerm/ViPlan/tree/main/data/planning/igibson).

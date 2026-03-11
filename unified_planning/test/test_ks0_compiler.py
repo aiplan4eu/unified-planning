@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import re
+from itertools import chain, combinations
+
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
 from unified_planning.engines.results import CompilerResult, PlanGenerationResultStatus
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
+from unified_planning.io import PDDLReader
 from unified_planning.model import UPState
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.plans import SequentialPlan
@@ -25,6 +30,255 @@ from unified_planning.test import (
     unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
 )
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
+
+
+IGIBSON_POSSIBLE_STATES_STR = [
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": False,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": True,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, sink_1)": False,
+    },
+    {
+        "inside(bowl_1, cabinet_1)": False,
+        "open(cabinet_1)": False,
+        "ontop(bowl_1, sink_1)": False,
+        "reachable(bowl_1)": False,
+        "reachable(cabinet_1)": False,
+        "reachable(sink_1)": True,
+        "holding(bowl_1)": False,
+        "ontop(bowl_1, bowl_1)": True,
+        "ontop(bowl_1, cabinet_1)": True,
+        "nextto(bowl_1, bowl_1)": True,
+        "nextto(bowl_1, cabinet_1)": False,
+        "nextto(bowl_1, sink_1)": False,
+    },
+]
+
+IGIBSON_TRUE_INIT_STATE_STR = {
+    "inside(bowl_1, cabinet_1)": True,
+    "open(cabinet_1)": False,
+    "ontop(bowl_1, sink_1)": False,
+    "reachable(bowl_1)": False,
+    "reachable(cabinet_1)": False,
+    "reachable(sink_1)": True,
+    "holding(bowl_1)": False,
+    "ontop(bowl_1, bowl_1)": False,
+    "ontop(bowl_1, cabinet_1)": False,
+    "nextto(bowl_1, bowl_1)": True,
+    "nextto(bowl_1, cabinet_1)": False,
+    "nextto(bowl_1, sink_1)": False,
+}
+
+
+def _igibson_powerset(iterable):
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 class TestKs0Compiler(unittest_TestCase):
@@ -547,3 +801,178 @@ class TestKs0Compiler(unittest_TestCase):
                 ai.action.name.startswith("merge_"),
                 f"Back-converted plan still contains merge action: {ai.action.name}",
             )
+
+    # ------------------------------------------------------------------
+    # igibson integration tests
+    # ------------------------------------------------------------------
+
+    def _build_igibson_problem_and_possible_states(self):
+        test_dir = os.path.dirname(__file__)
+        domain_file = os.path.join(test_dir, "pddl", "viplan_hh", "domain.pddl")
+        problem_file = os.path.join(
+            test_dir, "pddl", "viplan_hh", "cleaning_out_drawers.pddl"
+        )
+        reader = PDDLReader()
+        problem = reader.parse_problem(domain_file, problem_file)
+        em = problem.environment.expression_manager
+
+        bowl_1    = problem.object("bowl_1")
+        cabinet_1 = problem.object("cabinet_1")
+        sink_1    = problem.object("sink_1")
+        inside    = problem.fluent("inside")
+        reachable = problem.fluent("reachable")
+        ontop     = problem.fluent("ontop")
+
+        s0 = UPState({inside(bowl_1, cabinet_1): em.TRUE()}, problem)
+        s1 = UPState(
+            {reachable(bowl_1): em.TRUE(), ontop(bowl_1, sink_1): em.TRUE()},
+            problem,
+        )
+        return problem, (s0, s1)
+
+    def _str_state_to_upstate(self, problem, str_state_dict):
+        em = problem.environment.expression_manager
+        values = {}
+        for pred_str, val in str_state_dict.items():
+            m = re.match(r'(\w+)\(([^)]+)\)', pred_str)
+            fluent_name = m.group(1)
+            obj_names = [o.strip() for o in m.group(2).split(",")]
+            fluent = problem.fluent(fluent_name)
+            objs = [problem.object(o) for o in obj_names]
+            values[fluent(*objs)] = em.TRUE() if val else em.FALSE()
+        return UPState(values, problem)
+
+    def test_igibson_compile_single_possible_initial_state(self):
+        problem, (s0, _) = self._build_igibson_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsInstance(res, CompilerResult)
+        self.assertIsNotNone(res.problem)
+        self.assertTrue(res.problem.name.startswith("ks0_"))
+
+    def test_igibson_compile_with_uncertainty(self):
+        problem, possible_states = self._build_igibson_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=possible_states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsInstance(res, CompilerResult)
+        self.assertIsNotNone(res.problem)
+        self.assertTrue(res.problem.name.startswith("ks0_"))
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_igibson_full_pipeline_single_state(self):
+        problem, (s0, _) = self._build_igibson_problem_and_possible_states()
+        with Compiler(
+            name="up_ks0_compiler",
+            params={"possible_initial_states": (s0,)},
+        ) as compiler:
+            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiled_problem = res.problem
+
+        with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
+            plan_result = planner.solve(compiled_problem)
+
+        self.assertIsNotNone(plan_result.plan)
+        self.assertEqual(plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING)
+        back_plan = res.plan_back_conversion(plan_result.plan)
+        self.assertIsInstance(back_plan, SequentialPlan)
+        for ai in back_plan.actions:
+            self.assertFalse(ai.action.name.startswith("merge_"))
+
+        sim = UPSequentialSimulator(problem)
+        cur_state = sim.get_initial_state()
+        for ai in back_plan.actions:
+            cur_state = sim.apply(cur_state, ai)
+            self.assertIsNotNone(cur_state)
+        self.assertTrue(sim.is_goal(cur_state))
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_igibson_full_pipeline_conformant_plan(self):
+        problem, possible_states = self._build_igibson_problem_and_possible_states()
+        with Compiler(
+            name="up_ks0_compiler",
+            params={"possible_initial_states": possible_states},
+        ) as compiler:
+            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiled_problem = res.problem
+
+        with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
+            plan_result = planner.solve(compiled_problem)
+
+        self.assertIsNotNone(plan_result.plan)
+        back_plan = res.plan_back_conversion(plan_result.plan)
+        self.assertIsInstance(back_plan, SequentialPlan)
+
+        sim = UPSequentialSimulator(problem)
+        for i, init_state in enumerate(possible_states):
+            cur_state = init_state
+            for ai in back_plan.actions:
+                cur_state = sim.apply(cur_state, ai)
+                self.assertIsNotNone(
+                    cur_state,
+                    f"Action {ai} not applicable from initial state {i}",
+                )
+            self.assertTrue(
+                sim.is_goal(cur_state),
+                f"Plan does not reach goal from initial state {i}",
+            )
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_subsets_of_igibson_initial_states(self):
+        test_dir = os.path.dirname(__file__)
+        domain_file = os.path.join(test_dir, "pddl", "viplan_hh", "domain.pddl")
+        problem_file = os.path.join(
+            test_dir, "pddl", "viplan_hh", "cleaning_out_drawers.pddl"
+        )
+        reader = PDDLReader()
+        problem = reader.parse_problem(domain_file, problem_file)
+
+        subsets = (
+            list(_igibson_powerset(IGIBSON_POSSIBLE_STATES_STR))[:200]
+            + list(_igibson_powerset(IGIBSON_POSSIBLE_STATES_STR))[-200:]
+        )
+
+        for subset in subsets:
+            with self.subTest(subset=subset):
+                states_str = list(subset) + [IGIBSON_TRUE_INIT_STATE_STR]
+                states = tuple(
+                    self._str_state_to_upstate(problem, d) for d in states_str
+                )
+
+                compiler = Ks0Compiler(possible_initial_states=states)
+                res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+                compiled_problem = res.problem
+
+                with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
+                    plan_result = planner.solve(compiled_problem)
+
+                self.assertIsNotNone(
+                    plan_result.plan,
+                    f"No plan found for subset:\n{subset}",
+                )
+                back_plan = res.plan_back_conversion(plan_result.plan)
+                self.assertIsInstance(back_plan, SequentialPlan)
+
+                # Verify plan reaches goal from the PDDL initial state
+                sim = UPSequentialSimulator(problem)
+                cur_state = sim.get_initial_state()
+                for ai in back_plan.actions:
+                    cur_state = sim.apply(cur_state, ai)
+                    self.assertIsNotNone(cur_state)
+                self.assertTrue(
+                    sim.is_goal(cur_state),
+                    f"Plan doesn't reach goal! subset:\n{subset}",
+                )
+
+                # Verify plan is truly conformant from every possible initial state
+                for i, init_state in enumerate(states):
+                    cur_state = init_state
+                    for ai in back_plan.actions:
+                        cur_state = sim.apply(cur_state, ai)
+                        self.assertIsNotNone(
+                            cur_state,
+                            f"Action {ai} not applicable from state {i}, subset:\n{subset}",
+                        )
+                    self.assertTrue(
+                        sim.is_goal(cur_state),
+                        f"Didn't reach goal from state {i}, subset:\n{subset}",
+                    )
