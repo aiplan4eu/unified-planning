@@ -1,0 +1,135 @@
+from dataclasses import dataclass, field
+from itertools import product
+from pathlib import Path
+from typing import Dict, Mapping, Tuple
+
+from unified_planning.io import PDDLReader
+from unified_planning.model import UPState
+
+AtomSpec = Tuple[str, ...]
+StateSpec = Dict[AtomSpec, bool]
+StateChoice = Tuple[Mapping[AtomSpec, bool], ...]
+
+_VIPLAN_HH_DIR = Path(__file__).parent
+VIPLAN_HH_DOMAIN_FILE = _VIPLAN_HH_DIR / "domain.pddl"
+
+
+@dataclass(frozen=True)
+class ViPlanHHCase:
+    """Declarative description of a ViPlan-HH test case.
+
+    Each case points to a problem file under the shared ViPlan-HH domain and
+    declares:
+    - representative_states: a small set of plausible initial states used by
+      compile and end-to-end smoke tests.
+    - base_state: facts shared by every generated uncertain world.
+    - uncertainty_dimensions: mutually-exclusive choices whose Cartesian
+      product defines the full uncertain state space for stress tests.
+    - true_state: the ground-truth initial state that must always be included
+      in the stress-test subsets.
+    """
+
+    name: str
+    problem_file: str
+    representative_states: Tuple[Mapping[AtomSpec, bool], ...]
+    true_state: Mapping[AtomSpec, bool]
+    base_state: Mapping[AtomSpec, bool] = field(default_factory=dict)
+    uncertainty_dimensions: Tuple[StateChoice, ...] = field(default_factory=tuple)
+
+    @property
+    def problem_path(self) -> Path:
+        return _VIPLAN_HH_DIR / self.problem_file
+
+    def possible_state_specs(self) -> Tuple[StateSpec, ...]:
+        """Return the full set of possible states generated from the case data."""
+        if not self.uncertainty_dimensions:
+            return tuple(dict(spec) for spec in self.representative_states)
+
+        states = []
+        for choices in product(*self.uncertainty_dimensions):
+            merged = dict(self.base_state)
+            for choice in choices:
+                merged.update(choice)
+            states.append(merged)
+        return tuple(states)
+
+
+def parse_problem(case: ViPlanHHCase):
+    reader = PDDLReader()
+    return reader.parse_problem(str(VIPLAN_HH_DOMAIN_FILE), str(case.problem_path))
+
+
+def state_spec_to_upstate(problem, state_spec: Mapping[AtomSpec, bool]) -> UPState:
+    """Build a UPState from an atom-based specification.
+
+    Atom specs are tuples like ("inside", "bowl_1", "cabinet_1") so callers
+    do not need string parsing or per-problem helper functions.
+    """
+    em = problem.environment.expression_manager
+    values = {}
+    for atom, value in state_spec.items():
+        fluent_name = atom[0]
+        object_names = atom[1:]
+        fluent = problem.fluent(fluent_name)
+        objects = [problem.object(name) for name in object_names]
+        values[fluent(*objects)] = em.TRUE() if value else em.FALSE()
+    return UPState(values, problem)
+
+
+def state_specs_to_upstates(problem, state_specs) -> Tuple[UPState, ...]:
+    return tuple(state_spec_to_upstate(problem, spec) for spec in state_specs)
+
+
+_CLEANING_OUT_DRAWERS_BASE_STATE = {
+    ("inside", "bowl_1", "cabinet_1"): False,
+    ("ontop", "bowl_1", "sink_1"): False,
+    ("reachable", "bowl_1"): False,
+    ("reachable", "cabinet_1"): False,
+    ("reachable", "sink_1"): True,
+    ("holding", "bowl_1"): False,
+    ("nextto", "bowl_1", "bowl_1"): True,
+    ("nextto", "bowl_1", "sink_1"): False,
+}
+
+CLEANING_OUT_DRAWERS = ViPlanHHCase(
+    name="cleaning_out_drawers",
+    problem_file="cleaning_out_drawers.pddl",
+    representative_states=(
+        {("inside", "bowl_1", "cabinet_1"): True},
+        {
+            ("reachable", "bowl_1"): True,
+            ("ontop", "bowl_1", "sink_1"): True,
+        },
+    ),
+    true_state={
+        **_CLEANING_OUT_DRAWERS_BASE_STATE,
+        ("inside", "bowl_1", "cabinet_1"): True,
+        ("open", "cabinet_1"): False,
+        ("ontop", "bowl_1", "bowl_1"): False,
+        ("ontop", "bowl_1", "cabinet_1"): False,
+        ("nextto", "bowl_1", "cabinet_1"): False,
+    },
+    base_state=_CLEANING_OUT_DRAWERS_BASE_STATE,
+    uncertainty_dimensions=(
+        (
+            {("open", "cabinet_1"): False},
+            {("open", "cabinet_1"): True},
+        ),
+        (
+            {("ontop", "bowl_1", "bowl_1"): False},
+            {("ontop", "bowl_1", "bowl_1"): True},
+        ),
+        (
+            {("ontop", "bowl_1", "cabinet_1"): False},
+            {("ontop", "bowl_1", "cabinet_1"): True},
+        ),
+        (
+            {("nextto", "bowl_1", "cabinet_1"): False},
+            {("nextto", "bowl_1", "cabinet_1"): True},
+        ),
+    ),
+)
+
+VIPLAN_HH_CASES = {
+    CLEANING_OUT_DRAWERS.name: CLEANING_OUT_DRAWERS,
+}
