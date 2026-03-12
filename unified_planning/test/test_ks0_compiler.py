@@ -552,14 +552,25 @@ class TestKs0Compiler(unittest_TestCase):
     def test_compile_rejects_invalid_possible_initial_states(self):
         """Non-State objects in the possible-states list must be rejected with a
         clear error message stating the offending type and index."""
-        problem, _ = self._build_problem_and_possible_states()
+
+        # check failure at index 0
+        problem, possible_initial_states = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=[object()])  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertEqual(
             str(error.exception),
             "Every element of `possible_initial_states` must be a "
-            "`unified_planning.model.State`",
+            "`unified_planning.model.State`; found <class 'object'> at index 0.",
+        )
+
+        compiler = Ks0Compiler(possible_initial_states=possible_initial_states + (object(),))  # type: ignore[list-item]
+        with self.assertRaises(UPUsageError) as error:
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertEqual(
+            str(error.exception),
+            "Every element of `possible_initial_states` must be a "
+            "`unified_planning.model.State`; found <class 'object'> at index 2.",
         )
 
     def test_compile_rejects_states_from_different_problem(self):
