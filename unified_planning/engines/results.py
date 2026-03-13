@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -279,6 +280,9 @@ class ValidationResult(Result):
     # The trace is either the sequences of states until the first validation error or a map from time to state for each event up to the first validation error
     trace: Optional[
         Union[List[up.model.State], Dict[Fraction, up.model.State]]
+    ] = field(default=None)
+    calculated_interpreted_functions: Optional[
+        Dict[up.model.InterpretedFunction, up.model.FNode]
     ] = field(default=None)
 
     def __post_init__(self):

@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +20,7 @@ import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.hierarchical as hierarchical
 import unified_planning.test.examples.scheduling as scheduling
 import unified_planning.test.examples.processes as processes
+import unified_planning.test.examples.interpreted_functions_examples as interpreted_functions_examples
 
 
 def get_example_problems():
@@ -29,5 +31,6 @@ def get_example_problems():
         hierarchical,
         scheduling,
         processes,
+        interpreted_functions_examples,
     ]
     return dict(x for m in sub_modules for x in m.get_example_problems().items())
