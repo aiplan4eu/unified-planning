@@ -130,6 +130,45 @@ CLEANING_OUT_DRAWERS = ViPlanHHCase(
     ),
 )
 
+_SORTING_BOOKS_SIMPLE_BASE_STATE = {
+    ("holding", "hardback_1"): False,
+    ("ontop", "hardback_1", "shelf_1"): False,
+}
+
+SORTING_BOOKS_SIMPLE = ViPlanHHCase(
+    name="sorting_books",
+    problem_file="sorting_books.pddl",
+    representative_states=(
+        # True initial state: only ontop(hardback_1, table_1)=True (PDDL default);
+        # all relevant atoms are False.
+        {},
+        # Alternative: agent starts near shelf
+        {("reachable", "shelf_1"): True},
+    ),
+    true_state={
+        **_SORTING_BOOKS_SIMPLE_BASE_STATE,
+        ("reachable", "hardback_1"): False,
+        ("reachable", "table_1"): False,
+        ("reachable", "shelf_1"): False,
+    },
+    base_state=_SORTING_BOOKS_SIMPLE_BASE_STATE,
+    uncertainty_dimensions=(
+        (
+            {("reachable", "hardback_1"): False},
+            {("reachable", "hardback_1"): True},
+        ),
+        (
+            {("reachable", "table_1"): False},
+            {("reachable", "table_1"): True},
+        ),
+        (
+            {("reachable", "shelf_1"): False},
+            {("reachable", "shelf_1"): True},
+        ),
+    ),
+)
+
 VIPLAN_HH_CASES = {
     CLEANING_OUT_DRAWERS.name: CLEANING_OUT_DRAWERS,
+    SORTING_BOOKS_SIMPLE.name: SORTING_BOOKS_SIMPLE,
 }
