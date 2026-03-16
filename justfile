@@ -2,11 +2,11 @@
 
 # Format the code base
 format:
-    python3 -m black --exclude=unified_planning/grpc/generated/ .
+    python3 -m black --exclude=unified_planning/grpc/generated/ unified_planning/
 
 # Check that the code base is correctly formated
 check-format:
-    python3 -m black --check --exclude=unified_planning/grpc/generated/ .
+    python3 -m black --check --exclude=unified_planning/grpc/generated/ unified_planning/
 
 # Run mypy linter on the code base
 check-mypy:
