@@ -186,7 +186,9 @@ class ProblemKindMeta(type):
             setattr(
                 obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
             )
-            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=l))
+            # given a group { X = [ Y, Z ], ...}, consider that it `has_x` if one of the features {X,Y,Z} is present
+            # This is necessary, because, at least for scheduling, the name of the group is also a standalone feature
+            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=l + [m]))
             for f in l:
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, features=[f]))
         return obj
