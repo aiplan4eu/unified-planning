@@ -203,14 +203,10 @@ class ProtobufReader(Converter):
                     [self.convert(var, problem).variable() for var in variables]
                 )
             elif node_type == OperatorKind.IS_PRESENT_EXP:
-                print(msg)
-                container = msg.list[1].atom.symbol
-                print(container)
-                assert False
+                raise UPException(
+                    f"Unsupported IsPresent expression not in a function application: {msg}"
+                )
             else:
-                print("-----------------")
-                print(msg)
-                print("-----------------")
                 args.extend([self.convert(m, problem) for m in msg.list])
 
             assert node_type is not None
@@ -389,6 +385,9 @@ class ProtobufReader(Converter):
         problem = model.scheduling.SchedulingProblem(
             name=problem_name, environment=environment
         )
+        for v in msg.scheduling_extension.variables:
+            var = self.convert(v, problem)
+            problem.add_variable(var.name, var.type)
 
         for t in msg.types:
             problem._add_user_type(self.convert(t, problem))
@@ -419,11 +418,9 @@ class ProtobufReader(Converter):
                 timing = self.convert(g.timing)
                 problem.add_condition(self.convert(timing), goal)
 
-        for sc in msg.scheduling_extension.scoped_constraints:  # TODO: scoped
+        for sc in msg.scheduling_extension.scoped_constraints:
             c = self.convert(sc.constraint, problem)
-            print(">>>>> ", sc.scope)
             scope = [self.convert(sc_item, problem) for sc_item in sc.scope]
-            print("<<<<<")
 
             problem.add_constraint(c, scope)
 
@@ -435,7 +432,7 @@ class ProtobufReader(Converter):
         assert not msg.HasField("hierarchy")
         ext = msg.scheduling_extension
         for pa in ext.activities:
-            a = problem.add_activity(pa.name)
+            a = problem.add_activity(pa.name, optional=pa.optional)
             a._set_duration_constraint(self._convert_duration(pa.duration, problem))
             for p in pa.parameters:
                 prefix = pa.name + "."
