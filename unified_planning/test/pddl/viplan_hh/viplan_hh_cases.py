@@ -229,8 +229,70 @@ PUTTING_AWAY_TOYS = ViPlanHHCase(
     ),
 )
 
+_ORGANIZING_FILE_CABINET_BASE_STATE = {
+    # Goal atoms: not achieved at start
+    ("ontop", "marker_1", "table_1"): False,
+    ("inside", "document_1", "cabinet_1"): False,
+    ("inside", "document_3", "cabinet_1"): False,
+    # Agent is always empty-handed
+    ("holding", "marker_1"): False,
+    ("holding", "document_1"): False,
+    ("holding", "document_2"): False,
+    ("holding", "document_3"): False,
+    ("holding", "document_4"): False,
+    ("holding", "folder_1"): False,
+    ("holding", "folder_2"): False,
+    # Other non-goal atoms: all False at start
+    ("inside", "marker_1", "cabinet_1"): False,
+    ("inside", "document_4", "cabinet_1"): False,
+    ("reachable", "document_4"): False,
+    ("reachable", "folder_1"): False,
+    ("reachable", "folder_2"): False,
+}
+
+ORGANIZING_FILE_CABINET = ViPlanHHCase(
+    name="organizing_file_cabinet",
+    problem_file="organizing_file_cabinet.pddl",
+    representative_states=(
+        # True initial state: agent not near any object (empty init)
+        {},
+        # Alternative: agent starts near the cabinet (must open + place docs)
+        {("reachable", "cabinet_1"): True},
+        # Alternative: agent starts near the marker
+        {("reachable", "marker_1"): True},
+    ),
+    true_state={
+        **_ORGANIZING_FILE_CABINET_BASE_STATE,
+        ("open", "cabinet_1"): False,
+        ("reachable", "marker_1"): False,
+        ("reachable", "table_1"): False,
+        ("reachable", "cabinet_1"): False,
+        ("reachable", "document_1"): False,
+        ("reachable", "document_2"): False,
+        ("reachable", "document_3"): False,
+        # inside uncertainty: none of these are in cabinet at true start
+        ("inside", "document_2", "cabinet_1"): False,
+        ("inside", "folder_1", "cabinet_1"): False,
+        ("inside", "folder_2", "cabinet_1"): False,
+    },
+    base_state=_ORGANIZING_FILE_CABINET_BASE_STATE,
+    uncertainty_dimensions=(
+        ({("open", "cabinet_1"): False}, {("open", "cabinet_1"): True}),
+        ({("reachable", "marker_1"): False}, {("reachable", "marker_1"): True}),
+        ({("reachable", "table_1"): False}, {("reachable", "table_1"): True}),
+        ({("reachable", "cabinet_1"): False}, {("reachable", "cabinet_1"): True}),
+        ({("reachable", "document_1"): False}, {("reachable", "document_1"): True}),
+        ({("reachable", "document_2"): False}, {("reachable", "document_2"): True}),
+        ({("reachable", "document_3"): False}, {("reachable", "document_3"): True}),
+        ({("inside", "document_2", "cabinet_1"): False}, {("inside", "document_2", "cabinet_1"): True}),
+        ({("inside", "folder_1", "cabinet_1"): False}, {("inside", "folder_1", "cabinet_1"): True}),
+        ({("inside", "folder_2", "cabinet_1"): False}, {("inside", "folder_2", "cabinet_1"): True}),
+    ),
+)
+
 VIPLAN_HH_CASES = {
     CLEANING_OUT_DRAWERS.name: CLEANING_OUT_DRAWERS,
     SORTING_BOOKS_SIMPLE.name: SORTING_BOOKS_SIMPLE,
     PUTTING_AWAY_TOYS.name: PUTTING_AWAY_TOYS,
+    ORGANIZING_FILE_CABINET.name: ORGANIZING_FILE_CABINET,
 }
