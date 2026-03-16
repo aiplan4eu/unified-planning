@@ -166,7 +166,7 @@ class Activity(Chronicle):
         self._clone_to(new)
         new._duration = self._duration
         new._optional = self._optional
-        new._present= self._present
+        new._present = self._present
         return new
 
     def __hash__(self):
