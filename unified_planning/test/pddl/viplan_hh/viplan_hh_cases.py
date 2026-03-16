@@ -130,7 +130,7 @@ CLEANING_OUT_DRAWERS = ViPlanHHCase(
     ),
 )
 
-_SORTING_BOOKS_SIMPLE_BASE_STATE = {
+_SORTING_BOOKS_BASE_STATE = {
     ("holding", "hardback_1"): False,
     ("ontop", "hardback_1", "shelf_1"): False,
 }
@@ -146,12 +146,12 @@ SORTING_BOOKS_SIMPLE = ViPlanHHCase(
         {("reachable", "shelf_1"): True},
     ),
     true_state={
-        **_SORTING_BOOKS_SIMPLE_BASE_STATE,
+        **_SORTING_BOOKS_BASE_STATE,
         ("reachable", "hardback_1"): False,
         ("reachable", "table_1"): False,
         ("reachable", "shelf_1"): False,
     },
-    base_state=_SORTING_BOOKS_SIMPLE_BASE_STATE,
+    base_state=_SORTING_BOOKS_BASE_STATE,
     uncertainty_dimensions=(
         (
             {("reachable", "hardback_1"): False},
@@ -168,7 +168,69 @@ SORTING_BOOKS_SIMPLE = ViPlanHHCase(
     ),
 )
 
+_PUTTING_AWAY_TOYS_BASE_STATE = {
+    ("holding", "plaything_1"): False,
+    ("holding", "plaything_2"): False,
+    ("holding", "plaything_3"): False,
+    ("holding", "plaything_4"): False,
+    ("inside", "plaything_1", "carton_1"): False,
+    ("inside", "plaything_2", "carton_1"): False,
+    ("inside", "plaything_3", "carton_1"): False,
+    ("inside", "plaything_4", "carton_1"): False,
+    ("reachable", "table_1"): False,
+}
+
+PUTTING_AWAY_TOYS = ViPlanHHCase(
+    name="putting_away_toys",
+    problem_file="putting_away_toys.pddl",
+    representative_states=(
+        # True initial state: open(carton_1)=True from PDDL, all other relevant atoms False.
+        {},
+        # Alternative: agent starts near plaything_4 (a goal object)
+        {("reachable", "plaything_4"): True},
+        # Alternative: agent starts near the carton
+        {("reachable", "carton_1"): True},
+    ),
+    true_state={
+        **_PUTTING_AWAY_TOYS_BASE_STATE,
+        ("reachable", "plaything_1"): False,
+        ("reachable", "plaything_2"): False,
+        ("reachable", "plaything_3"): False,
+        ("reachable", "plaything_4"): False,
+        ("reachable", "carton_1"): False,
+        ("open", "carton_1"): True,
+    },
+    base_state=_PUTTING_AWAY_TOYS_BASE_STATE,
+    uncertainty_dimensions=(
+        (
+            {("reachable", "plaything_1"): False},
+            {("reachable", "plaything_1"): True},
+        ),
+        (
+            {("reachable", "plaything_2"): False},
+            {("reachable", "plaything_2"): True},
+        ),
+        (
+            {("reachable", "plaything_3"): False},
+            {("reachable", "plaything_3"): True},
+        ),
+        (
+            {("reachable", "plaything_4"): False},
+            {("reachable", "plaything_4"): True},
+        ),
+        (
+            {("reachable", "carton_1"): False},
+            {("reachable", "carton_1"): True},
+        ),
+        (
+            {("open", "carton_1"): False},
+            {("open", "carton_1"): True},
+        ),
+    ),
+)
+
 VIPLAN_HH_CASES = {
     CLEANING_OUT_DRAWERS.name: CLEANING_OUT_DRAWERS,
     SORTING_BOOKS_SIMPLE.name: SORTING_BOOKS_SIMPLE,
+    PUTTING_AWAY_TOYS.name: PUTTING_AWAY_TOYS,
 }
