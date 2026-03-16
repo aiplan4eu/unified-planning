@@ -73,7 +73,7 @@ def parse_instance(instance: str):
     for job in matrix:
         num_tasks = job[0]
         i = 1
-        tasks = [[] for t in range(num_tasks)]
+        tasks: List[List[Tuple[int, int]]] = [[] for t in range(num_tasks)]
         jobs.append(tasks)
         for t in range(num_tasks):
             machines = job[i]

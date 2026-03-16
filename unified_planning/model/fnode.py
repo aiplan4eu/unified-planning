@@ -73,7 +73,7 @@ class FNode(object):
             OperatorKind.VARIABLE_EXP: lambda: self._content.payload.name,
             OperatorKind.OBJECT_EXP: lambda: self._content.payload.name,
             OperatorKind.TIMING_EXP: lambda: str(self._content.payload),
-            OperatorKind.PRESENCE_EXP: lambda: str(self._content.payload),
+            OperatorKind.IS_PRESENT_EXP: lambda: str(self._content.payload),
             OperatorKind.AND: lambda: (
                 self.get_nary_expression_string(" and ", self.args)
             ),

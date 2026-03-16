@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Optional, List, OrderedDict, Union, Tuple
+from typing import Optional, List, OrderedDict, Sequence, Union, Tuple
 
 from unified_planning.model.fnode import FNode
 from unified_planning.model.expression import BoolExpression
@@ -192,7 +192,7 @@ class Chronicle(TimedCondsEffs):
         """Returns the `list` of the `Action parameters`."""
         return list(self._parameters.values())
 
-    def _add_constraint(self, constraint: Constraint, scope: List[BoolExpression]):
+    def _add_constraint(self, constraint: Constraint, scope: Sequence[BoolExpression]):
         """
         Adds the given expression to the `chronicle's constraints`.
         """
