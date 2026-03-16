@@ -110,18 +110,9 @@ class Chronicle(TimedCondsEffs):
         ):
             return False
 
-        # if set((c, set(scope)) for (c,scope) in self._constraints) != set((c, set(scope)) for (c,scope) in oth._constraints):
-        #     return False
-        if len(self._constraints) != len(
-            oth._constraints
-        ):  # TODO: just comparing length here
-            print("=== self ==")
-            for c in self._constraints:
-                print(c)
-            print("=== other =")
-            for c in oth._constraints:
-                print(c)
-            print("===========")
+        if set((c, tuple(set(scope))) for (c, scope) in self._constraints) != set(
+            (c, tuple(set(scope))) for (c, scope) in oth._constraints
+        ):
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False
@@ -130,7 +121,8 @@ class Chronicle(TimedCondsEffs):
     def __hash__(self) -> int:
         res = hash(self._name)
         res += sum(map(hash, self._parameters.items()))
-        # res += sum(map(hash, self._constraints))
+        # hash only the constraint to avoid potential oredering discrepancy in the scope elements
+        res += sum(map(hash, (c for (c, scope) in self._constraints)))
         res += TimedCondsEffs.__hash__(self)
         return res
 
