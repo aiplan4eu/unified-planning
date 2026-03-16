@@ -22,6 +22,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
+from unified_planning.engines.pddl_planner import terminate_process
 from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
@@ -145,7 +146,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                 writer.res_queue.put(res)
                 writer.current_plan = []
                 writer.storing = False
-            elif writer.storing and l:
+            elif writer.storing and l and not self._skip_plan_line(l):
                 writer.current_plan.append(self._parse_plan_line(l))
 
     def _starting_plan_str(self) -> str:
@@ -159,6 +160,15 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         Returns the string representing the ending of a plan in the engine's output.
         """
         raise NotImplementedError
+
+    def _skip_plan_line(self, plan_line: str) -> bool:
+        """
+        Takes a `plan_line` and returns `True` if the line must be skipped in
+        the final plan, returns `False` otherwise.
+
+        The `plan_line` is between `starting_plan_str` and `ending_plan_str`.
+        """
+        return False
 
     def _parse_plan_line(self, plan_line: str) -> str:
         """
@@ -243,8 +253,5 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                 yield res
         finally:
             if self._process is not None:
-                try:
-                    self._process.kill()
-                except OSError:
-                    pass  # This can happen if the process is already terminated
+                terminate_process(self._process)
             t.join()

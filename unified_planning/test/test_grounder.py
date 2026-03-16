@@ -308,6 +308,39 @@ class TestGrounder(unittest_TestCase):
         for a in grounded_problem.actions:
             self.assertEqual(len(a.parameters), 0)
 
+    def test_static_bool_conditions_prune_same_object_once(self):
+        problem = Problem("static_bool_conditions")
+        item_type = UserType("Item")
+        a = Object("a", item_type)
+        b = Object("b", item_type)
+        static_1 = Fluent("static_1", BoolType(), x=item_type)
+        static_2 = Fluent("static_2", BoolType(), x=item_type)
+        done = Fluent("done")
+        action = InstantaneousAction("act", x=item_type)
+        x = action.parameter("x")
+
+        action.add_precondition(static_1(x))
+        action.add_precondition(static_2(x))
+        action.add_effect(done, True)
+
+        problem.add_fluent(static_1, default_initial_value=False)
+        problem.add_fluent(static_2, default_initial_value=False)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.set_initial_value(static_1(a), True)
+        problem.set_initial_value(static_2(a), True)
+        problem.add_object(a)
+        problem.add_object(b)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        self.assertEqual(grounded_problem.actions[0].name, "act_a")
+        self.assertEqual(len(grounded_problem.actions[0].parameters), 0)
+
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):
         problem = self.problems["robot_no_negative_preconditions"].problem

@@ -10,7 +10,7 @@ We currently support the following operation modes:
 OneshotPlanner
 --------------
 The simplest and more obvious operation mode is called `OneshotPlanner`. The semantics of this OM is very simple: given a problem, return a solution plan for it or declare it unsolvable. This is the usual planning query which is the object of the International Planning Competition and is arguably the expected basic functionality of any “planner”.
-The example below shows a basic usage of the OM: the `OneshotPlanner` constructor selects a planning engine suitable for the given kind of problem and the OM defines a single ``solve(p: AbstractProblem)`` method to be implemented by the engine. This method returns a `PlanGenerationResult` object containing information about the the generated plan (if any), the metrics being optimized, log messages (if any) and a status flag indicating if the problem has been solved, under which optimality guarantee or if the planner encountered errors or proved the problem unsatisfiable.
+The example below shows a basic usage of the OM: the `OneshotPlanner` constructor selects a planning engine suitable for the given kind of problem and the OM defines a single ``solve(p: AbstractProblem)`` method to be implemented by the engine. This method returns a `PlanGenerationResult` object containing information about the generated plan (if any), the metrics being optimized, log messages (if any) and a status flag indicating if the problem has been solved, under which optimality guarantee or if the planner encountered errors or proved the problem unsatisfiable.
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
     :caption: OneshotPlanner with automatic Engine selection
@@ -42,6 +42,16 @@ In the example above, it suffices to invoke the OM as ``OneshotPlanner(problem_k
 Note that in the example above, we used the automated engine selection  offered by the `UP`, because we did not indicate the name of the engine we wanted to use. We could specify an exact engine to be used by invoking the OM as ``OneshotPlanner(name=”tamer”)``. When specifying an engine to be used, it is also possible to pass engine-specific parameters to control the engine behaviors, for example:
 ``OneshotPlanner(name=”tamer”, param={“heuristic”: “hadd”, “weight”: 0.8})``
 
+In parallel of the engine-specific parameters, it is also possible to provide per-solve parameters in order to tune the behavior of the engine for a specific problem. For example:
+``planner.solve(problem, memory_limit="1GB")``.
+As for the engine-specific parameters, if the planner does not support the specified parameter (``memory_limit`` in this example), it will be ignored.
+Classical (optional) per-solve parameters are:
+
+- ``heuristic``: is a function that given a state returns its heuristic value or ``None`` if the state is a dead-end;
+- ``timeout``: is the time in seconds that the planner has at max to solve the problem;
+- ``output_stream``: is a stream of strings where the planner writes his output (and also errors) while it is solving the problem;
+- ``warm_start_plan``: is a plan that the planner can use to warm start the search;
+
 Finally, it is possible to execute more than one `OneshotPlanner` in parallel by simply specifying the list of names and the specific parameters of every parallel execution as shown in the example below.
 
 .. literalinclude:: ./code_snippets/oneshot_planner.py
@@ -70,6 +80,46 @@ This OM defines an interactive simulator for exploring the planning space of a g
 
 Each method of the `SequentialSimulator` is stateless, meaning that it is not required to simulate a sequence of states in order, but it is possible to “jump” among different states of the same problem.
 
+ActionSelector
+--------------
+
+The ``ActionSelector`` OM defines an online decision interface for choosing the next action to execute in a closed-loop execution setting. Unlike planners, which compute a full plan in one call, an action selector returns one action at a time and updates its internal policy from execution observations.
+
+This OM is useful in at least three settings:
+
+* policy-driven online control over a planning model;
+* contingent execution loops where sensing actions reveal hidden fluents;
+* prototyping custom strategy logic (e.g., rule-based or learned selectors) that consumes observations incrementally.
+
+The API is exposed through both the engine factory and shortcuts:
+
+* ``Factory.ActionSelector(problem, name=None, params=None)``
+* ``shortcuts.ActionSelector(problem, name=None, params=None)``
+
+Custom selector engines implement ``ActionSelectorMixin`` and provide:
+
+* ``get_action()`` to return the next ``ActionInstance``;
+* ``update(observation)`` to update internal policy state from a map of observed fluent expressions to observed values.
+
+Configuration details:
+
+* Register a custom selector in a specific environment with ``env.factory.add_engine(...)``.
+* Select by ``name`` to force a specific selector implementation.
+* Omit ``name`` to let UP choose among installed selector engines that support ``problem.kind``.
+* ``params`` are forwarded to the selector constructor (engine-specific options).
+
+.. literalinclude:: ./code_snippets/action_selector_and_execution_environment.py
+    :caption: Implementing a custom ActionSelector
+    :start-after: # [action-selector-class-start]
+    :end-before: # [action-selector-class-end]
+
+.. literalinclude:: ./code_snippets/action_selector_and_execution_environment.py
+    :caption: Minimal ActionSelector flow
+    :start-after: # [action-selector-minimal-start]
+    :end-before: # [action-selector-minimal-end]
+
+For an end-to-end contingent execution loop that combines ``ActionSelector`` with a simulated execution environment, see the :doc:`Execution Environment API page <api/model/contingent/ExecutionEnvironment>` and the :doc:`ActionSelector and Contingent Execution Environment notebook <notebooks/15-action-selector-and-execution-environment>`.
+
 Compiler
 --------
 
@@ -94,16 +144,22 @@ The “Compiler” OM defines a transformation of an `AbstractProblem` into anot
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | BOUNDED_TYPES_REMOVING          | Rewrites a problem into an equivalent one where all numeric types are unbounded and the bounds constraints are preserved only by actions and effects (pre)conditions. |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_SINGLE_AGENT_PROJECTION      | Takes a multi-agent planning problem and one of the agents in the problem, and creates the single-agent planning problem that agent is facing alone                   |
+| MA_SINGLE_AGENT_PROJECTION      | Takes a multi-agent planning problem and one of the agents in the problem, and creates the single-agent planning problem that agent is facing alone.                  |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_CENTRALIZATION               | Takes a multi-agent planning problem and creates a single-agent planning problem in which the planners controls all agents in a centralized manner                    |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
+| MA_CENTRALIZATION               | Takes a multi-agent planning problem and creates a single-agent planning problem in which the planners controls all agents in a centralized manner.                   |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | MA_SL_ROBUSTNESS_VERIFICATION   | Takes a multi-agent planning problem and creates a single-agent planning problem such that the resulting problem is unsolvable iff the original problem is robust.    |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | MA_SL_SOCIAL_LAW                | Applies a social law to a multi-agent planning problem.                                                                                                               |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
-| SA_MA_CONVERSION                | Takes a single-agent planning problem and a specification of which object types constitute agents, and tries to create a corresponding multi-agnet planning problem   |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+    
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| SA_MA_CONVERSION                | Takes a single-agent planning problem and a specification of which object types constitute agents, and tries to create a corresponding multi-agnet planning problem.  |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| STATE_INVARIANTS_REMOVING       | Rewrites a problem into an equivalent one with no state invariants.                                                                                                   |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| TIMED_TO_SEQUENTIAL             | Rewrites a problem that contains durative actions into another problem with only instantaneous actions. The compiled problem has less solutions than the original one.|
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| DURATIVE_ACTIONS_TO_PROCESSES   | Rewrites a problem that contains durative actions into an equivalent one with no durative actions, but with processes and events.                                     |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 Also the ``Compiler`` OM can be used either by specifying a certain engine by name or by letting the UP to pick a suitable implementation; in addition, the user has to specify the ``compilation_kind`` to indicate which kind of transformation is needed.

@@ -18,6 +18,7 @@ from abc import ABCMeta, abstractmethod
 import asyncio
 from asyncio.subprocess import PIPE
 import select
+import signal
 import subprocess
 import sys
 import tempfile
@@ -121,7 +122,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             linked to that renaming.
         :return: The up.plans.Plan corresponding to the parsed plan from the file
         """
-        with open(plan_filename) as plan:
+        with open(plan_filename, encoding="utf-8-sig") as plan:
             return self._plan_from_str(problem, plan.read(), get_item_named)
 
     def _plan_from_str(
@@ -172,48 +173,9 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                     domain_filename, problem_filename, plan_filename
                 )
             process_start = time.time()
-            if output_stream is None:
-                # If we do not have an output stream to write to, we simply call
-                # a subprocess and retrieve the final output and error with communicate
-                process = subprocess.Popen(
-                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-                timeout_occurred: bool = False
-                proc_out: List[str] = []
-                proc_err: List[str] = []
-                try:
-                    out_err_bytes = process.communicate(timeout=timeout)
-                    proc_out, proc_err = [[x.decode()] for x in out_err_bytes]
-                except subprocess.TimeoutExpired:
-                    timeout_occurred = True
-                retval = process.returncode
-            else:
-                if sys.platform == "win32":
-                    # On windows we have to use asyncio (does not work inside notebooks)
-                    try:
-                        loop = asyncio.ProactorEventLoop()
-                        exec_res = loop.run_until_complete(
-                            run_command_asyncio(
-                                self, cmd, output_stream=output_stream, timeout=timeout
-                            )
-                        )
-                    finally:
-                        loop.close()
-                else:
-                    # On non-windows OSs, we can choose between asyncio and posix
-                    # select (see comment on USE_ASYNCIO_ON_UNIX variable for details)
-                    if USE_ASYNCIO_ON_UNIX:
-                        exec_res = asyncio.run(
-                            run_command_asyncio(
-                                self, cmd, output_stream=output_stream, timeout=timeout
-                            )
-                        )
-                    else:
-                        exec_res = run_command_posix_select(
-                            self, cmd, output_stream=output_stream, timeout=timeout
-                        )
-                timeout_occurred, (proc_out, proc_err), retval = exec_res
-
+            timeout_occurred, (proc_out, proc_err), retval = run_command(
+                self, cmd, output_stream=output_stream, timeout=timeout
+            )
             process_end = time.time()
             logs.append(up.engines.results.LogMessage(LogLevel.INFO, "".join(proc_out)))
             logs.append(
@@ -270,6 +232,68 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         raise NotImplementedError
 
 
+def run_command(
+    engine: PDDLPlanner,
+    cmd: List[str],
+    output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
+    timeout: Optional[float] = None,
+) -> Tuple[bool, Tuple[List[str], List[str]], int]:
+    """
+    Executed the specified command line, imposing the specified timeout and printing online the output on output_stream.
+    The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
+    """
+    if output_stream is None:
+        # If we do not have an output stream to write to, we simply call
+        # a subprocess and retrieve the final output and error with communicate
+        kwargs = (
+            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
+            if sys.platform == "win32"
+            else {"start_new_session": True}
+        )
+        engine._process = subprocess.Popen(
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
+        )
+        timeout_occurred: bool = False
+        proc_out: List[str] = []
+        proc_err: List[str] = []
+        try:
+            out_err_bytes = engine._process.communicate(timeout=timeout)
+            proc_out, proc_err = [[x.decode(errors="replace")] for x in out_err_bytes]
+        except subprocess.TimeoutExpired:
+            terminate_process(engine._process)  # Terminate the process
+            timeout_occurred = True
+        retval = engine._process.returncode
+        engine._process = None
+    else:
+        if sys.platform == "win32":
+            # On windows we have to use asyncio (does not work inside notebooks)
+            try:
+                loop = asyncio.ProactorEventLoop()
+                exec_res = loop.run_until_complete(
+                    run_command_asyncio(
+                        engine, cmd, output_stream=output_stream, timeout=timeout
+                    )
+                )
+            finally:
+                loop.close()
+        else:
+            # On non-windows OSs, we can choose between asyncio and posix
+            # select (see comment on USE_ASYNCIO_ON_UNIX variable for details)
+            if USE_ASYNCIO_ON_UNIX:
+                exec_res = asyncio.run(
+                    run_command_asyncio(
+                        engine, cmd, output_stream=output_stream, timeout=timeout
+                    )
+                )
+            else:
+                exec_res = run_command_posix_select(
+                    engine, cmd, output_stream=output_stream, timeout=timeout
+                )
+        timeout_occurred, (proc_out, proc_err), retval = exec_res
+
+    return timeout_occurred, (proc_out, proc_err), retval
+
+
 async def run_command_asyncio(
     engine: PDDLPlanner,
     cmd: List[str],
@@ -281,8 +305,13 @@ async def run_command_asyncio(
     The function returns a boolean flag telling if a timeout occurred, a pair of string lists containing the captured standard output and standard error and the return code of the command as an integer
     """
     start = time.time()
+    kwargs = (
+        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
+        if sys.platform == "win32"
+        else {"start_new_session": True}
+    )
     engine._process = await asyncio.create_subprocess_exec(
-        *cmd, stdout=PIPE, stderr=PIPE
+        *cmd, stdout=PIPE, stderr=PIPE, **kwargs
     )
 
     timeout_occurred = False
@@ -301,7 +330,9 @@ async def run_command_asyncio(
             break
         else:
             for idx in range(2):
-                output_string = lines[idx].decode().replace("\r\n", "\n")
+                output_string = (
+                    lines[idx].decode(errors="replace").replace("\r\n", "\n")
+                )
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
                     if output_stream[idx] is not None:
@@ -310,15 +341,14 @@ async def run_command_asyncio(
                     cast(IO[str], output_stream).write(output_string)
                 process_output[idx].append(output_string)
         if timeout is not None and time.time() - start >= timeout:
-            try:
-                engine._process.kill()
-            except OSError:
-                pass  # This can happen if the process is already terminated
+            terminate_process(engine._process)  # Terminate the process
             timeout_occurred = True
             break
 
     await engine._process.wait()  # Wait for the child process to exit
-    return timeout_occurred, process_output, cast(int, engine._process.returncode)
+    retval = engine._process.returncode
+    engine._process = None
+    return timeout_occurred, process_output, cast(int, retval)
 
 
 def run_command_posix_select(
@@ -340,7 +370,7 @@ def run_command_posix_select(
     proc_err_buff: List[str] = []
 
     engine._process = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
     )
     timeout_occurred: bool = False
     start_time = time.time()
@@ -356,14 +386,11 @@ def run_command_posix_select(
         if (
             timeout is not None and time.time() - start_time >= timeout
         ):  # Check if the planner is out of time.
-            try:
-                engine._process.kill()
-            except OSError:
-                pass  # This can happen if the process is already terminated
+            terminate_process(engine._process)  # Terminate the process
             timeout_occurred = True
         for readable_stream in readable_streams:
             out_in_bytes = readable_stream.readline()
-            out_str = out_in_bytes.decode().replace("\r\n", "\n")
+            out_str = out_in_bytes.decode(errors="replace").replace("\r\n", "\n")
             if readable_stream == engine._process.stdout:
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
@@ -399,5 +426,27 @@ def run_command_posix_select(
         lasterr = "".join(proc_err_buff)
         if lasterr:
             proc_err.append(lasterr + "\n")
+
     engine._process.wait()
-    return timeout_occurred, (proc_out, proc_err), cast(int, engine._process.returncode)
+    retval = engine._process.returncode
+    engine._process = None
+    return timeout_occurred, (proc_out, proc_err), cast(int, retval)
+
+
+def terminate_process(process):
+    """
+    Terminates the given process.
+    This function sends a termination signal to the process, which is platform-dependent.
+    :param process: The process to terminate.
+    """
+    try:
+        if sys.platform == "win32":
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                capture_output=True,
+                text=True,
+            )
+        else:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+    except ProcessLookupError:
+        pass

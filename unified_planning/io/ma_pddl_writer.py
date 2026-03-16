@@ -14,24 +14,10 @@
 #
 
 import os as osy
-from fractions import Fraction
 import sys
-import re
 
-from decimal import Decimal, localcontext
-from warnings import warn
 import unified_planning as up
-import unified_planning.environment
-import unified_planning.model.walkers as walkers
-from unified_planning.model import (
-    InstantaneousAction,
-    DurativeAction,
-    Fluent,
-    Parameter,
-    Problem,
-    Object,
-)
-from unified_planning.model.multi_agent.agent import Agent
+from unified_planning.model import DurativeAction, Fluent, Object
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.exceptions import (
     UPTypeError,
@@ -39,15 +25,22 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.types import _UserType
-from typing import Callable, Dict, List, Optional, Set, Union, cast
+from typing import Dict, List, Optional, Set, Union, cast
 from io import StringIO
 from unified_planning.io.pddl_writer import (
+    GENERAL_PDDL_KEYWORDS,
+    PDDL3_KEYWORDS,
+    TEMPORAL_PDDL_KEYWORDS,
     ObjectsExtractor,
     ConverterToPDDLString,
     MangleFunction,
     WithName,
     _write_effect,
     _get_pddl_name,
+)
+
+MA_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(TEMPORAL_PDDL_KEYWORDS).union(
+    PDDL3_KEYWORDS
 )
 
 
@@ -136,6 +129,7 @@ class MAPDDLWriter:
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
         self.domain_objects_agents: Dict[up.model.multi_agent.Agent, str]
         self.all_public_fluents: Set[Fluent] = set()
+        self.pddl_keywords = MA_PDDL_KEYWORDS
 
     def _write_domain(self):
         ag_domains = {}
@@ -157,7 +151,7 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_pddl_name(self.problem)
+                name = _get_pddl_name(self.problem, self.pddl_keywords)
             out.write(f"(domain {name}-domain)\n")
 
             if self.needs_requirements:
@@ -202,7 +196,7 @@ class MAPDDLWriter:
             if self.problem_kind.has_hierarchical_typing():
                 user_types_hierarchy = self.problem.user_types_hierarchy
                 out.write(f" (:types\n")
-                stack: List["unified_planning.model.Type"] = (
+                stack: List["up.model.Type"] = (
                     user_types_hierarchy[None] if None in user_types_hierarchy else []
                 )
                 out.write(
@@ -213,9 +207,9 @@ class MAPDDLWriter:
                 )
                 while stack:
                     current_type = stack.pop()
-                    direct_sons: List[
-                        "unified_planning.model.Type"
-                    ] = user_types_hierarchy[current_type]
+                    direct_sons: List["up.model.Type"] = user_types_hierarchy[
+                        current_type
+                    ]
                     if direct_sons:
                         stack.extend(direct_sons)
                         out.write(
@@ -234,8 +228,17 @@ class MAPDDLWriter:
                 out.write(" )\n")
 
             if self.domain_objects is None:
-                # This method populates the self._domain_objects map
-                self._populate_domain_objects(obe, ag)
+                if self.unfactored:
+                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
+                    for ag in self.problem.agents:
+                        self._populate_domain_objects(obe, ag)
+                        assert self.domain_objects is not None
+                        temp_domain_objects = temp_domain_objects | self.domain_objects
+                        self.domain_objects = None
+                    self.domain_objects = temp_domain_objects
+                else:
+                    # This method populates the self._domain_objects map
+                    self._populate_domain_objects(obe, ag)
             assert self.domain_objects is not None
 
             if len(self.all_public_fluents) == 0:
@@ -271,7 +274,7 @@ class MAPDDLWriter:
                     )
                     if len(predicates_agent) > 0:
                         predicates_agents.append(
-                            f"  (:private agent - {ag.name + '_type'}\n   {nl.join(predicates_agent)})\n"
+                            f"  (:private ?agent - {ag.name + '_type'}\n   {nl.join(predicates_agent)})\n"
                         )
             else:
                 predicates_agents, functions_agent = self.get_predicates_functions(
@@ -588,12 +591,21 @@ class MAPDDLWriter:
             if self.problem.name is None:
                 name = "ma-pddl"
             else:
-                name = _get_pddl_name(self.problem)
+                name = _get_pddl_name(self.problem, self.pddl_keywords)
             out.write(f"(define (problem {name}-problem)\n")
             out.write(f" (:domain {name}-domain)\n")
             if self.domain_objects is None:
-                # This method populates the self._domain_objects map
-                self._populate_domain_objects(ObjectsExtractor(), ag)
+                if self.unfactored:
+                    temp_domain_objects: Dict[_UserType, Set[Object]] = {}
+                    for ag in self.problem.agents:
+                        self._populate_domain_objects(ObjectsExtractor(), ag)
+                        assert self.domain_objects is not None
+                        temp_domain_objects = temp_domain_objects | self.domain_objects
+                        self.domain_objects = None
+                    self.domain_objects = temp_domain_objects
+                else:
+                    # This method populates the self._domain_objects map
+                    self._populate_domain_objects(ObjectsExtractor(), ag)
             assert self.domain_objects is not None
             if len(self.problem.user_types) > 0:
                 out.write(" (:objects")
@@ -812,13 +824,13 @@ class MAPDDLWriter:
         if isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
-            tmp_name = _get_pddl_name(item)
+            tmp_name = _get_pddl_name(item, self.pddl_keywords)
             # If the problem is hierarchical and the name is object, we want to change it
             if self.problem_kind.has_hierarchical_typing() and tmp_name == "object":
                 tmp_name = f"{tmp_name}_"
         else:
             original_name = item.name
-            tmp_name = _get_pddl_name(item)
+            tmp_name = _get_pddl_name(item, self.pddl_keywords)
         # if the ma-pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
         if not isinstance(item, up.model.multi_agent.Agent):

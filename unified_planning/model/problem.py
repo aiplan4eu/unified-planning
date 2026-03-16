@@ -1033,7 +1033,7 @@ class _KindFactory:
     ):
         for param in action.parameters:
             self.update_action_parameter(param)
-        if isinstance(action, up.model.action.SensingAction):
+        if isinstance(action, up.model.contingent.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
         if isinstance(action, up.model.tamp.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
@@ -1241,7 +1241,8 @@ def generate_causal_graph(
         the action.
     """
     if isinstance(
-        problem, (up.model.htn.HierarchicalProblem, up.model.ContingentProblem)
+        problem,
+        (up.model.htn.HierarchicalProblem, up.model.contingent.ContingentProblem),
     ):
         raise NotImplementedError
     assert type(problem) == Problem, "Error not handled."

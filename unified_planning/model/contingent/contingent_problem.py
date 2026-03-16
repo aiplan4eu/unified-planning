@@ -53,12 +53,12 @@ class ContingentProblem(Problem):
             return False
         elif self._hidden_fluents != oth._hidden_fluents:
             return False
-        elif set(set(c) for c in self._or_initial_constraints) != set(
-            set(c) for c in oth._or_initial_constraints
+        elif set(frozenset(c) for c in self._or_initial_constraints) != set(
+            frozenset(c) for c in oth._or_initial_constraints
         ):
             return False
-        elif set(set(c) for c in self._oneof_initial_constraints) != set(
-            set(c) for c in oth._oneof_initial_constraints
+        elif set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+            frozenset(c) for c in oth._oneof_initial_constraints
         ):
             return False
         else:
@@ -66,12 +66,8 @@ class ContingentProblem(Problem):
 
     def __hash__(self) -> int:
         res = super().__hash__()
-        for c in self._or_initial_constraints:
-            for f in c:
-                res += hash(f)
-        for c in self._oneof_initial_constraints:
-            for f in c:
-                res += hash(f)
+        res += hash(frozenset(frozenset(c) for c in self._or_initial_constraints))
+        res += hash(frozenset(frozenset(c) for c in self._oneof_initial_constraints))
         return res
 
     def clone(self):
@@ -146,6 +142,21 @@ class ContingentProblem(Problem):
         self._hidden_fluents.add(em.Not(fluent_exp))
         c = [em.Not(fluent_exp), fluent_exp]
         self._or_initial_constraints.append(c)
+
+    @property
+    def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
+        """Gets the initial value of the fluents.
+
+        IMPORTANT NOTE: this property does a lot of computation, so it should be called as
+        seldom as possible."""
+        res = self._initial_value
+        for f in self._fluents:
+            for f_exp in get_all_fluent_exp(self, f):
+                if f_exp not in self._hidden_fluents:
+                    val = self.initial_value(f_exp)
+                    if val is not None:
+                        res[f_exp] = val
+        return res
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":

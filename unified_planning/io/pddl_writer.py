@@ -22,7 +22,6 @@ from decimal import Decimal, localcontext
 from warnings import warn
 
 import unified_planning as up
-import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     InstantaneousAction,
@@ -33,7 +32,6 @@ from unified_planning.model import (
     Object,
     Effect,
     Timing,
-    TimeInterval,
 )
 from unified_planning.exceptions import (
     UPTypeError,
@@ -41,6 +39,7 @@ from unified_planning.exceptions import (
     UPException,
 )
 from unified_planning.model.htn import HierarchicalProblem
+from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
     SequentialPlan,
@@ -52,17 +51,14 @@ from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
 from io import StringIO
 from functools import reduce
 
-PDDL_KEYWORDS = {
+GENERAL_PDDL_KEYWORDS = {
     "define",
     "domain",
     "requirements",
     "types",
     "constants",
-    "atomic",
     "predicates",
     "problem",
-    "atomic",
-    "constraints",
     "either",
     "number",
     "action",
@@ -71,7 +67,6 @@ PDDL_KEYWORDS = {
     "effect",
     "and",
     "forall",
-    "preference",
     "or",
     "not",
     "imply",
@@ -80,34 +75,15 @@ PDDL_KEYWORDS = {
     "scale-down",
     "increase",
     "decrease",
-    "durative-action",
-    "duration",
-    "condition",
-    "at",
-    "over",
-    "start",
-    "end",
-    "all",
     "derived",
     "objects",
     "init",
     "goal",
     "when",
-    "decrease",
-    "always",
-    "sometime",
-    "within",
-    "at-most-once",
-    "sometime-after",
-    "sometime-before",
-    "always-within",
-    "hold-during",
-    "hold-after",
     "metric",
     "minimize",
     "maximize",
     "total-time",
-    "is-violated",
     "strips",
     "negative-preconditions",
     "typing",
@@ -123,11 +99,41 @@ PDDL_KEYWORDS = {
     "derived-predicates",
     "timed-initial-literals",
     "timed-initial-effects",
-    "preferences",
     "contingent",
     "time",
     "continuous-effects",
 }
+
+TEMPORAL_PDDL_KEYWORDS = {
+    "durative-action",
+    "duration",
+    "condition",
+    "at",
+    "over",
+    "start",
+    "end",
+    "all",
+}
+
+PDDL3_KEYWORDS = {
+    "constraints",
+    "preferences",
+    "is-violated",
+    "preference",
+    "always",
+    "sometime",
+    "within",
+    "at-most-once",
+    "sometime-after",
+    "sometime-before",
+    "always-within",
+    "hold-during",
+    "hold-after",
+}
+
+PDDL_PLUS_KEYWORDS = {"process", "event"}
+
+CONTINGENT_PDDL_KEYWORDS = {"observe", "oneof", "unknown"}
 
 # The following map is used to mangle the invalid names by their class.
 INITIAL_LETTER: Dict[type, str] = {
@@ -370,6 +376,22 @@ class PDDLWriter:
         # those 2 maps are "simmetrical", meaning that "(otn[k] == v) implies (nto[v] == k)"
         self.domain_objects: Optional[Dict[_UserType, Set[Object]]] = None
 
+        # construct keywords set
+        self.pddl_keywords = GENERAL_PDDL_KEYWORDS
+        if len(self.problem.processes) > 0 or len(self.problem.events) > 0:
+            self.pddl_keywords |= PDDL_PLUS_KEYWORDS
+        if len(self.problem.trajectory_constraints) > 0:
+            self.pddl_keywords |= PDDL3_KEYWORDS
+        if any(
+            map(
+                lambda action: isinstance(action, up.model.action.DurativeAction),
+                self.problem.actions,
+            )
+        ):
+            self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
+        if isinstance(self.problem, ContingentProblem):
+            self.pddl_keywords |= CONTINGENT_PDDL_KEYWORDS
+
     def _write_parameters(self, out, a):
         for ap in a.parameters:
             if ap.type.is_user_type():
@@ -391,7 +413,7 @@ class PDDLWriter:
         if self.problem.name is None:
             name = "pddl"
         else:
-            name = _get_pddl_name(self.problem)
+            name = _get_pddl_name(self.problem, self.pddl_keywords)
         out.write(f"(domain {name}-domain)\n")
 
         if self.needs_requirements:
@@ -454,12 +476,14 @@ class PDDLWriter:
                 out.write(" :method-preconditions")
             if self.problem_kind.has_processes() or self.problem_kind.has_events():
                 out.write(" :time")
+            if isinstance(self.problem, ContingentProblem):
+                out.write(" :contingent")
             out.write(")\n")
 
         if self.problem_kind.has_hierarchical_typing():
             user_types_hierarchy = self.problem.user_types_hierarchy
             out.write(f" (:types\n")
-            stack: List["unified_planning.model.Type"] = (
+            stack: List["up.model.Type"] = (
                 user_types_hierarchy[None] if None in user_types_hierarchy else []
             )
             out.write(
@@ -467,9 +491,7 @@ class PDDLWriter:
             )
             while stack:
                 current_type = stack.pop()
-                direct_sons: List["unified_planning.model.Type"] = user_types_hierarchy[
-                    current_type
-                ]
+                direct_sons: List["up.model.Type"] = user_types_hierarchy[current_type]
                 if direct_sons:
                     stack.extend(direct_sons)
                     out.write(
@@ -622,6 +644,17 @@ class PDDLWriter:
                 self._write_parameters(out, a)
                 out.write(")")
                 self._write_untimed_preconditions(a, converter, out)
+                if isinstance(a, SensingAction):
+                    obs = a.observed_fluents
+                    if len(obs) == 0:
+                        warn(
+                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe."
+                        )
+                    elif len(obs) == 1:
+                        out.write(f"\n  :observe {converter.convert(obs[0])}")
+                    else:
+                        obs_str = " ".join(converter.convert(f) for f in obs)
+                        out.write(f"\n  :observe (and {obs_str})")
                 self._write_untimed_effects(a, converter, out, costs)
                 out.write(")\n")
             elif isinstance(a, DurativeAction):
@@ -753,7 +786,7 @@ class PDDLWriter:
         if self.problem.name is None:
             name = "pddl"
         else:
-            name = _get_pddl_name(self.problem)
+            name = _get_pddl_name(self.problem, self.pddl_keywords)
         out.write(f"(define (problem {name}-problem)\n")
         out.write(f" (:domain {name}-domain)\n")
         if self.domain_objects is None:
@@ -801,8 +834,8 @@ class PDDLWriter:
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
-                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
                 out.write(f"\n             ")
+                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
                 _write_effect(
                     e,
                     None,
@@ -811,7 +844,23 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-                out.write(f"\n          )")
+                out.write(f")")
+        if isinstance(self.problem, ContingentProblem):
+            for c in self.problem.or_constraints:
+                # Detect constraints produced by add_unknown_initial_constraint:
+                # they have the canonical form [NOT(f), f] and must be emitted as
+                # (unknown f) so the reader can reconstruct them faithfully.
+                if len(c) == 2 and c[0].is_not() and c[0].args[0] == c[1]:
+                    out.write(f"\n             ")
+                    out.write(f" (unknown {converter.convert(c[1])})")
+                else:
+                    or_str = " ".join(converter.convert(f) for f in c)
+                    out.write(f"\n             ")
+                    out.write(f" (or {or_str})")
+            for c in self.problem.oneof_constraints:
+                oneof_str = " ".join(converter.convert(f) for f in c)
+                out.write(f"\n             ")
+                out.write(f" (oneof {oneof_str})")
         out.write(f"\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
@@ -935,13 +984,13 @@ class PDDLWriter:
         if isinstance(item, up.model.Type):
             assert item.is_user_type()
             original_name = cast(_UserType, item).name
-            tmp_name = _get_pddl_name(item)
+            tmp_name = _get_pddl_name(item, self.pddl_keywords)
             # If the problem is hierarchical and the name is object, we want to change it
             if self.problem_kind.has_hierarchical_typing() and tmp_name == "object":
                 tmp_name = f"{tmp_name}_"
         else:
             original_name = item.name
-            tmp_name = _get_pddl_name(item)
+            tmp_name = _get_pddl_name(item, self.pddl_keywords)
         # if the pddl valid name is the same of the original one and it does not create conflicts,
         # it can be returned
         if tmp_name == original_name and tmp_name not in self.nto_renamings:
@@ -1010,6 +1059,9 @@ class PDDLWriter:
                         )
                     _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                     _update_domain_objects(self.domain_objects, obe.get(e.value))
+                if isinstance(a, SensingAction):
+                    for of in a.observed_fluents:
+                        _update_domain_objects(self.domain_objects, obe.get(of))
             elif isinstance(a, DurativeAction):
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.lower))
                 _update_domain_objects(self.domain_objects, obe.get(a.duration.upper))
@@ -1024,6 +1076,22 @@ class PDDLWriter:
                             )
                         _update_domain_objects(self.domain_objects, obe.get(e.fluent))
                         _update_domain_objects(self.domain_objects, obe.get(e.value))
+        for ev in self.problem.events:
+            for p in ev.preconditions:
+                _update_domain_objects(self.domain_objects, obe.get(p))
+            for e in ev.effects:
+                if e.is_conditional():
+                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                _update_domain_objects(self.domain_objects, obe.get(e.value))
+        for pro in self.problem.processes:
+            for p in pro.preconditions:
+                _update_domain_objects(self.domain_objects, obe.get(p))
+            for e in pro.effects:
+                if e.is_conditional():
+                    _update_domain_objects(self.domain_objects, obe.get(e.condition))
+                _update_domain_objects(self.domain_objects, obe.get(e.fluent))
+                _update_domain_objects(self.domain_objects, obe.get(e.value))
         if isinstance(self.problem, HierarchicalProblem):
             for m in self.problem.methods:
                 for p in m.preconditions:
@@ -1117,7 +1185,9 @@ class PDDLWriter:
             out.write(")")
 
 
-def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
+def _get_pddl_name(
+    item: Union[WithName, "up.model.AbstractProblem"], pddl_keywords: Set[str]
+) -> str:
     """This function returns a pddl name for the chosen item"""
     name = item.name  # type: ignore
     assert name is not None
@@ -1130,7 +1200,7 @@ def _get_pddl_name(item: Union[WithName, "up.model.AbstractProblem"]) -> str:
 
     name = re.sub("[^0-9a-zA-Z_-]", "_", name)  # Substitute non-valid elements with "_"
     while (
-        name in PDDL_KEYWORDS
+        name in pddl_keywords
     ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f"{name}_"
     if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):

@@ -1,4 +1,6 @@
+pddl
 pyparsing
 networkx
 ConfigSpace
 numpy<2 # required as transitive dependencies seems to install version 2 by default that is incompatible with other dependecies
+pysmt

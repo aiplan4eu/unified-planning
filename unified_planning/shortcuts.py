@@ -435,6 +435,19 @@ def Equals(left: Expression, right: Expression) -> FNode:
     return get_environment().expression_manager.Equals(left, right)
 
 
+def EqualsOrIff(left: Expression, right: Expression) -> FNode:
+    """
+    Creates an expression of either one of the following forms:
+        ``left <-> right``
+        ``left == right``
+
+    :param left: The ``left`` member of the ``EqualsOrIff expression``.
+    :param right: The ``right`` member of the ``EqualsOrIff expression``.
+    :return: The created ``Equals`` or ``Iff`` expression.
+    """
+    return get_environment().expression_manager.EqualsOrIff(left, right)
+
+
 def Dot(
     agent: "unified_planning.model.multi_agent.Agent",
     fluent_exp: Union[FNode, "unified_planning.model.Fluent"],
@@ -718,6 +731,26 @@ def PlanRepairer(
         problem_kind=problem_kind,
         plan_kind=plan_kind,
         optimality_guarantee=optimality_guarantee,
+    )
+
+
+def ActionSelector(
+    problem: "up.model.AbstractProblem",
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, str]] = None,
+) -> "up.engines.engine.Engine":
+    """
+    Returns an ActionSelector. There are two ways to call this method:
+
+    *   | using ``problem_kind`` through the problem field.
+        | e.g. ``ActionSelector(problem)``
+    *   | using ``name`` (the name of a specific action selector) and eventually some ``params``
+        | (engine dependent options).
+        | e.g. ``ActionSelector(problem, name='xxx')``
+    """
+    return get_environment().factory.ActionSelector(
+        problem=problem, name=name, params=params
     )
 
 

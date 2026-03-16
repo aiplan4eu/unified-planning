@@ -38,6 +38,8 @@ class CompilationKind(Enum):
     MA_SL_ROBUSTNESS_VERIFICATION = auto()
     MA_SL_SOCIAL_LAW = auto()
     SA_MA_CONVERSION = auto()
+    TIMED_TO_SEQUENTIAL = auto()
+    DURATIVE_ACTIONS_TO_PROCESSES = auto()
 
 
 class CompilerMixin(ABC):

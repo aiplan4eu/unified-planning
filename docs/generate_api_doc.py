@@ -16,6 +16,8 @@ model.DurativeAction
 model.Parameter
 model.State
 model.UPState
+model.contingent.ExecutionEnvironment
+model.contingent.SimulatedExecutionEnvironment
 model.metrics.PlanQualityMetric
 model.metrics.MinimizeActionCosts
 model.metrics.MinimizeSequentialPlanLength
