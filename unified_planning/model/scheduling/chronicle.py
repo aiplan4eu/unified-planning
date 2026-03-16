@@ -173,7 +173,6 @@ class Chronicle(TimedCondsEffs):
             # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
             raise AttributeError(f"Transition has no attribute '{parameter_name}'")
         if parameter_name not in self._parameters:
-            print(self._parameters)
             raise AttributeError(
                 f"Transition '{self.name}' has no attribute or parameter '{parameter_name}'"
             )
