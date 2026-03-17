@@ -205,8 +205,17 @@ class Chronicle(TimedCondsEffs):
 
         Note: To get all constraints (with and without scope) consider the `scoped_constraints` property."""
         if any((len(scope) != 0 for (_, scope) in self._constraints)):
-            print("Warning: at least one constraint has a non-empty scope.", [f"{c} (scope: {scope})" for (c, scope) in self._constraints if len(scope) > 0])
-            print("         Consider using the `scoped_constraint` to get them all.")
+            print(
+                "Warning: at least one constraint has a non-empty scope.",
+                [
+                    f"{c} (scope: {scope})"
+                    for (c, scope) in self._constraints
+                    if len(scope) > 0
+                ],
+            )
+            print(
+                "         Consider using the `scoped_constraint` method to get them all."
+            )
         return [c for (c, scope) in self._constraints if len(scope) == 0]
 
     @property
