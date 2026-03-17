@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict
 from fractions import Fraction
 from typing import Optional, List, Union, Dict, Tuple
 
@@ -55,6 +54,7 @@ class SchedulingProblem(  # type: ignore[misc]
 
     - scheduling problems replaces *actions* with *activities*. While in planning, a solution plan may contain zero, one
       or multiple instances of the same action, in scheduling the solution must contain *exactly one* instance of each activity.
+      Some activities may be declared as *optional*, in which case it may appear zero or one time.
     - it defines a set of variables and timepoints over which constraints can be stated,
     - it provides some shortcuts to deal with typical scheduling constructs (activities, resources, ...)
     - by default, a `SchedulingProblem` assumes a discrete time model with a minimal temporal separation (aka `epsilon`) of 1.
@@ -248,6 +248,7 @@ class SchedulingProblem(  # type: ignore[misc]
         :param name: Name that uniquely identifies the activity.
         :param duration: (optional) Fixed duration of the activity. If not set, the duration to 0 (instantaneous activity).
                          The duration can alter be overriden on the Activity object.
+        :param optional: If set to true, the activity will be optional and may not appear in the solution.
         """
         if any(a.name == name for a in self._activities):
             raise ValueError(f"An activity with name '{name}' already exists.")
@@ -289,7 +290,15 @@ class SchedulingProblem(  # type: ignore[misc]
         ],
         scope: Optional[Scope] = None,
     ):
-        """Enforce a boolean expression to be true in any solution"""
+        """Enforces a boolean expression to be true in any solution.
+
+        A constraint may be *scoped*, in which case it is associated to a list of boolean expressions
+        such that the constraint is only active when all scope expression are true.
+        A scope is required when the constraint expression involves elements of optional activities.
+
+        :param constraint: Boolean expression that should hold in a solution.
+        :param scope: Optionally specifies the scope in which the constraint is active.
+        """
 
         self._base._add_constraint(constraint, scope=[] if scope is None else scope)
 

@@ -22,10 +22,8 @@ from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
     Timepoint,
-    Timing,
     TimepointKind,
     Fluent,
-    NumericConstant,
     Presence,
 )
 import unified_planning as up
@@ -34,7 +32,9 @@ from unified_planning.model.scheduling.chronicle import Chronicle, Constraint
 
 class Activity(Chronicle):
     """Activity is essentially an interval with start and end timepoint that facilitates defining constraints in the
-    associated :class:`SchedulingProblem`"""
+    associated :class:`SchedulingProblem`
+
+    An interval may be *optional* in which case including it in the solution is an explicit decision."""
 
     def __init__(
         self,
@@ -73,6 +73,7 @@ class Activity(Chronicle):
 
     @property
     def present(self) -> FNode:
+        """A boolean expression that is true iff the activity is present (i.e. appears in the solution)."""
         return self._present
 
     @property
@@ -149,6 +150,8 @@ class Activity(Chronicle):
         self,
         constraint: Constraint,
     ):
+        """Adds a constraint on the activity.
+        If the activity is optional, the scope of the constraint will be the presence of the activity it self."""
         scope = [self.present] if self.optional else []
         self._add_constraint(constraint, scope=scope)
 
