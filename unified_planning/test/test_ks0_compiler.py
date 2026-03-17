@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import chain, combinations
+from itertools import chain, combinations, islice
 
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
@@ -879,11 +879,25 @@ class TestKs0Compiler(unittest_TestCase):
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
                 possible_state_specs = case.possible_state_specs()
-                all_subsets = list(_powerset(possible_state_specs))
-                if len(all_subsets) <= 400:
-                    subsets = all_subsets
+                n = len(possible_state_specs)
+                # Probe the first 401 elements without materialising the full
+                # powerset (which has 2^n elements — infeasible for large n).
+                probe = list(islice(_powerset(possible_state_specs), 401))
+                if len(probe) <= 400:
+                    subsets = probe
                 else:
-                    subsets = all_subsets[:200] + all_subsets[-200:]
+                    head = probe[:200]
+                    # Last 200: iterate large subsets directly (size n, n-1, …)
+                    tail: list = []
+                    for r in range(n, -1, -1):
+                        for combo in combinations(possible_state_specs, r):
+                            tail.append(combo)
+                            if len(tail) >= 200:
+                                break
+                        if len(tail) >= 200:
+                            break
+                    tail.reverse()
+                    subsets = head + tail
 
                 sim = UPSequentialSimulator(problem)
                 for subset_index, subset in enumerate(subsets):
