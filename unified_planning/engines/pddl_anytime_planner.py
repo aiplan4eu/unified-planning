@@ -59,6 +59,8 @@ class Writer(up.AnyBaseClass):
         self.storing: bool = False
         self.res_queue: Queue[PlanGenerationResult] = res_queue
         self.last_plan_found: Optional[Plan] = None
+        self.pddl_writer: Optional[PDDLWriter] = None
+        self.process = None
 
     def write(self, txt: str):
         if self._output_stream is not None:
@@ -129,14 +131,15 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             plan is generated and added to the Queue.
         - writer.last_plan_found: The last complete plan found and parsed.
         """
-        assert isinstance(self._writer, PDDLWriter)
+        pddl_writer = writer.pddl_writer if writer.pddl_writer is not None else self._writer
+        assert isinstance(pddl_writer, PDDLWriter)
         for l in planner_output.splitlines():
             if self._starting_plan_str() in l:
                 writer.storing = True
             elif writer.storing and self._ending_plan_str() in l:
                 plan_str = "\n".join(writer.current_plan)
                 plan = self._plan_from_str(
-                    writer.problem, plan_str, self._writer.get_item_named
+                    writer.problem, plan_str, pddl_writer.get_item_named
                 )
                 res = PlanGenerationResult(
                     PlanGenerationResultStatus.INTERMEDIATE,
@@ -230,7 +233,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
         import threading
 
         q: Queue[PlanGenerationResult] = Queue()
-        writer: IO[str] = Writer(output_stream, q, self, problem)
+        writer: "Writer" = Writer(output_stream, q, self, problem)
 
         def run():
             res = self._solve(
@@ -252,6 +255,7 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                     last_res = res
                 yield res
         finally:
-            if self._process is not None:
-                terminate_process(self._process)
+            process = writer.process if writer.process is not None else self._process
+            if process is not None:
+                terminate_process(process)
             t.join()

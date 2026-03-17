@@ -27,6 +27,7 @@ import os
 import tempfile
 from queue import Empty, Queue
 from typing import List, Optional
+from unittest.mock import patch
 
 import pytest
 
@@ -198,6 +199,10 @@ def test_writer_cross_contamination_anytime_path():
     # --- create a Writer for Problem A (the "in-flight" solve) ---
     q: Queue = Queue()
     writer_a = Writer(None, q, planner, problem_a)
+    # The fixed _solve() stores the per-solve writer on the Writer object,
+    # so _parse_planner_output uses writer_a.pddl_writer (Problem A's namespace)
+    # instead of self._writer (Problem B's namespace).
+    writer_a.pddl_writer = _make_writer_with_renamings(problem_a)
 
     # --- feed planner stdout for Problem A's solution, line by line ---
     # _parse_planner_output detects start/end markers and collects action
@@ -227,43 +232,51 @@ def test_writer_cross_contamination_anytime_path():
 
 def test_writer_cross_contamination_file_path():
     """
-    Simulates the race condition on the file-based (oneshot) path.
+    Verifies that _solve() attaches the per-solve PDDLWriter to
+    output_stream.pddl_writer (when output_stream is a Writer), so that
+    concurrent overwrites of self._writer cannot corrupt plan parsing.
 
-    self._writer is set for Problem B, then _plan_from_file is called
-    with a plan file containing Problem A's actions.
+    Expected (correct) behaviour after the fix:
+        _solve() sets output_stream.pddl_writer = pddl_writer (local variable).
+        Even after self._writer is overwritten (race), the per-Writer reference
+        survives and resolves Problem A's actions correctly.
 
-    This shows the bug is in PDDLPlanner._solve itself — not limited to
-    the anytime/stdout code path.
+    Actual behaviour (the bug):
+        _solve() only sets self._writer = pddl_writer, never touching the
+        Writer object.  No per-solve reference exists, so _parse_planner_output
+        and _plan_from_file both fall back to self._writer — which may be
+        overwritten by a concurrent solve.
     """
     problem_a = _make_navigation_problem()
     problem_b = _make_painting_problem()
 
     planner = _StubAnytimePlanner()
 
-    # --- write Problem A's plan file ---
-    plan_file_content = "(move l1 l2)\n"
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".txt", delete=False
-    ) as f:
-        f.write(plan_file_content)
-        plan_filename = f.name
+    # Create a Writer as output_stream, exactly as _get_solutions does.
+    q: Queue = Queue()
+    writer_a = Writer(None, q, planner, problem_a)
 
-    try:
-        # --- set self._writer to Problem B's PDDLWriter (the "wrong" one) ---
-        planner._writer = _make_writer_with_renamings(problem_b)
+    # Provide a stub _get_cmd (the stub class raises NotImplementedError) and
+    # mock run_command so no subprocess is launched.
+    planner._get_cmd = lambda domain, problem, plan: ["true"]
+    with patch("unified_planning.engines.pddl_planner.run_command") as mock_run:
+        mock_run.return_value = (False, ([], []), 0)
+        planner._solve(problem_a, output_stream=writer_a)
 
-        # _plan_from_file uses self._writer.get_item_named to resolve the
-        # action name "move" — but Problem B's writer has no such name.
-        plan = planner._plan_from_file(
-            problem_a, plan_filename, planner._writer.get_item_named
-        )
-    finally:
-        os.unlink(plan_filename)
-
-    assert plan is not None, "Parsed plan must not be None"
-    assert len(plan.actions) == 1, (
-        f"Expected 1 action, got {len(plan.actions)}"
+    # After the fix: _solve() must have set writer_a.pddl_writer to
+    # problem_a's PDDLWriter.  Without the fix, Writer.__init__ never
+    # initialises pddl_writer and _solve() never sets it, so the attribute
+    # is absent (or None).
+    assert getattr(writer_a, "pddl_writer", None) is not None, (
+        "_solve() must attach pddl_writer to the Writer output_stream "
+        "(required for the race-condition fix)"
     )
-    assert plan.actions[0].action.name == "move", (
-        f"Expected action 'move', got '{plan.actions[0].action.name}'"
+
+    # Simulate the race: another concurrent solve overwrites self._writer.
+    planner._writer = _make_writer_with_renamings(problem_b)
+
+    # The per-Writer reference must still resolve Problem A's actions.
+    item = writer_a.pddl_writer.get_item_named("move")
+    assert item.name == "move", (
+        f"writer_a.pddl_writer should resolve problem_a's 'move'; got '{item.name}'"
     )

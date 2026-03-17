@@ -152,17 +152,20 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
-        self._writer = PDDLWriter(
+        pddl_writer = PDDLWriter(
             problem, self._needs_requirements, self._rewrite_bool_assignments
         )
+        self._writer = pddl_writer
+        if hasattr(output_stream, "pddl_writer"):
+            output_stream.pddl_writer = pddl_writer
         plan = None
         logs: List["up.engines.results.LogMessage"] = []
         with tempfile.TemporaryDirectory() as tempdir:
             domain_filename = os.path.join(tempdir, "domain.pddl")
             problem_filename = os.path.join(tempdir, "problem.pddl")
             plan_filename = os.path.join(tempdir, "plan.txt")
-            self._writer.write_domain(domain_filename)
-            self._writer.write_problem(problem_filename)
+            pddl_writer.write_domain(domain_filename)
+            pddl_writer.write_problem(problem_filename)
             if self._mode_running == OperationMode.ONESHOT_PLANNER:
                 cmd = self._get_cmd(domain_filename, problem_filename, plan_filename)
             elif self._mode_running == OperationMode.ANYTIME_PLANNER:
@@ -183,7 +186,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             )
             if os.path.isfile(plan_filename):
                 plan = self._plan_from_file(
-                    problem, plan_filename, self._writer.get_item_named
+                    problem, plan_filename, pddl_writer.get_item_named
                 )
             metrics = {}
             metrics["engine_internal_time"] = str(process_end - process_start)
@@ -250,19 +253,20 @@ def run_command(
             if sys.platform == "win32"
             else {"start_new_session": True}
         )
-        engine._process = subprocess.Popen(
+        process = subprocess.Popen(
             cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
         )
+        engine._process = process
         timeout_occurred: bool = False
         proc_out: List[str] = []
         proc_err: List[str] = []
         try:
-            out_err_bytes = engine._process.communicate(timeout=timeout)
+            out_err_bytes = process.communicate(timeout=timeout)
             proc_out, proc_err = [[x.decode(errors="replace")] for x in out_err_bytes]
         except subprocess.TimeoutExpired:
-            terminate_process(engine._process)  # Terminate the process
+            terminate_process(process)  # Terminate the process
             timeout_occurred = True
-        retval = engine._process.returncode
+        retval = process.returncode
         engine._process = None
     else:
         if sys.platform == "win32":
@@ -310,16 +314,19 @@ async def run_command_asyncio(
         if sys.platform == "win32"
         else {"start_new_session": True}
     )
-    engine._process = await asyncio.create_subprocess_exec(
+    process = await asyncio.create_subprocess_exec(
         *cmd, stdout=PIPE, stderr=PIPE, **kwargs
     )
+    engine._process = process
+    if hasattr(output_stream, "process"):
+        output_stream.process = process
 
     timeout_occurred = False
     process_output: Tuple[List[str], List[str]] = ([], [])  # stdout, stderr
     while True:
         lines = [b"", b""]
         oks = [True, True]
-        for idx, stream in enumerate([engine._process.stdout, engine._process.stderr]):
+        for idx, stream in enumerate([process.stdout, process.stderr]):
             assert stream is not None
             try:
                 lines[idx] = await asyncio.wait_for(stream.readline(), 0.01)
@@ -341,12 +348,12 @@ async def run_command_asyncio(
                     cast(IO[str], output_stream).write(output_string)
                 process_output[idx].append(output_string)
         if timeout is not None and time.time() - start >= timeout:
-            terminate_process(engine._process)  # Terminate the process
+            terminate_process(process)  # Terminate the process
             timeout_occurred = True
             break
 
-    await engine._process.wait()  # Wait for the child process to exit
-    retval = engine._process.returncode
+    await process.wait()  # Wait for the child process to exit
+    retval = process.returncode
     engine._process = None
     return timeout_occurred, process_output, cast(int, retval)
 
@@ -369,9 +376,12 @@ def run_command_posix_select(
     proc_out_buff: List[str] = []
     proc_err_buff: List[str] = []
 
-    engine._process = subprocess.Popen(
+    process = subprocess.Popen(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
     )
+    engine._process = process
+    if hasattr(output_stream, "process"):
+        output_stream.process = process
     timeout_occurred: bool = False
     start_time = time.time()
     last_red_out, last_red_err = 0, 0  # Variables needed for the correct loop exit
@@ -381,17 +391,17 @@ def run_command_posix_select(
         len(readable_streams) != 2 or last_red_out != 0 or last_red_err != 0
     ):
         readable_streams, _, _ = select.select(
-            [engine._process.stdout, engine._process.stderr], [], [], 1.0
+            [process.stdout, process.stderr], [], [], 1.0
         )  # 1.0 is the timeout resolution
         if (
             timeout is not None and time.time() - start_time >= timeout
         ):  # Check if the planner is out of time.
-            terminate_process(engine._process)  # Terminate the process
+            terminate_process(process)  # Terminate the process
             timeout_occurred = True
         for readable_stream in readable_streams:
             out_in_bytes = readable_stream.readline()
             out_str = out_in_bytes.decode(errors="replace").replace("\r\n", "\n")
-            if readable_stream == engine._process.stdout:
+            if readable_stream == process.stdout:
                 if type(output_stream) is tuple:
                     assert len(output_stream) == 2
                     if output_stream[0] is not None:
@@ -427,8 +437,8 @@ def run_command_posix_select(
         if lasterr:
             proc_err.append(lasterr + "\n")
 
-    engine._process.wait()
-    retval = engine._process.returncode
+    process.wait()
+    retval = process.returncode
     engine._process = None
     return timeout_occurred, (proc_out, proc_err), cast(int, retval)
 
