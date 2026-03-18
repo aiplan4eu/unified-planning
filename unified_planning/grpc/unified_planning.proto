@@ -388,6 +388,7 @@ message ScopedConstraint {
     Expression constraint = 1;
     // a list of boolean expressiosn that condition the constraint
     // If all expressions in the scope are true, then constraint must hold
+    // feature: SCOPED_CONSTRAINTS
     repeated Expression scope = 2;
 }
 
@@ -396,7 +397,8 @@ message Activity {
     // Name of the activity that must uniquely identify it.
     string name = 1;
 
-    // If true, the activity is optional and might absent from a solution.
+    // If true, the activity is optional and might be absent from a solution.
+    // feature: OPTIONAL_ACTIVITIES
     bool optional = 7;
 
     // Typed and named parameters of the activity.
@@ -424,10 +426,11 @@ message SchedulingExtension {
     // All variables in the base problem
     repeated Parameter variables = 2;
 
-    // All constraints in the base problem.
+    // All mandatory constraints in the base problem, which is all constraint when there are no optional activities.
     repeated Expression constraints = 5;
 
-    // feature: OPTIONAL_SCHEDULING
+    // All constraints in the base problem with a scope definition (that may be empty for mandatory constraints).
+    // feature: SCOPED_CONSTRAINTS
     repeated ScopedConstraint scoped_constraints = 6;
 }
 
@@ -523,7 +526,7 @@ message Metric {
     // Empty, if the `kind` is not {MIN/MAX}IMIZE_EXPRESSION_ON_FINAL_STATE
     Expression expression = 2;
 
-    // If `kind == MINIMIZE_ACTION_COSTS``, then each action is associated to a cost expression.
+    // If `kind == MINIMIZE_ACTION_COSTS`, then each action is associated to a cost expression.
     //
     // TODO: Document what is allowed in the expression. See issue #134
     // In particular, for this metric to be useful in many practical problems, the cost expression
