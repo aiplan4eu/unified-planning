@@ -255,6 +255,12 @@ Problem Kinds
    * -
      - UNDEFINED_INITIAL_NUMERIC
      - At least one numeric state variable has an undefined value in the initial state.
+   * - SCHEDULING
+     - OPTIONAL_ACTIVITIES
+     - The scheduling problem includes at least one optional activity.
+   * -
+     - SCOPED_CONSTRAINTS
+     - The scheduling problem includes at least one scoped constraint.
 
 The API provides classes and functions to populate a Problem object with the fluents, actions, initial states and goal specifications constituting the planning problem specification.
 The functionalities for creating model objects and to manipulate them are collected in the unified_planning.model package of the library.

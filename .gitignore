@@ -1,5 +1,6 @@
 unified_planning.egg-info/
 build/
+docs/api/
 .coverage
 coverage.xml
 .planners/
