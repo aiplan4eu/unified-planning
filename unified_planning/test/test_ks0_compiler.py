@@ -266,6 +266,67 @@ class TestKs0Compiler(unittest_TestCase):
         )
         return problem, (s0,)
 
+    def _build_negated_disjunction_precondition_problem(self):
+        """Build a problem that exposes a translation bug in ks0-cc.
+
+        Problem "negated_disj":
+          Fluents: ``a``, ``b``, ``goal``.
+          Action:  ``act`` — precondition: ``Not(Or(a, b))``; effect: ``goal := True``.
+          Goal:    ``goal``.
+
+        The precondition ``Not(Or(a, b))`` is semantically equivalent to
+        ``And(Not(a), Not(b))`` by De Morgan's law.  The two KS0 implementations
+        translate this differently:
+
+        **ks0-cc** handles ``Not(expr)`` where ``expr`` is not a plain fluent by
+        recursing: ``Not(translate(Or(a, b)))`` → ``Not(Or(K_a_t, K_b_t))``.
+        Under the empty tag, ``K_a_empty = F`` and ``K_b_empty = F`` (since neither
+        fluent is known in all states), so the condition evaluates to
+        ``Not(Or(F, F)) = True`` — the precondition appears satisfied and the
+        planner finds a spurious plan.
+
+        **ks0-codex** runs ``DisjunctiveConditionsRemover`` first (because the
+        problem kind has ``DISJUNCTIVE_CONDITIONS``), turning the precondition into
+        ``And(Not(a), Not(b))``.  After KS0 translation this becomes
+        ``And(K_not_a_empty, K_not_b_empty) = And(F, T) = False`` — the precondition
+        is correctly unsatisfied, and the problem is identified as unsolvable.
+
+        Possible initial states:
+          s0: a=T, b=F  →  Not(Or(T, F)) = False  →  ``act`` NOT applicable
+          s1: a=F, b=F  →  Not(Or(F, F)) = True   →  ``act`` IS applicable
+
+        The conformant problem is **not solvable**: there is no plan that achieves
+        ``goal`` from every possible initial state, because ``act``'s precondition
+        fails in s0.
+
+        Returns:
+            (Problem, tuple[UPState, UPState])
+        """
+        problem = Problem("negated_disj")
+        a = Fluent("a")
+        b = Fluent("b")
+        goal = Fluent("goal")
+        problem.add_fluent(a, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(goal, default_initial_value=False)
+
+        em = problem.environment.expression_manager
+        act = InstantaneousAction("act")
+        act.add_precondition(em.Not(em.Or(em.FluentExp(a), em.FluentExp(b))))
+        act.add_effect(goal, True)
+        problem.add_action(act)
+        problem.add_goal(em.FluentExp(goal))
+
+        s0 = UPState(
+            {em.FluentExp(a): em.TRUE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            problem,
+        )
+        s1 = UPState(
+            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            problem,
+        )
+        return problem, (s0, s1)
+
     # ==================================================================
     # Compilation-kind support
     # ==================================================================
@@ -949,3 +1010,46 @@ class TestKs0Compiler(unittest_TestCase):
                                 f"Did not reach the goal from state {i} "
                                 f"for case={case.name}, subset #{subset_index}",
                             )
+
+    # ==================================================================
+    # ks0-cc vs ks0-codex divergence test
+    # ==================================================================
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_negated_disjunction_precondition_not_conformantly_solvable(self):
+        """Regression test for a translation bug in ks0-cc.
+
+        The problem has precondition ``Not(Or(a, b))`` with possible states
+        s0={a=T,b=F} and s1={a=F,b=F}.  Since s0 makes the precondition False
+        the conformant problem is **unsolvable** — no plan achieves ``goal``
+        in every possible initial state.
+
+        ks0-cc **fails** this test: it translates ``Not(Or(a, b))`` under the
+        empty tag as ``Not(Or(K_a_empty, K_b_empty))``.  Because neither
+        ``K_a_empty`` nor ``K_b_empty`` is set in the initial knowledge state,
+        this evaluates to ``Not(Or(F, F)) = True``, making the precondition
+        appear satisfied.  The planner then finds a spurious plan ``[act]``.
+
+        ks0-codex **passes** this test: it normalises ``Not(Or(a, b))`` to
+        ``And(Not(a), Not(b))`` via ``DisjunctiveConditionsRemover`` before
+        compilation.  The translated precondition becomes
+        ``And(K_not_a_empty, K_not_b_empty) = And(F, T) = False``, the compiled
+        problem is correctly unsolvable, and the planner returns no plan.
+        """
+        problem, possible_initial_states = (
+            self._build_negated_disjunction_precondition_problem()
+        )
+        compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
+            plan_result = planner.solve(res.problem)
+
+        # The problem is NOT conformantly solvable: in s0 (a=T, b=F) the
+        # precondition Not(Or(a, b)) = Not(Or(T, F)) = False, so act can never
+        # fire from that initial state.
+        self.assertIsNone(
+            plan_result.plan,
+            "No conformant plan should exist: state s0 (a=T, b=F) makes "
+            "precondition Not(Or(a, b)) False, so the goal cannot be achieved.",
+        )
