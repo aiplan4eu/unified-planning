@@ -472,7 +472,11 @@ class TestPDDLPlanner(unittest_TestCase):
         q: Queue = Queue()
         writer_a = Writer(None, q, planner, problem_a)
 
-        planner._get_cmd = lambda domain, problem, plan: ["true"]
+        setattr(
+            planner,
+            "_get_cmd",
+            lambda domain_filename, problem_filename, plan_filename: ["true"],
+        )
         with patch("unified_planning.engines.pddl_planner.run_command") as mock_run:
             mock_run.return_value = (False, ([], []), 0)
             planner._solve(problem_a, output_stream=writer_a)
@@ -483,7 +487,9 @@ class TestPDDLPlanner(unittest_TestCase):
         )
 
         planner._writer = _make_writer_with_renamings(problem_b)
+        assert writer_a.pddl_writer is not None
         item = writer_a.pddl_writer.get_item_named("move")
+        assert isinstance(item, up.model.Action)
         self.assertEqual(item.name, "move")
 
     # -----------------------------------------------------------------------
@@ -558,7 +564,7 @@ class TestPDDLPlanner(unittest_TestCase):
             )
             return original_get_cmd(domain_filename, _problem, _plan)
 
-        planner._get_cmd = intercepting_get_cmd
+        setattr(planner, "_get_cmd", intercepting_get_cmd)
 
         def mock_popen(_cmd, *_args, **kwargs):
             captured_cwd.append(kwargs.get("cwd", None))
