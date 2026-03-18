@@ -688,6 +688,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         for key, value in simplifier.memoization.items():
             if key.is_interpreted_function_exp() and value.is_constant():
                 if_values[key] = value
+        simplifier = self._grounder.simplifier
+        for key, value in simplifier.memoization.items():
+            if key.is_interpreted_function_exp() and value.is_constant():
+                if_values[key] = value
         if_values.update(self._se.if_values)
         return if_values
 
