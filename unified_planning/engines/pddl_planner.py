@@ -157,7 +157,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         )
         self._writer = pddl_writer
         if hasattr(output_stream, "pddl_writer"):
-            output_stream.pddl_writer = pddl_writer
+            setattr(output_stream, "pddl_writer", pddl_writer)
         plan = None
         logs: List["up.engines.results.LogMessage"] = []
         with tempfile.TemporaryDirectory() as tempdir:
@@ -329,7 +329,7 @@ async def run_command_asyncio(
     )
     engine._process = process
     if hasattr(output_stream, "process"):
-        output_stream.process = process
+        setattr(output_stream, "process", process)
 
     timeout_occurred = False
     process_output: Tuple[List[str], List[str]] = ([], [])  # stdout, stderr
@@ -396,7 +396,7 @@ def run_command_posix_select(
     )
     engine._process = process
     if hasattr(output_stream, "process"):
-        output_stream.process = process
+        setattr(output_stream, "process", process)
     timeout_occurred: bool = False
     start_time = time.time()
     last_red_out, last_red_err = 0, 0  # Variables needed for the correct loop exit
