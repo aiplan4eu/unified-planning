@@ -222,33 +222,3 @@ def optional_activities_conditions():
         [activity1], {activity1.start: 0, activity1.end: 10, int_var: 4}
     )
     return TestCase(problem=problem, solvable=True, valid_plans=[sol])
-
-
-def test_protobuf(problem):
-    # TODO
-    import unified_planning.grpc.generated.unified_planning_pb2 as up_pb2
-    from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-    from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
-
-    pb_writer = ProtobufWriter()
-    pb_reader = ProtobufReader()
-    problem_pb = pb_writer.convert(problem)
-    with open("/tmp/osched.upp", "wb") as file:
-        file.write(problem_pb.SerializeToString())
-    problem_up = pb_reader.convert(problem_pb)
-
-    pb_features = set(
-        [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
-    )
-    assert set(problem.kind.features) == pb_features
-    assert problem == problem_up
-
-
-if __name__ == "__main__":
-    # print(resource_set().problem)
-    # print("=========")
-    # print(non_numeric().problem)
-    # print("=========")
-    # print(optional().problem)
-    pb = optional().problem
-    test_protobuf(pb)

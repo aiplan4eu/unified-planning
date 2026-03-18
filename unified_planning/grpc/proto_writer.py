@@ -462,8 +462,11 @@ class ProtobufWriter(Converter):
             conditions=self._convert_timed_conditions(a.conditions),
             effects=self._convert_timed_effects(a.effects),
             constraints=[
-                self.convert(c) for (c, scope) in a.scoped_constraints
-            ],  # TODO: handle scope
+                # the scope is ignored as it always corresponds to the activity's presence
+                # (matching the interpretation of condition/effect)
+                self.convert(c)
+                for (c, _scope) in a.scoped_constraints
+            ],
         )
 
     @handles(model.timing.Timepoint)
