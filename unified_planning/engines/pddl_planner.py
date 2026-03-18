@@ -177,7 +177,7 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
                 )
             process_start = time.time()
             timeout_occurred, (proc_out, proc_err), retval = run_command(
-                self, cmd, output_stream=output_stream, timeout=timeout
+                self, cmd, output_stream=output_stream, timeout=timeout, cwd=tempdir
             )
             process_end = time.time()
             logs.append(up.engines.results.LogMessage(LogLevel.INFO, "".join(proc_out)))
@@ -240,6 +240,7 @@ def run_command(
     cmd: List[str],
     output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
     timeout: Optional[float] = None,
+    cwd: Optional[str] = None,
 ) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     """
     Executed the specified command line, imposing the specified timeout and printing online the output on output_stream.
@@ -254,7 +255,7 @@ def run_command(
             else {"start_new_session": True}
         )
         process = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd, **kwargs
         )
         engine._process = process
         timeout_occurred: bool = False
@@ -275,7 +276,7 @@ def run_command(
                 loop = asyncio.ProactorEventLoop()
                 exec_res = loop.run_until_complete(
                     run_command_asyncio(
-                        engine, cmd, output_stream=output_stream, timeout=timeout
+                        engine, cmd, output_stream=output_stream, timeout=timeout, cwd=cwd
                     )
                 )
             finally:
@@ -286,12 +287,12 @@ def run_command(
             if USE_ASYNCIO_ON_UNIX:
                 exec_res = asyncio.run(
                     run_command_asyncio(
-                        engine, cmd, output_stream=output_stream, timeout=timeout
+                        engine, cmd, output_stream=output_stream, timeout=timeout, cwd=cwd
                     )
                 )
             else:
                 exec_res = run_command_posix_select(
-                    engine, cmd, output_stream=output_stream, timeout=timeout
+                    engine, cmd, output_stream=output_stream, timeout=timeout, cwd=cwd
                 )
         timeout_occurred, (proc_out, proc_err), retval = exec_res
 
@@ -303,6 +304,7 @@ async def run_command_asyncio(
     cmd: List[str],
     output_stream: Union[Tuple[IO[str], IO[str]], IO[str]],
     timeout: Optional[float] = None,
+    cwd: Optional[str] = None,
 ) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     """
     Executed the specified command line using asyncio primitives, imposing the specified timeout and printing online the output on output_stream.
@@ -315,7 +317,7 @@ async def run_command_asyncio(
         else {"start_new_session": True}
     )
     process = await asyncio.create_subprocess_exec(
-        *cmd, stdout=PIPE, stderr=PIPE, **kwargs
+        *cmd, stdout=PIPE, stderr=PIPE, cwd=cwd, **kwargs
     )
     engine._process = process
     if hasattr(output_stream, "process"):
@@ -363,6 +365,7 @@ def run_command_posix_select(
     cmd: List[str],
     output_stream: Union[Tuple[IO[str], IO[str]], IO[str]],
     timeout: Optional[float] = None,
+    cwd: Optional[str] = None,
 ) -> Tuple[bool, Tuple[List[str], List[str]], int]:
     """
     Executed the specified command line using posix select, imposing the specified timeout and printing online the output on output_stream.
@@ -377,7 +380,7 @@ def run_command_posix_select(
     proc_err_buff: List[str] = []
 
     process = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, cwd=cwd
     )
     engine._process = process
     if hasattr(output_stream, "process"):
