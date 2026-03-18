@@ -309,6 +309,20 @@ def get_example_problems():
         check_treasure_map,
     )
 
+    signature_are_connected: OrderedDict = OrderedDict(
+        [("l_from", Location), ("l_to", Location)]
+    )
+    are_connected = InterpretedFunction(
+        "are_connected",
+        BoolType(),
+        signature_are_connected,
+        lambda l_from, l_to: (l_from.name != l_to.name)
+        and (
+            (l_from.name, l_to.name)
+            not in [("location_1", "location_3"), ("location_3", "location_1")]
+        ),
+    )
+
     dig_for_treasure = InstantaneousAction("dig_for_treasure")
     dig_for_treasure.add_precondition(robot_at(check_treasure_map_if()))
     dig_for_treasure.add_effect(money, Plus(money, 100))
@@ -319,7 +333,7 @@ def get_example_problems():
     l_from = move.parameter("l_from")
     l_to = move.parameter("l_to")
     move.add_precondition(robot_at(l_from))
-    move.add_precondition(Not(Equals(l_from, l_to)))
+    move.add_precondition(are_connected(l_from, l_to))
     move.add_effect(robot_at(l_from), False)
     move.add_effect(robot_at(l_to), True)
 
@@ -339,7 +353,13 @@ def get_example_problems():
         problem=problem,
         solvable=True,
         valid_plans=[
-            up.plans.SequentialPlan([move(location_1, location_3), dig_for_treasure()])
+            up.plans.SequentialPlan(
+                [
+                    move(location_1, location_2),
+                    move(location_2, location_3),
+                    dig_for_treasure(),
+                ]
+            )
         ],
         invalid_plans=[
             up.plans.SequentialPlan([move(location_1, location_2), dig_for_treasure()])
