@@ -1,5 +1,7 @@
 """
-Test demonstrating a race condition in PDDLAnytimePlanner._parse_planner_output.
+Regression tests for two PDDLPlanner race conditions.
+
+--- Race 1: self._writer cross-contamination (fixed in 62b035e3) ---
 
 PDDLPlanner stores per-solve mutable state (self._writer, self._process) as
 instance attributes.  When the same planner instance handles concurrent or
@@ -9,35 +11,34 @@ names against the WRONG problem's naming map:
 
     UPException: The name <action> does not correspond to any item.
 
-This is not specific to Fast Downward — every PDDLPlanner subclass that
-stores _writer on self is affected.
+--- Race 2: shared output.sas CWD (fixed in 0377262c) ---
 
-The test reproduces the condition deterministically by placing a minimal
-PDDLAnytimePlanner subclass in the inconsistent state that the race creates:
-  - self._writer points to Problem B's PDDLWriter
-  - A Writer for Problem A is still receiving planner stdout
-  - stdout contains Problem A's plan actions
-
-The test expects the plan to be parsed correctly (the ideal behaviour),
-but fails because get_item_named("move") is called on Problem B's
-PDDLWriter, which has no action named "move".
+PDDLPlanner._solve() creates a per-invocation TemporaryDirectory for PDDL
+files but previously called run_command() without a cwd argument.  Every
+subprocess.Popen() therefore inherited the pytest runner's working directory
+(typically the repo root).  Fast Downward writes its intermediate SAS file
+as the relative path "output.sas", so concurrent or sequential FD invocations
+collided on the same $REPO_ROOT/output.sas.  The fix passes cwd=tempdir to
+run_command(), isolating each invocation in its own temporary directory.
 """
 
 import os
 import tempfile
 from queue import Empty, Queue
 from typing import List, Optional
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 import unified_planning as up
 from unified_planning.engines.pddl_anytime_planner import PDDLAnytimePlanner, Writer
+from unified_planning.engines.pddl_planner import PDDLPlanner
 from unified_planning.engines.results import (
     LogMessage,
     PlanGenerationResultStatus,
 )
 from unified_planning.io import PDDLWriter
+from unified_planning.model import ProblemKind
 from unified_planning.shortcuts import (
     BoolType,
     Fluent,
@@ -279,4 +280,156 @@ def test_writer_cross_contamination_file_path():
     item = writer_a.pddl_writer.get_item_named("move")
     assert item.name == "move", (
         f"writer_a.pddl_writer should resolve problem_a's 'move'; got '{item.name}'"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Race 2: shared output.sas CWD
+# ---------------------------------------------------------------------------
+
+class _StubOneshotPlanner(PDDLPlanner):
+    """PDDLPlanner subclass that returns a no-op command.
+    subprocess.Popen is patched in every test, so the command never runs."""
+
+    @property
+    def name(self) -> str:
+        return "stub-oneshot"
+
+    def _get_cmd(
+        self, _domain: str, _problem: str, _plan: str
+    ) -> List[str]:
+        return ["true"]
+
+    def _result_status(
+        self,
+        _problem: "up.model.Problem",
+        _plan: Optional["up.plans.Plan"],
+        _retval: int = 0,
+        _log_messages: Optional[List[LogMessage]] = None,
+    ) -> PlanGenerationResultStatus:
+        return PlanGenerationResultStatus.UNSOLVABLE_PROVEN
+
+    @staticmethod
+    def supported_kind() -> ProblemKind:
+        k = up.model.ProblemKind(version=2)
+        k.set_problem_class("ACTION_BASED")
+        k.set_typing("FLAT_TYPING")
+        return k
+
+    @staticmethod
+    def supports(problem_kind: ProblemKind) -> bool:
+        return problem_kind <= _StubOneshotPlanner.supported_kind()
+
+
+def _make_trivial_problem() -> Problem:
+    problem = Problem("trivial")
+    done = Fluent("done")
+    problem.add_fluent(done, default_initial_value=False)
+    finish = InstantaneousAction("finish")
+    finish.add_effect(done, True)
+    problem.add_action(finish)
+    problem.add_goal(done)
+    return problem
+
+
+def _make_mock_process() -> MagicMock:
+    """Return a MagicMock that satisfies PDDLPlanner's use of the Popen object."""
+    proc = MagicMock()
+    proc.communicate.return_value = (b"", b"")
+    proc.returncode = 0
+    return proc
+
+
+def test_popen_receives_non_none_cwd():
+    """subprocess.Popen must be called with an explicit cwd, not None.
+
+    Before the fix: run_command() was called without cwd, so Popen inherited
+    the process CWD.  kwargs.get("cwd", None) returned None → assertion fails.
+    After the fix: cwd=tempdir is forwarded all the way to Popen → not None.
+    """
+    problem = _make_trivial_problem()
+    planner = _StubOneshotPlanner()
+
+    captured_cwd: List = []
+
+    def mock_popen(_cmd, *_args, **kwargs):
+        captured_cwd.append(kwargs.get("cwd", None))
+        return _make_mock_process()
+
+    with patch("unified_planning.engines.pddl_planner.subprocess.Popen",
+               side_effect=mock_popen):
+        planner._solve(problem)
+
+    assert len(captured_cwd) == 1, "Expected exactly one Popen call"
+    assert captured_cwd[0] is not None, (
+        "subprocess.Popen was called without cwd; "
+        "FD would write output.sas to the shared repo-root CWD"
+    )
+
+
+def test_popen_cwd_differs_from_process_cwd():
+    """The cwd passed to Popen must be an explicit path different from the
+    test runner's working directory.
+
+    Before the fix: no cwd is passed (cwd=None), so Popen silently inherits
+    os.getcwd() — the assertion fails because cwd is None rather than a path.
+    After the fix: cwd is the per-solve TemporaryDirectory, which is a real
+    absolute path distinct from the runner CWD.
+    """
+    problem = _make_trivial_problem()
+    planner = _StubOneshotPlanner()
+
+    captured_cwd: List = []
+
+    def mock_popen(_cmd, *_args, **kwargs):
+        captured_cwd.append(kwargs.get("cwd", None))
+        return _make_mock_process()
+
+    with patch("unified_planning.engines.pddl_planner.subprocess.Popen",
+               side_effect=mock_popen):
+        planner._solve(problem)
+
+    cwd = captured_cwd[0]
+    assert cwd is not None and os.path.isabs(cwd) and cwd != os.getcwd(), (
+        f"Popen cwd ({cwd!r}) is not a distinct absolute path from the runner "
+        f"CWD ({os.getcwd()!r}); output.sas would land in the shared directory"
+    )
+
+
+def test_popen_cwd_is_the_per_solve_tempdir():
+    """The cwd passed to Popen must be the same directory as the PDDL files.
+
+    _solve() creates one TemporaryDirectory and uses it for domain.pddl,
+    problem.pddl, and plan.txt.  The cwd forwarded to Popen must be that same
+    directory, so that output.sas lands beside the other per-solve files.
+
+    Before the fix: cwd is None (no cwd passed) → assertion fails.
+    After the fix: cwd == os.path.dirname(domain_filename).
+    """
+    problem = _make_trivial_problem()
+    planner = _StubOneshotPlanner()
+
+    captured_cwd: List = []
+    captured_domain_dir: List = []
+
+    original_get_cmd = planner._get_cmd
+
+    def intercepting_get_cmd(domain_filename, _problem, _plan):
+        captured_domain_dir.append(os.path.dirname(os.path.abspath(domain_filename)))
+        return original_get_cmd(domain_filename, _problem, _plan)
+
+    planner._get_cmd = intercepting_get_cmd
+
+    def mock_popen(_cmd, *_args, **kwargs):
+        captured_cwd.append(kwargs.get("cwd", None))
+        return _make_mock_process()
+
+    with patch("unified_planning.engines.pddl_planner.subprocess.Popen",
+               side_effect=mock_popen):
+        planner._solve(problem)
+
+    assert captured_cwd[0] is not None, "Popen received no cwd"
+    assert os.path.abspath(captured_cwd[0]) == captured_domain_dir[0], (
+        f"Popen cwd ({captured_cwd[0]!r}) is not the per-solve tempdir "
+        f"({captured_domain_dir[0]!r}); output.sas would land in the wrong place"
     )
