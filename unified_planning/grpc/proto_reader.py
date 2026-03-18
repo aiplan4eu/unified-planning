@@ -104,7 +104,7 @@ def op_to_node_type(op: str) -> OperatorKind:
     elif op == "up:sometime_before":
         return OperatorKind.SOMETIME_BEFORE
     elif op == "up:present":
-        return OperatorKind.IS_PRESENT_EXP
+        return OperatorKind.PRESENT_EXP
     raise ValueError(f"Unknown operator `{op}`")
 
 
@@ -202,7 +202,7 @@ class ProtobufReader(Converter):
                 payload = tuple(
                     [self.convert(var, problem).variable() for var in variables]
                 )
-            elif node_type == OperatorKind.IS_PRESENT_EXP:
+            elif node_type == OperatorKind.PRESENT_EXP:
                 raise UPException(
                     f"Unsupported IsPresent expression not in a function application: {msg}"
                 )

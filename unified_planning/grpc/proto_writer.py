@@ -183,7 +183,7 @@ class FNode2Protobuf(walkers.DagWalker):
             type=proto_type(expression.object().type),
         )
 
-    def walk_is_present_exp(
+    def walk_present_exp(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
         presence = expression.presence()

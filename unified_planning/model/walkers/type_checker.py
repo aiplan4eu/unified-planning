@@ -171,7 +171,7 @@ class TypeChecker(walkers.dag.DagWalker):
         assert len(args) == 0
         return TIME
 
-    def walk_is_present_exp(
+    def walk_present_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> "unified_planning.model.types.Type":
         assert expression is not None

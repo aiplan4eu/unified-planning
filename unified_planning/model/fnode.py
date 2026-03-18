@@ -73,7 +73,7 @@ class FNode(object):
             OperatorKind.VARIABLE_EXP: lambda: self._content.payload.name,
             OperatorKind.OBJECT_EXP: lambda: self._content.payload.name,
             OperatorKind.TIMING_EXP: lambda: str(self._content.payload),
-            OperatorKind.IS_PRESENT_EXP: lambda: str(self._content.payload),
+            OperatorKind.PRESENT_EXP: lambda: str(self._content.payload),
             OperatorKind.AND: lambda: (
                 self.get_nary_expression_string(" and ", self.args)
             ),
@@ -221,7 +221,7 @@ class FNode(object):
 
     def presence(self) -> "unified_planning.model.presence.Presence":
         """Return the `PresenceExpression` stored in this expression."""
-        assert self.is_presence_exp()
+        assert self.is_present_exp()
         return self._content.payload
 
     def agent(self) -> str:
@@ -344,9 +344,9 @@ class FNode(object):
         """Test whether the node is a :class:`~unified_planning.model.Timing` Expression."""
         return self.node_type == OperatorKind.TIMING_EXP
 
-    def is_presence_exp(self) -> bool:
+    def is_present_exp(self) -> bool:
         """Test whether the node is a :class:`~unified_planning.model.PresenceExpression` Expression."""
-        return self.node_type == OperatorKind.IS_PRESENT_EXP
+        return self.node_type == OperatorKind.PRESENT_EXP
 
     def is_plus(self) -> bool:
         """Test whether the node is the `Plus` operator."""

@@ -565,7 +565,7 @@ class ExpressionManager(object):
         self, presence: "up.model.presence.Presence"
     ) -> "up.model.fnode.FNode":
         return self.create_node(
-            node_type=OperatorKind.IS_PRESENT_EXP, args=tuple(), payload=presence
+            node_type=OperatorKind.PRESENT_EXP, args=tuple(), payload=presence
         )
 
     def TRUE(self) -> "up.model.fnode.FNode":
