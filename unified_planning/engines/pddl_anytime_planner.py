@@ -131,7 +131,9 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             plan is generated and added to the Queue.
         - writer.last_plan_found: The last complete plan found and parsed.
         """
-        pddl_writer = writer.pddl_writer if writer.pddl_writer is not None else self._writer
+        pddl_writer = (
+            writer.pddl_writer if writer.pddl_writer is not None else self._writer
+        )
         assert isinstance(pddl_writer, PDDLWriter)
         for l in planner_output.splitlines():
             if self._starting_plan_str() in l:
