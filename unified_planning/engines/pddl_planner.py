@@ -276,7 +276,11 @@ def run_command(
                 loop = asyncio.ProactorEventLoop()
                 exec_res = loop.run_until_complete(
                     run_command_asyncio(
-                        engine, cmd, output_stream=output_stream, timeout=timeout, cwd=cwd
+                        engine,
+                        cmd,
+                        output_stream=output_stream,
+                        timeout=timeout,
+                        cwd=cwd,
                     )
                 )
             finally:
@@ -287,7 +291,11 @@ def run_command(
             if USE_ASYNCIO_ON_UNIX:
                 exec_res = asyncio.run(
                     run_command_asyncio(
-                        engine, cmd, output_stream=output_stream, timeout=timeout, cwd=cwd
+                        engine,
+                        cmd,
+                        output_stream=output_stream,
+                        timeout=timeout,
+                        cwd=cwd,
                     )
                 )
             else:
@@ -380,7 +388,11 @@ def run_command_posix_select(
     proc_err_buff: List[str] = []
 
     process = subprocess.Popen(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True, cwd=cwd
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+        cwd=cwd,
     )
     engine._process = process
     if hasattr(output_stream, "process"):

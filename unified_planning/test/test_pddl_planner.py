@@ -533,7 +533,9 @@ class TestPDDLPlanner(unittest_TestCase):
 
         cwd = captured_cwd[0]
         self.assertIsNotNone(cwd, "Popen received no cwd")
-        self.assertTrue(os.path.isabs(cwd), f"Popen cwd {cwd!r} is not an absolute path")
+        self.assertTrue(
+            os.path.isabs(cwd), f"Popen cwd {cwd!r} is not an absolute path"
+        )
         self.assertNotEqual(
             cwd,
             os.getcwd(),
