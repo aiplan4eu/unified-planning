@@ -497,7 +497,7 @@ class AIPDDLConverter:
                 )
                 yield UPEffect(
                     fluent,
-                    self._em.TRUE(),
+                    self._em.FALSE(),
                     current_condition,
                     forall=current_quantifier_variables.values(),
                 )
