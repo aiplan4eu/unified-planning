@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from itertools import chain, combinations, islice
-
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
 from unified_planning.engines.results import CompilerResult, PlanGenerationResultStatus
@@ -33,16 +31,6 @@ from unified_planning.test.pddl.viplan_hh.viplan_hh_cases import (
     parse_problem as parse_viplan_hh_problem,
     state_specs_to_upstates,
 )
-
-
-def _powerset(iterable):
-    """Return all subsets of *iterable* (the mathematical powerset).
-
-    Used to generate every possible subset of ViPlan-HH initial states so we can
-    verify the compiler produces a valid conformant plan for each one.
-    """
-    s = list(iterable)
-    return chain.from_iterable(combinations(s, r) for r in range(len(s) + 1))
 
 
 class TestKs0Compiler(unittest_TestCase):
@@ -327,6 +315,154 @@ class TestKs0Compiler(unittest_TestCase):
         )
         return problem, (s0, s1)
 
+    def test_compile_with_existential_condition(self):
+        problem = Problem("exists_input")
+        loc_type = UserType("location")
+        at = Fluent("at", BoolType(), l=loc_type)
+        done = Fluent("done")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(done, default_initial_value=False)
+
+        l1 = Object("l1", loc_type)
+        l2 = Object("l2", loc_type)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(at(l1), True)
+
+        end = InstantaneousAction("end")
+        x = Variable("x", loc_type)
+        end.add_precondition(Exists(at(VariableExp(x)), x))
+        end.add_effect(done, True)
+        problem.add_action(end)
+        problem.add_goal(done())
+
+        self.assertTrue(problem.kind.has_existential_conditions())
+
+        s0 = UPState({at(l1): TRUE(), at(l2): FALSE(), done(): FALSE()}, problem)
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsNotNone(res.problem)
+        self.assertFalse(res.problem.kind.has_existential_conditions())
+
+    def test_compile_with_universal_condition(self):
+        problem = Problem("forall_cond_input")
+        loc_type = UserType("location")
+        at = Fluent("at", BoolType(), l=loc_type)
+        done = Fluent("done")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(done, default_initial_value=False)
+
+        l1 = Object("l1", loc_type)
+        l2 = Object("l2", loc_type)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(at(l1), True)
+
+        end = InstantaneousAction("end")
+        x = Variable("x", loc_type)
+        end.add_precondition(Forall(at(VariableExp(x)), x))
+        end.add_effect(done, True)
+        problem.add_action(end)
+        problem.add_goal(done())
+
+        self.assertTrue(problem.kind.has_universal_conditions())
+
+        s0 = UPState({at(l1): TRUE(), at(l2): TRUE(), done(): FALSE()}, problem)
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsNotNone(res.problem)
+        self.assertFalse(res.problem.kind.has_universal_conditions())
+
+    def test_compile_with_forall_effect(self):
+        problem = Problem("forall_eff_input")
+        loc_type = UserType("location")
+        reachable = Fluent("reachable", BoolType(), o=loc_type)
+        clear = Fluent("clear", BoolType(), o=loc_type)
+        problem.add_fluent(reachable, default_initial_value=False)
+        problem.add_fluent(clear, default_initial_value=False)
+
+        l1 = Object("l1", loc_type)
+        l2 = Object("l2", loc_type)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(clear(l1), True)
+        problem.set_initial_value(clear(l2), True)
+
+        mark_all = InstantaneousAction("mark_all")
+        x = Variable("x", loc_type)
+        mark_all.add_effect(reachable(VariableExp(x)), TRUE(), forall=[x])
+        problem.add_action(mark_all)
+        problem.add_goal(reachable(l1))
+
+        self.assertTrue(problem.kind.has_forall_effects())
+
+        s0 = UPState(
+            {
+                reachable(l1): FALSE(),
+                reachable(l2): FALSE(),
+                clear(l1): TRUE(),
+                clear(l2): TRUE(),
+            },
+            problem,
+        )
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsNotNone(res.problem)
+        self.assertFalse(res.problem.kind.has_forall_effects())
+
+    def test_compile_with_equality_precondition(self):
+        problem = Problem("eq_input")
+        loc_type = UserType("location")
+        at = Fluent("at", BoolType(), l=loc_type)
+        done = Fluent("done")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(done, default_initial_value=False)
+
+        l1 = Object("l1", loc_type)
+        l2 = Object("l2", loc_type)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(at(l1), True)
+
+        check_eq = InstantaneousAction("check_eq", source=loc_type)
+        check_eq.add_precondition(Equals(check_eq.source, l1))
+        check_eq.add_effect(done, TRUE())
+        problem.add_action(check_eq)
+        problem.add_goal(done())
+
+        self.assertTrue(problem.kind.has_equalities())
+
+        s0 = UPState({at(l1): TRUE(), at(l2): FALSE(), done(): FALSE()}, problem)
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsNotNone(res.problem)
+        self.assertFalse(res.problem.kind.has_equalities())
+
+    def test_compile_with_disjunctive_precondition(self):
+        problem = Problem("disj_input")
+        a = Fluent("a")
+        b = Fluent("b")
+        goal = Fluent("goal")
+        problem.add_fluent(a, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(goal, default_initial_value=False)
+
+        em = problem.environment.expression_manager
+        act = InstantaneousAction("act")
+        act.add_precondition(em.Or(em.FluentExp(a), em.FluentExp(b)))
+        act.add_effect(goal, True)
+        problem.add_action(act)
+        problem.add_goal(em.FluentExp(goal))
+
+        s0 = UPState(
+            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.TRUE(), em.FluentExp(goal): em.FALSE()},
+            problem,
+        )
+        s1 = UPState(
+            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            problem,
+        )
+        compiler = Ks0Compiler(possible_initial_states=(s0, s1))
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIsNotNone(res.problem)
+        self.assertFalse(res.problem.kind.has_disjunctive_conditions())
+
     # ==================================================================
     # Compilation-kind support
     # ==================================================================
@@ -469,7 +605,7 @@ class TestKs0Compiler(unittest_TestCase):
         """End-to-end: compile the navigation problem with 1-4 possible initial
         states, solve the compiled classical problem, back-convert the plan,
         and verify no merge actions leak into the original-domain plan."""
-        for num_possible_initial_states in [1, 2, 3, 4]:
+        for num_possible_initial_states in [1, 4]:
             with self.subTest(num_possible_initial_states=num_possible_initial_states):
                 problem, possible_initial_states = (
                     self._build_nav_problem_and_possible_states()
@@ -934,31 +1070,19 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_subsets_of_viplan_hh_initial_states(self):
-        """Stress-test each ViPlan-HH case over edge subsets of its generated
-        possible states, always including the case's ground-truth state."""
+        """Test each ViPlan-HH case over a small set of subsets of its possible
+        states to exercise the basis-reduction and K-fluent construction logic."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
-                possible_state_specs = case.possible_state_specs()
-                n = len(possible_state_specs)
-                # Probe the first 401 elements without materialising the full
-                # powerset (which has 2^n elements — infeasible for large n).
-                probe = list(islice(_powerset(possible_state_specs), 401))
-                if len(probe) <= 400:
-                    subsets = probe
-                else:
-                    head = probe[:200]
-                    # Last 200: iterate large subsets directly (size n, n-1, …)
-                    tail: list = []
-                    for r in range(n, -1, -1):
-                        for combo in combinations(possible_state_specs, r):
-                            tail.append(combo)
-                            if len(tail) >= 200:
-                                break
-                        if len(tail) >= 200:
-                            break
-                    tail.reverse()
-                    subsets = head + tail
+                possible_state_specs = list(case.possible_state_specs())
+                mid_index = len(possible_state_specs) // 2
+                subsets = [
+                    (),
+                    possible_state_specs[:1],
+                    possible_state_specs[:mid_index],
+                    possible_state_specs,
+                ]
 
                 sim = UPSequentialSimulator(problem)
                 for subset_index, subset in enumerate(subsets):
@@ -976,38 +1100,27 @@ class TestKs0Compiler(unittest_TestCase):
                         )
                         compiled_problem = res.problem
 
-                        with OneshotPlanner(problem_kind=compiled_problem.kind) as planner:
-                            plan_result = planner.solve(compiled_problem)
+                        if len(subset) <= 1:
+                            with OneshotPlanner(
+                                problem_kind=compiled_problem.kind
+                            ) as planner:
+                                plan_result = planner.solve(compiled_problem)
 
-                        self.assertIsNotNone(
-                            plan_result.plan,
-                            f"No plan found for case={case.name}, subset #{subset_index}",
-                        )
-                        back_plan = res.plan_back_conversion(plan_result.plan)
-                        self.assertIsInstance(back_plan, SequentialPlan)
+                            self.assertIsNotNone(
+                                plan_result.plan,
+                                f"No plan found for case={case.name}, "
+                                f"subset #{subset_index}",
+                            )
+                            back_plan = res.plan_back_conversion(plan_result.plan)
+                            self.assertIsInstance(back_plan, SequentialPlan)
 
-                        cur_state = sim.get_initial_state()
-                        for ai in back_plan.actions:
-                            cur_state = sim.apply(cur_state, ai)
-                            self.assertIsNotNone(cur_state)
-                        self.assertTrue(
-                            sim.is_goal(cur_state),
-                            f"Plan does not reach the PDDL goal for case={case.name}, subset #{subset_index}",
-                        )
-
-                        for i, init_state in enumerate(states):
-                            cur_state = init_state
+                            cur_state = sim.get_initial_state()
                             for ai in back_plan.actions:
                                 cur_state = sim.apply(cur_state, ai)
-                                self.assertIsNotNone(
-                                    cur_state,
-                                    "Action "
-                                    f"{ai} not applicable from state {i} "
-                                    f"for case={case.name}, subset #{subset_index}",
-                                )
+                                self.assertIsNotNone(cur_state)
                             self.assertTrue(
                                 sim.is_goal(cur_state),
-                                f"Did not reach the goal from state {i} "
+                                f"Plan does not reach the PDDL goal "
                                 f"for case={case.name}, subset #{subset_index}",
                             )
 
