@@ -530,6 +530,7 @@ class TestProblem(unittest_TestCase):
             "sched:basic",
             "sched:resource_set",
             "sched:jobshop-ft06-operators",
+            "sched:optional_activities_effects",
             "1d_Movement",
             "boiling_water",
         ]

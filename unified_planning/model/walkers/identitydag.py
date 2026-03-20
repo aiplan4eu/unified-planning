@@ -113,6 +113,9 @@ class IdentityDagWalker(walkers.dag.DagWalker):
     def walk_timing_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.TimingExp(expression.timing())
 
+    def walk_present_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        return self.manager.PresentExp(expression.presence())
+
     def walk_at_most_once(
         self, expression: FNode, args: List[FNode], **kwargs
     ) -> FNode:

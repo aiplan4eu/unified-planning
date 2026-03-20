@@ -13,14 +13,24 @@
 # limitations under the License.
 #
 
-from typing import Optional, List, OrderedDict, Union
+from typing import Optional, List, OrderedDict, Sequence, Union, Tuple
 
 from unified_planning.model.fnode import FNode
+from unified_planning.model.expression import BoolExpression
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.model import Parameter
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.types import Type
+
+
+Scope = List[FNode]
+Constraint = Union[
+    "up.model.fnode.FNode",
+    "up.model.fluent.Fluent",
+    "up.model.parameter.Parameter",
+    bool,
+]
 
 
 class Chronicle(TimedCondsEffs):
@@ -35,7 +45,7 @@ class Chronicle(TimedCondsEffs):
     ):
         TimedCondsEffs.__init__(self, _env)
         self._name = name
-        self._constraints: List["up.model.fnode.FNode"] = []
+        self._constraints: List[Tuple["up.model.fnode.FNode", Scope]] = []
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
         )
@@ -63,13 +73,15 @@ class Chronicle(TimedCondsEffs):
         s.append(f"{self.name}")
         if len(self.parameters) > 0:
             s += ["(", ", ".join(map(str, self.parameters)), ")"]
+        if hasattr(self, "optional") and self.optional:
+            s.append(" (optional) ")
         s.append(" {\n")
         if hasattr(self, "duration"):
             s.append(f"    duration = {str(self.duration)}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
-            for c in self._constraints:
-                s.append(f"      {str(c)}\n")
+            for (c, scope) in self._constraints:
+                s.append(f"      {str(c)} {str(scope)}\n")
             s.append("    ]\n")
         if len(self.conditions) > 0:
             s.append("    conditions = [\n")
@@ -97,7 +109,10 @@ class Chronicle(TimedCondsEffs):
             or self._name != oth._name
         ):
             return False
-        if set(self._constraints) != set(oth._constraints):
+
+        if set((c, tuple(set(scope))) for (c, scope) in self._constraints) != set(
+            (c, tuple(set(scope))) for (c, scope) in oth._constraints
+        ):
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False
@@ -106,7 +121,8 @@ class Chronicle(TimedCondsEffs):
     def __hash__(self) -> int:
         res = hash(self._name)
         res += sum(map(hash, self._parameters.items()))
-        res += sum(map(hash, self._constraints))
+        # hash only the constraint to avoid potential oredering discrepancy in the scope elements
+        res += sum(map(hash, (c for (c, scope) in self._constraints)))
         res += TimedCondsEffs.__hash__(self)
         return res
 
@@ -150,30 +166,59 @@ class Chronicle(TimedCondsEffs):
             )
         return self._parameters[name]
 
+    def __getattr__(self, parameter_name: str) -> "up.model.parameter.Parameter":
+        if parameter_name.startswith("_"):
+            # guard access as pickling relies on attribute error to be thrown even when
+            # no attributes of the object have been set.
+            # In this case accessing `self._name` or `self._parameters`, would re-invoke __getattr__
+            raise AttributeError(f"Transition has no attribute '{parameter_name}'")
+        if parameter_name not in self._parameters:
+            raise AttributeError(
+                f"Transition '{self.name}' has no attribute or parameter '{parameter_name}'"
+            )
+        return self._parameters[parameter_name]
+
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:
         """Returns the `list` of the `Action parameters`."""
         return list(self._parameters.values())
 
-    def add_constraint(
-        self,
-        constraint: Union[
-            "up.model.fnode.FNode",
-            "up.model.fluent.Fluent",
-            "up.model.parameter.Parameter",
-            bool,
-        ],
-    ):
+    def _add_constraint(self, constraint: Constraint, scope: Sequence[BoolExpression]):
         """
         Adds the given expression to the `chronicle's constraints`.
         """
         (constraint_exp,) = self._environment.expression_manager.auto_promote(
             constraint
         )
+        scope_exprs = self._environment.expression_manager.auto_promote(scope)
         assert self._environment.type_checker.get_type(constraint_exp).is_bool_type()
-        if constraint_exp not in self._constraints:
-            self._constraints.append(constraint_exp)
+        assert all(
+            self._environment.type_checker.get_type(scope_expr).is_bool_type()
+            for scope_expr in scope_exprs
+        )
+        self._constraints.append((constraint_exp, scope_exprs))
 
     @property
     def constraints(self) -> List[FNode]:
+        """Returns all non-scoped constraints defined.
+        This is a convenience method for scheduling problems with no optional tasks, in which constraint typically would not have any scope.
+
+        Note: To get all constraints (with and without scope) consider the `scoped_constraints` property."""
+        if any((len(scope) != 0 for (_, scope) in self._constraints)):
+            print(
+                "Warning: at least one constraint has a non-empty scope.",
+                [
+                    f"{c} (scope: {scope})"
+                    for (c, scope) in self._constraints
+                    if len(scope) > 0
+                ],
+            )
+            print(
+                "         Consider using the `scoped_constraint` method to get them all."
+            )
+        return [c for (c, scope) in self._constraints if len(scope) == 0]
+
+    @property
+    def scoped_constraints(self) -> List[Tuple[FNode, Scope]]:
+        """Returns all constraints, with their associated scope."""
         return self._constraints

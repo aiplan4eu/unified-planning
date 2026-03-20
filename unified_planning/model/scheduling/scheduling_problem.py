@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict
 from fractions import Fraction
 from typing import Optional, List, Union, Dict, Tuple
 
@@ -38,7 +37,7 @@ from unified_planning.model import (
     TimeInterval,
 )
 from unified_planning.model.scheduling.activity import Activity
-from unified_planning.model.scheduling.chronicle import Chronicle
+from unified_planning.model.scheduling.chronicle import Chronicle, Scope
 from unified_planning.model.timing import GlobalStartTiming, Timing, Timepoint
 
 
@@ -55,6 +54,7 @@ class SchedulingProblem(  # type: ignore[misc]
 
     - scheduling problems replaces *actions* with *activities*. While in planning, a solution plan may contain zero, one
       or multiple instances of the same action, in scheduling the solution must contain *exactly one* instance of each activity.
+      Some activities may be declared as *optional*, in which case it may appear zero or one time.
     - it defines a set of variables and timepoints over which constraints can be stated,
     - it provides some shortcuts to deal with typical scheduling constructs (activities, resources, ...)
     - by default, a `SchedulingProblem` assumes a discrete time model with a minimal temporal separation (aka `epsilon`) of 1.
@@ -182,13 +182,18 @@ class SchedulingProblem(  # type: ignore[misc]
         for _, cond, _ in self.all_conditions():
             factory.update_problem_kind_expression(cond)
 
-        for constraint in self.base_constraints:
+        for constraint, scope in self.base_scoped_constraints:
             factory.update_problem_kind_expression(constraint)
+            if len(scope) > 0:
+                factory.kind.set_scheduling("SCOPED_CONSTRAINTS")
 
         for _, eff in self.base_effects:
             factory.update_problem_kind_effect(eff)
 
         for act in self.activities:
+            if act.optional:
+                factory.kind.set_scheduling("OPTIONAL_ACTIVITIES")
+
             factory.update_action_duration(act.duration)
             for param in act.parameters:
                 factory.update_action_parameter(param)
@@ -198,8 +203,10 @@ class SchedulingProblem(  # type: ignore[misc]
             for span, conds in act.conditions.items():
                 for cond in conds:
                     factory.update_action_timed_condition(span, cond)
-            for constraint in act.constraints:
+            for constraint, scope in act.scoped_constraints:
                 factory.update_problem_kind_expression(constraint)
+                if len(scope) > 0:
+                    factory.kind.set_scheduling("SCOPED_CONSTRAINTS")
 
         factory.update_problem_kind_initial_state(self)
 
@@ -233,16 +240,19 @@ class SchedulingProblem(  # type: ignore[misc]
         """Returns the existing decision variable with the given name."""
         return self._base.get_parameter(name)
 
-    def add_activity(self, name: str, duration: int = 0) -> "Activity":
+    def add_activity(
+        self, name: str, duration: int = 0, optional: bool = False
+    ) -> "Activity":
         """Creates a new activity with the given `name` in the problem.
 
         :param name: Name that uniquely identifies the activity.
         :param duration: (optional) Fixed duration of the activity. If not set, the duration to 0 (instantaneous activity).
                          The duration can alter be overriden on the Activity object.
+        :param optional: If set to true, the activity will be optional and may not appear in the solution.
         """
         if any(a.name == name for a in self._activities):
             raise ValueError(f"An activity with name '{name}' already exists.")
-        act = Activity(name=name, duration=duration)
+        act = Activity(name=name, duration=duration, optional=optional)
         self._activities.append(act)
         return act
 
@@ -278,9 +288,19 @@ class SchedulingProblem(  # type: ignore[misc]
             "up.model.parameter.Parameter",
             bool,
         ],
+        scope: Optional[Scope] = None,
     ):
-        """Enforce a boolean expression to be true in any solution"""
-        self._base.add_constraint(constraint)
+        """Enforces a boolean expression to be true in any solution.
+
+        A constraint may be *scoped*, in which case it is associated to a list of boolean expressions
+        such that the constraint is only active when all scope expression are true.
+        A scope is required when the constraint expression involves elements of optional activities.
+
+        :param constraint: Boolean expression that should hold in a solution.
+        :param scope: Optionally specifies the scope in which the constraint is active.
+        """
+
+        self._base._add_constraint(constraint, scope=[] if scope is None else scope)
 
     def add_condition(self, span: TimeInterval, condition: FNode):
         self._base.add_condition(span, condition)
@@ -325,6 +345,11 @@ class SchedulingProblem(  # type: ignore[misc]
         return self._base.constraints.copy()
 
     @property
+    def base_scoped_constraints(self) -> List[Tuple[FNode, Scope]]:
+        """Returns all constraints defined in the base problem (ignoring any constraint defined in an activity)."""
+        return self._base.scoped_constraints.copy()
+
+    @property
     def base_conditions(self) -> List[Tuple[TimeInterval, FNode]]:
         """Returns all timed conditions defined in the base problem
         (i.e. excluding those defined in activities)."""
@@ -357,14 +382,18 @@ class SchedulingProblem(  # type: ignore[misc]
             vars += map(lambda param: (param, activity), activity.parameters)
         return vars
 
-    def all_constraints(self) -> List[Tuple[FNode, Optional[Activity]]]:
-        """Returns all constraints enforced in this problem or in any of its activities.
-        For each constraint, the activity in which it was defined is also given."""
-        cs: List[Tuple[FNode, Optional[Activity]]] = list(
-            map(lambda c: (c, None), self._base.constraints)
-        )
+    def all_constraints(self) -> List[FNode]:
+        """Returns all constraints enforced in this problem or in any of its activities."""
+        cs = self._base.constraints.copy()
         for a in self.activities:
-            cs += map(lambda c: (c, a), a.constraints)
+            cs += a.constraints
+        return cs
+
+    def all_scoped_constraints(self) -> List[Tuple[FNode, Scope]]:
+        """Returns all scoped constraints enforced in this problem or in any of its activities."""
+        cs = self._base.scoped_constraints.copy()
+        for a in self.activities:
+            cs += a.scoped_constraints
         return cs
 
     def all_conditions(self) -> List[Tuple[TimeInterval, FNode, Optional[Activity]]]:
