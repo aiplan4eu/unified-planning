@@ -1202,7 +1202,6 @@ class TestPddlIO(unittest_TestCase):
             "Type 'shape' is defined as a subtype of itself",
         )
 
-
     def test_object_fluents_reader(self):
         """Test parsing a domain with object fluents (functions returning user types)."""
         reader = UPPDDLReader()
@@ -1219,15 +1218,9 @@ class TestPddlIO(unittest_TestCase):
         # 1 predicate (connected) + 3 functions = 4 fluents
         self.assertEqual(len(problem.fluents), 4)
         self.assertEqual(len(problem.actions), 2)
-        self.assertEqual(
-            len(list(problem.objects(problem.user_type("location")))), 3
-        )
-        self.assertEqual(
-            len(list(problem.objects(problem.user_type("vehicle")))), 1
-        )
-        self.assertEqual(
-            len(list(problem.objects(problem.user_type("package")))), 1
-        )
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("vehicle")))), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("package")))), 1)
 
         # Verify object fluent return types
         vehicle_at = problem.fluent("vehicle_at")
