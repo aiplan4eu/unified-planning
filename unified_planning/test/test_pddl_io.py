@@ -1202,6 +1202,222 @@ class TestPddlIO(unittest_TestCase):
             "Type 'shape' is defined as a subtype of itself",
         )
 
+    def test_object_fluents_reader(self):
+        """Test parsing a domain with object fluents (functions returning user types)."""
+        reader = UPPDDLReader()
+
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "object_fluents", "domain.pddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "object_fluents", "problem.pddl"
+        )
+        problem = reader.parse_problem(domain_filename, problem_filename)
+
+        self.assertIsNotNone(problem)
+        # 1 predicate (connected) + 3 functions = 4 fluents
+        self.assertEqual(len(problem.fluents), 4)
+        self.assertEqual(len(problem.actions), 2)
+        self.assertEqual(len(list(problem.objects(problem.user_type("location")))), 3)
+        self.assertEqual(len(list(problem.objects(problem.user_type("vehicle")))), 1)
+        self.assertEqual(len(list(problem.objects(problem.user_type("package")))), 1)
+
+        # Verify object fluent return types
+        vehicle_at = problem.fluent("vehicle_at")
+        self.assertTrue(vehicle_at.type.is_user_type())
+        self.assertEqual(str(vehicle_at.type), "location")
+
+        package_at = problem.fluent("package_at")
+        self.assertTrue(package_at.type.is_user_type())
+        self.assertEqual(str(package_at.type), "location")
+
+        cargo = problem.fluent("cargo")
+        self.assertTrue(cargo.type.is_user_type())
+        self.assertEqual(str(cargo.type), "package")
+
+        # Verify predicate is still boolean
+        connected = problem.fluent("connected")
+        self.assertTrue(connected.type.is_bool_type())
+
+        # Verify string-based parsing produces the same result
+        with open(domain_filename, "r", encoding="utf-8") as file:
+            domain_str = file.read()
+        with open(problem_filename, "r", encoding="utf-8") as file:
+            problem_str = file.read()
+
+        problem_2 = reader.parse_problem_string(domain_str, problem_str)
+        self.assertEqual(problem, problem_2)
+
+    def test_object_fluents_mixed_with_numeric(self):
+        """Test parsing functions that mix object fluents and numeric fluents."""
+        reader = PDDLReader()
+        domain = """
+(define (domain mixed-fluents)
+    (:requirements :typing :object-fluents :numeric-fluents)
+    (:types city - object)
+    (:functions
+        (current_city) - city
+        (distance ?c1 - city ?c2 - city)
+    )
+    (:action travel
+        :parameters (?from - city ?to - city)
+        :precondition (= (current_city) ?from)
+        :effect (assign (current_city) ?to)
+    )
+)
+"""
+        problem_str = """
+(define (problem trip)
+    (:domain mixed-fluents)
+    (:objects paris london - city)
+    (:init
+        (= (current_city) paris)
+        (= (distance paris london) 450)
+    )
+    (:goal (= (current_city) london))
+)
+"""
+        problem = reader.parse_problem_string(domain, problem_str)
+        self.assertIsNotNone(problem)
+
+        current_city = problem.fluent("current_city")
+        self.assertTrue(current_city.type.is_user_type())
+        self.assertEqual(str(current_city.type), "city")
+
+        distance = problem.fluent("distance")
+        self.assertTrue(distance.type.is_real_type())
+
+    def test_object_fluents_no_type_annotation_defaults_to_real(self):
+        """Test that functions without a type annotation default to RealType."""
+        reader = PDDLReader()
+        domain = """
+(define (domain default-type)
+    (:requirements :typing :numeric-fluents)
+    (:types counter - object)
+    (:functions
+        (value ?c - counter)
+    )
+    (:action inc
+        :parameters (?c - counter)
+        :precondition ()
+        :effect (increase (value ?c) 1)
+    )
+)
+"""
+        problem_str = """
+(define (problem test-default)
+    (:domain default-type)
+    (:objects c1 - counter)
+    (:init (= (value c1) 0))
+    (:goal (>= (value c1) 1))
+)
+"""
+        problem = reader.parse_problem_string(domain, problem_str)
+        value_fluent = problem.fluent("value")
+        self.assertTrue(value_fluent.type.is_real_type())
+
+    def test_object_fluents_multiple_same_return_type(self):
+        """Test multiple object fluents returning the same user type."""
+        reader = PDDLReader()
+        domain = """
+(define (domain multi-loc-fluents)
+    (:requirements :typing :object-fluents)
+    (:types location - object robot - object)
+    (:functions
+        (robot_at ?r - robot) - location
+        (home_base ?r - robot) - location
+    )
+    (:action move
+        :parameters (?r - robot ?to - location)
+        :precondition ()
+        :effect (assign (robot_at ?r) ?to)
+    )
+)
+"""
+        problem_str = """
+(define (problem multi-loc)
+    (:domain multi-loc-fluents)
+    (:objects
+        loc1 loc2 - location
+        r1 - robot
+    )
+    (:init
+        (= (robot_at r1) loc1)
+        (= (home_base r1) loc2)
+    )
+    (:goal (= (robot_at r1) (home_base r1)))
+)
+"""
+        problem = reader.parse_problem_string(domain, problem_str)
+        robot_at = problem.fluent("robot_at")
+        home_base = problem.fluent("home_base")
+        self.assertTrue(robot_at.type.is_user_type())
+        self.assertTrue(home_base.type.is_user_type())
+        self.assertEqual(str(robot_at.type), "location")
+        self.assertEqual(str(home_base.type), "location")
+
+    def test_object_fluents_number_annotation_maps_to_real(self):
+        """Test that a function annotated with '- number' maps to RealType.
+
+        In standard PDDL, '- number' is the conventional type annotation for
+        numeric fluents. The parser explicitly recognises it and maps to RealType."""
+        reader = PDDLReader()
+        domain = """
+(define (domain number-ret-type)
+    (:requirements :typing :numeric-fluents)
+    (:types counter - object)
+    (:functions
+        (value ?c - counter) - number
+    )
+    (:action inc
+        :parameters (?c - counter)
+        :precondition ()
+        :effect (increase (value ?c) 1)
+    )
+)
+"""
+        problem_str = """
+(define (problem test-number)
+    (:domain number-ret-type)
+    (:objects c1 - counter)
+    (:init (= (value c1) 0))
+    (:goal (>= (value c1) 1))
+)
+"""
+        problem = reader.parse_problem_string(domain, problem_str)
+        value_fluent = problem.fluent("value")
+        self.assertTrue(value_fluent.type.is_real_type())
+
+    def test_object_fluents_undefined_return_type_raises_error(self):
+        """Negative test: a function annotated with a type not declared in :types
+        and not 'number' should raise a SyntaxError."""
+        reader = PDDLReader()
+        domain = """
+(define (domain bad-ret-type)
+    (:requirements :typing :object-fluents)
+    (:types robot - object)
+    (:functions
+        (robot_at ?r - robot) - nonexistent_type
+    )
+    (:action noop
+        :parameters (?r - robot)
+        :precondition ()
+        :effect ()
+    )
+)
+"""
+        problem_str = """
+(define (problem test-bad-ret)
+    (:domain bad-ret-type)
+    (:objects r1 - robot)
+    (:init )
+    (:goal ())
+)
+"""
+        with self.assertRaises(SyntaxError) as ctx:
+            reader.parse_problem_string(domain, problem_str)
+        self.assertIn("nonexistent_type", str(ctx.exception))
+
 
 def _have_same_user_types_considering_renamings(
     original_problem: unified_planning.model.Problem,

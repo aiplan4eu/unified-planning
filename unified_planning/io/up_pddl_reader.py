@@ -122,7 +122,7 @@ class PDDLGrammar:
             + ":requirements"
             + OneOrMore(
                 one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :time :continuous-effects"
+                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :object-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :time :continuous-effects"
                 )
             )
             + Suppress(")")
@@ -183,7 +183,7 @@ class PDDLGrammar:
             Suppress("(")
             + ":functions"
             - set_results_name(
-                Group(OneOrMore(predicate + Optional(Suppress("- number")))),
+                Group(OneOrMore(Group(predicate + Optional(Suppress("-") + name)))),
                 "functions",
             )
             + Suppress(")")
@@ -1265,7 +1265,8 @@ class UPPDDLReader:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for p in domain_res.get("functions", []):
-            for g in p[1]:
+            pred = p[0]  # predicate part: [name, [params...]]
+            for g in pred[1]:
                 if len(g.value) <= 1 or g.value[1] == Object:
                     return True
         for g in domain_res.get("constants", []):
@@ -1453,9 +1454,10 @@ class UPPDDLReader:
             problem.add_fluent(f)
 
         for p in domain_res.get("functions", []):
-            n = p[0]
+            pred = p[0]  # predicate part: [name, [params...]]
+            n = pred[0]
             params = OrderedDict()
-            for g in p[1]:
+            for g in pred[1]:
                 g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
                     g.locn_start, domain_str
                 )
@@ -1484,7 +1486,20 @@ class UPPDDLReader:
                             + f"is defined twice.\nError from line: {g_start_line}, col: {g_start_col}"
                             + f" to line: {g_end_line}, col: {g_end_col}."
                         )
-            f = up.model.Fluent(n, self._tm.RealType(), params, self._env)
+            # Determine return type: object type if annotated, else RealType
+            if len(p) > 1:
+                ret_type_name = str(p[1])
+                if ret_type_name == "number":
+                    fluent_type = self._tm.RealType()
+                elif ret_type_name in types_map:
+                    fluent_type = types_map[ret_type_name]
+                else:
+                    raise SyntaxError(
+                        f"Undefined return type '{ret_type_name}' for function '{n}'."
+                    )
+            else:
+                fluent_type = self._tm.RealType()
+            f = up.model.Fluent(n, fluent_type, params, self._env)
             if n == "total-cost":
                 has_actions_cost = True
                 self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
