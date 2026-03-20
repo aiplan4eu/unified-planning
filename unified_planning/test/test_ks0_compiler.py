@@ -349,6 +349,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=(s0,))
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIsNotNone(res.problem)
+        assert res.problem is not None
         self.assertFalse(res.problem.kind.has_existential_conditions())
 
     def test_compile_with_universal_condition(self):
@@ -377,6 +378,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=(s0,))
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIsNotNone(res.problem)
+        assert res.problem is not None
         self.assertFalse(res.problem.kind.has_universal_conditions())
 
     def test_compile_with_forall_effect(self):
@@ -413,6 +415,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=(s0,))
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIsNotNone(res.problem)
+        assert res.problem is not None
         self.assertFalse(res.problem.kind.has_forall_effects())
 
     def test_compile_with_equality_precondition(self):
@@ -440,6 +443,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=(s0,))
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIsNotNone(res.problem)
+        assert res.problem is not None
         self.assertFalse(res.problem.kind.has_equalities())
 
     def test_compile_with_disjunctive_precondition(self):
@@ -477,6 +481,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=(s0, s1))
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIsNotNone(res.problem)
+        assert res.problem is not None
         self.assertFalse(res.problem.kind.has_disjunctive_conditions())
 
     # ==================================================================
@@ -826,7 +831,9 @@ class TestKs0Compiler(unittest_TestCase):
         problem, states = self._build_conditional_effect_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        assert isinstance(res.problem, Problem)
         compiled_action = res.problem.action("a")
+        assert isinstance(compiled_action, InstantaneousAction)
         conditional_effects = [
             e for e in compiled_action.effects if not e.condition.is_true()
         ]
@@ -931,6 +938,8 @@ class TestKs0Compiler(unittest_TestCase):
             problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
         )
 
+        assert isinstance(res_single.problem, Problem)
+        assert isinstance(res_dup.problem, Problem)
         self.assertEqual(len(res_single.problem.fluents), len(res_dup.problem.fluents))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -943,6 +952,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=s0_only)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
+        assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
         self.assertIsNotNone(plan_result.plan)
@@ -964,12 +974,15 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=s0_only)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
+        assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
         self.assertIsNotNone(plan_result.plan)
 
+        assert res.plan_back_conversion is not None
         back_plan = res.plan_back_conversion(plan_result.plan)
         self.assertIsInstance(back_plan, SequentialPlan)
+        assert isinstance(back_plan, SequentialPlan)
         for ai in back_plan.actions:
             self.assertFalse(
                 ai.action.name.startswith(
@@ -1002,6 +1015,8 @@ class TestKs0Compiler(unittest_TestCase):
                 )
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
+                assert res.problem is not None
+                assert res.problem.name is not None
                 self.assertTrue(res.problem.name.startswith("ks0_"))
 
     def test_viplan_hh_compile_with_uncertainty(self):
@@ -1019,6 +1034,8 @@ class TestKs0Compiler(unittest_TestCase):
                 )
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
+                assert res.problem is not None
+                assert res.problem.name is not None
                 self.assertTrue(res.problem.name.startswith("ks0_"))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -1055,10 +1072,12 @@ class TestKs0Compiler(unittest_TestCase):
                     )  # no internal actions
 
                 sim = UPSequentialSimulator(problem)
-                cur_state = sim.get_initial_state()
+                cur_state: State = sim.get_initial_state()
                 for ai in back_plan.actions:
-                    cur_state = sim.apply(cur_state, ai)
-                    self.assertIsNotNone(cur_state)
+                    next_state = sim.apply(cur_state, ai)
+                    assert next_state is not None
+                    self.assertIsNotNone(next_state)
+                    cur_state = next_state
                 self.assertTrue(sim.is_goal(cur_state))
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
@@ -1084,18 +1103,22 @@ class TestKs0Compiler(unittest_TestCase):
                     plan_result = planner.solve(compiled_problem)
 
                 self.assertIsNotNone(plan_result.plan)
+                assert res.plan_back_conversion is not None
                 back_plan = res.plan_back_conversion(plan_result.plan)
                 self.assertIsInstance(back_plan, SequentialPlan)
+                assert isinstance(back_plan, SequentialPlan)
 
                 sim = UPSequentialSimulator(problem)
                 for i, init_state in enumerate(possible_states):
-                    cur_state = init_state
+                    cur_state: State = init_state
                     for ai in back_plan.actions:
-                        cur_state = sim.apply(cur_state, ai)
+                        next_state = sim.apply(cur_state, ai)
+                        assert next_state is not None
                         self.assertIsNotNone(
-                            cur_state,
+                            next_state,
                             f"Action {ai} not applicable from initial state {i}",
                         )
+                        cur_state = next_state
                     self.assertTrue(
                         sim.is_goal(cur_state),
                         f"Plan does not reach goal from initial state {i}",
@@ -1132,6 +1155,7 @@ class TestKs0Compiler(unittest_TestCase):
                             problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
                         )
                         compiled_problem = res.problem
+                        assert compiled_problem is not None
 
                         if len(subset) <= 1:
                             with OneshotPlanner(
@@ -1144,13 +1168,17 @@ class TestKs0Compiler(unittest_TestCase):
                                 f"No plan found for case={case.name}, "
                                 f"subset #{subset_index}",
                             )
+                            assert res.plan_back_conversion is not None
                             back_plan = res.plan_back_conversion(plan_result.plan)
                             self.assertIsInstance(back_plan, SequentialPlan)
+                            assert isinstance(back_plan, SequentialPlan)
 
-                            cur_state = sim.get_initial_state()
+                            cur_state: State = sim.get_initial_state()
                             for ai in back_plan.actions:
-                                cur_state = sim.apply(cur_state, ai)
-                                self.assertIsNotNone(cur_state)
+                                next_state = sim.apply(cur_state, ai)
+                                assert next_state is not None
+                                self.assertIsNotNone(next_state)
+                                cur_state = next_state
                             self.assertTrue(
                                 sim.is_goal(cur_state),
                                 f"Plan does not reach the PDDL goal "
@@ -1189,6 +1217,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
+        assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
 

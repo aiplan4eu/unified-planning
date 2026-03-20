@@ -749,7 +749,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             for target_literal in target_literals
         }
 
-        selected_indices = set()
+        selected_indices: set[int] = set()
         for target_literal in target_literals:
             relevant_sources = relevant_sources_by_target[target_literal]
             minimal_rel_sets: List[Tuple[int, frozenset[FNode]]] = []
@@ -871,9 +871,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         if result.plan_back_conversion is not None:
             return result.plan_back_conversion
         if result.map_back_action_instance is not None:
-            return lambda plan: plan.replace_action_instances(
-                result.map_back_action_instance
-            )
+            map_back = result.map_back_action_instance
+            return lambda plan: plan.replace_action_instances(map_back)
         raise UPUsageError(
             "Ks0Compiler expected a compiler result with a plan-back conversion, "
             f"but `{result.engine_name}` did not provide one."
