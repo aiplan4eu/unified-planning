@@ -342,7 +342,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
         grounder = Grounder()
         grounder.skip_checks = True
-        grounding_result = grounder.compile(normalized_problem, CompilationKind.GROUNDING)
+        grounding_result = grounder.compile(
+            normalized_problem, CompilationKind.GROUNDING
+        )
         assert isinstance(grounding_result.problem, Problem)
         normalized_problem = grounding_result.problem
         normalization_results.append(grounding_result)
@@ -374,7 +376,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     "after normalization."
                 )
 
-        for fluent_exp in Ks0Compiler._get_ground_fluent_expressions(normalized_problem):
+        for fluent_exp in Ks0Compiler._get_ground_fluent_expressions(
+            normalized_problem
+        ):
             fluent = fluent_exp.fluent()
             if original_problem.has_fluent(fluent.name):
                 original_fluent = original_problem.fluent(fluent.name)
@@ -460,7 +464,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     compiled_problem.add_fluent(
                         knowledge_fluent, default_initial_value=False
                     )
-                    knowledge_fluents[(fluent, is_negative, tag.name)] = knowledge_fluent
+                    knowledge_fluents[
+                        (fluent, is_negative, tag.name)
+                    ] = knowledge_fluent
 
         empty_tag = tags[0]
         negated_ground_literals = {
@@ -481,9 +487,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 knowledge_literal_cache[
                     (negated_ground_literals[fluent_exp], tag.name)
                 ] = negative_knowledge
-                negated_knowledge_literal_cache[(fluent_exp, tag.name)] = (
-                    expression_manager.Not(negative_knowledge)
-                )
+                negated_knowledge_literal_cache[
+                    (fluent_exp, tag.name)
+                ] = expression_manager.Not(negative_knowledge)
                 negated_knowledge_literal_cache[
                     (negated_ground_literals[fluent_exp], tag.name)
                 ] = expression_manager.Not(positive_knowledge)
@@ -750,9 +756,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
             for index, state_literals in enumerate(complete_state_literals):
                 relevant_state_literals = frozenset(
-                    literal
-                    for literal in state_literals
-                    if literal in relevant_sources
+                    literal for literal in state_literals if literal in relevant_sources
                 )
 
                 dominated = False

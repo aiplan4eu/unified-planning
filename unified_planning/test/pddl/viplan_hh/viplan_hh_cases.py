@@ -284,9 +284,18 @@ ORGANIZING_FILE_CABINET = ViPlanHHCase(
         ({("reachable", "document_1"): False}, {("reachable", "document_1"): True}),
         ({("reachable", "document_2"): False}, {("reachable", "document_2"): True}),
         ({("reachable", "document_3"): False}, {("reachable", "document_3"): True}),
-        ({("inside", "document_2", "cabinet_1"): False}, {("inside", "document_2", "cabinet_1"): True}),
-        ({("inside", "folder_1", "cabinet_1"): False}, {("inside", "folder_1", "cabinet_1"): True}),
-        ({("inside", "folder_2", "cabinet_1"): False}, {("inside", "folder_2", "cabinet_1"): True}),
+        (
+            {("inside", "document_2", "cabinet_1"): False},
+            {("inside", "document_2", "cabinet_1"): True},
+        ),
+        (
+            {("inside", "folder_1", "cabinet_1"): False},
+            {("inside", "folder_1", "cabinet_1"): True},
+        ),
+        (
+            {("inside", "folder_2", "cabinet_1"): False},
+            {("inside", "folder_2", "cabinet_1"): True},
+        ),
     ),
 )
 

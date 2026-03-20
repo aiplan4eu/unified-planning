@@ -80,7 +80,7 @@ class TestKs0Compiler(unittest_TestCase):
         # Two possible worlds: blocked or not blocked
         possible_initial_states = (
             UPState({reachable(): em.FALSE(), blocked(): em.FALSE()}, problem),  # s0
-            UPState({reachable(): em.FALSE(), blocked(): em.TRUE()}, problem),   # s1
+            UPState({reachable(): em.FALSE(), blocked(): em.TRUE()}, problem),  # s1
         )
         return problem, possible_initial_states
 
@@ -306,11 +306,19 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_goal(em.FluentExp(goal))
 
         s0 = UPState(
-            {em.FluentExp(a): em.TRUE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            {
+                em.FluentExp(a): em.TRUE(),
+                em.FluentExp(b): em.FALSE(),
+                em.FluentExp(goal): em.FALSE(),
+            },
             problem,
         )
         s1 = UPState(
-            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            {
+                em.FluentExp(a): em.FALSE(),
+                em.FluentExp(b): em.FALSE(),
+                em.FluentExp(goal): em.FALSE(),
+            },
             problem,
         )
         return problem, (s0, s1)
@@ -451,11 +459,19 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_goal(em.FluentExp(goal))
 
         s0 = UPState(
-            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.TRUE(), em.FluentExp(goal): em.FALSE()},
+            {
+                em.FluentExp(a): em.FALSE(),
+                em.FluentExp(b): em.TRUE(),
+                em.FluentExp(goal): em.FALSE(),
+            },
             problem,
         )
         s1 = UPState(
-            {em.FluentExp(a): em.FALSE(), em.FluentExp(b): em.FALSE(), em.FluentExp(goal): em.FALSE()},
+            {
+                em.FluentExp(a): em.FALSE(),
+                em.FluentExp(b): em.FALSE(),
+                em.FluentExp(goal): em.FALSE(),
+            },
             problem,
         )
         compiler = Ks0Compiler(possible_initial_states=(s0, s1))
@@ -607,9 +623,10 @@ class TestKs0Compiler(unittest_TestCase):
         and verify no merge actions leak into the original-domain plan."""
         for num_possible_initial_states in [1, 4]:
             with self.subTest(num_possible_initial_states=num_possible_initial_states):
-                problem, possible_initial_states = (
-                    self._build_nav_problem_and_possible_states()
-                )
+                (
+                    problem,
+                    possible_initial_states,
+                ) = self._build_nav_problem_and_possible_states()
                 possible_initial_states = possible_initial_states[
                     -num_possible_initial_states:
                 ]
@@ -638,7 +655,9 @@ class TestKs0Compiler(unittest_TestCase):
                 # Back-converted plan must contain no merge actions
                 for ai in back_plan.actions:
                     self.assertFalse(
-                        ai.action.name.startswith("merge_"),  # merge actions are internal
+                        ai.action.name.startswith(
+                            "merge_"
+                        ),  # merge actions are internal
                         f"Back-converted plan contains merge action: {ai.action.name}",
                     )
 
@@ -687,12 +706,18 @@ class TestKs0Compiler(unittest_TestCase):
         _, res = self._compile_basic()
         fluent_names = {f.name for f in res.problem.fluents}
         expected = {
-            "K_reachable_empty", "K_not_reachable_empty",
-            "K_reachable_s0", "K_not_reachable_s0",
-            "K_reachable_s1", "K_not_reachable_s1",
-            "K_blocked_empty", "K_not_blocked_empty",
-            "K_blocked_s0", "K_not_blocked_s0",
-            "K_blocked_s1", "K_not_blocked_s1",
+            "K_reachable_empty",
+            "K_not_reachable_empty",
+            "K_reachable_s0",
+            "K_not_reachable_s0",
+            "K_reachable_s1",
+            "K_not_reachable_s1",
+            "K_blocked_empty",
+            "K_not_blocked_empty",
+            "K_blocked_s0",
+            "K_not_blocked_s0",
+            "K_blocked_s1",
+            "K_not_blocked_s1",
         }
         self.assertEqual(fluent_names, expected)
         self.assertNotIn("reachable", fluent_names)
@@ -831,11 +856,14 @@ class TestKs0Compiler(unittest_TestCase):
         reference the empty tag (that is the conclusion, not a premise)."""
         _, res = self._compile_basic()
         merge_not_blocked = next(
-            a for a in res.problem.actions
+            a
+            for a in res.problem.actions
             if a.name.startswith("merge_") and "not_blocked" in a.name
         )
         prec_fluent_names = {
-            p.fluent().name for p in merge_not_blocked.preconditions if p.is_fluent_exp()
+            p.fluent().name
+            for p in merge_not_blocked.preconditions
+            if p.is_fluent_exp()
         }
         self.assertIn("K_not_blocked_s0", prec_fluent_names)
         self.assertIn("K_not_blocked_s1", prec_fluent_names)
@@ -847,10 +875,13 @@ class TestKs0Compiler(unittest_TestCase):
         _, res = self._compile_basic()
         em = res.problem.environment.expression_manager
         merge_not_blocked = next(
-            a for a in res.problem.actions
+            a
+            for a in res.problem.actions
             if a.name.startswith("merge_") and "not_blocked" in a.name
         )
-        effect_fluent_names = {e.fluent.fluent().name for e in merge_not_blocked.effects}
+        effect_fluent_names = {
+            e.fluent.fluent().name for e in merge_not_blocked.effects
+        }
         self.assertIn("K_not_blocked_empty", effect_fluent_names)
         for e in merge_not_blocked.effects:
             self.assertEqual(e.value, em.TRUE())  # merge always sets to TRUE
@@ -941,7 +972,9 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIsInstance(back_plan, SequentialPlan)
         for ai in back_plan.actions:
             self.assertFalse(
-                ai.action.name.startswith("merge_"),  # merge actions are compiler-internal
+                ai.action.name.startswith(
+                    "merge_"
+                ),  # merge actions are compiler-internal
                 f"Back-converted plan still contains merge action: {ai.action.name}",
             )
 
@@ -1149,9 +1182,10 @@ class TestKs0Compiler(unittest_TestCase):
         ``And(K_not_a_empty, K_not_b_empty) = And(F, T) = False``, the compiled
         problem is correctly unsolvable, and the planner returns no plan.
         """
-        problem, possible_initial_states = (
-            self._build_negated_disjunction_precondition_problem()
-        )
+        (
+            problem,
+            possible_initial_states,
+        ) = self._build_negated_disjunction_precondition_problem()
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
