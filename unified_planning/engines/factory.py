@@ -871,7 +871,7 @@ class Factory:
         *,
         name: Optional[str] = None,
         names: Optional[Sequence[str]] = None,
-        params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
+        params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
         problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         compilation_kind: Optional[Union["CompilationKind", str]] = None,
         compilation_kinds: Optional[Sequence[Union["CompilationKind", str]]] = None,
