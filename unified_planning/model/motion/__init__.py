@@ -43,8 +43,8 @@ from unified_planning.model.motion.scheduling_motion_problem import (
 __all__ = [
     "InstantaneousMotionAction",
     "DurativeMotionAction",
-    "MotionActivity",
     "MotionConstraint",
+    "MotionActivity",
     "Waypoints",
     "ActivityWaypoints",
     "ConfigurationKind",

@@ -21,6 +21,7 @@ from unified_planning.plans.contingent_plan import ContingentPlanNode, Contingen
 from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
 from unified_planning.plans.hierarchical_plan import HierarchicalPlan
 from unified_planning.plans.schedule import Schedule
+from unified_planning.plans.motion_schedule import MotionSchedule
 
 __all__ = [
     "Plan",
@@ -35,4 +36,5 @@ __all__ = [
     "STNPlan",
     "HierarchicalPlan",
     "Schedule",
+    "MotionSchedule",
 ]
