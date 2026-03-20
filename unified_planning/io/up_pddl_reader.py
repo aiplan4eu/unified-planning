@@ -1489,10 +1489,14 @@ class UPPDDLReader:
             # Determine return type: object type if annotated, else RealType
             if len(p) > 1:
                 ret_type_name = str(p[1])
-                if ret_type_name in types_map:
+                if ret_type_name == "number":
+                    fluent_type = self._tm.RealType()
+                elif ret_type_name in types_map:
                     fluent_type = types_map[ret_type_name]
                 else:
-                    fluent_type = self._tm.RealType()
+                    raise SyntaxError(
+                        f"Undefined return type '{ret_type_name}' for function '{n}'."
+                    )
             else:
                 fluent_type = self._tm.RealType()
             f = up.model.Fluent(n, fluent_type, params, self._env)
