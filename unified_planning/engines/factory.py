@@ -628,7 +628,7 @@ class Factory:
         operation_mode: "OperationMode",
         name: Optional[str] = None,
         names: Optional[Sequence[str]] = None,
-        params: Optional[Union[Dict[str, str], Sequence[Dict[str, str]]]] = None,
+        params: Optional[Union[Dict[str, Any], Sequence[Dict[str, Any]]]] = None,
         problem_kind: ProblemKind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION),
         optimality_guarantee: Optional["OptimalityGuarantee"] = None,
         compilation_kind: Optional["CompilationKind"] = None,
