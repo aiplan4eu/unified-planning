@@ -648,8 +648,12 @@ class TestKs0Compiler(unittest_TestCase):
                     plan_result = planner.solve(compiled_problem)
 
                 self.assertIsNotNone(plan_result.plan)
-                self.assertEqual(
-                    plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+                self.assertIn(
+                    plan_result.status,
+                    (
+                        PlanGenerationResultStatus.SOLVED_SATISFICING,
+                        PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                    ),
                 )
 
                 # Back-convert to original domain plan (drops merge actions)
@@ -754,7 +758,6 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn(val2, (em.FALSE(), None))
 
     def test_compiled_initial_state_per_tag(self):
-
         """Per-state tags must reflect the truth value of each literal in the
         corresponding possible initial state.  s0 has blocked=F so
         K_not_blocked_s0 = T; s1 has blocked=T so K_blocked_s1 = T and
@@ -956,8 +959,12 @@ class TestKs0Compiler(unittest_TestCase):
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
         self.assertIsNotNone(plan_result.plan)
-        self.assertEqual(
-            plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+        self.assertIn(
+            plan_result.status,
+            (
+                PlanGenerationResultStatus.SOLVED_SATISFICING,
+                PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+            ),
         )
 
     # ------------------------------------------------------------------
@@ -1061,8 +1068,12 @@ class TestKs0Compiler(unittest_TestCase):
                     plan_result = planner.solve(compiled_problem)
 
                 self.assertIsNotNone(plan_result.plan)
-                self.assertEqual(
-                    plan_result.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+                self.assertIn(
+                    plan_result.status,
+                    (
+                        PlanGenerationResultStatus.SOLVED_SATISFICING,
+                        PlanGenerationResultStatus.SOLVED_OPTIMALLY,
+                    ),
                 )
                 back_plan = res.plan_back_conversion(plan_result.plan)
                 self.assertIsInstance(back_plan, SequentialPlan)
