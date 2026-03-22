@@ -498,7 +498,7 @@ class UPPDDLReader:
                             stack.append((var, exp[i], False))
                     elif exp[0].value in ["exists", "forall"]:  # quantifier operators
                         vars_string = " ".join([e.value for e in exp[1]])
-                        vars_res = self._pp_parameters.parseString(vars_string)
+                        vars_res = self._pp_parameters.parse_string(vars_string)
                         new_vars = {}
                         for g in vars_res["params"]:
                             try:
@@ -911,7 +911,7 @@ class UPPDDLReader:
                     )
                 forall_variables = forall_variables.copy()
                 vars_string = " ".join([e.value for e in exp[1]])
-                vars_res = self._pp_parameters.parseString(vars_string)
+                vars_res = self._pp_parameters.parse_string(vars_string)
                 for g in vars_res["params"]:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
@@ -947,7 +947,7 @@ class UPPDDLReader:
                     to_add.append((exp[i], vars))
             elif op == "forall":
                 vars_string = " ".join([e.value for e in exp[1]])
-                vars_res = self._pp_parameters.parseString(vars_string)
+                vars_res = self._pp_parameters.parse_string(vars_string)
                 if vars is None:
                     vars = {}
                 for g in vars_res["params"]:
@@ -1149,7 +1149,7 @@ class UPPDDLReader:
                     )
                 forall_variables = forall_variables.copy()
                 vars_string = " ".join([e.value for e in eff[1]])
-                vars_res = self._pp_parameters.parseString(vars_string)
+                vars_res = self._pp_parameters.parse_string(vars_string)
                 for g in vars_res["params"]:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
