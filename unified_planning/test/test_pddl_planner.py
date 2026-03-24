@@ -122,45 +122,6 @@ class _StubOneshotPlanner(PDDLPlanner):
         return problem_kind <= _StubOneshotPlanner.supported_kind()
 
 
-def _make_navigation_problem() -> Problem:
-    """Domain A — a single 'move' action over Location objects."""
-    problem = Problem("navigation")
-    Location = UserType("Location")
-    at = Fluent("at", BoolType(), loc=Location)
-    move = InstantaneousAction("move", l_from=Location, l_to=Location)
-    l_from = move.parameter("l_from")
-    l_to = move.parameter("l_to")
-    move.add_precondition(at(l_from))
-    move.add_precondition(Not(at(l_to)))
-    move.add_effect(at(l_from), False)
-    move.add_effect(at(l_to), True)
-    problem.add_fluent(at, default_initial_value=False)
-    problem.add_action(move)
-    l1 = Object("l1", Location)
-    l2 = Object("l2", Location)
-    problem.add_objects([l1, l2])
-    problem.set_initial_value(at(l1), True)
-    problem.add_goal(at(l2))
-    return problem
-
-
-def _make_painting_problem() -> Problem:
-    """Domain B — a single 'paint' action over Color objects."""
-    problem = Problem("painting")
-    Color = UserType("Color")
-    painted = Fluent("painted", BoolType(), c=Color)
-    paint = InstantaneousAction("paint", c=Color)
-    c = paint.parameter("c")
-    paint.add_precondition(Not(painted(c)))
-    paint.add_effect(painted(c), True)
-    problem.add_fluent(painted, default_initial_value=False)
-    problem.add_action(paint)
-    red = Object("red", Color)
-    problem.add_object(red)
-    problem.add_goal(painted(red))
-    return problem
-
-
 def _make_writer_with_renamings(problem: Problem) -> PDDLWriter:
     """Create a PDDLWriter and force it to populate its nto_renamings."""
     writer = PDDLWriter(problem)
@@ -168,17 +129,6 @@ def _make_writer_with_renamings(problem: Problem) -> PDDLWriter:
         writer.write_domain(os.path.join(tmpdir, "domain.pddl"))
         writer.write_problem(os.path.join(tmpdir, "problem.pddl"))
     return writer
-
-
-def _make_trivial_problem() -> Problem:
-    problem = Problem("trivial")
-    done = Fluent("done")
-    problem.add_fluent(done, default_initial_value=False)
-    finish = InstantaneousAction("finish")
-    finish.add_effect(done, True)
-    problem.add_action(finish)
-    problem.add_goal(done)
-    return problem
 
 
 def _make_mock_process() -> MagicMock:
@@ -436,8 +386,8 @@ class TestPDDLPlanner(unittest_TestCase):
         pddl_writer on the Writer object so _parse_planner_output uses
         writer_a.pddl_writer (Problem A's namespace) instead of self._writer.
         """
-        problem_a = _make_navigation_problem()
-        problem_b = _make_painting_problem()
+        problem_a = self.problems["basic_with_object_constant"].problem
+        problem_b = self.problems["basic"].problem
 
         planner = _StubAnytimePlanner()
         planner._writer = _make_writer_with_renamings(problem_b)
@@ -464,8 +414,8 @@ class TestPDDLPlanner(unittest_TestCase):
         Verifies that _solve() attaches the per-solve PDDLWriter to
         output_stream.pddl_writer (when output_stream is a Writer).
         """
-        problem_a = _make_navigation_problem()
-        problem_b = _make_painting_problem()
+        problem_a = self.problems["basic_with_object_constant"].problem
+        problem_b = self.problems["basic"].problem
 
         planner = _StubAnytimePlanner()
 
@@ -498,7 +448,7 @@ class TestPDDLPlanner(unittest_TestCase):
 
     def test_popen_receives_non_none_cwd(self):
         """subprocess.Popen must be called with an explicit cwd, not None."""
-        problem = _make_trivial_problem()
+        problem = self.problems["basic"].problem
         planner = _StubOneshotPlanner()
 
         captured_cwd: List = []
@@ -522,7 +472,7 @@ class TestPDDLPlanner(unittest_TestCase):
 
     def test_popen_cwd_differs_from_process_cwd(self):
         """The cwd passed to Popen must be a distinct absolute path from the runner CWD."""
-        problem = _make_trivial_problem()
+        problem = self.problems["basic"].problem
         planner = _StubOneshotPlanner()
 
         captured_cwd: List = []
@@ -550,7 +500,7 @@ class TestPDDLPlanner(unittest_TestCase):
 
     def test_popen_cwd_is_the_per_solve_tempdir(self):
         """The cwd passed to Popen must be the same directory as the PDDL files."""
-        problem = _make_trivial_problem()
+        problem = self.problems["basic"].problem
         planner = _StubOneshotPlanner()
 
         captured_cwd: List = []
