@@ -1,0 +1,119 @@
+[project]
+name = "unified-planning"
+version = "1.3.0"
+requires-python = ">=3.10"
+description="Unified Planning Framework"
+authors=[ { name= "AIPlan4EU Project", email="aiplan4eu@fbk.eu" } ]
+readme="README.md"
+license="Apache-2.0"
+keywords=["planning", "logic", "STRIPS", "RDDL"]
+classifiers=[
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+
+# entry_points={
+ #     "console_scripts": [
+ #         "up = unified_planning.cmd.up:main",
+ #     ],
+ # },
+
+dependencies = [
+    "configspace>=1.2.2",
+    "networkx>=3.6.1",
+    "numpy<2",
+    "pddl>=0.4.6",
+    "pyparsing>=3.3.2",
+    "pysmt>=0.9.6",
+]
+
+
+[project.optional-dependencies]
+plot = [
+    "configspace>=1.2.2",
+    "kaleido>=1.2.0",
+    "matplotlib==3.7.3",
+    "networkx>=3.6.1",
+    "numpy<2",
+    "pandas>=2.3.3",
+    "pddl>=0.4.6",
+    "plotly>=6.6.0",
+    "pygraphviz>=1.14",
+    "pyparsing>=3.3.2",
+    "pysmt>=0.9.6",
+]
+planners = [
+    "up-aries>=0.5.0",
+    "up-tamer>=1.1.6",
+]
+aries = [
+    "up-aries>=0.5.0",
+]
+tamer = [
+    "up-tamer>=1.1.6",
+]
+
+[dependency-groups]
+dev = [
+    "black==22.6.0",
+    "configspace>=1.2.2",
+    "grpc-stubs>=1.53.0.6",
+    "grpcio==1.66.2",
+    "grpcio-tools==1.66.2",
+    "mypy==1.12.0",
+    "networkx>=3.6.1",
+    "numpy<2",
+    "pddl>=0.4.6",
+    "pre-commit>=4.5.1",
+    "pyparsing>=3.3.2",
+    "pysmt>=0.9.6",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "z3-solver>=4.16.0.0",
+]
+docs = [
+    "docutils<0.21",
+    "jupyter>=1.1.1",
+    "linkify-it-py>=2.1.0",
+    "myst-parser>=5.0.0",
+    "nbsphinx>=0.9.8",
+    "nbsphinx-link>=1.3.1",
+    "networkx>=3.6.1",
+    "numpy<2",
+    "pddl>=0.4.6",
+    "pyparsing>=3.3.2",
+    "sphinx>=9.0.4",
+    "sphinx-rtd-theme>=3.1.0",
+    "tarski>=0.9.1",
+]
+up = [
+    "unified-planning",
+]
+
+[tool.uv.sources]
+unified-planning = { workspace = true, editable = true }
+
+# [build-system]
+# requires = ["hatchling", "uv-dynamic-versioning", "setuptools >= 61.0"]
+# build-backend = "hatchling.build"
+
+# [tool.hatch.version]
+# source = "uv-dynamic-versionning"
+
+# [build-system]
+# requires = ["setuptools>=80", "setuptools-scm>=8"]
+# build-backend = "setuptools.build_meta"
+
+[build-system]
+requires = ["setuptools >= 61.0"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["unified_planning"]
