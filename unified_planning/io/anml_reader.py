@@ -458,7 +458,7 @@ class ANMLReader:
         action: Optional[
             Union[up.model.InstantaneousAction, up.model.DurativeAction]
         ] = None
-        if "InstantaneousAction" in list(action_res["annotations"]):
+        if '"InstantaneousAction"' in list(action_res["annotations"]):
             action = up.model.InstantaneousAction(name, _parameters=params)
         else:
             action = up.model.DurativeAction(name, _parameters=params)

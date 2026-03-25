@@ -128,6 +128,10 @@ class ANMLGrammar:
         float_const = real | integer
         boolean_const = one_of([TK_TRUE, TK_FALSE])
 
+        string_const = Combine('"' + identifier + '"')
+
+        annotation_item = float_const | boolean_const | string_const
+
         # Expression definitions
         interval = Forward()
         boolean_expression = Forward()
@@ -287,7 +291,9 @@ class ANMLGrammar:
         parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
-        annotations_list = identifier - ZeroOrMore(Suppress(TK_COMMA) - identifier)
+        annotations_list = annotation_item - ZeroOrMore(
+            Suppress(TK_COMMA) - annotation_item
+        )
         constant_decl = (
             Suppress(TK_CONSTANT)
             - set_results_name(type_ref, "type")
