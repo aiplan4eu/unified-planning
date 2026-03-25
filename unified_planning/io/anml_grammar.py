@@ -287,6 +287,14 @@ class ANMLGrammar:
         parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
+        annotations_list = (
+            Suppress('"')
+            - identifier
+            - Suppress('"')
+            - ZeroOrMore(
+                Suppress(TK_COMMA) - Suppress('"') - identifier - Suppress('"')
+            )
+        )
         constant_decl = (
             Suppress(TK_CONSTANT)
             - set_results_name(type_ref, "type")
@@ -331,6 +339,17 @@ class ANMLGrammar:
             - Suppress(TK_L_PARENTHESIS)
             - set_results_name(Group(parameter_list), "parameters")
             - Suppress(TK_R_PARENTHESIS)
+            - set_results_name(
+                Group(
+                    Optional(
+                        Suppress(TK_ANNOTATION)
+                        - Suppress(TK_L_PARENTHESIS)
+                        - annotations_list
+                        - Suppress(TK_R_PARENTHESIS)
+                    )
+                ),
+                "annotations",
+            )
             - Suppress(TK_L_BRACE)
             - set_results_name(Group(action_body), "body")
             - Suppress(TK_R_BRACE)

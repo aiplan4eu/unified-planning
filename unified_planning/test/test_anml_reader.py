@@ -22,6 +22,8 @@ from unified_planning.io import ANMLReader, ANMLWriter
 from unified_planning.test.examples import get_example_problems
 import os
 
+from unified_planning.model.walkers.simplifier import Simplifier
+
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")
@@ -723,27 +725,35 @@ class TestANMLReader(unittest_TestCase):
             self.assertEqual(len(problem.actions), len(parsed_problem.actions))
             for act, parsed_act in zip(problem.actions, parsed_problem.actions):
                 if isinstance(act, InstantaneousAction):
-                    conditions = (
-                        {TimePointInterval(StartTiming()): act.preconditions}
-                        if act.preconditions
-                        else {}
-                    )
-                    effects = {StartTiming(): act.effects} if act.effects else {}
+                    instant_conditions = act.preconditions
+                    instant_effects = act.effects
+                    assert isinstance(parsed_act, InstantaneousAction)
+                    if instant_conditions != parsed_act.preconditions:
+                        self.assertEqual(
+                            len(instant_conditions), len(parsed_act.preconditions)
+                        )
+                    if instant_effects != parsed_act.effects:
+                        self.assertEqual(len(instant_effects), len(parsed_act.effects))
+                        for e, pe in zip(instant_effects, parsed_act.effects):
+                            self.assertTrue(e.is_conditional() == pe.is_conditional())
+                            self.assertTrue(e.is_forall() == pe.is_forall())
                 else:
                     assert isinstance(act, DurativeAction)
                     conditions = act.conditions
                     effects = act.effects
-                assert isinstance(parsed_act, DurativeAction)
-                if conditions != parsed_act.conditions:
-                    for i, cl in conditions.items():
-                        parsed_cl = parsed_act.conditions[i]
-                        self.assertEqual(len(cl), len(parsed_cl))
-                if effects != parsed_act.effects:
-                    for t, el in effects.items():
-                        parsed_el = parsed_act.effects[t]
-                        self.assertEqual(len(el), len(parsed_el))
-                        for eff, parsed_eff in zip(el, parsed_el):
-                            self.assertTrue(
-                                eff.is_conditional() == parsed_eff.is_conditional()
-                            )
-                            self.assertTrue(eff.is_forall() == parsed_eff.is_forall())
+                    assert isinstance(parsed_act, DurativeAction)
+                    if conditions != parsed_act.conditions:
+                        for i, cl in conditions.items():
+                            parsed_cl = parsed_act.conditions[i]
+                            self.assertEqual(len(cl), len(parsed_cl))
+                    if effects != parsed_act.effects:
+                        for t, el in effects.items():
+                            parsed_el = parsed_act.effects[t]
+                            self.assertEqual(len(el), len(parsed_el))
+                            for eff, parsed_eff in zip(el, parsed_el):
+                                self.assertTrue(
+                                    eff.is_conditional() == parsed_eff.is_conditional()
+                                )
+                                self.assertTrue(
+                                    eff.is_forall() == parsed_eff.is_forall()
+                                )
