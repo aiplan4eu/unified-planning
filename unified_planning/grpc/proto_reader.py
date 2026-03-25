@@ -421,8 +421,15 @@ class ProtobufReader(Converter):
         for sc in msg.scheduling_extension.scoped_constraints:
             c = self.convert(sc.constraint, problem)
             scope = [self.convert(sc_item, problem) for sc_item in sc.scope]
-
             problem.add_constraint(c, scope)
+
+        if len(msg.scheduling_extension.scoped_constraints) == 0:
+            # scoped constraints are empty which means either:
+            # (1) there are no constraints, or
+            # (2) the protobuf was generated from an old version and only the `constraints` are populated
+            # thus we should any unscoped constraint to the problem
+            for c in msg.scheduling_extension.constraints:
+                problem.add_constraint(self.convert(c, problem), [])
 
         assert len(msg.trajectory_constraints) == 0
 
