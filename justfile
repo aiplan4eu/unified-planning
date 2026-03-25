@@ -12,7 +12,6 @@ check-format:
 check-mypy:
     uv run mypy unified_planning
 
-
 # Simple job that will fail if the installed grpc version is not the one expected for binding generation (old for wide compatibility)
 check-protobuf-version:
     #!/usr/bin/env -S uv run --script
@@ -26,6 +25,7 @@ gen-protobuf: check-protobuf-version
     # change the relative import to an absolute one in the gRPC module
     cd unified_planning/grpc && sed -i "s/import unified_planning_pb2 as unified__planning__pb2/import unified_planning.grpc.generated.unified_planning_pb2 as unified__planning__pb2/g" generated/unified_planning_pb2_grpc.py
 
+# Run all unit-tests. By defaults it will consider all tests in `unified_planning` but can be overriden on the command line.
 run-tests target="unified_planning/":
     uv run pytest {{ target }}
 

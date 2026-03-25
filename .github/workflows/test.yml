@@ -24,38 +24,30 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
 
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
+      - name: Install just
+        uses: extractions/setup-just@v3
 
       - name: Install graphviz
         run: sudo apt-get install graphviz graphviz-dev
-
-      - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt
 
       - name: Install tarski
         run: |
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
 
-      - name: Black check
-        run: |
-          python3 -m pip install black==22.6.0
-          python3 -m black --check --exclude=unified_planning/grpc/generated/ .
+      - name: Black check (formating)
+        run: just check-format
 
       - name: MyPy check
-        run: python3 -m mypy unified_planning
+        run: just check-mypy
 
       - name: Test all packages imports
-        run: python3 scripts/test_imports.py
+        run: uv run scripts/test_imports.py
 
   check-documentation:
     runs-on: ubuntu-latest
@@ -66,27 +58,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install just
+        uses: extractions/setup-just@v3
 
       - name: Install pandoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pandoc
-
-      - name: Install python requirements
-        run: |
-          pip install --upgrade pip
-          pip install .
-          pip install -r docs/requirements.txt
-
-      - name: Listing dependency versions
-        run: pip freeze
+        run: sudo apt-get update && sudo apt-get install -y pandoc
 
       - name: Building docs
-        run: make html
-        working-directory: ./docs
+        run: just build-doc
 
   run-tests-ubuntu-22-04:
     runs-on: ubuntu-22.04
@@ -99,42 +84,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+
       - name: Set up Python
         uses: actions/setup-python@v1
         with:
           python-version: ${{inputs.python-version}}
-
-      - name: Install pyparsing version used in ROS1
-        run: python3 -m pip install pyparsing==2.4.6
-
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
-
-      - name: Install pysmt solver for contingent tests
-        run: yes | pysmt-install --z3
-
-      - name: Checkout up-tamer
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-tamer
-          path: up-tamer
-          ref: ${{env.up_tamer_commit}}
-
-      - name: Install up-tamer
-        run: python3 -m pip install up-tamer/
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
 
       - name: Setup java for ENHSP
         uses: actions/setup-java@v2
@@ -149,7 +110,7 @@ jobs:
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Run tests
-        run: bash run_tests.sh
+        run: just run-tests
 
   run-tests-ubuntu:
     runs-on: ubuntu-latest
@@ -183,7 +144,7 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
-      
+
       - name: Install pysmt solver for contingent tests
         run: yes | pysmt-install --z3
 
@@ -319,7 +280,7 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
       #          brew install gringo -- Commented because not working on github actions
-      
+
       - name: Install pysmt solver for contingent tests
         run: yes | pysmt-install --z3
 
@@ -365,17 +326,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Install uv and set the Python version
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
 
-      - name: Install Protobuf compiler
-        run: |
-          python3 -m pip install grpcio-tools==1.66.2
+      - name: Install just
+        uses: extractions/setup-just@v3
 
-      - name: Check Protobuf generation
-        run: bash scripts/generate_protobuf_bindings.sh
+      - name: Re-generate protobuf bindings
+        run: just gen-protobuf
 
       - name: Check Protobuf bindings
         run: |
@@ -448,7 +408,7 @@ jobs:
         with:
           distribution: "microsoft"
           java-version: "17"
-      
+
       - name: Setup older setuptools for ENHSP
         run: python3 -m pip install "setuptools<82"  # ENHSP requires pkg_resources
 
