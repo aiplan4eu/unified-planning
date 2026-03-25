@@ -386,7 +386,7 @@ message Hierarchy {
 
 message ScopedConstraint {
     Expression constraint = 1;
-    // a list of boolean expressiosn that condition the constraint
+    // a list of boolean expressions that condition the constraint
     // If all expressions in the scope are true, then constraint must hold
     // feature: SCOPED_CONSTRAINTS
     repeated Expression scope = 2;
@@ -426,7 +426,7 @@ message SchedulingExtension {
     // All variables in the base problem
     repeated Parameter variables = 2;
 
-    // All mandatory constraints in the base problem, which is all constraint when there are no optional activities.
+    // All mandatory constraints in the base problem, which is all constraints when there are no optional activities.
     repeated Expression constraints = 5;
 
     // All constraints in the base problem with a scope definition (that may be empty for mandatory constraints).
