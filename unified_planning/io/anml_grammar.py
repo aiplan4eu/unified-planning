@@ -101,7 +101,6 @@ TK_FALSE = "false"
 TK_COMMENT = "//"
 TK_WHEN = "when"
 TK_INFINITY = "infinity"
-TK_QUOTATION_MARK = '"'
 
 
 class ANMLGrammar:
@@ -288,17 +287,7 @@ class ANMLGrammar:
         parameter_list = Optional(Group(Group(type_ref) - identifier)) - ZeroOrMore(
             Suppress(TK_COMMA) - Group(Group(type_ref) - identifier)
         )
-        annotations_list = (
-            Suppress(TK_QUOTATION_MARK)
-            - identifier
-            - Suppress(TK_QUOTATION_MARK)
-            - ZeroOrMore(
-                Suppress(TK_COMMA)
-                - Suppress(TK_QUOTATION_MARK)
-                - identifier
-                - Suppress(TK_QUOTATION_MARK)
-            )
-        )
+        annotations_list = identifier - ZeroOrMore(Suppress(TK_COMMA) - identifier)
         constant_decl = (
             Suppress(TK_CONSTANT)
             - set_results_name(type_ref, "type")

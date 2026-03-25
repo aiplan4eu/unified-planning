@@ -307,7 +307,7 @@ class ANMLWriter:
                     for ap in a.parameters
                 ]
                 out.write(
-                    f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) ::("InstantaneousAction"){{\n'
+                    f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) ::(InstantaneousAction){{\n'
                 )
                 for p in a.preconditions:
                     out.write(f"   [ start ] {converter.convert(p)};\n")
