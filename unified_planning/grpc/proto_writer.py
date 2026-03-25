@@ -589,15 +589,6 @@ class ProtobufWriter(Converter):
             methods=[self.convert(m) for m in problem.methods],
         )
 
-    def _build_scheduling(
-        self, problem: model.scheduling.SchedulingProblem
-    ) -> proto.SchedulingExtension:
-        return proto.SchedulingExtension(
-            activities=[self.convert(a) for a in problem.activities],
-            variables=[self.convert(v) for v in problem.base_variables],
-            constraints=[self.convert(c) for c in problem.base_constraints],
-        )
-
     @handles(model.Problem, model.htn.HierarchicalProblem)
     def _convert_problem(self, problem: model.Problem) -> proto.Problem:
         goals = [proto.Goal(goal=self.convert(g)) for g in problem.goals]
