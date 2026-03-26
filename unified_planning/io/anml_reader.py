@@ -455,7 +455,14 @@ class ANMLReader:
         name = action_res["name"]
         assert isinstance(name, str), "parsing error"
         params = self._parse_parameters_def(action_res["parameters"], types_map)
-        action = up.model.DurativeAction(name, _parameters=params)
+        action: Optional[
+            Union[up.model.InstantaneousAction, up.model.DurativeAction]
+        ] = None
+        if '"InstantaneousAction"' in list(action_res["annotations"]):
+            action = up.model.InstantaneousAction(name, _parameters=params)
+        else:
+            action = up.model.DurativeAction(name, _parameters=params)
+        assert action is not None
         action_parameters: Dict[str, "up.model.Parameter"] = {
             n: action.parameter(n) for n in params
         }
@@ -466,7 +473,7 @@ class ANMLReader:
 
     def _populate_parsed_action_body(
         self,
-        action: "up.model.DurativeAction",
+        action: Union["up.model.DurativeAction", "up.model.InstantaneousAction"],
         action_body_res: ParseResults,
         action_parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
@@ -486,7 +493,9 @@ class ANMLReader:
             f_increase = any(tk_increase in found_words for tk_increase in TKS_INCREASE)
             f_decrease = any(tk_decrease in found_words for tk_decrease in TKS_DECREASE)
 
-            if f_duration:  # handle duration
+            if f_duration and not isinstance(
+                action, up.model.InstantaneousAction
+            ):  # handle duration
                 if f_when:
                     raise ANMLSyntaxError(
                         "expressions containing the duration can't be conditional"
@@ -576,7 +585,11 @@ class ANMLReader:
                 up_timing, up_effect = self._parse_assignment(
                     interval_and_exp, action_parameters, types_map
                 )
-                action._add_effect_instance(up_timing, up_effect)
+
+                if isinstance(action, up.model.InstantaneousAction):
+                    action._add_effect_instance(up_effect)
+                else:
+                    action._add_effect_instance(up_timing, up_effect)
             # end handle effects
             else:  # handle condition
                 if f_when:
@@ -590,7 +603,10 @@ class ANMLReader:
                 condition = self._parse_expression(
                     exp_res, action_parameters, types_map
                 )
-                action.add_condition(up_interval, condition)
+                if isinstance(action, up.model.InstantaneousAction):
+                    action.add_precondition(condition)
+                else:
+                    action.add_condition(up_interval, condition)
 
     def _parse_parameters_def(
         self, parameters_res: ParseResults, types_map: Dict[str, "Type"]

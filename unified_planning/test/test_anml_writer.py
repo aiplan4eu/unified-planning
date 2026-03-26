@@ -31,7 +31,7 @@ class TestANMLWriter(unittest_TestCase):
         aw = ANMLWriter(problem)
         anml_problem = aw.get_problem()
         self.assertIn("fluent boolean x;\n", anml_problem)
-        self.assertIn("action a() {\n", anml_problem)
+        self.assertIn('action a() ::("InstantaneousAction"){\n', anml_problem)
         self.assertIn("   [ start ] (not x);\n", anml_problem)
         self.assertIn("   [ start ] x := true;\n", anml_problem)
         self.assertIn("};\n", anml_problem)
@@ -54,7 +54,7 @@ class TestANMLWriter(unittest_TestCase):
             "fluent boolean on(Movable object_, Location space);\n", anml_problem
         )
         self.assertIn(
-            "action move(Movable item, Location l_from, Location l_to) {\n",
+            'action move(Movable item, Location l_from, Location l_to) ::("InstantaneousAction"){\n',
             anml_problem,
         )
         self.assertIn("   [ start ] clear(item);\n", anml_problem)
@@ -195,7 +195,7 @@ instance Fuse f1, f2, f3;
         expected_result = """type Location;
 type Robot;
 fluent Location is_at(Robot robot);
-action move(Robot robot, Location l_from, Location l_to) {
+action move(Robot robot, Location l_from, Location l_to) ::("InstantaneousAction"){
    [ start ] (is_at(robot) == l_from);
    [ start ] (not (is_at(robot) == l_to));
    [ start ] is_at(robot) := l_to;
@@ -216,7 +216,7 @@ instance Robot r1, r2;
         expected_result = """type Location;
 fluent boolean robot_at(Location position);
 fluent float [0.0, 100.0] battery_charge;
-action move(Location l_from, Location l_to) {
+action move(Location l_from, Location l_to) ::("InstantaneousAction"){
    [ start ] (10 <= battery_charge);
    [ start ] (not (l_from == l_to));
    [ start ] robot_at(l_from);
@@ -249,7 +249,7 @@ instance Location l1, l2;
         anml_problem = aw.get_problem()
         expected_result = """type when_;
 fluent boolean f_4ction;
-action variable_(when_ fluent_) {
+action variable_(when_ fluent_) ::("InstantaneousAction"){
    [ start ] when (fluent_ == predicate_)
       {f_4ction := true;
       };
@@ -271,11 +271,11 @@ instance when_ predicate_;
 
         expected_result = """type location;
 fluent boolean safe(location l1_0, location l2_0);
-action check(location l1_0, location l2_0) {
+action check(location l1_0, location l2_0) ::("InstantaneousAction"){
    [ start ] (not safe(l1_0, l2_0));
    [ start ] safe(l1_0, l2_0) := true;
 };
-action natural_disaster() {
+action natural_disaster() ::("InstantaneousAction"){
    [ start ] forall (location l1_1, location l2_1){
       when safe(l1_1, l2_1)
          {safe(l1_1, l2_1) := false;
