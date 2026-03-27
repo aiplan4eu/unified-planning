@@ -156,7 +156,10 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
                 c = queue.popleft()
                 n = self._constraints[c]
                 while n is not None:
-                    if self._distances[c] + n.bound < self._distances[n.dst]:
+                    if (
+                        self._distances[c] + n.bound + self._epsilon
+                        < self._distances[n.dst]
+                    ):
                         if n.dst == y and abs(n.bound - b) <= self._epsilon:
                             return False
                         self._distances[n.dst] = self._distances[c] + n.bound
