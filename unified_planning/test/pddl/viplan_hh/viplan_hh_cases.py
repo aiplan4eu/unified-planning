@@ -3,7 +3,7 @@ from itertools import product
 from pathlib import Path
 from typing import Dict, Mapping, Tuple
 
-from unified_planning.io import PDDLReader
+from unified_planning.io import UPPDDLReader
 from unified_planning.model import UPState
 
 AtomSpec = Tuple[str, ...]
@@ -55,7 +55,7 @@ class ViPlanHHCase:
 
 
 def parse_problem(case: ViPlanHHCase):
-    reader = PDDLReader()
+    reader = UPPDDLReader()
     return reader.parse_problem(str(VIPLAN_HH_DOMAIN_FILE), str(case.problem_path))
 
 
