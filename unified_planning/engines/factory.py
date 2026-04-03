@@ -122,6 +122,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.durative_actions_to_processes",
         "DurativeActionToProcesses",
     ),
+    "up_undefined_initial_numeric_remover": (
+        "unified_planning.engines.compilers.undefined_initial_numeric_remover",
+        "UndefinedInitialNumericRemover",
+    ),
 }
 
 DEFAULT_META_ENGINES = {

@@ -33,3 +33,6 @@ from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
 from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
+from unified_planning.engines.compilers.undefined_initial_numeric_remover import (
+    UndefinedInitialNumericRemover,
+)
