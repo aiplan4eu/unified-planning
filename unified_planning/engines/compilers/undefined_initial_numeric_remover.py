@@ -407,22 +407,11 @@ def get_default_initial_values(
 ) -> Dict[Fluent, Union[int, Fraction]]:
     undef_fluents_set = set(undef_fluents)
     default_initial_value = {}
-    for fluent_exp, v_exp in problem.explicit_initial_values.items():
-        fluent = fluent_exp.fluent()
-        if fluent in undef_fluents_set:
-            v = v_exp.constant_value()
-            if fluent not in default_initial_value:
-                default_initial_value[fluent] = v
-            else:
-                default_initial_value[fluent] = min(default_initial_value[fluent], v)
-
     for action in problem.actions:
         if isinstance(action, InstantaneousAction):
             effects = action.effects
         elif isinstance(action, DurativeAction):
-            effects = []
-            for timing in action.effects:
-                effects += action.effects[timing]
+            effects = [e for effs in action.effects.values() for e in effs]
 
         for eff in effects:
             fluent = eff.fluent.fluent()
