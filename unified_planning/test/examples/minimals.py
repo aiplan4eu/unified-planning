@@ -519,6 +519,7 @@ def get_example_problems():
         problem=problem, solvable=True, valid_plans=[t_plan]
     )
 
+    # basic with undefined initial symbolic
     problem = Problem("basic_undef_bool")
     fluent1 = problem.add_fluent("fluent1", BoolType())
     problem.set_initial_value(fluent1(), False)
@@ -547,7 +548,7 @@ def get_example_problems():
         ],
     )
 
-    # basic numeric with timed effect
+    # basic numeric with undefined initial value
     problem = Problem("basic_undef_numeric")
     object_type = UserType("Obj")
     o1 = problem.add_object("o1", object_type)
@@ -572,6 +573,64 @@ def get_example_problems():
             up.plans.SequentialPlan([increase_one(o2)]),
             up.plans.SequentialPlan([increase_both()]),
             up.plans.SequentialPlan([increase_one(o1), increase_one(o2)]),
+        ],
+    )
+
+    # numeric with timed effect and undefined initial value
+    problem = Problem("undef_numeric_with_timed_effects")
+    object_type = UserType("Obj")
+    o1 = problem.add_object("o1", object_type)
+    o2 = problem.add_object("o2", object_type)
+    value = problem.add_fluent("value", IntType(), o=object_type)
+    problem.set_initial_value(value(o1), 1)  # only value(o1) is defined
+
+    increase_one_durative = DurativeAction("increase_one", o=object_type)
+    increase_one_durative.set_fixed_duration(2)
+    increase_one_durative.add_increase_effect(
+        EndTiming(),
+        value(increase_one_durative.o),
+        1,
+        LT(value(increase_one_durative.o), 2),
+    )
+    problem.add_action(increase_one_durative)
+
+    increase_both = InstantaneousAction("increase_both")
+    increase_both.add_increase_effect(value(o1), 1)
+    increase_both.add_increase_effect(value(o2), 1)
+    problem.add_action(increase_both)
+
+    problem.add_timed_effect(GlobalStartTiming(1), value(o2), 1)
+    problem.add_timed_goal(
+        ClosedTimeInterval(GlobalStartTiming(2), GlobalStartTiming(3)),
+        And(Equals(value(o1), 2), Equals(value(o2), 2)),
+    )
+
+    problem.add_goal(Equals(value(o1), 2))
+    problem.add_goal(Equals(value(o2), 2))
+    problems["undef_numeric_with_timed_effects"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan(
+                [
+                    (
+                        Fraction(1, 1),
+                        increase_both(),
+                        None,
+                    )
+                ]
+            )
+        ],
+        invalid_plans=[  # invalid plans contain actions that rely on undefined values
+            up.plans.TimeTriggeredPlan(
+                [
+                    (
+                        Fraction(0, 1),
+                        increase_both(),
+                        None,
+                    )
+                ]
+            )
         ],
     )
 
