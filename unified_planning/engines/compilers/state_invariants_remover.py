@@ -32,13 +32,13 @@ from functools import partial
 class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):
     """
     Global constraints remover class: this class offers the capability
-    to transform a :class:`~unified_planning.model.Problem` with state innvariants
-    into a `Problem` without state innvariants.
+    to transform a :class:`~unified_planning.model.Problem` with state invariants
+    into a `Problem` without state invariants.
     This capability is offered by the :meth:`~unified_planning.engines.compilers.GlobalConstraintsRemover.compile`
     method, that returns a :class:`~unified_planning.engines.CompilerResult` in which the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
     is the compiled Problem.
 
-    This is done by setting the state innvariants as action's preconditions and goals, so that at every step the constraints are checked.
+    This is done by setting the state invariants as action's preconditions and goals, so that at every step the constraints are checked.
 
     This `Compiler` supports only the the `STATE_INVARIANTS_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
@@ -131,9 +131,9 @@ class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the wanted :class:`~unified_planning.engines.CompilationKind`
         and returns a :class:`~unified_planning.engines.results.CompilerResult` where the :meth:`problem<unified_planning.engines.results.CompilerResult.problem>`
-        field does not have state innvariants.
+        field does not have state invariants.
 
-        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without state innvariants.
+        :param problem: The instance of the :class:`~unified_planning.model.Problem` that must be returned without state invariants.
         :param compilation_kind: The :class:`~unified_planning.engines.CompilationKind` that must be applied on the given problem;
             only :class:`~unified_planning.engines.CompilationKind.STATE_INVARIANTS_REMOVING` is supported by this compiler
         :return: The resulting :class:`~unified_planning.engines.results.CompilerResult` data structure.
