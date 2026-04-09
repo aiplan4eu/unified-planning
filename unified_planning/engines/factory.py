@@ -173,6 +173,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "aries",
     "aries-val",
     "up_durative_actions_to_processes",
+    "up_undefined_initial_numeric_remover",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "replanner"]

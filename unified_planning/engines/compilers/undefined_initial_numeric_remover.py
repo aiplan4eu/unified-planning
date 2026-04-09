@@ -1,4 +1,4 @@
-# Copyright 2021-2023 AIPlan4EU project
+# Copyright 2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,25 +23,52 @@ from unified_planning.model import (
     Problem,
     ProblemKind,
     Fluent,
+    FNode,
+    Action,
     InstantaneousAction,
     DurativeAction,
-    FNode,
-    OperatorKind,
+    MinimizeActionCosts,
+    Timing,
     TimePointInterval,
+    StartTiming,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.walkers.free_vars import FreeVarsExtractor
 from unified_planning.engines.compilers.utils import replace_action
-from typing import Optional, Iterable
+from fractions import Fraction
+from typing import Optional, Union, List, Dict, Set
 from functools import partial
 from collections import defaultdict
 
 
 class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
-    # TODO: doc
+    """
+    Undefined initial numeric remover class: this class offers the capability
+    to transform a :class:`~unified_planning.model.Problem` containing numeric
+    fluents without an initial value into an equivalent problem where all numeric
+    fluents are properly initialized and handled.
+    This capability is offered by the :meth:`~unified_planning.engines.compilers.UndefinedInitialNumericRemover.compile`
+    method, that returns a :class:`~unified_planning.engines.CompilerResult` in which
+    the :meth:`problem <unified_planning.engines.CompilerResult.problem>` field
+    is the compiled Problem.
+
+    Compilation details:
+    - For each numeric fluent with an undefined initial value, a corresponding
+      boolean fluent is introduced and initialized to ``False``.
+    - This boolean fluent tracks whether the numeric fluent has been assigned a value.
+    - Whenever an action assigns a value to the numeric fluent, the boolean fluent
+      is set to ``True``.
+    - The boolean fluent is added to an action's conditions whenever the numeric fluent is used:
+        * in any precondition of the action, or
+        * in any expression used to compute the value of an effect of the action.
+
+    This `Compiler` supports only the the `UNDEFINED_INITIAL_NUMERIC_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
+    """
 
     def __init__(self):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.UNDEFINED_INITIAL_NUMERIC_REMOVING)
+        self._fve = FreeVarsExtractor()
 
     @property
     def name(self):
@@ -49,39 +76,57 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        # TODO
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_problem_class("TAMP")
+        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         supported_kind.set_time("CONTINUOUS_TIME")
+        supported_kind.set_time("DISCRETE_TIME")
         supported_kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("EXTERNAL_CONDITIONS_AND_EFFECTS")
+        supported_kind.set_time("TIMED_EFFECTS")
+        supported_kind.set_time("TIMED_GOALS")
         supported_kind.set_time("DURATION_INEQUALITIES")
+        supported_kind.set_time("SELF_OVERLAPPING")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
-        supported_kind.set_numbers("DISCRETE_NUMBERS")
-        supported_kind.set_numbers("CONTINUOUS_NUMBERS")
-        supported_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
-        supported_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+        supported_kind.set_numbers("BOUNDED_TYPES")
+        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        supported_kind.set_conditions_kind("EQUALITIES")
+        supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        supported_kind.set_effects_kind("INCREASE_EFFECTS")
+        supported_kind.set_effects_kind("DECREASE_EFFECTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
         supported_kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
         supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
         supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
-        supported_kind.set_effects_kind("INCREASE_EFFECTS")
-        supported_kind.set_effects_kind("DECREASE_EFFECTS")
-        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-        supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-        supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-        supported_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        supported_kind.set_conditions_kind("EQUALITIES")
-        supported_kind.set_fluents_type("NUMERIC_FLUENTS")
-        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        supported_kind.set_parameters("REAL_ACTION_PARAMETERS")
         supported_kind.set_fluents_type("INT_FLUENTS")
+        supported_kind.set_fluents_type("REAL_FLUENTS")
+        supported_kind.set_fluents_type("OBJECT_FLUENTS")
+        supported_kind.set_quality_metrics("ACTIONS_COST")
+        supported_kind.set_quality_metrics("FINAL_VALUE")
+        supported_kind.set_quality_metrics("MAKESPAN")
+        supported_kind.set_quality_metrics("PLAN_LENGTH")
+        supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return supported_kind
 
@@ -107,7 +152,27 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
-        # TODO: doc
+        """
+        Compiles the given problem by removing undefined initial numeric fluents.
+
+        This method takes a :class:`~unified_planning.model.Problem` and applies the
+        ``UNDEFINED_INITIAL_NUMERIC_REMOVING`` compilation. The resulting problem
+        ensures that all numeric fluents have a well-defined initial value and are
+        properly handled through auxiliary boolean fluents.
+
+        :param problem: The instance of the `Problem` that may contain numeric
+            fluents with undefined initial values.
+        :param compilation_kind: The `CompilationKind` that specifies the requested
+            compilation. Only `UNDEFINED_INITIAL_NUMERIC_REMOVING` is supported.
+        :return: The resulting `CompilerResult` data structure, where the `problem`
+            field contains the compiled problem without undefined initial numeric
+            fluents.
+
+        Notes:
+            The compilation introduces additional boolean fluents to track whether
+            numeric fluents have been assigned a value, and augments action
+            conditions and effects accordingly.
+        """
 
         assert isinstance(problem, Problem)
         if not problem.kind.has_undefined_initial_numeric():
@@ -118,17 +183,12 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         env = new_problem.environment
 
         undef_fluents = new_problem._fluents_with_undefined_values()
+        default_initial_value = get_default_initial_values(new_problem, undef_fluents)
         is_value_defined_fluents = {}
         for fluent in undef_fluents:
-            if fluent.type.is_int_type():
-                default_initial_value = 0
-            elif fluent.type.is_real_type():
-                default_initial_value = 0.0
-            else:
-                raise Exception(
-                    f"Fluent '{fluent}' has type '{fluent.type}', expected int or real."
-                )
-            (v_exp,) = env.expression_manager.auto_promote(default_initial_value)
+            (v_exp,) = env.expression_manager.auto_promote(
+                default_initial_value[fluent]
+            )
             new_problem.fluents_defaults[fluent] = v_exp
 
             name = new_fluent_name(new_problem, f"is_value_defined_{fluent.name}")
@@ -139,47 +199,101 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
             is_value_defined_fluents[fluent] = is_value_defined
 
         for fluent_exp in dict(new_problem.explicit_initial_values):
-            if fluent_exp.fluent() in is_value_defined_fluents:
-                new_problem.set_initial_value(
-                    is_value_defined_fluents[fluent_exp.fluent()](*fluent_exp.args),
-                    True,
-                )
+            fluent = fluent_exp.fluent()
+            if fluent in is_value_defined_fluents:
+                is_value_defined = is_value_defined_fluents[fluent]
+                new_problem.set_initial_value(is_value_defined(*fluent_exp.args), True)
 
-        for action in new_problem.actions:
+        self._compile_actions(new_problem, is_value_defined_fluents)
+        self._compile_goals(new_problem, is_value_defined_fluents)
+        self._compile_timed_effects_and_timed_goals(
+            new_problem, is_value_defined_fluents
+        )
+        self._compile_quality_metrics(new_problem, is_value_defined_fluents)
+
+        new_to_old_action_map: Dict[Action, Optional[Action]] = {
+            a: problem.action(a.name) for a in new_problem.actions
+        }
+        return CompilerResult(
+            new_problem, partial(replace_action, map=new_to_old_action_map), self.name
+        )
+
+    def _compile_actions(
+        self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
+    ):
+        for action in problem.actions:
             if isinstance(action, InstantaneousAction):
-                undef_fluent_exps = set()
-                for exp in (
+                expressions = (
                     list(action.preconditions)
                     + [eff.value for eff in action.effects]
+                    + [
+                        eff.fluent
+                        for eff in action.effects
+                        if eff.is_increase() or eff.is_decrease()
+                    ]
                     + [eff.condition for eff in action.effects]
-                ):
-                    for fluent_exp in get_fluents_from_expression(exp):
+                )
+                undef_fluent_exps = set()
+                for exp in expressions:
+                    for fluent_exp in self._fve.get(exp):
                         if fluent_exp.fluent() in is_value_defined_fluents:
                             undef_fluent_exps.add(fluent_exp)
+
+                affected_undef_fluent_exps = set()
+                for eff in action.effects:
+                    if eff.fluent.fluent() in is_value_defined_fluents:
+                        affected_undef_fluent_exps.add(eff.fluent)
 
                 for fluent_exp in undef_fluent_exps:
                     action.add_precondition(
                         is_value_defined_fluents[fluent_exp.fluent()](*fluent_exp.args)
                     )
 
+                for fluent_exp in affected_undef_fluent_exps:
+                    if fluent_exp not in undef_fluent_exps:
+                        action.add_effect(
+                            is_value_defined_fluents[fluent_exp.fluent()](
+                                *fluent_exp.args
+                            ),
+                            True,
+                        )
+
             elif isinstance(action, DurativeAction):
-                expressions = defaultdict(list)
+                timing_to_expressions: Dict[Timing, List[FNode]] = defaultdict(list)
                 for timeinterval, conditions in action.conditions.items():
-                    expressions[timeinterval] += conditions
+                    timing_to_expressions[timeinterval.lower] += conditions
 
-                for timing, effects in action.effects:
-                    timeinterval = TimePointInterval(timing)
-                    expressions[timeinterval] += [eff.value for eff in effects]
-                    expressions[timeinterval] += [eff.condition for eff in effects]
+                affected_undef_fluent_exps_map: Dict[Timing, Set[FNode]] = defaultdict(
+                    set
+                )
+                for timing, effects in action.effects.items():
+                    timing_to_expressions[timing] += [eff.value for eff in effects]
+                    timing_to_expressions[timing] += [
+                        eff.fluent
+                        for eff in effects
+                        if eff.is_increase() or eff.is_decrease()
+                    ]
+                    timing_to_expressions[timing] += [eff.condition for eff in effects]
+                    affected_undef_fluent_exps_map[timing].update(
+                        eff.fluent
+                        for eff in effects
+                        if eff.fluent.fluent() in is_value_defined_fluents
+                    )
 
-                for timeinterval, exps in expressions.items():
-                    undef_fluent_exps = set()
-                    for exp in exps:
-                        for fluent_exp in get_fluents_from_expression(exp):
+                for fluent_exp in self._fve.get(action.duration.lower) | self._fve.get(
+                    action.duration.upper
+                ):
+                    timing_to_expressions[StartTiming()].append(fluent_exp)
+
+                timing_to_undef_fluent_exps: Dict[Timing, Set[FNode]] = defaultdict(set)
+                for timing, expressions in timing_to_expressions.items():
+                    for exp in expressions:
+                        for fluent_exp in self._fve.get(exp):
                             if fluent_exp.fluent() in is_value_defined_fluents:
-                                undef_fluent_exps.add(fluent_exp)
+                                timing_to_undef_fluent_exps[timing].add(fluent_exp)
 
-                    for fluent_exp in undef_fluent_exps:
+                    timeinterval = TimePointInterval(timing)
+                    for fluent_exp in timing_to_undef_fluent_exps[timing]:
                         action.add_condition(
                             timeinterval,
                             is_value_defined_fluents[fluent_exp.fluent()](
@@ -187,10 +301,156 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                             ),
                         )
 
-        new_to_old_action_map = {a: problem.action(a.name) for a in new_problem.actions}
-        return CompilerResult(
-            new_problem, partial(replace_action, map=new_to_old_action_map), self.name
-        )
+                for timing, fluent_exps in affected_undef_fluent_exps_map.items():
+                    for fluent_exp in fluent_exps:
+                        if fluent_exp not in timing_to_undef_fluent_exps.get(
+                            timing, set()
+                        ):
+                            action.add_effect(
+                                timing,
+                                is_value_defined_fluents[fluent_exp.fluent()](
+                                    *fluent_exp.args
+                                ),
+                                True,
+                            )
+
+    def _compile_goals(
+        self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
+    ):
+        undef_fluent_exps = set()
+        for exp in problem.goals:
+            for fluent_exp in self._fve.get(exp):
+                if fluent_exp.fluent() in is_value_defined_fluents:
+                    undef_fluent_exps.add(fluent_exp)
+
+        for fluent_exp in undef_fluent_exps:
+            problem.add_goal(
+                is_value_defined_fluents[fluent_exp.fluent()](*fluent_exp.args)
+            )
+
+    def _compile_timed_effects_and_timed_goals(
+        self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
+    ):
+        timing_to_expressions: Dict[Timing, List[FNode]] = defaultdict(list)
+        for timeinterval, goals in problem.timed_goals.items():
+            timing_to_expressions[timeinterval.lower].extend(goals)
+
+        affected_undef_fluent_exps: Dict[Timing, Set[FNode]] = defaultdict(set)
+        for timing, effects in problem.timed_effects.items():
+            for eff in effects:
+                timing_to_expressions[timing].append(eff.value)
+                timing_to_expressions[timing].append(eff.condition)
+                if eff.is_increase() or eff.is_decrease():
+                    timing_to_expressions[timing].append(eff.fluent)
+
+                affected_undef_fluent_exps[timing].update(
+                    eff.fluent
+                    for eff in effects
+                    if eff.fluent.fluent() in is_value_defined_fluents
+                )
+
+        timing_to_undef_fluent_exps: Dict[Timing, Set[FNode]] = defaultdict(set)
+        for timing, expressions in timing_to_expressions.items():
+            for exp in expressions:
+                for fluent_exp in self._fve.get(exp):
+                    if fluent_exp.fluent() in is_value_defined_fluents:
+                        timing_to_undef_fluent_exps[timing].add(fluent_exp)
+
+            timeinterval = TimePointInterval(timing)
+            for fluent_exp in timing_to_undef_fluent_exps[timing]:
+                problem.add_timed_goal(
+                    timeinterval,
+                    is_value_defined_fluents[fluent_exp.fluent()](*fluent_exp.args),
+                )
+
+        for timing, fluent_exps in affected_undef_fluent_exps.items():
+            for fluent_exp in fluent_exps:
+                if fluent_exp not in timing_to_undef_fluent_exps.get(timing, set()):
+                    problem.add_timed_effect(
+                        timing,
+                        is_value_defined_fluents[fluent_exp.fluent()](*fluent_exp.args),
+                        True,
+                    )
+
+    def _compile_quality_metrics(
+        self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
+    ):
+        for metric in problem.quality_metrics:
+            if metric.is_minimize_action_costs():
+                assert isinstance(metric, MinimizeActionCosts)
+                for action, cost_exp in metric.costs.items():
+                    undef_fluent_exps = set()
+                    for fluent_exp in self._fve.get(cost_exp):
+                        if fluent_exp.fluent() in is_value_defined_fluents:
+                            undef_fluent_exps.add(fluent_exp)
+
+                    if isinstance(action, InstantaneousAction):
+                        for fluent_exp in undef_fluent_exps:
+                            action.add_precondition(
+                                is_value_defined_fluents[fluent_exp.fluent()](
+                                    *fluent_exp.args
+                                )
+                            )
+                    elif isinstance(action, DurativeAction):
+                        timeinterval = TimePointInterval(StartTiming())
+                        for fluent_exp in undef_fluent_exps:
+                            action.add_condition(
+                                timeinterval,
+                                is_value_defined_fluents[fluent_exp.fluent()](
+                                    *fluent_exp.args
+                                ),
+                            )
+
+
+def get_default_initial_values(
+    problem: Problem, undef_fluents: List[Fluent]
+) -> Dict[Fluent, Union[int, Fraction]]:
+    undef_fluents_set = set(undef_fluents)
+    default_initial_value = {}
+    for fluent_exp, v_exp in problem.explicit_initial_values.items():
+        fluent = fluent_exp.fluent()
+        if fluent in undef_fluents_set:
+            v = v_exp.constant_value()
+            if fluent not in default_initial_value:
+                default_initial_value[fluent] = v
+            else:
+                default_initial_value[fluent] = min(default_initial_value[fluent], v)
+
+    for action in problem.actions:
+        if isinstance(action, InstantaneousAction):
+            effects = action.effects
+        elif isinstance(action, DurativeAction):
+            effects = []
+            for timing in action.effects:
+                effects += action.effects[timing]
+
+        for eff in effects:
+            fluent = eff.fluent.fluent()
+            if (
+                fluent in undef_fluents_set
+                and eff.is_assignment()
+                and eff.value.is_constant()
+            ):
+                v = eff.value.constant_value()
+                if fluent not in default_initial_value:
+                    default_initial_value[fluent] = v
+                else:
+                    default_initial_value[fluent] = min(
+                        default_initial_value[fluent], v
+                    )
+
+    for fluent in undef_fluents_set:
+        assert (
+            fluent.type.is_int_type() or fluent.type.is_real_type()
+        ), f"Fluent '{fluent}' has type '{fluent.type}', expected int or real."
+
+        if fluent not in default_initial_value:
+            if fluent.type.is_int_type():
+                default_initial_value[fluent] = 0
+            elif fluent.type.is_real_type():
+                default_initial_value[fluent] = Fraction(0)
+
+    return default_initial_value
 
 
 def new_fluent_name(problem: Problem, name: str) -> str:
@@ -200,53 +460,3 @@ def new_fluent_name(problem: Problem, name: str) -> str:
         new_name = f"{name}_{i}"
         i += 1
     return new_name
-
-
-def get_fluents_from_expression(expression: FNode) -> Iterable[FNode]:
-    stack = [expression]
-    while len(stack) > 0:
-        exp = stack.pop()
-
-        if exp.node_type in {
-            OperatorKind.BOOL_CONSTANT,
-            OperatorKind.INT_CONSTANT,
-            OperatorKind.REAL_CONSTANT,
-            OperatorKind.DOT,
-            OperatorKind.PARAM_EXP,
-            OperatorKind.VARIABLE_EXP,
-            OperatorKind.OBJECT_EXP,
-            OperatorKind.TIMING_EXP,
-            OperatorKind.PRESENT_EXP,
-        }:
-            pass
-
-        elif exp.node_type == OperatorKind.FLUENT_EXP:
-            yield exp
-
-        elif exp.node_type in {
-            OperatorKind.AND,
-            OperatorKind.OR,
-            OperatorKind.NOT,
-            OperatorKind.IMPLIES,
-            OperatorKind.IFF,
-            OperatorKind.PLUS,
-            OperatorKind.MINUS,
-            OperatorKind.TIMES,
-            OperatorKind.DIV,
-            OperatorKind.LE,
-            OperatorKind.LT,
-            OperatorKind.EQUALS,
-        }:
-            stack.extend(exp.args)
-
-        elif exp.node_type in {
-            OperatorKind.EXISTS,
-            OperatorKind.FORALL,
-            OperatorKind.ALWAYS,
-            OperatorKind.SOMETIME,
-            OperatorKind.SOMETIME_BEFORE,
-            OperatorKind.SOMETIME_AFTER,
-            OperatorKind.AT_MOST_ONCE,
-        }:
-            # TODO
-            pass
