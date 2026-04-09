@@ -40,6 +40,7 @@ class CompilationKind(Enum):
     SA_MA_CONVERSION = auto()
     TIMED_TO_SEQUENTIAL = auto()
     DURATIVE_ACTIONS_TO_PROCESSES = auto()
+    UNDEFINED_INITIAL_NUMERIC_REMOVING = auto()
 
 
 class CompilerMixin(ABC):
