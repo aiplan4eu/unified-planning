@@ -43,6 +43,8 @@ class StateEvaluator(QuantifierSimplifier):
         :param _variable_assignment: For internal use only. Parameter used to solve quantifiers.
         :return: The constant expression corresponding to the given expression evaluated in the
             given `State`.
+        :raises UPStateMissingFluentError: If the expression contains a fluent that is not present
+            in the state.
         """
         assert self._problem is not None
         assert self._assignments is None

@@ -48,12 +48,12 @@ from unified_planning.engines.sequential_simulator import (
     InapplicabilityReasons,
     UPSequentialSimulator,
     evaluate_quality_metric,
-    evaluate_quality_metric_in_initial_state,
 )
 from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
+    UPStateMissingFluentError,
     UPUsageError,
     UPProblemDefinitionError,
     UPInvalidActionError,
@@ -138,7 +138,25 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             else:
                 warnings.warn(cast(str, msg))
         if metric is not None:
-            metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
+            metric_value: Union[int, Fraction] = 0
+
+        def invalid_result(
+            msg: str,
+            trace: List[State],
+            reason: FailedValidationReason,
+            inapplicable_action: Optional[ActionInstance] = None,
+        ) -> ValidationResult:
+            logs = [LogMessage(LogLevel.INFO, msg)]
+            return ValidationResult(
+                status=ValidationResultStatus.INVALID,
+                engine_name=self.name,
+                log_messages=logs,
+                metric_evaluations=None,
+                reason=reason,
+                inapplicable_action=inapplicable_action,
+                trace=trace,
+            )
+
         msg = None
         trace: List[State] = [simulator.get_initial_state()]
         for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
@@ -149,62 +167,73 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-                else:
-                    next_state = simulator.apply_unsafe(trace[-1], ai)
+                    return invalid_result(
+                        msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                    )
+
+                next_state = simulator.apply_unsafe(trace[-1], ai)
+                if metric is not None and (
+                    metric.is_minimize_action_costs()
+                    or metric.is_minimize_sequential_plan_length()
+                ):
+                    metric_value = evaluate_quality_metric(
+                        simulator,
+                        metric,
+                        metric_value,
+                        trace[-1],
+                        ai.action,
+                        ai.actual_parameters,
+                        next_state,
+                    )
+                trace.append(next_state)
+
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
-            if msg is not None:
-                logs = [LogMessage(LogLevel.INFO, msg)]
+            except UPStateMissingFluentError:
+                msg = f"{str(i)}-th action instance {str(ai)} involves fluents with undefined values"
+
+        if msg is not None:
+            return invalid_result(
+                msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+            )
+
+        try:
+            unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
+            if not unsatisfied_goals:
+                metric_evaluations = None
+                if metric is not None:
+                    if not (
+                        metric.is_minimize_action_costs()
+                        or metric.is_minimize_sequential_plan_length()
+                    ):
+                        metric_value = evaluate_quality_metric(
+                            simulator,
+                            metric,
+                            metric_value,
+                            trace[-1],
+                            ai.action,
+                            ai.actual_parameters,
+                            trace[-1],
+                        )
+                    metric_evaluations = {metric: metric_value}
                 return ValidationResult(
-                    status=ValidationResultStatus.INVALID,
-                    engine_name=self.name,
-                    log_messages=logs,
-                    metric_evaluations=None,
-                    reason=FailedValidationReason.INAPPLICABLE_ACTION,
-                    inapplicable_action=ai,
+                    ValidationResultStatus.VALID,
+                    self.name,
+                    [],
+                    metric_evaluations,
                     trace=trace,
                 )
-            assert next_state is not None
-            if metric is not None:
-                metric_value = evaluate_quality_metric(
-                    simulator,
-                    metric,
-                    metric_value,
-                    trace[-1],
-                    ai.action,
-                    ai.actual_parameters,
-                    next_state,
-                )
-            trace.append(next_state)
+            else:
+                msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
+        except UPStateMissingFluentError:
+            msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
-        unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
-        if not unsatisfied_goals:
-            metric_evaluations = None
-            if metric is not None:
-                metric_evaluations = {metric: metric_value}
-            logs = []
-            return ValidationResult(
-                ValidationResultStatus.VALID,
-                self.name,
-                logs,
-                metric_evaluations,
-                trace=trace,
-            )
-        else:
-            msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
-            logs = [LogMessage(LogLevel.INFO, msg)]
-            return ValidationResult(
-                ValidationResultStatus.INVALID,
-                self.name,
-                logs,
-                None,
-                FailedValidationReason.UNSATISFIED_GOALS,
-                trace=trace,
-            )
+        if msg is not None:
+            return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS)
 
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
@@ -248,6 +277,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
         kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
+        kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return kind
 
     @staticmethod
@@ -364,7 +395,10 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _check_condition(
         self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
-        return se.evaluate(condition, state=state).bool_constant_value()
+        try:
+            return se.evaluate(condition, state=state).bool_constant_value()
+        except UPStateMissingFluentError:
+            return False
 
     def _instantiate_timing(
         self,
@@ -608,9 +642,22 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     new_state = self._apply_effects(
                         state=last_state, se=se, effects=now_effects, problem=problem
                     )
-                except UPConflictingEffectsException as e:
+                except UPConflictingEffectsException:
                     logs = [
                         LogMessage(LogLevel.INFO, f"Conflicting effects at time {time}")
+                    ]
+                    return ValidationResult(
+                        status=ValidationResultStatus.INVALID,
+                        engine_name=self.name,
+                        log_messages=logs,
+                        metric_evaluations=None,
+                        reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                        inapplicable_action=opt_ai,
+                        trace=trace,
+                    )
+                except UPStateMissingFluentError:
+                    logs = [
+                        LogMessage(LogLevel.INFO, "Fluent is undefined in the state")
                     ]
                     return ValidationResult(
                         status=ValidationResultStatus.INVALID,

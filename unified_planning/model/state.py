@@ -18,7 +18,7 @@ from functools import reduce
 from operator import xor
 from typing import Dict, List, Optional, Tuple
 import unified_planning as up
-from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.exceptions import UPStateMissingFluentError, UPValueError
 from unified_planning.model.mixins import FluentsSetMixin
 from unified_planning.environment import get_environment
 
@@ -30,10 +30,12 @@ class State(ABC):
     def get_value(self, value: "up.model.FNode") -> "up.model.FNode":
         """
         This method retrieves the value in the state.
-        NOTE that the searched value must be set in the state.
+        NOTE that the searched value must be set in the state otherwise an
+        exception is raised.
 
         :param value: The value searched for in the state.
         :return: The set value.
+        :raises UPStateMissingFluentError: If the fluent is not present in the state.
         """
         raise NotImplementedError
 
@@ -151,6 +153,7 @@ class UPState(State):
 
         :params fluent: The fluent searched for in the `UPState`.
         :return: The value set for the given fluent.
+        :raises UPStateMissingFluentError: If the fluent is not present in the state.
         """
         current_instance: Optional[UPState] = self
         while current_instance is not None:
@@ -163,8 +166,8 @@ class UPState(State):
         if default_found is not None:
             return default_found
 
-        raise UPUsageError(
-            f"The state {self} does not have a value for the value {fluent}"
+        raise UPStateMissingFluentError(
+            f"The state {self} does not have a value for the fluent {fluent}"
         )
 
     def make_child(
