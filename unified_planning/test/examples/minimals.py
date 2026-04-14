@@ -599,7 +599,7 @@ def get_example_problems():
     increase_both.add_increase_effect(value(o2), 1)
     problem.add_action(increase_both)
 
-    problem.add_timed_effect(GlobalStartTiming(0), value(o2), 1)
+    problem.add_timed_effect(GlobalStartTiming(1), value(o2), 1)
     problem.add_timed_goal(
         ClosedTimeInterval(GlobalStartTiming(2), GlobalStartTiming(3)),
         And(Equals(value(o1), 2), Equals(value(o2), 2)),
@@ -614,7 +614,7 @@ def get_example_problems():
             up.plans.TimeTriggeredPlan(
                 [
                     (
-                        Fraction(1, 1),
+                        Fraction(3, 2),
                         increase_both(),
                         None,
                     )

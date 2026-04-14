@@ -232,8 +232,8 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         except UPStateMissingFluentError:
             msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
-        if msg is not None:
-            return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS)
+        assert msg is not None
+        return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS)
 
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
@@ -731,9 +731,25 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         metric_evaluations = None
         if problem.quality_metrics:
-            metric_evaluations = get_temporal_metric_evaluations(
+            metric_evaluations, inapplicable_ai = get_temporal_metric_evaluations(
                 problem, plan, trace, se
             )
+            if inapplicable_ai is not None:
+                logs = [
+                    LogMessage(
+                        LogLevel.INFO,
+                        "Cannot evaluate quality metrics due to a fluent with undefined value",
+                    )
+                ]
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=logs,
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                    inapplicable_action=inapplicable_ai,
+                    trace=trace,
+                )
         return ValidationResult(
             status=ValidationResultStatus.VALID,
             engine_name=self.name,
@@ -748,7 +764,9 @@ def get_temporal_metric_evaluations(
     plan: TimeTriggeredPlan,
     trace: Optional[Dict[Fraction, State]] = None,
     state_evaluator: Optional[StateEvaluator] = None,
-) -> Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]:
+) -> Tuple[
+    Optional[Dict[PlanQualityMetric, Union[int, Fraction]]], Optional[ActionInstance]
+]:
     metric_evaluations: Dict[PlanQualityMetric, Union[int, Fraction]] = {}
     for quality_metric in problem.quality_metrics:
         assert isinstance(quality_metric, PlanQualityMetric)
@@ -758,12 +776,16 @@ def get_temporal_metric_evaluations(
             assert (
                 trace is not None
             ), "To evaluate an action_costs metric the trace is required"
-            metric_evaluations[quality_metric] = _extract_action_costs(
+            value, inapplicable_ai = _extract_action_costs(
                 problem, plan, quality_metric, trace, state_evaluator
             )
+            if value is not None and inapplicable_ai is None:
+                metric_evaluations[quality_metric] = value
+            else:
+                return None, inapplicable_ai
     if not metric_evaluations:
-        return None
-    return metric_evaluations
+        return None, None
+    return metric_evaluations, None
 
 
 def _extract_makespan(
@@ -796,7 +818,7 @@ def _extract_action_costs(
     quality_metric: PlanQualityMetric,
     trace: Dict[Fraction, State],
     state_evaluator: Optional[StateEvaluator] = None,
-) -> Union[int, Fraction]:
+) -> Tuple[Optional[Union[int, Fraction]], Optional[ActionInstance]]:
     action_cost: Union[int, Fraction] = 0
     assert isinstance(quality_metric, MinimizeActionCosts)
     sorted_times = sorted(trace)
@@ -827,11 +849,14 @@ def _extract_action_costs(
         )
         assert pre_action_state_time is not None
         pre_action_state = trace[pre_action_state_time]
-        action_cost += state_evaluator.evaluate(
-            action_cost_exp, pre_action_state
-        ).constant_value()
+        try:
+            action_cost += state_evaluator.evaluate(
+                action_cost_exp, pre_action_state
+            ).constant_value()
+        except UPStateMissingFluentError:
+            return None, action_instance
 
-    return action_cost
+    return action_cost, None
 
 
 def binary_search_closest_lower(
