@@ -554,7 +554,7 @@ def get_example_problems():
     o1 = problem.add_object("o1", object_type)
     o2 = problem.add_object("o2", object_type)
     value = problem.add_fluent("value", IntType(), o=object_type)
-    problem.set_initial_value(value(o1), 1)  # only value(o1) is defined
+    problem.set_initial_value(value(o1), 0)  # only value(o1) is defined
     increase_one = InstantaneousAction("increase_one", o=object_type)
     increase_one.add_increase_effect(value(increase_one.o), 1)
     problem.add_action(increase_one)
@@ -614,7 +614,7 @@ def get_example_problems():
             up.plans.TimeTriggeredPlan(
                 [
                     (
-                        Fraction(1, 1),
+                        Fraction(3, 2),
                         increase_both(),
                         None,
                     )

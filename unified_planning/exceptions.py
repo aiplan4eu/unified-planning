@@ -53,6 +53,10 @@ class UPValueError(UPException):
     pass
 
 
+class UPStateMissingFluentError(UPException):
+    pass
+
+
 class UPUsageError(UPException):
     pass
 

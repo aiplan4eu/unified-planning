@@ -32,6 +32,7 @@ from unified_planning.exceptions import (
     UPInvalidActionError,
     UPUnreachableCodeError,
     UPProblemDefinitionError,
+    UPStateMissingFluentError,
 )
 from unified_planning.model import (
     Action,
@@ -184,7 +185,13 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 self._problem.explicit_initial_values, self._problem
             )
             for si in self._state_invariants:
-                if not self._se.evaluate(si, self._initial_state).bool_constant_value():
+                try:
+                    is_satisfied = self._se.evaluate(
+                        si, self._initial_state
+                    ).bool_constant_value()
+                except UPStateMissingFluentError:
+                    is_satisfied = False
+                if not is_satisfied:
                     raise UPProblemDefinitionError(
                         "The initial state of the problem already violates the state invariants"
                     )
@@ -213,7 +220,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 state, action, parameters, early_termination=True, full_check=True
             )
             is_applicable = reason is None
-        except UPInvalidActionError:
+        except (UPInvalidActionError, UPStateMissingFluentError):
             is_applicable = False
         return is_applicable
 
@@ -236,14 +243,18 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :return: `None` if the `action` is not applicable in the given `state`, the new State generated
             if the action is applicable.
         """
-        _, reason = self.get_unsatisfied_conditions(
-            state, action, parameters, early_termination=True, full_check=False
-        )
-        if reason is not None:
-            return None
         try:
+            _, reason = self.get_unsatisfied_conditions(
+                state, action, parameters, early_termination=True, full_check=False
+            )
+            if reason is not None:
+                return None
             return self.apply_unsafe(state, action, parameters)
-        except (UPInvalidActionError, UPConflictingEffectsException):
+        except (
+            UPInvalidActionError,
+            UPConflictingEffectsException,
+            UPStateMissingFluentError,
+        ):
             return None
 
     def apply_unsafe(
@@ -266,6 +277,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
             values.
         :raises UPInvalidActionError: If the action is invalid or if it violates some state invariants.
+        :raises UPStateMissingFluentError: If an expression involves a fluent with an
+            undefined value in the state.
         """
         action, params = self._get_action_and_parameters(
             action_or_action_instance, parameters
@@ -342,6 +355,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             effect and value is the new value assigned to the fluent.
         :raises UPConflictingEffectsException: If to the same fluent are assigned 2 different
             values.
+        :raises UPStateMissingFluentError: If an expression involves a fluent with an
+            undefined value in the state.
         """
         evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
         if evaluated_fluent is not None:
@@ -444,6 +459,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             conflicting_effects or violates state_invariants.
         :return: The list of all the `action's conditions` that evaluated to `False` or the list containing the first
             `condition` evaluated to `False` if the flag `early_termination` is set.
+        :raises UPStateMissingFluentError: If an expression involves a fluent with an
+            undefined value in the state.
         """
         action, params = self._get_action_and_parameters(
             action_or_action_instance,
@@ -580,7 +597,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
 
         :param state: The `State` in which the `problem goals` are evaluated.
         :param early_termination: Flag deciding if the method ends and returns at the first `unsatisfied goal`.
-        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal` evaluated to `False` if the flag `early_termination` is set.
+        :return: The list of all the `goals` that evaluated to `False` or the list containing the first `goal`
+            evaluated to `False` if the flag `early_termination` is set.
+        :raises UPStateMissingFluentError: If an expression goal involves a fluent with an
+            undefined value in the state.
         """
         unsatisfied_goals = []
         for g in cast(up.model.Problem, self._problem).goals:
@@ -595,7 +615,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         """
         is_goal implementation
         """
-        return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
+        try:
+            return len(self.get_unsatisfied_goals(state, early_termination=True)) == 0
+        except UPStateMissingFluentError:
+            return False
 
     @property
     def name(self) -> str:
@@ -646,6 +669,8 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         supported_kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
         supported_kind.set_oversubscription_kind("INT_NUMBERS_IN_OVERSUBSCRIPTION")
         supported_kind.set_oversubscription_kind("REAL_NUMBERS_IN_OVERSUBSCRIPTION")
+        supported_kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
+        supported_kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return supported_kind
 
     @staticmethod
@@ -728,13 +753,14 @@ def evaluate_quality_metric_in_initial_state(
     :param simulator: The simulator used to evaluate the metric.
     :param quality_metric: The QUalityMetric tto evaluate.
     :return: The evaluation of the metric in the initial state.
+    :raises UPStateMissingFluentError: If an expression involves a fluent with an
+        undefined value in the state.
     """
     if not isinstance(simulator._problem, up.model.Problem):
         raise NotImplementedError(
             "Currently this method is implemented only for classical and numeric problems."
         )
     se = StateEvaluator(simulator._problem)
-    em = simulator._problem.environment.expression_manager
     initial_state = simulator.get_initial_state()
     if quality_metric.is_minimize_action_costs():
         return 0

@@ -35,6 +35,8 @@ from unified_planning.model import (
     Problem,
     ProblemKind,
     State,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.results import (
@@ -48,12 +50,12 @@ from unified_planning.engines.sequential_simulator import (
     InapplicabilityReasons,
     UPSequentialSimulator,
     evaluate_quality_metric,
-    evaluate_quality_metric_in_initial_state,
 )
 from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
+    UPStateMissingFluentError,
     UPUsageError,
     UPProblemDefinitionError,
     UPInvalidActionError,
@@ -138,7 +140,25 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             else:
                 warnings.warn(cast(str, msg))
         if metric is not None:
-            metric_value = evaluate_quality_metric_in_initial_state(simulator, metric)
+            metric_value: Union[int, Fraction] = 0
+
+        def invalid_result(
+            msg: str,
+            trace: List[State],
+            reason: FailedValidationReason,
+            inapplicable_action: Optional[ActionInstance] = None,
+        ) -> ValidationResult:
+            logs = [LogMessage(LogLevel.INFO, msg)]
+            return ValidationResult(
+                status=ValidationResultStatus.INVALID,
+                engine_name=self.name,
+                log_messages=logs,
+                metric_evaluations=None,
+                reason=reason,
+                inapplicable_action=inapplicable_action,
+                trace=trace,
+            )
+
         msg = None
         trace: List[State] = [simulator.get_initial_state()]
         for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
@@ -149,62 +169,73 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
-                else:
-                    next_state = simulator.apply_unsafe(trace[-1], ai)
+                    return invalid_result(
+                        msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                    )
+
+                next_state = simulator.apply_unsafe(trace[-1], ai)
+                if metric is not None and (
+                    metric.is_minimize_action_costs()
+                    or metric.is_minimize_sequential_plan_length()
+                ):
+                    metric_value = evaluate_quality_metric(
+                        simulator,
+                        metric,
+                        metric_value,
+                        trace[-1],
+                        ai.action,
+                        ai.actual_parameters,
+                        next_state,
+                    )
+                trace.append(next_state)
+
             except UPUsageError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
             except UPInvalidActionError as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
             except UPConflictingEffectsException as e:
                 msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
+            except UPStateMissingFluentError:
+                msg = f"{str(i)}-th action instance {str(ai)} involves fluents with undefined values"
+
             if msg is not None:
-                logs = [LogMessage(LogLevel.INFO, msg)]
+                return invalid_result(
+                    msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                )
+
+        try:
+            unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
+            if not unsatisfied_goals:
+                metric_evaluations = None
+                if metric is not None:
+                    if not (
+                        metric.is_minimize_action_costs()
+                        or metric.is_minimize_sequential_plan_length()
+                    ):
+                        metric_value = evaluate_quality_metric(
+                            simulator,
+                            metric,
+                            metric_value,
+                            trace[-1],
+                            ai.action,
+                            ai.actual_parameters,
+                            trace[-1],
+                        )
+                    metric_evaluations = {metric: metric_value}
                 return ValidationResult(
-                    status=ValidationResultStatus.INVALID,
-                    engine_name=self.name,
-                    log_messages=logs,
-                    metric_evaluations=None,
-                    reason=FailedValidationReason.INAPPLICABLE_ACTION,
-                    inapplicable_action=ai,
+                    ValidationResultStatus.VALID,
+                    self.name,
+                    [],
+                    metric_evaluations,
                     trace=trace,
                 )
-            assert next_state is not None
-            if metric is not None:
-                metric_value = evaluate_quality_metric(
-                    simulator,
-                    metric,
-                    metric_value,
-                    trace[-1],
-                    ai.action,
-                    ai.actual_parameters,
-                    next_state,
-                )
-            trace.append(next_state)
+            else:
+                msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
+        except UPStateMissingFluentError:
+            msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
-        unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
-        if not unsatisfied_goals:
-            metric_evaluations = None
-            if metric is not None:
-                metric_evaluations = {metric: metric_value}
-            logs = []
-            return ValidationResult(
-                ValidationResultStatus.VALID,
-                self.name,
-                logs,
-                metric_evaluations,
-                trace=trace,
-            )
-        else:
-            msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
-            logs = [LogMessage(LogLevel.INFO, msg)]
-            return ValidationResult(
-                ValidationResultStatus.INVALID,
-                self.name,
-                logs,
-                None,
-                FailedValidationReason.UNSATISFIED_GOALS,
-                trace=trace,
-            )
+        assert msg is not None
+        return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS)
 
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
@@ -235,7 +266,46 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        kind = UPSequentialSimulator.supported_kind().clone()
+        kind = up.model.ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+        kind.set_problem_class("ACTION_BASED")
+        kind.set_typing("FLAT_TYPING")
+        kind.set_typing("HIERARCHICAL_TYPING")
+        kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_numbers("BOUNDED_TYPES")
+        kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        kind.set_fluents_type("INT_FLUENTS")
+        kind.set_fluents_type("REAL_FLUENTS")
+        kind.set_fluents_type("OBJECT_FLUENTS")
+        kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        kind.set_conditions_kind("EQUALITIES")
+        kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        kind.set_effects_kind("INCREASE_EFFECTS")
+        kind.set_effects_kind("DECREASE_EFFECTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        kind.set_effects_kind("FORALL_EFFECTS")
+        kind.set_simulated_entities("SIMULATED_EFFECTS")
+        kind.set_constraints_kind("STATE_INVARIANTS")
+        kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+        kind.set_quality_metrics("ACTIONS_COST")
+        kind.set_quality_metrics("MAKESPAN")
+        kind.set_quality_metrics("FINAL_VALUE")
         kind.set_time("CONTINUOUS_TIME")
         kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
         kind.set_time("TIMED_EFFECTS")
@@ -246,8 +316,8 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         kind.set_expression_duration("INT_TYPE_DURATIONS")
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
-        kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
-        kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
+        kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return kind
 
     @staticmethod
@@ -318,21 +388,22 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 g_fluent = self._ground_expression(instantiated_effect.fluent, ai)
                 g_value = self._ground_expression(instantiated_effect.value, ai)
-                f_value = (
-                    updates[g_fluent]
-                    if g_fluent in updates
-                    else state.get_value(g_fluent)
-                )
                 if instantiated_effect.kind == EffectKind.ASSIGN:
                     result[g_fluent] = se.evaluate(g_value, state=state)
-                elif instantiated_effect.kind == EffectKind.DECREASE:
-                    result[g_fluent] = se.evaluate(
-                        em.Minus(f_value, g_value), state=state
+                else:
+                    f_value = (
+                        updates[g_fluent]
+                        if g_fluent in updates
+                        else state.get_value(g_fluent)
                     )
-                elif instantiated_effect.kind == EffectKind.INCREASE:
-                    result[g_fluent] = se.evaluate(
-                        em.Plus(f_value, g_value), state=state
-                    )
+                    if instantiated_effect.kind == EffectKind.DECREASE:
+                        result[g_fluent] = se.evaluate(
+                            em.Minus(f_value, g_value), state=state
+                        )
+                    elif instantiated_effect.kind == EffectKind.INCREASE:
+                        result[g_fluent] = se.evaluate(
+                            em.Plus(f_value, g_value), state=state
+                        )
         return result
 
     def _states_in_interval(
@@ -608,9 +679,24 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     new_state = self._apply_effects(
                         state=last_state, se=se, effects=now_effects, problem=problem
                     )
-                except UPConflictingEffectsException as e:
+                except UPConflictingEffectsException:
                     logs = [
                         LogMessage(LogLevel.INFO, f"Conflicting effects at time {time}")
+                    ]
+                    return ValidationResult(
+                        status=ValidationResultStatus.INVALID,
+                        engine_name=self.name,
+                        log_messages=logs,
+                        metric_evaluations=None,
+                        reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                        inapplicable_action=opt_ai,
+                        trace=trace,
+                    )
+                except UPStateMissingFluentError:
+                    logs = [
+                        LogMessage(
+                            LogLevel.INFO, "Fluent has undefined value in the state"
+                        )
                     ]
                     return ValidationResult(
                         status=ValidationResultStatus.INVALID,
@@ -629,7 +715,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             for t, state in self._states_in_interval(
                 trace=trace, start=start, end=end, open_interval=is_open
             ):
-                if not self._check_condition(state=state, se=se, condition=c):
+                try:
+                    is_satisfied = self._check_condition(
+                        state=state, se=se, condition=c
+                    )
+                except UPStateMissingFluentError:
+                    is_satisfied = False
+
+                if not is_satisfied:
                     if opt_ai is not None:
                         assert end is not None
                         return ValidationResult(
@@ -657,7 +750,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         )
 
         for g in problem.goals:
-            if not self._check_condition(state=last_state, se=se, condition=g):
+            try:
+                is_satisfied = self._check_condition(
+                    state=last_state, se=se, condition=g
+                )
+            except UPStateMissingFluentError:
+                is_satisfied = False
+
+            if not is_satisfied:
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
@@ -670,9 +770,43 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         metric_evaluations = None
         if problem.quality_metrics:
-            metric_evaluations = get_temporal_metric_evaluations(
-                problem, plan, trace, se
-            )
+            try:
+                metric_evaluations, inapplicable_ai = get_temporal_metric_evaluations(
+                    problem, plan, trace, se
+                )
+            except UPStateMissingFluentError:
+                logs = [
+                    LogMessage(
+                        LogLevel.INFO,
+                        "Cannot evaluate quality metrics due to a fluent with undefined value",
+                    )
+                ]
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=logs,
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.UNSATISFIED_GOALS,
+                    inapplicable_action=None,
+                    trace=trace,
+                )
+
+            if inapplicable_ai is not None:
+                logs = [
+                    LogMessage(
+                        LogLevel.INFO,
+                        "Cannot evaluate quality metrics due to a fluent with undefined value",
+                    )
+                ]
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=logs,
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                    inapplicable_action=inapplicable_ai,
+                    trace=trace,
+                )
         return ValidationResult(
             status=ValidationResultStatus.VALID,
             engine_name=self.name,
@@ -687,7 +821,9 @@ def get_temporal_metric_evaluations(
     plan: TimeTriggeredPlan,
     trace: Optional[Dict[Fraction, State]] = None,
     state_evaluator: Optional[StateEvaluator] = None,
-) -> Optional[Dict[PlanQualityMetric, Union[int, Fraction]]]:
+) -> Tuple[
+    Optional[Dict[PlanQualityMetric, Union[int, Fraction]]], Optional[ActionInstance]
+]:
     metric_evaluations: Dict[PlanQualityMetric, Union[int, Fraction]] = {}
     for quality_metric in problem.quality_metrics:
         assert isinstance(quality_metric, PlanQualityMetric)
@@ -697,12 +833,33 @@ def get_temporal_metric_evaluations(
             assert (
                 trace is not None
             ), "To evaluate an action_costs metric the trace is required"
-            metric_evaluations[quality_metric] = _extract_action_costs(
+            value, inapplicable_ai = _extract_action_costs(
                 problem, plan, quality_metric, trace, state_evaluator
             )
+            if value is not None and inapplicable_ai is None:
+                metric_evaluations[quality_metric] = value
+            else:
+                return None, inapplicable_ai
+        elif (
+            quality_metric.is_minimize_expression_on_final_state()
+            or quality_metric.is_maximize_expression_on_final_state()
+        ):
+            assert isinstance(
+                quality_metric,
+                (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+            )
+            assert (
+                trace is not None
+            ), "A trace is required to evaluate a metric that minimizes or maximizes an expression on the final state"
+            if state_evaluator is None:
+                state_evaluator = StateEvaluator(problem)
+            final_state = trace[max(trace.keys())]
+            metric_evaluations[quality_metric] = state_evaluator.evaluate(
+                quality_metric.expression, final_state
+            ).constant_value()
     if not metric_evaluations:
-        return None
-    return metric_evaluations
+        return None, None
+    return metric_evaluations, None
 
 
 def _extract_makespan(
@@ -735,7 +892,7 @@ def _extract_action_costs(
     quality_metric: PlanQualityMetric,
     trace: Dict[Fraction, State],
     state_evaluator: Optional[StateEvaluator] = None,
-) -> Union[int, Fraction]:
+) -> Tuple[Optional[Union[int, Fraction]], Optional[ActionInstance]]:
     action_cost: Union[int, Fraction] = 0
     assert isinstance(quality_metric, MinimizeActionCosts)
     sorted_times = sorted(trace)
@@ -766,11 +923,14 @@ def _extract_action_costs(
         )
         assert pre_action_state_time is not None
         pre_action_state = trace[pre_action_state_time]
-        action_cost += state_evaluator.evaluate(
-            action_cost_exp, pre_action_state
-        ).constant_value()
+        try:
+            action_cost += state_evaluator.evaluate(
+                action_cost_exp, pre_action_state
+            ).constant_value()
+        except UPStateMissingFluentError:
+            return None, action_instance
 
-    return action_cost
+    return action_cost, None
 
 
 def binary_search_closest_lower(
