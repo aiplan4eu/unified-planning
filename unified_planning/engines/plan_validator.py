@@ -196,10 +196,10 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             except UPStateMissingFluentError:
                 msg = f"{str(i)}-th action instance {str(ai)} involves fluents with undefined values"
 
-        if msg is not None:
-            return invalid_result(
-                msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
-            )
+            if msg is not None:
+                return invalid_result(
+                    msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                )
 
         try:
             unsatisfied_goals = simulator.get_unsatisfied_goals(trace[-1])
@@ -349,21 +349,22 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 g_fluent = self._ground_expression(instantiated_effect.fluent, ai)
                 g_value = self._ground_expression(instantiated_effect.value, ai)
-                f_value = (
-                    updates[g_fluent]
-                    if g_fluent in updates
-                    else state.get_value(g_fluent)
-                )
                 if instantiated_effect.kind == EffectKind.ASSIGN:
                     result[g_fluent] = se.evaluate(g_value, state=state)
-                elif instantiated_effect.kind == EffectKind.DECREASE:
-                    result[g_fluent] = se.evaluate(
-                        em.Minus(f_value, g_value), state=state
+                else:
+                    f_value = (
+                        updates[g_fluent]
+                        if g_fluent in updates
+                        else state.get_value(g_fluent)
                     )
-                elif instantiated_effect.kind == EffectKind.INCREASE:
-                    result[g_fluent] = se.evaluate(
-                        em.Plus(f_value, g_value), state=state
-                    )
+                    if instantiated_effect.kind == EffectKind.DECREASE:
+                        result[g_fluent] = se.evaluate(
+                            em.Minus(f_value, g_value), state=state
+                        )
+                    elif instantiated_effect.kind == EffectKind.INCREASE:
+                        result[g_fluent] = se.evaluate(
+                            em.Plus(f_value, g_value), state=state
+                        )
         return result
 
     def _states_in_interval(
@@ -395,10 +396,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _check_condition(
         self, state: State, se: StateEvaluator, condition: FNode
     ) -> bool:
-        try:
-            return se.evaluate(condition, state=state).bool_constant_value()
-        except UPStateMissingFluentError:
-            return False
+        return se.evaluate(condition, state=state).bool_constant_value()
 
     def _instantiate_timing(
         self,
@@ -657,7 +655,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                     )
                 except UPStateMissingFluentError:
                     logs = [
-                        LogMessage(LogLevel.INFO, "Fluent is undefined in the state")
+                        LogMessage(
+                            LogLevel.INFO, "Fluent has undefined value in the state"
+                        )
                     ]
                     return ValidationResult(
                         status=ValidationResultStatus.INVALID,
@@ -676,7 +676,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             for t, state in self._states_in_interval(
                 trace=trace, start=start, end=end, open_interval=is_open
             ):
-                if not self._check_condition(state=state, se=se, condition=c):
+                try:
+                    is_satisfied = self._check_condition(
+                        state=state, se=se, condition=c
+                    )
+                except UPStateMissingFluentError:
+                    is_satisfied = False
+
+                if not is_satisfied:
                     if opt_ai is not None:
                         assert end is not None
                         return ValidationResult(
@@ -704,7 +711,14 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                         )
 
         for g in problem.goals:
-            if not self._check_condition(state=last_state, se=se, condition=g):
+            try:
+                is_satisfied = self._check_condition(
+                    state=last_state, se=se, condition=g
+                )
+            except UPStateMissingFluentError:
+                is_satisfied = False
+
+            if not is_satisfied:
                 return ValidationResult(
                     status=ValidationResultStatus.INVALID,
                     engine_name=self.name,
