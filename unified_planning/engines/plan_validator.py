@@ -35,6 +35,8 @@ from unified_planning.model import (
     Problem,
     ProblemKind,
     State,
+    MinimizeExpressionOnFinalState,
+    MaximizeExpressionOnFinalState,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.results import (
@@ -264,7 +266,46 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
     @staticmethod
     def supported_kind() -> ProblemKind:
-        kind = UPSequentialSimulator.supported_kind().clone()
+        kind = up.model.ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+        kind.set_problem_class("ACTION_BASED")
+        kind.set_typing("FLAT_TYPING")
+        kind.set_typing("HIERARCHICAL_TYPING")
+        kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        kind.set_parameters("BOUNDED_INT_FLUENT_PARAMETERS")
+        kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
+        kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
+        kind.set_parameters("REAL_ACTION_PARAMETERS")
+        kind.set_numbers("BOUNDED_TYPES")
+        kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+        kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        kind.set_fluents_type("INT_FLUENTS")
+        kind.set_fluents_type("REAL_FLUENTS")
+        kind.set_fluents_type("OBJECT_FLUENTS")
+        kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+        kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        kind.set_conditions_kind("EQUALITIES")
+        kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+        kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        kind.set_effects_kind("INCREASE_EFFECTS")
+        kind.set_effects_kind("DECREASE_EFFECTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        kind.set_effects_kind("FORALL_EFFECTS")
+        kind.set_simulated_entities("SIMULATED_EFFECTS")
+        kind.set_constraints_kind("STATE_INVARIANTS")
+        kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
+        kind.set_actions_cost_kind("REAL_NUMBERS_IN_ACTIONS_COST")
+        kind.set_quality_metrics("ACTIONS_COST")
+        kind.set_quality_metrics("MAKESPAN")
+        kind.set_quality_metrics("FINAL_VALUE")
         kind.set_time("CONTINUOUS_TIME")
         kind.set_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
         kind.set_time("TIMED_EFFECTS")
@@ -275,8 +316,6 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         kind.set_expression_duration("INT_TYPE_DURATIONS")
         kind.set_expression_duration("REAL_TYPE_DURATIONS")
-        kind.set_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
-        kind.set_parameters("REAL_ACTION_PARAMETERS")
         kind.set_initial_state("UNDEFINED_INITIAL_SYMBOLIC")
         kind.set_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return kind
@@ -731,9 +770,27 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         metric_evaluations = None
         if problem.quality_metrics:
-            metric_evaluations, inapplicable_ai = get_temporal_metric_evaluations(
-                problem, plan, trace, se
-            )
+            try:
+                metric_evaluations, inapplicable_ai = get_temporal_metric_evaluations(
+                    problem, plan, trace, se
+                )
+            except UPStateMissingFluentError:
+                logs = [
+                    LogMessage(
+                        LogLevel.INFO,
+                        "Cannot evaluate quality metrics due to a fluent with undefined value",
+                    )
+                ]
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=logs,
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.UNSATISFIED_GOALS,
+                    inapplicable_action=None,
+                    trace=trace,
+                )
+
             if inapplicable_ai is not None:
                 logs = [
                     LogMessage(
@@ -783,6 +840,23 @@ def get_temporal_metric_evaluations(
                 metric_evaluations[quality_metric] = value
             else:
                 return None, inapplicable_ai
+        elif (
+            quality_metric.is_minimize_expression_on_final_state()
+            or quality_metric.is_maximize_expression_on_final_state()
+        ):
+            assert isinstance(
+                quality_metric,
+                (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+            )
+            assert (
+                trace is not None
+            ), "A trace is required to evaluate a metric that minimizes or maximizes an expression on the final state"
+            if state_evaluator is None:
+                state_evaluator = StateEvaluator(problem)
+            final_state = trace[max(trace.keys())]
+            metric_evaluations[quality_metric] = state_evaluator.evaluate(
+                quality_metric.expression, final_state
+            ).constant_value()
     if not metric_evaluations:
         return None, None
     return metric_evaluations, None
