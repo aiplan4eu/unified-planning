@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -813,8 +814,9 @@ class _KindFactory:
         self,
         e: "up.model.effect.Effect",
     ):
-        value = self.simplifier.simplify(e.value)
+        value = e.value
         fluents_in_value = self.environment.free_vars_extractor.get(value)
+        ops = self.operators_extractor.get(value)
         if e.is_conditional():
             self.update_problem_kind_expression(e.condition)
             self.kind.set_effects_kind("CONDITIONAL_EFFECTS")
@@ -872,6 +874,11 @@ class _KindFactory:
             if (
                 value_type.is_int_type() or value_type.is_real_type()
             ):  # the value is a number
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                    )
                 if (  # if the fluent has increase/decrease constraints or the value assigned is not a constant,
                     # unset "SIMPLE_NUMERIC_PLANNING"
                     e.fluent in self.fluents_to_only_increase
@@ -879,16 +886,25 @@ class _KindFactory:
                     or not value.is_constant()
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type():
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
             elif value.type.is_user_type():
+                if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                    self.kind.set_effects_kind(
+                        "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
+                    )
                 if any(f in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f not in self.static_fluents for f in fluents_in_value):
@@ -913,6 +929,9 @@ class _KindFactory:
             self.kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         if OperatorKind.FORALL in ops:
             self.kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            self.kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         is_linear, _, _ = self.linear_checker.get_fluents(exp)
         if not is_linear:
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
@@ -970,6 +989,7 @@ class _KindFactory:
 
     def update_action_duration(self, duration: "up.model.DurationInterval"):
         lower, upper = duration.lower, duration.upper
+
         for dur_bound in (lower, upper):
             if dur_bound.type.is_int_type():
                 self.kind.set_expression_duration("INT_TYPE_DURATIONS")
@@ -982,6 +1002,10 @@ class _KindFactory:
         free_vars = self.environment.free_vars_extractor.get(
             lower
         ) | self.environment.free_vars_extractor.get(upper)
+        ops = self.operators_extractor.get(lower) | self.operators_extractor.get(upper)
+        if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+            self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
+
         if len(free_vars) > 0:
             only_static = True
             for fv in free_vars:

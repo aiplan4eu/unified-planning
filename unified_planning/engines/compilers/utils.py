@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -270,6 +271,19 @@ def get_fresh_name(
     count = 0
     while problem.has_name(new_name):
         new_name = f"{base_name}_{str(count)}"
+        count += 1
+    return new_name
+
+
+def get_fresh_parameter_name(action: Action, name: str):
+    """This method returns a fresh name for a parameter in the action, given a name and the action"""
+    name_list: List[str] = []
+    for p in action.parameters:
+        name_list.append(p.name)
+    count = 0
+    new_name = name
+    while new_name in name_list:
+        new_name = f"{name}_{str(count)}"
         count += 1
     return new_name
 
