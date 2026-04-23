@@ -160,8 +160,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             trace: List[State],
             reason: FailedValidationReason,
             inapplicable_action: Optional[ActionInstance] = None,
-            calculted_interpreted_functions = None,
-
+            calculated_interpreted_functions=None,
         ) -> ValidationResult:
             logs = [LogMessage(LogLevel.INFO, msg)]
             return ValidationResult(
@@ -172,7 +171,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 reason=reason,
                 inapplicable_action=inapplicable_action,
                 trace=trace,
-                calculated_interpreted_functions = calculted_interpreted_functions,
+                calculated_interpreted_functions=calculated_interpreted_functions,
             )
 
         msg = None
@@ -186,7 +185,11 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
                     msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
                     return invalid_result(
-                        msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                        msg,
+                        trace,
+                        FailedValidationReason.INAPPLICABLE_ACTION,
+                        ai,
+                        calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                     )
 
                 next_state = simulator.apply_unsafe(trace[-1], ai)
@@ -215,7 +218,11 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
             if msg is not None:
                 return invalid_result(
-                    msg, trace, FailedValidationReason.INAPPLICABLE_ACTION, ai
+                    msg,
+                    trace,
+                    FailedValidationReason.INAPPLICABLE_ACTION,
+                    ai,
+                    calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                 )
 
         try:
@@ -251,7 +258,13 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
         assert msg is not None
-        return invalid_result(msg, trace, FailedValidationReason.UNSATISFIED_GOALS, calculated_interpreted_functions=simulator.get_interpreted_functions_values())
+        return invalid_result(
+            msg,
+            trace,
+            FailedValidationReason.UNSATISFIED_GOALS,
+            calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
+        )
+
 
 class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
     """
