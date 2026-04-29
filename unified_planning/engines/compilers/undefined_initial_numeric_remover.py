@@ -31,6 +31,7 @@ from unified_planning.model import (
     Timing,
     TimePointInterval,
     StartTiming,
+    Expression,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
@@ -378,7 +379,8 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         for metric in problem.quality_metrics:
             if metric.is_minimize_action_costs():
                 assert isinstance(metric, MinimizeActionCosts)
-                for action, cost_exp in metric.costs.items():
+                costs = list(metric.costs.items())
+                for action, cost_exp in costs:
                     undef_fluent_exps = set()
                     for fluent_exp in self._fve.get(cost_exp):
                         if fluent_exp.fluent() in is_value_defined_fluents:
@@ -400,6 +402,18 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                                     *fluent_exp.args
                                 ),
                             )
+
+        quality_metrics = list(problem.quality_metrics)
+        problem.clear_quality_metrics()
+        for metric in quality_metrics:
+            if isinstance(metric, MinimizeActionCosts):
+                # Recreate the costs dictionary since action instances may have been
+                # mutated, potentially invalidating them as dictionary keys.
+                new_costs: Dict[Action, Expression] = {
+                    action: cost_exp for action, cost_exp in metric.costs.items()
+                }
+                metric = MinimizeActionCosts(new_costs, metric.default)
+            problem.add_quality_metric(metric)
 
 
 def get_default_initial_values(
