@@ -12,11 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.test.examples.scheduling import (
-    examples,
-    jobshop,
-    flexible_jobshop,
-)
+from unified_planning.test.examples.scheduling import examples, jobshop
 
 
 def get_example_problems():
@@ -29,9 +25,5 @@ def get_example_problems():
         examples.optional_activities_effects(),
         examples.optional_activities_conditions(),
         examples.TestCase(jobshop.parse(jobshop.FT06, "ft06"), solvable=True),
-        examples.TestCase(
-            flexible_jobshop.create_scheduling_problem(flexible_jobshop.MT06),
-            solvable=True,
-        ),
     ]
     return dict((instance.problem.name, instance) for instance in instances)

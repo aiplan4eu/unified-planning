@@ -13,7 +13,7 @@ def get_test_cases():
 
     occ_map = OccupancyMap(os.path.join(FILE_PATH, "maps", "office-map-1.yaml"), (0, 0))
 
-    t_robot_config = ConfigurationType("robot_config", occ_map, 3)
+    t_robot_config = ConfigurationType("robot_config", occ_map, ConfigurationKind.SE2)
     t_parcel = UserType("parcel")
 
     robot_at = Fluent(
@@ -25,28 +25,36 @@ def get_test_cases():
     carries = Fluent("carries", BoolType(), robot=t_robot, parcel=t_parcel)
 
     park1 = ConfigurationObject(
-        "parking-1", t_robot_config, (46.0, 26.0, 3 * math.pi / 2)
+        "parking-1", t_robot_config, SE2(46.0, 26.0, 3 * math.pi / 2)
     )
     park2 = ConfigurationObject(
-        "parking-2", t_robot_config, (40.0, 26.0, 3 * math.pi / 2)
+        "parking-2", t_robot_config, SE2(40.0, 26.0, 3 * math.pi / 2)
     )
 
     office1 = ConfigurationObject(
-        "office-1", t_robot_config, (4.0, 4.0, 3 * math.pi / 2)
+        "office-1", t_robot_config, SE2(4.0, 4.0, 3 * math.pi / 2)
     )
-    office2 = ConfigurationObject("office-2", t_robot_config, (14.0, 4.0, math.pi / 2))
+    office2 = ConfigurationObject(
+        "office-2", t_robot_config, SE2(14.0, 4.0, math.pi / 2)
+    )
     office3 = ConfigurationObject(
-        "office-3", t_robot_config, (24.0, 4.0, 3 * math.pi / 2)
+        "office-3", t_robot_config, SE2(24.0, 4.0, 3 * math.pi / 2)
     )
     office4 = ConfigurationObject(
-        "office-4", t_robot_config, (32.0, 4.0, 3 * math.pi / 2)
+        "office-4", t_robot_config, SE2(32.0, 4.0, 3 * math.pi / 2)
     )
     office5 = ConfigurationObject(
-        "office-5", t_robot_config, (4.0, 24.0, 3 * math.pi / 2)
+        "office-5", t_robot_config, SE2(4.0, 24.0, 3 * math.pi / 2)
     )
-    office6 = ConfigurationObject("office-6", t_robot_config, (14.0, 24.0, math.pi / 2))
-    office7 = ConfigurationObject("office-7", t_robot_config, (24.0, 24.0, math.pi / 2))
-    office8 = ConfigurationObject("office-8", t_robot_config, (32.0, 24.0, math.pi / 2))
+    office6 = ConfigurationObject(
+        "office-6", t_robot_config, SE2(14.0, 24.0, math.pi / 2)
+    )
+    office7 = ConfigurationObject(
+        "office-7", t_robot_config, SE2(24.0, 24.0, math.pi / 2)
+    )
+    office8 = ConfigurationObject(
+        "office-8", t_robot_config, SE2(32.0, 24.0, math.pi / 2)
+    )
 
     r1 = MovableObject(
         "r1",

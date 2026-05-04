@@ -463,7 +463,7 @@ jobs:
         run: python3 -m pip install up-enhsp/
 
       - name: Install up-aries
-        run: pip3 install up-aries
+        run: python3 -m pip install up-aries
 
       - name: Checkout up-fmap
         uses: actions/checkout@v2
@@ -476,10 +476,22 @@ jobs:
         run: python3 -m pip install up-fmap/
 
       - name: Install jupyter and ipython3
-        run:  |
+        run: |
           sudo apt-get update
           sudo apt install jupyter
           python3 -m pip install ipython
+
+      - name: Checkout tampest
+        uses: actions/checkout@v2
+        with:
+          repository: fbk-pso/tampest
+          path: tampest
+          ref: up-motion
+
+      - name: Install tampest
+        run: |
+          python3 -m pip install -r tampest/requirements.txt
+          python3 -m pip install tampest/
 
       - name: Run colabs
         run: bash scripts/test_colab.sh
