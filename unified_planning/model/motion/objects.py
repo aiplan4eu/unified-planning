@@ -13,9 +13,11 @@
 # limitations under the License.
 #
 
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple, List, Callable, Union
+from typing import Dict, Optional, Any, Tuple, List, Callable
+
 from unified_planning.model import Object
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
@@ -27,8 +29,14 @@ class ConfigurationKind(Enum):
     SE3 = auto()
 
 
-class ConfigurationInstance:
-    # TODO: should this be an abstract base class?
+class ConfigurationInstance(ABC):
+    """
+    Abstract base class for concrete configurations.
+
+    Configuration instances represent the state of a movable object in a
+    configuration space, such as an SE2 or SE3 pose.
+    """
+
     pass
 
 
