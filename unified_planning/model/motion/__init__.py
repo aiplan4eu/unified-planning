@@ -16,10 +16,13 @@
 from unified_planning.model.motion.action import (
     InstantaneousMotionAction,
     DurativeMotionAction,
-    MotionConstraint,
 )
 from unified_planning.model.motion.activity import MotionActivity
-from unified_planning.model.motion.constraint import Waypoints, ActivityWaypoints
+from unified_planning.model.motion.constraint import (
+    MotionConstraint,
+    Waypoints,
+    ActivityWaypoints,
+)
 from unified_planning.model.motion.objects import (
     ConfigurationKind,
     ConfigurationInstance,
@@ -43,8 +46,8 @@ from unified_planning.model.motion.scheduling_motion_problem import (
 __all__ = [
     "InstantaneousMotionAction",
     "DurativeMotionAction",
-    "MotionConstraint",
     "MotionActivity",
+    "MotionConstraint",
     "Waypoints",
     "ActivityWaypoints",
     "ConfigurationKind",
