@@ -629,6 +629,16 @@ class TestProblem(unittest_TestCase):
         self.assertFalse(p.kind.has_events())
         self.assertFalse(p.kind.has_processes())
 
+    def test_fluent_kind(self):
+        """For each problem test that real-typed fluents are detected and reflected in the problem kind"""
+        for pb_name in self.problems:
+            # pb_name = "robot_with_variable_duration"  # problem that is failing the test
+            p: Problem = self.problems[pb_name].problem
+            has_real_typed_fluent = any(f.type == RealType() for f in p.fluents)
+            assert (
+                not has_real_typed_fluent or p.kind.has_real_fluents()
+            ), f"{pb_name} has a real fluent but kinds: \n{p.kind}"
+
 
 if __name__ == "__main__":
     main()
