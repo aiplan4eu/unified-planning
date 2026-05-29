@@ -34,6 +34,25 @@ model.multi_agent.Agent
 model.multi_agent.MAEnvironment
 model.scheduling.SchedulingProblem
 model.scheduling.Activity
+model.motion.MovableObject
+model.motion.ConfigurationObject
+model.motion.OccupancyMap
+model.motion.MotionModels
+model.motion.ConfigurationKind
+model.motion.ConfigurationInstance
+model.motion.SE2
+model.motion.SE3
+model.motion.MotionConstraint
+model.motion.Waypoints
+model.motion.ActivityWaypoints
+model.motion.InstantaneousMotionAction
+model.motion.DurativeMotionAction
+model.motion.MotionActivity
+model.motion.SchedulingMotionProblem
+model.motion.Path
+model.motion.SE2Path
+model.motion.SE3Path
+model.motion.SE2WithControlsPath
 model.timing.Timepoint
 model.timing.Timing
 model.timing.Interval
@@ -59,6 +78,7 @@ plans.PartialOrderPlan
 plans.STNPlan
 plans.HierarchicalPlan
 plans.Schedule
+plans.MotionSchedule
 """
 
 base_dir = "api/"

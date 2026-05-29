@@ -31,6 +31,14 @@ from unified_planning.model.mixins import (
 
 
 class SchedulingMotionProblem(SchedulingProblem):
+    """
+    This class represents a scheduling and motion planning problem (`SAMP`).
+
+    It extends a `SchedulingProblem` with `MotionActivity` objects and with the initial
+    configuration of the movable objects, so that the schedule of the activities is
+    constrained by the geometric motions the movable objects must perform.
+    """
+
     def __init__(
         self,
         name: Optional[str] = None,
@@ -108,6 +116,7 @@ class SchedulingMotionProblem(SchedulingProblem):
         movable: "up.model.expression.Expression",
         config: "up.model.expression.Expression",
     ):
+        """Sets the initial configuration of the given movable object to the given configuration."""
         (movable_exp, config_exp) = self.environment.expression_manager.auto_promote(
             movable, config
         )
@@ -122,4 +131,5 @@ class SchedulingMotionProblem(SchedulingProblem):
 
     @property
     def initial_configuration(self) -> List[Tuple["up.model.FNode", "up.model.FNode"]]:
+        """Returns the list of `(movable, configuration)` pairs defining the initial configuration of the movable objects."""
         return self._initial_configuration

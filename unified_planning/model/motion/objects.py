@@ -25,6 +25,13 @@ import unified_planning.model.types
 
 
 class ConfigurationKind(Enum):
+    """
+    This class represents the kind of a configuration space.
+
+    It identifies the structure of the configurations a movable object can assume,
+    such as `SE2` (planar) or `SE3` (spatial) poses.
+    """
+
     SE2 = auto()
     SE3 = auto()
 

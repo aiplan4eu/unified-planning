@@ -78,6 +78,7 @@ class MotionActivity(Activity, MotionConstraintsSetMixin):
     def motion_effects(
         self,
     ) -> Dict["up.model.FNode", "up.model.FNode"]:
+        """Returns the `dict` mapping each movable expression to its target configuration expression."""
         return self._motion_effects
 
     def clear_motion_effects(self):
@@ -89,6 +90,12 @@ class MotionActivity(Activity, MotionConstraintsSetMixin):
         movable: "up.model.expression.Expression",
         config: "up.model.expression.Expression",
     ):
+        """
+        Adds a motion effect setting the given movable object to the given configuration.
+
+        :param movable: The expression of movable type whose configuration is set.
+        :param config: The expression of configuration type assigned to the movable object.
+        """
         movable_exp, config_exp = self._environment.expression_manager.auto_promote(
             movable, config
         )

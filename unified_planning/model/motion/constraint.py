@@ -165,6 +165,17 @@ class Waypoints(MotionConstraint):
 
 
 class ActivityWaypoints(MotionConstraint):
+    """
+    This class represents a waypoints constraint scoped to a scheduling activity.
+
+    Like `Waypoints`, it is a `MotionConstraint` representing the existence of a trajectory
+    in the free configuration space of a movable object that lets it traverse a set of input
+    waypoints starting from an initial configuration. Differently from `Waypoints`, its
+    `static_obstacles` and `dynamic_obstacles_at_start` may be given either as a plain `list`
+    of `MovableObject` or as a `dict` mapping each `MovableObject` to the `Fluent` describing
+    its configuration.
+    """
+
     def __init__(
         self,
         movable: "up.model.expression.Expression",
@@ -216,7 +227,10 @@ class ActivityWaypoints(MotionConstraint):
         self._dynamic_obstacles_at_start = dynamic_obstacles_at_start
 
     def __eq__(self, oth) -> bool:
-        if not isinstance(oth, Waypoints) or self._environment != oth._environment:
+        if (
+            not isinstance(oth, ActivityWaypoints)
+            or self._environment != oth._environment
+        ):
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
@@ -271,6 +285,7 @@ class ActivityWaypoints(MotionConstraint):
             Dict["up.model.motion.MovableObject", "up.model.Fluent"],
         ]
     ]:
+        """Returns the `MovableObject` obstacles that remain static during all the constraint, either as a `list` or as a `dict` mapping each obstacle to the `Fluent` describing its configuration."""
         return self._static_obstacles
 
     @property
@@ -282,4 +297,5 @@ class ActivityWaypoints(MotionConstraint):
             Dict["up.model.motion.MovableObject", "up.model.Fluent"],
         ]
     ]:
+        """Returns the `MovableObject` obstacles that may move during the constraint, considered at its beginning, either as a `list` or as a `dict` mapping each obstacle to the `Fluent` describing its configuration."""
         return self._dynamic_obstacles_at_start
