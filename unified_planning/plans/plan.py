@@ -40,7 +40,7 @@ class ActionInstance:
         params: Sequence["up.model.Expression"] = tuple(),
         agent: Optional["up.model.multi_agent.Agent"] = None,
         motion_paths: Optional[
-            Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]
+            Dict["up.model.motion.MotionConstraint", "up.model.motion.Path"]
         ] = None,
     ):
         auto_promote = action.environment.expression_manager.auto_promote
@@ -90,7 +90,7 @@ class ActionInstance:
     @property
     def motion_paths(
         self,
-    ) -> Optional[Dict["up.model.tamp.MotionConstraint", "up.model.tamp.Path"]]:
+    ) -> Optional[Dict["up.model.motion.MotionConstraint", "up.model.motion.Path"]]:
         """Returns the motion paths of this `ActionInstance`."""
         return self._motion_paths
 

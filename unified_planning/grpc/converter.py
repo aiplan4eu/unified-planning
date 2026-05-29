@@ -14,6 +14,10 @@
 #
 
 
+# global variable to avoid repetition of warnings
+_PREVIOUS_WARNINGS = set()
+
+
 class handles:
     def __init__(self, *what):
         self.what = what
@@ -33,5 +37,19 @@ class Converter:
                     self.functions[x] = v
 
     def convert(self, element, *args):
-        f = self.functions[type(element)]
-        return f(element, *args)
+        """Finds and applies the converter for the given object, based on its type.
+        If there are no converter for the base class, we look for converter for a parent type but emit a warning if one of these is used
+        as some information could be lost in the process.
+        """
+        global _PREVIOUS_WARNINGS
+        leaf_type = type(element)
+        for tpe in type.mro(leaf_type):
+            if tpe in self.functions:
+                if tpe != leaf_type and (leaf_type, tpe) not in _PREVIOUS_WARNINGS:
+                    _PREVIOUS_WARNINGS.add((leaf_type, tpe))
+                    print(
+                        f"Warning: no converter for type {leaf_type},\n       treating it as if it was a {tpe} instead."
+                    )
+                f = self.functions[tpe]
+                return f(element, *args)
+        raise ValueError(f"No converter for type: {leaf_type} nor its parent types.")

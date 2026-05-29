@@ -183,7 +183,7 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
           sudo apt install -y gringo
-      
+
       - name: Install pysmt solver for contingent tests
         run: yes | pysmt-install --z3
 
@@ -319,7 +319,7 @@ jobs:
         run: |
           python3 -m pip install tarski[arithmetic]
       #          brew install gringo -- Commented because not working on github actions
-      
+
       - name: Install pysmt solver for contingent tests
         run: yes | pysmt-install --z3
 
@@ -448,7 +448,7 @@ jobs:
         with:
           distribution: "microsoft"
           java-version: "17"
-      
+
       - name: Setup older setuptools for ENHSP
         run: python3 -m pip install "setuptools<82"  # ENHSP requires pkg_resources
 
@@ -463,7 +463,7 @@ jobs:
         run: python3 -m pip install up-enhsp/
 
       - name: Install up-aries
-        run: pip3 install up-aries
+        run: python3 -m pip install up-aries
 
       - name: Checkout up-fmap
         uses: actions/checkout@v2
@@ -476,10 +476,17 @@ jobs:
         run: python3 -m pip install up-fmap/
 
       - name: Install jupyter and ipython3
-        run:  |
+        run: |
           sudo apt-get update
           sudo apt install jupyter
           python3 -m pip install ipython
+
+      - name: Install tampest
+        run: |
+          pip3 install "tampest[plot] @ git+https://github.com/fbk-pso/tampest.git"
+
+      - name: Install unified-planning from source
+        run: python3 -m pip install .
 
       - name: Run colabs
         run: bash scripts/test_colab.sh

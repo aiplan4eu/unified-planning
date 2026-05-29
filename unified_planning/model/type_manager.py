@@ -24,14 +24,15 @@ from unified_planning.model.types import (
     BOOL,
     TIME,
 )
-from unified_planning.model.tamp.types import (
+from unified_planning.model.motion.objects import ConfigurationKind
+from unified_planning.model.motion.types import (
     _MovableType,
     _ConfigurationType,
     OccupancyMap,
 )
 from unified_planning.exceptions import UPTypeError
 from fractions import Fraction
-from typing import Optional, Dict, Tuple, Union, cast
+from typing import Optional, Dict, Tuple, cast
 
 
 class TypeManager:
@@ -43,7 +44,9 @@ class TypeManager:
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
         self._movable_types: Dict[Tuple[str, Optional[Type]], Type] = {}
-        self._configuration_types: Dict[Tuple[str, OccupancyMap, int], Type] = {}
+        self._configuration_types: Dict[
+            Tuple[str, OccupancyMap, ConfigurationKind], Type
+        ] = {}
 
     def has_type(self, type: Type) -> bool:
         """
@@ -69,7 +72,7 @@ class TypeManager:
             assert isinstance(type, _ConfigurationType)
             return (
                 self._configuration_types.get(
-                    (type.name, type.occupancy_map, type.size), None
+                    (type.name, type.occupancy_map, type.kind), None
                 )
                 == type
             )
@@ -182,21 +185,21 @@ class TypeManager:
             return mt
 
     def ConfigurationType(
-        self, name: str, occupancy_map: OccupancyMap, size: int
+        self, name: str, occupancy_map: OccupancyMap, kind: ConfigurationKind
     ) -> Type:
         """
         Returns the configuration type defined in this :class:`~unified_planning.Environment` with the given `name`,
-        `occupancy_map` and `size`.
+        `occupancy_map` and `kind`.
         If the type already exists, it is returned, otherwise it is created and returned.
 
         :param name: The name of this configuration type.
         :param occupancy_map: The occupancy map.
-        :param size: The size of the configuration.
+        :param kind: The kind of the configuration.
         :return: The retrieved or created `Type`.
         """
-        if (name, occupancy_map, size) in self._configuration_types:
-            return self._configuration_types[(name, occupancy_map, size)]
+        if (name, occupancy_map, kind) in self._configuration_types:
+            return self._configuration_types[(name, occupancy_map, kind)]
         else:
-            ct = _ConfigurationType(name, occupancy_map, size)
-            self._configuration_types[(name, occupancy_map, size)] = ct
+            ct = _ConfigurationType(name, occupancy_map, kind)
+            self._configuration_types[(name, occupancy_map, kind)] = ct
             return ct

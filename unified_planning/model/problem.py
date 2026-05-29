@@ -18,7 +18,6 @@
 from itertools import chain, product
 import unified_planning as up
 from unified_planning.model.effect import EffectKind
-import unified_planning.model.tamp
 from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.mixins import (
@@ -740,7 +739,7 @@ class _KindFactory:
         self,
         pb: AbstractProblem,
         problem_class: str,
-        environment: "unified_planning.Environment",
+        environment: "up.Environment",
     ):
         assert isinstance(pb, MetricsMixin)
         assert isinstance(pb, FluentsSetMixin)
@@ -754,7 +753,7 @@ class _KindFactory:
         self.static_fluents: Set[Fluent] = pb.get_static_fluents()
         self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
 
-        self.environment: unified_planning.Environment = environment
+        self.environment: up.Environment = environment
         self.kind: up.model.ProblemKind = up.model.ProblemKind(
             version=LATEST_PROBLEM_KIND_VERSION
         )
@@ -1035,7 +1034,7 @@ class _KindFactory:
             self.update_action_parameter(param)
         if isinstance(action, up.model.contingent.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
-        if isinstance(action, up.model.tamp.InstantaneousMotionAction):
+        if isinstance(action, up.model.motion.InstantaneousMotionAction):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
