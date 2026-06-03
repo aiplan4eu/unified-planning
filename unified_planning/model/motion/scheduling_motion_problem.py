@@ -64,11 +64,7 @@ class SchedulingMotionProblem(SchedulingProblem):
     def __eq__(self, oth: object) -> bool:
         if not isinstance(oth, SchedulingMotionProblem):
             return False
-        return (
-            super().__eq__(oth)
-            # TODO
-            # and self._motion_activities == oth._motion_activities
-        )
+        return super().__eq__(oth) and self._motion_activities == oth._motion_activities
 
     def __hash__(self) -> int:
         return super().__hash__()
