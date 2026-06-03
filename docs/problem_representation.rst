@@ -33,6 +33,9 @@ Problem Kinds
    * -
      - TAMP
      - The problem is a *Task and Motion Planning* problem.
+   * -
+     - SAMP
+     - The problem is a scheduling problem with motion constraints.
    * - PROBLEM_TYPE
      - SIMPLE_NUMERIC_PLANNING
      - The numeric part of the problem exhibits only linear numeric conditions of the form f(X) {>=,>,=} 0 where f(X) is a linear expression constructed over numeric variables X. Moreover, effects are restricted to increase and decrease operations by a constant. For instance x+=k with k constant is allowed, while x+=y with y variable is not.
