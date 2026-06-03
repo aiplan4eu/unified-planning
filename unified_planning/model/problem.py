@@ -1034,7 +1034,7 @@ class _KindFactory:
             self.update_action_parameter(param)
         if isinstance(action, up.model.contingent.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
-        if isinstance(action, up.model.motion.InstantaneousMotionAction):
+        if isinstance(action, up.model.mixins.MotionConstraintsSetMixin):
             if len(action.motion_constraints) > 0:
                 self.kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
