@@ -203,7 +203,6 @@ class TestCase:
 
 
 def get_test_cases():
-    # import unified_planning.test.examples as examples
     from unified_planning.test import examples
 
     prefix = "test:"
