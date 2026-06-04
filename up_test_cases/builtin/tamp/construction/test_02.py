@@ -50,7 +50,7 @@ def get_test_cases():
         t_robot,
         footprint=[(-1.0, 0.5), (1.0, 0.5), (1.0, -0.5), (-1.0, -0.5)],
         motion_model=MotionModels.REEDSSHEPP,
-        parameters={"turning_radius": 2.0},
+        motion_parameters={"turning_radius": 2.0},
     )
 
     truck2 = MovableObject(
@@ -58,7 +58,7 @@ def get_test_cases():
         t_robot,
         footprint=[(-1.0, 0.5), (1.0, 0.5), (1.0, -0.5), (-1.0, -0.5)],
         motion_model=MotionModels.REEDSSHEPP,
-        parameters={"turning_radius": 2.0},
+        motion_parameters={"turning_radius": 2.0},
     )
 
     truck3 = MovableObject(
@@ -66,7 +66,7 @@ def get_test_cases():
         t_robot,
         footprint=[(-1.0, 0.5), (1.0, 0.5), (1.0, -0.5), (-1.0, -0.5)],
         motion_model=MotionModels.REEDSSHEPP,
-        parameters={"turning_radius": 2.0},
+        motion_parameters={"turning_radius": 2.0},
     )
 
     nothing = Object("nothing", t_material)
