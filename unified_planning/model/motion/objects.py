@@ -139,6 +139,38 @@ class MovableObject(Object):
         self._control_model = control_model
         self._control_parameters = control_parameters
 
+    def __eq__(self, oth: object) -> bool:
+        return (
+            isinstance(oth, MovableObject)
+            and super().__eq__(oth)
+            and self._footprint == oth._footprint
+            and self._geometric_model == oth._geometric_model
+            and self._motion_model == oth._motion_model
+            and self._motion_parameters == oth._motion_parameters
+            and self._control_model == oth._control_model
+            and self._control_parameters == oth._control_parameters
+        )
+
+    def __hash__(self) -> int:
+        return super().__hash__() + hash(
+            (
+                tuple(self._footprint) if self._footprint is not None else None,
+                self._geometric_model,
+                self._motion_model,
+                (
+                    frozenset(self._motion_parameters.items())
+                    if self._motion_parameters is not None
+                    else None
+                ),
+                self._control_model,
+                (
+                    frozenset(self._control_parameters.items())
+                    if self._control_parameters is not None
+                    else None
+                ),
+            )
+        )
+
     @property
     def geometric_model(self) -> Optional[str]:
         """Returns the geometric model of this `MovableObject` (i.e., its geometry, kinematic model, and dynamic model)."""
@@ -187,6 +219,16 @@ class ConfigurationObject(Object):
     ):
         super().__init__(name, typename, env)
         self._configuration = configuration
+
+    def __eq__(self, oth: object) -> bool:
+        return (
+            isinstance(oth, ConfigurationObject)
+            and super().__eq__(oth)
+            and self._configuration == oth._configuration
+        )
+
+    def __hash__(self) -> int:
+        return super().__hash__() + hash(self._configuration)
 
     @property
     def configuration(self) -> ConfigurationInstance:
