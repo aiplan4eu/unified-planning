@@ -1,0 +1,396 @@
+# Copyright 2024-2026 Unified Planning library and its maintainers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
+from unified_planning.engines.compilers.interpreted_functions_remover import (
+    InterpretedFunctionsRemover,
+)
+from unified_planning.engines import CompilationKind
+from collections import OrderedDict
+
+
+class TestInterpretedFunctionsRemover(unittest_TestCase):
+    def setUp(self):
+        unittest_TestCase.setUp(self)
+        self.problems = get_example_problems()
+
+    def test_expected_kind(self):
+
+        problem1 = self.problems["interpreted_functions_in_conditions"].problem
+        problem2 = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        problem3 = self.problems["if_reals_condition_effect_pizza"].problem
+        with Compiler(
+            problem_kind=problem1.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind1 = if_remover.resulting_problem_kind(
+                problem1.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(problem1.kind.has_interpreted_functions_in_conditions())
+            self.assertFalse(kind1.has_interpreted_functions_in_conditions())
+        with Compiler(
+            problem_kind=problem2.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind2 = if_remover.resulting_problem_kind(
+                problem2.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(problem2.kind.has_interpreted_functions_in_durations())
+            self.assertFalse(kind2.has_interpreted_functions_in_durations())
+        with Compiler(
+            problem_kind=problem3.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            kind3 = if_remover.resulting_problem_kind(
+                problem2.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(
+                problem3.kind.has_interpreted_functions_in_numeric_assignments()
+            )
+            self.assertFalse(kind3.has_interpreted_functions_in_numeric_assignments())
+
+    def test_interpreted_functions_in_preconditions_remover_simple(self):
+        problem = self.problems["interpreted_functions_in_conditions"].problem
+
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        self.assertTrue(problem.kind.has_general_numeric_planning())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+
+        self.assertTrue(compiled_problem.kind.has_general_numeric_planning())
+
+    def test_interpreted_functions_in_preconditions_remover_always_impossible(self):
+        problem = self.problems[
+            "interpreted_functions_in_conditions_always_impossible"
+        ].problem
+
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(problem.kind.has_simple_numeric_planning())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+
+    def test_interpreted_functions_in_durative_conditions_remover(self):
+        problem = self.problems["interpreted_functions_in_durative_conditions"].problem
+
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+
+    def test_interpreted_functions_in_durations_remover(self):
+
+        problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.INTERPRETED_FUNCTIONS_REMOVING,
+        ) as if_remover:
+            expectedkind = if_remover.resulting_problem_kind(
+                problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            ifr = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        compiled_problem = ifr.problem
+        self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(expectedkind.has_int_type_durations())
+        self.assertFalse(expectedkind.has_interpreted_functions_in_durations())
+        self.assertFalse(compiled_problem.kind.has_interpreted_functions_in_durations())
+        self.assertTrue(problem.kind.has_interpreted_functions_in_boolean_assignments())
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_boolean_assignments()
+        )
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_numeric_assignments()
+        )
+
+    def test_interpreted_function_remover_quantifier(self):
+        sem = UserType("Semaphore")
+        x = Fluent("x")
+
+        def y_callable(semaphore):
+            return False
+
+        signature_map = OrderedDict()
+        signature_map["semaphore"] = sem
+
+        y = InterpretedFunction("y", BoolType(), signature_map, y_callable)
+
+        o1 = Object("o1", sem)
+        o2 = Object("o2", sem)
+        s_var = Variable("s", sem)
+        a = InstantaneousAction("a")
+        a.add_precondition(Exists(InterpretedFunctionExp(y, [s_var]), s_var))
+        a.add_effect(x, True)
+        basic_exists_if = Problem("basic_exists_if")
+        basic_exists_if.add_fluent(x)
+        basic_exists_if.add_object(o1)
+        basic_exists_if.add_object(o2)
+        basic_exists_if.add_action(a)
+        basic_exists_if.set_initial_value(x, False)
+
+        c_a = InstantaneousAction("a")
+        c_a.add_effect(x, True)
+
+        with InterpretedFunctionsRemover() as if_remover:
+            ifr = if_remover.compile(
+                basic_exists_if, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertEqual(ifr.problem.action("a"), c_a)
+
+        k_t = {}
+        if_exp_1 = InterpretedFunctionExp(y, [o1])
+        if_exp_2 = InterpretedFunctionExp(y, [o2])
+        k_t[if_exp_1] = TRUE()
+        k_t[if_exp_2] = TRUE()
+
+        knum_y = UserType("kNum_y")
+
+        with InterpretedFunctionsRemover(k_t) as if_remover:
+            # we can check with just one knowledge case as the action is compiled the same way
+            # what changes are the initial values of the _f_y fluent
+            ifr = if_remover.compile(
+                basic_exists_if, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            par_1 = Parameter("_p_y_1", knum_y)
+            exp_12_right = ObjectExp(Object("_o_kNum_y", knum_y))
+            par_2 = Parameter("_p_y_2", knum_y)
+            exp_3_f = Fluent("_f_y", BoolType(), p=knum_y)
+
+            # the order of the arguments in the expressions can change with no real difference
+            # but this means we can't just check that they are Equal
+            e_1_type = OperatorKind.EQUALS
+            e_1_args = [par_1, exp_12_right]
+            e_2_type = OperatorKind.EQUALS
+            e_2_args = [par_2, exp_12_right]
+            e_3_type = OperatorKind.OR
+            e_3_args = [FluentExp(exp_3_f, [par_1]), FluentExp(exp_3_f, [par_2])]
+
+            preconds_list = ifr.problem.action("a").preconditions
+
+            self.assertEqual(len(preconds_list), 3)
+            contains_condition_helper(preconds_list, e_1_args, e_1_type)
+            contains_condition_helper(preconds_list, e_2_args, e_2_type)
+            contains_condition_helper(preconds_list, e_3_args, e_3_type)
+
+    def test_interpreted_functions_in_preconditions_remover_knowledge(self):
+        problem = self.problems["IF_in_conditions_complex_1"].problem
+        ione = problem.fluent("ione")
+        itwo = problem.fluent("itwo")
+        ithree = problem.fluent("ithree")
+        knowledge = {}
+        if_obj = problem.action("f").preconditions[0].args[0].interpreted_function()
+        self.assertTrue(isinstance(if_obj, InterpretedFunction))
+
+        key = InterpretedFunctionExp(if_obj, [1])
+        knowledge[key] = 2
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+        test_1_f0 = InstantaneousAction("f_0")
+        test_1_f0.add_precondition(Not(Equals(ithree, 1)))
+        test_1_f0.add_effect(itwo, 5)
+        self.assertEqual(test_1_f0, compiled_problem.action("f_0"))
+
+        kNum_simple_int_to_int = UserType("kNum_simple_int_to_int")
+        _o_kNum_simple_int_to_int = Object(
+            "_o_kNum_simple_int_to_int", kNum_simple_int_to_int
+        )
+        test_1_f = InstantaneousAction(
+            "f", _p_simple_int_to_int_1=kNum_simple_int_to_int
+        )
+        _p_simple_int_to_int_1 = test_1_f.parameter("_p_simple_int_to_int_1")
+        _f_simple_int_to_int = Fluent(
+            "_f_simple_int_to_int", IntType(), p=kNum_simple_int_to_int
+        )
+
+        test_1_precon_1_type = OperatorKind.EQUALS
+        test_1_precon_1_args = [ithree, 1]
+
+        test_1_precon_1 = Equals(ithree, 1)
+        test_1_precon_2 = Implies(
+            Equals(ithree, 1), Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int)
+        )
+        test_1_precon_3 = LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        test_1_f.add_precondition(test_1_precon_1)
+        test_1_f.add_precondition(test_1_precon_2)
+        test_1_f.add_precondition(test_1_precon_3)
+        test_1_f.add_effect(itwo, 5)
+        act_to_check_1 = compiled_problem.action("f")
+        self.assertEqual(len(act_to_check_1.preconditions), 3)
+        contains_condition_helper(
+            act_to_check_1.preconditions, test_1_precon_1_args, test_1_precon_1_type
+        )
+        self.assertIn(test_1_precon_2, act_to_check_1.preconditions)
+        self.assertIn(test_1_precon_3, act_to_check_1.preconditions)
+        test_1_f.clear_preconditions()
+        act_to_check_1.clear_preconditions()
+        self.assertEqual(test_1_f, act_to_check_1)
+
+        key = InterpretedFunctionExp(if_obj, [3])
+        knowledge[key] = 4
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+        self.assertFalse(
+            compiled_problem.kind.has_interpreted_functions_in_conditions()
+        )
+
+        test_2_f0 = InstantaneousAction("f_0")
+        test_2_f0.add_precondition(Not(Or(Equals(ithree, 1), Equals(ithree, 3))))
+        test_2_f0.add_effect(itwo, 5)
+        self.assertEqual(test_2_f0, compiled_problem.action("f_0"))
+
+        _o_kNum_simple_int_to_int_0 = Object(
+            "_o_kNum_simple_int_to_int_0", kNum_simple_int_to_int
+        )
+        test_2_f = InstantaneousAction(
+            "f", _p_simple_int_to_int_1=kNum_simple_int_to_int
+        )
+        _p_simple_int_to_int_1 = test_2_f.parameter("_p_simple_int_to_int_1")
+
+        test_2_precon_1_type = OperatorKind.OR
+        test_2_precon_1_args = [Equals(ithree, 1), Equals(ithree, 3)]
+
+        test_2_precon_1 = Or(Equals(ithree, 1), Equals(ithree, 3))
+        test_2_precon_2 = Implies(
+            Equals(ithree, 1), Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int)
+        )
+        test_2_precon_3 = Implies(
+            Equals(ithree, 3),
+            Equals(_p_simple_int_to_int_1, _o_kNum_simple_int_to_int_0),
+        )
+        test_2_precon_4 = LT(_f_simple_int_to_int(_p_simple_int_to_int_1), ione)
+        test_2_f.add_precondition(test_2_precon_1)
+        test_2_f.add_precondition(test_2_precon_2)
+        test_2_f.add_precondition(test_2_precon_3)
+        test_2_f.add_precondition(test_2_precon_4)
+        test_2_f.add_effect(itwo, 5)
+
+        act_to_check_2 = compiled_problem.action("f")
+        self.assertEqual(len(act_to_check_2.preconditions), 4)
+        contains_condition_helper(
+            act_to_check_2.preconditions, test_2_precon_1_args, test_2_precon_1_type
+        )
+        self.assertIn(test_2_precon_2, act_to_check_2.preconditions)
+        self.assertIn(test_2_precon_3, act_to_check_2.preconditions)
+        self.assertIn(test_2_precon_4, act_to_check_2.preconditions)
+        test_2_f.clear_preconditions()
+        act_to_check_2.clear_preconditions()
+        self.assertEqual(test_2_f, act_to_check_2)
+
+    def test_interpreted_functions_in_effect_remover_knowledge(self):
+        problem = self.problems["if_reals_condition_effect_pizza"].problem
+        knowledge = {}
+        if_obj = problem.action("cut").effects[0].value.interpreted_function()
+        self.assertTrue(isinstance(if_obj, InterpretedFunction))
+        key = InterpretedFunctionExp(if_obj, [Fraction(3, 4)])
+        knowledge[key] = Fraction(2, 3)
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            ifr = if_remover.compile(problem)
+        compiled_problem = ifr.problem
+
+        to_check_cut = compiled_problem.action("cut")
+        to_check_cut_0 = compiled_problem.action("cut_0")
+        p = compiled_problem.fluent("pizza")
+        s = compiled_problem.fluent("slices")
+        unknown = Fluent("_pizza_is_unknown", BoolType())
+        kNum_if_cut = UserType("kNum_if_cut")
+        _o_kNum_if_cut = Object("_o_kNum_if_cut", kNum_if_cut)
+        _f_if_cut = Fluent("_f_if_cut", RealType(), p=kNum_if_cut)
+
+        test_cut_0 = InstantaneousAction("cut_0")
+        test_cut_0.add_precondition(Not(Equals(p, Fraction(3, 4))))
+        test_cut_0.add_effect(s, Plus(s, 1))
+        test_cut_0.add_effect(unknown, TRUE())
+
+        self.assertEqual(to_check_cut_0, test_cut_0)
+
+        test_cut = InstantaneousAction("cut", _p_if_cut_1=kNum_if_cut)
+        _p_if_cut_1 = test_cut.parameter("_p_if_cut_1")
+        test_cut.add_precondition(Equals(p, Fraction(3, 4)))
+        test_cut.add_precondition(
+            Implies(Equals(p, Fraction(3, 4)), Equals(_p_if_cut_1, _o_kNum_if_cut))
+        )
+        test_cut.add_effect(s, Plus(s, 1))
+        test_cut.add_effect(p, _f_if_cut(_p_if_cut_1))
+
+        self.assertEqual(to_check_cut, test_cut)
+
+
+def contains_condition_helper(
+    to_check: List[FNode], correct_args: List, expected_type: OperatorKind
+):
+    """
+    helper function to test condition equality when operation is commutative
+    currently we only need this with operations with 2 args, changes needed for more complex situations
+
+    :param to_check: the list of expressions where we should find the expected one
+    :param correct_args: the list of arguments for the expected expression
+    :param expected_type: the OperatorKind of the expression we are checking
+    """
+
+    if len(correct_args) != 2:
+        raise ValueError("helper function only works with 2 expected arguments")
+    if expected_type == OperatorKind.EQUALS:
+        option_1 = Equals(correct_args[0], correct_args[1])
+        option_2 = Equals(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.OR:
+        option_1 = Or(correct_args[0], correct_args[1])
+        option_2 = Or(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.AND:
+        option_1 = And(correct_args[0], correct_args[1])
+        option_2 = And(correct_args[1], correct_args[0])
+    elif expected_type == OperatorKind.IFF:
+        option_1 = Iff(correct_args[0], correct_args[1])
+        option_2 = Iff(correct_args[1], correct_args[0])
+    else:
+        raise NotImplementedError(
+            "Operation is either not commutative or not supported by helper function"
+        )
+
+    assert (option_1 in to_check) or (option_2 in to_check)

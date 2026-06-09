@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,6 +81,13 @@ class IdentityDagWalker(walkers.dag.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.FluentExp(expression.fluent(), tuple(args))
+
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List[FNode], **kwargs
+    ) -> FNode:
+        return self.manager.InterpretedFunctionExp(
+            expression.interpreted_function(), tuple(args)
+        )
 
     def walk_dot(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
         return self.manager.Dot(expression.agent(), args[0])

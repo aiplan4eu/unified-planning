@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +23,9 @@ from unified_planning.model.walkers.expression_quantifiers_remover import (
 from unified_planning.model.walkers.fluents_substituter import FluentsSubstituter
 from unified_planning.model.walkers.linear_checker import LinearChecker
 from unified_planning.model.walkers.operators_extractor import OperatorsExtractor
+from unified_planning.model.walkers.interpreted_functions_extractor import (
+    InterpretedFunctionsExtractor,
+)
 from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier
 from unified_planning.model.walkers.simplifier import Simplifier
 from unified_planning.model.walkers.state_evaluator import StateEvaluator

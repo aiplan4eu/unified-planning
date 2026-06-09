@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,6 +78,18 @@ class TypeChecker(walkers.dag.DagWalker):
             if not param.type.is_compatible(arg):
                 return None
         return f.type
+
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> Optional["unified_planning.model.types.Type"]:
+        assert expression.is_interpreted_function_exp()
+        f = expression.interpreted_function()
+        if len(args) != len(f.signature):
+            return None
+        for (param, arg) in zip(f.signature, args):
+            if not param.type.is_compatible(arg):
+                return None
+        return f.return_type
 
     def walk_param_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]

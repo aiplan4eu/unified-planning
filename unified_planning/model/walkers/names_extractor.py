@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,6 +56,11 @@ class NamesExtractor(walkers.dag.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         return self._args_merge_in_place(args, {expression.fluent().name})
+
+    def walk_interpreted_function_exp(
+        self, expression: FNode, args: List[Set[str]]
+    ) -> Set[str]:
+        return self._args_merge_in_place(args, {expression.interpreted_function().name})
 
     def walk_param_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         return self._args_merge_in_place(args, {expression.parameter().name})

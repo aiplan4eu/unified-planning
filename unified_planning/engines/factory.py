@@ -1,4 +1,5 @@
 # Copyright 2021-2023 AIPlan4EU project
+# Copyright 2024-2026 Unified Planning library and its maintainers
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,6 +81,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.conditional_effects_remover",
         "ConditionalEffectsRemover",
     ),
+    "up_interpreted_functions_remover": (
+        "unified_planning.engines.compilers.interpreted_functions_remover",
+        "InterpretedFunctionsRemover",
+    ),
     "up_disjunctive_conditions_remover": (
         "unified_planning.engines.compilers.disjunctive_conditions_remover",
         "DisjunctiveConditionsRemover",
@@ -137,6 +142,10 @@ DEFAULT_META_ENGINES = {
         "unified_planning.engines.replanner",
         "Replanner",
     ),
+    "interpreted_functions_planning": (
+        "unified_planning.engines.interpreted_functions_planner",
+        "InterpretedFunctionsPlanner",
+    ),
 }
 
 DEFAULT_ENGINES_PREFERENCE_LIST = [
@@ -155,6 +164,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_time_triggered_validator",
     "up_bounded_types_remover",
     "up_conditional_effects_remover",
+    "up_interpreted_functions_remover",
     "up_disjunctive_conditions_remover",
     "up_ma_disjunctive_conditions_remover",
     "up_ma_conditional_effects_remover",
@@ -176,7 +186,11 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_undefined_initial_numeric_remover",
 ]
 
-DEFAULT_META_ENGINES_PREFERENCE_LIST = ["oversubscription", "replanner"]
+DEFAULT_META_ENGINES_PREFERENCE_LIST = [
+    "oversubscription",
+    "replanner",
+    "interpreted_functions_planning",
+]
 
 
 def format_table(header: List[str], rows: List[List[str]]) -> str:
