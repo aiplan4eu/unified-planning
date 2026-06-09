@@ -26,7 +26,6 @@ from unified_planning.model.metrics import (
 from unified_planning.model.metrics import MinimizeExpressionOnFinalState
 import unified_planning as up
 from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.contingent.sensing_action import SensingAction
 from unified_planning.model.effect import EffectKind
 from unified_planning.model import Fluent
 from unified_planning.model.abstract_problem import AbstractProblem
@@ -54,9 +53,6 @@ from unified_planning.exceptions import (
 )
 
 from unified_planning.model.walkers.any import AnyGetter
-
-# Needed for mypy, even if it is not used in this module
-import unified_planning.model.tamp
 
 
 class Problem(  # type: ignore[misc]
@@ -761,7 +757,7 @@ class Problem(  # type: ignore[misc]
                     domain_constants.update(extractor.get(e.fluent))
                     domain_constants.update(extractor.get(e.value))
                     domain_constants.update(extractor.get(e.condition))
-                if isinstance(action, SensingAction):
+                if isinstance(action, up.model.contingent.SensingAction):
                     for of in action.observed_fluents:
                         domain_constants.update(extractor.get(of))
             elif isinstance(action, DurativeAction):
