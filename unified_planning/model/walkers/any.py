@@ -16,7 +16,7 @@
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Callable, Set
+from typing import Generic, List, Callable, Optional, Set, TypeVar, cast
 
 
 class AnyChecker(walkers.dag.DagWalker):
@@ -40,21 +40,39 @@ class AnyChecker(walkers.dag.DagWalker):
         return self._predicate(expression) or any(x for x in args)
 
 
-class AnyGetter(walkers.dag.DagWalker):
-    """This expression walker returns any subexpression that matches the given predicate."""
+T = TypeVar("T")
 
-    def __init__(self, predicate: Callable[[FNode], bool]):
+
+class AnyGetter(walkers.dag.DagWalker, Generic[T]):
+    """
+    This expression walker returns any subexpression that matches the given
+    predicate.
+
+    If `extractor` is given, the returned set contains the result of applying
+    `extractor` to each sub-expression matching the predicate.
+    """
+
+    def __init__(
+        self,
+        predicate: Callable[[FNode], bool],
+        extractor: Optional[Callable[[FNode], T]] = None,
+    ):
         walkers.dag.DagWalker.__init__(self)
         self._predicate = predicate
+        self.extractor: Callable[[FNode], T] = (
+            extractor
+            if extractor is not None
+            else cast(Callable[[FNode], T], lambda x: x)
+        )
 
-    def get(self, expression: FNode) -> Set[FNode]:
+    def get(self, expression: FNode) -> Set[T]:
         """
         Returns all the subexpressions matching the predicate given at the constructor.
 
         :param expression: The expression from where all the subexrepssions are extracted.
         :return: The set of the subexpressions matching the predicate.
         """
-        return self.walk(expression)
+        return set(self.extractor(x) for x in self.walk(expression))
 
     @walkers.handles(OperatorKind)
     def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:
