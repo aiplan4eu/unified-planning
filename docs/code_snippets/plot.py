@@ -16,12 +16,20 @@ from unified_planning.plot import (
     plot_contingent_plan,
     plot_stn_plan,
     plot_causal_graph,
+    plot_actions,
+    plot_action,
 )
 
 from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
+    Event,
+    Process,
     TimepointKind,
+    StartTiming,
+    EndTiming,
+    TimePointInterval,
+    ClosedTimeInterval,
     Fluent,
     Problem,
     Object,
@@ -34,6 +42,9 @@ from unified_planning.shortcuts import (
     TRUE,
     FALSE,
     Not,
+    GT,
+    LT,
+    GE,
 )
 
 
@@ -258,3 +269,56 @@ problem.add_goal(cargo_at(l1))
 
 # Plot the causal graph
 plot_causal_graph(problem)
+
+
+# Build a problem with one of each action-like element and plot them schematically.
+Burner = UserType("Burner")
+on = Fluent("on", BoolType(), burner=Burner)  # a fluent parametrized by a Burner
+level = Fluent("level", RealType())
+temperature = Fluent("temperature", RealType())
+
+# Instantaneous action with a parameter: the parameter appears both in the action
+# signature (shown as the label) and inside its conditions/effects (e.g. on(b)).
+ignite = InstantaneousAction("ignite", b=Burner)
+b = ignite.parameter("b")
+ignite.add_precondition(Not(on(b)))
+ignite.add_effect(on(b), True)
+ignite.add_increase_effect(level, 1)
+
+# Durative action: start/intermediate/end effects, overall and sub-interval conditions
+heat = DurativeAction("heat", b=Burner)
+b = heat.parameter("b")
+heat.set_closed_duration_interval(2, 5)
+heat.add_condition(TimePointInterval(StartTiming()), on(b))  # start condition
+heat.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), GT(level, 0))  # overall
+heat.add_condition(
+    ClosedTimeInterval(StartTiming() + 1, EndTiming() - 1), LT(temperature, 100)
+)  # sub-interval ("durative") condition
+heat.add_effect(StartTiming(), on(b), True)  # start effect
+heat.add_increase_effect(StartTiming() + 1, level, 1)  # intermediate effect
+heat.add_effect(EndTiming(), on(b), False)  # end effect
+
+# Event
+overheat = Event("overheat", b=Burner)
+b = overheat.parameter("b")
+overheat.add_precondition(GE(temperature, 100))
+overheat.add_effect(on(b), False)
+
+# Process
+warming = Process("warming", b=Burner)
+b = warming.parameter("b")
+warming.add_precondition(on(b))
+warming.add_increase_continuous_effect(temperature, 1)
+
+action_problem = Problem("action_zoo")
+action_problem.add_fluent(on, default_initial_value=False)
+action_problem.add_fluent(level, default_initial_value=0)
+action_problem.add_fluent(temperature, default_initial_value=20)
+action_problem.add_action(ignite)
+action_problem.add_action(heat)
+action_problem.add_event(overheat)
+action_problem.add_process(warming)
+
+# Plot all the actions/events/processes of the problem, and a single action
+plot_actions(action_problem)
+plot_action(heat)
