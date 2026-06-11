@@ -190,9 +190,23 @@ def _draw_bar(
         ax.add_line(Line2D([bar_x, bar_x], [bar_y0, bar_y1], color=color, lw=3))
 
     for j, s in enumerate(conditions):
-        ax.text(bar_x, bar_y1 + (j + 0.5) * _LINE_H, s, ha="center", va="center", fontsize=font_size * 0.85)
+        ax.text(
+            bar_x,
+            bar_y1 + (j + 0.5) * _LINE_H,
+            s,
+            ha="center",
+            va="center",
+            fontsize=font_size * 0.85,
+        )
     for j, s in enumerate(effects):
-        ax.text(bar_x, bar_y0 - (j + 0.5) * _LINE_H, s, ha="center", va="center", fontsize=font_size * 0.85)
+        ax.text(
+            bar_x,
+            bar_y0 - (j + 0.5) * _LINE_H,
+            s,
+            ha="center",
+            va="center",
+            fontsize=font_size * 0.85,
+        )
     _draw_name(ax, action, x0, (bar_y0 + bar_y1) / 2, font_size)
 
     height = len(effects) * _LINE_H + _GAP + _BAR_H + len(conditions) * _LINE_H + _GAP
@@ -235,7 +249,9 @@ def _draw_durative(
     for timing, effects in action.effects.items():
         below[index[_timing_key(timing)]].extend(_format_effect(e) for e in effects)
     for interval, effects in action.continuous_effects.items():
-        below[index[_timing_key(interval.lower)]].extend(_format_effect(e) for e in effects)
+        below[index[_timing_key(interval.lower)]].extend(
+            _format_effect(e) for e in effects
+        )
     for interval, conditions in action.conditions.items():
         lower_key, upper_key = _timing_key(interval.lower), _timing_key(interval.upper)
         if lower_key == upper_key:
@@ -275,21 +291,59 @@ def _draw_durative(
             lw=1.5,
         )
     )
-    ax.text((box_left + box_right) / 2, (box_y0 + box_y1) / 2, duration_text, ha="center", va="center", fontsize=font_size * 0.9)
+    ax.text(
+        (box_left + box_right) / 2,
+        (box_y0 + box_y1) / 2,
+        duration_text,
+        ha="center",
+        va="center",
+        fontsize=font_size * 0.9,
+    )
     for i in range(1, n - 1):  # interior intermediate bars
-        ax.add_line(Line2D([column_x[i], column_x[i]], [box_y0, box_y1], color="k", lw=1))
+        ax.add_line(
+            Line2D([column_x[i], column_x[i]], [box_y0, box_y1], color="k", lw=1)
+        )
     for i in range(n):
         for j, s in enumerate(above[i]):
-            ax.text(column_x[i], box_y1 + (j + 0.5) * _LINE_H, s, ha="center", va="center", fontsize=font_size * 0.85)
+            ax.text(
+                column_x[i],
+                box_y1 + (j + 0.5) * _LINE_H,
+                s,
+                ha="center",
+                va="center",
+                fontsize=font_size * 0.85,
+            )
         for j, s in enumerate(below[i]):
-            ax.text(column_x[i], box_y0 - (j + 0.5) * _LINE_H, s, ha="center", va="center", fontsize=font_size * 0.85)
+            ax.text(
+                column_x[i],
+                box_y0 - (j + 0.5) * _LINE_H,
+                s,
+                ha="center",
+                va="center",
+                fontsize=font_size * 0.85,
+            )
 
     span_base = box_y1 + n_above * _LINE_H + _GAP
     for s_i, (i, j, label) in enumerate(spans):
-        _draw_span_arrow(ax, column_x[i], column_x[j], span_base + s_i * _LINE_H + 0.3, label, "k", font_size)
+        _draw_span_arrow(
+            ax,
+            column_x[i],
+            column_x[j],
+            span_base + s_i * _LINE_H + 0.3,
+            label,
+            "k",
+            font_size,
+        )
     _draw_name(ax, action, x0, (box_y0 + box_y1) / 2, font_size)
 
-    height = n_below * _LINE_H + _GAP + _BAR_H + n_above * _LINE_H + len(spans) * _LINE_H + _GAP
+    height = (
+        n_below * _LINE_H
+        + _GAP
+        + _BAR_H
+        + n_above * _LINE_H
+        + len(spans) * _LINE_H
+        + _GAP
+    )
     width = name_w + _NAME_PAD + left_pad + (box_right - box_left) + right_pad
     return width, height
 
@@ -313,14 +367,39 @@ def _draw_process(
     box_y1 = box_y0 + _BAR_H
 
     ax.add_patch(
-        Rectangle((box_left, box_y0), box_w, _BAR_H, facecolor=color, edgecolor="k", alpha=0.5, lw=1.5)
+        Rectangle(
+            (box_left, box_y0),
+            box_w,
+            _BAR_H,
+            facecolor=color,
+            edgecolor="k",
+            alpha=0.5,
+            lw=1.5,
+        )
     )
-    ax.text((box_left + box_right) / 2, (box_y0 + box_y1) / 2, "process", ha="center", va="center", fontsize=font_size * 0.9, style="italic")
+    ax.text(
+        (box_left + box_right) / 2,
+        (box_y0 + box_y1) / 2,
+        "process",
+        ha="center",
+        va="center",
+        fontsize=font_size * 0.9,
+        style="italic",
+    )
     for j, s in enumerate(effects):
-        ax.text((box_left + box_right) / 2, box_y0 - (j + 0.5) * _LINE_H, s, ha="center", va="center", fontsize=font_size * 0.85)
+        ax.text(
+            (box_left + box_right) / 2,
+            box_y0 - (j + 0.5) * _LINE_H,
+            s,
+            ha="center",
+            va="center",
+            fontsize=font_size * 0.85,
+        )
     n_span = 0
     if conditions:
-        _draw_span_arrow(ax, box_left, box_right, box_y1 + _GAP + 0.3, label, "k", font_size)
+        _draw_span_arrow(
+            ax, box_left, box_right, box_y1 + _GAP + 0.3, label, "k", font_size
+        )
         n_span = 1
     _draw_name(ax, action, x0, (box_y0 + box_y1) / 2, font_size)
 
@@ -344,13 +423,17 @@ def _draw_action(
     if isinstance(action, DurativeAction):
         return _draw_durative(ax, action, x0, y0, durative_color, font_size)
     elif isinstance(action, InstantaneousAction):
-        return _draw_bar(ax, action, x0, y0, instantaneous_color, font_size, squiggle=False)
+        return _draw_bar(
+            ax, action, x0, y0, instantaneous_color, font_size, squiggle=False
+        )
     elif isinstance(action, Event):
         return _draw_bar(ax, action, x0, y0, event_color, font_size, squiggle=True)
     elif isinstance(action, Process):
         return _draw_process(ax, action, x0, y0, process_color, font_size)
     else:
-        raise NotImplementedError(f"Plotting of {type(action).__name__} is not supported")
+        raise NotImplementedError(
+            f"Plotting of {type(action).__name__} is not supported"
+        )
 
 
 def _finalize(ax, content_w, content_h, figsize, filename, font_size):
