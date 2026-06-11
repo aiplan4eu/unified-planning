@@ -290,7 +290,9 @@ heat = DurativeAction("heat", b=Burner)
 b = heat.parameter("b")
 heat.set_closed_duration_interval(2, 5)
 heat.add_condition(TimePointInterval(StartTiming()), on(b))  # start condition
-heat.add_condition(ClosedTimeInterval(StartTiming(), EndTiming()), GT(level, 0))  # overall
+heat.add_condition(
+    ClosedTimeInterval(StartTiming(), EndTiming()), GT(level, 0)
+)  # overall
 heat.add_condition(
     ClosedTimeInterval(StartTiming() + 1, EndTiming() - 1), LT(temperature, 100)
 )  # sub-interval ("durative") condition
