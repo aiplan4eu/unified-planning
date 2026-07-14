@@ -55,6 +55,7 @@ DEFAULT_ENGINES = {
     "enhsp-opt": ("up_enhsp.enhsp_planner", "ENHSPOptEngine"),
     "enhsp-any": ("up_enhsp.enhsp_planner", "ENHSPAnytimeEngine"),
     "tamer": ("up_tamer.engine", "EngineImpl"),
+    "tamerlite": ("tamerlite.engine", "TamerLite"),
     "lpg": ("up_lpg.lpg_planner", "LPGEngine"),
     "lpg-anytime": ("up_lpg.lpg_planner", "LPGAnytimeEngine"),
     "lpg-repairer": ("up_lpg.lpg_planner", "LPGPlanRepairer"),
@@ -158,6 +159,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "enhsp",
     "enhsp-opt",
     "enhsp-any",
+    "tamerlite",
     "tamer",
     "sequential_plan_validator",
     "sequential_simulator",
@@ -358,7 +360,7 @@ class Factory:
 
 
         [global]
-        engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamer
+        engine_preference_list: fast-downward fast-downward-opt enhsp enhsp-opt tamerlite tamer
 
         [engine <engine-name>]
         module_name: <module-name>
