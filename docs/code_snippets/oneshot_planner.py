@@ -1,4 +1,5 @@
 from unified_planning.shortcuts import *
+from tamerlite.engine import SearchParams
 
 problem = Problem()
 
@@ -55,8 +56,8 @@ assert (
 ), str(result)
 
 with OneshotPlanner(
-    names=["tamer", "pyperplan"],
-    params=[{"heuristic": "hadd", "weight": 0.8}, {}],
+    names=["tamerlite", "pyperplan"],
+    params=[{"search": SearchParams(heuristic="hadd", weight=0.8)}, {}],
 ) as planner:
     result = planner.solve(problem)
     print(result)
@@ -78,14 +79,13 @@ assert (
 ), str(result)
 
 plan = result.plan
-with PlanValidator(name="tamer") as validator:
+with PlanValidator(name="sequential_plan_validator") as validator:
     result = validator.validate(problem, plan)
     print(result)
 # status: VALID
-# engine: Tamer
+# engine: sequential_plan_validator
 
-assert (
-    str(result)
-    == """status: VALID
-engine: Tamer"""
+assert str(result).startswith(
+    """status: VALID
+engine: sequential_plan_validator"""
 ), str(result)

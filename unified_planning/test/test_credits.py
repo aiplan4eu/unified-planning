@@ -24,7 +24,7 @@ class TestCredits(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_robot_locations_visited(self):
         credits = StringIO()
         test_credits = [
@@ -33,10 +33,9 @@ class TestCredits(unittest_TestCase):
             "  * Engine name: ",
             "  * Developers:  ",
             "  * Description: ",
-            "  *              ",
         ]
         set_credits_stream(credits)
-        with OneshotPlanner(name="tamer"):
+        with OneshotPlanner(name="tamerlite"):
             for test in test_credits:
                 printed_credits = credits.getvalue()
                 self.assertIn(test, printed_credits)

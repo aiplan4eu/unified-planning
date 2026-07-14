@@ -27,33 +27,33 @@ class TestFactory(unittest_TestCase):
         self.problems = get_example_problems()
 
     @skipIfEngineNotAvailable("pyperplan")
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_config_file(self):
         self.assertTrue("pyperplan" in get_environment().factory.preference_list)
         with tempfile.TemporaryDirectory() as tempdir:
             config_filename = os.path.join(tempdir, "up.ini")
             with open(config_filename, "w") as config:
                 config.write("[global]\n")
-                config.write("engine_preference_list: tamer\n")
+                config.write("engine_preference_list: tamerlite\n")
             environment = unified_planning.environment.Environment()
             environment.factory.configure_from_file(config_filename)
             self.assertTrue("pyperplan" not in environment.factory.preference_list)
-            self.assertEqual(environment.factory.preference_list, ["tamer"])
+            self.assertEqual(environment.factory.preference_list, ["tamerlite"])
 
     @skipIfEngineNotAvailable("pyperplan")
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_get_all_applicable_engines(self):
         problem = self.problems["basic"].problem
         factory = problem.environment.factory
         names = factory.get_all_applicable_engines(problem.kind)
-        expected_names = ["tamer", "opt-pddl-planner"]
+        expected_names = ["tamerlite", "opt-pddl-planner"]
         for name in expected_names:
             self.assertIn(name, names)
 
         problem = self.problems["basic_without_negative_preconditions"].problem
         names = factory.get_all_applicable_engines(problem.kind)
-        expected_names = ["tamer", "opt-pddl-planner", "pyperplan"]
+        expected_names = ["tamerlite", "opt-pddl-planner", "pyperplan"]
         for name in expected_names:
             self.assertIn(name, names)
 
