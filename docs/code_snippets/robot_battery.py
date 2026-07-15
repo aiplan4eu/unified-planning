@@ -8,7 +8,7 @@ Location = UserType("Location")
 
 # Creating problem ‘variables’
 robot_at = Fluent("robot_at", BoolType(), location=Location)
-battery_charge = Fluent("battery_charge", RealType(0, 100))
+battery_charge = Fluent("battery_charge", RealType())
 
 # Creating actions
 move = InstantaneousAction("move", l_from=Location, l_to=Location)
