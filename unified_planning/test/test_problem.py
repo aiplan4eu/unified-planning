@@ -135,7 +135,7 @@ class TestProblem(unittest_TestCase):
 
         battery_charge = problem.fluent("battery_charge")
         self.assertEqual(battery_charge.name, "battery_charge")
-        self.assertEqual(str(battery_charge), "real[0, 100] battery_charge")
+        self.assertEqual(str(battery_charge), "real battery_charge")
         self.assertEqual(battery_charge.arity, 0)
         self.assertTrue(battery_charge.type.is_real_type())
 

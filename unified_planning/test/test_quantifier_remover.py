@@ -22,7 +22,6 @@ from unified_planning.model.problem_kind import (
     full_classical_kind,
     basic_temporal_kind,
     simple_numeric_kind,
-    bounded_types_kind,
 )
 from unified_planning.test import (
     unittest_TestCase,
@@ -87,12 +86,8 @@ class TestQuantifiersRemover(unittest_TestCase):
             ) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
-    @skipIfNoPlanValidatorForProblemKind(
-        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(simple_numeric_kind))
     def test_robot_locations_connected(self):
         problem = self.problems["robot_locations_connected"].problem
         qr = QuantifiersRemover()
@@ -112,12 +107,8 @@ class TestQuantifiersRemover(unittest_TestCase):
             ) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
-    @skipIfNoPlanValidatorForProblemKind(
-        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
-    )
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
+    @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(simple_numeric_kind))
     def test_robot_locations_visited(self):
         problem = self.problems["robot_locations_visited"].problem
         qr = QuantifiersRemover()

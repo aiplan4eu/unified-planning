@@ -21,14 +21,13 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     general_numeric_kind,
-    bounded_types_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
 from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
+from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.engines.results import POSITIVE_OUTCOMES
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.exceptions import UPUsageError
@@ -228,9 +227,7 @@ class TestPlanner(unittest_TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
-    )
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")

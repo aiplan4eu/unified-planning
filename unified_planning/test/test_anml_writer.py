@@ -215,7 +215,7 @@ instance Robot r1, r2;
         anml_problem = aw.get_problem()
         expected_result = """type Location;
 fluent boolean robot_at(Location position);
-fluent float [0.0, 100.0] battery_charge;
+fluent float battery_charge;
 action move(Location l_from, Location l_to) ::("InstantaneousAction"){
    [ start ] (10 <= battery_charge);
    [ start ] (not (l_from == l_to));

@@ -358,6 +358,10 @@ full_classical_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
 full_classical_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 
+quantified_conditions_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+quantified_conditions_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+quantified_conditions_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+
 object_fluent_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
 
