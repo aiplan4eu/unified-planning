@@ -492,3 +492,16 @@ class TestModel(unittest_TestCase):
         self.assertTrue(problem.kind.has_non_linear_continuous_effects())
         self.assertTrue(problem.kind.has_increase_continuous_effects())
         self.assertTrue(problem.kind.has_decrease_continuous_effects())
+
+    def test_type_singletons_pickle_identity(self):
+        # the boolean and time types are singletons compared by identity, so
+        # they must survive a pickle round-trip (e.g. when a problem is sent
+        # to another process by the parallel engine) as the same object
+        import pickle
+
+        from unified_planning.model.types import BOOL, TIME
+
+        tm = get_environment().type_manager
+        self.assertIs(pickle.loads(pickle.dumps(tm.BoolType())), tm.BoolType())
+        self.assertIs(pickle.loads(pickle.dumps(BOOL)), BOOL)
+        self.assertIs(pickle.loads(pickle.dumps(TIME)), TIME)
