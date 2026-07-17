@@ -365,6 +365,9 @@ quantified_conditions_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 object_fluent_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
 
+simulated_effects_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+simulated_effects_kind.set_simulated_entities("SIMULATED_EFFECTS")
+
 simple_numeric_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 simple_numeric_kind.set_problem_class("ACTION_BASED")
 simple_numeric_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
