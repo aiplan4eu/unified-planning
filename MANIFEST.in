@@ -1,1 +1,2 @@
 recursive-include unified_planning/test/ *.pddl *.hddl *.anml
+include unified_planning/py.typed
