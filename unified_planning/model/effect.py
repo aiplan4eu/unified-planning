@@ -27,6 +27,7 @@ from unified_planning.exceptions import (
     UPUnboundedVariablesError,
 )
 from enum import Enum, auto
+from warnings import warn
 from typing import (
     List,
     Callable,
@@ -280,6 +281,10 @@ class SimulatedEffect:
     The `fluent's parameters` must be constants or :class:`~unified_planning.model.Action` `parameters`.
     The callable function must return the result of the `simulated effects` applied
     in the given :class:`~unified_planning.model.State` for the specified `fluent` expressions.
+
+    .. deprecated::
+        Simulated effects are deprecated and will be removed in a future version;
+        consider using interpreted functions instead.
     """
 
     def __init__(
@@ -294,6 +299,12 @@ class SimulatedEffect:
             List["up.model.fnode.FNode"],
         ],
     ):
+        warn(
+            "SimulatedEffect is deprecated and will be removed in a future version; "
+            "consider using interpreted functions instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._fluents: List["up.model.fnode.FNode"] = []
         env = None
         for f in fluents:

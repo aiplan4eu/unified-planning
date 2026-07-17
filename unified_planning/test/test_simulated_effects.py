@@ -21,6 +21,15 @@ class TestSimulatedEffects(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
 
+    def test_deprecation_warning(self):
+        x = Fluent("x")
+
+        def fun(problem, state, actual_params):
+            return [TRUE()]
+
+        with self.assertWarns(DeprecationWarning):
+            SimulatedEffect([FluentExp(x)], fun)
+
     @skipIfEngineNotAvailable("tamer")
     def test_basic(self):
         x = Fluent("x")

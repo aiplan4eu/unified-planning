@@ -16,6 +16,7 @@
 """This module defines the conditional effects remover class."""
 
 
+import warnings
 from itertools import product
 import unified_planning as up
 import unified_planning.engines as engines
@@ -455,7 +456,11 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     ret_val.append(ret_f_exp)
             return ret_val
 
-        return SimulatedEffect(result_fluents, new_fun)
+        # this rebuilds a simulated effect the user already defined (and got
+        # warned about), so the deprecation warning is silenced here
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            return SimulatedEffect(result_fluents, new_fun)
 
     def _convert_effect(
         self,

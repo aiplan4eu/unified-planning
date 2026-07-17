@@ -236,7 +236,7 @@ Problem Kinds
      - There is at least one gain in the Oversubscription (or Temporal Oversubscription) metric that is of real type; added in ProblemKind's version 2.
    * - SIMULATED_ENTITIES
      - SIMULATED_EFFECTS
-     - The problem uses at least one simulated effect.
+     - The problem uses at least one simulated effect. Deprecated; consider using interpreted functions instead.
    * - CONSTRAINTS_KIND
      - TRAJECTORY_CONSTRAINTS
      - The problem uses at least one LTL trajectory constraint.
