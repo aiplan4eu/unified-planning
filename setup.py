@@ -17,6 +17,8 @@ setup(
     url="https://www.aiplan4eu-project.eu",
     packages=find_packages(),
     include_package_data=True,
+    package_data={"unified_planning": ["py.typed"]},
+    zip_safe=False,
     python_requires=">=3.10",
     install_requires=["pyparsing", "networkx", "ConfigSpace", "pddl"],
     extras_require={
