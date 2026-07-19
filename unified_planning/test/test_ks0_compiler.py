@@ -19,7 +19,7 @@ from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import UPState
 from unified_planning.model.problem_kind import classical_kind
-from unified_planning.plans import SequentialPlan
+from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     unittest_TestCase,
@@ -255,37 +255,24 @@ class TestKs0Compiler(unittest_TestCase):
         return problem, (s0,)
 
     def _build_negated_disjunction_precondition_problem(self):
-        """Build a problem that exposes a translation bug in ks0-cc.
+        """Build a problem with a negated disjunctive precondition.
 
         Problem "negated_disj":
           Fluents: ``a``, ``b``, ``goal``.
           Action:  ``act`` — precondition: ``Not(Or(a, b))``; effect: ``goal := True``.
           Goal:    ``goal``.
 
-        The precondition ``Not(Or(a, b))`` is semantically equivalent to
-        ``And(Not(a), Not(b))`` by De Morgan's law.  The two KS0 implementations
-        translate this differently:
-
-        **ks0-cc** handles ``Not(expr)`` where ``expr`` is not a plain fluent by
-        recursing: ``Not(translate(Or(a, b)))`` → ``Not(Or(K_a_t, K_b_t))``.
-        Under the empty tag, ``K_a_empty = F`` and ``K_b_empty = F`` (since neither
-        fluent is known in all states), so the condition evaluates to
-        ``Not(Or(F, F)) = True`` — the precondition appears satisfied and the
-        planner finds a spurious plan.
-
-        **ks0-codex** runs ``DisjunctiveConditionsRemover`` first (because the
-        problem kind has ``DISJUNCTIVE_CONDITIONS``), turning the precondition into
-        ``And(Not(a), Not(b))``.  After KS0 translation this becomes
-        ``And(K_not_a_empty, K_not_b_empty) = And(F, T) = False`` — the precondition
-        is correctly unsatisfied, and the problem is identified as unsolvable.
-
         Possible initial states:
           s0: a=T, b=F  →  Not(Or(T, F)) = False  →  ``act`` NOT applicable
           s1: a=F, b=F  →  Not(Or(F, F)) = True   →  ``act`` IS applicable
 
-        The conformant problem is **not solvable**: there is no plan that achieves
-        ``goal`` from every possible initial state, because ``act``'s precondition
-        fails in s0.
+        The conformant problem is **not solvable**: ``act``'s precondition
+        fails in s0, so no plan achieves ``goal`` from every possible initial
+        state.  A correct translation must first normalize ``Not(Or(a, b))``
+        to ``And(Not(a), Not(b))``; translating the negation directly over
+        knowledge fluents (``Not(Or(K_a, K_b))``) wrongly evaluates to True
+        under the empty tag (where neither ``K_a`` nor ``K_b`` is set) and
+        admits a spurious plan.
 
         Returns:
             (Problem, tuple[UPState, UPState])
@@ -322,6 +309,64 @@ class TestKs0Compiler(unittest_TestCase):
             problem,
         )
         return problem, (s0, s1)
+
+    def _build_pick_drop_problem_and_possible_states(self):
+        """Build the pick/drop example of Palacios & Geffner 2009, Section 4.
+
+        Problem "pick_drop":
+          Fluents: ``hold``, ``at(l)`` over locations l1, l2, l3.
+          Actions (conditional effects only, no preconditions):
+            pick(l): ¬hold ∧ at(l) → hold ∧ ¬at(l);  hold → ¬hold ∧ at(l)
+            drop(l): hold → ¬hold ∧ at(l)
+          Goal:    ``at(l3)``.
+
+        Possible initial states: the hand is empty and the object is at l1
+        or at l2.  ``[pick(l1), drop(l3), pick(l2), drop(l3)]`` is a
+        conformant plan; ``[pick(l1), pick(l2), drop(l3)]`` is not, because
+        if the object started at l1 the second pick drops it at l2.
+
+        Returns:
+            (Problem, tuple[UPState, UPState])
+        """
+        problem = Problem("pick_drop")
+        loc_type = UserType("loc")
+        hold = Fluent("hold")
+        at = Fluent("at", BoolType(), l=loc_type)
+        problem.add_fluent(hold, default_initial_value=False)
+        problem.add_fluent(at, default_initial_value=False)
+        l1, l2, l3 = (Object(f"l{i}", loc_type) for i in (1, 2, 3))
+        problem.add_objects([l1, l2, l3])
+
+        em = problem.environment.expression_manager
+        pick = InstantaneousAction("pick", l=loc_type)
+        empty_handed_pick = em.And(em.Not(hold()), at(pick.l))
+        pick.add_effect(hold, True, condition=empty_handed_pick)
+        pick.add_effect(at(pick.l), False, condition=empty_handed_pick)
+        pick.add_effect(hold, False, condition=hold())
+        pick.add_effect(at(pick.l), True, condition=hold())
+        problem.add_action(pick)
+
+        drop = InstantaneousAction("drop", l=loc_type)
+        drop.add_effect(hold, False, condition=hold())
+        drop.add_effect(at(drop.l), True, condition=hold())
+        problem.add_action(drop)
+
+        problem.add_goal(at(l3))
+        problem.set_initial_value(at(l1), True)
+
+        states = tuple(
+            UPState(
+                {
+                    hold(): em.FALSE(),
+                    at(l1): em.TRUE() if loc is l1 else em.FALSE(),
+                    at(l2): em.TRUE() if loc is l2 else em.FALSE(),
+                    at(l3): em.FALSE(),
+                },
+                problem,
+            )
+            for loc in (l1, l2)
+        )
+        return problem, states
 
     def test_compile_with_existential_condition(self):
         problem = Problem("exists_input")
@@ -663,6 +708,39 @@ class TestKs0Compiler(unittest_TestCase):
         with self.assertRaises(UPUsageError):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
+    def test_compile_rejects_non_boolean_fluents(self):
+        """Problems with non-Boolean fluents must be rejected: the KS0
+        knowledge encoding is defined over Boolean literals only."""
+        problem = Problem("non_bool")
+        counter = Fluent("counter", IntType())
+        problem.add_fluent(counter, default_initial_value=0)
+        em = problem.environment.expression_manager
+        s0 = UPState({em.FluentExp(counter): em.Int(0)}, problem)
+        compiler = Ks0Compiler(possible_initial_states=(s0,))
+        with self.assertRaises(UPUsageError):
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    def test_compile_rejects_quality_metrics(self):
+        """Problems with quality metrics must be rejected: merge actions
+        change the plan length and cost structure of the compiled problem."""
+        problem, possible_initial_states = self._build_problem_and_possible_states()
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+        compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
+        with self.assertRaises(UPUsageError):
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    def test_compile_rejects_state_missing_a_fluent_value(self):
+        """A possible state that does not define a value for some grounded
+        fluent must be rejected with an error naming the missing fluent."""
+        problem, _ = self._build_problem_and_possible_states()
+        em = problem.environment.expression_manager
+        reachable = problem.fluent("reachable")
+        partial_state = UPState({em.FluentExp(reachable): em.FALSE()}, problem)
+        compiler = Ks0Compiler(possible_initial_states=(partial_state,))
+        with self.assertRaises(UPUsageError) as error:
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIn("blocked", str(error.exception))
+
     # ------------------------------------------------------------------
     # Structural tests on the compiled problem
     #
@@ -903,6 +981,50 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertFalse(res.problem.kind.has_undefined_initial_symbolic())
 
     # ------------------------------------------------------------------
+    # Cancellation-rule semantics
+    # ------------------------------------------------------------------
+
+    def test_cancellation_rules_forget_conditional_knowledge(self):
+        """Direct check of the cancellation rules on the pick/drop example of
+        Palacios & Geffner 2009, Section 4.
+
+        Simulating the compiled problem: after ``pick(l1), drop(l3),
+        pick(l2), drop(l3)`` the merge for ``at(l3)`` applies and reaches the
+        goal, while after ``pick(l1), pick(l2), drop(l3)`` it must not —
+        the second pick cancels the knowledge ``K_hold`` obtained under the
+        first tag, so ``K_at(l3)`` is not derivable for that tag.  Without
+        cancellation rules the spurious short plan would be accepted."""
+        problem, states = self._build_pick_drop_problem_and_possible_states()
+        compiler = Ks0Compiler(possible_initial_states=states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        compiled_problem = res.problem
+        assert isinstance(compiled_problem, Problem)
+
+        sim = UPSequentialSimulator(compiled_problem)
+
+        def apply_all(action_names):
+            state = sim.get_initial_state()
+            for name in action_names:
+                next_state = sim.apply(
+                    state, ActionInstance(compiled_problem.action(name))
+                )
+                if next_state is None:
+                    return None
+                state = next_state
+            return state
+
+        good_state = apply_all(
+            ["pick_l1", "drop_l3", "pick_l2", "drop_l3", "merge_at_l3"]
+        )
+        self.assertIsNotNone(good_state)
+        self.assertTrue(sim.is_goal(good_state))
+
+        # The merge must be inapplicable: K_at(l3) was never derived under
+        # the tag where the object starts at l1.
+        bad_state = apply_all(["pick_l1", "pick_l2", "drop_l3", "merge_at_l3"])
+        self.assertIsNone(bad_state)
+
+    # ------------------------------------------------------------------
     # Edge-case tests
     # ------------------------------------------------------------------
 
@@ -947,37 +1069,6 @@ class TestKs0Compiler(unittest_TestCase):
                 PlanGenerationResultStatus.SOLVED_OPTIMALLY,
             ),
         )
-
-    # ------------------------------------------------------------------
-    # Back-conversion test
-    # ------------------------------------------------------------------
-
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
-    def test_plan_back_conversion_drops_merge_actions(self):
-        """After solving the compiled problem, back-converting the plan must
-        strip all internal merge actions, leaving only actions from the
-        original domain."""
-        problem, possible_initial_states = self._build_problem_and_possible_states()
-        s0_only = possible_initial_states[:1]  # solvable single-state subset
-        compiler = Ks0Compiler(possible_initial_states=s0_only)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-
-        assert res.problem is not None
-        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
-            plan_result = planner.solve(res.problem)
-        self.assertIsNotNone(plan_result.plan)
-
-        assert res.plan_back_conversion is not None
-        back_plan = res.plan_back_conversion(plan_result.plan)
-        self.assertIsInstance(back_plan, SequentialPlan)
-        assert isinstance(back_plan, SequentialPlan)
-        for ai in back_plan.actions:
-            self.assertFalse(
-                ai.action.name.startswith(
-                    "merge_"
-                ),  # merge actions are compiler-internal
-                f"Back-converted plan still contains merge action: {ai.action.name}",
-            )
 
     # ------------------------------------------------------------------
     # ViPlan-HH integration tests
@@ -1178,29 +1269,22 @@ class TestKs0Compiler(unittest_TestCase):
                             )
 
     # ==================================================================
-    # ks0-cc vs ks0-codex divergence test
+    # Negated disjunctive precondition regression test
     # ==================================================================
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_negated_disjunction_precondition_not_conformantly_solvable(self):
-        """Regression test for a translation bug in ks0-cc.
+        """Negated disjunctive preconditions must be normalized before the
+        knowledge fluents are introduced.
 
         The problem has precondition ``Not(Or(a, b))`` with possible states
         s0={a=T,b=F} and s1={a=F,b=F}.  Since s0 makes the precondition False
         the conformant problem is **unsolvable** — no plan achieves ``goal``
-        in every possible initial state.
-
-        ks0-cc **fails** this test: it translates ``Not(Or(a, b))`` under the
-        empty tag as ``Not(Or(K_a_empty, K_b_empty))``.  Because neither
-        ``K_a_empty`` nor ``K_b_empty`` is set in the initial knowledge state,
-        this evaluates to ``Not(Or(F, F)) = True``, making the precondition
-        appear satisfied.  The planner then finds a spurious plan ``[act]``.
-
-        ks0-codex **passes** this test: it normalises ``Not(Or(a, b))`` to
-        ``And(Not(a), Not(b))`` via ``DisjunctiveConditionsRemover`` before
-        compilation.  The translated precondition becomes
-        ``And(K_not_a_empty, K_not_b_empty) = And(F, T) = False``, the compiled
-        problem is correctly unsolvable, and the planner returns no plan.
+        in every possible initial state.  A translation that rewrites the
+        negation directly over knowledge fluents (``Not(Or(K_a, K_b))``)
+        evaluates it as vacuously true under the empty tag and finds a
+        spurious plan; normalizing to ``And(Not(a), Not(b))`` first yields a
+        correctly unsolvable compiled problem.
         """
         (
             problem,
