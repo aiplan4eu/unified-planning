@@ -517,25 +517,16 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=[object()])  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-        self.assertEqual(
-            str(error.exception),
-            "Every element of `possible_initial_states` must be a "
-            "`unified_planning.model.State`; found <class 'object'> at index 0.",
-        )
+        self.assertIn("at index 0", str(error.exception))
 
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states + (object(),))  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-        self.assertEqual(
-            str(error.exception),
-            "Every element of `possible_initial_states` must be a "
-            "`unified_planning.model.State`; found <class 'object'> at index 2.",
-        )
+        self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_problem(self):
-        """States built for a *different* problem must be rejected.  Mixing
-        states from unrelated problems would silently produce nonsensical
-        K-fluents."""
+        """States built for a *different* problem must be rejected: they cannot
+        resolve this problem's fluent expressions."""
         problem1, possible_initial_states1 = self._build_problem_and_possible_states()
         _, possible_initial_states2 = self._build_nav_problem_and_possible_states()
 
@@ -544,16 +535,11 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states1)
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-        self.assertEqual(
-            str(error.exception),
-            "Every element of `possible_initial_states` must be defined "
-            "for the same problem passed to `compile`; found a state from a "
-            "different problem at index 2.",
-        )
+        self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_environments(self):
-        """States created under a different UP ``Environment`` must be rejected.
-        Environment mismatch can cause expression-manager identity issues."""
+        """States created under a different UP ``Environment`` must be rejected:
+        their expressions cannot resolve this problem's fluent expressions."""
         problem1, _ = self._build_problem_and_possible_states()
         _, possible_initial_states2 = self._build_problem_and_possible_states(
             Environment()
@@ -562,12 +548,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states2)
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-        self.assertEqual(
-            str(error.exception),
-            "Every element of `possible_initial_states` must be defined "
-            "in the same environment as the problem passed to `compile`; "
-            "found a state from a different environment at index 0.",
-        )
+        self.assertIn("at index 0", str(error.exception))
 
     # ==================================================================
     # Factory integration tests

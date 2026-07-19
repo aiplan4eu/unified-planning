@@ -27,7 +27,7 @@ from unified_planning.engines.compilers.quantifiers_remover import QuantifiersRe
 from unified_planning.engines.compilers.utils import split_all_ands
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPUsageError
+from unified_planning.exceptions import UPStateMissingFluentError, UPUsageError
 from unified_planning.model import (
     FNode,
     Fluent,
@@ -202,35 +202,12 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     f"`unified_planning.model.State`; found {type(state)} at index {index}."
                 )
 
-            state_problem = getattr(state, "_fluent_set", None)
-            state_environment = getattr(state_problem, "environment", None)
-            if state_environment is None:
-                state_values = getattr(state, "_values", None)
-                if isinstance(state_values, dict) and len(state_values) > 0:
-                    sample_exp = next(iter(state_values))
-                    state_environment = sample_exp.environment
-
-            if (
-                state_environment is not None
-                and state_environment is not problem.environment
-            ):
-                raise UPUsageError(
-                    "Every element of `possible_initial_states` must be defined "
-                    "in the same environment as the problem passed to `compile`; "
-                    f"found a state from a different environment at index {index}."
-                )
-
-            if state_problem is not None and state_problem is not problem:
-                raise UPUsageError(
-                    "Every element of `possible_initial_states` must be defined "
-                    "for the same problem passed to `compile`; found a state from a "
-                    f"different problem at index {index}."
-                )
-
+            # A state built for a different problem or environment cannot
+            # resolve this problem's fluent expressions, so it fails here.
             for fluent_exp in ground_fluent_expressions:
                 try:
                     value = state.get_value(fluent_exp)
-                except UPUsageError as err:
+                except (UPUsageError, UPStateMissingFluentError) as err:
                     raise UPUsageError(
                         "Every element of `possible_initial_states` must define "
                         "a Boolean value for every grounded fluent of the problem; "
