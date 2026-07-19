@@ -24,7 +24,7 @@ from unified_planning.engines.compilers.disjunctive_conditions_remover import (
 )
 from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.compilers.quantifiers_remover import QuantifiersRemover
-from unified_planning.engines.compilers.utils import split_all_ands
+from unified_planning.engines.compilers.utils import get_fresh_name, split_all_ands
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPStateMissingFluentError, UPUsageError
@@ -95,6 +95,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
+        supported_kind.set_parameters("BOOL_ACTION_PARAMETERS")
+        supported_kind.set_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
@@ -373,7 +375,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             for is_negative in (False, True):
                 for tag in tags:
                     knowledge_fluent = Fluent(
-                        self._knowledge_fluent_name(fluent, is_negative, tag),
+                        get_fresh_name(
+                            compiled_problem,
+                            self._knowledge_fluent_name(fluent, is_negative, tag),
+                        ),
                         environment.type_manager.BoolType(),
                         fluent.signature,
                         environment=environment,
@@ -444,7 +449,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         new_to_old_action: Dict[up.model.Action, Optional[up.model.Action]] = {}
         for prepared_action in prepared_problem.prepared_actions:
             action = prepared_action.action
-            compiled_action = InstantaneousAction(action.name, _env=environment)
+            compiled_action = InstantaneousAction(
+                get_fresh_name(compiled_problem, action.name), _env=environment
+            )
             for literal in prepared_action.precondition_literals:
                 compiled_action.add_precondition(
                     knowledge_literal_cache[(literal, empty_tag)]
@@ -490,7 +497,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
         for literal in prepared_problem.merge_targets:
             merge_action = InstantaneousAction(
-                f"merge_{self._literal_name(literal)}", _env=environment
+                get_fresh_name(
+                    compiled_problem, f"merge_{self._literal_name(literal)}"
+                ),
+                _env=environment,
             )
             for tag in tags[1:]:
                 merge_action.add_precondition(knowledge_literal_cache[(literal, tag)])
