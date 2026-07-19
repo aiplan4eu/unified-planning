@@ -78,15 +78,6 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ``compile`` call, the possible states are provided at construction time.
     """
 
-    _normalization_cache: Dict[
-        int, Tuple[Problem, int, Problem, Tuple[CompilerResult, ...]]
-    ] = {}
-    _ground_fluents_cache: Dict[int, Tuple[Problem, int, Tuple[FNode, ...]]] = {}
-    _prepared_problem_cache: Dict[
-        int, Tuple[Problem, int, _PreparedNormalizedProblem]
-    ] = {}
-    _relevance_cache: Dict[int, Tuple[Problem, int, Dict[FNode, frozenset[FNode]]]] = {}
-
     def __init__(self, possible_initial_states: Optional[Iterable[State]] = None):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
@@ -149,7 +140,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         assert isinstance(problem, Problem)
         possible_initial_states = self._get_possible_initial_states()
-        self._validate_possible_initial_states(problem, possible_initial_states)
+        ground_fluent_expressions = self._get_ground_fluent_expressions(problem)
+        self._validate_possible_initial_states(
+            problem, ground_fluent_expressions, possible_initial_states
+        )
 
         if len(problem.quality_metrics) > 0:
             raise UPUsageError(
@@ -157,17 +151,19 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             )
 
         deduplicated_states = self._deduplicate_possible_initial_states(
-            problem, possible_initial_states
+            ground_fluent_expressions, possible_initial_states
         )
         normalized_problem, normalization_results = self._normalize_problem(problem)
+        self._validate_normalized_problem(normalized_problem)
+        prepared_problem = self._prepare_normalized_problem(normalized_problem)
         normalized_states = self._rebuild_possible_initial_states(
-            problem, normalized_problem, deduplicated_states
+            problem, normalized_problem, prepared_problem, deduplicated_states
         )
         basis_states = self._reduce_possible_initial_states_to_basis(
-            normalized_problem, normalized_states
+            normalized_problem, prepared_problem, normalized_states
         )
         compiled_problem, new_to_old_action = self._compile_normalized_problem(
-            normalized_problem, basis_states, problem.name
+            normalized_problem, prepared_problem, basis_states, problem.name
         )
         plan_back_conversion = self._build_plan_back_conversion(
             new_to_old_action, normalization_results
@@ -202,9 +198,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def _validate_possible_initial_states(
-        problem: Problem, possible_initial_states: Tuple[State, ...]
+        problem: Problem,
+        ground_fluent_expressions: Tuple[FNode, ...],
+        possible_initial_states: Tuple[State, ...],
     ) -> None:
-        ground_fluent_expressions = Ks0Compiler._get_ground_fluent_expressions(problem)
         for fluent in problem.fluents:
             if not fluent.type.is_bool_type():
                 raise UPUsageError(
@@ -259,11 +256,11 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                         f"state at index {index} assigns `{value}` to `{fluent_exp}`."
                     )
 
-    @classmethod
+    @staticmethod
     def _deduplicate_possible_initial_states(
-        cls, problem: Problem, possible_initial_states: Tuple[State, ...]
+        ground_fluent_expressions: Tuple[FNode, ...],
+        possible_initial_states: Tuple[State, ...],
     ) -> Tuple[State, ...]:
-        ground_fluent_expressions = cls._get_ground_fluent_expressions(problem)
         unique_states: List[State] = []
         seen_signatures = set()
         for state in possible_initial_states:
@@ -276,43 +273,17 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 unique_states.append(state)
         return tuple(unique_states)
 
-    @classmethod
-    def _get_ground_fluent_expressions(cls, problem: Problem) -> Tuple[FNode, ...]:
-        problem_id = id(problem)
-        problem_hash = hash(problem)
-        cached_entry = cls._ground_fluents_cache.get(problem_id)
-        if (
-            cached_entry is not None
-            and cached_entry[0] is problem
-            and cached_entry[1] == problem_hash
-        ):
-            return cached_entry[2]
-
+    @staticmethod
+    def _get_ground_fluent_expressions(problem: Problem) -> Tuple[FNode, ...]:
         ground_fluent_expressions: List[FNode] = []
         for fluent in problem.fluents:
             ground_fluent_expressions.extend(get_all_fluent_exp(problem, fluent))
+        return tuple(ground_fluent_expressions)
 
-        ground_fluent_expressions_tuple = tuple(ground_fluent_expressions)
-        cls._ground_fluents_cache[problem_id] = (
-            problem,
-            problem_hash,
-            ground_fluent_expressions_tuple,
-        )
-        return ground_fluent_expressions_tuple
-
+    @staticmethod
     def _normalize_problem(
-        self, problem: Problem
+        problem: Problem,
     ) -> Tuple[Problem, Tuple[CompilerResult, ...]]:
-        problem_id = id(problem)
-        problem_hash = hash(problem)
-        cached_entry = self._normalization_cache.get(problem_id)
-        if (
-            cached_entry is not None
-            and cached_entry[0] is problem
-            and cached_entry[1] == problem_hash
-        ):
-            return cached_entry[2], cached_entry[3]
-
         normalized_problem = problem
         normalization_results: List[CompilerResult] = []
 
@@ -349,19 +320,13 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         normalized_problem = grounding_result.problem
         normalization_results.append(grounding_result)
 
-        normalized_results_tuple = tuple(normalization_results)
-        self._normalization_cache[problem_id] = (
-            problem,
-            problem_hash,
-            normalized_problem,
-            normalized_results_tuple,
-        )
-        return normalized_problem, normalized_results_tuple
+        return normalized_problem, tuple(normalization_results)
 
     @staticmethod
     def _rebuild_possible_initial_states(
         original_problem: Problem,
         normalized_problem: Problem,
+        prepared_problem: _PreparedNormalizedProblem,
         possible_initial_states: Tuple[State, ...],
     ) -> Tuple[UPState, ...]:
         expression_manager = normalized_problem.environment.expression_manager
@@ -369,16 +334,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         false_exp = expression_manager.FALSE()
         value_sources: List[Tuple[FNode, Optional[FNode], Optional[bool]]] = []
 
-        for fluent in normalized_problem.fluents:
-            if not fluent.type.is_bool_type():
-                raise UPUsageError(
-                    "Ks0Compiler supports only problems with Boolean fluents "
-                    "after normalization."
-                )
-
-        for fluent_exp in Ks0Compiler._get_ground_fluent_expressions(
-            normalized_problem
-        ):
+        for fluent_exp in prepared_problem.ground_fluent_expressions:
             fluent = fluent_exp.fluent()
             if original_problem.has_fluent(fluent.name):
                 original_fluent = original_problem.fluent(fluent.name)
@@ -432,12 +388,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     def _compile_normalized_problem(
         self,
         problem: Problem,
+        prepared_problem: _PreparedNormalizedProblem,
         possible_initial_states: Tuple[UPState, ...],
         original_problem_name: Optional[str],
     ) -> Tuple[Problem, Dict[up.model.Action, Optional[up.model.Action]]]:
-        self._validate_normalized_problem(problem)
-        prepared_problem = self._prepare_normalized_problem(problem)
-
         environment = problem.environment
         expression_manager = environment.expression_manager
         tags = tuple(
@@ -609,16 +563,6 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     def _prepare_normalized_problem(
         cls, problem: Problem
     ) -> _PreparedNormalizedProblem:
-        problem_id = id(problem)
-        problem_hash = hash(problem)
-        cached_entry = cls._prepared_problem_cache.get(problem_id)
-        if (
-            cached_entry is not None
-            and cached_entry[0] is problem
-            and cached_entry[1] == problem_hash
-        ):
-            return cached_entry[2]
-
         expression_manager = problem.environment.expression_manager
         prepared_actions: List[_PreparedAction] = []
         merge_targets: List[FNode] = []
@@ -698,27 +642,23 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 seen_merge_targets.add(goal_literal)
                 merge_targets.append(goal_literal)
 
-        prepared_problem = _PreparedNormalizedProblem(
+        return _PreparedNormalizedProblem(
             ground_fluent_expressions=cls._get_ground_fluent_expressions(problem),
             prepared_actions=tuple(prepared_actions),
             goal_literals=goal_literals,
             merge_targets=tuple(merge_targets),
         )
-        cls._prepared_problem_cache[problem_id] = (
-            problem,
-            problem_hash,
-            prepared_problem,
-        )
-        return prepared_problem
 
     @classmethod
     def _reduce_possible_initial_states_to_basis(
-        cls, problem: Problem, possible_initial_states: Tuple[UPState, ...]
+        cls,
+        problem: Problem,
+        prepared_problem: _PreparedNormalizedProblem,
+        possible_initial_states: Tuple[UPState, ...],
     ) -> Tuple[UPState, ...]:
         if len(possible_initial_states) <= 1:
             return possible_initial_states
 
-        prepared_problem = cls._prepare_normalized_problem(problem)
         target_literals = prepared_problem.merge_targets
         if len(target_literals) == 0:
             return possible_initial_states[:1]
@@ -739,7 +679,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 )
             )
 
-        relevance = cls._get_relevance_relation(problem, prepared_problem)
+        relevance = cls._get_relevance_relation(prepared_problem, expression_manager)
         relevant_sources_by_target = {
             target_literal: frozenset(
                 source_literal
@@ -782,21 +722,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             possible_initial_states[index] for index in sorted(selected_indices)
         )
 
-    @classmethod
+    @staticmethod
     def _get_relevance_relation(
-        cls, problem: Problem, prepared_problem: _PreparedNormalizedProblem
+        prepared_problem: _PreparedNormalizedProblem, expression_manager
     ) -> Dict[FNode, frozenset[FNode]]:
-        problem_id = id(problem)
-        problem_hash = hash(problem)
-        cached_entry = cls._relevance_cache.get(problem_id)
-        if (
-            cached_entry is not None
-            and cached_entry[0] is problem
-            and cached_entry[1] == problem_hash
-        ):
-            return cached_entry[2]
-
-        expression_manager = problem.environment.expression_manager
         all_literals: List[FNode] = []
         negated_literals: Dict[FNode, FNode] = {}
         for fluent_exp in prepared_problem.ground_fluent_expressions:
@@ -835,15 +764,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     relevance[literal] = expanded_targets
                     changed = True
 
-        frozen_relevance = {
-            literal: frozenset(targets) for literal, targets in relevance.items()
-        }
-        cls._relevance_cache[problem_id] = (
-            problem,
-            problem_hash,
-            frozen_relevance,
-        )
-        return frozen_relevance
+        return {literal: frozenset(targets) for literal, targets in relevance.items()}
 
     @staticmethod
     def _build_plan_back_conversion(
