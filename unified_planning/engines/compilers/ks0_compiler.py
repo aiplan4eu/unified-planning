@@ -16,6 +16,7 @@
 implementation of the K_S0 translation of Palacios and Geffner (2009)."""
 
 from dataclasses import dataclass
+from itertools import product
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 import unified_planning as up
@@ -38,6 +39,7 @@ from unified_planning.model import (
     State,
     UPState,
 )
+from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.plans import ActionInstance, Plan
@@ -84,13 +86,16 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     conjunction of ``KL/t`` over all state tags (reasoning by cases over the
     possible initial states).
 
-    The compiler expects a regular ``Problem`` plus an explicit, non-empty
-    collection of possible initial states. Since the compiler API receives
-    only the problem in the ``compile`` call, the possible states are
-    provided at construction time. The problem is first normalized
-    (quantifier removal, disjunctive-condition removal, grounding) so that
-    all conditions are conjunctions of ground literals, as the translation
-    requires.
+    The initial-state uncertainty can be given in two ways: a regular
+    ``Problem`` plus an explicit, non-empty collection of possible initial
+    states provided at construction time (since the compiler API receives
+    only the problem in the ``compile`` call), or a
+    :class:`~unified_planning.model.contingent.ContingentProblem` without
+    sensing actions, whose possible initial states are enumerated from its
+    ``oneof`` and ``or`` initial constraints on the hidden fluents. The
+    problem is first normalized (quantifier removal, disjunctive-condition
+    removal, grounding) so that all conditions are conjunctions of ground
+    literals, as the translation requires.
 
     Merge actions are internal to the compilation: the returned
     :class:`~unified_planning.engines.CompilerResult` provides a
@@ -120,6 +125,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     def supported_kind() -> ProblemKind:
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
+        supported_kind.set_problem_class("CONTINGENT")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
@@ -148,6 +154,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
+        new_kind.unset_problem_class("CONTINGENT")
         new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         new_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
@@ -164,16 +171,28 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
         assert isinstance(problem, Problem)
-        possible_initial_states = self._get_possible_initial_states()
-        ground_fluent_expressions = self._get_ground_fluent_expressions(problem)
-        self._validate_possible_initial_states(
-            problem, ground_fluent_expressions, possible_initial_states
-        )
-
         if len(problem.quality_metrics) > 0:
             raise UPUsageError(
                 "Ks0Compiler does not support problems with plan quality metrics."
             )
+
+        possible_initial_states: Tuple[State, ...]
+        if isinstance(problem, ContingentProblem):
+            if self._possible_initial_states is not None:
+                raise UPUsageError(
+                    "Ks0Compiler accepts the initial-state uncertainty either from "
+                    "a ContingentProblem or from `possible_initial_states`, not both."
+                )
+            problem, possible_initial_states = self._conformant_problem_from_contingent(
+                problem
+            )
+        else:
+            possible_initial_states = self._get_possible_initial_states()
+
+        ground_fluent_expressions = self._get_ground_fluent_expressions(problem)
+        self._validate_possible_initial_states(
+            problem, ground_fluent_expressions, possible_initial_states
+        )
 
         deduplicated_states = self._deduplicate_possible_initial_states(
             ground_fluent_expressions, possible_initial_states
@@ -205,13 +224,149 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         possible_initial_states = self._possible_initial_states
         if possible_initial_states is None:
             raise UPUsageError(
-                "Ks0Compiler requires `possible_initial_states` to be provided at construction time."
+                "Ks0Compiler requires `possible_initial_states` to be provided at "
+                "construction time when the compiled problem is not a ContingentProblem."
             )
         if len(possible_initial_states) == 0:
             raise UPUsageError(
                 "Ks0Compiler requires `possible_initial_states` to be non-empty."
             )
         return possible_initial_states
+
+    @staticmethod
+    def _conformant_problem_from_contingent(
+        problem: ContingentProblem,
+    ) -> Tuple[Problem, Tuple[UPState, ...]]:
+        """Turn a ``ContingentProblem`` into a plain conformant ``Problem``
+        plus the possible initial states enumerated from its ``oneof`` and
+        ``or`` initial constraints. The number of such states can be
+        exponential in the number of hidden fluents, as the exhaustive
+        ``K_S0`` translation requires."""
+        for action in problem.actions:
+            if isinstance(action, SensingAction):
+                raise UPUsageError(
+                    "Ks0Compiler compiles conformant problems: sensing actions "
+                    "are not supported."
+                )
+
+        conformant_problem = Problem(problem.name, problem.environment)
+        for fluent in problem.fluents:
+            conformant_problem.add_fluent(
+                fluent, default_initial_value=problem.fluents_defaults.get(fluent)
+            )
+        conformant_problem.add_objects(problem.all_objects)
+        for action in problem.actions:
+            conformant_problem.add_action(action)
+        for goal in problem.goals:
+            conformant_problem.add_goal(goal)
+
+        hidden_atoms_set = set()
+        for hidden_literal in problem.hidden_fluents:
+            atom, _ = Ks0Compiler._literal_parts(hidden_literal)
+            hidden_atoms_set.add(atom)
+
+        known_values: Dict[FNode, FNode] = {}
+        hidden_atoms: List[FNode] = []
+        for fluent_exp in Ks0Compiler._get_ground_fluent_expressions(problem):
+            if fluent_exp in hidden_atoms_set:
+                hidden_atoms.append(fluent_exp)
+                continue
+            value = problem.initial_value(fluent_exp)
+            if value is None or not value.is_bool_constant():
+                raise UPUsageError(
+                    "Ks0Compiler requires a Boolean initial value for every "
+                    f"non-hidden fluent; found `{value}` for `{fluent_exp}`."
+                )
+            known_values[fluent_exp] = value
+            conformant_problem.set_initial_value(fluent_exp, value)
+        if len(hidden_atoms) != len(hidden_atoms_set):
+            raise UPUsageError(
+                "Ks0Compiler requires every hidden fluent to be a grounded "
+                "fluent expression of the ContingentProblem."
+            )
+
+        expression_manager = problem.environment.expression_manager
+        true_exp = expression_manager.TRUE()
+        false_exp = expression_manager.FALSE()
+        possible_initial_states = tuple(
+            UPState(
+                {
+                    **known_values,
+                    **{
+                        atom: true_exp if value else false_exp
+                        for atom, value in assignment.items()
+                    },
+                },
+                conformant_problem,
+            )
+            for assignment in Ks0Compiler._enumerate_hidden_assignments(
+                problem, hidden_atoms
+            )
+        )
+        return conformant_problem, possible_initial_states
+
+    @staticmethod
+    def _enumerate_hidden_assignments(
+        problem: ContingentProblem, hidden_atoms: Sequence[FNode]
+    ) -> Tuple[Dict[FNode, bool], ...]:
+        """Enumerate every assignment to the hidden atoms that satisfies the
+        problem's ``oneof`` (exactly one) and ``or`` (at least one) initial
+        constraints."""
+        partial_assignments: List[Dict[FNode, bool]] = [{}]
+        for group in problem.oneof_constraints:
+            extended_assignments: List[Dict[FNode, bool]] = []
+            for assignment in partial_assignments:
+                for chosen_index in range(len(group)):
+                    candidate = dict(assignment)
+                    if Ks0Compiler._assign_oneof_choice(candidate, group, chosen_index):
+                        extended_assignments.append(candidate)
+            partial_assignments = extended_assignments
+
+        oneof_atoms = {
+            Ks0Compiler._literal_parts(literal)[0]
+            for group in problem.oneof_constraints
+            for literal in group
+        }
+        free_atoms = [atom for atom in hidden_atoms if atom not in oneof_atoms]
+
+        assignments: List[Dict[FNode, bool]] = []
+        for assignment in partial_assignments:
+            for free_values in product((False, True), repeat=len(free_atoms)):
+                candidate = dict(assignment)
+                candidate.update(zip(free_atoms, free_values))
+                if all(
+                    any(
+                        Ks0Compiler._literal_holds(candidate, literal)
+                        for literal in or_group
+                    )
+                    for or_group in problem.or_constraints
+                ):
+                    assignments.append(candidate)
+        if len(assignments) == 0:
+            raise UPUsageError(
+                "Ks0Compiler found no initial state satisfying the initial "
+                "constraints of the ContingentProblem."
+            )
+        return tuple(assignments)
+
+    @staticmethod
+    def _assign_oneof_choice(
+        assignment: Dict[FNode, bool], group: Sequence[FNode], chosen_index: int
+    ) -> bool:
+        """Extend ``assignment`` so that exactly the ``chosen_index``-th
+        literal of ``group`` holds; return False on conflict with previously
+        assigned atoms."""
+        for index, literal in enumerate(group):
+            atom, is_negative = Ks0Compiler._literal_parts(literal)
+            value = (index == chosen_index) != is_negative
+            if assignment.setdefault(atom, value) != value:
+                return False
+        return True
+
+    @staticmethod
+    def _literal_holds(assignment: Dict[FNode, bool], literal: FNode) -> bool:
+        atom, is_negative = Ks0Compiler._literal_parts(literal)
+        return assignment[atom] != is_negative
 
     @staticmethod
     def _validate_possible_initial_states(

@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import warnings
+
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
 from unified_planning.engines.results import CompilerResult, PlanGenerationResultStatus
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import UPState
+from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
@@ -44,7 +47,9 @@ class TestKs0Compiler(unittest_TestCase):
     # Helper builders – each returns (problem, possible_initial_states)
     # ==================================================================
 
-    def _build_problem_and_possible_states(self, environment=None):
+    def _build_problem_and_possible_states(
+        self, environment=None, problem_factory=Problem
+    ):
         """Build a minimal 2-fluent problem with 2 possible initial states.
 
         Problem "ks0_input":
@@ -57,12 +62,14 @@ class TestKs0Compiler(unittest_TestCase):
           s1: reachable=F, blocked=T  (unblock is NOT applicable)
 
         Accepts an optional *environment* so tests can verify cross-environment
-        rejection.
+        rejection.  With ``problem_factory=ContingentProblem`` the same
+        uncertainty is declared on the problem itself (``blocked`` unknown)
+        instead of through the returned states.
 
         Returns:
             (Problem, tuple[UPState, UPState])
         """
-        problem = Problem("ks0_input", environment=environment)
+        problem = problem_factory("ks0_input", environment=environment)
         reachable = Fluent("reachable", environment=problem.environment)
         blocked = Fluent("blocked", environment=problem.environment)
         em = problem.environment.expression_manager
@@ -77,6 +84,10 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_action(unblock)
         problem.add_goal(reachable())
 
+        if isinstance(problem, ContingentProblem):
+            problem.set_initial_value(reachable(), False)
+            problem.add_unknown_initial_constraint(blocked())
+
         # Two possible worlds: blocked or not blocked
         possible_initial_states = (
             UPState({reachable(): em.FALSE(), blocked(): em.FALSE()}, problem),  # s0
@@ -84,7 +95,7 @@ class TestKs0Compiler(unittest_TestCase):
         )
         return problem, possible_initial_states
 
-    def _build_nav_problem_and_possible_states(self):
+    def _build_nav_problem_and_possible_states(self, problem_factory=Problem):
         """Build a 4-location navigation problem with typed parameters.
 
         Problem "nav":
@@ -111,10 +122,14 @@ class TestKs0Compiler(unittest_TestCase):
           move left from l1 until it is certain it is in l4, then move right
           to l3 and end.
 
+        With ``problem_factory=ContingentProblem`` the agent position is
+        declared as a ``oneof`` initial constraint on the problem instead of
+        being fixed at l1.
+
         Returns:
             (Problem, tuple[UPState, x 4])
         """
-        problem = Problem("nav")
+        problem = problem_factory("nav")
 
         loc_type = UserType("location")
 
@@ -161,7 +176,10 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_objects([l1, l2, l3, l4])
 
         # Topology: l4 -- l3 -- l2 -- l1 (linear chain)
-        problem.set_initial_value(at(l1), True)
+        if isinstance(problem, ContingentProblem):
+            problem.add_oneof_initial_constraint([at(l1), at(l2), at(l3), at(l4)])
+        else:
+            problem.set_initial_value(at(l1), True)
         problem.set_initial_value(adj_left(l1, l2), True)
         problem.set_initial_value(adj_left(l2, l3), True)
         problem.set_initial_value(adj_left(l3, l4), True)
@@ -624,6 +642,209 @@ class TestKs0Compiler(unittest_TestCase):
             self.assertTrue(compiler.supports(problem.kind))
             with self.assertRaises(UPUsageError):
                 compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    # ==================================================================
+    # ContingentProblem input tests
+    # ==================================================================
+
+    def _assert_equivalent_compilations(self, problem1, problem2):
+        """Assert two compiled problems are structurally identical: same
+        fluent, action, and goal names and same explicit initial values."""
+        self.assertEqual(
+            {f.name for f in problem1.fluents}, {f.name for f in problem2.fluents}
+        )
+        self.assertEqual(
+            {a.name for a in problem1.actions}, {a.name for a in problem2.actions}
+        )
+        self.assertEqual(
+            [str(g) for g in problem1.goals], [str(g) for g in problem2.goals]
+        )
+        self.assertEqual(
+            {str(k): str(v) for k, v in problem1.explicit_initial_values.items()},
+            {str(k): str(v) for k, v in problem2.explicit_initial_values.items()},
+        )
+
+    def test_contingent_problem_kind_supported(self):
+        """The compiler must support the CONTINGENT problem class and remove
+        it from the resulting problem kind."""
+        problem, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
+        self.assertTrue(problem.kind.has_contingent())
+        self.assertTrue(Ks0Compiler.supports(problem.kind))
+        resulting_kind = Ks0Compiler.resulting_problem_kind(
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self.assertFalse(resulting_kind.has_contingent())
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kind=CompilationKind.CONFORMANT_TO_CLASSICAL_KS0,
+        ) as compiler:
+            self.assertIsInstance(compiler, Ks0Compiler)
+
+    def test_contingent_unknown_matches_explicit_states(self):
+        """Compiling a ContingentProblem with an ``unknown`` constraint must
+        produce the same compilation as passing the two corresponding states
+        explicitly."""
+        plain, states = self._build_problem_and_possible_states()
+        contingent, _ = self._build_problem_and_possible_states(
+            problem_factory=ContingentProblem
+        )
+        res_explicit = Ks0Compiler(possible_initial_states=states).compile(
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        res_contingent = Ks0Compiler().compile(
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self._assert_equivalent_compilations(
+            res_explicit.problem, res_contingent.problem
+        )
+
+    def test_contingent_oneof_matches_explicit_states(self):
+        """A ``oneof`` constraint over the agent position must enumerate the
+        same possible states as the explicit four-state navigation setup."""
+        plain, states = self._build_nav_problem_and_possible_states()
+        contingent, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
+        res_explicit = Ks0Compiler(possible_initial_states=states).compile(
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        res_contingent = Ks0Compiler().compile(
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self._assert_equivalent_compilations(
+            res_explicit.problem, res_contingent.problem
+        )
+
+    def test_contingent_or_matches_explicit_states(self):
+        """An ``or`` constraint must enumerate exactly the satisfying
+        assignments (here 3 of the 4 combinations of two hidden fluents)."""
+
+        def build(problem_factory):
+            problem = problem_factory("or_input")
+            a = Fluent("a", environment=problem.environment)
+            b = Fluent("b", environment=problem.environment)
+            g = Fluent("g", environment=problem.environment)
+            problem.add_fluent(a, default_initial_value=False)
+            problem.add_fluent(b, default_initial_value=False)
+            problem.add_fluent(g, default_initial_value=False)
+            act = InstantaneousAction("act", _env=problem.environment)
+            act.add_precondition(a())
+            act.add_effect(g, True)
+            problem.add_action(act)
+            problem.add_goal(g())
+            return problem, a, b, g
+
+        plain, a, b, g = build(Problem)
+        em = plain.environment.expression_manager
+        # The satisfying assignments of or(a, b) in enumeration order
+        states = tuple(
+            UPState(
+                {a(): av, b(): bv, g(): em.FALSE()},
+                plain,
+            )
+            for av, bv in (
+                (em.FALSE(), em.TRUE()),
+                (em.TRUE(), em.FALSE()),
+                (em.TRUE(), em.TRUE()),
+            )
+        )
+        contingent, ca, cb, _ = build(ContingentProblem)
+        contingent.add_or_initial_constraint([ca(), cb()])
+
+        res_explicit = Ks0Compiler(possible_initial_states=states).compile(
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        res_contingent = Ks0Compiler().compile(
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        self._assert_equivalent_compilations(
+            res_explicit.problem, res_contingent.problem
+        )
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_contingent_full_pipeline(self):
+        """End-to-end on the contingent navigation problem: compile, solve,
+        back-convert, and verify the plan reaches the goal from every state
+        allowed by the ``oneof`` constraint."""
+        problem, possible_states = self._build_nav_problem_and_possible_states(
+            ContingentProblem
+        )
+        with Compiler(name="up_ks0_compiler") as compiler:
+            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
+            plan_result = planner.solve(res.problem)
+        self.assertIsNotNone(plan_result.plan)
+
+        assert res.plan_back_conversion is not None
+        back_plan = res.plan_back_conversion(plan_result.plan)
+        self.assertIsInstance(back_plan, SequentialPlan)
+        assert isinstance(back_plan, SequentialPlan)
+        for ai in back_plan.actions:
+            self.assertFalse(ai.action.name.startswith("merge_"))
+
+        with warnings.catch_warnings():
+            # The simulator's grounder does not declare CONTINGENT support
+            warnings.simplefilter("ignore", UserWarning)
+            sim = UPSequentialSimulator(problem, error_on_failed_checks=False)
+        for i, init_state in enumerate(possible_states):
+            cur_state: State = init_state
+            for ai in back_plan.actions:
+                next_state = sim.apply(cur_state, ai)
+                assert next_state is not None
+                self.assertIsNotNone(
+                    next_state, f"Action {ai} not applicable from initial state {i}"
+                )
+                cur_state = next_state
+            self.assertTrue(
+                sim.is_goal(cur_state), f"Plan does not reach goal from state {i}"
+            )
+
+    def test_contingent_rejects_sensing_actions(self):
+        """ContingentProblems with sensing actions must be rejected: KS0 is a
+        conformant translation and cannot use observations."""
+        problem, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
+        sense = SensingAction("sense_done", _env=problem.environment)
+        sense.add_observed_fluent(problem.fluent("done")())
+        problem.add_action(sense)
+        with self.assertRaises(UPUsageError):
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    def test_contingent_rejects_explicit_possible_states(self):
+        """Providing both a ContingentProblem and constructor states is
+        ambiguous and must be rejected."""
+        problem, states = self._build_problem_and_possible_states(
+            problem_factory=ContingentProblem
+        )
+        compiler = Ks0Compiler(possible_initial_states=states)
+        with self.assertRaises(UPUsageError):
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    def test_contingent_rejects_unsatisfiable_constraints(self):
+        """Initial constraints with no satisfying assignment must be
+        rejected instead of silently producing an empty state set."""
+        problem = ContingentProblem("unsat")
+        blocked = Fluent("blocked", environment=problem.environment)
+        problem.add_fluent(blocked, default_initial_value=False)
+        problem.add_goal(blocked())
+        em = problem.environment.expression_manager
+        problem.add_oneof_initial_constraint([blocked()])
+        problem.add_or_initial_constraint([em.Not(blocked())])
+        with self.assertRaises(UPUsageError):
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+    def test_contingent_rejects_undefined_non_hidden_fluent(self):
+        """A non-hidden fluent without an initial value must be rejected:
+        in a ContingentProblem, uncertainty is declared only through the
+        hidden fluents."""
+        problem = ContingentProblem("undef")
+        known = Fluent("known_f", environment=problem.environment)
+        hidden = Fluent("hidden_f", environment=problem.environment)
+        problem.add_fluent(known)
+        problem.add_fluent(hidden)
+        problem.add_unknown_initial_constraint(hidden())
+        problem.add_goal(hidden())
+        with self.assertRaises(UPUsageError) as error:
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIn("known_f", str(error.exception))
 
     # ==================================================================
     # End-to-end pipeline tests
