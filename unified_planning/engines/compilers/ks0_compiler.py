@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""This module defines the KS0 conformant-to-classical compiler."""
+"""This module defines the Ks0 conformant-to-classical compiler, an
+implementation of the K_S0 translation of Palacios and Geffner (2009)."""
 
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -66,11 +67,38 @@ class _PreparedNormalizedProblem:
 
 class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     """
-    Skeleton compiler for the KS0 conformant-planning compilation.
+    Ks0Compiler class: implements the sound and complete ``K_S0`` translation
+    from conformant planning to classical planning of H. Palacios and
+    H. Geffner, "Compiling Uncertainty Away in Conformant Planning Problems
+    with Bounded Width", JAIR 35, 2009 (Definition 8).
 
-    The compiler expects a regular ``Problem`` plus an explicit, non-empty collection
-    of possible initial states. Since the compiler API receives only the problem in the
-    ``compile`` call, the possible states are provided at construction time.
+    For every ground fluent literal ``L`` and every tag ``t`` the compiled
+    :class:`~unified_planning.model.Problem` has knowledge fluents ``KL/t``
+    and ``K-L/t``, read "if the true initial state is ``t``, then ``L``
+    (resp. ``not L``) is known to be true". The tags are the given possible
+    initial states plus the *empty* tag, which stands for unconditional
+    knowledge. Action preconditions and goals are rewritten on the empty tag,
+    every effect rule ``C -> L`` yields per-tag support rules
+    ``KC/t -> KL/t`` and cancellation rules ``-K-C/t -> -K-L/t``, and one
+    merge action per precondition and goal literal derives ``KL`` from the
+    conjunction of ``KL/t`` over all state tags (reasoning by cases over the
+    possible initial states).
+
+    The compiler expects a regular ``Problem`` plus an explicit, non-empty
+    collection of possible initial states. Since the compiler API receives
+    only the problem in the ``compile`` call, the possible states are
+    provided at construction time. The problem is first normalized
+    (quantifier removal, disjunctive-condition removal, grounding) so that
+    all conditions are conjunctions of ground literals, as the translation
+    requires.
+
+    Merge actions are internal to the compilation: the returned
+    :class:`~unified_planning.engines.CompilerResult` provides a
+    ``plan_back_conversion`` that drops them and maps the remaining actions
+    back to the original problem.
+
+    This `Compiler` supports only the `CONFORMANT_TO_CLASSICAL_KS0`
+    :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self, possible_initial_states: Optional[Iterable[State]] = None):
@@ -457,6 +485,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     knowledge_literal_cache[(literal, empty_tag)]
                 )
 
+            # When two effect rules of an action target complementary
+            # literals, a support and a cancellation may add and delete the
+            # same knowledge fluent in one application; delete-before-add
+            # semantics then yields the result intended by the translation.
             for tag in tags:
                 for effect_rule in prepared_action.effect_rules:
                     support_condition = self._conjunction(
@@ -495,6 +527,10 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 knowledge_literal_cache[(goal_literal, empty_tag)]
             )
 
+        # The merge condition is encoded as preconditions rather than as the
+        # paper's conditional effect; the paper's extra mutex merge effects
+        # (XL in Def. 4) are omitted, as they only matter for inconsistent
+        # input problems.
         for literal in prepared_problem.merge_targets:
             merge_action = InstantaneousAction(
                 get_fresh_name(
@@ -625,6 +661,19 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         prepared_problem: _PreparedNormalizedProblem,
         possible_initial_states: Tuple[UPState, ...],
     ) -> Tuple[UPState, ...]:
+        """Drop dominated possible initial states before building tags.
+
+        A state matters to the compilation only through the literals that are
+        conformantly relevant (see :meth:`_get_relevance_relation`) to some
+        merge target, i.e. a precondition or goal literal ``L``. If the
+        relevant literals true in state ``s1`` are a subset of those true in
+        ``s2``, every derivation of ``KL/s1`` mirrors into a derivation of
+        ``KL/s2`` (supports consume only relevant literals and the larger
+        initial knowledge triggers no additional cancellations), so
+        ``KL/s1`` implies ``KL/s2`` throughout and the merge conjunct for
+        ``s2`` is redundant. For each target literal only the states with
+        set-inclusion-minimal relevant-literal sets are kept.
+        """
         if len(possible_initial_states) <= 1:
             return possible_initial_states
 
@@ -695,6 +744,12 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     def _get_relevance_relation(
         prepared_problem: _PreparedNormalizedProblem, expression_manager
     ) -> Dict[FNode, frozenset[FNode]]:
+        """Compute the conformant relevance relation ``L -> L'`` of
+        Palacios & Geffner 2009, Definition 10, mapping each ground literal
+        to the set of literals it is relevant to: reflexivity, effect
+        conditions relevant to effect targets, transitivity, and the
+        equivalent complement rule 4' of Son & Tu 2006
+        (``L -> L'`` if ``-L -> -L'``)."""
         all_literals: List[FNode] = []
         negated_literals: Dict[FNode, FNode] = {}
         for fluent_exp in prepared_problem.ground_fluent_expressions:

@@ -1,7 +1,7 @@
 The problems in this directory were taken from the [ViPlan-HH benchmark](https://github.com/merlerm/ViPlan/) (licensed under the MIT License). All PDDL files in that problem can be found [here](https://github.com/merlerm/ViPlan/tree/main/data/planning/igibson).
 
 The KS0 compiler tests treat these instances as a catalog of ViPlan-HH cases
-declared in `unified_planning/test/viplan_hh_cases.py`. The shared
+declared in `unified_planning/test/pddl/viplan_hh/viplan_hh_cases.py`. The shared
 `domain.pddl` stays in this directory, and each case entry points to a problem
 file here while declaring its initial-state uncertainty in a compact,
 problem-agnostic format.
@@ -24,7 +24,7 @@ To add another ViPlan-HH problem under the same domain:
 
 1. Add the new `*.pddl` problem file to this directory.
 2. Add a matching `ViPlanHHCase` entry in
-   `unified_planning/test/viplan_hh_cases.py`.
+   `unified_planning/test/pddl/viplan_hh/viplan_hh_cases.py`.
 3. Define `representative_states` for the smoke tests.
 4. If the new problem should participate in the subset stress test, also
    define `base_state`, `uncertainty_dimensions`, and `true_state`.
