@@ -43,11 +43,6 @@ from unified_planning.plans import ActionInstance, Plan
 
 
 @dataclass(frozen=True)
-class _Ks0Tag:
-    name: str
-
-
-@dataclass(frozen=True)
 class _PreparedEffectRule:
     condition_literals: Tuple[FNode, ...]
     target_literal: FNode
@@ -81,8 +76,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     def __init__(self, possible_initial_states: Optional[Iterable[State]] = None):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
-        self._possible_initial_states = self._normalize_possible_initial_states(
-            possible_initial_states
+        self._possible_initial_states = (
+            None if possible_initial_states is None else tuple(possible_initial_states)
         )
 
     @property
@@ -175,14 +170,6 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             engine_name=self.name,
             plan_back_conversion=plan_back_conversion,
         )
-
-    @staticmethod
-    def _normalize_possible_initial_states(
-        possible_initial_states: Optional[Iterable[State]],
-    ) -> Optional[Tuple[State, ...]]:
-        if possible_initial_states is None:
-            return None
-        return tuple(possible_initial_states)
 
     def _get_possible_initial_states(self) -> Tuple[State, ...]:
         possible_initial_states = self._possible_initial_states
@@ -394,9 +381,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ) -> Tuple[Problem, Dict[up.model.Action, Optional[up.model.Action]]]:
         environment = problem.environment
         expression_manager = environment.expression_manager
-        tags = tuple(
-            [_Ks0Tag("empty")]
-            + [_Ks0Tag(f"s{index}") for index, _ in enumerate(possible_initial_states)]
+        tags = ("empty",) + tuple(
+            f"s{index}" for index, _ in enumerate(possible_initial_states)
         )
 
         compiled_problem = Problem(
@@ -410,7 +396,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             for is_negative in (False, True):
                 for tag in tags:
                     knowledge_fluent = Fluent(
-                        self._knowledge_fluent_name(fluent, is_negative, tag.name),
+                        self._knowledge_fluent_name(fluent, is_negative, tag),
                         environment.type_manager.BoolType(),
                         fluent.signature,
                         environment=environment,
@@ -418,9 +404,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     compiled_problem.add_fluent(
                         knowledge_fluent, default_initial_value=False
                     )
-                    knowledge_fluents[
-                        (fluent, is_negative, tag.name)
-                    ] = knowledge_fluent
+                    knowledge_fluents[(fluent, is_negative, tag)] = knowledge_fluent
 
         empty_tag = tags[0]
         negated_ground_literals = {
@@ -432,20 +416,20 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         for tag in tags:
             for fluent_exp in prepared_problem.ground_fluent_expressions:
                 positive_knowledge = knowledge_fluents[
-                    (fluent_exp.fluent(), False, tag.name)
+                    (fluent_exp.fluent(), False, tag)
                 ](*fluent_exp.args)
                 negative_knowledge = knowledge_fluents[
-                    (fluent_exp.fluent(), True, tag.name)
+                    (fluent_exp.fluent(), True, tag)
                 ](*fluent_exp.args)
-                knowledge_literal_cache[(fluent_exp, tag.name)] = positive_knowledge
+                knowledge_literal_cache[(fluent_exp, tag)] = positive_knowledge
                 knowledge_literal_cache[
-                    (negated_ground_literals[fluent_exp], tag.name)
+                    (negated_ground_literals[fluent_exp], tag)
                 ] = negative_knowledge
                 negated_knowledge_literal_cache[
-                    (fluent_exp, tag.name)
+                    (fluent_exp, tag)
                 ] = expression_manager.Not(negative_knowledge)
                 negated_knowledge_literal_cache[
-                    (negated_ground_literals[fluent_exp], tag.name)
+                    (negated_ground_literals[fluent_exp], tag)
                 ] = expression_manager.Not(positive_knowledge)
 
         for fluent_exp in prepared_problem.ground_fluent_expressions:
@@ -455,19 +439,19 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             )
             if all(state_values):
                 compiled_problem.set_initial_value(
-                    knowledge_literal_cache[(fluent_exp, empty_tag.name)],
+                    knowledge_literal_cache[(fluent_exp, empty_tag)],
                     True,
                 )
             elif not any(state_values):
                 compiled_problem.set_initial_value(
                     knowledge_literal_cache[
-                        (negated_ground_literals[fluent_exp], empty_tag.name)
+                        (negated_ground_literals[fluent_exp], empty_tag)
                     ],
                     True,
                 )
 
             for index, value in enumerate(state_values):
-                tag_name = tags[index + 1].name
+                tag_name = tags[index + 1]
                 compiled_problem.set_initial_value(
                     knowledge_literal_cache[
                         (
@@ -486,7 +470,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             compiled_action = InstantaneousAction(action.name, _env=environment)
             for literal in prepared_action.precondition_literals:
                 compiled_action.add_precondition(
-                    knowledge_literal_cache[(literal, empty_tag.name)]
+                    knowledge_literal_cache[(literal, empty_tag)]
                 )
 
             for tag in tags:
@@ -494,12 +478,12 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     support_condition = self._conjunction(
                         expression_manager,
                         [
-                            knowledge_literal_cache[(literal, tag.name)]
+                            knowledge_literal_cache[(literal, tag)]
                             for literal in effect_rule.condition_literals
                         ],
                     )
                     compiled_action.add_effect(
-                        knowledge_literal_cache[(effect_rule.target_literal, tag.name)],
+                        knowledge_literal_cache[(effect_rule.target_literal, tag)],
                         True,
                         support_condition,
                     )
@@ -507,13 +491,13 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     cancellation_condition = self._conjunction(
                         expression_manager,
                         [
-                            negated_knowledge_literal_cache[(literal, tag.name)]
+                            negated_knowledge_literal_cache[(literal, tag)]
                             for literal in effect_rule.condition_literals
                         ],
                     )
                     compiled_action.add_effect(
                         knowledge_literal_cache[
-                            (effect_rule.negated_target_literal, tag.name)
+                            (effect_rule.negated_target_literal, tag)
                         ],
                         False,
                         cancellation_condition,
@@ -524,7 +508,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
         for goal_literal in prepared_problem.goal_literals:
             compiled_problem.add_goal(
-                knowledge_literal_cache[(goal_literal, empty_tag.name)]
+                knowledge_literal_cache[(goal_literal, empty_tag)]
             )
 
         for literal in prepared_problem.merge_targets:
@@ -532,11 +516,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                 f"merge_{self._literal_name(literal)}", _env=environment
             )
             for tag in tags[1:]:
-                merge_action.add_precondition(
-                    knowledge_literal_cache[(literal, tag.name)]
-                )
+                merge_action.add_precondition(knowledge_literal_cache[(literal, tag)])
             merge_action.add_effect(
-                knowledge_literal_cache[(literal, empty_tag.name)],
+                knowledge_literal_cache[(literal, empty_tag)],
                 True,
             )
             compiled_problem.add_action(merge_action)
@@ -812,17 +794,6 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     @staticmethod
     def _knowledge_fluent_name(fluent: Fluent, is_negative: bool, tag_name: str) -> str:
         return f"K_{'not_' if is_negative else ''}{fluent.name}_{tag_name}"
-
-    @staticmethod
-    def _knowledge_for_literal(
-        knowledge_fluents: Dict[Tuple[Fluent, bool, str], Fluent],
-        literal: FNode,
-        tag: _Ks0Tag,
-    ) -> FNode:
-        fluent_exp, is_negative = Ks0Compiler._literal_parts(literal)
-        return knowledge_fluents[(fluent_exp.fluent(), is_negative, tag.name)](
-            *fluent_exp.args
-        )
 
     @staticmethod
     def _literal_parts(literal: FNode) -> Tuple[FNode, bool]:
