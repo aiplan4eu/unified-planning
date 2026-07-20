@@ -561,9 +561,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             f"s{index}" for index, _ in enumerate(possible_initial_states)
         )
 
-        compiled_problem = Problem(
-            f"ks0_{original_problem_name}", environment=environment
-        )
+        base_name = original_problem_name or problem.name or "problem"
+        compiled_problem = Problem(f"ks0_{base_name}", environment=environment)
         for obj in problem.all_objects:
             compiled_problem.add_object(obj)
 
