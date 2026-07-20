@@ -5,6 +5,7 @@ from typing import Dict, Mapping, Tuple
 
 from unified_planning.io import UPPDDLReader
 from unified_planning.model import UPState
+from unified_planning.plans import ActionInstance, SequentialPlan
 
 AtomSpec = Tuple[str, ...]
 StateSpec = Dict[AtomSpec, bool]
@@ -27,12 +28,20 @@ class ViPlanHHCase:
       product defines the full uncertain state space for stress tests.
     - true_state: the ground-truth initial state that must always be included
       in the stress-test subsets.
+    - single_state_plan / conformant_plan: known-good plans for the Ks0
+      compilation of the case (sequences of grounded compiled-action names),
+      for the compilation with the first representative state and with all
+      representative states respectively.  They were generated once with a
+      classical planner (see the README) and are validated by simulation in
+      the tests, so no planner is needed at test time.
     """
 
     name: str
     problem_file: str
     representative_states: Tuple[Mapping[AtomSpec, bool], ...]
     true_state: Mapping[AtomSpec, bool]
+    single_state_plan: Tuple[str, ...]
+    conformant_plan: Tuple[str, ...]
     base_state: Mapping[AtomSpec, bool] = field(default_factory=dict)
     uncertainty_dimensions: Tuple[StateChoice, ...] = field(default_factory=tuple)
 
@@ -80,6 +89,17 @@ def state_specs_to_upstates(problem, state_specs) -> Tuple[UPState, ...]:
     return tuple(state_spec_to_upstate(problem, spec) for spec in state_specs)
 
 
+def plan_from_action_names(problem, action_names) -> SequentialPlan:
+    """Build a SequentialPlan of grounded (parameterless) actions by name.
+
+    Used to turn the known-good plan fixtures of a case into plans over the
+    Ks0-compiled problem, whose actions are all grounded.
+    """
+    return SequentialPlan(
+        [ActionInstance(problem.action(name)) for name in action_names]
+    )
+
+
 _CLEANING_OUT_DRAWERS_BASE_STATE = {
     ("inside", "bowl_1", "cabinet_1"): False,
     ("ontop", "bowl_1", "sink_1"): False,
@@ -109,6 +129,22 @@ CLEANING_OUT_DRAWERS = ViPlanHHCase(
         ("ontop", "bowl_1", "cabinet_1"): False,
         ("nextto", "bowl_1", "cabinet_1"): False,
     },
+    single_state_plan=(
+        "navigate-to_cabinet_1",
+        "open-container_cabinet_1",
+        "grasp_bowl_1",
+        "navigate-to_sink_1",
+        "place-on_bowl_1_sink_1",
+    ),
+    conformant_plan=(
+        "navigate-to_cabinet_1",
+        "open-container_cabinet_1",
+        "navigate-to_sink_1",
+        "navigate-to_0_bowl_1",
+        "grasp_bowl_1",
+        "navigate-to_sink_1",
+        "place-on_bowl_1_sink_1",
+    ),
     base_state=_CLEANING_OUT_DRAWERS_BASE_STATE,
     uncertainty_dimensions=(
         (
@@ -151,6 +187,18 @@ SORTING_BOOKS_SIMPLE = ViPlanHHCase(
         ("reachable", "table_1"): False,
         ("reachable", "shelf_1"): False,
     },
+    single_state_plan=(
+        "navigate-to_hardback_1",
+        "grasp_hardback_1",
+        "navigate-to_shelf_1",
+        "place-on_hardback_1_shelf_1",
+    ),
+    conformant_plan=(
+        "navigate-to_hardback_1",
+        "grasp_hardback_1",
+        "navigate-to_shelf_1",
+        "place-on_hardback_1_shelf_1",
+    ),
     base_state=_SORTING_BOOKS_BASE_STATE,
     uncertainty_dimensions=(
         (
@@ -200,6 +248,30 @@ PUTTING_AWAY_TOYS = ViPlanHHCase(
         ("reachable", "carton_1"): False,
         ("open", "carton_1"): True,
     },
+    single_state_plan=(
+        "navigate-to_carton_1",
+        "open-container_carton_1",
+        "navigate-to_plaything_2",
+        "grasp_plaything_2",
+        "navigate-to_carton_1",
+        "place-inside_plaything_2_carton_1",
+        "navigate-to_plaything_4",
+        "grasp_plaything_4",
+        "navigate-to_carton_1",
+        "place-inside_plaything_4_carton_1",
+    ),
+    conformant_plan=(
+        "navigate-to_carton_1",
+        "open-container_carton_1",
+        "navigate-to_plaything_2",
+        "grasp_plaything_2",
+        "navigate-to_carton_1",
+        "place-inside_plaything_2_carton_1",
+        "navigate-to_plaything_4",
+        "grasp_plaything_4",
+        "navigate-to_carton_1",
+        "place-inside_plaything_4_carton_1",
+    ),
     base_state=_PUTTING_AWAY_TOYS_BASE_STATE,
     uncertainty_dimensions=(
         (
@@ -275,6 +347,42 @@ ORGANIZING_FILE_CABINET = ViPlanHHCase(
         ("inside", "folder_1", "cabinet_1"): False,
         ("inside", "folder_2", "cabinet_1"): False,
     },
+    single_state_plan=(
+        "navigate-to_cabinet_1",
+        "open-container_cabinet_1",
+        "navigate-to_marker_1",
+        "grasp_marker_1",
+        "navigate-to_cabinet_1",
+        "navigate-to_table_1",
+        "place-on_marker_1_table_1",
+        "navigate-to_cabinet_1",
+        "navigate-to_document_1",
+        "grasp_document_1",
+        "navigate-to_cabinet_1",
+        "place-inside_document_1_cabinet_1",
+        "navigate-to_document_3",
+        "grasp_document_3",
+        "navigate-to_cabinet_1",
+        "place-inside_document_3_cabinet_1",
+    ),
+    conformant_plan=(
+        "navigate-to_cabinet_1",
+        "open-container_cabinet_1",
+        "navigate-to_marker_1",
+        "grasp_marker_1",
+        "navigate-to_cabinet_1",
+        "navigate-to_table_1",
+        "place-on_marker_1_table_1",
+        "navigate-to_cabinet_1",
+        "navigate-to_document_1",
+        "grasp_document_1",
+        "navigate-to_cabinet_1",
+        "place-inside_document_1_cabinet_1",
+        "navigate-to_document_3",
+        "grasp_document_3",
+        "navigate-to_cabinet_1",
+        "place-inside_document_3_cabinet_1",
+    ),
     base_state=_ORGANIZING_FILE_CABINET_BASE_STATE,
     uncertainty_dimensions=(
         ({("open", "cabinet_1"): False}, {("open", "cabinet_1"): True}),

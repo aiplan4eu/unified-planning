@@ -19,6 +19,21 @@ Each `ViPlanHHCase` can declare:
   defines the full possible-state set for the subset stress test.
 - `true_state`: the benchmark's ground-truth initial state, which is always
   included in the stress-test subsets.
+- `single_state_plan` / `conformant_plan`: known-good plans for the KS0
+  compilation of the case (sequences of grounded compiled-action names),
+  for the compilation with the first representative state and with all
+  representative states respectively.
+
+The known-good plans keep the tests planner-independent: instead of solving
+the (large) compiled problems with whatever planner is installed — which can
+be extremely slow — the tests replay the stored plans with the sequential
+simulator on both the compiled and the original problem. The plans were
+generated once by solving each compilation with a classical planner
+(fast-downward). If the KS0 translation or its naming scheme changes, the
+fixtures must be regenerated the same way: compile the case's problem with
+`Ks0Compiler`, solve the compiled problem with any classical planner
+supporting conditional effects, and store the resulting grounded action
+names.
 
 To add another ViPlan-HH problem under the same domain:
 
@@ -26,7 +41,8 @@ To add another ViPlan-HH problem under the same domain:
 2. Add a matching `ViPlanHHCase` entry in
    `unified_planning/test/pddl/viplan_hh/viplan_hh_cases.py`.
 3. Define `representative_states` for the smoke tests.
-4. If the new problem should participate in the subset stress test, also
+4. Generate `single_state_plan` and `conformant_plan` as described above.
+5. If the new problem should participate in the subset stress test, also
    define `base_state`, `uncertainty_dimensions`, and `true_state`.
 
 The KS0 ViPlan-HH tests iterate over every declared case automatically, so
