@@ -38,7 +38,7 @@ from unified_planning.model import (
 )
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle, Scope
-from unified_planning.model.timing import GlobalStartTiming, Timing, Timepoint
+from unified_planning.model.timing import Timing, Timepoint
 
 
 class SchedulingProblem(  # type: ignore[misc]
@@ -246,8 +246,8 @@ class SchedulingProblem(  # type: ignore[misc]
         """Creates a new activity with the given `name` in the problem.
 
         :param name: Name that uniquely identifies the activity.
-        :param duration: (optional) Fixed duration of the activity. If not set, the duration to 0 (instantaneous activity).
-                         The duration can alter be overriden on the Activity object.
+        :param duration: (optional) Fixed duration of the activity. If not set, the duration is set to 0 (instantaneous activity).
+                         The duration can later be overridden on the Activity object.
         :param optional: If set to true, the activity will be optional and may not appear in the solution.
         """
         if any(a.name == name for a in self._activities):
@@ -316,13 +316,11 @@ class SchedulingProblem(  # type: ignore[misc]
 
     def add_increase_effect(
         self,
-        timing: Union[int, "up.model.timing.Timing"],
+        timing: TimeExpression,
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        if isinstance(timing, int):
-            timing = GlobalStartTiming(timing)
         self._base.add_increase_effect(timing, fluent, value, condition)  # type: ignore
 
     def add_decrease_effect(

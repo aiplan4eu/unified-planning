@@ -121,7 +121,7 @@ class Chronicle(TimedCondsEffs):
     def __hash__(self) -> int:
         res = hash(self._name)
         res += sum(map(hash, self._parameters.items()))
-        # hash only the constraint to avoid potential oredering discrepancy in the scope elements
+        # hash only the constraint to avoid potential ordering discrepancy in the scope elements
         res += sum(map(hash, (c for (c, scope) in self._constraints)))
         res += TimedCondsEffs.__hash__(self)
         return res

@@ -39,7 +39,7 @@ class Activity(Chronicle):
     def __init__(
         self,
         name: str,
-        duration: int = 1,
+        duration: int = 0,
         optional: bool = False,
         _env: Optional[Environment] = None,
     ):
@@ -63,7 +63,7 @@ class Activity(Chronicle):
 
     @property
     def end(self) -> Timepoint:
-        """Returns a reference to the start time of this activity."""
+        """Returns a reference to the end time of this activity."""
         return self._end
 
     @property
@@ -140,7 +140,7 @@ class Activity(Chronicle):
         The borrowed resources will be reusable by another activity at the time epoch immediately
         succeeding the activity end.
 
-        :param resource: Fluent expression that denotes the resource taht is used.
+        :param resource: Fluent expression that denotes the resource that is used.
         :param amount: Quantity of the resource that is borrowed over the course of the activity.
         """
         self.add_decrease_effect(self.start, resource, amount)
@@ -151,7 +151,7 @@ class Activity(Chronicle):
         constraint: Constraint,
     ):
         """Adds a constraint on the activity.
-        If the activity is optional, the scope of the constraint will be the presence of the activity it self."""
+        If the activity is optional, the scope of the constraint will be the presence of the activity itself."""
         scope = [self.present] if self.optional else []
         self._add_constraint(constraint, scope=scope)
 
