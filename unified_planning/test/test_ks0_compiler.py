@@ -1177,6 +1177,8 @@ class TestKs0Compiler(unittest_TestCase):
         res_minimal = Ks0Compiler(possible_initial_states=(s0,)).compile(
             problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
         )
+        assert isinstance(res_both.problem, Problem)
+        assert res_minimal.problem is not None
         fluent_names = {f.name for f in res_both.problem.fluents}
         self.assertFalse(any(name.endswith("_s1") for name in fluent_names))
         self._assert_equivalent_compilations(res_both.problem, res_minimal.problem)
@@ -1189,6 +1191,7 @@ class TestKs0Compiler(unittest_TestCase):
         compiler = Ks0Compiler(possible_initial_states=possible_states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
+        assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
         self.assertIsNotNone(plan_result.plan)
