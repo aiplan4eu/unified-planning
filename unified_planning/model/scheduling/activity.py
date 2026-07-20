@@ -39,7 +39,7 @@ class Activity(Chronicle):
     def __init__(
         self,
         name: str,
-        duration: int = 1,
+        duration: int = 0,
         optional: bool = False,
         _env: Optional[Environment] = None,
     ):
