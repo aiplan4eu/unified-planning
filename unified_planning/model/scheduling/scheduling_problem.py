@@ -246,8 +246,8 @@ class SchedulingProblem(  # type: ignore[misc]
         """Creates a new activity with the given `name` in the problem.
 
         :param name: Name that uniquely identifies the activity.
-        :param duration: (optional) Fixed duration of the activity. If not set, the duration to 0 (instantaneous activity).
-                         The duration can alter be overriden on the Activity object.
+        :param duration: (optional) Fixed duration of the activity. If not set, the duration is set to 0 (instantaneous activity).
+                         The duration can later be overridden on the Activity object.
         :param optional: If set to true, the activity will be optional and may not appear in the solution.
         """
         if any(a.name == name for a in self._activities):
