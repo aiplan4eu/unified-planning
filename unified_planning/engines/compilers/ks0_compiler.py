@@ -31,6 +31,7 @@ from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMi
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPStateMissingFluentError, UPUsageError
 from unified_planning.model import (
+    ExpressionManager,
     FNode,
     Fluent,
     InstantaneousAction,
@@ -157,6 +158,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         new_kind.unset_problem_class("CONTINGENT")
         new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         new_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+        new_kind.unset_parameters("BOOL_ACTION_PARAMETERS")
+        new_kind.unset_parameters("BOUNDED_INT_ACTION_PARAMETERS")
         new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
         new_kind.unset_conditions_kind("EQUALITIES")
         new_kind.unset_conditions_kind("EXISTENTIAL_CONDITIONS")
@@ -170,6 +173,17 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         problem: "up.model.AbstractProblem",
         compilation_kind: "up.engines.CompilationKind",
     ) -> CompilerResult:
+        """
+        Takes an instance of a :class:`~unified_planning.model.Problem` and the
+        `CONFORMANT_TO_CLASSICAL_KS0` :class:`~unified_planning.engines.CompilationKind`
+        and returns a `CompilerResult` where the problem is the classical `K_S0`
+        encoding of the given conformant problem.
+
+        :param problem: The instance of the `Problem` that must be compiled.
+        :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
+            only `CONFORMANT_TO_CLASSICAL_KS0` is supported by this compiler
+        :return: The resulting `CompilerResult` data structure.
+        """
         assert isinstance(problem, Problem)
         if len(problem.quality_metrics) > 0:
             raise UPUsageError(
@@ -897,7 +911,8 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def _get_relevance_relation(
-        prepared_problem: _PreparedNormalizedProblem, expression_manager
+        prepared_problem: _PreparedNormalizedProblem,
+        expression_manager: ExpressionManager,
     ) -> Dict[FNode, frozenset[FNode]]:
         """Compute the conformant relevance relation ``L -> L'`` of
         Palacios & Geffner 2009, Definition 10, mapping each ground literal
@@ -1003,7 +1018,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         )
 
     @staticmethod
-    def _negate_literal(literal: FNode, expression_manager) -> FNode:
+    def _negate_literal(literal: FNode, expression_manager: ExpressionManager) -> FNode:
         fluent_exp, is_negative = Ks0Compiler._literal_parts(literal)
         return fluent_exp if is_negative else expression_manager.Not(fluent_exp)
 
@@ -1044,7 +1059,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         return tuple(literals)
 
     @staticmethod
-    def _conjunction(expression_manager, expressions: Sequence[FNode]) -> FNode:
+    def _conjunction(
+        expression_manager: ExpressionManager, expressions: Sequence[FNode]
+    ) -> FNode:
         if len(expressions) == 0:
             return expression_manager.TRUE()
         if len(expressions) == 1:
