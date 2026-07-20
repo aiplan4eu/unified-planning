@@ -52,22 +52,10 @@ class TestKs0Compiler(unittest_TestCase):
     ):
         """Build a minimal 2-fluent problem with 2 possible initial states.
 
-        Problem "ks0_input":
-          Fluents: ``reachable`` (goal), ``blocked`` (precondition guard).
-          Action:  ``unblock`` — precondition: NOT blocked; effect: reachable := true.
-          Goal:    ``reachable``.
-
-        Possible initial states:
-          s0: reachable=F, blocked=F  (unblock IS applicable)
-          s1: reachable=F, blocked=T  (unblock is NOT applicable)
-
-        Accepts an optional *environment* so tests can verify cross-environment
-        rejection.  With ``problem_factory=ContingentProblem`` the same
-        uncertainty is declared on the problem itself (``blocked`` unknown)
-        instead of through the returned states.
-
-        Returns:
-            (Problem, tuple[UPState, UPState])
+        Action `unblock` (precondition `Not(blocked)`, effect
+        `reachable := True`) achieves the goal `reachable`; the states s0/s1
+        differ on `blocked`.  With `problem_factory=ContingentProblem` the
+        same uncertainty is declared on the problem itself instead.
         """
         problem = problem_factory("ks0_input", environment=environment)
         reachable = Fluent("reachable", environment=problem.environment)
@@ -96,38 +84,12 @@ class TestKs0Compiler(unittest_TestCase):
         return problem, possible_initial_states
 
     def _build_nav_problem_and_possible_states(self, problem_factory=Problem):
-        """Build a 4-location navigation problem with typed parameters.
+        """Build a 4-location linear-chain navigation problem (goal at l3).
 
-        Problem "nav":
-          Types:   ``location``.
-          Fluents: ``at(l)``, ``adj_left(l1,l2)``, ``is_goal(l)``, ``done``.
-          Actions: ``move_left``, ``move_right`` (conditional on adjacency and
-                   current position), ``end`` (marks done when at goal).
-          Objects: l1 — l2 — l3 — l4 (linear chain, goal at l3).
-          Goal:    ``done``.
-
-        The problem can be viewed as a 4x1 grid with a single exit point:
-
-                 done
-                   ^
-        ---------- | ----------------
-        |      |      |      |      |
-        |  l4     l3     l2     l1  |
-        |      |      |      |      |
-        -----------------------------
-
-        Possible initial states (4):
-          Each places the agent at a different location (l1..l4) while keeping
-          the adjacency and goal structure fixed. Thus, a conformant plan must
-          move left from l1 until it is certain it is in l4, then move right
-          to l3 and end.
-
-        With ``problem_factory=ContingentProblem`` the agent position is
-        declared as a ``oneof`` initial constraint on the problem instead of
-        being fixed at l1.
-
-        Returns:
-            (Problem, tuple[UPState, x 4])
+        The agent's initial location (l1..l4) is uncertain, so a conformant
+        plan must move left until the position is certain, then move right to
+        l3 and `end`.  With `problem_factory=ContingentProblem` the
+        position is a `oneof` initial constraint instead.
         """
         problem = problem_factory("nav")
 
@@ -237,22 +199,7 @@ class TestKs0Compiler(unittest_TestCase):
         return problem, possible_initial_states
 
     def _build_conditional_effect_problem_and_possible_states(self):
-        """Build a minimal problem with a conditional effect.
-
-        Problem "cond_eff":
-          Fluents: ``f1``, ``f2``.
-          Action:  ``a`` — effect: f2 := true **when** f1 is true.
-          Goal:    ``f2``.
-
-        Single possible initial state:
-          s0: f1=T, f2=F (the conditional effect fires).
-
-        Used to verify that the compiler correctly translates conditional
-        effects into per-tag conditional effects in the compiled domain.
-
-        Returns:
-            (Problem, tuple[UPState])
-        """
+        """Build a minimal problem whose action sets `f2` only when `f1` holds."""
         problem = Problem("cond_eff")
         f1 = Fluent("f1")
         f2 = Fluent("f2")
@@ -273,27 +220,11 @@ class TestKs0Compiler(unittest_TestCase):
         return problem, (s0,)
 
     def _build_negated_disjunction_precondition_problem(self):
-        """Build a problem with a negated disjunctive precondition.
+        """Build an unsolvable problem with precondition `Not(Or(a, b))`.
 
-        Problem "negated_disj":
-          Fluents: ``a``, ``b``, ``goal``.
-          Action:  ``act`` — precondition: ``Not(Or(a, b))``; effect: ``goal := True``.
-          Goal:    ``goal``.
-
-        Possible initial states:
-          s0: a=T, b=F  →  Not(Or(T, F)) = False  →  ``act`` NOT applicable
-          s1: a=F, b=F  →  Not(Or(F, F)) = True   →  ``act`` IS applicable
-
-        The conformant problem is **not solvable**: ``act``'s precondition
-        fails in s0, so no plan achieves ``goal`` from every possible initial
-        state.  A correct translation must first normalize ``Not(Or(a, b))``
-        to ``And(Not(a), Not(b))``; translating the negation directly over
-        knowledge fluents (``Not(Or(K_a, K_b))``) wrongly evaluates to True
-        under the empty tag (where neither ``K_a`` nor ``K_b`` is set) and
-        admits a spurious plan.
-
-        Returns:
-            (Problem, tuple[UPState, UPState])
+        State s0 (a=T) falsifies the precondition, so no conformant plan
+        achieves `goal`; a translation that does not normalize the negated
+        disjunction before introducing knowledge fluents admits a spurious plan.
         """
         problem = Problem("negated_disj")
         a = Fluent("a")
@@ -331,20 +262,9 @@ class TestKs0Compiler(unittest_TestCase):
     def _build_pick_drop_problem_and_possible_states(self):
         """Build the pick/drop example of Palacios & Geffner 2009, Section 4.
 
-        Problem "pick_drop":
-          Fluents: ``hold``, ``at(l)`` over locations l1, l2, l3.
-          Actions (conditional effects only, no preconditions):
-            pick(l): ¬hold ∧ at(l) → hold ∧ ¬at(l);  hold → ¬hold ∧ at(l)
-            drop(l): hold → ¬hold ∧ at(l)
-          Goal:    ``at(l3)``.
-
-        Possible initial states: the hand is empty and the object is at l1
-        or at l2.  ``[pick(l1), drop(l3), pick(l2), drop(l3)]`` is a
-        conformant plan; ``[pick(l1), pick(l2), drop(l3)]`` is not, because
-        if the object started at l1 the second pick drops it at l2.
-
-        Returns:
-            (Problem, tuple[UPState, UPState])
+        The object starts at l1 or l2 with the hand empty;
+        `[pick(l1), drop(l3), pick(l2), drop(l3)]` is a conformant plan for
+        `at(l3)` while `[pick(l1), pick(l2), drop(l3)]` is not.
         """
         problem = Problem("pick_drop")
         loc_type = UserType("loc")
@@ -563,19 +483,14 @@ class TestKs0Compiler(unittest_TestCase):
     # ==================================================================
 
     def test_compile_requires_possible_initial_states(self):
-        """Compiling without providing any possible initial states must raise
-        ``UPUsageError``.  This guards against accidental omission of the
-        required conformant-planning input."""
+        """Compiling without possible initial states must raise `UPUsageError`."""
         problem, _ = self._build_problem_and_possible_states()
         compiler = Ks0Compiler()
         with self.assertRaises(UPUsageError):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_compile_rejects_invalid_possible_initial_states(self):
-        """Non-State objects in the possible-states list must be rejected with a
-        clear error message stating the offending type and index."""
-
-        # check failure at index 0
+        """Non-State elements must be rejected with an error naming the index."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=[object()])  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
@@ -588,8 +503,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_problem(self):
-        """States built for a *different* problem must be rejected: they cannot
-        resolve this problem's fluent expressions."""
+        """States built for a different problem must be rejected."""
         problem1, possible_initial_states1 = self._build_problem_and_possible_states()
         _, possible_initial_states2 = self._build_nav_problem_and_possible_states()
 
@@ -601,8 +515,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_environments(self):
-        """States created under a different UP ``Environment`` must be rejected:
-        their expressions cannot resolve this problem's fluent expressions."""
+        """States created under a different `Environment` must be rejected."""
         problem1, _ = self._build_problem_and_possible_states()
         _, possible_initial_states2 = self._build_problem_and_possible_states(
             Environment()
@@ -618,8 +531,7 @@ class TestKs0Compiler(unittest_TestCase):
     # ==================================================================
 
     def test_factory_instantiation_with_params(self):
-        """Verify the compiler can be instantiated through the UP ``Compiler``
-        factory by name, passing ``possible_initial_states`` as a parameter."""
+        """The factory must build the compiler by name with `possible_initial_states`."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         with Compiler(
             name="up_ks0_compiler",
@@ -632,8 +544,7 @@ class TestKs0Compiler(unittest_TestCase):
             )
 
     def test_factory_instantiation_from_problem_kind(self):
-        """Verify the factory can select the KS0 compiler from a problem kind
-        and compilation kind alone.  Compilation must still require states."""
+        """The factory must select the compiler from problem and compilation kind."""
         problem, _ = self._build_problem_and_possible_states()
         with Compiler(
             problem_kind=problem.kind,
@@ -648,8 +559,8 @@ class TestKs0Compiler(unittest_TestCase):
     # ==================================================================
 
     def _assert_equivalent_compilations(self, problem1, problem2):
-        """Assert two compiled problems are structurally identical: same
-        fluent, action, and goal names and same explicit initial values."""
+        """Assert two compiled problems have the same fluents, actions, goals,
+        and explicit initial values."""
         self.assertEqual(
             {f.name for f in problem1.fluents}, {f.name for f in problem2.fluents}
         )
@@ -665,8 +576,8 @@ class TestKs0Compiler(unittest_TestCase):
         )
 
     def test_contingent_problem_kind_supported(self):
-        """The compiler must support the CONTINGENT problem class and remove
-        it from the resulting problem kind."""
+        """The compiler must support the CONTINGENT class and remove it from
+        the resulting problem kind."""
         problem, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
         self.assertTrue(problem.kind.has_contingent())
         self.assertTrue(Ks0Compiler.supports(problem.kind))
@@ -681,9 +592,8 @@ class TestKs0Compiler(unittest_TestCase):
             self.assertIsInstance(compiler, Ks0Compiler)
 
     def test_contingent_unknown_matches_explicit_states(self):
-        """Compiling a ContingentProblem with an ``unknown`` constraint must
-        produce the same compilation as passing the two corresponding states
-        explicitly."""
+        """An `unknown` constraint must compile like the two corresponding
+        explicit states."""
         plain, states = self._build_problem_and_possible_states()
         contingent, _ = self._build_problem_and_possible_states(
             problem_factory=ContingentProblem
@@ -699,8 +609,7 @@ class TestKs0Compiler(unittest_TestCase):
         )
 
     def test_contingent_oneof_matches_explicit_states(self):
-        """A ``oneof`` constraint over the agent position must enumerate the
-        same possible states as the explicit four-state navigation setup."""
+        """A `oneof` constraint must compile like the explicit four-state setup."""
         plain, states = self._build_nav_problem_and_possible_states()
         contingent, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
         res_explicit = Ks0Compiler(possible_initial_states=states).compile(
@@ -714,8 +623,7 @@ class TestKs0Compiler(unittest_TestCase):
         )
 
     def test_contingent_or_matches_explicit_states(self):
-        """An ``or`` constraint must enumerate exactly the satisfying
-        assignments (here 3 of the 4 combinations of two hidden fluents)."""
+        """An `or` constraint must enumerate exactly the satisfying assignments."""
 
         def build(problem_factory):
             problem = problem_factory("or_input")
@@ -761,9 +669,8 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_contingent_full_pipeline(self):
-        """End-to-end on the contingent navigation problem: compile, solve,
-        back-convert, and verify the plan reaches the goal from every state
-        allowed by the ``oneof`` constraint."""
+        """End-to-end on the contingent navigation problem: the plan must reach
+        the goal from every state allowed by the `oneof` constraint."""
         problem, possible_states = self._build_nav_problem_and_possible_states(
             ContingentProblem
         )
@@ -799,8 +706,7 @@ class TestKs0Compiler(unittest_TestCase):
             )
 
     def test_contingent_rejects_sensing_actions(self):
-        """ContingentProblems with sensing actions must be rejected: KS0 is a
-        conformant translation and cannot use observations."""
+        """ContingentProblems with sensing actions must be rejected."""
         problem, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
         sense = SensingAction("sense_done", _env=problem.environment)
         sense.add_observed_fluent(problem.fluent("done")())
@@ -809,8 +715,7 @@ class TestKs0Compiler(unittest_TestCase):
             Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_contingent_rejects_explicit_possible_states(self):
-        """Providing both a ContingentProblem and constructor states is
-        ambiguous and must be rejected."""
+        """Providing both a ContingentProblem and constructor states must be rejected."""
         problem, states = self._build_problem_and_possible_states(
             problem_factory=ContingentProblem
         )
@@ -819,8 +724,7 @@ class TestKs0Compiler(unittest_TestCase):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_contingent_rejects_unsatisfiable_constraints(self):
-        """Initial constraints with no satisfying assignment must be
-        rejected instead of silently producing an empty state set."""
+        """Unsatisfiable initial constraints must be rejected."""
         problem = ContingentProblem("unsat")
         blocked = Fluent("blocked", environment=problem.environment)
         problem.add_fluent(blocked, default_initial_value=False)
@@ -832,9 +736,7 @@ class TestKs0Compiler(unittest_TestCase):
             Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_contingent_rejects_undefined_non_hidden_fluent(self):
-        """A non-hidden fluent without an initial value must be rejected:
-        in a ContingentProblem, uncertainty is declared only through the
-        hidden fluents."""
+        """A non-hidden fluent without an initial value must be rejected."""
         problem = ContingentProblem("undef")
         known = Fluent("known_f", environment=problem.environment)
         hidden = Fluent("hidden_f", environment=problem.environment)
@@ -846,13 +748,26 @@ class TestKs0Compiler(unittest_TestCase):
             Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
         self.assertIn("known_f", str(error.exception))
 
+    def test_contingent_rejects_non_ground_hidden_fluent(self):
+        """A hidden fluent that is not a grounded fluent expression of the
+        problem must be rejected."""
+        problem = ContingentProblem("bad_hidden")
+        known = Fluent("known_f", environment=problem.environment)
+        problem.add_fluent(known, default_initial_value=False)
+        stray = Fluent("stray_f", environment=problem.environment)
+        problem.add_unknown_initial_constraint(stray())
+        problem.add_goal(known())
+        with self.assertRaises(UPUsageError) as error:
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        self.assertIn("grounded", str(error.exception))
+
     # ==================================================================
     # End-to-end pipeline tests
     # ==================================================================
 
     def test_full_compilation_pipeline(self):
-        """Compile the basic problem and verify the result contains a renamed
-        problem with fluents, actions, goals, and a back-conversion function."""
+        """Compiling must produce a renamed problem with fluents, actions,
+        goals, and a plan-back conversion."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         with Compiler(
             name="up_ks0_compiler",
@@ -870,9 +785,8 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_full_compilation_with_plan(self):
-        """End-to-end: compile the navigation problem with 1-4 possible initial
-        states, solve the compiled classical problem, back-convert the plan,
-        and verify no merge actions leak into the original-domain plan."""
+        """End-to-end: solve the compiled navigation problem and back-convert
+        the plan without leaking merge actions."""
         for num_possible_initial_states in [1, 4]:
             with self.subTest(num_possible_initial_states=num_possible_initial_states):
                 (
@@ -922,16 +836,14 @@ class TestKs0Compiler(unittest_TestCase):
     # ------------------------------------------------------------------
 
     def test_compile_rejects_empty_possible_initial_states(self):
-        """An *empty* tuple of possible states must be rejected (at least one
-        world is required for the KS0 compilation to be meaningful)."""
+        """An empty tuple of possible states must be rejected."""
         problem, _ = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=())
         with self.assertRaises(UPUsageError):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_compile_rejects_non_boolean_fluents(self):
-        """Problems with non-Boolean fluents must be rejected: the KS0
-        knowledge encoding is defined over Boolean literals only."""
+        """Problems with non-Boolean fluents must be rejected."""
         problem = Problem("non_bool")
         counter = Fluent("counter", IntType())
         problem.add_fluent(counter, default_initial_value=0)
@@ -942,8 +854,7 @@ class TestKs0Compiler(unittest_TestCase):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_compile_rejects_quality_metrics(self):
-        """Problems with quality metrics must be rejected: merge actions
-        change the plan length and cost structure of the compiled problem."""
+        """Problems with quality metrics must be rejected."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         problem.add_quality_metric(MinimizeSequentialPlanLength())
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
@@ -951,8 +862,7 @@ class TestKs0Compiler(unittest_TestCase):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
 
     def test_compile_rejects_state_missing_a_fluent_value(self):
-        """A possible state that does not define a value for some grounded
-        fluent must be rejected with an error naming the missing fluent."""
+        """A state missing a value for some grounded fluent must be rejected."""
         problem, _ = self._build_problem_and_possible_states()
         em = problem.environment.expression_manager
         reachable = problem.fluent("reachable")
@@ -971,8 +881,7 @@ class TestKs0Compiler(unittest_TestCase):
     # ------------------------------------------------------------------
 
     def _compile_basic(self):
-        """Compile the minimal 2-fluent problem and return both the original
-        problem and the :class:`CompilerResult` for structural inspection."""
+        """Compile the minimal 2-fluent problem and return (problem, result)."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
@@ -983,15 +892,9 @@ class TestKs0Compiler(unittest_TestCase):
         _, res = self._compile_basic()
         self.assertEqual(res.problem.name, "ks0_ks0_input")
 
-    def test_compiled_fluent_count(self):
-        """Expect 2 atoms x 2 literals (positive & negated) x 3 tags = 12 K-fluents."""
-        # 2 atoms × 2 literals × 3 tags (1 empty + 2 states) = 12
-        _, res = self._compile_basic()
-        self.assertEqual(len(res.problem.fluents), 12)
-
     def test_compiled_fluent_names(self):
-        """Every K-fluent follows the K_{not_}<atom>_<tag> naming convention.
-        Original fluent names must not appear in the compiled problem."""
+        """Every K-fluent follows the K_{not_}<atom>_<tag> naming convention;
+        original fluent names must not appear in the compiled problem."""
         _, res = self._compile_basic()
         fluent_names = {f.name for f in res.problem.fluents}
         expected = {
@@ -1013,8 +916,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertNotIn("blocked", fluent_names)
 
     def test_compiled_initial_state_empty_tag_universal_literal(self):
-        """A literal true in *all* possible states (not-reachable) must be set
-        to TRUE under the empty (universal) tag in the initial state."""
+        """A literal true in all possible states must start TRUE under the empty tag."""
         _, res = self._compile_basic()
         em = res.problem.environment.expression_manager
         K_not_reachable_empty = res.problem.fluent("K_not_reachable_empty")
@@ -1024,8 +926,8 @@ class TestKs0Compiler(unittest_TestCase):
         )
 
     def test_compiled_initial_state_empty_tag_non_universal_literal(self):
-        """A literal that is NOT true in all possible states (blocked and
-        not-blocked) must NOT be set to TRUE under the empty tag."""
+        """A literal not shared by all possible states must not start TRUE
+        under the empty tag."""
         _, res = self._compile_basic()
         em = res.problem.environment.expression_manager
 
@@ -1038,10 +940,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn(val2, (em.FALSE(), None))
 
     def test_compiled_initial_state_per_tag(self):
-        """Per-state tags must reflect the truth value of each literal in the
-        corresponding possible initial state.  s0 has blocked=F so
-        K_not_blocked_s0 = T; s1 has blocked=T so K_blocked_s1 = T and
-        K_not_blocked_s1 must be F."""
+        """Per-state tags must reflect each literal's truth value in their state."""
         _, res = self._compile_basic()
         em = res.problem.environment.expression_manager
 
@@ -1060,9 +959,8 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn(val, (em.FALSE(), None))
 
     def test_compiled_goal_uses_empty_tag(self):
-        """The compiled goal must reference the empty-tag K-fluent (universal
-        knowledge), not the original fluent.  This ensures the plan achieves
-        the goal regardless of which initial state is the true one."""
+        """The compiled goal must reference the empty-tag K-fluent, not the
+        original fluent."""
         problem, res = self._compile_basic()
         goal_fluents = {g.fluent() for g in res.problem.goals if g.is_fluent_exp()}
         K_reachable_empty = res.problem.fluent("K_reachable_empty")
@@ -1071,17 +969,13 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertNotIn(reachable, goal_fluents)
 
     def test_compiled_action_count(self):
-        """Expect 1 original action (unblock) + 2 merge actions = 3 total.
-        Merge actions are generated for each literal that appears in a
-        precondition or the goal."""
-        # 1 original action (unblock) + 2 merge actions = 3
+        """Expect the original action plus one merge action per precondition
+        and goal literal."""
         _, res = self._compile_basic()
         self.assertEqual(len(res.problem.actions), 3)
 
     def test_compiled_action_preconditions_use_empty_tag(self):
-        """Original action preconditions must be rewritten to reference the
-        empty-tag K-fluent, not the original fluent.  This ensures the planner
-        reasons about knowledge rather than specific states."""
+        """Original action preconditions must be rewritten on the empty tag."""
         problem, res = self._compile_basic()
         compiled_unblock = res.problem.action("unblock")
         precondition_fluents = {
@@ -1093,9 +987,8 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertNotIn(blocked, precondition_fluents)
 
     def test_compiled_unconditional_effect_generates_per_tag_effects(self):
-        """An unconditional add-effect on ``reachable`` must generate both
-        support (K_reachable_<tag> := T) and cancellation (K_not_reachable_<tag>
-        := F) effects for every tag (empty + per-state), totaling 6 effects."""
+        """An unconditional effect must yield support and cancellation effects
+        for every tag."""
         _, res = self._compile_basic()
         compiled_unblock = res.problem.action("unblock")
         # Unconditional add(reachable) → support + cancellation per tag × 3 tags = 6
@@ -1109,8 +1002,8 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn("K_not_reachable_s1", effect_fluent_names)
 
     def test_compiled_conditional_effect_generates_per_tag_conditions(self):
-        """A conditional effect (f2 := T when f1) must produce per-tag
-        conditional effects whose conditions reference K_f1_<tag> fluents."""
+        """A conditional effect's compiled conditions must reference per-tag
+        K-fluents."""
         problem, states = self._build_conditional_effect_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
@@ -1129,10 +1022,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertTrue(any("f1" in name for name in condition_fluent_names))
 
     def test_merge_actions_created_for_precondition_and_goal_literals(self):
-        """Merge actions bridge per-state knowledge to universal knowledge.
-        One merge action must exist for each literal appearing in a precondition
-        or the goal: here, ``not_blocked`` (precondition) and ``reachable``
-        (goal)."""
+        """One merge action must exist per precondition and goal literal."""
         _, res = self._compile_basic()
         merge_actions = [a for a in res.problem.actions if a.name.startswith("merge_")]
         self.assertEqual(len(merge_actions), 2)
@@ -1141,9 +1031,8 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertTrue(any("reachable" in n and "not" not in n for n in merge_names))
 
     def test_merge_action_preconditions_require_all_state_tags(self):
-        """A merge action's preconditions must require the corresponding
-        K-fluent to hold in *every* per-state tag (s0, s1) but must NOT
-        reference the empty tag (that is the conclusion, not a premise)."""
+        """Merge preconditions must require every per-state tag but not the
+        empty tag."""
         _, res = self._compile_basic()
         merge_not_blocked = next(
             a
@@ -1160,8 +1049,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertNotIn("K_not_blocked_empty", prec_fluent_names)
 
     def test_merge_action_effect_sets_empty_tag_fluent(self):
-        """The merge action's effect must set the empty-tag K-fluent to TRUE,
-        thereby asserting universal knowledge once all per-state tags agree."""
+        """The merge action's effect must set the empty-tag K-fluent to TRUE."""
         _, res = self._compile_basic()
         em = res.problem.environment.expression_manager
         merge_not_blocked = next(
@@ -1177,8 +1065,8 @@ class TestKs0Compiler(unittest_TestCase):
             self.assertEqual(e.value, em.TRUE())  # merge always sets to TRUE
 
     def test_resulting_problem_kind_has_conditional_effects(self):
-        """The resulting problem kind must declare conditional effects because
-        the KS0 translation introduces them for per-tag effect propagation."""
+        """The resulting kind must declare the conditional effects the
+        translation introduces."""
         problem, _ = self._build_problem_and_possible_states()
         resulting_kind = Ks0Compiler.resulting_problem_kind(
             problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
@@ -1186,18 +1074,13 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertTrue(resulting_kind.has_conditional_effects())
 
     def test_resulting_problem_kind_removes_undefined_initial_symbolic(self):
-        """After compilation, the UNDEFINED_INITIAL_SYMBOLIC feature must be
-        removed because all initial-state uncertainty has been encoded into
-        the K-fluent structure."""
+        """Both the declared resulting kind and the compiled problem's kind
+        must lack UNDEFINED_INITIAL_SYMBOLIC."""
         problem, _ = self._build_problem_and_possible_states()
         resulting_kind = Ks0Compiler.resulting_problem_kind(
             problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
         )
         self.assertFalse(resulting_kind.has_undefined_initial_symbolic())
-
-    def test_compiled_problem_kind_removes_undefined_initial_symbolic(self):
-        """Verify the *actual compiled problem* (not just the static method)
-        also lacks UNDEFINED_INITIAL_SYMBOLIC."""
         _, res = self._compile_basic()
         self.assertFalse(res.problem.kind.has_undefined_initial_symbolic())
 
@@ -1206,15 +1089,9 @@ class TestKs0Compiler(unittest_TestCase):
     # ------------------------------------------------------------------
 
     def test_cancellation_rules_forget_conditional_knowledge(self):
-        """Direct check of the cancellation rules on the pick/drop example of
-        Palacios & Geffner 2009, Section 4.
-
-        Simulating the compiled problem: after ``pick(l1), drop(l3),
-        pick(l2), drop(l3)`` the merge for ``at(l3)`` applies and reaches the
-        goal, while after ``pick(l1), pick(l2), drop(l3)`` it must not —
-        the second pick cancels the knowledge ``K_hold`` obtained under the
-        first tag, so ``K_at(l3)`` is not derivable for that tag.  Without
-        cancellation rules the spurious short plan would be accepted."""
+        """On the pick/drop example, the merge for `at(l3)` must apply after
+        the valid plan but not after the spurious one, whose second pick
+        cancels the knowledge derived under the first tag."""
         problem, states = self._build_pick_drop_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=states)
         res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
@@ -1250,8 +1127,7 @@ class TestKs0Compiler(unittest_TestCase):
     # ------------------------------------------------------------------
 
     def test_duplicate_states_are_deduplicated(self):
-        """Passing the same state twice must produce the same compiled problem
-        as passing it once (duplicates should be silently removed)."""
+        """Passing the same state twice must compile like passing it once."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         s0 = possible_initial_states[0]
 
@@ -1269,10 +1145,76 @@ class TestKs0Compiler(unittest_TestCase):
         assert isinstance(res_dup.problem, Problem)
         self.assertEqual(len(res_single.problem.fluents), len(res_dup.problem.fluents))
 
+    def _build_dominated_state_problem(self):
+        """Build a problem where the second possible state is dominated.
+
+        Action `act` has the conditional effect `b -> a` and the goal is
+        `a`, so the literals relevant to the only merge target are `a` and
+        `b`; state s1 (a=T, b=T) makes a superset of the relevant literals
+        of s0 (a=F, b=T) true and is dropped by the basis reduction.
+        """
+        problem = Problem("dominated")
+        a = Fluent("a")
+        b = Fluent("b")
+        problem.add_fluent(a, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        em = problem.environment.expression_manager
+        act = InstantaneousAction("act")
+        act.add_effect(a, True, condition=em.FluentExp(b))
+        problem.add_action(act)
+        problem.add_goal(em.FluentExp(a))
+        s0 = UPState({a(): em.FALSE(), b(): em.TRUE()}, problem)
+        s1 = UPState({a(): em.TRUE(), b(): em.TRUE()}, problem)
+        return problem, (s0, s1)
+
+    def test_basis_reduction_drops_dominated_state(self):
+        """A state whose relevant literals are a superset of another's must be
+        dropped: compiling both states must equal compiling the minimal one."""
+        problem, (s0, s1) = self._build_dominated_state_problem()
+        res_both = Ks0Compiler(possible_initial_states=(s0, s1)).compile(
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        res_minimal = Ks0Compiler(possible_initial_states=(s0,)).compile(
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        )
+        fluent_names = {f.name for f in res_both.problem.fluents}
+        self.assertFalse(any(name.endswith("_s1") for name in fluent_names))
+        self._assert_equivalent_compilations(res_both.problem, res_minimal.problem)
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    def test_basis_reduction_preserves_conformant_plans(self):
+        """A plan for the reduced compilation must reach the goal from every
+        original possible state, including the dropped one."""
+        problem, possible_states = self._build_dominated_state_problem()
+        compiler = Ks0Compiler(possible_initial_states=possible_states)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+
+        with OneshotPlanner(problem_kind=res.problem.kind) as planner:
+            plan_result = planner.solve(res.problem)
+        self.assertIsNotNone(plan_result.plan)
+
+        assert res.plan_back_conversion is not None
+        back_plan = res.plan_back_conversion(plan_result.plan)
+        self.assertIsInstance(back_plan, SequentialPlan)
+        assert isinstance(back_plan, SequentialPlan)
+
+        sim = UPSequentialSimulator(problem)
+        for i, init_state in enumerate(possible_states):
+            cur_state: State = init_state
+            for ai in back_plan.actions:
+                next_state = sim.apply(cur_state, ai)
+                assert next_state is not None
+                self.assertIsNotNone(
+                    next_state, f"Action {ai} not applicable from initial state {i}"
+                )
+                cur_state = next_state
+            self.assertTrue(
+                sim.is_goal(cur_state), f"Plan does not reach goal from state {i}"
+            )
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_single_state_compiled_problem_is_solvable(self):
-        """With only one possible state (s0, where blocked=F), the compiled
-        problem is a trivial classical problem that must be solvable."""
+        """With a single possible state the compiled problem must be solvable."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         # s0: blocked=False, reachable=False — unblock IS applicable from s0
         s0_only = possible_initial_states[:1]
@@ -1301,8 +1243,7 @@ class TestKs0Compiler(unittest_TestCase):
     # ------------------------------------------------------------------
 
     def test_viplan_hh_compile_single_possible_initial_state(self):
-        """Each ViPlan-HH case must compile with one representative possible
-        state and produce a validly named compiled problem."""
+        """Each ViPlan-HH case must compile with one representative state."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
@@ -1320,8 +1261,7 @@ class TestKs0Compiler(unittest_TestCase):
                 self.assertTrue(res.problem.name.startswith("ks0_"))
 
     def test_viplan_hh_compile_with_uncertainty(self):
-        """Each ViPlan-HH case must compile with its representative uncertain
-        states and produce a valid compiled problem."""
+        """Each ViPlan-HH case must compile with its representative uncertain states."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
@@ -1340,8 +1280,8 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_viplan_hh_full_pipeline_single_state(self):
-        """For each ViPlan-HH case, a single representative state must support
-        compile-solve-back-convert and reach the goal under simulation."""
+        """Each ViPlan-HH case must compile, solve, back-convert, and reach the
+        goal from its representative state."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
@@ -1386,8 +1326,8 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_viplan_hh_full_pipeline_conformant_plan(self):
-        """For each ViPlan-HH case, a plan compiled from the representative
-        uncertain states must reach the goal from every such state."""
+        """Each ViPlan-HH conformant plan must reach the goal from every
+        representative state."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
@@ -1430,8 +1370,8 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_subsets_of_viplan_hh_initial_states(self):
-        """Test each ViPlan-HH case over a small set of subsets of its possible
-        states to exercise the basis-reduction and K-fluent construction logic."""
+        """Subsets of each case's possible states must compile (and solve when
+        small) to exercise the basis-reduction and K-fluent construction."""
         for case in VIPLAN_HH_CASES.values():
             with self.subTest(case=case.name):
                 problem = parse_viplan_hh_problem(case)
@@ -1495,18 +1435,9 @@ class TestKs0Compiler(unittest_TestCase):
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_negated_disjunction_precondition_not_conformantly_solvable(self):
-        """Negated disjunctive preconditions must be normalized before the
-        knowledge fluents are introduced.
-
-        The problem has precondition ``Not(Or(a, b))`` with possible states
-        s0={a=T,b=F} and s1={a=F,b=F}.  Since s0 makes the precondition False
-        the conformant problem is **unsolvable** — no plan achieves ``goal``
-        in every possible initial state.  A translation that rewrites the
-        negation directly over knowledge fluents (``Not(Or(K_a, K_b))``)
-        evaluates it as vacuously true under the empty tag and finds a
-        spurious plan; normalizing to ``And(Not(a), Not(b))`` first yields a
-        correctly unsolvable compiled problem.
-        """
+        """Negated disjunctive preconditions must be normalized before
+        knowledge fluents are introduced: the compiled problem must be
+        unsolvable."""
         (
             problem,
             possible_initial_states,
@@ -1518,9 +1449,6 @@ class TestKs0Compiler(unittest_TestCase):
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
 
-        # The problem is NOT conformantly solvable: in s0 (a=T, b=F) the
-        # precondition Not(Or(a, b)) = Not(Or(T, F)) = False, so act can never
-        # fire from that initial state.
         self.assertIsNone(
             plan_result.plan,
             "No conformant plan should exist: state s0 (a=T, b=F) makes "
