@@ -1,4 +1,4 @@
-The problems in this directory were taken from the [ViPlan-HH benchmark](https://github.com/merlerm/ViPlan/) (licensed under the MIT License). All PDDL files in that problem can be found [here](https://github.com/merlerm/ViPlan/tree/main/data/planning/igibson).
+The problems in this directory were taken from the [ViPlan-HH benchmark](https://github.com/merlerm/ViPlan/), distributed under the [MIT License](https://github.com/merlerm/ViPlan/blob/main/LICENSE). All PDDL files in that benchmark can be found [here](https://github.com/merlerm/ViPlan/tree/main/data/planning/igibson).
 
 The KS0 compiler tests treat these instances as a catalog of ViPlan-HH cases
 declared in `unified_planning/test/pddl/viplan_hh/viplan_hh_cases.py`. The shared
