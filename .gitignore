@@ -12,3 +12,4 @@ unified_planning/__pycache__/
 *~
 .venv/
 *_build*
+.DS_Store
