@@ -67,6 +67,13 @@ class TestANMLReader(unittest_TestCase):
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
         self.assertEqual(problem, problem_2)
 
+    def test_identifier_starting_with_goal_keyword(self):
+        problem = ANMLReader().parse_problem_string(
+            "constant integer goal_X; goal_X := 4;", "issue_742.anml"
+        )
+
+        self.assertEqual(problem.initial_value(problem.fluent("goal_X")), Int(4))
+
     def test_match_reader(self):
         reader = ANMLReader()
 
