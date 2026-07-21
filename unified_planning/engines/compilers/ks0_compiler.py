@@ -103,13 +103,13 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ``plan_back_conversion`` that drops them and maps the remaining actions
     back to the original problem.
 
-    This `Compiler` supports only the `CONFORMANT_TO_CLASSICAL_KS0`
+    This `Compiler` supports only the `CONFORMANT_TO_CLASSICAL`
     :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(self, possible_initial_states: Optional[Iterable[State]] = None):
         engines.engine.Engine.__init__(self)
-        CompilerMixin.__init__(self, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        CompilerMixin.__init__(self, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self._possible_initial_states = (
             None if possible_initial_states is None else tuple(possible_initial_states)
         )
@@ -148,7 +148,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
-        return compilation_kind == CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+        return compilation_kind == CompilationKind.CONFORMANT_TO_CLASSICAL
 
     @staticmethod
     def resulting_problem_kind(
@@ -175,13 +175,13 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ) -> CompilerResult:
         """
         Takes an instance of a :class:`~unified_planning.model.Problem` and the
-        `CONFORMANT_TO_CLASSICAL_KS0` :class:`~unified_planning.engines.CompilationKind`
+        `CONFORMANT_TO_CLASSICAL` :class:`~unified_planning.engines.CompilationKind`
         and returns a `CompilerResult` where the problem is the classical `K_S0`
         encoding of the given conformant problem.
 
         :param problem: The instance of the `Problem` that must be compiled.
         :param compilation_kind: The `CompilationKind` that must be applied on the given problem;
-            only `CONFORMANT_TO_CLASSICAL_KS0` is supported by this compiler
+            only `CONFORMANT_TO_CLASSICAL` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.
         """
         assert isinstance(problem, Problem)

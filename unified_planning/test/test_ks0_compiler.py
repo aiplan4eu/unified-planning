@@ -331,7 +331,7 @@ class TestKs0Compiler(unittest_TestCase):
 
         s0 = UPState({at(l1): TRUE(), at(l2): FALSE(), done(): FALSE()}, problem)
         compiler = Ks0Compiler(possible_initial_states=(s0,))
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIsNotNone(res.problem)
         assert res.problem is not None
         self.assertFalse(res.problem.kind.has_existential_conditions())
@@ -360,7 +360,7 @@ class TestKs0Compiler(unittest_TestCase):
 
         s0 = UPState({at(l1): TRUE(), at(l2): TRUE(), done(): FALSE()}, problem)
         compiler = Ks0Compiler(possible_initial_states=(s0,))
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIsNotNone(res.problem)
         assert res.problem is not None
         self.assertFalse(res.problem.kind.has_universal_conditions())
@@ -397,7 +397,7 @@ class TestKs0Compiler(unittest_TestCase):
             problem,
         )
         compiler = Ks0Compiler(possible_initial_states=(s0,))
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIsNotNone(res.problem)
         assert res.problem is not None
         self.assertFalse(res.problem.kind.has_forall_effects())
@@ -425,7 +425,7 @@ class TestKs0Compiler(unittest_TestCase):
 
         s0 = UPState({at(l1): TRUE(), at(l2): FALSE(), done(): FALSE()}, problem)
         compiler = Ks0Compiler(possible_initial_states=(s0,))
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIsNotNone(res.problem)
         assert res.problem is not None
         self.assertFalse(res.problem.kind.has_equalities())
@@ -463,7 +463,7 @@ class TestKs0Compiler(unittest_TestCase):
             problem,
         )
         compiler = Ks0Compiler(possible_initial_states=(s0, s1))
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIsNotNone(res.problem)
         assert res.problem is not None
         self.assertFalse(res.problem.kind.has_disjunctive_conditions())
@@ -473,10 +473,10 @@ class TestKs0Compiler(unittest_TestCase):
     # ==================================================================
 
     def test_supported_compilation(self):
-        """The compiler must advertise support for CONFORMANT_TO_CLASSICAL_KS0."""
+        """The compiler must advertise support for CONFORMANT_TO_CLASSICAL."""
         compiler = Ks0Compiler()
         self.assertTrue(
-            compiler.supports_compilation(CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.supports_compilation(CompilationKind.CONFORMANT_TO_CLASSICAL)
         )
 
     # ==================================================================
@@ -488,19 +488,19 @@ class TestKs0Compiler(unittest_TestCase):
         problem, _ = self._build_problem_and_possible_states()
         compiler = Ks0Compiler()
         with self.assertRaises(UPUsageError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_compile_rejects_invalid_possible_initial_states(self):
         """Non-State elements must be rejected with an error naming the index."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=[object()])  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 0", str(error.exception))
 
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states + (object(),))  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_problem(self):
@@ -512,7 +512,7 @@ class TestKs0Compiler(unittest_TestCase):
 
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states1)
         with self.assertRaises(UPUsageError) as error:
-            compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 2", str(error.exception))
 
     def test_compile_rejects_states_from_different_environments(self):
@@ -524,7 +524,7 @@ class TestKs0Compiler(unittest_TestCase):
 
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states2)
         with self.assertRaises(UPUsageError) as error:
-            compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem1, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 0", str(error.exception))
 
     # ==================================================================
@@ -540,7 +540,7 @@ class TestKs0Compiler(unittest_TestCase):
         ) as compiler:
             self.assertTrue(
                 compiler.supports_compilation(
-                    CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                    CompilationKind.CONFORMANT_TO_CLASSICAL
                 )
             )
 
@@ -549,11 +549,11 @@ class TestKs0Compiler(unittest_TestCase):
         problem, _ = self._build_problem_and_possible_states()
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.CONFORMANT_TO_CLASSICAL_KS0,
+            compilation_kind=CompilationKind.CONFORMANT_TO_CLASSICAL,
         ) as compiler:
             self.assertTrue(compiler.supports(problem.kind))
             with self.assertRaises(UPUsageError):
-                compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+                compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     # ==================================================================
     # ContingentProblem input tests
@@ -583,12 +583,12 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertTrue(problem.kind.has_contingent())
         self.assertTrue(Ks0Compiler.supports(problem.kind))
         resulting_kind = Ks0Compiler.resulting_problem_kind(
-            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self.assertFalse(resulting_kind.has_contingent())
         with Compiler(
             problem_kind=problem.kind,
-            compilation_kind=CompilationKind.CONFORMANT_TO_CLASSICAL_KS0,
+            compilation_kind=CompilationKind.CONFORMANT_TO_CLASSICAL,
         ) as compiler:
             self.assertIsInstance(compiler, Ks0Compiler)
 
@@ -600,10 +600,10 @@ class TestKs0Compiler(unittest_TestCase):
             problem_factory=ContingentProblem
         )
         res_explicit = Ks0Compiler(possible_initial_states=states).compile(
-            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         res_contingent = Ks0Compiler().compile(
-            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self._assert_equivalent_compilations(
             res_explicit.problem, res_contingent.problem
@@ -614,10 +614,10 @@ class TestKs0Compiler(unittest_TestCase):
         plain, states = self._build_nav_problem_and_possible_states()
         contingent, _ = self._build_nav_problem_and_possible_states(ContingentProblem)
         res_explicit = Ks0Compiler(possible_initial_states=states).compile(
-            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         res_contingent = Ks0Compiler().compile(
-            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self._assert_equivalent_compilations(
             res_explicit.problem, res_contingent.problem
@@ -659,10 +659,10 @@ class TestKs0Compiler(unittest_TestCase):
         contingent.add_or_initial_constraint([ca(), cb()])
 
         res_explicit = Ks0Compiler(possible_initial_states=states).compile(
-            plain, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            plain, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         res_contingent = Ks0Compiler().compile(
-            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            contingent, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self._assert_equivalent_compilations(
             res_explicit.problem, res_contingent.problem
@@ -676,7 +676,7 @@ class TestKs0Compiler(unittest_TestCase):
             ContingentProblem
         )
         with Compiler(name="up_ks0_compiler") as compiler:
-            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
             plan_result = planner.solve(res.problem)
@@ -713,7 +713,7 @@ class TestKs0Compiler(unittest_TestCase):
         sense.add_observed_fluent(problem.fluent("done")())
         problem.add_action(sense)
         with self.assertRaises(UPUsageError):
-            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_contingent_rejects_explicit_possible_states(self):
         """Providing both a ContingentProblem and constructor states must be rejected."""
@@ -722,7 +722,7 @@ class TestKs0Compiler(unittest_TestCase):
         )
         compiler = Ks0Compiler(possible_initial_states=states)
         with self.assertRaises(UPUsageError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_contingent_rejects_unsatisfiable_constraints(self):
         """Unsatisfiable initial constraints must be rejected."""
@@ -734,7 +734,7 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_oneof_initial_constraint([blocked()])
         problem.add_or_initial_constraint([em.Not(blocked())])
         with self.assertRaises(UPUsageError):
-            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_contingent_rejects_undefined_non_hidden_fluent(self):
         """A non-hidden fluent without an initial value must be rejected."""
@@ -746,7 +746,7 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_unknown_initial_constraint(hidden())
         problem.add_goal(hidden())
         with self.assertRaises(UPUsageError) as error:
-            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("known_f", str(error.exception))
 
     def test_contingent_rejects_non_ground_hidden_fluent(self):
@@ -759,7 +759,7 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_unknown_initial_constraint(stray())
         problem.add_goal(known())
         with self.assertRaises(UPUsageError) as error:
-            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            Ks0Compiler().compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("grounded", str(error.exception))
 
     # ==================================================================
@@ -774,7 +774,7 @@ class TestKs0Compiler(unittest_TestCase):
             name="up_ks0_compiler",
             params={"possible_initial_states": possible_initial_states},
         ) as compiler:
-            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         self.assertIsInstance(res, CompilerResult)
         self.assertIsNotNone(res.problem)
@@ -802,7 +802,7 @@ class TestKs0Compiler(unittest_TestCase):
                     params={"possible_initial_states": possible_initial_states},
                 ) as compiler:
                     res = compiler.compile(
-                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                     )
                     compiled_problem = res.problem
 
@@ -841,7 +841,7 @@ class TestKs0Compiler(unittest_TestCase):
         problem, _ = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=())
         with self.assertRaises(UPUsageError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_compile_rejects_non_boolean_fluents(self):
         """Problems with non-Boolean fluents must be rejected."""
@@ -852,7 +852,7 @@ class TestKs0Compiler(unittest_TestCase):
         s0 = UPState({em.FluentExp(counter): em.Int(0)}, problem)
         compiler = Ks0Compiler(possible_initial_states=(s0,))
         with self.assertRaises(UPUsageError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_compile_rejects_quality_metrics(self):
         """Problems with quality metrics must be rejected."""
@@ -860,7 +860,7 @@ class TestKs0Compiler(unittest_TestCase):
         problem.add_quality_metric(MinimizeSequentialPlanLength())
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
         with self.assertRaises(UPUsageError):
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
     def test_compile_rejects_state_missing_a_fluent_value(self):
         """A state missing a value for some grounded fluent must be rejected."""
@@ -870,7 +870,7 @@ class TestKs0Compiler(unittest_TestCase):
         partial_state = UPState({em.FluentExp(reachable): em.FALSE()}, problem)
         compiler = Ks0Compiler(possible_initial_states=(partial_state,))
         with self.assertRaises(UPUsageError) as error:
-            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+            compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("blocked", str(error.exception))
 
     # ------------------------------------------------------------------
@@ -885,7 +885,7 @@ class TestKs0Compiler(unittest_TestCase):
         """Compile the minimal 2-fluent problem and return (problem, result)."""
         problem, possible_initial_states = self._build_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         return problem, res
 
     def test_compiled_problem_name(self):
@@ -1007,7 +1007,7 @@ class TestKs0Compiler(unittest_TestCase):
         K-fluents."""
         problem, states = self._build_conditional_effect_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=states)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         assert isinstance(res.problem, Problem)
         compiled_action = res.problem.action("a")
         assert isinstance(compiled_action, InstantaneousAction)
@@ -1070,7 +1070,7 @@ class TestKs0Compiler(unittest_TestCase):
         translation introduces."""
         problem, _ = self._build_problem_and_possible_states()
         resulting_kind = Ks0Compiler.resulting_problem_kind(
-            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self.assertTrue(resulting_kind.has_conditional_effects())
 
@@ -1079,7 +1079,7 @@ class TestKs0Compiler(unittest_TestCase):
         must lack UNDEFINED_INITIAL_SYMBOLIC."""
         problem, _ = self._build_problem_and_possible_states()
         resulting_kind = Ks0Compiler.resulting_problem_kind(
-            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem.kind, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         self.assertFalse(resulting_kind.has_undefined_initial_symbolic())
         _, res = self._compile_basic()
@@ -1095,7 +1095,7 @@ class TestKs0Compiler(unittest_TestCase):
         cancels the knowledge derived under the first tag."""
         problem, states = self._build_pick_drop_problem_and_possible_states()
         compiler = Ks0Compiler(possible_initial_states=states)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         compiled_problem = res.problem
         assert isinstance(compiled_problem, Problem)
 
@@ -1136,10 +1136,10 @@ class TestKs0Compiler(unittest_TestCase):
         compiler_dup = Ks0Compiler(possible_initial_states=(s0, s0))
 
         res_single = compiler_single.compile(
-            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         res_dup = compiler_dup.compile(
-            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
 
         assert isinstance(res_single.problem, Problem)
@@ -1173,10 +1173,10 @@ class TestKs0Compiler(unittest_TestCase):
         dropped: compiling both states must equal compiling the minimal one."""
         problem, (s0, s1) = self._build_dominated_state_problem()
         res_both = Ks0Compiler(possible_initial_states=(s0, s1)).compile(
-            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         res_minimal = Ks0Compiler(possible_initial_states=(s0,)).compile(
-            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
         assert isinstance(res_both.problem, Problem)
         assert res_minimal.problem is not None
@@ -1190,7 +1190,7 @@ class TestKs0Compiler(unittest_TestCase):
         original possible state, including the dropped one."""
         problem, possible_states = self._build_dominated_state_problem()
         compiler = Ks0Compiler(possible_initial_states=possible_states)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
@@ -1223,7 +1223,7 @@ class TestKs0Compiler(unittest_TestCase):
         # s0: blocked=False, reachable=False — unblock IS applicable from s0
         s0_only = possible_initial_states[:1]
         compiler = Ks0Compiler(possible_initial_states=s0_only)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
@@ -1263,7 +1263,7 @@ class TestKs0Compiler(unittest_TestCase):
                 )
                 compiler = Ks0Compiler(possible_initial_states=possible_states)
                 res = compiler.compile(
-                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                 )
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
@@ -1281,7 +1281,7 @@ class TestKs0Compiler(unittest_TestCase):
                 )
                 compiler = Ks0Compiler(possible_initial_states=possible_states)
                 res = compiler.compile(
-                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                 )
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
@@ -1304,7 +1304,7 @@ class TestKs0Compiler(unittest_TestCase):
                     params={"possible_initial_states": possible_states},
                 ) as compiler:
                     res = compiler.compile(
-                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                     )
                     compiled_problem = res.problem
                 assert isinstance(compiled_problem, Problem)
@@ -1356,7 +1356,7 @@ class TestKs0Compiler(unittest_TestCase):
                     params={"possible_initial_states": possible_states},
                 ) as compiler:
                     res = compiler.compile(
-                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                        problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                     )
                     compiled_problem = res.problem
                 assert isinstance(compiled_problem, Problem)
@@ -1427,7 +1427,7 @@ class TestKs0Compiler(unittest_TestCase):
 
                         compiler = Ks0Compiler(possible_initial_states=states)
                         res = compiler.compile(
-                            problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0
+                            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
                         )
                         compiled_problem = res.problem
                         assert compiled_problem is not None
@@ -1446,7 +1446,7 @@ class TestKs0Compiler(unittest_TestCase):
             possible_initial_states,
         ) = self._build_negated_disjunction_precondition_problem()
         compiler = Ks0Compiler(possible_initial_states=possible_initial_states)
-        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL_KS0)
+        res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         assert res.problem is not None
         with OneshotPlanner(problem_kind=res.problem.kind) as planner:
