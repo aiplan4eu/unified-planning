@@ -539,9 +539,7 @@ class TestKs0Compiler(unittest_TestCase):
             params={"possible_initial_states": possible_initial_states},
         ) as compiler:
             self.assertTrue(
-                compiler.supports_compilation(
-                    CompilationKind.CONFORMANT_TO_CLASSICAL
-                )
+                compiler.supports_compilation(CompilationKind.CONFORMANT_TO_CLASSICAL)
             )
 
     def test_factory_instantiation_from_problem_kind(self):
@@ -1138,9 +1136,7 @@ class TestKs0Compiler(unittest_TestCase):
         res_single = compiler_single.compile(
             problem, CompilationKind.CONFORMANT_TO_CLASSICAL
         )
-        res_dup = compiler_dup.compile(
-            problem, CompilationKind.CONFORMANT_TO_CLASSICAL
-        )
+        res_dup = compiler_dup.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
 
         assert isinstance(res_single.problem, Problem)
         assert isinstance(res_dup.problem, Problem)
@@ -1262,9 +1258,7 @@ class TestKs0Compiler(unittest_TestCase):
                     problem, case.representative_states[:1]
                 )
                 compiler = Ks0Compiler(possible_initial_states=possible_states)
-                res = compiler.compile(
-                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL
-                )
+                res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
                 assert res.problem is not None
@@ -1280,9 +1274,7 @@ class TestKs0Compiler(unittest_TestCase):
                     problem, case.representative_states
                 )
                 compiler = Ks0Compiler(possible_initial_states=possible_states)
-                res = compiler.compile(
-                    problem, CompilationKind.CONFORMANT_TO_CLASSICAL
-                )
+                res = compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
                 self.assertIsInstance(res, CompilerResult)
                 self.assertIsNotNone(res.problem)
                 assert res.problem is not None
