@@ -41,14 +41,10 @@ class TestPlanner(unittest_TestCase):
 
     @skipIfEngineNotAvailable("tamerlite")
     def test_basic(self):
-        from tamerlite.engine import SearchParams
-
         problem = self.problems["basic"].problem
         a = problem.action("a")
 
-        with OneshotPlanner(
-            name="tamerlite", params={"search": SearchParams(weight=0.8)}
-        ) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
@@ -61,14 +57,10 @@ class TestPlanner(unittest_TestCase):
 
     @skipIfEngineNotAvailable("tamerlite")
     def test_basic_with_timeout(self):
-        from tamerlite.engine import SearchParams
-
         problem = self.problems["basic"].problem
         a = problem.action("a")
 
-        with OneshotPlanner(
-            name="tamerlite", params={"search": SearchParams(weight=0.8)}
-        ) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:
                 final_report = planner.solve(problem, timeout=60.0)

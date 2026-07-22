@@ -217,13 +217,9 @@ class TestProtobufIO(unittest_TestCase):
 
     @skipIfEngineNotAvailable("tamerlite")
     def test_plan_generation(self):
-        from tamerlite.engine import SearchParams
-
         problem = self.problems["robot"].problem
 
-        with OneshotPlanner(
-            name="tamerlite", params={"search": SearchParams(weight=0.8)}
-        ) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
 
@@ -261,13 +257,9 @@ class TestProtobufIO(unittest_TestCase):
 
     @skipIfEngineNotAvailable("tamerlite")
     def test_validation_result(self):
-        from tamerlite.engine import SearchParams
-
         problem = self.problems["robot"].problem
 
-        with OneshotPlanner(
-            name="tamerlite", params={"search": SearchParams(weight=0.8)}
-        ) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             with PlanValidator(name="sequential_plan_validator") as validator:
