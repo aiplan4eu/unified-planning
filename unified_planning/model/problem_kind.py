@@ -99,6 +99,7 @@ FEATURES = {
         "REAL_ACTION_PARAMETERS",
     ],
     "FLUENTS_TYPE": [
+        "DERIVED_FLUENTS",
         "INT_FLUENTS",
         "REAL_FLUENTS",
         "OBJECT_FLUENTS",
@@ -357,6 +358,7 @@ full_classical_kind.set_conditions_kind("EQUALITIES")
 full_classical_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
 full_classical_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
+full_classical_kind.set_fluents_type("DERIVED_FLUENTS")
 
 object_fluent_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")

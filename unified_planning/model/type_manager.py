@@ -22,6 +22,7 @@ from unified_planning.model.types import (
     _RealType,
     _UserType,
     BOOL,
+    DERIVED_BOOL,
     TIME,
 )
 from unified_planning.model.motion.objects import ConfigurationKind
@@ -40,6 +41,7 @@ class TypeManager:
 
     def __init__(self):
         self._bool = BOOL
+        self._derived_bool = DERIVED_BOOL
         self._ints: Dict[Tuple[Optional[int], Optional[int]], Type] = {}
         self._reals: Dict[Tuple[Optional[Fraction], Optional[Fraction]], Type] = {}
         self._user_types: Dict[Tuple[str, Optional[Type]], Type] = {}
@@ -57,6 +59,8 @@ class TypeManager:
         """
         if type.is_bool_type():
             return type == self._bool
+        elif type.is_derived_bool_type():
+            return type == self._derived_bool
         elif type.is_int_type():
             assert isinstance(type, _IntType)
             return self._ints.get((type.lower_bound, type.upper_bound), None) == type
@@ -85,6 +89,10 @@ class TypeManager:
     def BoolType(self) -> Type:
         """Returns this `Environment's` boolean `Type`."""
         return self._bool
+
+    def DerivedBoolType(self) -> Type:
+        """Returns this `Environment's` derived boolean `Type`."""
+        return self._derived_bool
 
     def IntType(
         self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
@@ -153,7 +161,8 @@ class TypeManager:
                     for ancestor in father.ancestors
                 ):
                     raise UPTypeError(
-                        f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
+                        f"The name: {name} is already used. A UserType and one of his"
+                        " ancestors can not share the name."
                     )
             ut = _UserType(name, father)
             self._user_types[(name, father)] = ut
@@ -178,7 +187,8 @@ class TypeManager:
                     for ancestor in father.ancestors
                 ):
                     raise UPTypeError(
-                        f"The name: {name} is already used. A MovableType and one of his ancestors can not share the name."
+                        f"The name: {name} is already used. A MovableType and one of"
+                        " his ancestors can not share the name."
                     )
             mt = _MovableType(name, father)
             self._movable_types[(name, father)] = mt
