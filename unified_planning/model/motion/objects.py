@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, Optional, Any, Tuple, List, Callable
@@ -44,7 +44,17 @@ class ConfigurationInstance(ABC):
     configuration space, such as an SE2 or SE3 pose.
     """
 
-    pass
+    @abstractmethod
+    def __iter__(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def __len__(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def __getitem__(self, i):
+        raise NotImplementedError
 
 
 @dataclass(eq=True, frozen=True)
