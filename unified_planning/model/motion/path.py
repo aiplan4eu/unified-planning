@@ -28,7 +28,7 @@ class Path(ABC):
     usually bringing the robot from an initial to a final configuration.
     """
 
-    pass
+    path: List
 
 
 @dataclass(eq=True, frozen=True)
