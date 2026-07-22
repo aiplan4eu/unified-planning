@@ -160,6 +160,8 @@ The “Compiler” OM defines a transformation of an `AbstractProblem` into anot
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | DURATIVE_ACTIONS_TO_PROCESSES   | Rewrites a problem that contains durative actions into an equivalent one with no durative actions, but with processes and events.                                     |
 +---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CONFORMANT_TO_CLASSICAL         | Rewrites a conformant problem with initial-state uncertainty into an equivalent classical planning problem with no uncertainty.                                       |
++---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 Also the ``Compiler`` OM can be used either by specifying a certain engine by name or by letting the UP to pick a suitable implementation; in addition, the user has to specify the ``compilation_kind`` to indicate which kind of transformation is needed.
