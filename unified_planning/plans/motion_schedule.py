@@ -18,6 +18,7 @@ from unified_planning.model.scheduling import Activity
 from unified_planning.environment import Environment
 from unified_planning.model.motion.activity import MotionActivity
 from unified_planning.model.motion.constraint import MotionConstraint
+from unified_planning.model.motion.path import Path
 from typing import Optional, Tuple, List, Dict
 
 
@@ -33,9 +34,7 @@ class MotionSchedule(Schedule):
         self,
         activities: Optional[List[Activity]] = None,
         assignment: Optional[Dict[Variable, Value]] = None,
-        motion_paths: Dict[
-            Tuple[MotionActivity, MotionConstraint], List[Tuple[float, ...]]
-        ] = {},
+        motion_paths: Dict[Tuple[MotionActivity, MotionConstraint], Path] = {},
         environment: Optional[Environment] = None,
     ):
         super().__init__(activities, assignment, environment)
@@ -44,16 +43,14 @@ class MotionSchedule(Schedule):
     @property
     def motion_paths(
         self,
-    ) -> Dict[Tuple[MotionActivity, MotionConstraint], List[Tuple[float, ...]]]:
+    ) -> Dict[Tuple[MotionActivity, MotionConstraint], Path]:
         """Returns the geometric path computed for each `(MotionActivity, MotionConstraint)` pair."""
         return self._motion_paths
 
     @motion_paths.setter
     def motion_paths(
         self,
-        motion_paths: Dict[
-            Tuple[MotionActivity, MotionConstraint], List[Tuple[float, ...]]
-        ],
+        motion_paths: Dict[Tuple[MotionActivity, MotionConstraint], Path],
     ):
         """Sets the geometric path for each `(MotionActivity, MotionConstraint)` pair."""
         self._motion_paths = motion_paths
