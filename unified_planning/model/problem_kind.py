@@ -411,6 +411,11 @@ temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
 int_duration_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 int_duration_kind.set_expression_duration("INT_TYPE_DURATIONS")
 
+static_fluents_duration_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+static_fluents_duration_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+static_fluents_duration_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+static_fluents_duration_kind.set_expression_duration("INT_TYPE_DURATIONS")
+
 quality_metrics_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")
 quality_metrics_kind.set_quality_metrics("ACTIONS_COST")
