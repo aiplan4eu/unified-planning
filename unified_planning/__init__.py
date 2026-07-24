@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import subprocess
-import re
-from typing import Any, Tuple, Union, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from unified_planning.environment import Environment
 
@@ -24,42 +22,3 @@ if TYPE_CHECKING:
     AnyBaseClass = Any
 else:
     AnyBaseClass = object
-
-
-VERSION: Tuple[Union[int, str], ...] = (1, 3, 0)
-__version__ = ".".join(str(x) for x in VERSION)
-
-# Try to provide human-readable version of latest commit for dev versions
-# E.g. v0.5.1-4-g49a49f2-wip
-#      * 4 commits after tag v0.5.1
-#      * Latest commit "49a49f2"
-#      * -wip: Working tree is dirty (non committed stuff)
-# See: https://git-scm.com/docs/git-describe
-try:
-    git_version = subprocess.check_output(
-        ["git", "describe", "--tags", "--dirty=-wip"], stderr=subprocess.STDOUT
-    )
-    output = git_version.strip().decode("ascii")
-    data = output.split("-")
-    tag = data[0]
-    match = re.match(r"^v(\d+)\.(\d)+\.(\d)$", tag)
-    if match is not None:
-        MAJOR, MINOR, REL = tuple(int(x) for x in match.groups())
-
-    try:
-        COMMITS = int(data[1])
-    except ValueError:
-        COMMITS = 0
-
-    if data[-1] == "wip":
-        if COMMITS == 0:
-            VERSION = (MAJOR, MINOR, REL, "post", 1)
-            __version__ = f"{MAJOR}.{MINOR}.{REL}.post1"
-        else:
-            VERSION = (MAJOR, MINOR, REL, COMMITS, "post", 1)
-            __version__ = f"{MAJOR}.{MINOR}.{REL}.{COMMITS}.post1"
-    else:
-        VERSION = (MAJOR, MINOR, REL, COMMITS, "dev", 1)
-        __version__ = f"{MAJOR}.{MINOR}.{REL}.{COMMITS}.dev1"
-except Exception as ex:
-    pass

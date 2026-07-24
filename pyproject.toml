@@ -1,0 +1,135 @@
+[project]
+name = "unified-planning"
+version = "1.3.0"
+description = "Unified Planning Framework"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "AIPlan4EU Project", email = "aiplan4eu@fbk.eu" }]
+keywords = ["planning", "logic", "STRIPS", "RDDL"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "pyparsing",
+    "networkx",
+    "ConfigSpace",
+    "pddl",
+    "pysmt",
+]
+
+[project.urls]
+Homepage = "https://www.aiplan4eu-project.eu"
+
+[project.scripts]
+up = "unified_planning.cmd.up:main"
+
+[project.optional-dependencies]
+grpc = ["grpcio", "grpcio-tools", "grpc-stubs"]
+tarski = ["tarski[arithmetic]"]
+pyperplan = ["up-pyperplan~=1.1.0"]
+tamer = ["up-tamer~=1.1.6"]
+tamerlite = ["tamerlite[rust]~=0.1.0"]
+enhsp = ["up-enhsp~=0.1.0"]
+fast-downward = ["up-fast-downward~=0.5.2"]
+lpg = ["up-lpg~=0.1.2"]
+fmap = ["up-fmap~=0.0.13"]
+aries = ["up-aries>=0.4.0"]
+symk = ["up-symk>=1.3.0"]
+engines = [
+    "tarski[arithmetic]",
+    "up-pyperplan~=1.1.0",
+    "up-tamer~=1.1.6",
+    "tamerlite[rust]~=0.1.0",
+    "up-enhsp~=0.1.0",
+    "up-fast-downward~=0.5.2",
+    "up-lpg~=0.1.2",
+    "up-fmap~=0.0.13",
+    "up-aries>=0.4.0",
+    "up-symk>=1.3.0",
+]
+plot = [
+    "plotly",
+    "matplotlib",
+    "kaleido",
+    "pygraphviz",
+    "graphviz",
+    "pandas",
+]
+
+[dependency-groups]
+dev = [
+    "grpcio==1.66.2",
+    "grpcio-tools==1.66.2",
+    "grpc-stubs",
+    "pytest",
+    "pytest-cov",
+    "mypy==1.12.0",
+    "ruff",
+    "pre-commit",
+    "tarski[arithmetic]",
+    "z3-solver",
+]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "myst-parser",
+    "nbsphinx",
+    "nbsphinx_link",
+    "linkify-it-py",
+    "jupyter",
+    "tarski",
+    "docutils<0.21",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["unified_planning*", "up_test_cases*"]
+
+[tool.setuptools.package-data]
+unified_planning = ["py.typed"]
+up_test_cases = ["py.typed"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+# generated protobuf code and docs (notebooks/snippets with IPython magics) are excluded
+extend-exclude = ["unified_planning/grpc/generated", "docs"]
+
+# ruff is used purely as the formatter here — the drop-in replacement for black.
+# Linting is intentionally disabled: enabling unused-import/import-sorting autofixes
+# rewrites re-export modules (e.g. unified_planning/interop/tarski.py) and changes the
+# public API. Adopting lint rules is left to a dedicated follow-up PR.
+[tool.ruff.lint]
+select = []
+
+[tool.ruff.format]
+
+[tool.mypy]
+check_untyped_defs = true
+files = ["unified_planning"]
+
+[[tool.mypy.overrides]]
+module = ["unified_planning.grpc.generated.*"]
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = ["tarski.*", "tamerlite.*", "networkx.*", "pyparsing.*", "pysmt.*", "pddl.*"]
+ignore_missing_imports = true
