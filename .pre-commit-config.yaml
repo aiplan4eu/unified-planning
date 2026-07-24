@@ -1,6 +1,19 @@
-exclude: unified_planning/grpc/generated/
+exclude: ^unified_planning/grpc/generated/
 repos:
--   repo: https://github.com/ambv/black
-    rev: 22.6.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    - id: black
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-toml
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: check-format
+        name: just check-format
+        entry: just check-format
+        language: system
+        pass_filenames: false
