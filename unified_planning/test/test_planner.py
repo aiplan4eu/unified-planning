@@ -21,14 +21,13 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     general_numeric_kind,
-    bounded_types_kind,
     quality_metrics_kind,
     oversubscription_kind,
 )
 from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import PlanGenerationResultStatus, CompilationKind
+from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.engines.results import POSITIVE_OUTCOMES
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.exceptions import UPUsageError
@@ -40,12 +39,12 @@ class TestPlanner(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic(self):
         problem = self.problems["basic"].problem
         a = problem.action("a")
 
-        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
             plan = final_report.plan
@@ -56,15 +55,15 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic_with_timeout(self):
         problem = self.problems["basic"].problem
         a = problem.action("a")
 
-        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             with warnings.catch_warnings(record=True) as w:
-                final_report = planner.solve(problem, timeout=0.001)
+                final_report = planner.solve(problem, timeout=60.0)
                 self.assertIn(final_report.status, POSITIVE_OUTCOMES)
                 plan = final_report.plan
                 self.assertEqual(
@@ -73,10 +72,9 @@ class TestPlanner(unittest_TestCase):
                 self.assertEqual(len(plan.actions), 1)
                 self.assertEqual(plan.actions[0].action, a)
                 self.assertEqual(len(plan.actions[0].actual_parameters), 0)
-                self.assertEqual(len(w), 1)
-                self.assertEqual("Tamer does not support timeout.", str(w[-1].message))
+                self.assertEqual(len(w), 0)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic_parameters(self):
         problem_names = [
             "basic_bool_fluent_param",
@@ -86,7 +84,7 @@ class TestPlanner(unittest_TestCase):
         problem = self.problems["basic_bool_fluent_param"].problem
         for problem_name in problem_names:
             problem = self.problems[problem_name].problem
-        with OneshotPlanner(name="tamer") as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             plan = planner.solve(problem).plan
             self.assertIsNotNone(plan)
@@ -94,14 +92,19 @@ class TestPlanner(unittest_TestCase):
                 val_res = validator.validate(problem, plan)
                 self.assertTrue(val_res)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic_parallel(self):
+        from tamerlite.engine import SearchParams
+
         problem = self.problems["basic"].problem
         a = problem.action("a")
 
         with OneshotPlanner(
-            names=["tamer", "tamer"],
-            params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
+            names=["tamerlite", "tamerlite"],
+            params=[
+                {"search": SearchParams(heuristic="hadd")},
+                {"search": SearchParams(heuristic="hmax")},
+            ],
         ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -113,12 +116,12 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic_with_custom_heuristic(self):
         problem = self.problems["basic"].problem
         x = problem.fluent("x")
 
-        with OneshotPlanner(name="tamer") as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
 
             def h(state):
@@ -149,14 +152,19 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_basic_oversubscription_parallel(self):
+        from tamerlite.engine import SearchParams
+
         problem = self.problems["basic_oversubscription"].problem
         a = problem.action("a")
 
         with OneshotPlanner(
-            names=["oversubscription[tamer]", "oversubscription[tamer]"],
-            params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
+            names=["oversubscription[tamerlite]", "oversubscription[tamerlite]"],
+            params=[
+                {"search": SearchParams(heuristic="hadd")},
+                {"search": SearchParams(heuristic="hmax")},
+            ],
         ) as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
@@ -168,35 +176,30 @@ class TestPlanner(unittest_TestCase):
             self.assertEqual(plan.actions[0].action, a)
             self.assertEqual(len(plan.actions[0].actual_parameters), 0)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_timed_connected_locations_parallel(self):
+        from tamerlite.engine import SearchParams
+
         problem = self.problems["timed_connected_locations"].problem
         move = problem.action("move")
         with OneshotPlanner(
-            names=["tamer", "tamer"],
-            params=[{"heuristic": "hadd"}, {"heuristic": "hmax"}],
+            names=["tamerlite", "tamerlite"],
+            params=[
+                {"search": SearchParams(heuristic="hadd")},
+                {"search": SearchParams(heuristic="hmax")},
+            ],
         ) as planner:
             self.assertNotEqual(planner, None)
             planner.error_on_failed_checks = True
-            with self.assertRaises(up.exceptions.UPUsageError) as e:
-                final_report = planner.solve(problem)
-            self.assertIn("cannot establish whether", str(e.exception))
-            with Compiler(name="up_quantifiers_remover") as quantifiers_remover:
-                res = quantifiers_remover.compile(
-                    problem, CompilationKind.QUANTIFIERS_REMOVING
-                )
-                suitable_problem = res.problem
-                final_report = planner.solve(suitable_problem)
-                plan = final_report.plan.replace_action_instances(
-                    res.map_back_action_instance
-                )
+            final_report = planner.solve(problem)
+            plan = final_report.plan
 
-                self.assertEqual(
-                    final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
-                )
-                self.assertEqual(len(plan.timed_actions), 2)
-                self.assertEqual((plan.timed_actions[0])[1].action, move)
-                self.assertEqual((plan.timed_actions[1])[1].action, move)
+            self.assertEqual(
+                final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
+            )
+            self.assertEqual(len(plan.timed_actions), 2)
+            self.assertEqual((plan.timed_actions[0])[1].action, move)
+            self.assertEqual((plan.timed_actions[1])[1].action, move)
 
     @skipIfNoOneshotPlannerForProblemKind(
         classical_kind.union(quality_metrics_kind), OptimalityGuarantee.SOLVED_OPTIMALLY
@@ -216,9 +219,7 @@ class TestPlanner(unittest_TestCase):
             )
             self.assertEqual(plan, opt_plan)
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(general_numeric_kind).union(bounded_types_kind)
-    )
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
         problem = self.problems["robot"].problem
         move = problem.action("move")

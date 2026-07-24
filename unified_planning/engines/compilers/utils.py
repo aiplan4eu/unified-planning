@@ -15,6 +15,7 @@
 #
 """This module defines different utility functions for the compilers."""
 
+import warnings
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
@@ -186,10 +187,15 @@ def create_action_with_given_subs(
                 assert se is not None
                 return se.function(_problem, _state, c_subs)
 
+            # this rebuilds a simulated effect the user already defined (and got
+            # warned about), so the deprecation warning is silenced here
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                new_simulated_effect = SimulatedEffect(new_fluents, fun)
             # We try to add the new simulated effect, but a compiler might generate conflicting effects,
             # so the action is just considered invalid
             try:
-                new_action.set_simulated_effect(SimulatedEffect(new_fluents, fun))
+                new_action.set_simulated_effect(new_simulated_effect)
             except UPConflictingEffectsException:
                 return None
         is_feasible, new_preconditions = check_and_simplify_preconditions(
@@ -234,12 +240,15 @@ def create_action_with_given_subs(
                 assert se is not None
                 return se.function(_problem, _state, c_subs)
 
+            # this rebuilds a simulated effect the user already defined (and got
+            # warned about), so the deprecation warning is silenced here
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", DeprecationWarning)
+                new_simulated_effect = SimulatedEffect(new_fluents, fun)
             # We try to add the new simulated effect, but a compiler might generate conflicting effects,
             # so the action is just considered invalid
             try:
-                new_durative_action.set_simulated_effect(
-                    t, SimulatedEffect(new_fluents, fun)
-                )
+                new_durative_action.set_simulated_effect(t, new_simulated_effect)
             except UPConflictingEffectsException:
                 return None
         is_feasible, new_conditions = check_and_simplify_conditions(

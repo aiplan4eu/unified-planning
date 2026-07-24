@@ -16,7 +16,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
-    temporal_kind,
+    static_fluents_duration_kind,
     classical_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
@@ -42,7 +42,9 @@ class TestTemporalPlanner(unittest_TestCase):
             plan = planner.solve(problem).plan
             self.assertEqual(len(plan.timed_actions), 6)
 
-    @skipIfNoOneshotPlannerForProblemKind(temporal_kind)
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(basic_temporal_kind).union(static_fluents_duration_kind)
+    )
     def test_static_fluents_duration(self):
         problem = self.problems["robot_with_static_fluents_duration"].problem
 

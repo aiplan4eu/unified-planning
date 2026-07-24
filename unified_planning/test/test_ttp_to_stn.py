@@ -1,6 +1,7 @@
 from itertools import chain
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
     temporal_kind,
     classical_kind,
     int_duration_kind,
@@ -61,9 +62,7 @@ class TestTTPToSTN(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
-    @skipIfNoOneshotPlannerForProblemKind(
-        classical_kind.union(temporal_kind).union(int_duration_kind)
-    )
+    @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind.union(int_duration_kind))
     def test_matchcellar_to_stn(self):
         problem = self.problems["matchcellar"].problem
         with OneshotPlanner(problem_kind=problem.kind) as planner:

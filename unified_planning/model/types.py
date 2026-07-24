@@ -74,6 +74,11 @@ class _BoolType(Type):
         """Returns true iff is boolean type."""
         return True
 
+    def __reduce__(self):
+        # BOOL is a singleton compared by identity across the library, so
+        # unpickling (and deep-copying) must return the very same object
+        return (_get_bool_type, ())
+
 
 class _TimeType(Type):
     """Represent the type for an absolute Time"""
@@ -84,6 +89,11 @@ class _TimeType(Type):
     def is_time_type(self) -> bool:
         """Returns true iff is boolean type."""
         return True
+
+    def __reduce__(self):
+        # TIME is a singleton compared by identity across the library, so
+        # unpickling (and deep-copying) must return the very same object
+        return (_get_time_type, ())
 
 
 class _UserType(Type):
@@ -223,6 +233,14 @@ class _RealType(Type):
 
     def is_real_type(self) -> bool:
         return True
+
+
+def _get_bool_type() -> "_BoolType":
+    return BOOL
+
+
+def _get_time_type() -> "_TimeType":
+    return TIME
 
 
 BOOL = _BoolType()

@@ -14,6 +14,7 @@
 # limitations under the License
 
 
+import dataclasses
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
@@ -214,11 +215,11 @@ class TestProtobufIO(unittest_TestCase):
         log = LogMessage(LogLevel.ERROR, "test message")
         assert_log(log)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_plan_generation(self):
         problem = self.problems["robot"].problem
 
-        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
 
@@ -254,20 +255,29 @@ class TestProtobufIO(unittest_TestCase):
                     original_action_instance_up.actual_parameters,
                 )
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_validation_result(self):
         problem = self.problems["robot"].problem
 
-        with OneshotPlanner(name="tamer", params={"weight": 0.8}) as planner:
+        with OneshotPlanner(name="tamerlite") as planner:
             self.assertNotEqual(planner, None)
             final_report = planner.solve(problem)
-            with PlanValidator(name="tamer") as validator:
+            with PlanValidator(name="sequential_plan_validator") as validator:
                 validation_result = validator.validate(problem, final_report.plan)
 
                 validation_result_pb = self.pb_writer.convert(validation_result)
                 validation_result_up = self.pb_reader.convert(validation_result_pb)
 
-                self.assertEqual(validation_result, validation_result_up)
+                # the state trace and the calculated interpreted functions are
+                # not part of the protobuf representation
+                self.assertEqual(
+                    dataclasses.replace(
+                        validation_result,
+                        trace=None,
+                        calculated_interpreted_functions=None,
+                    ),
+                    validation_result_up,
+                )
 
     def test_temporal_hierarchical_goal(self):
         problem = self.problems["htn-go-temporal"].problem
@@ -451,7 +461,7 @@ class TestProtobufProblems(unittest_TestCase):
             self.assertEqual(plan, plan_up)
             self.assertEqual(hash(plan), hash(plan_up))
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfEngineNotAvailable("tamerlite")
     def test_some_plan_generations(self):
         problems = [
             "basic",
@@ -467,7 +477,7 @@ class TestProtobufProblems(unittest_TestCase):
         for name in problems:
             problem = self.problems[name].problem
 
-            with OneshotPlanner(name="tamer") as planner:
+            with OneshotPlanner(name="tamerlite") as planner:
                 self.assertNotEqual(planner, None)
                 final_report = planner.solve(problem)
 

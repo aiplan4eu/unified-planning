@@ -27,6 +27,7 @@ setup(
         "tarski": ["tarski[arithmetic]"],
         "pyperplan": ["up-pyperplan~=1.1.0"],
         "tamer": ["up-tamer~=1.1.6"],
+        "tamerlite": ["tamerlite[rust]~=0.1.0"],
         "enhsp": ["up-enhsp~=0.1.0"],
         "fast-downward": ["up-fast-downward~=0.5.2"],
         "lpg": ["up-lpg~=0.1.2"],
@@ -37,6 +38,7 @@ setup(
             "tarski[arithmetic]",
             "up-pyperplan~=1.1.0",
             "up-tamer~=1.1.6",
+            "tamerlite[rust]~=0.1.0",
             "up-enhsp~=0.1.0",
             "up-fast-downward~=0.5.2",
             "up-lpg~=0.1.2",
@@ -61,10 +63,10 @@ setup(
         "Intended Audience :: Developers",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "License :: OSI Approved :: Apache Software License",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     entry_points={
         "console_scripts": [

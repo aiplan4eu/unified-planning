@@ -13,18 +13,13 @@
 # limitations under the License.
 
 import os
-import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    simple_numeric_kind,
-    quality_metrics_kind,
-)
 from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.io import PDDLReader
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.test import (
     unittest_TestCase,
-    skipIfNoAnytimePlannerForProblemKind,
+    skipIfEngineNotAvailable,
 )
 
 
@@ -33,10 +28,7 @@ PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
 
 
 class TestAnytimePlanning(unittest_TestCase):
-    @skipIfNoAnytimePlannerForProblemKind(
-        simple_numeric_kind.union(quality_metrics_kind),
-        up.engines.AnytimeGuarantee.INCREASING_QUALITY,
-    )
+    @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_counters(self):
         reader = PDDLReader(disable_warnings=True)
         domain_filename = os.path.join(PDDL_DOMAINS_PATH, "counters", "domain.pddl")
@@ -45,7 +37,7 @@ class TestAnytimePlanning(unittest_TestCase):
         problem.add_quality_metric(MinimizeSequentialPlanLength())
 
         with AnytimePlanner(
-            problem_kind=problem.kind, anytime_guarantee="INCREASING_QUALITY"
+            name="opt-pddl-planner", anytime_guarantee="INCREASING_QUALITY"
         ) as planner:
             self.assertTrue(planner.is_anytime_planner())
             solutions = []

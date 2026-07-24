@@ -398,6 +398,9 @@ class UntimedEffectMixin:
         """
         Sets the given `simulated effect` as the only `action's simulated effect`.
 
+        Note: simulated effects are deprecated and will be removed in a future
+        version; consider using interpreted functions instead.
+
         :param simulated_effect: The `SimulatedEffect` instance that must be set as this `action`'s only
             `simulated effect`.
         """

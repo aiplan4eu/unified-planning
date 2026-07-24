@@ -25,7 +25,7 @@ def get_example_problems():
     # robot
     Location = UserType("Location")
     robot_at = Fluent("robot_at", BoolType(), position=Location)
-    battery_charge = Fluent("battery_charge", RealType(0, 100))
+    battery_charge = Fluent("battery_charge", RealType())
     move: Union[InstantaneousAction, DurativeAction] = InstantaneousAction(
         "move", l_from=Location, l_to=Location
     )
@@ -354,7 +354,7 @@ def get_example_problems():
     Location = UserType("Location")
     Robot = UserType("Robot")
     is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-    battery_charge = Fluent("battery_charge", RealType(0, 100), robot=Robot)
+    battery_charge = Fluent("battery_charge", RealType(), robot=Robot)
     is_connected = Fluent(
         "is_connected", BoolType(), location_1=Location, location_2=Location
     )
@@ -442,7 +442,7 @@ def get_example_problems():
     Location = UserType("Location")
     Robot = UserType("Robot")
     is_at = Fluent("is_at", BoolType(), position=Location, robot=Robot)
-    battery_charge = Fluent("battery_charge", RealType(0, 100), robot=Robot)
+    battery_charge = Fluent("battery_charge", RealType(), robot=Robot)
     is_connected = Fluent(
         "is_connected", BoolType(), location_1=Location, location_2=Location
     )
@@ -1093,7 +1093,7 @@ def get_example_problems():
     package_at = Fluent("package_at", package=Package, position=Location)
     package_loaded = Fluent("package_loaded", package=Package, robot=Robot)
     is_connected = Fluent("is_connected", l_from=Location, l_to=Location)
-    distance = Fluent("distance", IntType(0, 500), l_from=Location, l_to=Location)
+    distance = Fluent("distance", IntType(), l_from=Location, l_to=Location)
     velocity = Fluent("velocity", RealType(), robot=Robot)
 
     problem.add_fluent(robot_at, default_initial_value=False)

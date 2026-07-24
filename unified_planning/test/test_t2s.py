@@ -18,7 +18,7 @@ from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import classical_kind, bounded_types_kind
+from unified_planning.model.problem_kind import classical_kind
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.engines.results import ValidationResultStatus
@@ -180,7 +180,7 @@ class TestT2S(unittest_TestCase):
         self.assertEqual(compiled_d, expected_d)
         self.assertEqual(compiled_i, expected_i)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(bounded_types_kind))
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_logistic_with_planner_map_back_validity(self):
         original_problem = self.problems["logistic"].problem
         assert isinstance(original_problem, Problem)

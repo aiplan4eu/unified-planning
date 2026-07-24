@@ -78,9 +78,31 @@ class TestBoundedTypesRemover(unittest_TestCase):
         )
 
     def test_robot(self):
-        problem = self.problems["robot"].problem
+        # mockup mirroring the robot example, with a bounded battery
+        Location = UserType("Location")
+        robot_at = Fluent("robot_at", BoolType(), position=Location)
+        battery_charge = Fluent("battery_charge", RealType(0, 100))
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        move.add_precondition(GE(battery_charge, 10))
+        move.add_precondition(robot_at(l_from))
+        move.add_effect(robot_at(l_from), False)
+        move.add_effect(robot_at(l_to), True)
+        move.add_effect(battery_charge, Minus(battery_charge, 10))
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        problem = Problem("robot_bounded_battery")
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(battery_charge)
+        problem.add_action(move)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(robot_at(l1), True)
+        problem.set_initial_value(battery_charge, 100)
+        problem.add_goal(robot_at(l2))
+
         kind = problem.kind
-        added_conditions = 2  # 1 integer with upper and lower bound
+        added_conditions = 2  # 1 real with upper and lower bound
         with Compiler(
             problem_kind=kind,
             compilation_kind=CompilationKind.BOUNDED_TYPES_REMOVING,
@@ -128,7 +150,43 @@ class TestBoundedTypesRemover(unittest_TestCase):
         )
 
     def test_robot_locations_connected(self):
-        problem = self.problems["robot_locations_connected"].problem
+        # mockup with an existential condition and a bounded battery
+        Location = UserType("Location")
+        robot_at = Fluent("robot_at", BoolType(), position=Location)
+        is_connected = Fluent(
+            "is_connected", BoolType(), l_from=Location, l_to=Location
+        )
+        battery_charge = Fluent("battery_charge", RealType(0, 100))
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        mid = Variable("mid", Location)
+        move.add_precondition(GE(battery_charge, 10))
+        move.add_precondition(robot_at(l_from))
+        move.add_precondition(
+            Or(
+                is_connected(l_from, l_to),
+                Exists(And(is_connected(l_from, mid), is_connected(mid, l_to)), mid),
+            )
+        )
+        move.add_effect(robot_at(l_from), False)
+        move.add_effect(robot_at(l_to), True)
+        move.add_effect(battery_charge, Minus(battery_charge, 10))
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        l3 = Object("l3", Location)
+        problem = Problem("robot_locations_connected_bounded_battery")
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(is_connected, default_initial_value=False)
+        problem.add_fluent(battery_charge)
+        problem.add_action(move)
+        problem.add_objects([l1, l2, l3])
+        problem.set_initial_value(robot_at(l1), True)
+        problem.set_initial_value(is_connected(l1, l2), True)
+        problem.set_initial_value(is_connected(l2, l3), True)
+        problem.set_initial_value(battery_charge, 100)
+        problem.add_goal(robot_at(l3))
+
         kind = problem.kind
         added_conditions = 2  # 1 real with upper and lower bound
         with Compiler(
@@ -153,7 +211,34 @@ class TestBoundedTypesRemover(unittest_TestCase):
         )
 
     def test_robot_locations_visited(self):
-        problem = self.problems["robot_locations_visited"].problem
+        # mockup with a universal condition and a bounded battery
+        Location = UserType("Location")
+        robot_at = Fluent("robot_at", BoolType(), position=Location)
+        visited = Fluent("visited", BoolType(), position=Location)
+        battery_charge = Fluent("battery_charge", RealType(0, 100))
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        move.add_precondition(GE(battery_charge, 10))
+        move.add_precondition(robot_at(l_from))
+        move.add_effect(robot_at(l_from), False)
+        move.add_effect(robot_at(l_to), True)
+        move.add_effect(visited(l_to), True)
+        move.add_effect(battery_charge, Minus(battery_charge, 10))
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        pos = Variable("pos", Location)
+        problem = Problem("robot_locations_visited_bounded_battery")
+        problem.add_fluent(robot_at, default_initial_value=False)
+        problem.add_fluent(visited, default_initial_value=False)
+        problem.add_fluent(battery_charge)
+        problem.add_action(move)
+        problem.add_objects([l1, l2])
+        problem.set_initial_value(robot_at(l1), True)
+        problem.set_initial_value(visited(l1), True)
+        problem.set_initial_value(battery_charge, 100)
+        problem.add_goal(Forall(visited(pos), pos))
+
         kind = problem.kind
         added_conditions = 2  # 1 real with upper and lower bound
         with Compiler(

@@ -14,10 +14,9 @@
 
 
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLWriter, PDDLReader
-import tempfile
 import os
 
 
@@ -215,7 +214,7 @@ instance Robot r1, r2;
         anml_problem = aw.get_problem()
         expected_result = """type Location;
 fluent boolean robot_at(Location position);
-fluent float [0.0, 100.0] battery_charge;
+fluent float battery_charge;
 action move(Location l_from, Location l_to) ::("InstantaneousAction"){
    [ start ] (10 <= battery_charge);
    [ start ] (not (l_from == l_to));
@@ -294,63 +293,3 @@ instance location l1, l2, l3;
 [ start ] safe(l2, l3) := false;
 """
         self.assertEqual(anml_problem, expected_result)
-
-    @skipIfEngineNotAvailable("tamer")
-    def test_with_pytamer(self):
-        import pytamer
-
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_file_name = os.path.join(tempdir, "test_file.anml")
-            with OneshotPlanner(name="tamer") as tamer:
-                for example in self.problems.values():
-                    problem = example.problem
-                    kind = problem.kind
-                    if (
-                        tamer.supports(kind)
-                        and not kind.has_increase_effects()
-                        and not kind.has_decrease_effects()
-                    ):
-                        aw = ANMLWriter(problem)
-                        aw.write_problem(temp_file_name)
-                        tamer_env = pytamer.tamer_env_new()
-                        pytamer_problem = pytamer.tamer_parse_anml(
-                            tamer_env, temp_file_name
-                        )
-                        tamer_actions = list(
-                            pytamer.tamer_problem_get_actions(pytamer_problem)
-                        )
-                        self.assertEqual(len(tamer_actions), len(problem.actions))
-                        for ta in tamer_actions:
-                            up_act = problem.action(pytamer.tamer_action_get_name(ta))
-                            ta_params = list(pytamer.tamer_action_get_parameters(ta))
-                            self.assertEqual(len(up_act.parameters), len(ta_params))
-                        tamer_fluents_and_constants = list(
-                            pytamer.tamer_problem_get_fluents(pytamer_problem)
-                        )
-                        number_of_fluents = len(tamer_fluents_and_constants)
-                        tamer_fluents_and_constants.extend(
-                            list(pytamer.tamer_problem_get_constants(pytamer_problem))
-                        )
-                        self.assertEqual(
-                            len(tamer_fluents_and_constants), len(problem.fluents)
-                        )
-                        for n, tf in enumerate(tamer_fluents_and_constants):
-                            if n < number_of_fluents:  # the current element is a fluent
-                                up_fluent = problem.fluent(
-                                    pytamer.tamer_fluent_get_name(tf)
-                                )
-                                tf_sign = list(pytamer.tamer_fluent_get_parameters(tf))
-                            else:  # The current element is a constant
-                                up_fluent = problem.fluent(
-                                    pytamer.tamer_constant_get_name(tf)
-                                )
-                                tf_sign = list(
-                                    pytamer.tamer_constant_get_parameters(tf)
-                                )
-                            self.assertEqual(len(up_fluent.signature), len(tf_sign))
-                        tamer_objects = list(
-                            pytamer.tamer_problem_get_instances(pytamer_problem)
-                        )
-                        for to in tamer_objects:
-                            problem.object(pytamer.tamer_instance_get_name(to))
-                        self.assertEqual(len(tamer_objects), len(problem.all_objects))

@@ -382,6 +382,9 @@ class TimedCondsEffs:
         """
         Sets the given `simulated effect` at the specified `timing`.
 
+        Note: simulated effects are deprecated and will be removed in a future
+        version; consider using interpreted functions instead.
+
         :param timing: The time in which the `simulated effect` must be applied.
         :param simulated_effect: The `simulated effect` that must be applied at the given `timing`.
         """

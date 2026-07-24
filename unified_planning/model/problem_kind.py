@@ -358,8 +358,15 @@ full_classical_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
 full_classical_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
 full_classical_kind.set_effects_kind("CONDITIONAL_EFFECTS")
 
+quantified_conditions_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+quantified_conditions_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+quantified_conditions_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+
 object_fluent_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 object_fluent_kind.set_fluents_type("OBJECT_FLUENTS")
+
+simulated_effects_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+simulated_effects_kind.set_simulated_entities("SIMULATED_EFFECTS")
 
 simple_numeric_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 simple_numeric_kind.set_problem_class("ACTION_BASED")
@@ -403,6 +410,11 @@ temporal_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
 
 int_duration_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 int_duration_kind.set_expression_duration("INT_TYPE_DURATIONS")
+
+static_fluents_duration_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
+static_fluents_duration_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+static_fluents_duration_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+static_fluents_duration_kind.set_expression_duration("INT_TYPE_DURATIONS")
 
 quality_metrics_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
 quality_metrics_kind.set_quality_metrics("PLAN_LENGTH")

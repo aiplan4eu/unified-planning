@@ -14,14 +14,35 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
+from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
+    bounded_types_kind,
+    classical_kind,
+    int_duration_kind,
+    object_fluent_kind,
+    simple_numeric_kind,
+    simulated_effects_kind,
+)
+from unified_planning.test import (
+    unittest_TestCase,
+    skipIfNoOneshotPlannerForProblemKind,
+)
 
 
 class TestSimulatedEffects(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
 
-    @skipIfEngineNotAvailable("tamer")
+    def test_deprecation_warning(self):
+        x = Fluent("x")
+
+        def fun(problem, state, actual_params):
+            return [TRUE()]
+
+        with self.assertWarns(DeprecationWarning):
+            SimulatedEffect([FluentExp(x)], fun)
+
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simulated_effects_kind))
     def test_basic(self):
         x = Fluent("x")
         a = InstantaneousAction("a")
@@ -42,13 +63,18 @@ class TestSimulatedEffects(unittest_TestCase):
 
         self.assertTrue(problem.kind.has_simulated_effects())
 
-        with OneshotPlanner(name="tamer") as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
             self.assertEqual(len(plan.actions), 1)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(simple_numeric_kind)
+        .union(object_fluent_kind)
+        .union(bounded_types_kind)
+        .union(simulated_effects_kind)
+    )
     def test_with_parameters(self):
         Location = UserType("Location")
         Robot = UserType("Robot")
@@ -86,13 +112,17 @@ class TestSimulatedEffects(unittest_TestCase):
 
         self.assertTrue(problem.kind.has_simulated_effects())
 
-        with OneshotPlanner(name="tamer", params={"heuristic": "hff"}) as planner:
+        with OneshotPlanner(problem_kind=problem.kind) as planner:
             self.assertNotEqual(planner, None)
             res = planner.solve(problem)
             plan = res.plan
             self.assertEqual(len(plan.actions), 1)
 
-    @skipIfEngineNotAvailable("tamer")
+    @skipIfNoOneshotPlannerForProblemKind(
+        classical_kind.union(basic_temporal_kind)
+        .union(int_duration_kind)
+        .union(simulated_effects_kind)
+    )
     def test_temporal_basic(self):
         x = Fluent("x")
         y = Fluent("y")

@@ -19,9 +19,9 @@ from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     simple_numeric_kind,
-    bounded_types_kind,
     full_classical_kind,
-    basic_temporal_kind,
+    quantified_conditions_kind,
+    temporal_kind,
 )
 from unified_planning.test import (
     unittest_TestCase,
@@ -42,10 +42,10 @@ class TestDisjunctiveConditionsRemover(unittest_TestCase):
         self.problems = get_example_problems()
 
     @skipIfNoOneshotPlannerForProblemKind(
-        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        classical_kind.union(simple_numeric_kind).union(quantified_conditions_kind)
     )
     @skipIfNoPlanValidatorForProblemKind(
-        full_classical_kind.union(simple_numeric_kind).union(bounded_types_kind)
+        classical_kind.union(simple_numeric_kind).union(quantified_conditions_kind)
     )
     def test_robot_locations_visited(self):
         problem = self.problems["robot_locations_visited"].problem
@@ -268,8 +268,7 @@ class TestDisjunctiveConditionsRemover(unittest_TestCase):
         assert isinstance(dnf_problem, Problem)
         self.assertEqual(len(dnf_problem.actions), 1)
 
-    @skipIfNoOneshotPlannerForProblemKind(basic_temporal_kind)
-    @skipIfNoPlanValidatorForProblemKind(basic_temporal_kind.union(classical_kind))
+    @skipIfNoPlanValidatorForProblemKind(temporal_kind.union(classical_kind))
     def test_temporal_mockup_3(self):
         # mockup problem
         a = Fluent("a")
@@ -315,13 +314,52 @@ class TestDisjunctiveConditionsRemover(unittest_TestCase):
             self.assertEqual(len(gl), 1)
             self.assertTrue(gl[0].is_fluent_exp())
 
-        with OneshotPlanner(problem_kind=dnf_problem.kind) as planner:
-            os_res = planner.solve(dnf_problem)
-            with PlanValidator(problem_kind=problem.kind) as validator:
-                valid_res = validator.validate(
-                    problem,
-                    os_res.plan.replace_action_instances(res.map_back_action_instance),
-                )
-                self.assertEqual(
-                    valid_res.status, up.engines.results.ValidationResultStatus.VALID
-                )
+        # handwritten plan for the compiled problem: falsify a before time 5 so
+        # that dcrm_timed_fake_action can achieve the timed fake goal, then
+        # restore a and achieve the final fake goal with dcrm_fake_action
+        plan = up.plans.TimeTriggeredPlan(
+            [
+                (
+                    Fraction(1),
+                    up.plans.ActionInstance(dnf_problem.action("n_act_a")),
+                    None,
+                ),
+                (
+                    Fraction(2),
+                    up.plans.ActionInstance(
+                        dnf_problem.action("dcrm_timed_fake_action")
+                    ),
+                    None,
+                ),
+                (
+                    Fraction(6),
+                    up.plans.ActionInstance(dnf_problem.action("act_a")),
+                    None,
+                ),
+                (
+                    Fraction(7),
+                    up.plans.ActionInstance(dnf_problem.action("dcrm_fake_action")),
+                    None,
+                ),
+            ]
+        )
+
+        with PlanValidator(
+            problem_kind=dnf_problem.kind, plan_kind=plan.kind
+        ) as validator:
+            valid_res = validator.validate(dnf_problem, plan)
+            self.assertEqual(
+                valid_res.status, up.engines.results.ValidationResultStatus.VALID
+            )
+
+        # mapping the plan back removes the fake-goal actions added by the
+        # compiler and must yield a plan valid for the original problem
+        assert res.map_back_action_instance is not None
+        mapped_back_plan = plan.replace_action_instances(res.map_back_action_instance)
+        with PlanValidator(
+            problem_kind=problem.kind, plan_kind=mapped_back_plan.kind
+        ) as validator:
+            valid_res = validator.validate(problem, mapped_back_plan)
+            self.assertEqual(
+                valid_res.status, up.engines.results.ValidationResultStatus.VALID
+            )
