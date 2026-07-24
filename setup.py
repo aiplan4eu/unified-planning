@@ -48,7 +48,7 @@ setup(
         ],
         "plot": [
             "plotly",
-            "matplotlib==3.7.3",
+            "matplotlib",
             "kaleido",
             "pygraphviz",
             "graphviz",
