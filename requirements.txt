@@ -1,5 +1,0 @@
-pddl
-pyparsing
-networkx
-ConfigSpace
-pysmt
