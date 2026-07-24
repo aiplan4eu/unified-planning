@@ -91,7 +91,7 @@ class STNPlanNode:
 
 
 def flatten_dict_structure(
-    d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]]
+    d: Dict[STNPlanNode, List[Tuple[Optional[Real], Optional[Real], STNPlanNode]]],
 ) -> Iterator[Tuple[STNPlanNode, Optional[Real], Optional[Real], STNPlanNode]]:
     """
     This method takes a dict containing a List of tuples of 3 elements, and
@@ -149,9 +149,9 @@ class STNPlan(plans.plan.Plan):
         :param _stn: Internal parameter, not to be used!
         :return: The created `STNPlan`.
         """
-        assert (
-            _stn is None or not constraints
-        ), "_stn and constraints can't be both given"
+        assert _stn is None or not constraints, (
+            "_stn and constraints can't be both given"
+        )
         # if we have a specific env or we don't have any actions
         env = environment
         if (env is not None or not constraints) and _stn is None:
@@ -501,7 +501,10 @@ class STNPlan(plans.plan.Plan):
             action_instance_map[ai] = (start, end)
 
         ttp_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
-        for ai, (start, end) in sorted(action_instance_map.items(), key=lambda x: x[1][0]):  # type: ignore [arg-type, return-value]
+        for ai, (start, end) in sorted(
+            action_instance_map.items(),
+            key=lambda x: x[1][0],  # type: ignore [arg-type, return-value]
+        ):
             assert start is not None
             duration = None if end is None else end - start
             ttp_actions.append((start, ai, duration))

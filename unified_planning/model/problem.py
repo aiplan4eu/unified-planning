@@ -458,9 +458,9 @@ class Problem(  # type: ignore[misc]
         :param interval: The interval of time in which the given goal must be `True`.
         :param goal: The expression that must be evaluated to `True` in the given `interval`.
         """
-        assert (
-            isinstance(goal, bool) or goal.environment == self._env
-        ), "timed_goal does not have the same environment of the problem"
+        assert isinstance(goal, bool) or goal.environment == self._env, (
+            "timed_goal does not have the same environment of the problem"
+        )
         if isinstance(interval, up.model.Timing):
             interval = up.model.TimePointInterval(interval)
         if (interval.lower.is_from_end() and interval.lower.delay != 0) or (
@@ -611,9 +611,9 @@ class Problem(  # type: ignore[misc]
     def _add_effect_instance(
         self, timing: "up.model.timing.Timing", effect: "up.model.effect.Effect"
     ):
-        assert (
-            effect.environment == self._env
-        ), "effect does not have the same environment of the problem"
+        assert effect.environment == self._env, (
+            "effect does not have the same environment of the problem"
+        )
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
 
         up.model.effect.check_conflicting_effects(
@@ -646,9 +646,9 @@ class Problem(  # type: ignore[misc]
 
         :param goal: The expression added to the `Problem` :func:`goals <unified_planning.model.Problem.goals>`.
         """
-        assert (
-            isinstance(goal, bool) or goal.environment == self._env
-        ), "goal does not have the same environment of the problem"
+        assert isinstance(goal, bool) or goal.environment == self._env, (
+            "goal does not have the same environment of the problem"
+        )
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
         assert self._env.type_checker.get_type(goal_exp).is_bool_type()
         if goal_exp != self._env.expression_manager.TRUE():
@@ -1389,9 +1389,9 @@ class _KindFactory:
                         "INT_NUMBERS_IN_OVERSUBSCRIPTION"
                     )
                 else:
-                    assert isinstance(
-                        oversub_gain, Fraction
-                    ), "Typing error in metric creation"
+                    assert isinstance(oversub_gain, Fraction), (
+                        "Typing error in metric creation"
+                    )
                     self.kind.set_oversubscription_kind(
                         "REAL_NUMBERS_IN_OVERSUBSCRIPTION"
                     )

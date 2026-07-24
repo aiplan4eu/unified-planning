@@ -14,7 +14,6 @@
 #
 """This module defines the conditional effects remover class."""
 
-
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -222,9 +221,9 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         # Takes an action and the new problem and returns a sequence of actions
         # that must be added to the problem in order to maintain the same semantic
         # removing the conditional effects.
-        assert (
-            action.is_conditional()
-        ), "This method must be called only on conditional actions"
+        assert action.is_conditional(), (
+            "This method must be called only on conditional actions"
+        )
         env = new_problem.environment
         simplifier = env.simplifier
         if isinstance(action, up.model.InstantaneousAction):
@@ -269,9 +268,9 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                         new_action._set_preconditions(simplified_preconditions)
                         yield new_action
         elif isinstance(action, up.model.DurativeAction):
-            timing_cond_effects: Dict[
-                "up.model.Timing", List["up.model.Effect"]
-            ] = action.conditional_effects
+            timing_cond_effects: Dict["up.model.Timing", List["up.model.Effect"]] = (
+                action.conditional_effects
+            )
             cond_effects_timing: List[Tuple["up.model.Effect", "up.model.Timing"]] = [
                 (e, t) for t, el in timing_cond_effects.items() for e in el
             ]

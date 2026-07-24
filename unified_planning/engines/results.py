@@ -15,7 +15,6 @@
 #
 """This module defines the PlanGenerationResult class."""
 
-
 from fractions import Fraction
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError, UPValueError
@@ -35,9 +34,7 @@ class ValidationResultStatus(Enum):
     VALID = (
         auto()
     )  # The plan is valid for the problem, it satisfies all the hard constraints
-    INVALID = (
-        auto()
-    )  # The plan is invalid for the problem, it does not satisfy all the hard constraints
+    INVALID = auto()  # The plan is invalid for the problem, it does not satisfy all the hard constraints
     UNKNOWN = (
         auto()
     )  # The planner can't tell if the plan is valid or invalid for the given problem
@@ -75,9 +72,7 @@ class PlanGenerationResultStatus(Enum):
     SOLVED_SATISFICING = auto()  # Valid plan found.
     SOLVED_OPTIMALLY = auto()  # Optimal plan found.
     UNSOLVABLE_PROVEN = auto()  # The problem is impossible, no valid plan exists.
-    UNSOLVABLE_INCOMPLETELY = (
-        auto()
-    )  # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
+    UNSOLVABLE_INCOMPLETELY = auto()  # The planner could not find a plan, but it's not sure that the problem is impossible (The planner is incomplete)
     TIMEOUT = auto()  # The planner ran out of time
     MEMOUT = auto()  # The planner ran out of memory
     INTERNAL_ERROR = auto()  # The planner had an internal error
@@ -205,9 +200,9 @@ def correct_plan_generation_result(
     :return: The new PlanGenerationResult that enforces policy of handling different
         epsilons between the engine and the problem.
     """
-    assert result.plan is None or isinstance(
-        result.plan, TimeTriggeredPlan
-    ), "This method works only for TimeTriggeredPlans"
+    assert result.plan is None or isinstance(result.plan, TimeTriggeredPlan), (
+        "This method works only for TimeTriggeredPlans"
+    )
     if not isinstance(engine_epsilon, Fraction) and engine_epsilon is not None:
         try:
             engine_epsilon = Fraction(engine_epsilon)
@@ -278,9 +273,9 @@ class ValidationResult(Result):
     inapplicable_action: Optional[up.plans.ActionInstance] = field(default=None)
     metrics: Optional[Dict[str, str]] = field(default=None)
     # The trace is either the sequences of states until the first validation error or a map from time to state for each event up to the first validation error
-    trace: Optional[
-        Union[List[up.model.State], Dict[Fraction, up.model.State]]
-    ] = field(default=None)
+    trace: Optional[Union[List[up.model.State], Dict[Fraction, up.model.State]]] = (
+        field(default=None)
+    )
     calculated_interpreted_functions: Optional[
         Dict[up.model.InterpretedFunction, up.model.FNode]
     ] = field(default=None)
@@ -289,7 +284,9 @@ class ValidationResult(Result):
         assert (
             self.inapplicable_action is None
             or self.reason == FailedValidationReason.INAPPLICABLE_ACTION
-        ), "The inapplicable_action can be set only if the reason of the failed plan is an inapplicable action."
+        ), (
+            "The inapplicable_action can be set only if the reason of the failed plan is an inapplicable action."
+        )
 
     def __str__(self) -> str:
         ret = [

@@ -192,9 +192,9 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             only `DURATIVE_ACTIONS_TO_PROCESSES` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.
         """
-        assert (
-            compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES
-        ), "Not supported compilation kind"
+        assert compilation_kind == CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES, (
+            "Not supported compilation kind"
+        )
         assert isinstance(problem, Problem)
         env = problem.environment
         mgr: ExpressionManager = env.expression_manager
@@ -873,9 +873,9 @@ def _get_first_end_timing(action: DurativeAction) -> Optional[Timing]:
         if isinstance(timing_or_interval, Timing):
             yield timing_or_interval
         else:
-            assert isinstance(
-                timing_or_interval, TimeInterval
-            ), f"Wrong durative action {action.name} typing associated to {conds_or_effs}"
+            assert isinstance(timing_or_interval, TimeInterval), (
+                f"Wrong durative action {action.name} typing associated to {conds_or_effs}"
+            )
             yield timing_or_interval.lower
             yield timing_or_interval.upper
 
@@ -885,9 +885,9 @@ def _get_first_end_timing(action: DurativeAction) -> Optional[Timing]:
     ):
         assert isinstance(timing_or_interval, (Timing, TimeInterval))
         for timing in timing_from_interval(timing_or_interval, conds_or_effs):
-            assert isinstance(
-                timing, Timing
-            ), f"Wrong durative action {action.name} typing associated to {conds_or_effs}"
+            assert isinstance(timing, Timing), (
+                f"Wrong durative action {action.name} typing associated to {conds_or_effs}"
+            )
             if timing.is_from_end():
                 assert timing.delay <= 0
                 if first_end_timing is None or first_end_timing.delay > timing.delay:

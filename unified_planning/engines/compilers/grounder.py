@@ -82,9 +82,9 @@ class GrounderHelper:
         if grounding_actions_map is not None:
             for action, params_list in grounding_actions_map.items():
                 for params in params_list:
-                    assert len(action.parameters) == len(
-                        params
-                    ), f"Action {action.name} has {len(action.parameters)} parameters but {len(params)} are given in the map.\n{action.parameters}\n{params}"
+                    assert len(action.parameters) == len(params), (
+                        f"Action {action.name} has {len(action.parameters)} parameters but {len(params)} are given in the map.\n{action.parameters}\n{params}"
+                    )
         # grounded_actions is a map from an Action of the original problem and it's parameters
         # to the grounded instance of the Action with the given parameters.
         # When the grounded instance of the Action is None, it means that the resulting grounding
@@ -125,9 +125,9 @@ class GrounderHelper:
             action does not have ``effects`` or the ``action conditions`` can be easily evaluated as a
             contradiction.
         """
-        assert len(action.parameters) == len(
-            parameters
-        ), "The number of given parameters for the grounding is different from the action's parameters"
+        assert len(action.parameters) == len(parameters), (
+            "The number of given parameters for the grounding is different from the action's parameters"
+        )
         key = (action.name, tuple(parameters))
         value = self._grounded_actions.get(key, 0)
         if value != 0:  # The action is already created
@@ -443,9 +443,9 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             only `GROUNDING` is supported by this compiler
         :return: The resulting `CompilerResult` data structure.
         """
-        assert isinstance(
-            problem, Problem
-        ), "The given problem is not a class supported by the Grounder"
+        assert isinstance(problem, Problem), (
+            "The given problem is not a class supported by the Grounder"
+        )
         grounder_helper = GrounderHelper(
             problem, self._grounding_actions_map, self._prune_actions
         )

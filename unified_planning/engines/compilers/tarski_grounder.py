@@ -14,7 +14,6 @@
 #
 """This module implements the grounder that uses tarski."""
 
-
 import shutil
 from typing import Optional, Tuple, Dict, List
 import tarski
@@ -132,9 +131,9 @@ class TarskiGrounder(Engine, CompilerMixin):
         objects = {object.name: object for object in problem.all_objects}
         types: Dict[str, Optional["up.model.Type"]] = {}
         if not problem.has_type("object"):
-            types[
-                "object"
-            ] = None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+            types["object"] = (
+                None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+            )
         for action_name, list_of_tuple_of_parameters in actions.items():
             action = problem.action(action_name)
             parameters = {parameter.name: parameter for parameter in action.parameters}

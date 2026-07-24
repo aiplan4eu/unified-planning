@@ -31,9 +31,9 @@ class ActionSelectorMixin:
     def __init__(self, problem: "up.model.AbstractProblem"):
         self._problem = problem
         self_class = type(self)
-        assert issubclass(
-            self_class, up.engines.engine.Engine
-        ), "ActionSelectorMixin does not implement the up.engines.Engine class"
+        assert issubclass(self_class, up.engines.engine.Engine), (
+            "ActionSelectorMixin does not implement the up.engines.Engine class"
+        )
         assert isinstance(self, up.engines.engine.Engine)
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"

@@ -60,7 +60,9 @@ if pyparsing.__version__ < "3.0.0":
     class Located(ParseElementEnhance):
         def parseImpl(self, instring, loc, doActions=True):
             start = loc
-            loc, tokens = self.expr._parse(instring, start, doActions, callPreParse=False)  # type: ignore
+            loc, tokens = self.expr._parse(
+                instring, start, doActions, callPreParse=False
+            )  # type: ignore
             ret_tokens = ParseResults([start, tokens, loc])
             ret_tokens["locn_start"] = start
             ret_tokens["value"] = tokens

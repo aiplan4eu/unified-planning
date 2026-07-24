@@ -160,12 +160,12 @@ class _IntType(Type):
         self, lower_bound: Optional[int] = None, upper_bound: Optional[int] = None
     ):
         Type.__init__(self)
-        assert lower_bound is None or isinstance(
-            lower_bound, int
-        ), "typing not respected"
-        assert upper_bound is None or isinstance(
-            upper_bound, int
-        ), "typing not respected"
+        assert lower_bound is None or isinstance(lower_bound, int), (
+            "typing not respected"
+        )
+        assert upper_bound is None or isinstance(upper_bound, int), (
+            "typing not respected"
+        )
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
 
@@ -202,12 +202,12 @@ class _RealType(Type):
         upper_bound: Optional[Fraction] = None,
     ):
         Type.__init__(self)
-        assert lower_bound is None or isinstance(
-            lower_bound, Fraction
-        ), "typing not respected"
-        assert upper_bound is None or isinstance(
-            upper_bound, Fraction
-        ), "typing not respected"
+        assert lower_bound is None or isinstance(lower_bound, Fraction), (
+            "typing not respected"
+        )
+        assert upper_bound is None or isinstance(upper_bound, Fraction), (
+            "typing not respected"
+        )
         self._lower_bound = lower_bound
         self._upper_bound = upper_bound
 

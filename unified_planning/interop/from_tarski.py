@@ -274,9 +274,9 @@ def convert_problem_from_tarski(
     types: Dict[str, Optional["unified_planning.model.Type"]] = {}
     uses_object_type: bool = _check_if_tarski_problem_uses_object_type(tarski_problem)
     if not uses_object_type:
-        types[
-            "object"
-        ] = None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+        types["object"] = (
+            None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+        )
     for t in lang.sorts:
         # types will be filled with the needed types in this loop.
         _convert_type_and_update_dict(t, types, tm, lang)
@@ -290,7 +290,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.sort):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i+1)}"] = type
+            signature[f"p{str(i + 1)}"] = type
         fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
@@ -301,7 +301,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.domain):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i+1)}"] = type
+            signature[f"p{str(i + 1)}"] = type
         func_sort = p.sort[-1]
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:

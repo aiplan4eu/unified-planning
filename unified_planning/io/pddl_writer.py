@@ -196,7 +196,7 @@ class ConverterToPDDLString(walkers.DagWalker):
             f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}"
             for v in expression.variables()
         ]
-        return f'(exists ({" ".join(vars_string_list)})\n {args[0]})'
+        return f"(exists ({' '.join(vars_string_list)})\n {args[0]})"
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
@@ -204,7 +204,7 @@ class ConverterToPDDLString(walkers.DagWalker):
             f"{self.get_mangled_name(v)} - {self.get_mangled_name(v.type)}"
             for v in expression.variables()
         ]
-        return f'(forall ({" ".join(vars_string_list)})\n {args[0]})'
+        return f"(forall ({' '.join(vars_string_list)})\n {args[0]})"
 
     def walk_always(self, expression, args):
         assert len(args) == 1
@@ -232,11 +232,11 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_and(self, expression, args):
         assert len(args) > 1
-        return f'(and {" ".join(args)})'
+        return f"(and {' '.join(args)})"
 
     def walk_or(self, expression, args):
         assert len(args) > 1
-        return f'(or {" ".join(args)})'
+        return f"(or {' '.join(args)})"
 
     def walk_not(self, expression, args):
         assert len(args) == 1
@@ -252,7 +252,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
-        return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+        return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
@@ -453,7 +453,7 @@ class PDDLWriter:
                 user_types_hierarchy[None] if None in user_types_hierarchy else []
             )
             out.write(
-                f'    {" ".join(self._get_mangled_name(t) for t in stack)} - object\n'
+                f"    {' '.join(self._get_mangled_name(t) for t in stack)} - object\n"
             )
             while stack:
                 current_type = stack.pop()
@@ -461,7 +461,7 @@ class PDDLWriter:
                 if direct_sons:
                     stack.extend(direct_sons)
                     out.write(
-                        f'    {" ".join([self._get_mangled_name(t) for t in direct_sons])} - {self._get_mangled_name(current_type)}\n'
+                        f"    {' '.join([self._get_mangled_name(t) for t in direct_sons])} - {self._get_mangled_name(current_type)}\n"
                     )
             out.write(" )\n")
         else:
@@ -471,7 +471,7 @@ class PDDLWriter:
                 if cast(_UserType, t).name != "object"
             ]
             out.write(
-                f' (:types {" ".join(pddl_types)})\n' if len(pddl_types) > 0 else ""
+                f" (:types {' '.join(pddl_types)})\n" if len(pddl_types) > 0 else ""
             )
 
         domain_objects = self.problem.domain_constants
@@ -497,7 +497,7 @@ class PDDLWriter:
                         i += 1
                     else:
                         raise UPTypeError("PDDL supports only user type parameters")
-                predicates.append(f'({self._get_mangled_name(f)}{"".join(params)})')
+                predicates.append(f"({self._get_mangled_name(f)}{''.join(params)})")
             elif f.type.is_int_type() or f.type.is_real_type():
                 params = []
                 i = 0
@@ -509,7 +509,7 @@ class PDDLWriter:
                         i += 1
                     else:
                         raise UPTypeError("PDDL supports only user type parameters")
-                functions.append(f'({self._get_mangled_name(f)}{"".join(params)})')
+                functions.append(f"({self._get_mangled_name(f)}{''.join(params)})")
             else:
                 raise UPTypeError("PDDL supports only boolean and numerical fluents")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
@@ -588,7 +588,7 @@ class PDDLWriter:
                                 precond_str.extend(map(converter.convert, p.args))
                             else:
                                 precond_str.append(converter.convert(p))
-                    out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+                    out.write(f"\n  :precondition (and {' '.join(precond_str)})")
                 elif len(m.preconditions) == 0 and self.empty_preconditions:
                     out.write(f"\n  :precondition ()")
                 self._write_task_network(m, out, converter)
@@ -710,7 +710,6 @@ class PDDLWriter:
             else:
                 raise NotImplementedError
         for proc in self.problem.processes:
-
             if any(p.simplify().is_false() for p in proc.preconditions):
                 continue
             out.write(f" (:process {self._get_mangled_name(proc)}")
@@ -729,7 +728,6 @@ class PDDLWriter:
                 out.write(")")
             out.write(")\n")
         for eve in self.problem.events:
-
             if any(p.simplify().is_false() for p in eve.preconditions):
                 continue
             out.write(f" (:event {self._get_mangled_name(eve)}")
@@ -760,7 +758,7 @@ class PDDLWriter:
                 ]
                 if len(objects) > 0:
                     out.write(
-                        f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
+                        f"\n   {' '.join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}"
                     )
             out.write("\n )\n")
         converter = ConverterToPDDLString(
@@ -1043,7 +1041,7 @@ class PDDLWriter:
                         constraint_str.extend(map(converter.convert, p.args))
                     else:
                         constraint_str.append(converter.convert(p))
-            out.write(f'\n  :constraints (and {" ".join(constraint_str)})')
+            out.write(f"\n  :constraints (and {' '.join(constraint_str)})")
             raise UPProblemDefinitionError(
                 "Task network constraints not supported by HDDL Writer yet"
             )
@@ -1057,7 +1055,7 @@ class PDDLWriter:
                         precond_str.extend(map(converter.convert, p.args))
                     else:
                         precond_str.append(converter.convert(p))
-            out.write(f'\n  :precondition (and {" ".join(precond_str)})')
+            out.write(f"\n  :precondition (and {' '.join(precond_str)})")
         elif len(item.preconditions) == 0 and self.empty_preconditions:
             out.write(f"\n  :precondition ()")
 
@@ -1090,7 +1088,7 @@ def _get_pddl_name(
     if (
         re.match(regex, name) is None
     ):  # If the name does not start with an alphabetic char, we make it start with one.
-        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
+        name = f"{INITIAL_LETTER.get(type(item), 'x')}_{name}"
 
     name = re.sub("[^0-9a-zA-Z_-]", "_", name)  # Substitute non-valid elements with "_"
     while (

@@ -73,7 +73,7 @@ def get_test_cases():
         first_elements: List[Object] = []
 
         for i in range(md.blocks_number):
-            block = Object(f"b{i+1}", Block)
+            block = Object(f"b{i + 1}", Block)
             if i < md.groups:
                 groups.append([block])
                 first_elements.append(block)

@@ -80,9 +80,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         self.operators_extractor: up.model.walkers.OperatorsExtractor = (
             up.model.walkers.OperatorsExtractor()
         )
-        self.interpreted_functions_extractor: up.model.walkers.InterpretedFunctionsExtractor = (
-            up.model.walkers.InterpretedFunctionsExtractor()
-        )
+        self.interpreted_functions_extractor: up.model.walkers.InterpretedFunctionsExtractor = up.model.walkers.InterpretedFunctionsExtractor()
         self.names_extractor: up.model.walkers.NamesExtractor = (
             up.model.walkers.NamesExtractor()
         )

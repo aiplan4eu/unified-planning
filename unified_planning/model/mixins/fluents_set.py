@@ -129,9 +129,9 @@ class FluentsSetMixin:
         if isinstance(fluent_or_name, up.model.fluent.Fluent):
             assert len(kwargs) == 0 and typename is None
             fluent = fluent_or_name
-            assert (
-                fluent.environment == self._env
-            ), "Fluent does not have the same environment of the problem"
+            assert fluent.environment == self._env, (
+                "Fluent does not have the same environment of the problem"
+            )
         else:
             fluent = up.model.fluent.Fluent(
                 fluent_or_name, typename, None, environment=self.environment, **kwargs

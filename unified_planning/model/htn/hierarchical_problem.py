@@ -244,9 +244,9 @@ class HierarchicalProblem(up.model.problem.Problem):
         return self._methods[method_name]
 
     def add_method(self, method: Method):
-        assert (
-            method.achieved_task is not None
-        ), f"No achieved task was specified for this method."
+        assert method.achieved_task is not None, (
+            f"No achieved task was specified for this method."
+        )
         if self.has_name(method.name):
             msg = f"Name of method {method.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
             if self._env.error_used_name or any(
@@ -255,9 +255,9 @@ class HierarchicalProblem(up.model.problem.Problem):
                 raise UPProblemDefinitionError(msg)
             else:
                 warn(msg)
-        assert (
-            method.achieved_task.task.name in self._abstract_tasks
-        ), f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
+        assert method.achieved_task.task.name in self._abstract_tasks, (
+            f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
+        )
         self._methods[method.name] = method
         for param in method.parameters:
             if param.type.is_user_type():

@@ -119,12 +119,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
     def test_simulated_execution_environment_init_wires_clone_random_init_and_simulator(
         self,
     ):
-        with patch.object(
-            SimulatedExecutionEnvironment,
-            "_randomly_set_full_initial_state",
-        ) as random_init, patch(
-            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
-            new=_FakeSequentialSimulator,
+        with (
+            patch.object(
+                SimulatedExecutionEnvironment,
+                "_randomly_set_full_initial_state",
+            ) as random_init,
+            patch(
+                "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+                new=_FakeSequentialSimulator,
+            ),
         ):
             env = SimulatedExecutionEnvironment(self.problem)
         self.assertIsNot(env._deterministic_problem, self.problem)
@@ -136,12 +139,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
     def test_simulated_execution_environment_init_respects_max_constraints_argument(
         self,
     ):
-        with patch.object(
-            SimulatedExecutionEnvironment,
-            "_randomly_set_full_initial_state",
-        ), patch(
-            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
-            new=_FakeSequentialSimulator,
+        with (
+            patch.object(
+                SimulatedExecutionEnvironment,
+                "_randomly_set_full_initial_state",
+            ),
+            patch(
+                "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+                new=_FakeSequentialSimulator,
+            ),
         ):
             env = SimulatedExecutionEnvironment(self.problem, max_constraints=3)
         self.assertEqual(env._max_constraints, 3)
@@ -157,12 +163,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         self.problem.set_initial_value(self.flag, True)
         self.problem.add_unknown_initial_constraint(hidden)
 
-        with patch.object(
-            SimulatedExecutionEnvironment,
-            "_randomly_set_full_initial_state",
-        ), patch(
-            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
-            new=_FakeSequentialSimulator,
+        with (
+            patch.object(
+                SimulatedExecutionEnvironment,
+                "_randomly_set_full_initial_state",
+            ),
+            patch(
+                "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+                new=_FakeSequentialSimulator,
+            ),
         ):
             env = SimulatedExecutionEnvironment(self.problem)
 
@@ -188,12 +197,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         self.problem.set_initial_value(known, True)
         self.problem.add_unknown_initial_constraint(hidden)
 
-        with patch.object(
-            SimulatedExecutionEnvironment,
-            "_randomly_set_full_initial_state",
-        ), patch(
-            "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
-            new=_FakeSequentialSimulator,
+        with (
+            patch.object(
+                SimulatedExecutionEnvironment,
+                "_randomly_set_full_initial_state",
+            ),
+            patch(
+                "unified_planning.model.contingent.execution_environment.up.engines.UPSequentialSimulator",
+                new=_FakeSequentialSimulator,
+            ),
         ):
             env = SimulatedExecutionEnvironment(self.problem)
 
@@ -239,12 +251,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         def fake_all_smt(_formula, keys):
             yield {k: _FakeBool(False) for k in keys}
 
-        with patch(
-            "unified_planning.model.contingent.execution_environment.all_smt",
-            side_effect=fake_all_smt,
-        ), patch(
-            "unified_planning.model.contingent.execution_environment.random.choice",
-            side_effect=lambda models: models[0],
+        with (
+            patch(
+                "unified_planning.model.contingent.execution_environment.all_smt",
+                side_effect=fake_all_smt,
+            ),
+            patch(
+                "unified_planning.model.contingent.execution_environment.random.choice",
+                side_effect=lambda models: models[0],
+            ),
         ):
             env = SimulatedExecutionEnvironment(self.problem)
 
@@ -335,12 +350,15 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         def fake_all_smt(_formula, keys):
             yield {k: _FakeBool(True) for k in keys}
 
-        with patch(
-            "unified_planning.model.contingent.execution_environment.all_smt",
-            side_effect=fake_all_smt,
-        ) as p_all_smt, patch(
-            "unified_planning.model.contingent.execution_environment.random.choice",
-            side_effect=lambda models: models[0],
+        with (
+            patch(
+                "unified_planning.model.contingent.execution_environment.all_smt",
+                side_effect=fake_all_smt,
+            ) as p_all_smt,
+            patch(
+                "unified_planning.model.contingent.execution_environment.random.choice",
+                side_effect=lambda models: models[0],
+            ),
         ):
             env._randomly_set_full_initial_state(self.problem)
         hidden_initial_value = env._deterministic_problem.initial_value(hidden())

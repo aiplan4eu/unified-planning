@@ -194,9 +194,9 @@ class ANMLReader:
 
         for block_res in grammar.timed_assignments_or_goals:
             interval_and_expressions_res = block_res[0]
-            assert (
-                len(block_res) == 1 and len(interval_and_expressions_res) == 2
-            ), "parsing error"
+            assert len(block_res) == 1 and len(interval_and_expressions_res) == 2, (
+                "parsing error"
+            )
             for expression in interval_and_expressions_res[1]:
                 if expression[0] == TK_WHEN:
                     raise UPUnsupportedProblemTypeError(
@@ -281,9 +281,9 @@ class ANMLReader:
             previous_element = type_name
             types_graph.add_node(type_name)
             for supertype in type_res["supertypes"]:
-                assert isinstance(
-                    supertype, str
-                ), f"parsing error, type {type_res} is not valid"
+                assert isinstance(supertype, str), (
+                    f"parsing error, type {type_res} is not valid"
+                )
                 types_graph.add_node(supertype)
                 types_graph.add_edge(supertype, previous_element)
                 previous_element = supertype
@@ -922,9 +922,9 @@ class ANMLReader:
                             raise ANMLSyntaxError(
                                 f"{first_elem} is found outside of a timed expression."
                             )
-                        assert (
-                            first_elem != TK_ALL
-                        ), "Error, this case should have been handled before."
+                        assert first_elem != TK_ALL, (
+                            "Error, this case should have been handled before."
+                        )
                         solved.append(
                             self._em.TimingExp(self._timings[(first_elem, is_global)])
                         )
@@ -997,9 +997,9 @@ class ANMLReader:
                             )
                 else:  # expression longer than 3, must be a parameters list
                     for e in exp:
-                        assert isinstance(e, List) or isinstance(
-                            e, ParseResults
-                        ), f"expression {exp} is expected to be a parameters list, but it's not"
+                        assert isinstance(e, List) or isinstance(e, ParseResults), (
+                            f"expression {exp} is expected to be a parameters list, but it's not"
+                        )
                         pass
             else:  # not solved
                 if isinstance(exp, ParseResults) or isinstance(exp, List):
@@ -1008,9 +1008,9 @@ class ANMLReader:
                         TK_FORALL,
                         TK_EXISTS,
                     ):  # quantifier
-                        assert isinstance(exp, ParseResults) or isinstance(
-                            exp, list
-                        ), f"{exp} <- {expression}, {type(exp)}"
+                        assert isinstance(exp, ParseResults) or isinstance(exp, list), (
+                            f"{exp} <- {expression}, {type(exp)}"
+                        )
                         name_type = self._parse_parameters_def(exp[1], types_map)
                         new_vars = {n: Variable(n, t) for n, t in name_type.items()}
                         stack.append((exp, True, new_vars))

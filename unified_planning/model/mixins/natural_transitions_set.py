@@ -128,9 +128,9 @@ class NaturalTransitionsSetMixin:
 
         :param natural_transition: The `process` that must be added to the `problem`.
         """
-        assert (
-            process.environment == self._env
-        ), "Process does not have the same environment of the problem"
+        assert process.environment == self._env, (
+            "Process does not have the same environment of the problem"
+        )
         if self._has_name_method(process.name):
             msg = f"Name {process.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
             if self._env.error_used_name or any(
@@ -150,9 +150,9 @@ class NaturalTransitionsSetMixin:
 
         :param event: The `event` that must be added to the `problem`.
         """
-        assert (
-            event.environment == self._env
-        ), "Event does not have the same environment of the problem"
+        assert event.environment == self._env, (
+            "Event does not have the same environment of the problem"
+        )
         if self._has_name_method(event.name):
             msg = f"Name {event.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
             if self._env.error_used_name or any(

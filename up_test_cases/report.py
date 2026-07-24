@@ -28,7 +28,16 @@ from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPNoSuitableEngineAvailableException
 from unified_planning.test import TestCase
 
-from utils import Ok, Err, ResultSet, Warn, bcolors, Void, get_report_parser, _get_test_cases  # type: ignore
+from utils import (
+    Ok,
+    Err,
+    ResultSet,
+    Warn,
+    bcolors,
+    Void,
+    get_report_parser,
+    _get_test_cases,
+)  # type: ignore
 
 
 get_environment().credits_stream = None  # silence credits
@@ -261,7 +270,9 @@ def report_oneshot(
 
     factory = get_environment().factory
     # filter OneshotPlanners
-    planners = list(filter(lambda name: factory.engine(name).is_oneshot_planner(), engines))  # type: ignore [attr-defined, arg-type]
+    planners = list(
+        filter(lambda name: factory.engine(name).is_oneshot_planner(), engines)
+    )  # type: ignore [attr-defined, arg-type]
 
     print("\n\nONESHOT PLANNING:")
     errors = []
@@ -280,9 +291,9 @@ def report_oneshot(
 
                 print("|  ", planner_id.ljust(40), end="")
                 try:
-                    assert isinstance(
-                        planner, OneshotPlannerMixin
-                    ), "Error in oneshot planners selection"
+                    assert isinstance(planner, OneshotPlannerMixin), (
+                        "Error in oneshot planners selection"
+                    )
                     start = time.time()
                     result = planner.solve(pb, timeout=timeout)
                     total_execution_time = time.time() - start
@@ -294,9 +305,9 @@ def report_oneshot(
                         result.status is PlanGenerationResultStatus.SOLVED_OPTIMALLY
                         and metrics_evaluation
                     ):
-                        assert (
-                            len(metrics_evaluation) == 1
-                        ), "Can't support more than 1 metric in the problem"
+                        assert len(metrics_evaluation) == 1, (
+                            "Can't support more than 1 metric in the problem"
+                        )
                         value = tuple(metrics_evaluation.values())[0]
                         expected_value = test_case.optimum
                         if expected_value is not None:
@@ -341,7 +352,9 @@ def report_plan_repair(
 
     factory = get_environment().factory
     # filter PlanRepairer
-    planners = list(filter(lambda name: factory.engine(name).is_plan_repairer(), engines))  # type: ignore [attr-defined, arg-type]
+    planners = list(
+        filter(lambda name: factory.engine(name).is_plan_repairer(), engines)
+    )  # type: ignore [attr-defined, arg-type]
 
     print("\n\nPLAN REPAIR:")
     errors = []
@@ -362,9 +375,9 @@ def report_plan_repair(
 
                     print("|  ", planner_id.ljust(40), end="")
                     try:
-                        assert isinstance(
-                            planner, PlanRepairerMixin
-                        ), "Error in plan repairer selection"
+                        assert isinstance(planner, PlanRepairerMixin), (
+                            "Error in plan repairer selection"
+                        )
                         start = time.time()
                         result = planner.repair(pb, plan)
                         total_execution_time = time.time() - start
@@ -447,7 +460,9 @@ def report_anytime(
 
     factory = get_environment().factory
     # filter AnytimePlanners
-    planners = list(filter(lambda name: factory.engine(name).is_anytime_planner(), engines))  # type: ignore [attr-defined, arg-type]
+    planners = list(
+        filter(lambda name: factory.engine(name).is_anytime_planner(), engines)
+    )  # type: ignore [attr-defined, arg-type]
 
     print("\n\nANYTIME PLANNING:")
     errors = []
@@ -470,9 +485,9 @@ def report_anytime(
                     metrics_evaluations: List[
                         Dict[PlanQualityMetric, Union[int, Fraction]]
                     ] = []
-                    assert isinstance(
-                        planner, AnytimePlannerMixin
-                    ), "Error in Anytime selection"
+                    assert isinstance(planner, AnytimePlannerMixin), (
+                        "Error in Anytime selection"
+                    )
                     results = []
                     start = time.time()
                     for result in planner.get_solutions(pb, timeout=timeout):
@@ -530,7 +545,9 @@ def report_validation(
     """Checks that all given plan validators produce the correct output on test-cases."""
     factory = get_environment().factory
     # filter PlanValidators
-    validators = list(filter(lambda name: factory.engine(name).is_plan_validator(), engines))  # type: ignore [attr-defined, arg-type]
+    validators = list(
+        filter(lambda name: factory.engine(name).is_plan_validator(), engines)
+    )  # type: ignore [attr-defined, arg-type]
 
     def applicable_validators(pb, plan):
         vals = [PlanValidator(name=validator_name) for validator_name in validators]
@@ -689,8 +706,10 @@ def main():
     if filters:
         problem_test_cases = dict(
             filter(
-                lambda name_value: any(p in name_value[0] for p in filters)
-                and all(p not in name_value[0] for p in blocks),
+                lambda name_value: (
+                    any(p in name_value[0] for p in filters)
+                    and all(p not in name_value[0] for p in blocks)
+                ),
                 problem_test_cases.items(),
             )
         )

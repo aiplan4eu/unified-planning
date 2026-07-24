@@ -80,16 +80,16 @@ class FNode(object):
             OperatorKind.OBJECT_EXP: lambda: self._content.payload.name,
             OperatorKind.TIMING_EXP: lambda: str(self._content.payload),
             OperatorKind.PRESENT_EXP: lambda: str(self._content.payload),
-            OperatorKind.AND: lambda: (
-                self.get_nary_expression_string(" and ", self.args)
+            OperatorKind.AND: lambda: self.get_nary_expression_string(
+                " and ", self.args
             ),
             OperatorKind.OR: lambda: self.get_nary_expression_string(" or ", self.args),
             OperatorKind.NOT: lambda: f"(not {self.arg(0)})",
-            OperatorKind.IMPLIES: lambda: (
-                self.get_nary_expression_string(" implies ", self.args)
+            OperatorKind.IMPLIES: lambda: self.get_nary_expression_string(
+                " implies ", self.args
             ),
-            OperatorKind.IFF: lambda: (
-                self.get_nary_expression_string(" iff ", self.args)
+            OperatorKind.IFF: lambda: self.get_nary_expression_string(
+                " iff ", self.args
             ),
             OperatorKind.EXISTS: lambda: (
                 f"Exists {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
@@ -106,20 +106,20 @@ class FNode(object):
                 f"Sometime-After{self.get_nary_expression_string(', ', self.args)}"
             ),
             OperatorKind.AT_MOST_ONCE: lambda: f"At-Most-Once({self.arg(0)})",
-            OperatorKind.PLUS: lambda: (
-                self.get_nary_expression_string(" + ", self.args)
+            OperatorKind.PLUS: lambda: self.get_nary_expression_string(
+                " + ", self.args
             ),
-            OperatorKind.MINUS: lambda: (
-                self.get_nary_expression_string(" - ", self.args)
+            OperatorKind.MINUS: lambda: self.get_nary_expression_string(
+                " - ", self.args
             ),
-            OperatorKind.TIMES: lambda: (
-                self.get_nary_expression_string(" * ", self.args)
+            OperatorKind.TIMES: lambda: self.get_nary_expression_string(
+                " * ", self.args
             ),
             OperatorKind.DIV: lambda: self.get_nary_expression_string(" / ", self.args),
             OperatorKind.LE: lambda: self.get_nary_expression_string(" <= ", self.args),
             OperatorKind.LT: lambda: self.get_nary_expression_string(" < ", self.args),
-            OperatorKind.EQUALS: lambda: (
-                self.get_nary_expression_string(" == ", self.args)
+            OperatorKind.EQUALS: lambda: self.get_nary_expression_string(
+                " == ", self.args
             ),
         }
 

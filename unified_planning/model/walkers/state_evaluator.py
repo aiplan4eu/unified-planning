@@ -51,9 +51,9 @@ class StateEvaluator(QuantifierSimplifier):
         assert self._problem is not None
         assert self._assignments is None
         assert self._variable_assignments is None
-        self._variable_assignments: Optional[
-            Dict["Expression", "Expression"]
-        ] = _variable_assignments
+        self._variable_assignments: Optional[Dict["Expression", "Expression"]] = (
+            _variable_assignments
+        )
         self._state = state
         r = self.walk(expression)
         self._variable_assignments = None

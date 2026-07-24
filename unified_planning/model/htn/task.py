@@ -62,7 +62,7 @@ class Task:
         sign = ""
         if len(self.parameters) > 0:
             sign_items = [f"{p.name}={str(p.type)}" for p in self.parameters]
-            sign = f'[{", ".join(sign_items)}]'
+            sign = f"[{', '.join(sign_items)}]"
         return f"{self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:

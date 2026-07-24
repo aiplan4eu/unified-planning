@@ -96,9 +96,9 @@ class TestProblemKindVersioning(unittest_TestCase):
                 res,
                 f"{i}) {left_pk} == {right_pk} expected {res} but returned {left_pk == right_pk}",
             )
-            assert (right_pk == left_pk) == (
-                right_pk == left_pk
-            ), f"{i}) Error, equality does not work both ways"
+            assert (right_pk == left_pk) == (right_pk == left_pk), (
+                f"{i}) Error, equality does not work both ways"
+            )
 
         for i, ((left_pk, right_pk), res) in enumerate(le_expected_results.items()):
             self.assertEqual(

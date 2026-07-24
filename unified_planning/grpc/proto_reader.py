@@ -223,9 +223,9 @@ class ProtobufReader(Converter):
             if (
                 len(msg.list) == 3
             ):  # Expect something of the form (up:plus (QUALIFIER [CONTAINER]) DELAY)
-                assert (
-                    msg.list[0].atom.symbol == "up:plus"
-                ), f"Unexpected expression {msg.list[0].atom.symbol}"
+                assert msg.list[0].atom.symbol == "up:plus", (
+                    f"Unexpected expression {msg.list[0].atom.symbol}"
+                )
                 if msg.list[2].type == "up:integer":
                     dl = int(msg.list[2].atom.int)
                 elif msg.list[2].type == "up:real":
@@ -831,41 +831,29 @@ class ProtobufReader(Converter):
         if result.status == proto.PlanGenerationResult.Status.Value(
             "SOLVED_SATISFICING"
         ):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_SATISFICING
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_SATISFICING
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "SOLVED_OPTIMALLY"
         ):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSOLVABLE_PROVEN"
         ):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSOLVABLE_INCOMPLETELY"
         ):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
         elif result.status == proto.PlanGenerationResult.Status.Value("TIMEOUT"):
             status = unified_planning.engines.results.PlanGenerationResultStatus.TIMEOUT
         elif result.status == proto.PlanGenerationResult.Status.Value("MEMOUT"):
             status = unified_planning.engines.results.PlanGenerationResultStatus.MEMOUT
         elif result.status == proto.PlanGenerationResult.Status.Value("INTERNAL_ERROR"):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
         elif result.status == proto.PlanGenerationResult.Status.Value(
             "UNSUPPORTED_PROBLEM"
         ):
-            status = (
-                unified_planning.engines.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
-            )
+            status = unified_planning.engines.results.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
         elif result.status == proto.PlanGenerationResult.Status.Value("INTERMEDIATE"):
             status = (
                 unified_planning.engines.results.PlanGenerationResultStatus.INTERMEDIATE

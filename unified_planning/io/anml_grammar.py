@@ -372,10 +372,8 @@ class ANMLGrammar:
         interval <<= (
             one_of([TK_L_BRACKET, TK_L_PARENTHESIS])
             + (
-                (
-                    Group(temporal_expression)
-                    + Optional(Suppress(TK_COMMA) + Group(temporal_expression))
-                )
+                Group(temporal_expression)
+                + Optional(Suppress(TK_COMMA) + Group(temporal_expression))
             )
             + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
         )

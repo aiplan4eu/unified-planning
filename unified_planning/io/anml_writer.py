@@ -138,7 +138,7 @@ class ConverterToANMLString(walkers.DagWalker):
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
             for v in expression.variables()
         )
-        return f'(exists({", ".join(vars_string_gen)}) {{ {args[0]}; }})'
+        return f"(exists({', '.join(vars_string_gen)}) {{ {args[0]}; }})"
 
     def walk_forall(self, expression, args):
         assert len(args) == 1
@@ -146,7 +146,7 @@ class ConverterToANMLString(walkers.DagWalker):
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
             for v in expression.variables()
         )
-        return f'(forall({", ".join(vars_string_gen)}) {{ {args[0]}; }})'
+        return f"(forall({', '.join(vars_string_gen)}) {{ {args[0]}; }})"
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -154,11 +154,11 @@ class ConverterToANMLString(walkers.DagWalker):
 
     def walk_and(self, expression, args):
         assert len(args) > 1
-        return f'({" and ".join(args)})'
+        return f"({' and '.join(args)})"
 
     def walk_or(self, expression, args):
         assert len(args) > 1
-        return f'({" or ".join(args)})'
+        return f"({' or '.join(args)})"
 
     def walk_not(self, expression, args):
         assert len(args) == 1
@@ -176,7 +176,7 @@ class ConverterToANMLString(walkers.DagWalker):
         if len(args) == 0:
             return self._names_mapping[expression.fluent()]
         else:
-            return f'{self._names_mapping[expression.fluent()]}({", ".join(args)})'
+            return f"{self._names_mapping[expression.fluent()]}({', '.join(args)})"
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
@@ -288,7 +288,7 @@ class ANMLWriter:
                 f"{_get_anml_name(ap.type, names_mapping)} {_get_anml_name(ap, names_mapping)}"
                 for ap in f.signature
             ]
-            params_written = f'({", ".join(parameters)})' if len(parameters) > 0 else ""
+            params_written = f"({', '.join(parameters)})" if len(parameters) > 0 else ""
             if f in static_fluents:
                 out.write(
                     f"constant {_get_anml_name(f.type, names_mapping)} {_get_anml_name(f, names_mapping)}{params_written};\n"
@@ -320,7 +320,7 @@ class ANMLWriter:
                     for ap in a.parameters
                 ]
                 out.write(
-                    f'action {_get_anml_name(a, names_mapping)}({", ".join(parameters)}) {{\n'
+                    f"action {_get_anml_name(a, names_mapping)}({', '.join(parameters)}) {{\n"
                 )
                 left_bound = " > " if a.duration.is_left_open() else " >= "
                 right_bound = " < " if a.duration.is_right_open() else " <= "
@@ -350,7 +350,7 @@ class ANMLWriter:
             ]
             if len(obj_names) > 0:
                 out.write(
-                    f'instance {_get_anml_name(t, names_mapping)} {", ".join(obj_names)};\n'
+                    f"instance {_get_anml_name(t, names_mapping)} {', '.join(obj_names)};\n"
                 )
 
         for fe, v in self.problem.initial_values.items():
@@ -410,11 +410,11 @@ class ANMLWriter:
         if effect.is_forall():
             vars = converter.convert_forall_variables(effect.forall)
             spaces_from_left += 3
-            results.append(f'forall ({vars}){{\n{spaces_from_left*" "}')
+            results.append(f"forall ({vars}){{\n{spaces_from_left * ' '}")
         if effect.is_conditional():
             spaces_from_left += 3
             results.append(
-                f'when {converter.convert(effect.condition)}\n{spaces_from_left*" "}{{'
+                f"when {converter.convert(effect.condition)}\n{spaces_from_left * ' '}{{"
             )
         results.append(converter.convert(effect.fluent))
         if effect.is_assignment():
@@ -427,11 +427,11 @@ class ANMLWriter:
             raise NotImplementedError
         results.append(f"{converter.convert(effect.value)};\n")
         if effect.is_conditional():
-            results.append(f'{spaces_from_left*" "}}};\n')
+            results.append(f"{spaces_from_left * ' '}}};\n")
             spaces_from_left -= 3
         if effect.is_forall():
             spaces_from_left -= 3
-            results.append(f'{spaces_from_left*" "}}};\n')
+            results.append(f"{spaces_from_left * ' '}}};\n")
         return "".join(results)
 
     def _convert_anml_timing(self, timing: "up.model.Timing") -> str:
@@ -468,7 +468,7 @@ def _get_anml_valid_name(
         "up.model.Parameter",
         "up.model.Fluent",
         "up.model.Object",
-    ]
+    ],
 ) -> str:
     """This function returns a valid ANML name."""
     if isinstance(item, up.model.Type):
@@ -480,7 +480,7 @@ def _get_anml_valid_name(
     if (
         re.match(regex, name) is None
     ):  # If the name does not start with an alphabetic char, we make it start with one.
-        name = f'{INITIAL_LETTER.get(type(item), "x")}_{name}'
+        name = f"{INITIAL_LETTER.get(type(item), 'x')}_{name}"
     name = re.sub("[^0-9a-zA-Z_]", "_", name)  # Substitute non-valid elements with "_"
     while (
         name in ANML_KEYWORDS
@@ -550,7 +550,7 @@ def _get_anml_name(
                 count += 1
             new_name = test_name
             assert _is_valid_anml_name(new_name)
-        names_mapping[
-            item
-        ] = new_name  # Once a fresh valid name is found, update the map.
+        names_mapping[item] = (
+            new_name  # Once a fresh valid name is found, update the map.
+        )
     return cast(str, new_name)

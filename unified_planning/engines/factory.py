@@ -213,10 +213,10 @@ def format_table(header: List[str], rows: List[List[str]]) -> str:
         row_template += f" {{:<{str(l)}}} |"
     header_str = row_template.format(*header)
     row_len = len(header_str)
-    rows_str = [f'{"-"*row_len}', f"{header_str}", f'{"="*row_len}']
+    rows_str = [f"{'-' * row_len}", f"{header_str}", f"{'=' * row_len}"]
     for row in rows:
         rows_str.append(f"{row_template.format(*row)}")
-        rows_str.append(f'{"-"*row_len}')
+        rows_str.append(f"{'-' * row_len}")
     return "\n".join(rows_str)
 
 
@@ -400,12 +400,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definition" "of '%s' engine" % name
+                "Missing 'module_name' value in definitionof '%s' engine" % name
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definition" "of '%s' engine" % name
+                "Missing 'class_name' value in definitionof '%s' engine" % name
             )
 
             self.add_engine(name, module_name, class_name)

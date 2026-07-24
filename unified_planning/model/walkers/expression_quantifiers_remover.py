@@ -14,7 +14,6 @@
 #
 """This module defines the quantifiers remover class."""
 
-
 import unified_planning.model.walkers as walkers
 from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.model.fnode import FNode

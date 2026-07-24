@@ -19,7 +19,6 @@ All objects are memoized so that two syntactically equivalent expressions
 are represented by the same object.
 """
 
-
 import unified_planning as up
 import unified_planning.model.types
 from unified_planning.model.operators import OperatorKind
@@ -122,29 +121,29 @@ class ExpressionManager(object):
         res = []
         for e in self._polymorph_args_to_iterator(*args):
             if isinstance(e, up.model.fluent.Fluent):
-                assert (
-                    e.environment == self.environment
-                ), "Fluent has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "Fluent has a different environment of the expression manager"
+                )
                 res.append(self.FluentExp(e))
             elif isinstance(e, up.model.interpreted_function.InterpretedFunction):
-                assert (
-                    e.environment == self.environment
-                ), "InterpretedFunction has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "InterpretedFunction has a different environment of the expression manager"
+                )
                 res.append(self.InterpretedFunctionExp(e))
             elif isinstance(e, up.model.parameter.Parameter):
-                assert (
-                    e.environment == self.environment
-                ), "Parameter has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "Parameter has a different environment of the expression manager"
+                )
                 res.append(self.ParameterExp(e))
             elif isinstance(e, up.model.variable.Variable):
-                assert (
-                    e.environment == self.environment
-                ), "Variable has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "Variable has a different environment of the expression manager"
+                )
                 res.append(self.VariableExp(e))
             elif isinstance(e, up.model.object.Object):
-                assert (
-                    e.environment == self.environment
-                ), "Object has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "Object has a different environment of the expression manager"
+                )
                 res.append(self.ObjectExp(e))
             elif isinstance(e, up.model.timing.Timing):
                 res.append(self.TimingExp(e))
@@ -167,9 +166,9 @@ class ExpressionManager(object):
                     assert isinstance(number, Fraction)
                     res.append(self.Real(number))
             else:
-                assert (
-                    e.environment == self.environment
-                ), "Expression has a different environment of the expression manager"
+                assert e.environment == self.environment, (
+                    "Expression has a different environment of the expression manager"
+                )
                 res.append(e)
         return res
 
@@ -209,9 +208,9 @@ class ExpressionManager(object):
         if res is not None:
             return res
         else:
-            assert all(
-                a.environment == self.environment for a in args
-            ), "2 FNode in the same expression have different environments"
+            assert all(a.environment == self.environment for a in args), (
+                "2 FNode in the same expression have different environments"
+            )
             n = up.model.fnode.FNode(content, self._next_free_id, self.environment)
             self._next_free_id += 1
             self.expressions[content] = n
@@ -785,7 +784,6 @@ class ExpressionManager(object):
 
         left, right = self.auto_promote(left, right)
         if left.type.is_bool_type() and right.type.is_bool_type():
-
             return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
         else:
             return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))

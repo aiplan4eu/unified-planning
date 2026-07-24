@@ -43,11 +43,7 @@ class SequentialPlan(plans.plan.Plan):
             plans.plan.Plan.__init__(
                 self, plans.plan.PlanKind.SEQUENTIAL_PLAN, actions[0].action.environment
             )
-        for (
-            ai
-        ) in (
-            actions
-        ):  # check that given environment and the environment in the actions is the same
+        for ai in actions:  # check that given environment and the environment in the actions is the same
             if ai.action.environment != self._environment:
                 raise UPUsageError(
                     "The environment given to the plan is not the same of the actions in the plan."

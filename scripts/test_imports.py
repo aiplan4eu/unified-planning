@@ -16,7 +16,7 @@ while len(packages) > 0:
     )
     if return_code != 0:
         exit_code = 1
-    print(f'Test import {package_name}: {"DONE" if return_code == 0 else "FAIL"}')
+    print(f"Test import {package_name}: {'DONE' if return_code == 0 else 'FAIL'}")
     package = importlib.import_module(package_name)
     for _, modname, ispkg in pkgutil.iter_modules(package.__path__):
         if ispkg:

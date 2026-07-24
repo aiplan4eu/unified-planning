@@ -175,9 +175,9 @@ class ProblemKindMeta(type):
         def _set(self, feature, possible_features):
             assert feature in possible_features, str(feature)
             added_feature_version, _ = FEATURES_VERSIONS.get(feature, (1, None))
-            assert (
-                self._version is None or added_feature_version <= self._version
-            ), f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
+            assert self._version is None or added_feature_version <= self._version, (
+                f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
+            )
             self._features.add(feature)
 
         def _unset(self, feature, possible_features):
@@ -219,18 +219,18 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
             assert f in all_features, f"Feature {f} not in defined features"
         self._version = version
         if self._version is not None:
-            assert self._version > 0 and isinstance(
-                self._version, int
-            ), "Error, the ProblemKind version must be a positive integer"
+            assert self._version > 0 and isinstance(self._version, int), (
+                "Error, the ProblemKind version must be a positive integer"
+            )
             for feature in self._features:
                 added_feature_version, _ = FEATURES_VERSIONS.get(feature, (1, None))
-                assert (
-                    added_feature_version <= self._version
-                ), f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
+                assert added_feature_version <= self._version, (
+                    f"ProblemKind's declared version: {self._version} but {feature} is added in version {added_feature_version}"
+                )
 
     def __repr__(self) -> str:
         features_gen = (f"'{feature}'" for feature in self._features)
-        return f'ProblemKind([{", ".join(features_gen)}], version={self._version})'
+        return f"ProblemKind([{', '.join(features_gen)}], version={self._version})"
 
     def __str__(self) -> str:
         features_mapped: Dict[str, List[str]] = {}
@@ -294,9 +294,9 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         for f in self._features:
             added_feature_version, _ = FEATURES_VERSIONS.get(f, (1, None))
             max_version = max(max_version, added_feature_version)
-        assert (
-            max_version <= LATEST_PROBLEM_KIND_VERSION
-        ), "Calculated version is > that the LATEST declared version"
+        assert max_version <= LATEST_PROBLEM_KIND_VERSION, (
+            "Calculated version is > that the LATEST declared version"
+        )
         return max_version
 
     def get_version(self) -> Optional[int]:

@@ -70,7 +70,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
         ):
             agent_name = f"_{self.get_mangled_name(agent)}"
 
-        return f'(a_{self.get_mangled_name(fluent)}{agent_name} {self.get_mangled_name(agent)} {" ".join([self.convert(obj) for obj in objects])})'
+        return f"(a_{self.get_mangled_name(fluent)}{agent_name} {self.get_mangled_name(agent)} {' '.join([self.convert(obj) for obj in objects])})"
 
     def walk_fluent_exp(self, expression, args):
         fluent = expression.fluent()
@@ -83,9 +83,9 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
             agent_name = f"_{self._agent.name}"
 
         if self._agent is not None and fluent in self._agent.fluents:
-            return f'(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f"(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{' ' if len(args) > 0 else ''}{' '.join(args)})"
         else:
-            return f'({self.get_mangled_name(fluent)}{" " if len(args) > 0 else ""}{" ".join(args)})'
+            return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
 
 
 class MAPDDLWriter:
@@ -197,10 +197,10 @@ class MAPDDLWriter:
                     user_types_hierarchy[None] if None in user_types_hierarchy else []
                 )
                 out.write(
-                    f'    {" ".join(self._get_mangled_name(t) for t in stack)}{" " if len(self.problem.agents) > 0 else ""}ag - object\n'
+                    f"    {' '.join(self._get_mangled_name(t) for t in stack)}{' ' if len(self.problem.agents) > 0 else ''}ag - object\n"
                 )
                 out.write(
-                    f'    {" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)} - ag\n'
+                    f"    {' '.join(self._get_mangled_name(ag) + '_type' for ag in self.problem.agents)} - ag\n"
                 )
                 while stack:
                     current_type = stack.pop()
@@ -210,17 +210,17 @@ class MAPDDLWriter:
                     if direct_sons:
                         stack.extend(direct_sons)
                         out.write(
-                            f'    {" ".join([self._get_mangled_name(t) for t in direct_sons])} - {self._get_mangled_name(current_type)}\n'
+                            f"    {' '.join([self._get_mangled_name(t) for t in direct_sons])} - {self._get_mangled_name(current_type)}\n"
                         )
                 out.write(" )\n")
             else:
                 out.write(
-                    f' (:types {" ".join([self._get_mangled_name(t) for t in self.problem.user_types])}{" " if len(self.problem.agents) > 0 else ""}ag - object\n'
+                    f" (:types {' '.join([self._get_mangled_name(t) for t in self.problem.user_types])}{' ' if len(self.problem.agents) > 0 else ''}ag - object\n"
                     if len(self.problem.user_types) > 0
                     else ""
                 )
                 out.write(
-                    f'    {" ".join(self._get_mangled_name(ag) + "_type" for ag in self.problem.agents)} - ag\n'
+                    f"    {' '.join(self._get_mangled_name(ag) + '_type' for ag in self.problem.agents)} - ag\n"
                 )
                 out.write(" )\n")
 
@@ -284,7 +284,7 @@ class MAPDDLWriter:
                     else:
                         raise UPTypeError("MA-PDDL supports only user type parameters")
                 expression = (
-                    f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                    f"(a_{self._get_mangled_name(f)} ?agent - {'ag'}{''.join(params)})"
                 )
                 if f.type.is_bool_type():
                     predicates_public_agent.append(expression)
@@ -318,7 +318,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             predicates_agent_goal.append(
-                                f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                                f"(a_{self._get_mangled_name(f)} ?agent - {'ag'}{''.join(params)})"
                             )
                         elif f.type.is_int_type() or f.type.is_real_type():
                             params = []
@@ -334,7 +334,7 @@ class MAPDDLWriter:
                                         "MA-PDDL supports only user type parameters"
                                     )
                             functions_agent_goal.append(
-                                f'(a_{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                                f"(a_{self._get_mangled_name(f)} ?agent - {'ag'}{''.join(params)})"
                             )
                         else:
                             raise UPTypeError(
@@ -396,22 +396,22 @@ class MAPDDLWriter:
                 else ""
             )
             out.write(
-                f' {" ".join(functions_environment)}\n'
+                f" {' '.join(functions_environment)}\n"
                 if len(functions_environment) > 0
                 else ""
             )
             out.write(
-                f' {" ".join(functions_agent_goal)}\n'
+                f" {' '.join(functions_agent_goal)}\n"
                 if len(functions_agent_goal) > 0
                 else ""
             )
             out.write(
-                f' {" ".join(functions_public_agent)}\n'
+                f" {' '.join(functions_public_agent)}\n"
                 if len(functions_public_agent) > 0
                 else ""
             )
             out.write(
-                f'  (:private{" ".join(functions_agent)})\n'
+                f"  (:private{' '.join(functions_agent)})\n"
                 if len(functions_agent) > 0
                 else ""
             )
@@ -439,13 +439,13 @@ class MAPDDLWriter:
                         else:
                             out.write(f" (:action {self._get_mangled_name(a)}")
                         if self.unfactored:
-                            out.write(f'\n  :agent ?{ag.name} - {ag.name + "_type"}')
+                            out.write(f"\n  :agent ?{ag.name} - {ag.name + '_type'}")
 
                         out.write(f"\n  :parameters (")
 
                         if not self.unfactored:
                             out.write(
-                                f' ?{self._get_mangled_name(ag)} - {self._get_mangled_name(ag) +"_type"}'
+                                f" ?{self._get_mangled_name(ag)} - {self._get_mangled_name(ag) + '_type'}"
                             )
                         for ap in a.parameters:
                             if ap.type.is_user_type():
@@ -606,14 +606,14 @@ class MAPDDLWriter:
                     ]
                     if len(objects) > 0:
                         out.write(
-                            f'\n   {" ".join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}'
+                            f"\n   {' '.join([self._get_mangled_name(o) for o in objects])} - {self._get_mangled_name(t)}"
                         )
 
                 # If agents are not defined as "constant" in the domain, they are defined in the problem
                 for agent in self.problem.agents:
                     if agent not in self.domain_objects_agents.keys():
                         out.write(
-                            f'\n   {self._get_mangled_name(agent)} - {self._get_mangled_name(agent) + "_type"}'
+                            f"\n   {self._get_mangled_name(agent)} - {self._get_mangled_name(agent) + '_type'}"
                         )
                     else:
                         out.write(f"")
@@ -780,11 +780,11 @@ class MAPDDLWriter:
                     raise UPTypeError("MA-PDDL supports only user type parameters")
             if isinstance(obj, up.model.multi_agent.Agent):
                 if self.unfactored:
-                    expression = f'({prefix}{self._get_mangled_name(f)}_{obj.name} ?agent - {obj.name + "_type"}{"".join(params)})'
+                    expression = f"({prefix}{self._get_mangled_name(f)}_{obj.name} ?agent - {obj.name + '_type'}{''.join(params)})"
                 else:
-                    expression = f'({prefix}{self._get_mangled_name(f)} ?agent - {"ag"}{"".join(params)})'
+                    expression = f"({prefix}{self._get_mangled_name(f)} ?agent - {'ag'}{''.join(params)})"
             else:
-                expression = f'({prefix}{self._get_mangled_name(f)}{"".join(params)})'
+                expression = f"({prefix}{self._get_mangled_name(f)}{''.join(params)})"
             if f.type.is_bool_type():
                 predicates.append(expression)
             elif f.type.is_int_type() or f.type.is_real_type():

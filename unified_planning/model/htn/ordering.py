@@ -65,9 +65,9 @@ def ordering(
     task_ids: Iterable[str], time_constraints: List[FNode]
 ) -> TemporalConstraints:
     has_time = AnyChecker(predicate=lambda e: e.is_timing_exp())
-    assert all(
-        has_time.any(c) for c in time_constraints
-    ), "A temporal constraint has no time expression"
+    assert all(has_time.any(c) for c in time_constraints), (
+        "A temporal constraint has no time expression"
+    )
 
     precedences = []
     # try transforming all constraints into precedences

@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 """This module defines an ma_environment class."""
+
 import unified_planning as up
 from unified_planning.model.mixins import (
     FluentsSetMixin,

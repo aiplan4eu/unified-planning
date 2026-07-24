@@ -85,7 +85,7 @@ class Schedule(Plan):
                 def fmt(p):
                     prefix = a.name + "."
                     assert p.name.startswith(prefix)
-                    return f"{p.name[len(prefix):]}={self.get(p)}"
+                    return f"{p.name[len(prefix) :]}={self.get(p)}"
 
                 s.append("(")
                 s.append(", ".join(map(fmt, a.parameters)))

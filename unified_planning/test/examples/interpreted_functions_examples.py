@@ -21,6 +21,7 @@ from unified_planning.test import TestCase
 
 def get_example_problems():
     problems = {}
+
     # the more generic interpreted functions are defined at the start and used in more test cases
     def simple_integers_to_bool(ina, inb):
         return (ina * inb) == 60
@@ -316,10 +317,12 @@ def get_example_problems():
         "are_connected",
         BoolType(),
         signature_are_connected,
-        lambda l_from, l_to: (l_from.name != l_to.name)
-        and (
-            (l_from.name, l_to.name)
-            not in [("location_1", "location_3"), ("location_3", "location_1")]
+        lambda l_from, l_to: (
+            (l_from.name != l_to.name)
+            and (
+                (l_from.name, l_to.name)
+                not in [("location_1", "location_3"), ("location_3", "location_1")]
+            )
         ),
     )
 

@@ -315,7 +315,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
                             obj = domain_item(problem, fluent.fluent().type, i)
                             compiled_assignments[
                                 compiled_fluent(*compiled_args, obj)
-                            ] = (obj == val)
+                            ] = obj == val
                     else:
                         compiled_assignments[fluent] = val
                 sc = simplifier.qsimplify(condition, original_assignments, {})

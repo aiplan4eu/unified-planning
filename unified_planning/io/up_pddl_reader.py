@@ -465,22 +465,26 @@ class UPPDDLReader:
                     try:
                         solved.append(self._em.FluentExp(f, tuple(args)))
                     except Exception as e:
-                        start_line, start_col = exp.line_start(
-                            complete_str
-                        ), exp.col_start(complete_str)
-                        end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                            complete_str
+                        start_line, start_col = (
+                            exp.line_start(complete_str),
+                            exp.col_start(complete_str),
+                        )
+                        end_line, end_col = (
+                            exp.line_end(complete_str),
+                            exp.col_end(complete_str),
                         )
                         raise SyntaxError(
                             repr(e)
                             + f"\nError from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
                 else:
-                    start_line, start_col = exp.line_start(complete_str), exp.col_start(
-                        complete_str
+                    start_line, start_col = (
+                        exp.line_start(complete_str),
+                        exp.col_start(complete_str),
                     )
-                    end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                        complete_str
+                    end_line, end_col = (
+                        exp.line_end(complete_str),
+                        exp.col_end(complete_str),
                     )
                     raise up.exceptions.UPUnreachableCodeError(
                         f"Invalid expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
@@ -508,12 +512,14 @@ class UPPDDLReader:
                                     g.value[1] if len(g.value) > 1 else Object
                                 ]
                             except KeyError:
-                                g_start_line, g_start_col = lineno(
-                                    g.locn_start, complete_str
-                                ), col(g.locn_start, complete_str)
-                                g_end_line, g_end_col = lineno(
-                                    g.locn_end, complete_str
-                                ), col(g.locn_end, complete_str)
+                                g_start_line, g_start_col = (
+                                    lineno(g.locn_start, complete_str),
+                                    col(g.locn_start, complete_str),
+                                )
+                                g_end_line, g_end_col = (
+                                    lineno(g.locn_end, complete_str),
+                                    col(g.locn_end, complete_str),
+                                )
                                 raise SyntaxError(
                                     f"Undefined variable's type: {g[1]}."
                                     + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
@@ -539,14 +545,16 @@ class UPPDDLReader:
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
-                        start_line, start_col = exp.line_start(
-                            complete_str
-                        ), exp.col_start(complete_str)
-                        end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                            complete_str
+                        start_line, start_col = (
+                            exp.line_start(complete_str),
+                            exp.col_start(complete_str),
+                        )
+                        end_line, end_col = (
+                            exp.line_end(complete_str),
+                            exp.col_end(complete_str),
                         )
                         raise SyntaxError(
-                            f"Not able to handle: {complete_str[exp.locn_start: exp.locn_end]} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                            f"Not able to handle: {complete_str[exp.locn_start : exp.locn_end]} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
                 elif isinstance(exp.value, str):
                     if (
@@ -560,11 +568,13 @@ class UPPDDLReader:
                                 self._em.ParameterExp(act.parameter(exp.value[1:]))
                             )
                         except ValueError:
-                            start_line, start_col = exp.line_start(
-                                complete_str
-                            ), exp.col_start(complete_str)
-                            end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                                complete_str
+                            start_line, start_col = (
+                                exp.line_start(complete_str),
+                                exp.col_start(complete_str),
+                            )
+                            end_line, end_col = (
+                                exp.line_end(complete_str),
+                                exp.col_end(complete_str),
                             )
                             raise SyntaxError(
                                 f"Undefined name found: {exp.value[1:]}.\nError in expression from"
@@ -578,25 +588,29 @@ class UPPDDLReader:
                         try:
                             n = Fraction(exp.value)
                         except ValueError:
-                            start_line, start_col = exp.line_start(
-                                complete_str
-                            ), exp.col_start(complete_str)
-                            end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                                complete_str
+                            start_line, start_col = (
+                                exp.line_start(complete_str),
+                                exp.col_start(complete_str),
+                            )
+                            end_line, end_col = (
+                                exp.line_end(complete_str),
+                                exp.col_end(complete_str),
                             )
                             raise SyntaxError(
-                                f"Found invalid expression: {complete_str[exp.locn_start:exp.locn_end]}. From line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                                f"Found invalid expression: {complete_str[exp.locn_start : exp.locn_end]}. From line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                             )
                         if n.denominator == 1:
                             solved.append(self._em.Int(n.numerator))
                         else:
                             solved.append(self._em.Real(n))
                 else:
-                    start_line, start_col = exp.line_start(complete_str), exp.col_start(
-                        complete_str
+                    start_line, start_col = (
+                        exp.line_start(complete_str),
+                        exp.col_start(complete_str),
                     )
-                    end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                        complete_str
+                    end_line, end_col = (
+                        exp.line_end(complete_str),
+                        exp.col_end(complete_str),
                     )
                     raise SyntaxError(
                         f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
@@ -652,7 +666,10 @@ class UPPDDLReader:
                     self._em.FALSE(),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
+                act.add_effect(
+                    *eff if timing is None else (timing, *eff),
+                    forall=tuple(forall_variables.values()),
+                )  # type: ignore
             elif op == "assign":
                 eff = (
                     self._parse_exp(
@@ -663,7 +680,10 @@ class UPPDDLReader:
                     ),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
+                act.add_effect(
+                    *eff if timing is None else (timing, *eff),
+                    forall=tuple(forall_variables.values()),
+                )  # type: ignore
             elif op == "increase":
                 if "#t" in exp:
                     if not (
@@ -781,7 +801,10 @@ class UPPDDLReader:
                         ),
                         cond,
                     )
-                    act.add_increase_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
+                    act.add_increase_effect(
+                        *eff if timing is None else (timing, *eff),
+                        forall=tuple(forall_variables.values()),
+                    )  # type: ignore
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -904,7 +927,10 @@ class UPPDDLReader:
                         ),
                         cond,
                     )
-                    act.add_decrease_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
+                    act.add_decrease_effect(
+                        *eff if timing is None else (timing, *eff),
+                        forall=tuple(forall_variables.values()),
+                    )  # type: ignore
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -929,7 +955,10 @@ class UPPDDLReader:
                     self._em.TRUE(),
                     cond,
                 )
-                act.add_effect(*eff if timing is None else (timing, *eff), forall=tuple(forall_variables.values()))  # type: ignore
+                act.add_effect(
+                    *eff if timing is None else (timing, *eff),
+                    forall=tuple(forall_variables.values()),
+                )  # type: ignore
 
     def _add_condition(
         self,
@@ -960,11 +989,13 @@ class UPPDDLReader:
                     try:
                         t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     except KeyError:
-                        g_start_line, g_start_col = lineno(
-                            g.locn_start, complete_str
-                        ), col(g.locn_start, complete_str)
-                        g_end_line, g_end_col = lineno(g.locn_end, complete_str), col(
-                            g.locn_end, complete_str
+                        g_start_line, g_start_col = (
+                            lineno(g.locn_start, complete_str),
+                            col(g.locn_start, complete_str),
+                        )
+                        g_end_line, g_end_col = (
+                            lineno(g.locn_end, complete_str),
+                            col(g.locn_end, complete_str),
                         )
                         raise SyntaxError(
                             f"Undefined variable's type: {g[1]}."
@@ -1013,11 +1044,13 @@ class UPPDDLReader:
                     cond = self._em.Forall(cond, *vars.values())
                 act.add_condition(t_all, cond)
             else:
-                start_line, start_col = exp.line_start(complete_str), exp.col_start(
-                    complete_str
+                start_line, start_col = (
+                    exp.line_start(complete_str),
+                    exp.col_start(complete_str),
                 )
-                end_line, end_col = exp.line_end(complete_str), exp.col_end(
-                    complete_str
+                end_line, end_col = (
+                    exp.line_end(complete_str),
+                    exp.col_end(complete_str),
                 )
                 raise SyntaxError(
                     f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
@@ -1164,11 +1197,13 @@ class UPPDDLReader:
                         forall_variables[o] = up.model.Variable(o, t)
                 to_add.append((eff[2], forall_variables))
             else:
-                start_line, start_col = eff.line_start(complete_str), eff.col_start(
-                    complete_str
+                start_line, start_col = (
+                    eff.line_start(complete_str),
+                    eff.col_start(complete_str),
                 )
-                end_line, end_col = eff.line_end(complete_str), eff.col_end(
-                    complete_str
+                end_line, end_col = (
+                    eff.line_end(complete_str),
+                    eff.col_end(complete_str),
                 )
                 raise SyntaxError(
                     f"Not able to handle: {eff.value}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
@@ -1180,11 +1215,13 @@ class UPPDDLReader:
             try:
                 t = types_map[g.value[1] if len(g.value) > 1 else Object]
             except KeyError:
-                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                    g.locn_start, domain_str
+                g_start_line, g_start_col = (
+                    lineno(g.locn_start, domain_str),
+                    col(g.locn_start, domain_str),
                 )
-                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                    g.locn_end, domain_str
+                g_end_line, g_end_col = (
+                    lineno(g.locn_end, domain_str),
+                    col(g.locn_end, domain_str),
                 )
                 raise SyntaxError(
                     f"Undefined parameter's type: {g.value[1]}."
@@ -1259,8 +1296,9 @@ class UPPDDLReader:
                 )
             ]
         else:
-            start_line, start_col = e.line_start(complete_str), e.col_start(
-                complete_str
+            start_line, start_col = (
+                e.line_start(complete_str),
+                e.col_start(complete_str),
             )
             end_line, end_col = e.line_end(complete_str), e.col_end(complete_str)
             raise SyntaxError(
@@ -1446,11 +1484,13 @@ class UPPDDLReader:
                 try:
                     param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
                 except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
+                    g_start_line, g_start_col = (
+                        lineno(g.locn_start, domain_str),
+                        col(g.locn_start, domain_str),
                     )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
+                    g_end_line, g_end_col = (
+                        lineno(g.locn_end, domain_str),
+                        col(g.locn_end, domain_str),
                     )
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
@@ -1466,11 +1506,13 @@ class UPPDDLReader:
             n = pred[0]
             params = OrderedDict()
             for g in pred[1]:
-                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                    g.locn_start, domain_str
+                g_start_line, g_start_col = (
+                    lineno(g.locn_start, domain_str),
+                    col(g.locn_start, domain_str),
                 )
-                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                    g.locn_end, domain_str
+                g_end_line, g_end_col = (
+                    lineno(g.locn_end, domain_str),
+                    col(g.locn_end, domain_str),
                 )
                 try:
                     param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
@@ -1483,11 +1525,13 @@ class UPPDDLReader:
                     if param_name not in params:
                         params[param_name] = param_type
                     else:
-                        g_start_line, g_start_col = lineno(
-                            g.locn_start, domain_str
-                        ), col(g.locn_start, domain_str)
-                        g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                            g.locn_end, domain_str
+                        g_start_line, g_start_col = (
+                            lineno(g.locn_start, domain_str),
+                            col(g.locn_start, domain_str),
+                        )
+                        g_end_line, g_end_col = (
+                            lineno(g.locn_end, domain_str),
+                            col(g.locn_end, domain_str),
                         )
                         raise SyntaxError(
                             f"In definition of function {n} the parameter {param_name} "
@@ -1517,11 +1561,13 @@ class UPPDDLReader:
             try:
                 t = types_map[g.value[1] if len(g.value) > 1 else Object]
             except KeyError:
-                g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                    g.locn_start, domain_str
+                g_start_line, g_start_col = (
+                    lineno(g.locn_start, domain_str),
+                    col(g.locn_start, domain_str),
                 )
-                g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                    g.locn_end, domain_str
+                g_end_line, g_end_col = (
+                    lineno(g.locn_end, domain_str),
+                    col(g.locn_end, domain_str),
                 )
                 raise SyntaxError(
                     f"Undefined variable's type: {g.value[1]}."
@@ -1538,11 +1584,13 @@ class UPPDDLReader:
                 try:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                 except KeyError:
-                    g_start_line, g_start_col = lineno(g.locn_start, domain_str), col(
-                        g.locn_start, domain_str
+                    g_start_line, g_start_col = (
+                        lineno(g.locn_start, domain_str),
+                        col(g.locn_start, domain_str),
                     )
-                    g_end_line, g_end_col = lineno(g.locn_end, domain_str), col(
-                        g.locn_end, domain_str
+                    g_end_line, g_end_col = (
+                        lineno(g.locn_end, domain_str),
+                        col(g.locn_end, domain_str),
                     )
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
@@ -1899,11 +1947,13 @@ class UPPDDLReader:
                     try:
                         ti = up.model.StartTiming(Fraction(init[1].value))
                     except ValueError:
-                        start_line, start_col = init.line_start(
-                            problem_str
-                        ), init.col_start(problem_str)
-                        end_line, end_col = init.line_end(problem_str), init.col_end(
-                            problem_str
+                        start_line, start_col = (
+                            init.line_start(problem_str),
+                            init.col_start(problem_str),
+                        )
+                        end_line, end_col = (
+                            init.line_end(problem_str),
+                            init.col_end(problem_str),
                         )
                         raise SyntaxError(
                             f"Expected number, found {init[1].value} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"

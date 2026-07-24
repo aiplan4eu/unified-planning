@@ -43,9 +43,9 @@ class InterpretedFunction:
         self._env = get_environment(environment)
         self._name = name
         self._function = function
-        assert self._env.type_manager.has_type(
-            return_type
-        ), "type of parameter does not belong to the same environment of the interpreted function"
+        assert self._env.type_manager.has_type(return_type), (
+            "type of parameter does not belong to the same environment of the interpreted function"
+        )
         self._return_type = return_type
         self._signature: List["up.model.parameter.Parameter"] = []
         if _signature is not None:
@@ -67,7 +67,7 @@ class InterpretedFunction:
         sign = ""
         if self.arity > 0:
             sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
-            sign = f'[{", ".join(sign_items)}]'
+            sign = f"[{', '.join(sign_items)}]"
         return f"{str(self.return_type)} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:

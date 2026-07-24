@@ -42,12 +42,12 @@ class LinearChecker(DagWalker):
         DagWalker.__init__(self)
         if problem is not None:
             if environment is not None:
-                assert (
-                    problem.environment == environment
-                ), "The given environemt is different from the given problem environment"
-            self._static_fluents: Set[
-                "up.model.fluent.Fluent"
-            ] = problem.get_static_fluents()
+                assert problem.environment == environment, (
+                    "The given environemt is different from the given problem environment"
+                )
+            self._static_fluents: Set["up.model.fluent.Fluent"] = (
+                problem.get_static_fluents()
+            )
             self._env = problem.environment
             self._simplifier = walkers.Simplifier(self._env, problem)
         else:

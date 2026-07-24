@@ -87,9 +87,9 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         :return: The equivalent expression without Usertype Fluents.
         """
         new_exp, last_var, free_vars, last_fluent, added_fluents = self.walk(expression)
-        assert (
-            last_var is None and last_fluent is None
-        ), "A boolean condition can't have last_var or last_fluent"
+        assert last_var is None and last_fluent is None, (
+            "A boolean condition can't have last_var or last_fluent"
+        )
         if free_vars:
             assert added_fluents
             new_exp = self.manager.Exists(
@@ -288,9 +288,9 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         exp_args, _, _ = self._process_exp_args(args)
         added_vars = args[0][2]
         assert args[0][1] is None
-        assert not any(
-            v in added_vars for v in expression.variables()
-        ), "Conflicting Variables naming"
+        assert not any(v in added_vars for v in expression.variables()), (
+            "Conflicting Variables naming"
+        )
         return (
             self.manager.Exists(exp_args[0], *expression.variables()),
             None,
@@ -322,9 +322,9 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         exp_args, _, _ = self._process_exp_args(args)
         added_vars = args[0][2]
         assert args[0][1] is None
-        assert not any(
-            v in added_vars for v in expression.variables()
-        ), "Conflicting Variables naming"
+        assert not any(v in added_vars for v in expression.variables()), (
+            "Conflicting Variables naming"
+        )
         return (
             self.manager.Forall(exp_args[0], *expression.variables()),
             None,

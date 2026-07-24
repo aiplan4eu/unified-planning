@@ -78,9 +78,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
             _,
             ai,
             _,
-        ) in (
-            actions
-        ):  # check that given environment and the environment in the actions is the same
+        ) in actions:  # check that given environment and the environment in the actions is the same
             if ai.action.environment != self._environment:
                 raise UPUsageError(
                     "The environment given to the plan is not the same of the actions in the plan."
@@ -209,9 +207,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         for start, ai, duration in self._actions:
             times.add(start)
             if duration is None:
-                assert isinstance(
-                    ai.action, InstantaneousAction
-                ), "Error, None duration specified for non InstantaneousAction"
+                assert isinstance(ai.action, InstantaneousAction), (
+                    "Error, None duration specified for non InstantaneousAction"
+                )
                 continue
             times.add(start + duration)
             action = ai.action
@@ -323,18 +321,18 @@ def _convert_to_stn(
         end_node = None
         action = ai.action
         if duration is None:
-            assert isinstance(
-                action, InstantaneousAction
-            ), "Error, None duration specified for non InstantaneousAction"
+            assert isinstance(action, InstantaneousAction), (
+                "Error, None duration specified for non InstantaneousAction"
+            )
             events.setdefault(start, []).append(ai)
             event_creating_ais[ai] = (ai, Fraction(0))
             stn_constraints.setdefault(start_plan_node, []).append(
                 (Fraction(0), None, start_node)
             )
         else:
-            assert isinstance(
-                action, DurativeAction
-            ), "Error, Action is not a DurativeAction nor an InstantaneousAction"
+            assert isinstance(action, DurativeAction), (
+                "Error, Action is not a DurativeAction nor an InstantaneousAction"
+            )
 
             for absolute_timing, inst_action in _extract_instantenous_actions(
                 action, start, duration, epsilon

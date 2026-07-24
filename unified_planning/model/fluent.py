@@ -46,9 +46,9 @@ class Fluent:
         if typename is None:
             self._typename = self._env.type_manager.BoolType()
         else:
-            assert self._env.type_manager.has_type(
-                typename
-            ), "type of parameter does not belong to the same environment of the fluent"
+            assert self._env.type_manager.has_type(typename), (
+                "type of parameter does not belong to the same environment of the fluent"
+            )
             self._typename = typename
         self._signature: List["up.model.parameter.Parameter"] = []
         if _signature is not None:
@@ -59,9 +59,9 @@ class Fluent:
                         up.model.parameter.Parameter(param_name, param_type, self._env)
                     )
             elif isinstance(_signature, List):
-                assert all(
-                    p.environment == self._env for p in _signature
-                ), "one of the parameters does not belong to the same environment of the fluent"
+                assert all(p.environment == self._env for p in _signature), (
+                    "one of the parameters does not belong to the same environment of the fluent"
+                )
                 self._signature = _signature[:]
             else:
                 raise NotImplementedError
@@ -87,7 +87,7 @@ class Fluent:
         sign = ""
         if self.arity > 0:
             sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
-            sign = f'[{", ".join(sign_items)}]'
+            sign = f"[{', '.join(sign_items)}]"
         return f"{str(self.type)} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:

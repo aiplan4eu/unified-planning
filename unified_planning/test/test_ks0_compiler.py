@@ -498,7 +498,9 @@ class TestKs0Compiler(unittest_TestCase):
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 0", str(error.exception))
 
-        compiler = Ks0Compiler(possible_initial_states=possible_initial_states + (object(),))  # type: ignore[list-item]
+        compiler = Ks0Compiler(
+            possible_initial_states=possible_initial_states + (object(),)
+        )  # type: ignore[list-item]
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
         self.assertIn("at index 2", str(error.exception))
