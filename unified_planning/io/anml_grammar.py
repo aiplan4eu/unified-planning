@@ -19,7 +19,7 @@ from unified_planning.io.utils import set_results_name, set_parse_action
 from typing import List
 
 import pyparsing
-from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
+from pyparsing import Keyword, Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
 from pyparsing import ParseResults, ParserElement
 
@@ -393,7 +393,7 @@ class ANMLGrammar:
             (standalone_expression_block | standalone_timed_expression)
             - Suppress(TK_SEMI)
         )
-        goal_decl = TK_GOAL - (
+        goal_decl = Keyword(TK_GOAL) - (
             standalone_timed_expression
             | standalone_expression_block
             | TK_L_BRACE - goal_body - TK_R_BRACE
