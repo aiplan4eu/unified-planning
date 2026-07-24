@@ -2,7 +2,11 @@ name: CI-on-master
 
 on:
   push:
-    branches: master
+    branches: [master]
+    tags: ["v*"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -17,33 +21,115 @@ jobs:
     uses: ./.github/workflows/test.yml
 
     with:
-      python-version: ${{matrix.python-version}}
+      python-version: ${{ matrix.python-version }}
 
     secrets: inherit
 
-  deploy:
+  build:
     needs: [test]
-
     runs-on: ubuntu-latest
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      # On master builds, stamp a unique dev version so the rolling `dev`
+      # pre-release wheels are distinguishable. Tag builds keep the real version.
+      - name: Stamp dev version (master builds only)
+        if: github.ref == 'refs/heads/master'
+        run: python3 ci/stamp_dev_version.py
+
+      - name: Build sdist + wheel
+        run: uv build
+
+      - name: Upload distribution artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  # Publish to PyPI only on a version tag (vX.Y.Z). Because the version is static,
+  # master pushes never publish to PyPI; a release happens when a tag is pushed.
+  publish-pypi:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: pypi
     permissions:
       id-token: write
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@master
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
         with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: "3.10"
-
-      - name: Make distrib
-        run: |
-          python3 -m pip install wheel
-          bash scripts/make_distrib.sh
+          name: dist
+          path: dist/
 
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true
+
+  # Create a GitHub release with auto-generated notes on a version tag.
+  github-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [publish-pypi]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*
+
+  # On every master push (not tags): refresh a rolling `dev` GitHub pre-release
+  # with the freshly built artifacts, so master always has an installable build
+  # without touching PyPI.
+  dev-release:
+    if: github.ref == 'refs/heads/master'
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Replace the rolling dev pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete dev --yes --cleanup-tag 2>/dev/null || true
+          short=$(git rev-parse --short=7 HEAD)
+          gh release create dev dist/* \
+            --prerelease \
+            --target ${{ github.sha }} \
+            --title "Development build (master)" \
+            --notes "Built from commit ${short}. Install a wheel directly from this page."
