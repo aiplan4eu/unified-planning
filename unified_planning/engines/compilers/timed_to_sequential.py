@@ -440,7 +440,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 osef, ose.value, ose.condition
                             )
                         elif ose.is_decrease():
-                            new_action.add_increase_effect(
+                            new_action.add_decrease_effect(
                                 osef, ose.value, ose.condition
                             )
                         else:

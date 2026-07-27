@@ -114,6 +114,28 @@ class TestT2S(unittest_TestCase):
         )
         self.assertEqual(expected_ttp, mapped_back_ttp)
 
+    def test_start_only_decrease_effect(self):
+        # regression test: a start-time decrease effect on a fluent with no matching
+        # end-time effect must be compiled into a decrease effect, not an increase one
+        problem = Problem("start_only_decrease")
+        x = Fluent("x", IntType())
+        problem.add_fluent(x)
+        problem.set_initial_value(x, 10)
+
+        tda = DurativeAction("tda")
+        tda.set_fixed_duration(1)
+        tda.add_decrease_effect(StartTiming(), x, 3)
+        problem.add_action(tda)
+
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_tda = comp_res.problem.action("tda")
+
+        expected_tda = InstantaneousAction("tda")
+        expected_tda.add_decrease_effect(x, 3)
+        self.assertEqual(expected_tda, compiled_tda)
+
     def test_logistic(self):
         problem = self.problems["logistic"].problem
         assert isinstance(problem, Problem)
