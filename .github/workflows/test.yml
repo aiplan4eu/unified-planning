@@ -445,10 +445,6 @@ jobs:
           sudo apt install jupyter
           python3 -m pip install ipython
 
-      - name: Install tampest
-        run: |
-          pip3 install "tampest[plot] @ git+https://github.com/fbk-pso/tampest.git"
-
       - name: Install unified-planning from source
         run: python3 -m pip install .
 
