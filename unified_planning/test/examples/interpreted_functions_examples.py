@@ -593,4 +593,114 @@ def get_example_problems():
     )
     problems["interpreted_functions_minimal_chain_of_assignments"] = ifproblem
 
+    # interpreted functions combined with an undefined initial numeric value
+
+    UndefObj = UserType("UndefObj")
+
+    undef_value = Fluent("undef_value", IntType(), o=UndefObj)
+    undef_total = Fluent("undef_total", IntType())
+
+    def is_big(x):
+        return x >= 3
+
+    signature_is_big = OrderedDict()
+    signature_is_big["x"] = IntType()
+    is_big_if = InterpretedFunction("is_big", BoolType(), signature_is_big, is_big)
+
+    def double(x):
+        return 2 * x
+
+    signature_double = OrderedDict()
+    signature_double["x"] = IntType()
+    double_if = InterpretedFunction("double", IntType(), signature_double, double)
+
+    undef_o1 = Object("undef_o1", UndefObj)
+    undef_o2 = Object("undef_o2", UndefObj)
+
+    def choose_o1():
+        return undef_o1
+
+    choose_if = InterpretedFunction("choose", UndefObj, OrderedDict(), choose_o1)
+
+    use_value = InstantaneousAction("use_value", o=UndefObj)
+    use_value.add_precondition(is_big_if(undef_value(use_value.o)))
+    use_value.add_effect(undef_total, double_if(undef_value(use_value.o)))
+
+    set_value = InstantaneousAction("set_value", o=UndefObj)
+    set_value.add_effect(undef_value(set_value.o), double_if(undef_value(undef_o1)))
+
+    use_chosen = InstantaneousAction("use_chosen")
+    use_chosen.add_precondition(is_big_if(undef_value(choose_if())))
+    use_chosen.add_increase_effect(undef_total, 1)
+
+    problem = Problem("interpreted_functions_undef_numeric")
+    problem.add_fluent(undef_value)
+    problem.add_fluent(undef_total, default_initial_value=0)
+    problem.add_object(undef_o1)
+    problem.add_object(undef_o2)
+    problem.add_action(use_value)
+    problem.add_action(set_value)
+    problem.add_action(use_chosen)
+    problem.set_initial_value(
+        undef_value(undef_o1), 4
+    )  # undef_value(undef_o2) is left undefined
+    problem.add_goal(GE(undef_total, 1))
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.SequentialPlan([use_value(undef_o1)]),
+            up.plans.SequentialPlan([use_chosen()]),
+            up.plans.SequentialPlan([set_value(undef_o2), use_value(undef_o2)]),
+        ],
+        invalid_plans=[  # invalid plans contain actions that rely on the undefined value
+            up.plans.SequentialPlan([use_value(undef_o2)]),
+            up.plans.SequentialPlan([use_chosen(), use_value(undef_o2)]),
+            up.plans.SequentialPlan([]),
+        ],
+    )
+    problems["interpreted_functions_undef_numeric"] = ifproblem
+
+    # interpreted functions in a durative action's duration, combined with an
+    # undefined initial numeric value
+
+    undef_durative_value = Fluent("undef_durative_value", IntType(), o=UndefObj)
+    undef_done = Fluent("undef_done", BoolType())
+
+    undef_move = DurativeAction("undef_move", o=UndefObj)
+    undef_move.set_fixed_duration(double_if(undef_durative_value(undef_move.o)))
+    undef_move.add_condition(
+        StartTiming(), Not(is_big_if(undef_durative_value(undef_move.o)))
+    )
+    undef_move.add_effect(EndTiming(), undef_done, True)
+
+    problem = Problem("interpreted_functions_undef_numeric_durative")
+    problem.add_fluent(undef_durative_value)
+    problem.add_fluent(undef_done, default_initial_value=False)
+    problem.add_object(undef_o1)
+    problem.add_object(undef_o2)
+    problem.add_action(undef_move)
+    problem.set_initial_value(
+        undef_durative_value(undef_o1), 2
+    )  # undef_durative_value(undef_o2) is left undefined
+    problem.add_goal(undef_done)
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan(
+                [(Fraction(0), undef_move(undef_o1), Fraction(4))]
+            ),
+        ],
+        invalid_plans=[  # invalid plans contain actions that rely on the undefined value
+            up.plans.TimeTriggeredPlan(
+                [(Fraction(0), undef_move(undef_o2), Fraction(4))]
+            ),
+            up.plans.TimeTriggeredPlan([]),
+        ],
+    )
+    problems["interpreted_functions_undef_numeric_durative"] = ifproblem
+
     return problems

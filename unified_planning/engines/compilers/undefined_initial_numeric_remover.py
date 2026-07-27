@@ -62,6 +62,16 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
     - The boolean fluent is added to an action's conditions whenever the numeric fluent is used:
         * in any precondition of the action, or
         * in any expression used to compute the value of an effect of the action.
+    - A numeric fluent read inside the arguments of an :class:`~unified_planning.model.InterpretedFunction`
+      call still counts as a read, so the tracking fluent is added wherever the interpreted function
+      appears: in conditions, in durations, and in the expressions used to compute effect values.
+
+    Note:
+        Since conditions in this library are evaluated as non-short-circuiting conjunctions, an interpreted
+        function over an undefined numeric fluent is still called with that fluent's injected default value
+        (``0``, unless a constant assignment sets a lower default) even in states where the corresponding
+        tracking fluent is ``False`` and the overall condition is therefore unsatisfied regardless. The
+        interpreted function's callable must be able to handle this default value without raising.
 
     This `Compiler` supports only the the `UNDEFINED_INITIAL_NUMERIC_REMOVING` :class:`~unified_planning.engines.CompilationKind`.
     """
@@ -94,12 +104,14 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+        supported_kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         supported_kind.set_numbers("BOUNDED_TYPES")
         supported_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         supported_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
@@ -109,6 +121,9 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_typing("FLAT_TYPING")
         supported_kind.set_typing("HIERARCHICAL_TYPING")
         supported_kind.set_parameters("BOOL_FLUENT_PARAMETERS")
