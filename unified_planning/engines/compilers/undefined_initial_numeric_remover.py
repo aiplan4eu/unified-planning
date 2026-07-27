@@ -83,10 +83,12 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
 
     @property
     def name(self):
+        """Returns the name of this compiler."""
         return "undefined_initial_numeric_remover"
 
     @staticmethod
     def supported_kind() -> ProblemKind:
+        """Returns the `ProblemKind` supported by this compiler."""
         supported_kind = ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)
         supported_kind.set_problem_class("ACTION_BASED")
         supported_kind.set_problem_class("TAMP")
@@ -148,18 +150,22 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
 
     @staticmethod
     def supports(problem_kind):
+        """Returns True if the given `ProblemKind` is supported by this compiler."""
         return problem_kind <= UndefinedInitialNumericRemover.supported_kind()
 
     @staticmethod
     def supports_compilation(compilation_kind: CompilationKind) -> bool:
+        """Returns True if the given `CompilationKind` is supported by this compiler."""
         return compilation_kind == CompilationKind.UNDEFINED_INITIAL_NUMERIC_REMOVING
 
     @staticmethod
     def resulting_problem_kind(
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
+        """Returns the `ProblemKind` of the problem resulting from this compilation."""
         new_kind = problem_kind.clone()
         if new_kind.has_undefined_initial_numeric():
+            # every fluent with an undefined initial value is given one by the compilation
             new_kind.unset_initial_state("UNDEFINED_INITIAL_NUMERIC")
         return new_kind
 
@@ -198,6 +204,8 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
         new_problem.name = f"{problem.name}_{self.name}"
         env = new_problem.environment
 
+        # give every fluent with an undefined initial value a concrete default, and
+        # create its companion "is_value_defined" boolean fluent, initialized to False
         undef_fluents = new_problem._fluents_with_undefined_values()
         default_initial_value = get_default_initial_values(new_problem, undef_fluents)
         is_value_defined_fluents = {}
@@ -214,12 +222,14 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_fluent(is_value_defined, default_initial_value=False)
             is_value_defined_fluents[fluent] = is_value_defined
 
+        # every ground instance that was explicitly initialized is, by definition, defined
         for fluent_exp in dict(new_problem.explicit_initial_values):
             fluent = fluent_exp.fluent()
             if fluent in is_value_defined_fluents:
                 is_value_defined = is_value_defined_fluents[fluent]
                 new_problem.set_initial_value(is_value_defined(*fluent_exp.args), True)
 
+        # augment every place a formerly-undefined fluent is read or assigned
         self._compile_actions(new_problem, is_value_defined_fluents)
         self._compile_goals(new_problem, is_value_defined_fluents)
         self._compile_timed_effects_and_timed_goals(
@@ -237,8 +247,20 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
     def _compile_actions(
         self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
     ):
+        """
+        Mutates every action of `problem` in place so that, for each formerly-undefined
+        fluent it reads, the matching "is_value_defined" tracker is required wherever the
+        read happens, and for each one it assigns, the tracker is set to True (unless the
+        assignment already required the tracker to be True, e.g. an increase/decrease
+        effect, in which case it is a no-op and adding it again would be redundant).
+
+        `is_value_defined_fluents` maps each formerly-undefined fluent to its tracker.
+        """
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
+                # anywhere a fluent's current value is needed: preconditions, the
+                # expressions computing effect values, the fluent itself for
+                # increase/decrease effects (which read-then-write), and effect conditions
                 expressions = (
                     list(action.preconditions)
                     + [eff.value for eff in action.effects]
@@ -255,6 +277,7 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                         if fluent_exp.fluent() in is_value_defined_fluents:
                             undef_fluent_exps.add(fluent_exp)
 
+                # fluents that are the target of some effect of this action
                 affected_undef_fluent_exps = set()
                 for eff in action.effects:
                     if eff.fluent.fluent() in is_value_defined_fluents:
@@ -266,6 +289,9 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                     )
 
                 for fluent_exp in affected_undef_fluent_exps:
+                    # if this ground instance was already read above (increase/decrease
+                    # effects always are), its tracker is already a precondition and is
+                    # therefore already guaranteed to be True; no need to set it again
                     if fluent_exp not in undef_fluent_exps:
                         action.add_effect(
                             is_value_defined_fluents[fluent_exp.fluent()](
@@ -275,6 +301,9 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                         )
 
             elif isinstance(action, DurativeAction):
+                # same idea as above, but expressions must be attributed to the timing
+                # they belong to, since the tracker precondition/effect they generate has
+                # to be added at that same timing
                 timing_to_expressions: Dict[Timing, List[FNode]] = defaultdict(list)
                 for timeinterval, conditions in action.conditions.items():
                     timing_to_expressions[timeinterval.lower] += conditions
@@ -296,6 +325,8 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
                         if eff.fluent.fluent() in is_value_defined_fluents
                     )
 
+                # the duration must be computable before the action starts, so any
+                # fluent it reads is attributed to the action's start
                 for fluent_exp in self._fve.get(action.duration.lower) | self._fve.get(
                     action.duration.upper
                 ):
@@ -319,6 +350,8 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
 
                 for timing, fluent_exps in affected_undef_fluent_exps_map.items():
                     for fluent_exp in fluent_exps:
+                        # see the InstantaneousAction case above: skip if already read
+                        # (and thus already required to be defined) at this same timing
                         if fluent_exp not in timing_to_undef_fluent_exps.get(
                             timing, set()
                         ):
@@ -333,6 +366,8 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
     def _compile_goals(
         self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
     ):
+        """Adds a goal requiring the tracker to be True for every formerly-undefined
+        fluent read in `problem`'s (non-timed) goals."""
         undef_fluent_exps = set()
         for exp in problem.goals:
             for fluent_exp in self._fve.get(exp):
@@ -347,6 +382,10 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
     def _compile_timed_effects_and_timed_goals(
         self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
     ):
+        """
+        Same augmentation as :func:`_compile_actions`'s `DurativeAction` case, but for
+        `problem`'s global timed goals and timed effects rather than a single action.
+        """
         timing_to_expressions: Dict[Timing, List[FNode]] = defaultdict(list)
         for timeinterval, goals in problem.timed_goals.items():
             timing_to_expressions[timeinterval.lower].extend(goals)
@@ -391,6 +430,14 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
     def _compile_quality_metrics(
         self, problem: Problem, is_value_defined_fluents: Dict[Fluent, Fluent]
     ):
+        """
+        For every `MinimizeActionCosts` metric, requires the tracker for each
+        formerly-undefined fluent read by an action's cost expression (as a
+        precondition for an `InstantaneousAction`, or a start condition for a
+        `DurativeAction`). Every quality metric is then re-added from scratch, since
+        the action instances used as `MinimizeActionCosts.costs` dictionary keys may
+        have been mutated above by :func:`_compile_actions`, invalidating their hash.
+        """
         for metric in problem.quality_metrics:
             if metric.is_minimize_action_costs():
                 assert isinstance(metric, MinimizeActionCosts)
@@ -434,6 +481,15 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
 def get_default_initial_values(
     problem: Problem, undef_fluents: List[Fluent]
 ) -> Dict[Fluent, Union[int, Fraction]]:
+    """
+    Picks the value each fluent in `undef_fluents` gets in `problem`'s initial state
+    once its initial value is no longer left undefined.
+
+    For a fluent that is unconditionally assigned a constant somewhere in the problem's
+    actions, the smallest such constant is used. Every other fluent
+    (never assigned a constant, or only assigned non-constant expressions, such as the
+    result of an interpreted function) falls back to ``0``.
+    """
     undef_fluents_set = set(undef_fluents)
     default_initial_value = {}
     for action in problem.actions:
@@ -472,6 +528,8 @@ def get_default_initial_values(
 
 
 def new_fluent_name(problem: Problem, name: str) -> str:
+    """Returns `name` if it is not already used by a fluent of `problem`, otherwise
+    the first `f"{name}_{i}"` (for increasing ``i`` starting at 0) that is free."""
     new_name = name
     i = 0
     while problem.has_fluent(new_name):
