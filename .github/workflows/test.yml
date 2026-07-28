@@ -104,11 +104,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz graphviz-dev gringo
 
-      - name: Sync environment (with plot + tarski extras)
-        run: uv sync --frozen --extra plot --extra tarski
-
-      - name: Install tamerlite
-        run: uv pip install "tamerlite[rust]"
+      # uv sync is exact: it prunes anything absent from the lock. Every extra
+      # this job needs must be listed here, and this step must stay ahead of the
+      # `uv pip install ./<engine>` steps below, or they get wiped.
+      - name: Sync environment (with plot + tarski + tamerlite extras)
+        run: uv sync --frozen --extra plot --extra tarski --extra tamerlite
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v4
@@ -152,11 +152,10 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Sync environment
-        run: uv sync --frozen
-
-      - name: Install tamerlite
-        run: uv pip install "tamerlite[rust]"
+      # Exact sync: list every extra here, and keep this ahead of the
+      # `uv pip install ./<engine>` steps below.
+      - name: Sync environment (with tamerlite extra)
+        run: uv sync --frozen --extra tamerlite
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v4
@@ -189,11 +188,10 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Sync environment (with tarski extra)
-        run: uv sync --frozen --extra tarski
-
-      - name: Install tamerlite
-        run: uv pip install "tamerlite[rust]"
+      # Exact sync: list every extra here, and keep this ahead of the
+      # `uv pip install ./<engine>` steps below.
+      - name: Sync environment (with tarski + tamerlite extras)
+        run: uv sync --frozen --extra tarski --extra tamerlite
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v4
@@ -231,11 +229,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz graphviz-dev
 
-      - name: Sync environment (with plot extra)
-        run: uv sync --frozen --extra plot
-
-      - name: Install tamerlite
-        run: uv pip install "tamerlite[rust]"
+      # Exact sync: list every extra and group here, and keep this ahead of the
+      # `uv pip install ./<engine>` steps below. The docs group supplies jupyter
+      # and ipython, which scripts/test_colab.sh needs.
+      - name: Sync environment (with plot + tamerlite + aries extras, docs group)
+        run: uv sync --frozen --extra plot --extra tamerlite --extra aries --group docs
 
       - name: Checkout up-pyperplan
         uses: actions/checkout@v4
@@ -276,9 +274,6 @@ jobs:
       - name: Install up-enhsp
         run: uv pip install ./up-enhsp
 
-      - name: Install up-aries
-        run: uv pip install up-aries
-
       - name: Checkout up-fmap
         uses: actions/checkout@v4
         with:
@@ -288,9 +283,6 @@ jobs:
 
       - name: Install up-fmap
         run: uv pip install ./up-fmap
-
-      - name: Install jupyter and ipython
-        run: uv pip install jupyter ipython
 
       - name: Run colabs
         run: just test-colab
