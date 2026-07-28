@@ -23,7 +23,18 @@ from unified_planning.engines.compilers.timed_to_sequential import TimedToSequen
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.engines.results import ValidationResultStatus
 from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
+from unified_planning.model.walkers import InterpretedFunctionsExtractor
 from fractions import Fraction
+
+
+def _get_interpreted_function(*expressions):
+    """Extracts the single `InterpretedFunction` used across the given expressions."""
+    ife = InterpretedFunctionsExtractor()
+    if_functions = set()
+    for e in expressions:
+        if_functions |= {if_exp.interpreted_function() for if_exp in ife.get(e)}
+    (if_function,) = if_functions
+    return if_function
 
 
 class TestT2S(unittest_TestCase):
@@ -179,6 +190,133 @@ class TestT2S(unittest_TestCase):
         expected_d.add_effect(counter_f, Minus(counter_f, 1))
         self.assertEqual(compiled_d, expected_d)
         self.assertEqual(compiled_i, expected_i)
+
+    def test_interpreted_functions_in_durative_conditions(self):
+        problem = self.problems["interpreted_functions_in_durative_conditions"].problem
+        assert isinstance(problem, Problem)
+        self.assertTrue(TimedToSequential.supports(problem.kind))
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+
+        original = problem.action("durative_action_i_f_condition")
+        assert isinstance(original, DurativeAction)
+        ione = problem.fluent("ione")
+        itwo = problem.fluent("itwo")
+        end_goal = problem.fluent("end_goal")
+        all_conditions = [oc for ocl in original.conditions.values() for oc in ocl]
+        funx = _get_interpreted_function(*all_conditions)
+
+        # no start effects exist on this action, so the end-time conditions are
+        # carried over unchanged (identity substitution) alongside the start-time ones
+        expected = InstantaneousAction("durative_action_i_f_condition")
+        expected.add_precondition(And(GE(ione, 10), Not(funx(itwo, itwo))))
+        expected.add_precondition(funx(ione, itwo))
+        expected.add_precondition(Not(And(GE(ione, 15), LE(itwo, 5))))
+        expected.add_effect(end_goal, True)
+
+        compiled = comp_res.problem.action("durative_action_i_f_condition")
+        self.assertEqual(expected, compiled)
+
+    def test_go_home_with_rain_and_interpreted_functions(self):
+        problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        assert isinstance(problem, Problem)
+        self.assertTrue(TimedToSequential.supports(problem.kind))
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+
+        original_gohome = problem.action("gohome")
+        assert isinstance(original_gohome, DurativeAction)
+        athome = problem.fluent("athome")
+        atwork = problem.fluent("atwork")
+        house_wet = problem.fluent("house_wet")
+        wet_clothes = problem.fluent("wet_clothes")
+        rain = problem.fluent("rain")
+        have_umbrella = problem.fluent("have_umbrella")
+        effect_values = [
+            oe.value for oel in original_gohome.effects.values() for oe in oel
+        ]
+        wet_if = _get_interpreted_function(*effect_values)
+
+        # the start effect wet_clothes := wet_if(rain, have_umbrella) has no matching
+        # end effect on wet_clothes, so it is kept as-is; house_wet's end effect value
+        # (wet_clothes) is substituted with that same interpreted-function expression
+        expected_gohome = InstantaneousAction("gohome")
+        expected_gohome.add_precondition(Not(athome))
+        expected_gohome.add_precondition(atwork)
+        expected_gohome.add_effect(athome, True)
+        expected_gohome.add_effect(atwork, False)
+        expected_gohome.add_effect(house_wet, wet_if(rain, have_umbrella))
+        expected_gohome.add_effect(wet_clothes, wet_if(rain, have_umbrella))
+
+        compiled_gohome = comp_res.problem.action("gohome")
+        self.assertEqual(expected_gohome, compiled_gohome)
+
+        sp = SequentialPlan(
+            [
+                comp_res.problem.action("takeumbrella")(),
+                compiled_gohome(),
+            ]
+        )
+        assert comp_res.plan_back_conversion is not None
+        mapped_back = comp_res.plan_back_conversion(sp)
+        expected_ttp = TimeTriggeredPlan(
+            [
+                (Fraction(0), problem.action("takeumbrella")(), Fraction(1)),
+                (Fraction(101, 100), problem.action("gohome")(), Fraction(20)),
+            ]
+        )
+        self.assertEqual(expected_ttp, mapped_back)
+        with TimeTriggeredPlanValidator() as validator:
+            val_result = validator.validate(problem, mapped_back)
+        self.assertEqual(val_result.status, ValidationResultStatus.VALID)
+
+    def test_interpreted_functions_in_durative_start_effects(self):
+        problem = self.problems[
+            "interpreted_functions_in_durative_start_effects"
+        ].problem
+        assert isinstance(problem, Problem)
+        self.assertTrue(TimedToSequential.supports(problem.kind))
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        # the resulting kind is a sound over-approximation of the compiled problem's kind
+        self.assertTrue(
+            comp_res.problem.kind
+            <= TimedToSequential.resulting_problem_kind(problem.kind)
+        )
+
+        original_charge = problem.action("charge")
+        assert isinstance(original_charge, DurativeAction)
+        battery = problem.fluent("battery")
+        charged = problem.fluent("charged")
+        effect_values = [
+            oe.value for oel in original_charge.effects.values() for oe in oel
+        ]
+        boost_if = _get_interpreted_function(*effect_values)
+
+        # the start effect battery := boost_if(battery) is substituted into both the
+        # end-time condition (now a precondition) and the end-time effect on charged
+        expected_charge = InstantaneousAction("charge")
+        expected_charge.add_precondition(LT(battery, 10))
+        expected_charge.add_precondition(GE(boost_if(battery), 5))
+        expected_charge.add_effect(charged, GE(boost_if(battery), 5))
+        expected_charge.add_effect(battery, boost_if(battery))
+
+        compiled_charge = comp_res.problem.action("charge")
+        self.assertEqual(expected_charge, compiled_charge)
+
+        sp = SequentialPlan([compiled_charge()])
+        assert comp_res.plan_back_conversion is not None
+        mapped_back = comp_res.plan_back_conversion(sp)
+        expected_ttp = TimeTriggeredPlan(
+            [(Fraction(0), problem.action("charge")(), Fraction(8))]
+        )
+        self.assertEqual(expected_ttp, mapped_back)
+        with TimeTriggeredPlanValidator() as validator:
+            val_result = validator.validate(problem, mapped_back)
+        self.assertEqual(val_result.status, ValidationResultStatus.VALID)
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     def test_logistic_with_planner_map_back_validity(self):

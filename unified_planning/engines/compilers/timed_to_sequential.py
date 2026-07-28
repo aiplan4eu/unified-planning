@@ -128,6 +128,21 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     transform a problem with durative actions into one only using instantaneous actions.
     Every durative action is compiled into an instantaneous action by condensing
     all all conditions at start time and all effects at end time.
+
+    Interpreted functions are treated as ordinary sub-expressions: calls appearing in
+    conditions, effect values and durations are carried over unchanged, and calls appearing
+    in end-time conditions/effects have their arguments rewritten by the start-time effect
+    substitution, exactly like any other fluent-based expression.
+
+    Note:
+        Since a durative action's start and end collapse into a single instant, an interpreted
+        function that the temporal semantics would evaluate once at start and once at end is
+        evaluated only once here; this is consistent with the library-wide assumption that
+        interpreted functions are deterministic.
+
+        An interpreted function used in a duration is not part of the compiled (instantaneous)
+        problem: it is re-evaluated by :func:`plan_back_conversion_callable` against the simulated
+        state, so its callable must be able to handle whatever values are reachable in that state.
     """
 
     def __init__(self):
@@ -161,6 +176,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        supported_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
         supported_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
@@ -169,6 +185,9 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         supported_kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
+        supported_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
         supported_kind.set_effects_kind("FORALL_EFFECTS")
         supported_kind.set_time("CONTINUOUS_TIME")
         supported_kind.set_time("DISCRETE_TIME")
@@ -177,6 +196,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
         supported_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
+        supported_kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         supported_kind.set_quality_metrics("ACTIONS_COST")
         supported_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
         supported_kind.set_actions_cost_kind("FLUENTS_IN_ACTIONS_COST")
@@ -206,6 +226,19 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_kind.unset_time(timefeat)
         for durfeat in FEATURES["EXPRESSION_DURATION"]:
             new_kind.unset_expression_duration(durfeat)
+        # Start-time effect values are substituted into end-time conditions and into the
+        # values of end-time effects, so an interpreted function call appearing in any effect
+        # value can end up in a condition or in an effect of a different kind; declare all of
+        # them as a sound over-approximation.
+        if (
+            problem_kind.has_interpreted_functions_in_boolean_assignments()
+            or problem_kind.has_interpreted_functions_in_numeric_assignments()
+            or problem_kind.has_interpreted_functions_in_object_assignments()
+        ):
+            new_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
+            new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
+            new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
+            new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
         return new_kind
 
     def get_effects_data_structures(

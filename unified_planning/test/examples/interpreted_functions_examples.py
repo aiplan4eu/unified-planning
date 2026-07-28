@@ -703,4 +703,54 @@ def get_example_problems():
     )
     problems["interpreted_functions_undef_numeric_durative"] = ifproblem
 
+    # interpreted functions in a durative action's duration inequality and in a start
+    # effect whose value is substituted into an end-time condition and an end-time effect
+
+    def if_charge_time(level):
+        return 10 - level
+
+    signature_charge_time = OrderedDict()
+    signature_charge_time["level"] = IntType(0, 10)
+    charge_time_if = InterpretedFunction(
+        "charge_time", IntType(0, 10), signature_charge_time, if_charge_time
+    )
+
+    def if_boost(level):
+        return min(level + 3, 10)
+
+    signature_boost = OrderedDict()
+    signature_boost["level"] = IntType(0, 10)
+    boost_if = InterpretedFunction("boost", IntType(0, 10), signature_boost, if_boost)
+
+    battery = Fluent("battery", IntType(0, 10))
+    charged = Fluent("charged")
+
+    charge = DurativeAction("charge")
+    charge.set_closed_duration_interval(charge_time_if(battery), 20)
+    charge.add_condition(StartTiming(), LT(battery, 10))
+    charge.add_effect(StartTiming(), battery, boost_if(battery))
+    charge.add_condition(EndTiming(), GE(battery, 5))
+    charge.add_effect(EndTiming(), charged, GE(battery, 5))
+
+    problem = Problem("interpreted_functions_in_durative_start_effects")
+    problem.add_fluent(battery)
+    problem.add_fluent(charged)
+    problem.add_action(charge)
+    problem.set_initial_value(battery, 2)
+    problem.set_initial_value(charged, False)
+    problem.add_goal(charged)
+
+    ifproblem = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan([(Fraction(0), charge(), Fraction(8))]),
+        ],
+        invalid_plans=[  # duration shorter than charge_time_if(battery) == 8
+            up.plans.TimeTriggeredPlan([(Fraction(0), charge(), Fraction(4))]),
+            up.plans.TimeTriggeredPlan([]),
+        ],
+    )
+    problems["interpreted_functions_in_durative_start_effects"] = ifproblem
+
     return problems
