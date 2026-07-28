@@ -39,13 +39,13 @@ jobs:
         run: sudo apt-get install -y graphviz graphviz-dev gringo
 
       - name: Check formatting (ruff)
-        run: just check-format
+        run: just lint
 
       - name: MyPy check
-        run: just check-mypy
+        run: just typecheck
 
       - name: Test all package imports
-        run: uv run --extra plot --extra tarski python scripts/test_imports.py
+        run: just check-imports
 
   check-protobuf:
     runs-on: ubuntu-latest
@@ -154,10 +154,10 @@ jobs:
           mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
 
       - name: Test code-snippets
-        run: uv run bash scripts/test_code_snippets.sh
+        run: just test-snippets
 
       - name: Run tests
-        run: just run-tests
+        run: just test unified_planning xml
 
       - name: Upload coverage to Codecov
         if: ${{ github.repository == 'aiplan4eu/unified-planning' && inputs.python-version == '3.10' }}
@@ -218,7 +218,7 @@ jobs:
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
-        run: just run-tests
+        run: just test
 
   run-tests-macos:
     runs-on: macos-latest
@@ -271,7 +271,7 @@ jobs:
           bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
 
       - name: Run tests
-        run: just run-tests
+        run: just test
 
   run-colab-notebooks:
     runs-on: ubuntu-latest
@@ -360,4 +360,4 @@ jobs:
         run: uv pip install jupyter ipython
 
       - name: Run colabs
-        run: uv run bash scripts/test_colab.sh
+        run: just test-colab

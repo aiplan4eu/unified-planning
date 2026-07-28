@@ -12,8 +12,8 @@ repos:
 
   - repo: local
     hooks:
-      - id: check-format
-        name: just check-format
-        entry: just check-format
+      - id: lint
+        name: just lint
+        entry: just lint
         language: system
         pass_filenames: false
