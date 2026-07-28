@@ -35,15 +35,9 @@ gen-protobuf: check-protobuf-version
     # rewrite the relative import in the gRPC module to an absolute one
     cd unified_planning/grpc && sed -i "s/import unified_planning_pb2 as unified__planning__pb2/import unified_planning.grpc.generated.unified_planning_pb2 as unified__planning__pb2/g" generated/unified_planning_pb2_grpc.py
 
-# Run the unit tests with coverage + doctests (matches the former run_tests.sh)
+# Run the unit tests with coverage + doctests (pytest options live in pyproject.toml)
 run-tests target="unified_planning":
-    uv run pytest \
-        --cov=unified_planning --cov-report=xml \
-        --doctest-modules \
-        --ignore=unified_planning/grpc \
-        --ignore=unified_planning/interop \
-        --ignore=unified_planning/engines \
-        {{ target }}
+    uv run pytest --cov=unified_planning --cov-report=xml {{ target }}
 
 # Run the test-case report for one (or more) engines
 test-engine +engine_name:

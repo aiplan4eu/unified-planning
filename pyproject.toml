@@ -32,7 +32,7 @@ Homepage = "https://www.aiplan4eu-project.eu"
 up = "unified_planning.cmd.up:main"
 
 [project.optional-dependencies]
-grpc = ["grpcio", "grpcio-tools", "grpc-stubs"]
+grpc = ["grpcio==1.66.2", "grpcio-tools==1.66.2", "grpc-stubs"]
 tarski = ["tarski[arithmetic]"]
 pyperplan = ["up-pyperplan~=1.1.0"]
 tamer = ["up-tamer~=1.1.6"]
@@ -44,16 +44,7 @@ fmap = ["up-fmap~=0.0.13"]
 aries = ["up-aries>=0.4.0"]
 symk = ["up-symk>=1.3.0"]
 engines = [
-    "tarski[arithmetic]",
-    "up-pyperplan~=1.1.0",
-    "up-tamer~=1.1.6",
-    "tamerlite[rust]~=0.1.0",
-    "up-enhsp~=0.1.0",
-    "up-fast-downward~=0.5.2",
-    "up-lpg~=0.1.2",
-    "up-fmap~=0.0.13",
-    "up-aries>=0.4.0",
-    "up-symk>=1.3.0",
+    "unified-planning[tarski,pyperplan,tamer,tamerlite,enhsp,fast-downward,lpg,fmap,aries,symk]",
 ]
 plot = [
     "plotly",
@@ -124,6 +115,10 @@ extend-exclude = ["unified_planning/grpc/generated", "docs"]
 select = []
 
 [tool.ruff.format]
+
+[tool.pytest.ini_options]
+testpaths = ["unified_planning"]
+addopts = "--doctest-modules --ignore=unified_planning/grpc --ignore=unified_planning/interop --ignore=unified_planning/engines"
 
 [tool.mypy]
 check_untyped_defs = true
