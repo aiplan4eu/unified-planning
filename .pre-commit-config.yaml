@@ -5,6 +5,8 @@ repos:
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        # two trailing spaces are a hard line break in markdown
+        args: [--markdown-linebreak-ext=md]
       - id: check-toml
       - id: check-yaml
       - id: check-merge-conflict

@@ -13,7 +13,7 @@
        :precondition (and (not (= ?f1 ?f2)) (>= (x ?f1) 4) (adj ?f1 ?f2) )
       :effect (and(decrease (x ?f1) 4) (increase (x ?f2) 2) (increase (cost) 1))
     )
-    
+
     (:action move-slow
          :parameters (?f1 ?f2 -farm)
          :precondition (and (not (= ?f1 ?f2)) (>= (x ?f1) 1) (adj ?f1 ?f2))

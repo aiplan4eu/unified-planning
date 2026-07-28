@@ -33,7 +33,7 @@ The experiments conducted encompass two scenarios: one with a single drone and a
 | Sequential Planning with replanning |	The problem is modeled with known locations for n targets and executed in a simulation, with battery consumption interruptions prompting replanning based on the current state of the experiment. |
 | Temporal Planning | The initial problem version is modeled with known target locations (n) and is executed with time constraints. Subsequently, a second version localizes the plates through survey actions, redefines the problem, extends the plan for the localized targets, and executes them. |
 | Parallel Plan Generation | Building upon the previous variation, this experiment extends to parallel plan generation for scenarios involving multiple drones, each independently inspecting target objects. |
-	
+
 
 ## Operation Modes and Integration Aspects
 

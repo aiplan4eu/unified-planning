@@ -1023,7 +1023,7 @@
 
 	(:action navegate_snowplow
 		:parameters (?person - plowdriver ?veh - snowplow ?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1031,7 +1031,7 @@
 
 	(:action engage_plow
 		:parameters (?person - plowdriver ?plow - snowplow)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1039,7 +1039,7 @@
 
 	(:action disengage_plow
 		:parameters (?person - plowdriver ?plow - snowplow)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1047,7 +1047,7 @@
 
 	(:action navegate_vehicle
 		:parameters (?person - adult ?veh - vehicle ?loc - point ?vehloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?veh ?vehloc)
 				(atloc ?person ?vehloc)
@@ -1065,7 +1065,7 @@
 
 	(:action climb_in
 		:parameters (?obj - person ?veh - vehicle ?objloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?obj ?objloc)
 				(atloc ?veh ?objloc)
@@ -1081,7 +1081,7 @@
 
 	(:action climb_out
 		:parameters (?obj - person ?veh - vehicle ?vehloc - point)
-		:precondition 
+		:precondition
 			(and
 				(in_vehicle ?obj ?veh)
 				(atloc ?veh ?vehloc)
@@ -1096,7 +1096,7 @@
 
 	(:action load
 		:parameters (?person - person ?obj - object ?veh - vehicle ?objloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?obj ?objloc)
 				(atloc ?veh ?objloc)
@@ -1114,7 +1114,7 @@
 
 	(:action unload
 		:parameters (?person - person ?obj - object ?veh - vehicle ?vehloc - point)
-		:precondition 
+		:precondition
 			(and
 				(in_vehicle ?obj ?veh)
 				(atloc ?veh ?vehloc)
@@ -1131,7 +1131,7 @@
 
 	(:action treat
 		:parameters (?emt - emt_crew ?person - person ?ploc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?person ?ploc)
 				(atloc ?emt ?ploc)
@@ -1141,7 +1141,7 @@
 
 	(:action treat_in_hospital
 		:parameters (?person - person ?hospital - hospital)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1149,7 +1149,7 @@
 
 	(:action call
 		:parameters (?place - callable)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1157,7 +1157,7 @@
 
 	(:action remove_wire
 		:parameters (?crew - power_crew ?lineloc - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1165,7 +1165,7 @@
 
 	(:action string_wire
 		:parameters (?crew - power_crew ?lineloc - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1173,7 +1173,7 @@
 
 	(:action carry_blockage_out_of_way
 		:parameters (?crew - work_crew ?stuff - tree)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1181,7 +1181,7 @@
 
 	(:action cut_tree
 		:parameters (?crew - tree_crew ?tree - tree)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1189,7 +1189,7 @@
 
 	(:action hook_up
 		:parameters (?gen - generator ?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1197,7 +1197,7 @@
 
 	(:action pour_into
 		:parameters (?can - gas_can ?gen - generator)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1205,7 +1205,7 @@
 
 	(:action turn_on
 		:parameters (?gen - generator)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1213,7 +1213,7 @@
 
 	(:action pay
 		:parameters (?loc - service_station)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1221,7 +1221,7 @@
 
 	(:action pump_gas_into
 		:parameters (?loc - service_station ?gen - generator)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1229,7 +1229,7 @@
 
 	(:action turn_on_heat
 		:parameters (?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1237,7 +1237,7 @@
 
 	(:action set_up_barricades
 		:parameters (?police - police_unit)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1245,7 +1245,7 @@
 
 	(:action place_cones
 		:parameters (?police - work_crew)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1253,7 +1253,7 @@
 
 	(:action pickup_cones
 		:parameters (?police - work_crew)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1261,7 +1261,7 @@
 
 	(:action hook_to_tow_truck
 		:parameters (?ttruck - tow_truck ?veh - vehicle)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1269,7 +1269,7 @@
 
 	(:action unhook_from_tow_truck
 		:parameters (?ttruck - tow_truck ?veh - vehicle)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1277,7 +1277,7 @@
 
 	(:action dig
 		:parameters (?backhoe - backhoe ?place - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1285,7 +1285,7 @@
 
 	(:action fill_in
 		:parameters (?backhoe - backhoe ?place - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1293,7 +1293,7 @@
 
 	(:action replace_pipe
 		:parameters (?crew - water_crew ?from - point ?to - point)
-		:precondition 
+		:precondition
 			(and
 				(l2)
 			)
@@ -1301,7 +1301,7 @@
 
 	(:action clean_hazard
 		:parameters (?hazard_team - hazard_team ?from - point ?to - point ?h_compiled_1 - hazardousness)
-		:precondition 
+		:precondition
 			(and
 				(hazard_seriousness ?from ?to ?h_compiled_1)
 				(not (hazard_seriousness ?from ?to very_hazardous))
@@ -1311,7 +1311,7 @@
 
 	(:action p_1Call
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(l1)
 			)
@@ -1324,7 +1324,7 @@
 
 	(:action SHOP_methodm_clear_road_tree_precondition
 		:parameters (?from - point ?to - point ?tree - tree)
-		:precondition 
+		:precondition
 			(and
 				(tree_blocking_road ?from ?to ?tree)
 			)
@@ -1332,7 +1332,7 @@
 
 	(:action SHOP_methodm_plow_road_precondition
 		:parameters (?from - point ?to - point ?plow - snowplow ?plowloc - point)
-		:precondition 
+		:precondition
 			(and
 				(road_snowy ?from ?to)
 				(atloc ?plow ?plowloc)
@@ -1341,7 +1341,7 @@
 
 	(:action SHOP_methodm_quell_riot_precondition
 		:parameters (?loc - point ?town - town)
-		:precondition 
+		:precondition
 			(and
 				(in_town ?loc ?town)
 			)
@@ -1349,7 +1349,7 @@
 
 	(:action SHOP_methodm_provide_temp_heat_local_electricity_precondition
 		:parameters (?person - person ?ploc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?person ?ploc)
 			)
@@ -1357,7 +1357,7 @@
 
 	(:action SHOP_methodm_provide_medical_attention_in_hospital_precondition
 		:parameters (?person - person ?cond - condition ?hosp - hospital)
-		:precondition 
+		:precondition
 			(and
 				(has_condition ?person ?cond)
 				(not (hospital_doesnt_treat ?hosp ?cond))
@@ -1366,7 +1366,7 @@
 
 	(:action SHOP_methodm_provide_medical_attention_simple_on_site_precondition
 		:parameters (?person - person ?cond - condition)
-		:precondition 
+		:precondition
 			(and
 				(has_condition ?person ?cond)
 				(not (serious_condition ?cond))
@@ -1375,7 +1375,7 @@
 
 	(:action SHOP_methodm_clean_up_hazard_very_hazardous_precondition
 		:parameters (?from - point ?to - point ?varToConstConstant_very_hazardous_ - hazardousness)
-		:precondition 
+		:precondition
 			(and
 				(hazard_seriousness ?from ?to ?varToConstConstant_very_hazardous_)
 			)
@@ -1383,7 +1383,7 @@
 
 	(:action SHOP_methodm_clean_up_hazard_normal_precondition
 		:parameters (?from - point ?to - point ?varToConstConstant_very_hazardous_ - hazardousness)
-		:precondition 
+		:precondition
 			(and
 				(not (hazard_seriousness ?from ?to ?varToConstConstant_very_hazardous_))
 			)
@@ -1391,7 +1391,7 @@
 
 	(:action SHOP_methodm_get_electricity_noop_precondition
 		:parameters (?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(not (no_electricity ?loc))
 			)
@@ -1399,7 +1399,7 @@
 
 	(:action SHOP_methodm_get_electricity_precondition
 		:parameters (?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(no_electricity ?loc)
 			)
@@ -1407,7 +1407,7 @@
 
 	(:action SHOP_methodm_clear_wreck_precondition
 		:parameters (?from - point ?to - point ?veh - vehicle)
-		:precondition 
+		:precondition
 			(and
 				(wrecked_vehicle ?from ?to ?veh)
 			)
@@ -1415,7 +1415,7 @@
 
 	(:action SHOP_methodm_tow_to_precondition
 		:parameters (?veh - vehicle ?vehloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?veh ?vehloc)
 			)
@@ -1423,7 +1423,7 @@
 
 	(:action SHOP_methodm_clear_tree_precondition
 		:parameters (?tree - tree ?treeloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?tree ?treeloc)
 			)
@@ -1431,7 +1431,7 @@
 
 	(:action SHOP_methodm_remove_blockage_move_to_side_of_street_precondition
 		:parameters (?stuff - tree ?loc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?stuff ?loc)
 			)
@@ -1439,7 +1439,7 @@
 
 	(:action SHOP_methodm_make_full_fuel_with_gas_can_precondition
 		:parameters (?gen - generator ?genloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?gen ?genloc)
 			)
@@ -1447,7 +1447,7 @@
 
 	(:action SHOP_methodm_repair_line_with_tree_precondition
 		:parameters (?tree - tree ?lineloc - point ?crew - power_crew)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?tree ?lineloc)
 				(atloc ?crew ?lineloc)
@@ -1456,7 +1456,7 @@
 
 	(:action SHOP_methodm_repair_line_without_tree_precondition
 		:parameters (?lineloc - point ?crew - power_crew)
-		:precondition 
+		:precondition
 			(and
 				(forall (?tree - tree)
 					(not (atloc ?tree ?lineloc))
@@ -1467,7 +1467,7 @@
 
 	(:action SHOP_methodm_shut_off_power_precondition
 		:parameters (?loc - point ?town - town ?powerco - powerco)
-		:precondition 
+		:precondition
 			(and
 				(in_town ?loc ?town)
 				(powerco_of ?town ?powerco)
@@ -1476,7 +1476,7 @@
 
 	(:action SHOP_methodm_turn_on_power_precondition
 		:parameters (?loc - point ?town - town ?powerco - powerco)
-		:precondition 
+		:precondition
 			(and
 				(in_town ?loc ?town)
 				(powerco_of ?town ?powerco)
@@ -1485,7 +1485,7 @@
 
 	(:action SHOP_methodm_shut_off_water_precondition
 		:parameters (?from - point ?town - town ?waterco - waterco)
-		:precondition 
+		:precondition
 			(and
 				(in_town ?from ?town)
 				(waterco_of ?town ?waterco)
@@ -1494,7 +1494,7 @@
 
 	(:action SHOP_methodm_turn_on_water_precondition
 		:parameters (?from - point ?town - town ?waterco - waterco)
-		:precondition 
+		:precondition
 			(and
 				(in_town ?from ?town)
 				(waterco_of ?town ?waterco)
@@ -1503,7 +1503,7 @@
 
 	(:action SHOP_methodm_emt_treat_precondition
 		:parameters (?person - person ?personloc - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?person ?personloc)
 			)
@@ -1511,7 +1511,7 @@
 
 	(:action SHOP_methodm_get_to_already_there_precondition
 		:parameters (?obj - object ?place - point)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?obj ?place)
 			)
@@ -1519,7 +1519,7 @@
 
 	(:action SHOP_methodm_get_to_person_drives_themself_precondition
 		:parameters (?person - person ?place - point ?veh - vehicle ?vehloc - point)
-		:precondition 
+		:precondition
 			(and
 				(not (atloc ?person ?place))
 				(atloc ?veh ?vehloc)
@@ -1529,7 +1529,7 @@
 
 	(:action SHOP_methodm_get_to_vehicle_gets_driven_precondition
 		:parameters (?veh - vehicle ?place - point ?vehloc - point ?person - person)
-		:precondition 
+		:precondition
 			(and
 				(not (atloc ?veh ?place))
 				(atloc ?veh ?vehloc)
@@ -1539,7 +1539,7 @@
 
 	(:action SHOP_methodm_get_to_as_cargo_precondition
 		:parameters (?obj - object ?place - point ?objloc - point ?veh - vehicle)
-		:precondition 
+		:precondition
 			(and
 				(not (atloc ?obj ?place))
 				(atloc ?obj ?objloc)
@@ -1549,7 +1549,7 @@
 
 	(:action SHOP_methodm_get_to_with_ambulance_precondition
 		:parameters (?obj - person ?place - point ?objloc - point ?veh - ambulance)
-		:precondition 
+		:precondition
 			(and
 				(not (atloc ?obj ?place))
 				(atloc ?obj ?objloc)
@@ -1559,7 +1559,7 @@
 
 	(:action SHOP_methodm_drive_to_precondition
 		:parameters (?veh - vehicle ?vehloc - point ?person - adult)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?veh ?vehloc)
 				(atloc ?person ?vehloc)
@@ -1569,7 +1569,7 @@
 
 	(:action SHOP_methodm_get_in_ambulatory_person_precondition
 		:parameters (?obj - person ?objloc - point ?veh - vehicle)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?obj ?objloc)
 				(atloc ?veh ?objloc)
@@ -1578,7 +1578,7 @@
 
 	(:action SHOP_methodm_get_in_load_in_precondition
 		:parameters (?obj - object ?objloc - point ?veh - vehicle ?person - person)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?obj ?objloc)
 				(atloc ?veh ?objloc)
@@ -1588,7 +1588,7 @@
 
 	(:action SHOP_methodm_get_out_unload_precondition
 		:parameters (?veh - vehicle ?vehloc - point ?person - person ?obj - object)
-		:precondition 
+		:precondition
 			(and
 				(atloc ?veh ?vehloc)
 				(can_lift ?person ?obj)

@@ -1,6 +1,6 @@
 (define (domain blocks)
 
-  (:requirements :negative-preconditions 
+  (:requirements :negative-preconditions
     :hierarchy
 	:typing
 	:universal-preconditions
@@ -44,11 +44,11 @@
   (:method pickup-ready-block
     :parameters (?b ?d - BLOCK)
     :task (achieve-goals)
-    :precondition (and 
+    :precondition (and
 			(clear ?b)
-			(not (done ?b)) 
-            (goal_on ?b ?d) 
-            (done ?d) 
+			(not (done ?b))
+            (goal_on ?b ?d)
+            (done ?d)
             (clear ?d))
     :ordered-tasks (and (acquire_abstract ?b) (release)))
 
@@ -56,8 +56,8 @@
   (:method unstack-block
     :parameters (?b - BLOCK)
     :task (achieve-goals)
-    :precondition (and 
-        (clear ?b) 
+    :precondition (and
+        (clear ?b)
         (not (done ?b))
         (not (on-table ?b)))
     :ordered-tasks (and (acquire_abstract ?b) (release)))
@@ -83,7 +83,7 @@
     :precondition (and (holding ?b) (not (goal_on-table ?b)))
     :ordered-tasks (and (putdown_abstract ?b) (achieve-goals)))
 
- 
+
   (:method setdone
     :parameters ()
     :task (achieve-goals)
@@ -111,7 +111,7 @@
   :task (acquire_abstract  ?top)
   :ordered-subtasks (unstack ?top ?bottom))
 
-  
+
   (:action mark_done
     :parameters (?b - BLOCK)
 	:effect (done ?b)
@@ -123,13 +123,13 @@
   )
 
 
- 
+
   (:action pickup
     :parameters (?b - BLOCK)
     :precondition (and (hand-empty) (clear ?b) (on-table ?b))
     :effect (and
       (not (hand-empty))
-      (not (clear ?b)) 
+      (not (clear ?b))
       (not (on-table ?b))
       (holding ?b)))
 

@@ -136,7 +136,7 @@
 
 	(:action turn_to
 		:parameters (?t_s - satellite ?t_d_new - direction ?t_d_prev - direction)
-		:precondition 
+		:precondition
 			(and
 				(pointing ?t_s ?t_d_prev)
 			)
@@ -149,7 +149,7 @@
 
 	(:action switch_on
 		:parameters (?so_i - instrument ?so_s - satellite)
-		:precondition 
+		:precondition
 			(and
 				(on_board ?so_i ?so_s)
 				(power_avail ?so_s)
@@ -164,7 +164,7 @@
 
 	(:action switch_off
 		:parameters (?sof_i - instrument ?sof_s - satellite)
-		:precondition 
+		:precondition
 			(and
 				(on_board ?sof_i ?sof_s)
 				(power_on ?sof_i)
@@ -178,7 +178,7 @@
 
 	(:action calibrate
 		:parameters (?c_s - satellite ?c_i - instrument ?c_d - calib_direction)
-		:precondition 
+		:precondition
 			(and
 				(on_board ?c_i ?c_s)
 				(calibration_target ?c_i ?c_d)
@@ -193,7 +193,7 @@
 
 	(:action take_image
 		:parameters (?ti_s - satellite ?ti_d - image_direction ?ti_i - instrument ?ti_m - mode)
-		:precondition 
+		:precondition
 			(and
 				(calibrated ?ti_i)
 				(pointing ?ti_s ?ti_d)

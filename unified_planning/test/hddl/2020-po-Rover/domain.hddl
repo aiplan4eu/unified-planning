@@ -47,7 +47,7 @@
   (:task send_image_data :parameters (?rover - rover ?objective - objective ?mode - mode))
   (:task send_rock_data :parameters (?rover - rover ?waypoint - waypoint))
   (:task send_soil_data :parameters (?rover - rover ?waypoint - waypoint))
-  
+
   (:method m-empty-store-1
     :parameters (?s - store ?rover - rover)
     :task (empty-store ?s ?rover)
@@ -66,7 +66,7 @@
     :parameters (?rover - rover ?from ?to - waypoint)
     :task (navigate_abs ?rover ?to)
     :precondition (at ?rover ?from)
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (visit ?from)
         (navigate ?rover ?from ?to)
         (unvisit ?from)
@@ -83,11 +83,11 @@
   (:method m-navigate_abs-3
     :parameters (?rover - rover ?from ?to - waypoint)
     :task (navigate_abs ?rover ?to)
-    :precondition (and 
+    :precondition (and
         (not (at ?rover ?to))
         (can_traverse ?rover ?from ?to)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate ?rover ?from ?to)
       )
   )
@@ -95,13 +95,13 @@
   (:method m-navigate_abs-4
     :parameters (?rover - rover ?from ?to ?mid - waypoint)
     :task (navigate_abs ?rover ?to)
-    :precondition (and 
+    :precondition (and
         (not (at ?rover ?to))
         (not (can_traverse ?rover ?from ?to))
         (can_traverse ?rover ?from ?mid)
         (not (visited ?mid))
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate ?rover ?from ?mid)
         (visit ?mid)
         (navigate ?rover ?mid ?to)
@@ -112,11 +112,11 @@
   (:method m-send_soil_data
     :parameters (?rover - rover ?waypoint ?x ?y - waypoint ?l - lander)
     :task (send_soil_data ?rover ?waypoint)
-    :precondition (and 
+    :precondition (and
         (at_lander ?l ?y)
         (visible ?x ?y)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?x)
         (communicate_soil_data ?rover ?l ?waypoint ?x ?y)
       )
@@ -125,11 +125,11 @@
   (:method m-get_soil_data
     :parameters (?waypoint - waypoint ?rover - rover ?s - store)
     :task (get_soil_data ?waypoint)
-    :precondition (and 
+    :precondition (and
         (store_of ?s ?rover)
         (equipped_for_soil_analysis ?rover)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?waypoint)
         (empty-store ?s ?rover)
         (sample_soil ?rover ?s ?waypoint)
@@ -140,11 +140,11 @@
   (:method m-send_rock_data
     :parameters (?rover - rover ?waypoint ?x ?y - waypoint ?l - lander)
     :task (send_rock_data ?rover ?waypoint)
-    :precondition (and 
+    :precondition (and
         (at_lander ?l ?y)
         (visible ?x ?y)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?x)
         (communicate_rock_data ?rover ?l ?waypoint ?x ?y)
       )
@@ -153,11 +153,11 @@
   (:method m-get_rock_data
     :parameters (?waypoint - waypoint ?rover - rover ?s - store)
     :task (get_rock_data ?waypoint)
-    :precondition (and 
+    :precondition (and
         (equipped_for_rock_analysis ?rover)
         (store_of ?s ?rover)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?waypoint)
         (empty-store ?s ?rover)
         (sample_rock ?rover ?s ?waypoint)
@@ -168,11 +168,11 @@
   (:method m-send_image_data
     :parameters (?rover - rover ?objective - objective ?mode - mode ?x ?y - waypoint ?l - lander)
     :task (send_image_data ?rover ?objective ?mode)
-    :precondition (and 
+    :precondition (and
         (at_lander ?l ?y)
         (visible ?x ?y)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?x)
         (communicate_image_data ?rover ?l ?objective ?mode ?x ?y)
       )
@@ -181,13 +181,13 @@
   (:method m-get_image_data
     :parameters (?objective - objective ?mode - mode ?camera - camera ?rover - rover ?waypoint - waypoint)
     :task (get_image_data ?objective ?mode)
-    :precondition (and 
+    :precondition (and
         (equipped_for_imaging ?rover)
         (on_board ?camera ?rover)
         (supports ?camera ?mode)
         (visible_from ?objective ?waypoint)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (calibrate_abs ?rover ?camera)
         (navigate_abs ?rover ?waypoint)
         (take_image ?rover ?waypoint ?objective ?camera ?mode)
@@ -198,11 +198,11 @@
   (:method m-calibrate_abs
     :parameters (?rover - rover ?camera - camera ?objective - objective ?waypoint - waypoint)
     :task (calibrate_abs ?rover ?camera)
-    :precondition (and 
+    :precondition (and
         (calibration_target ?camera ?objective)
         (visible_from ?objective ?waypoint)
       )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (navigate_abs ?rover ?waypoint)
         (calibrate ?rover ?camera ?objective ?waypoint)
       )
@@ -364,4 +364,3 @@
       )
   )
 )
-

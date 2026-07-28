@@ -1,5 +1,5 @@
 (define (domain factories)
-    (:requirements :negative-preconditions 
+    (:requirements :negative-preconditions
       :hierarchy
 	  :typing
 	  :method-preconditions

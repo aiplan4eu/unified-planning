@@ -131,8 +131,3 @@ instance Treatment t0;
 [start] distance(p1, p1) := 0;
 
 [end] treated(b0, t0) == true and treated(b1, t0) == true;
-
-
-
-
-

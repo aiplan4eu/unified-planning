@@ -12,7 +12,7 @@
 
   (:init
     (head viper px2y2)
-    
+
     (tail viper px2y2)
 
     (mouse-at px0y0)

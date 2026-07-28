@@ -11,12 +11,12 @@
 	(= (max_int) 4)
   )
 
-  (:goal (and 
+  (:goal (and
 (<= (+ (value c0) 1) (value c1))
   ))
 
-  
-  
 
-  
+
+
+
 )

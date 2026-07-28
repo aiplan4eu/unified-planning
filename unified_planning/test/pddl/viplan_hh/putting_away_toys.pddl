@@ -6,13 +6,13 @@
         carton_1 - container
         table_1 - object
     )
-    
-    (:init 
+
+    (:init
         (open carton_1)
     )
-    
-    (:goal 
-        (and 
+
+    (:goal
+        (and
             (inside plaything_4 carton_1)
             (inside plaything_2 carton_1)
         )

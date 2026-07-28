@@ -47,7 +47,7 @@
                 )
             )
             ;;(not (reachable ?m)) ;; not sure if necessary
-            
+
             (forall
                 (?c - container)
                 (when
@@ -80,7 +80,7 @@
         :precondition (and
             (reachable ?o2)
         )
-        :effect 
+        :effect
         (when
             (holding ?m)
             (and
@@ -96,7 +96,7 @@
             (reachable ?c)
             (open ?c)
         )
-        :effect 
+        :effect
         (when
             (holding ?m)
             (and
@@ -113,7 +113,7 @@
                 (?x - movable)
                 (not (holding ?x))) ;; Agent must not be holding anything
         )
-        :effect (and 
+        :effect (and
             (when
                 (reachable ?c)
                 (open ?c)
@@ -139,9 +139,9 @@
             )
             (forall
                 (?o - object)
-                (when 
+                (when
                     (inside ?o ?c)
-                    (not (reachable ?o))    
+                    (not (reachable ?o))
                 ) ;; All objects inside the container are unreachable
             )
         )

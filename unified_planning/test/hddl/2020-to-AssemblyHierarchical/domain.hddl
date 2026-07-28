@@ -46,56 +46,56 @@
 (:method c1
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_1 ?p1 ?p2 ?t)
     )
 )
 (:method c2
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_2 ?p1 ?p2 ?t)
     )
 )
 (:method c3
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_3 ?p1 ?p2 ?t)
     )
 )
 (:method c4
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_4 ?p1 ?p2 ?t)
     )
 )
 (:method c5
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_5 ?p1 ?p2 ?t)
     )
 )
 (:method c6
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_6 ?p1 ?p2 ?t)
     )
 )
 (:method c7
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_7 ?p1 ?p2 ?t)
     )
 )
 (:method c8
     :parameters (?p1 ?p2 - Port ?t - PlugType)
     :task (connect ?p1 ?p2)
-    :subtasks (and 
+    :subtasks (and
             (connect_8 ?p1 ?p2 ?t)
     )
 )
@@ -108,7 +108,7 @@
 (:method m1
     :parameters (?d1 ?d2 - AbstractDevice ?t - SignalType ?p1 ?p2 - Port)
     :task (ConnectDevices ?d1 ?d2 ?t)
-    :subtasks (and 
+    :subtasks (and
             (t1 (connect ?p1 ?p2))
             (t2 (ConnectDevices ?d1 ?d2 ?t))
     )

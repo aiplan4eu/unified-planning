@@ -75,7 +75,7 @@
     :precondition (and (holding ?b ?a) (not (goal_on-table ?b)))
     :ordered-tasks (and (putdown_abstract ?b) (achieve-goals ?a)))
 
- 
+
   (:method set_done
     :parameters (?a - ARM)
     :task (achieve-goals ?a)
@@ -118,13 +118,13 @@
     :parameters (?b - BLOCK)
 	:effect (not (goal_on-table ?b))
   )
-   
+
   (:action pickup
     :parameters (?b - BLOCK ?a - ARM)
     :precondition (and (hand-empty ?a) (clear ?b) (on-table ?b))
     :effect (and
       (not (hand-empty ?a))
-      (not (clear ?b)) 
+      (not (clear ?b))
       (not (on-table ?b))
       (holding ?b ?a)))
 

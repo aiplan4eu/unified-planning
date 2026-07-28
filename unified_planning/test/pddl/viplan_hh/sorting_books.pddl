@@ -6,14 +6,14 @@
     	table_1 - object
     	shelf_1 - object
     )
-    
-    (:init 
-        (ontop hardback_1 table_1) 
+
+    (:init
+        (ontop hardback_1 table_1)
     )
-    
-    (:goal 
-        (and 
+
+    (:goal
+        (and
             (ontop hardback_1 shelf_1)
-        ) 
+        )
     )
 )

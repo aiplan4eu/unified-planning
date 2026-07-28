@@ -8,7 +8,7 @@
       location blocktype direction numbers - object
 
   )
- 
+
   (:constants e w s n - direction)
 
   (:predicates
@@ -21,7 +21,7 @@
      (isone ?z - numbers)
      (prev ?z ?z2 - numbers)
   )
-   
+
   (:task buildhouse :parameters (?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 - location ?len ?len2 ?hgt - numbers ?t - blocktype))
   (:task buildwall :parameters (?loc1 - location ?len ?hgt - numbers ?d - direction ?t - blocktype))
   (:task buildroof :parameters (?loc1 - location ?len ?wdt - numbers ?d ?d2 - direction ?t - blocktype))
@@ -30,13 +30,13 @@
   (:task placeblockabstract :parameters (?loc1 - location ?t - blocktype))
   (:task removeblockabstract :parameters (?loc1 - location))
   (:task findway :parameters (?locC ?locG - location ?d - direction))
-  
+
 
   (:method build-house-1
     :parameters (?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 - location ?len ?len2 ?hgt - numbers ?t - blocktype)
     :task (buildhouse ?loc1 ?loc2 ?loc3 ?loc4 ?loc5 ?loc6 ?len ?len2 ?hgt ?t)
     :precondition ()
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (buildwall ?loc1 ?len ?hgt e ?t)
         (buildwall ?loc2 ?len2 ?hgt n ?t)
         (buildwall ?loc3 ?len ?hgt w ?t)
@@ -51,7 +51,7 @@
     :parameters (?loc1 - location ?len ?hgt - numbers ?d - direction ?t - blocktype)
     :task (buildwall ?loc1 ?len ?hgt ?d ?t)
     :precondition (and (isone ?hgt) )
-    :subtasks (and 
+    :subtasks (and
         (buildrow ?loc1 ?len ?d ?t)
       )
   )
@@ -60,7 +60,7 @@
     :parameters (?loc1 ?loc2 - location ?len ?hgt ?hgt2 - numbers ?d - direction ?t - blocktype)
     :task (buildwall ?loc1 ?len ?hgt ?d ?t)
     :precondition (and (not(isone ?hgt)) (prev ?hgt ?hgt2) (on-top ?loc1 ?loc2) )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (buildrow ?loc1 ?len ?d ?t)
         (buildwall ?loc2 ?len ?hgt2 ?d ?t)
       )
@@ -70,7 +70,7 @@
     :parameters (?loc1 - location ?len ?wdt - numbers ?d ?d2 - direction ?t - blocktype)
     :task (buildroof ?loc1 ?len ?wdt ?d ?d2 ?t)
     :precondition (and (isone ?wdt) )
-    :subtasks (and 
+    :subtasks (and
         (buildrow ?loc1 ?len ?d ?t)
       )
   )
@@ -79,7 +79,7 @@
     :parameters (?loc1 ?loc2 - location ?len ?wdt ?wdt2 - numbers ?d ?d2 - direction ?t - blocktype)
     :task (buildroof ?loc1 ?len ?wdt ?d ?d2 ?t)
     :precondition (and (not(isone ?wdt)) (prev ?wdt ?wdt2) (neighbour ?loc1 ?loc2 ?d2) )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (buildrow ?loc1 ?len ?d ?t)
         (buildroof ?loc2 ?len ?wdt2 ?d ?d2 ?t)
       )
@@ -89,7 +89,7 @@
     :parameters (?loc1 ?loc2 - location)
     :task (builddoor ?loc1)
     :precondition (and (on-top ?loc1 ?loc2))
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
       (removeblockabstract ?loc1)
       (removeblockabstract ?loc2)
       )
@@ -100,7 +100,7 @@
     :parameters (?loc1 - location ?len - numbers ?d - direction ?t - blocktype)
     :task (buildrow ?loc1 ?len ?d ?t)
     :precondition (and (isone ?len) )
-    :subtasks (and 
+    :subtasks (and
         (placeblockabstract ?loc1 ?t)
       )
   )
@@ -109,7 +109,7 @@
     :parameters (?loc1 ?loc2 - location ?len ?len2 - numbers ?d - direction ?t - blocktype)
     :task (buildrow ?loc1 ?len ?d ?t)
     :precondition (and (not(isone ?len)) (prev ?len ?len2) (neighbour ?loc1 ?loc2 ?d) )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (placeblockabstract ?loc1 ?t)
         (buildrow ?loc2 ?len2 ?d ?t)
       )
@@ -119,7 +119,7 @@
     :parameters (?loc1 ?loc2 - location ?len ?len2 - numbers ?d - direction ?t - blocktype)
     :task (buildrow ?loc1 ?len ?d ?t)
     :precondition (and (not(isone ?len)) (prev ?len ?len2) (neighbour ?loc1 ?loc2 ?d) )
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (buildrow ?loc2 ?len2 ?d ?t)
         (placeblockabstract ?loc1 ?t)
       )
@@ -129,7 +129,7 @@
     :parameters (?loc1 ?locP - location ?t - blocktype)
     :task (placeblockabstract ?loc1 ?t)
     :precondition (and (empty ?loc1) (reachable ?locP ?loc1) (player-at ?locP))
-    :subtasks (and 
+    :subtasks (and
         (placeblock ?loc1 ?t)
       )
   )
@@ -139,23 +139,23 @@
     :task (placeblockabstract ?loc1 ?t)
     :precondition (and (blockat ?loc1 ?t))
     :subtasks ()
-  )  
+  )
 
   (:method place-block-abstract-3
     :parameters (?loc1 ?locP - location ?t ?t2 - blocktype)
     :task (placeblockabstract ?loc1 ?t)
     :precondition (and (blockat ?loc1 ?t2) (reachable ?locP ?loc1) (player-at ?locP))
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (removeblock ?loc1 ?t2)
         (placeblock ?loc1 ?t)
       )
   )
-  
+
   (:method place-block-abstract-4
     :parameters (?loc1 ?locP - location ?t - blocktype ?d - direction)
     :task (placeblockabstract ?loc1 ?t)
     :precondition (and  (not(reachable ?locP ?loc1)) (player-at ?locP))
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (findway ?locP ?loc1 ?d)
         (placeblockabstract ?loc1 ?t)
       )
@@ -175,7 +175,7 @@
     :subtasks (and
         (removeblock ?loc1 ?t)
       )
-  )  
+  )
 
   (:method remove-block-abstract-3
     :parameters (?loc1 ?locP - location ?t - blocktype ?d - direction)
@@ -185,13 +185,13 @@
         (findway ?locP ?loc1 ?d)
         (removeblock ?loc1 ?t)
       )
-  ) 
+  )
 
   (:method find-way-same-dir
     :parameters (?locC ?locG ?locN - location ?d - direction)
     :task (findway ?locC ?locG ?d)
     :precondition (and (empty ?locN) (neighbour ?locC ?locN ?d))
-    :subtasks (and 
+    :subtasks (and
         (findway ?locN ?locG ?d)
       )
   )
@@ -200,7 +200,7 @@
     :parameters (?locC ?locG ?locN ?locP - location ?d ?dN - direction)
     :task (findway ?locC ?locG ?d)
     :precondition (and (empty ?locN) (neighbour ?locC ?locN ?dN) (not(neighbour ?locC ?locN ?d)) (player-at ?locP))
-    :ordered-subtasks (and 
+    :ordered-subtasks (and
         (walk ?locP ?locC)
         (findway ?locN ?locG ?dN)
       )
@@ -210,7 +210,7 @@
     :parameters (?locC ?locG ?locP - location ?d - direction)
     :task (findway ?locC ?locG ?d)
     :precondition (and (reachable ?locC ?locG) (player-at ?locP))
-    :subtasks (and 
+    :subtasks (and
         (walk ?locP ?locC)
       )
   )

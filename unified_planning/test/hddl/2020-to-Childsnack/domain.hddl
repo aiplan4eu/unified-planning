@@ -19,13 +19,13 @@
   :parameters ( ?c - child ?s - sandwich ?b - bread-portion ?cont - content-portion ?t - tray ?p2 - place )
   :task (serve ?c)
   :precondition (and (allergic_gluten ?c) (notexist ?s) (waiting ?c ?p2) (no_gluten_bread ?b) (no_gluten_content ?cont))
-  :ordered-subtasks(and (t1 (make_sandwich_no_gluten ?s ?b ?cont)) (t2 (put_on_tray ?s ?t)) (t3 (move_tray ?t kitchen ?p2)) (t4 (serve_sandwich_no_gluten ?s ?c ?t ?p2)) (t5 (move_tray ?t ?p2 kitchen))) ) 
+  :ordered-subtasks(and (t1 (make_sandwich_no_gluten ?s ?b ?cont)) (t2 (put_on_tray ?s ?t)) (t3 (move_tray ?t kitchen ?p2)) (t4 (serve_sandwich_no_gluten ?s ?c ?t ?p2)) (t5 (move_tray ?t ?p2 kitchen))) )
 
 (:method m1_serve
   :parameters ( ?c - child ?s - sandwich ?b - bread-portion ?cont - content-portion ?t - tray ?p2 - place )
   :task (serve ?c)
   :precondition (and (not_allergic_gluten ?c) (notexist ?s) (waiting ?c ?p2) (not(no_gluten_bread ?b)) (not(no_gluten_content ?cont)))
-  :ordered-subtasks(and (t1 (make_sandwich ?s ?b ?cont)) (t2 (put_on_tray ?s ?t)) (t3 (move_tray ?t kitchen ?p2)) (t4 (serve_sandwich ?s ?c ?t ?p2)) (t5 (move_tray ?t ?p2 kitchen))) ) 
+  :ordered-subtasks(and (t1 (make_sandwich ?s ?b ?cont)) (t2 (put_on_tray ?s ?t)) (t3 (move_tray ?t kitchen ?p2)) (t4 (serve_sandwich ?s ?c ?t ?p2)) (t5 (move_tray ?t ?p2 kitchen))) )
 
 (:action make_sandwich_no_gluten
   :parameters (?s - sandwich ?b - bread-portion ?c - content-portion)

@@ -46,97 +46,97 @@
   :parameters ( ?x - rover  ?to - waypoint )
   :task (do_navigate1 ?x ?to)
   :precondition (and (at ?x ?to))
-  :ordered-subtasks(and (t1 (nop))) ) 
+  :ordered-subtasks(and (t1 (nop))) )
 
 (:method m1_do_navigate1
   :parameters ( ?x - rover  ?to - waypoint ?from - waypoint )
   :task (do_navigate1 ?x ?to)
   :precondition (and (at ?x ?from))
-  :ordered-subtasks(and (t1 (visit ?from)) (t2 (do_navigate2 ?x ?from ?to)) (t3 (unvisit ?from))) ) 
+  :ordered-subtasks(and (t1 (visit ?from)) (t2 (do_navigate2 ?x ?from ?to)) (t3 (unvisit ?from))) )
 
 (:method m2_do_navigate2
   :parameters ( ?x - rover  ?from - waypoint  ?to - waypoint )
   :task (do_navigate2 ?x ?from ?to)
   :precondition (and (at ?x ?to))
-  :ordered-subtasks(and (t1 (nop))) ) 
+  :ordered-subtasks(and (t1 (nop))) )
 
 (:method m3_do_navigate2
   :parameters ( ?x - rover  ?from - waypoint  ?to - waypoint )
   :task (do_navigate2 ?x ?from ?to)
   :precondition (and (can_traverse ?x ?from ?to))
-  :ordered-subtasks(and (t1 (navigate ?x ?from ?to))) ) 
+  :ordered-subtasks(and (t1 (navigate ?x ?from ?to))) )
 
 (:method m4_do_navigate2
   :parameters ( ?x - rover  ?from - waypoint  ?to - waypoint ?mid - waypoint )
   :task (do_navigate2 ?x ?from ?to)
   :precondition (and (not(can_traverse ?x ?from ?to)) (not(visited ?mid)) (can_traverse ?x ?from ?mid))
-  :ordered-subtasks(and (t1 (navigate ?x ?from ?mid)) (t2 (visit ?mid)) (t3 (do_navigate2 ?x ?mid ?to)) (t4 (unvisit ?mid))) ) 
+  :ordered-subtasks(and (t1 (navigate ?x ?from ?mid)) (t2 (visit ?mid)) (t3 (do_navigate2 ?x ?mid ?to)) (t4 (unvisit ?mid))) )
 
 (:method m5_empty_store
   :parameters ( ?s - store  ?x - rover )
   :task (empty_store ?s ?x)
   :precondition (and (empty ?s))
-  :ordered-subtasks(and (t1 (nop))) ) 
+  :ordered-subtasks(and (t1 (nop))) )
 
 (:method m6_empty_store
   :parameters ( ?s - store  ?x - rover )
   :task (empty_store ?s ?x)
   :precondition (and (not(empty ?s)))
-  :ordered-subtasks(and (t1 (drop ?x ?s))) ) 
+  :ordered-subtasks(and (t1 (drop ?x ?s))) )
 
 (:method m7_get_soil_data
   :parameters ( ?from - waypoint ?x - rover ?s - store )
   :task (get_soil_data ?from)
   :precondition (and (store_of ?s ?x) (equipped_for_soil_analysis ?x))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?from)) (t2 (empty_store ?s ?x)) (t3 (sample_soil ?x ?s ?from)) (t4 (send_soil_data ?x ?from))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?from)) (t2 (empty_store ?s ?x)) (t3 (sample_soil ?x ?s ?from)) (t4 (send_soil_data ?x ?from))) )
 
 (:method m8_send_soil_data
   :parameters ( ?x - rover  ?from - waypoint ?l - lander ?w1 - waypoint ?w2 - waypoint )
   :task (send_soil_data ?x ?from)
   :precondition (and (at_lander ?l ?w2) (visible ?w1 ?w2))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_soil_data1 ?x ?l ?from ?w1 ?w2))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_soil_data1 ?x ?l ?from ?w1 ?w2))) )
 
 (:method m9_send_soil_data
   :parameters ( ?x - rover  ?from - waypoint ?l - lander ?w1 - waypoint )
   :task (send_soil_data ?x ?from)
   :precondition (and (at_lander ?l ?w1) (visible ?from ?w1) (at ?x ?from))
-  :ordered-subtasks(and (t1 (communicate_soil_data2 ?x ?l ?from ?w1))) ) 
+  :ordered-subtasks(and (t1 (communicate_soil_data2 ?x ?l ?from ?w1))) )
 
 (:method m10_get_rock_data
   :parameters ( ?from - waypoint ?x - rover ?s - store )
   :task (get_rock_data ?from)
   :precondition (and (store_of ?s ?x) (equipped_for_rock_analysis ?x))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?from)) (t2 (empty_store ?s ?x)) (t3 (sample_rock ?x ?s ?from)) (t4 (send_rock_data ?x ?from))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?from)) (t2 (empty_store ?s ?x)) (t3 (sample_rock ?x ?s ?from)) (t4 (send_rock_data ?x ?from))) )
 
 (:method m11_send_rock_data
   :parameters ( ?x - rover  ?from - waypoint ?l - lander ?w1 - waypoint ?w2 - waypoint )
   :task (send_rock_data ?x ?from)
   :precondition (and (at_lander ?l ?w2) (visible ?w1 ?w2))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_rock_data1 ?x ?l ?from ?w1 ?w2))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_rock_data1 ?x ?l ?from ?w1 ?w2))) )
 
 (:method m12_send_rock_data
   :parameters ( ?x - rover  ?from - waypoint ?l - lander ?w1 - waypoint )
   :task (send_rock_data ?x ?from)
   :precondition (and (at_lander ?l ?w1) (visible ?from ?w1) (at ?x ?from))
-  :ordered-subtasks(and (t1 (communicate_rock_data2 ?x ?l ?from ?w1))) ) 
+  :ordered-subtasks(and (t1 (communicate_rock_data2 ?x ?l ?from ?w1))) )
 
 (:method m13_get_image_data
   :parameters ( ?o - objective  ?m - mode ?x - rover ?c - camera ?w - waypoint )
   :task (get_image_data ?o ?m)
   :precondition (and (equipped_for_imaging ?x) (on_board ?c ?x) (supports ?c ?m) (visible_from ?o ?w))
-  :ordered-subtasks(and (t1 (do_calibrate ?x ?c)) (t2 (do_navigate1 ?x ?w)) (t3 (take_image ?x ?w ?o ?c ?m)) (t4 (send_image_data ?x ?o ?m))) ) 
+  :ordered-subtasks(and (t1 (do_calibrate ?x ?c)) (t2 (do_navigate1 ?x ?w)) (t3 (take_image ?x ?w ?o ?c ?m)) (t4 (send_image_data ?x ?o ?m))) )
 
 (:method m14_send_image_data
   :parameters ( ?x - rover  ?o - objective  ?m - mode ?l - lander ?w1 - waypoint ?w2 - waypoint )
   :task (send_image_data ?x ?o ?m)
   :precondition (and (at_lander ?l ?w2) (visible ?w1 ?w2))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_image_data ?x ?l ?o ?m ?w1 ?w2))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w1)) (t2 (communicate_image_data ?x ?l ?o ?m ?w1 ?w2))) )
 
 (:method m15_do_calibrate
   :parameters ( ?x - rover  ?c - camera ?o - objective ?w - waypoint )
   :task (do_calibrate ?x ?c)
   :precondition (and (calibration_target ?c ?o) (visible_from ?o ?w))
-  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w)) (t2 (calibrate ?x ?c ?o ?w))) ) 
+  :ordered-subtasks(and (t1 (do_navigate1 ?x ?w)) (t2 (calibrate ?x ?c ?o ?w))) )
 
 (:action navigate
   :parameters (?x - rover ?p1 - waypoint ?p2 - waypoint)

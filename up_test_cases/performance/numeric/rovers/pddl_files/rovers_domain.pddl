@@ -2,7 +2,7 @@
 ;(:requirements :typing :fluents)
 (:types rover waypoint store camera mode lander objective)
 
-(:predicates (at ?x - rover ?y - waypoint) 
+(:predicates (at ?x - rover ?y - waypoint)
              (at_lander ?x - lander ?y - waypoint)
              (can_traverse ?r - rover ?x - waypoint ?y - waypoint)
 	     (equipped_for_soil_analysis ?r - rover)
@@ -12,7 +12,7 @@
              (have_rock_analysis ?r - rover ?w - waypoint)
              (have_soil_analysis ?r - rover ?w - waypoint)
              (full ?s - store)
-	     (calibrated ?c - camera ?r - rover) 
+	     (calibrated ?c - camera ?r - rover)
 	     (supports ?c - camera ?m - mode)
              (available ?r - rover)
              (visible ?w - waypoint ?p - waypoint)
@@ -32,10 +32,10 @@
 )
 
 (:functions (energy ?r - rover) (recharges) )
-	
+
 (:action navigate
-:parameters (?x - rover ?y - waypoint ?z - waypoint) 
-:precondition (and (can_traverse ?x ?y ?z) (available ?x) (at ?x ?y) 
+:parameters (?x - rover ?y - waypoint ?z - waypoint)
+:precondition (and (can_traverse ?x ?y ?z) (available ?x) (at ?x ?y)
                 (visible ?y ?z) (>= (energy ?x) 8)
 	    )
 :effect (and (decrease (energy ?x) 8) (not (at ?x ?y)) (at ?x ?z)
@@ -45,7 +45,7 @@
 (:action recharge
 :parameters (?x - rover ?w - waypoint)
 :precondition (and (at ?x ?w) (in_sun ?w) (<= (energy ?x) 80))
-:effect (and (increase (energy ?x) 20) (increase (recharges) 1)) 
+:effect (and (increase (energy ?x) 20) (increase (recharges) 1))
 )
 
 (:action sample_soil
@@ -98,10 +98,10 @@
 
 (:action communicate_soil_data
  :parameters (?r - rover ?l - lander ?p - waypoint ?x - waypoint ?y - waypoint)
- :precondition (and (at ?r ?x)(at_lander ?l ?y)(have_soil_analysis ?r ?p) 
+ :precondition (and (at ?r ?x)(at_lander ?l ?y)(have_soil_analysis ?r ?p)
                    (visible ?x ?y)(available ?r)(channel_free ?l)(>= (energy ?r) 4)
             )
- :effect (and 
+ :effect (and
 (channel_free ?l) (communicated_soil_data ?p)(available ?r)(decrease (energy ?r) 4)
 	)
 )
@@ -111,7 +111,7 @@
  :precondition (and (at ?r ?x)(at_lander ?l ?y)(have_rock_analysis ?r ?p)(>= (energy ?r) 4)
                    (visible ?x ?y)(available ?r)(channel_free ?l)
             )
- :effect (and   
+ :effect (and
 (channel_free ?l)
 (communicated_rock_data ?p)(available ?r)(decrease (energy ?r) 4)
           )
@@ -122,7 +122,7 @@
  :parameters (?r - rover ?l - lander ?o - objective ?m - mode ?x - waypoint ?y - waypoint)
  :precondition (and (at ?r ?x)(at_lander ?l ?y)(have_image ?r ?o ?m)(visible ?x ?y)(available ?r)(channel_free ?l)(>= (energy ?r) 6)
             )
- :effect (and 
+ :effect (and
 (channel_free ?l)
 (communicated_image_data ?o ?m)(available ?r)(decrease (energy ?r) 6)
           )

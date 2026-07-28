@@ -23,7 +23,7 @@ The primary goal of this use case is the inspection and maintenance of subsea fi
 In the Unified-Planning library, we first define the robot and its resources. To this aim, we exploit different types of fluents. For example, we use user-defined fluents to represent the robot itself and boolean fluents to check if it is currently located at a certain pose on a map or has already visited a certain inspection location. Additionally, we exploit numeric fluents to represent and manage the vehicle's resources, such as battery power and storage space.
 
 Once both the system and its resources are defined, we can construct the planning problem we want to solve: the underwater inspection of a set of possibly ordered and prioritized targets with resource consumption optimization (e.g., time, battery, data capacity). That is, a *temporal* planning problem where goals may include makespan minimization and temporal intervals within which inspection targets should be reached. We use *oversubscription* to order goals and mark them as optional, while battery consumption and data storage are numeric resources that can be constrained. In this context, we use `DurativeActions` to account for the time required to accomplish an action (e.g., moving from a start location to a goal one).
-  
+
 In some cases, the robotic tasks under consideration cannot be executed in parallel. There, we propose an alternative formulation as a *numeric* planning problem. In this case, we consider only `InstantaneousActions` and model time as a numeric fluent (one par agent) updated by the agents' actions.
 
 ## Operation Modes and Integration Aspects
@@ -32,7 +32,7 @@ Given the set of points to be inspected and the constraints imposed on the missi
 
 Then, we decorate the plan with checkpoints that - during execution - ask the robot to verify whether the real value of a specific resource (e.g., battery level) aligns with the estimated value provided by the checkpoint. To this aim, we use the `SequentialSimulator` to estimate the value of a certain resource at a certain point along the plan.
 
-The decorated plan is translated into a robot-compliant format and sent to the robot for execution. While executing, if a checkpoint is violated because of a contingency (lack of battery) or a new opportunity (battery enough to add other inspection targets), the robot triggers a replan request. We consider the new initial state of the robot, the set of opportunities, and the goals already achieved, and, based on this information, we modify the current planning problem and ask the `Replanner` to find a new solution. 
+The decorated plan is translated into a robot-compliant format and sent to the robot for execution. While executing, if a checkpoint is violated because of a contingency (lack of battery) or a new opportunity (battery enough to add other inspection targets), the robot triggers a replan request. We consider the new initial state of the robot, the set of opportunities, and the goals already achieved, and, based on this information, we modify the current planning problem and ask the `Replanner` to find a new solution.
 
 This software was successfully integrated into the Hydroner architecture, as shown in the following picture.
 

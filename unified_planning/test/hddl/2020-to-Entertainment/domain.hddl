@@ -1,5 +1,5 @@
 (define (domain d)
-  (:requirements :negative-preconditions 
+  (:requirements :negative-preconditions
   	:hierarchy
 	:typing
 	:equality

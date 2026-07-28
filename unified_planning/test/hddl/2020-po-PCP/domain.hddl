@@ -210,7 +210,7 @@
 
 	(:action t1G1
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnA)
 			)
@@ -224,7 +224,7 @@
 
 	(:action t2G1
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnA)
 			)
@@ -238,7 +238,7 @@
 
 	(:action t3G1
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnA)
 			)
@@ -252,7 +252,7 @@
 
 	(:action xG1
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnA)
 			)
@@ -266,7 +266,7 @@
 
 	(:action yG1
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnA)
 			)
@@ -280,7 +280,7 @@
 
 	(:action t1G2
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnB)
 				(lt1)
@@ -295,7 +295,7 @@
 
 	(:action t2G2
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnB)
 				(lt2)
@@ -310,7 +310,7 @@
 
 	(:action t3G2
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnB)
 				(lt3)
@@ -325,7 +325,7 @@
 
 	(:action xG2
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnB)
 				(lx)
@@ -340,7 +340,7 @@
 
 	(:action yG2
 		:parameters ()
-		:precondition 
+		:precondition
 			(and
 				(turnB)
 				(ly)

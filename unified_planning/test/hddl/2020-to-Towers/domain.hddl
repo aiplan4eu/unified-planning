@@ -42,7 +42,7 @@
   :precondition (on ?r ?r1)
   :ordered-tasks (and (selectDirection ?r1 ?t1 ?t3 ?t2)))
 
- 
+
  (:method m-rotateTower
   :parameters (?t1 - TOWER ?t2 - TOWER ?t3 - TOWER)
   :task (rotateTower ?t1 ?t2 ?t3)
@@ -81,13 +81,13 @@
   :precondition (and
     (towerTop ?r ?t1)
     (towerTop ?o2 ?t2)
-    (on ?r ?o1) 
+    (on ?r ?o1)
     (smallerThan ?r ?o2))
   :effect (and
-    (not (on ?r ?o1)) 
+    (not (on ?r ?o1))
     (on ?r ?o2)
     (not (towerTop ?r ?t1))
-    (towerTop ?o1 ?t1) 
+    (towerTop ?o1 ?t1)
     (not (towerTop ?o2 ?t2))
     (towerTop ?r ?t2)))
 )
