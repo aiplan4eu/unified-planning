@@ -36,8 +36,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz graphviz-dev gringo
 
-      - name: Check formatting (ruff)
-        run: just lint
+      - name: Cache the pre-commit hook environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      # Runs the formatting check plus the hygiene hooks, so they apply to
+      # everyone and not only to contributors who ran `pre-commit install`.
+      - name: Run the pre-commit hooks
+        run: just precommit
 
       - name: MyPy check
         run: just typecheck
