@@ -93,19 +93,22 @@ docs = [
 default-groups = ["dev"]
 
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
 
-[tool.setuptools]
-include-package-data = true
+[tool.hatch.build.targets.wheel]
+packages = ["unified_planning", "up_test_cases"]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["unified_planning*", "up_test_cases*"]
-
-[tool.setuptools.package-data]
-unified_planning = ["py.typed"]
-up_test_cases = ["py.typed"]
+[tool.hatch.build.targets.sdist]
+include = [
+    "/unified_planning",
+    "/up_test_cases",
+    "/README.md",
+    "/LICENSE",
+    "/pyproject.toml",
+    "/uv.lock",
+    "/justfile",
+]
 
 [tool.ruff]
 line-length = 88
