@@ -9,6 +9,9 @@ on:
     secrets:
       CODECOV_TOKEN:
 
+permissions:
+  contents: read
+
 env:
   up_pyperplan_commit: "a24854213caf5038e1540e31613d24b93825fbb3"
   up_fast_downward_commit: "68dff9e38ba1fa33cba2728d7ba18cbf01aacd99"
@@ -28,8 +31,10 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Install graphviz
-        run: sudo apt-get install -y graphviz graphviz-dev gringo
+      - name: Install graphviz and gringo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev gringo
 
       - name: Check formatting (ruff)
         run: just lint
@@ -94,8 +99,10 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Install graphviz
-        run: sudo apt-get install -y graphviz graphviz-dev gringo
+      - name: Install graphviz and gringo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev gringo
 
       - name: Sync environment (with plot + tarski extras)
         run: uv sync --frozen --extra plot --extra tarski
@@ -220,7 +227,9 @@ jobs:
           python-version: ${{ inputs.python-version }}
 
       - name: Install graphviz
-        run: sudo apt-get install -y graphviz graphviz-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
 
       - name: Sync environment (with plot extra)
         run: uv sync --frozen --extra plot

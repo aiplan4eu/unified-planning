@@ -16,9 +16,13 @@ updates:
       - dependencies
       - python
 
-  # Pinned action versions in .github/workflows/, batched into one weekly PR.
+  # Pinned action versions, batched into one weekly PR. "/" covers
+  # .github/workflows/; the glob is needed for the composite actions, which
+  # dependabot does not reach otherwise.
   - package-ecosystem: github-actions
-    directory: /
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: weekly
       day: monday

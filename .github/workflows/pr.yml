@@ -1,0 +1,21 @@
+name: CI-on-PR
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+    with:
+      python-version: "3.12"
+
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

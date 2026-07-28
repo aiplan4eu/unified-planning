@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# Never cancel a run that may be mid-publish; queueing is what keeps the
+# dev-release job from racing itself on back-to-back master pushes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   test:
     strategy:
@@ -23,7 +29,8 @@ jobs:
     with:
       python-version: ${{ matrix.python-version }}
 
-    secrets: inherit
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     needs: [test]
