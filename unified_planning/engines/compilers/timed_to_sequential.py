@@ -33,7 +33,6 @@ from unified_planning.model import (
 )
 from unified_planning.model.timing import StartTiming, EndTiming, Interval
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.compilers.utils import replace_action
 from typing import Dict, Optional, List, Tuple, OrderedDict, cast
 from fractions import Fraction
 from functools import partial
@@ -48,10 +47,9 @@ from unified_planning.plans import (
     SequentialPlan,
     TimeTriggeredPlan,
     ActionInstance,
-    Plan,
 )
 from unified_planning.model.problem_kind import FEATURES
-from unified_planning.engines import UPSequentialSimulator
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 
 
 def plan_back_conversion_callable(

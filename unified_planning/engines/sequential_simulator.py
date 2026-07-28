@@ -20,7 +20,7 @@ from fractions import Fraction
 from itertools import product
 from warnings import warn
 import unified_planning as up
-from unified_planning.engines.compilers import Grounder, GrounderHelper
+from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
