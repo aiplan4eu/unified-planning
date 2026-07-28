@@ -93,7 +93,7 @@ class InitialStateMixin:
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible.
         """
-        res = self._initial_value
+        res = self._initial_value.copy()
         for f in self._fluent_set.fluents:
             for f_exp in get_all_fluent_exp(self._object_set, f):
                 value = self.initial_value(f_exp)
