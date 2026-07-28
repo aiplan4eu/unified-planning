@@ -23,17 +23,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Install graphviz
         run: sudo apt-get install -y graphviz graphviz-dev gringo
@@ -54,17 +47,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Re-generate the protobuf bindings
         run: just gen-protobuf
@@ -80,17 +66,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Install pandoc and graphviz
         run: |
@@ -110,17 +89,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Install graphviz
         run: sudo apt-get install -y graphviz graphviz-dev gringo
@@ -141,17 +113,8 @@ jobs:
       - name: Install up-pyperplan
         run: uv pip install ./up-pyperplan
 
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v4
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; ./compile; cd ..
-          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
       - name: Test code-snippets
         run: just test-snippets
@@ -177,17 +140,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Sync environment
         run: uv sync --frozen
@@ -205,17 +161,8 @@ jobs:
       - name: Install up-pyperplan
         run: uv pip install ./up-pyperplan
 
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v4
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; bash ./compile; cd ..
-          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
       - name: Run tests
         run: just test
@@ -230,17 +177,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Sync environment (with tarski extra)
         run: uv sync --frozen --extra tarski
@@ -258,17 +198,8 @@ jobs:
       - name: Install up-pyperplan
         run: uv pip install ./up-pyperplan
 
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v4
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; bash ./compile; cd ..
-          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
       - name: Run tests
         run: just test
@@ -283,17 +214,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install uv and set the Python version
-        uses: astral-sh/setup-uv@v7
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install just
-        uses: extractions/setup-just@v3
-        with:
-          just-version: "1.30.1"
 
       - name: Install graphviz
         run: sudo apt-get install -y graphviz graphviz-dev

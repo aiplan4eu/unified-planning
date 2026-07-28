@@ -1,0 +1,22 @@
+name: Set up uv and just
+description: Install uv with lock-keyed caching, provision Python, and install a pinned just.
+
+inputs:
+  python-version:
+    description: Python version for uv to install and use.
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv and set the Python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+
+    - name: Install just
+      uses: extractions/setup-just@v3
+      with:
+        just-version: "1.30.1"
