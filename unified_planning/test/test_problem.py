@@ -593,7 +593,12 @@ class TestProblem(unittest_TestCase):
         problem.set_initial_value(distance(l2, l1), "20")
 
     def test_undefined_initial_state(self):
-        undefs_num = ["basic_undef_numeric", "undef_numeric_with_timed_effects"]
+        undefs_num = [
+            "basic_undef_numeric",
+            "undef_numeric_with_timed_effects",
+            "interpreted_functions_undef_numeric",
+            "interpreted_functions_undef_numeric_durative",
+        ]
         undefs_sym = ["basic_undef_bool"]
         for pb_name in self.problems:
             problem = self.problems[pb_name].problem
