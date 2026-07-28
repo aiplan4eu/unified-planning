@@ -40,6 +40,7 @@ from unified_planning.engines.mixins.sequential_simulator import (
 )
 from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
 from unified_planning.engines.engine import OperationMode
+from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence, cast
 from pathlib import PurePath
 
@@ -136,6 +137,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.compilers.undefined_initial_numeric_remover",
         "UndefinedInitialNumericRemover",
     ),
+    "up_timed_to_sequential": (
+        "unified_planning.engines.compilers.timed_to_sequential",
+        "TimedToSequential",
+    ),
 }
 
 DEFAULT_META_ENGINES = {
@@ -191,6 +196,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "aries-val",
     "up_durative_actions_to_processes",
     "up_undefined_initial_numeric_remover",
+    "up_timed_to_sequential",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = [
@@ -704,7 +710,7 @@ class Factory:
                 compiler.default = compilation_kind
                 compilers.append(compiler)
             self._print_credits(all_credits)
-            return up.engines.compilers.compilers_pipeline.CompilersPipeline(compilers)
+            return CompilersPipeline(compilers)
         else:
             assert names is None
             error_failed_checks = name is None
