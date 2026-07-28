@@ -261,7 +261,7 @@ class MultiAgentProblem(  # type: ignore[misc]
         IMPORTANT NOTE: this property does a lot of computation, so it should be called as
         seldom as possible.
         """
-        res = self._initial_value
+        res = self._initial_value.copy()
         for f in self.ma_environment.fluents:
             for f_exp in get_all_fluent_exp(self, f):
                 res[f_exp] = self.initial_value(f_exp)
