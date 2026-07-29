@@ -21,9 +21,13 @@ from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
-from unified_planning.engines.results import ValidationResultStatus
+from unified_planning.engines.results import (
+    ValidationResultStatus,
+    POSITIVE_OUTCOMES,
+)
 from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
 from unified_planning.model.walkers import InterpretedFunctionsExtractor
+from unified_planning.io import PDDLWriter
 from fractions import Fraction
 
 
@@ -145,6 +149,13 @@ class TestT2S(unittest_TestCase):
         self.assertTrue(problem.kind.has_continuous_time())
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
 
+        # distance/velocity are only used in the move action's duration, which is
+        # dropped by this compilation; since they become unreferenced, they must be
+        # pruned from the compiled problem
+        compiled_fluent_names = {f.name for f in comp_res.problem.fluents}
+        self.assertNotIn("distance", compiled_fluent_names)
+        self.assertNotIn("velocity", compiled_fluent_names)
+
         compiled_move = comp_res.problem.action("move")
         Robot = problem.user_type("Robot")
         Location = problem.user_type("Location")
@@ -248,6 +259,11 @@ class TestT2S(unittest_TestCase):
         comp_res = t2s.compile(problem)
         assert isinstance(comp_res.problem, Problem)
 
+        # normaltime is only used inside the interpreted function call that computes
+        # gohome's duration; once the duration is dropped it becomes unreferenced and
+        # must be pruned, same as distance/velocity in test_logistic
+        self.assertNotIn("normaltime", {f.name for f in comp_res.problem.fluents})
+
         original_gohome = problem.action("gohome")
         assert isinstance(original_gohome, DurativeAction)
         athome = problem.fluent("athome")
@@ -349,8 +365,105 @@ class TestT2S(unittest_TestCase):
         assert isinstance(comp_res.problem, Problem)
         with OneshotPlanner(problem_kind=comp_res.problem.kind) as planner:
             plan_result = planner.solve(comp_res.problem)
+        self.assertIn(
+            plan_result.status,
+            POSITIVE_OUTCOMES,
+            f"Planner failed to solve the problem: {plan_result.log_messages}",
+        )
         assert comp_res.plan_back_conversion is not None
         found_plan_mapped_back = comp_res.plan_back_conversion(plan_result.plan)
         with TimeTriggeredPlanValidator() as validator:
             val_result = validator.validate(original_problem, found_plan_mapped_back)
         self.assertEqual(val_result.status, ValidationResultStatus.VALID)
+
+    def test_fluent_used_only_in_action_cost_metric_is_not_pruned(self):
+        # get_unused_fluents() deliberately reports a fluent used only in a
+        # MinimizeActionCosts cost as unused; without an explicit guard it would
+        # wrongly be pruned away even though the metric still needs it
+        problem = Problem("cost_over_static")
+        rate = Fluent("rate", IntType())
+        problem.add_fluent(rate)
+        problem.set_initial_value(rate, 5)
+
+        x = Fluent("x", IntType())
+        problem.add_fluent(x, default_initial_value=0)
+        mv = InstantaneousAction("mv")
+        mv.add_increase_effect(x, 1)
+        problem.add_action(mv)
+        problem.add_quality_metric(MinimizeActionCosts({mv: rate}))
+
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        self.assertIn("rate", {f.name for f in comp_res.problem.fluents})
+
+    def test_object_fluent_nested_in_duration_is_pruned_and_resolves(self):
+        # OBJECT_FLUENTS: a duration expression where a fluent is nested inside
+        # another fluent's arguments (dist(l1, tgt(l1))) must keep resolving
+        # correctly at map-back time once both fluents are pruned
+        Location = UserType("Location")
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+
+        tgt = Fluent("tgt", Location, l=Location)
+        dist = Fluent("dist", IntType(), a=Location, b=Location)
+
+        problem = Problem("nested_duration")
+        problem.add_objects([l1, l2])
+        problem.add_fluent(tgt)
+        problem.add_fluent(dist, default_initial_value=7)
+        problem.set_initial_value(tgt(l1), l2)
+
+        mv = DurativeAction("mv")
+        mv.set_fixed_duration(dist(l1, tgt(l1)))
+        problem.add_action(mv)
+
+        t2s = TimedToSequential()
+        t2s.skip_checks = True
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_fluent_names = {f.name for f in comp_res.problem.fluents}
+        self.assertNotIn("tgt", compiled_fluent_names)
+        self.assertNotIn("dist", compiled_fluent_names)
+
+        sp = SequentialPlan([comp_res.problem.action("mv")()])
+        assert comp_res.plan_back_conversion is not None
+        mapped_back = comp_res.plan_back_conversion(sp)
+        expected_ttp = TimeTriggeredPlan([(Fraction(0), mv(), Fraction(7))])
+        self.assertEqual(expected_ttp, mapped_back)
+
+    def test_remove_unused_fluents_flag(self):
+        # "speed" is only read by the duration expression, so it is unreferenced in the
+        # compiled problem: the default prunes it, remove_unused_fluents=False keeps it.
+        # Either way the duration must be reconstructed identically, from the original
+        # problem's initial value when pruned and from the simulated state when not.
+        problem = Problem("duration_only_fluent")
+        speed = Fluent("speed", IntType())
+        problem.add_fluent(speed)
+        problem.set_initial_value(speed, 3)
+        done = Fluent("done", BoolType())
+        problem.add_fluent(done, default_initial_value=False)
+
+        act = DurativeAction("act")
+        act.set_fixed_duration(speed())
+        act.add_effect(EndTiming(), done, True)
+        problem.add_action(act)
+        problem.add_goal(done())
+
+        self.assertTrue(TimedToSequential.supports(problem.kind))
+
+        pruning_res = TimedToSequential().compile(problem)
+        assert isinstance(pruning_res.problem, Problem)
+        self.assertNotIn("speed", {f.name for f in pruning_res.problem.fluents})
+
+        keeping_res = TimedToSequential(remove_unused_fluents=False).compile(problem)
+        assert isinstance(keeping_res.problem, Problem)
+        self.assertIn("speed", {f.name for f in keeping_res.problem.fluents})
+        self.assertEqual(Int(3), keeping_res.problem.initial_value(speed()))
+
+        expected_ttp = TimeTriggeredPlan([(Fraction(0), act(), Fraction(3))])
+        for comp_res in (pruning_res, keeping_res):
+            assert isinstance(comp_res.problem, Problem)
+            assert comp_res.plan_back_conversion is not None
+            sp = SequentialPlan([comp_res.problem.action("act")()])
+            self.assertEqual(expected_ttp, comp_res.plan_back_conversion(sp))
