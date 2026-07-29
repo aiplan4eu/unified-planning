@@ -93,6 +93,7 @@ class GrounderHelper:
         # - it has no effects
         # - his conditions create a contradiction
         # - the action has conflicting effects
+        # - for a DurativeAction, its duration interval simplifies to an empty interval
         self._grounded_actions: Dict[
             Tuple[str, Tuple[FNode, ...]], Optional[Action]
         ] = {}
@@ -322,6 +323,12 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     implementation.
     The Grounder class can also optionally take a flag prune_actions to enable/disable the pruning of actions exploiting the simplification of static fluents.
 
+    Interpreted functions are treated as ordinary sub-expressions: calls appearing in conditions, effect
+    values and duration bounds have their arguments rewritten by the parameter substitution, exactly like
+    any other fluent-based expression. Once an interpreted function call's arguments are all constant, the
+    grounder's simplifier evaluates it and replaces the call with its value; while any argument is not
+    constant, the call is left unevaluated.
+
     This `Compiler` supports only the the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
@@ -386,6 +393,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         supported_kind.set_expression_duration("FLUENTS_IN_DURATIONS")
         supported_kind.set_expression_duration("INT_TYPE_DURATIONS")
         supported_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+        supported_kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
         supported_kind.set_simulated_entities("SIMULATED_EFFECTS")
         supported_kind.set_constraints_kind("STATE_INVARIANTS")
         supported_kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
