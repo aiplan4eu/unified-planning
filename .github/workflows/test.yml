@@ -12,12 +12,6 @@ on:
 permissions:
   contents: read
 
-env:
-  up_pyperplan_commit: "a24854213caf5038e1540e31613d24b93825fbb3"
-  up_fast_downward_commit: "68dff9e38ba1fa33cba2728d7ba18cbf01aacd99"
-  up_enhsp_commit: "4d9e925858483869093eee07d31e37305a120321"
-  up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
-
 jobs:
   basic-check:
     runs-on: ubuntu-latest
@@ -96,6 +90,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [basic-check, check-protobuf]
     env:
+      # The `uv sync --frozen` below is authoritative; this stops the `uv run`
+      # behind every `just` recipe from re-checking the lock and re-syncing.
       UV_NO_SYNC: "1"
 
     steps:
@@ -112,21 +108,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz graphviz-dev gringo
 
-      # uv sync is exact: it prunes anything absent from the lock. Every extra
-      # this job needs must be listed here, and this step must stay ahead of the
-      # `uv pip install ./<engine>` steps below, or they get wiped.
-      - name: Sync environment (with plot + tarski + tamerlite extras)
-        run: uv sync --frozen --extra plot --extra tarski --extra tamerlite
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{ env.up_pyperplan_commit }}
-
-      - name: Install up-pyperplan
-        run: uv pip install ./up-pyperplan
+      # uv sync is exact: it prunes whatever is not named here, so every extra
+      # this job needs must be listed on this one line.
+      - name: Sync environment (with plot + tarski + tamerlite + pyperplan extras)
+        run: uv sync --frozen --extra plot --extra tarski --extra tamerlite --extra pyperplan
 
       - name: Install ENHSP
         uses: ./.github/actions/install-enhsp
@@ -149,6 +134,7 @@ jobs:
     runs-on: windows-latest
     needs: [basic-check, check-protobuf]
     env:
+      # See run-tests-ubuntu.
       UV_NO_SYNC: "1"
 
     steps:
@@ -160,20 +146,9 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      # Exact sync: list every extra here, and keep this ahead of the
-      # `uv pip install ./<engine>` steps below.
-      - name: Sync environment (with tamerlite extra)
-        run: uv sync --frozen --extra tamerlite
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{ env.up_pyperplan_commit }}
-
-      - name: Install up-pyperplan
-        run: uv pip install ./up-pyperplan
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Sync environment (with tamerlite + pyperplan extras)
+        run: uv sync --frozen --extra tamerlite --extra pyperplan
 
       - name: Install ENHSP
         uses: ./.github/actions/install-enhsp
@@ -185,6 +160,7 @@ jobs:
     runs-on: macos-latest
     needs: [basic-check, check-protobuf]
     env:
+      # See run-tests-ubuntu.
       UV_NO_SYNC: "1"
 
     steps:
@@ -196,20 +172,9 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      # Exact sync: list every extra here, and keep this ahead of the
-      # `uv pip install ./<engine>` steps below.
-      - name: Sync environment (with tarski + tamerlite extras)
-        run: uv sync --frozen --extra tarski --extra tamerlite
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{ env.up_pyperplan_commit }}
-
-      - name: Install up-pyperplan
-        run: uv pip install ./up-pyperplan
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Sync environment (with tarski + tamerlite + pyperplan extras)
+        run: uv sync --frozen --extra tarski --extra tamerlite --extra pyperplan
 
       - name: Install ENHSP
         uses: ./.github/actions/install-enhsp
@@ -221,6 +186,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [basic-check, check-protobuf]
     env:
+      # Load-bearing here: `uv run` restores lock-pinned versions, so without
+      # this `just test-colab` would undo the setuptools downgrade below.
       UV_NO_SYNC: "1"
 
     steps:
@@ -237,60 +204,22 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y graphviz graphviz-dev
 
-      # Exact sync: list every extra and group here, and keep this ahead of the
-      # `uv pip install ./<engine>` steps below. The docs group supplies jupyter
-      # and ipython, which scripts/test_colab.sh needs.
-      - name: Sync environment (with plot + tamerlite + aries extras, docs group)
-        run: uv sync --frozen --extra plot --extra tamerlite --extra aries --group docs
+      # Exact sync: list every extra and group this job needs on this one line.
+      # The docs group supplies jupyter and ipython, which scripts/test_colab.sh
+      # needs; the engine extras cover what the notebooks plan with.
+      - name: Sync environment (with plot + engine extras, docs group)
+        run: uv sync --frozen --extra plot --extra tamerlite --extra aries --extra pyperplan --extra fast-downward --extra enhsp --extra fmap --group docs
 
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{ env.up_pyperplan_commit }}
-
-      - name: Install up-pyperplan
-        run: uv pip install ./up-pyperplan
-
-      - name: Checkout up-fast-downward
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-fast-downward
-          path: up-fast-downward
-          ref: ${{ env.up_fast_downward_commit }}
-
-      - name: Install up-fast-downward
-        run: uv pip install ./up-fast-downward
-
-      - name: Setup java for ENHSP
+      # up-enhsp and up-fmap both shell out to java.
+      - name: Setup java for the ENHSP and FMAP engines
         uses: actions/setup-java@v4
         with:
           distribution: "microsoft"
           java-version: "17"
 
-      - name: Setup older setuptools for ENHSP
-        run: uv pip install "setuptools<82" # ENHSP requires pkg_resources
-
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{ env.up_enhsp_commit }}
-
-      - name: Install up-enhsp
-        run: uv pip install ./up-enhsp
-
-      - name: Checkout up-fmap
-        uses: actions/checkout@v4
-        with:
-          repository: aiplan4eu/up-fmap
-          path: up-fmap
-          ref: ${{ env.up_fmap_commit }}
-
-      - name: Install up-fmap
-        run: uv pip install ./up-fmap
+      # Must stay after the sync, which would otherwise prune the downgrade away.
+      - name: Downgrade setuptools for up-fmap
+        run: uv pip install "setuptools<82" # up_fmap.fmap_planner imports pkg_resources
 
       - name: Run colabs
         run: just test-colab
