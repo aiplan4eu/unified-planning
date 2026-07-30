@@ -14,23 +14,16 @@
 #
 
 
-import pyparsing
 from typing import Union, Sequence, List
 
 
 def parse_string(obj, problem_str, parse_all):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.parseString(problem_str, parseAll=parse_all)
-    else:
-        return obj.parse_string(problem_str, parse_all=parse_all)
+    return obj.parse_string(problem_str, parse_all=parse_all)
 
 
 def parse_file(obj, problem_filename: Union[str, Sequence[str]], parse_all):
     if isinstance(problem_filename, str):
-        if pyparsing.__version__ < "3.0.0":
-            return obj.parseFile(problem_filename, parseAll=parse_all)
-        else:
-            return obj.parse_file(problem_filename, parse_all=parse_all)
+        return obj.parse_file(problem_filename, parse_all=parse_all)
     else:
         problem_parts: List[str] = []
         for filename in problem_filename:
@@ -41,36 +34,8 @@ def parse_file(obj, problem_filename: Union[str, Sequence[str]], parse_all):
 
 
 def set_results_name(obj, name):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.setResultsName(name)
-    else:
-        return obj.set_results_name(name)
+    return obj.set_results_name(name)
 
 
 def set_parse_action(obj, fun):
-    if pyparsing.__version__ < "3.0.0":
-        return obj.setParseAction(fun)
-    else:
-        return obj.set_parse_action(fun)
-
-
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import ParseResults, ParseElementEnhance
-
-    class Located(ParseElementEnhance):
-        def parseImpl(self, instring, loc, doActions=True):
-            start = loc
-            loc, tokens = self.expr._parse(
-                instring, start, doActions, callPreParse=False
-            )  # type: ignore
-            ret_tokens = ParseResults([start, tokens, loc])
-            ret_tokens["locn_start"] = start
-            ret_tokens["value"] = tokens
-            ret_tokens["locn_end"] = loc
-            if self.resultsName:
-                return loc, [ret_tokens]
-            else:
-                return loc, ret_tokens
-
-else:
-    from pyparsing import Located  # type: ignore
+    return obj.set_parse_action(fun)

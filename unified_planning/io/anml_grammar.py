@@ -18,25 +18,12 @@ import unified_planning as up
 from unified_planning.io.utils import set_results_name, set_parse_action
 from typing import List
 
-import pyparsing
 from pyparsing import Keyword, Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
 from pyparsing import MatchFirst, ParseResults, ParserElement
+from pyparsing import infix_notation, rest_of_line, one_of, OpAssoc
 
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import infixNotation as infix_notation
-    from pyparsing import restOfLine as rest_of_line
-    from pyparsing import oneOf as one_of
-    from pyparsing import opAssoc as OpAssoc
-
-    ParserElement.enablePackrat()
-else:
-    from pyparsing import infix_notation
-    from pyparsing import rest_of_line
-    from pyparsing import one_of
-    from pyparsing import OpAssoc
-
-    ParserElement.enable_packrat()
+ParserElement.enable_packrat()
 
 
 # ANMl keywords definition as tokens
@@ -454,10 +441,7 @@ def group_binary(parse_res: ParseResults):
     """
     parsed_tokens = parse_res[0]
     assert len(parsed_tokens) % 2 == 1, "expected an odd number of tokens"
-    if pyparsing.__version__ < "3.0.0":
-        tokens_list = [t for t in parsed_tokens.asList()]
-    else:
-        tokens_list = [t for t in parsed_tokens.as_list()]
+    tokens_list = [t for t in parsed_tokens.as_list()]
     first_element = tokens_list[0]
     for operator, operand in operatorOperands(tokens_list[1:]):
         first_element = ParseResults([first_element, operator, operand])

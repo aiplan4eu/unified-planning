@@ -27,20 +27,13 @@ from unified_planning.exceptions import (
     UPException,
     UPUnsupportedProblemTypeError,
 )
-from unified_planning.io.utils import parse_string, set_results_name, Located
+from unified_planning.io.utils import parse_string, set_results_name
 
-import pyparsing
 from pyparsing import ParseResults
-from pyparsing import CharsNotIn, Empty, col, lineno
+from pyparsing import CharsNotIn, Empty, Located, col, lineno
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Suppress, Group, Optional, Forward
-
-if pyparsing.__version__ < "3.0.0":
-    from pyparsing import oneOf as one_of
-    from pyparsing import restOfLine as rest_of_line
-else:
-    from pyparsing import one_of
-    from pyparsing import rest_of_line
+from pyparsing import one_of, rest_of_line
 
 
 class CustomParseResults:
