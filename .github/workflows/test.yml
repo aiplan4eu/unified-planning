@@ -25,21 +25,13 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Install graphviz and gringo
+      - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev gringo
+          sudo apt-get install -y graphviz graphviz-dev
 
-      - name: Cache the pre-commit hook environments
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-
-      # Runs the formatting check plus the hygiene hooks, so they apply to
-      # everyone and not only to contributors who ran `pre-commit install`.
-      - name: Run the pre-commit hooks
-        run: just precommit
+      - name: Lint
+        run: just lint
 
       - name: MyPy check
         run: just typecheck
@@ -103,18 +95,21 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: Install graphviz and gringo
+      - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev gringo
+          sudo apt-get install -y graphviz graphviz-dev
+
+      # Provisions Java and restores the cached build, so the setup-ci step below finds the
+      # jar already in place. Must come first: setup-ci builds ENHSP when it is missing, and
+      # that needs a JDK.
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
       # uv sync is exact: it prunes whatever is not named here, so every extra
       # this job needs must be listed on this one line.
-      - name: Sync environment (with plot + tarski + tamerlite + pyperplan extras)
-        run: uv sync --frozen --extra plot --extra tarski --extra tamerlite --extra pyperplan
-
-      - name: Install ENHSP
-        uses: ./.github/actions/install-enhsp
+      - name: Set up the environment (with plot + tarski + tamerlite + pyperplan extras)
+        run: just setup-ci plot tarski tamerlite pyperplan
 
       - name: Test code-snippets
         run: just test-snippets
@@ -146,12 +141,13 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      # Exact sync: list every extra this job needs on this one line.
-      - name: Sync environment (with tamerlite + pyperplan extras)
-        run: uv sync --frozen --extra tamerlite --extra pyperplan
-
+      # See run-tests-ubuntu: ENHSP first, so setup-ci finds the jar already built.
       - name: Install ENHSP
         uses: ./.github/actions/install-enhsp
+
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Set up the environment (with tarski + tamerlite + pyperplan extras)
+        run: just setup-ci tarski tamerlite pyperplan
 
       - name: Run tests
         run: just test
@@ -172,12 +168,13 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
 
-      # Exact sync: list every extra this job needs on this one line.
-      - name: Sync environment (with tarski + tamerlite + pyperplan extras)
-        run: uv sync --frozen --extra tarski --extra tamerlite --extra pyperplan
-
+      # See run-tests-ubuntu: ENHSP first, so setup-ci finds the jar already built.
       - name: Install ENHSP
         uses: ./.github/actions/install-enhsp
+
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Set up the environment (with tarski + tamerlite + pyperplan extras)
+        run: just setup-ci tarski tamerlite pyperplan
 
       - name: Run tests
         run: just test

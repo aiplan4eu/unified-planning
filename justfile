@@ -3,6 +3,11 @@ set shell := ["bash", "-cu"]
 # bare "bash" resolves to the WSL launcher rather than to Git Bash.
 set windows-shell := ["cmd.exe", "/c"]
 
+# ENHSP release the CI configuration builds; the install-enhsp action passes the same value.
+enhsp_tag := "enhsp20-0.15.0"
+# Extras the ubuntu test job syncs, i.e. the widest set the test suite exercises.
+ci_extras := "plot tarski tamerlite pyperplan"
+
 # List the available recipes
 default:
     @just --list
@@ -10,6 +15,17 @@ default:
 # Sync the environment from uv.lock (project + default dev group)
 install:
     uv sync
+
+# `--script` keeps the helper isolated from the project environment: a plain `uv run` re-syncs
+# that environment exactly, and would prune the extras setup-ci had just installed.
+# Build ENHSP into .planners/enhsp-20 (needs git and a JDK; a no-op once the jar is there)
+install-enhsp tag=enhsp_tag:
+    uv run --script scripts/install_enhsp.py {{ tag }}
+
+# Set up the environment as the CI test jobs do: sync the extras, then build ENHSP
+setup-ci *extras=ci_extras:
+    uv sync --frozen {{ prepend('--extra ', extras) }}
+    just install-enhsp
 
 # Format the code base (ruff, drop-in replacement for black)
 format:
@@ -25,10 +41,6 @@ typecheck:
 
 # Run every check expected before pushing
 check: lint typecheck
-
-# Run all the pre-commit hooks against the whole repo
-precommit:
-    uv run pre-commit run --all-files --show-diff-on-failure
 
 # Check that every package and sub-package can be imported
 check-imports:

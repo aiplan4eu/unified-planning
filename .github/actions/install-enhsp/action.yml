@@ -40,9 +40,4 @@ runs:
     - name: Build ENHSP
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
-      run: |
-        git clone --depth 1 --branch "${{ inputs.tag }}" https://gitlab.com/enricos83/ENHSP-Public.git
-        cd ENHSP-Public && bash ./compile && cd ..
-        mkdir -p .planners
-        mv ENHSP-Public/enhsp-dist .planners/enhsp-20
-        rm -rf ENHSP-Public
+      run: just install-enhsp "${{ inputs.tag }}"
