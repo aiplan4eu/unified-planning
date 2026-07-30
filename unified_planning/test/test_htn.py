@@ -32,6 +32,18 @@ class TestProblem(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_subtask_argument_fluent_is_not_unused(self):
+        # a fluent used only as a subtask's argument (never in a method/task-network
+        # precondition or constraint) must not be reported as unused
+        htn = up.model.htn.HierarchicalProblem()
+        Location = UserType("Location")
+        l1 = htn.add_object("l1", Location)
+        loc = Fluent("loc", Location)
+        htn.add_fluent(loc, default_initial_value=l1)
+        check = htn.add_task("check", target=Location)
+        htn.task_network.add_subtask(check, loc())
+        self.assertNotIn(loc, htn.get_unused_fluents())
+
     def test_htn_problem_creation(self):
         problems = examples.hierarchical.get_example_problems()
         problem = problems["htn-go"].problem

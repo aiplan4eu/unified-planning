@@ -14,6 +14,8 @@
 # limitations under the License.
 
 
+from collections import OrderedDict
+
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main, examples
@@ -534,6 +536,13 @@ class TestProblem(unittest_TestCase):
             "sched:optional_activities_effects",
             "1d_Movement",
             "boiling_water",
+            "robot_with_durative_action",
+            "robot_with_static_fluents_duration_timed_goals",
+            "logistic",
+            "robot_with_variable_duration",
+            "matchcellar_static_duration",
+            "locations_connected_cost_minimize",
+            "go_home_with_rain_and_interpreted_functions",
         ]
         for example in self.problems.values():
             problem = example.problem
@@ -546,6 +555,115 @@ class TestProblem(unittest_TestCase):
                 self.assertFalse(
                     problem.kind.has_simple_numeric_planning(), problem.name
                 )
+
+    def test_effect_target_interpreted_function_kind(self):
+        # value(choose()) := 9 : the interpreted function is in the effect's TARGET
+        # arguments, not its value; it must still be visible to kind computation.
+        Obj = UserType("Obj")
+        o1 = Object("o1", Obj)
+        choose = InterpretedFunction("choose", Obj, OrderedDict(), lambda: o1)
+        value = Fluent("value", IntType(), o=Obj)
+        a = InstantaneousAction("act")
+        a.add_effect(value(choose()), 9)
+        problem = Problem("effect_target_if")
+        problem.add_fluent(value, default_initial_value=0)
+        problem.add_object(o1)
+        problem.add_action(a)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+
+    def test_increase_effect_interpreted_function_kind(self):
+        # the assignment branch already checked for interpreted functions in the value;
+        # increase/decrease effects did not.
+        sig = OrderedDict()
+        sig["x"] = IntType()
+        double_if = InterpretedFunction("double", IntType(), sig, lambda x: x * 2)
+        counter = Fluent("counter", IntType())
+        a = InstantaneousAction("inc")
+        a.add_increase_effect(counter, double_if(counter))
+        problem = Problem("increase_if")
+        problem.add_fluent(counter, default_initial_value=1)
+        problem.add_action(a)
+        self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
+
+    def test_declared_unreferenced_numeric_fluent_kind(self):
+        # a fluent that is declared but never appears in any effect/condition/goal/duration
+        # must still contribute its type to kind (the direct fix for issue #768)
+        unused = Fluent("unused", RealType())
+        problem = Problem("declared_unreferenced")
+        problem.add_fluent(unused, default_initial_value=1.5)
+        self.assertTrue(problem.kind.has_real_fluents())
+        self.assertIn(unused, problem.get_unused_fluents())
+
+    def test_duration_only_fluent_is_not_unused(self):
+        dur_fluent = Fluent("dur_fluent", RealType())
+        a = DurativeAction("act")
+        a.set_fixed_duration(dur_fluent())
+        problem = Problem("dur_unused")
+        problem.add_fluent(dur_fluent, default_initial_value=1.0)
+        problem.add_action(a)
+        self.assertNotIn(dur_fluent, problem.get_unused_fluents())
+
+    def test_action_cost_only_fluent_kind(self):
+        # documented behaviour: a fluent used only in the ActionCost quality metric is
+        # still reported as unused by get_unused_fluents() (see the docstring of
+        # _get_static_and_unused_fluents), but it must still contribute its type to kind
+        # unconditionally, so REAL_FLUENTS is correctly set regardless
+        cost_fluent = Fluent("cost_fluent", RealType())
+        done = Fluent("done", BoolType())
+        a = InstantaneousAction("act")
+        a.add_effect(done, True)
+        problem = Problem("cost_unused")
+        problem.add_fluent(cost_fluent, default_initial_value=1.0)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(a)
+        problem.add_quality_metric(MinimizeActionCosts({a: cost_fluent}))
+        self.assertIn(cost_fluent, problem.get_unused_fluents())
+        self.assertTrue(problem.kind.has_real_fluents())
+
+    def test_action_cost_interpreted_function_kind(self):
+        one_if = InterpretedFunction("one", IntType(), OrderedDict(), lambda: 1)
+        done = Fluent("done", BoolType())
+        a = InstantaneousAction("act")
+        a.add_effect(done, True)
+        problem = Problem("cost_if")
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(a)
+        problem.add_quality_metric(MinimizeActionCosts({a: one_if()}))
+        self.assertTrue(problem.kind.has_interpreted_functions_in_conditions())
+
+    def test_event_contributes_to_kind(self):
+        # event preconditions/effects were never walked at all before this fix
+        x = Fluent("x", BoolType())
+        y = Fluent("y", BoolType())
+        evt = Event("evt")
+        evt.add_precondition(Or(x, y))
+        evt.add_effect(x, False)
+        problem = Problem("event_kind")
+        problem.add_fluent(x, default_initial_value=False)
+        problem.add_fluent(y, default_initial_value=False)
+        problem.add_event(evt)
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+
+    def test_trajectory_constraint_contributes_to_kind(self):
+        x = Fluent("x", BoolType())
+        y = Fluent("y", BoolType())
+        problem = Problem("tc_kind")
+        problem.add_fluent(x, default_initial_value=False)
+        problem.add_fluent(y, default_initial_value=False)
+        problem.add_trajectory_constraint(Sometime(Or(x, y)))
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+
+    def test_forall_effect_type_kind(self):
+        Base = UserType("Base")
+        Sub = UserType("Sub", father=Base)
+        visited = Fluent("visited", BoolType(), o=Base)
+        v = Variable("v", Sub)
+        a = InstantaneousAction("reset_all")
+        a.add_effect(visited(v), True, forall=[v])
+        problem = Problem("forall_kind")
+        problem.add_fluent(visited, default_initial_value=False)
+        problem.add_action(a)
+        self.assertTrue(problem.kind.has_hierarchical_typing())
 
     def test_simple_numeric_planning_ad_hoc_1(self):
         problem = Problem("ad_hoc_1")

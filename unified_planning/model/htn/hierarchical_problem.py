@@ -119,7 +119,11 @@ class HierarchicalProblem(up.model.problem.Problem):
         for m in self.methods:
             remove_used_fluents(*m.preconditions)
             remove_used_fluents(*m.constraints)
+            for st in m.subtasks:
+                remove_used_fluents(*st.parameters)
         remove_used_fluents(*self.task_network.constraints)
+        for st in self.task_network.subtasks:
+            remove_used_fluents(*st.parameters)
 
         return unused_fluents
 
@@ -148,6 +152,8 @@ class HierarchicalProblem(up.model.problem.Problem):
             factory.kind.set_hierarchical("INITIAL_TASK_NETWORK_VARIABLES")
         if len(self.task_network.non_temporal_constraints()) > 0:
             factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+            for tn_constraint in self.task_network.non_temporal_constraints():
+                factory.update_problem_kind_expression(tn_constraint)
 
         for method in self.methods:
             ordering_kind = max(ordering_kind, lvl(method))
@@ -156,6 +162,8 @@ class HierarchicalProblem(up.model.problem.Problem):
                 factory.update_problem_kind_expression(method_cond)
             if len(method.non_temporal_constraints()) > 0:
                 factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+                for method_constraint in method.non_temporal_constraints():
+                    factory.update_problem_kind_expression(method_constraint)
 
         if ordering_kind == TO:
             factory.kind.set_hierarchical("TASK_ORDER_TOTAL")
