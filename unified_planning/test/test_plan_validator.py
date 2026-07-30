@@ -407,6 +407,26 @@ class TestProblem(unittest_TestCase):
             validation_result = ttv.validate(problem, plan)
             self.assertEqual(validation_result.status, ValidationResultStatus.INVALID)
 
+    def test_time_triggered_effect_target_arguments_are_evaluated(self):
+        # an effect's target fluent arguments must be evaluated in the current state, exactly
+        # like its value: f(x + 1) applied with x := 1 must update f(2), matching what the goal
+        # f(2) == 5 reads, not the un-evaluated f((1 + 1))
+        f = Fluent("f", IntType(0, 5), i=IntType(0, 3))
+        action = DurativeAction("act", x=IntType(1, 1))
+        x = action.parameter("x")
+        action.set_fixed_duration(1)
+        action.add_effect(EndTiming(), f(Plus(x, 1)), 5)
+
+        problem = Problem("ttp_target")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_action(action)
+        problem.add_goal(Equals(f(2), 5))
+
+        plan = up.plans.TimeTriggeredPlan([(Fraction(0), action(Int(1)), Fraction(1))])
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        validation_result = ttv.validate(problem, plan)
+        self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
 

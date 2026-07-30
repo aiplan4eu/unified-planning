@@ -337,6 +337,37 @@ class TestGrounder(unittest_TestCase):
         self.assertEqual(grounded_problem.actions[0].name, "act_a")
         self.assertEqual(len(grounded_problem.actions[0].parameters), 0)
 
+    def test_effect_target_arguments_are_simplified(self):
+        # the effect's target fluent must be normalized like its value: f(x + 1) grounded
+        # with x := 1 must become f(2), not the unevaluated f((1 + 1)). A second effect on
+        # the constant f(2) makes x = 1 target the same fluent instance twice with different
+        # values, so that grounding must be dropped as conflicting-effects, exactly like it
+        # would be if the first effect had been written as f(2) directly.
+        f = Fluent("f", IntType(), i=IntType(0, 3))
+        action = InstantaneousAction("act", x=IntType(0, 2))
+        x = action.parameter("x")
+        action.add_effect(f(Plus(x, 1)), Plus(x, 1))
+        action.add_effect(f(Int(2)), 99)
+
+        problem = Problem("arith_target")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # act_1 (x = 1) is dropped: f(1 + 1) and f(2) conflict once both are simplified to f(2)
+        self.assertEqual(len(grounded_problem.actions), 2)
+        em = problem.environment.expression_manager
+        for i in (0, 2):
+            a = cast(InstantaneousAction, grounded_problem.action(f"act_{i}"))
+            first_effect, second_effect = a.effects
+            self.assertEqual(first_effect.fluent, f(em.Int(i + 1)))
+            self.assertEqual(first_effect.value, em.Int(i + 1))
+            self.assertEqual(second_effect.fluent, f(em.Int(2)))
+            self.assertEqual(second_effect.value, em.Int(99))
+
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):
         problem = self.problems["robot_no_negative_preconditions"].problem

@@ -137,10 +137,16 @@ def create_effect_with_given_subs(
     simplifier,
     subs: Dict[Expression, Expression],
 ) -> Optional[Effect]:
+    em = problem.environment.expression_manager
     new_fluent = old_effect.fluent.substitute(subs)
+    if new_fluent.is_fluent_exp():
+        new_fluent = em.FluentExp(
+            new_fluent.fluent(),
+            tuple(simplifier.simplify(a) for a in new_fluent.args),
+        )
     new_value = simplifier.simplify(old_effect.value.substitute(subs))
     new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
-    if new_condition == problem.environment.expression_manager.FALSE():
+    if new_condition == em.FALSE():
         return None
     else:
         return Effect(
