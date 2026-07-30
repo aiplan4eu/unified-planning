@@ -1,0 +1,129 @@
+name: deps
+
+# Every other workflow installs with `uv sync --frozen`, which is exactly one point in the
+# resolution space. These two jobs cover the ends that the lock hides: the floors declared
+# in pyproject.toml, and whatever PyPI released since the lock was written.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  # Mondays 04:17 UTC. Deliberately off the hour: GitHub queues scheduled runs and the top
+  # of the hour is heavily oversubscribed.
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # Prove that the lower bounds in pyproject.toml are real by resolving every direct
+  # requirement down to its declared floor and running the tests there. Runs on every PR,
+  # not just when pyproject.toml changes: a code change can start relying on an API newer
+  # than a declared floor, and that is precisely what this job is here to catch.
+  lowest-direct:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # The `uv sync` below is authoritative; this stops the `uv run` behind every `just`
+      # recipe from re-resolving and quietly restoring the highest versions.
+      UV_NO_SYNC: "1"
+      # Redundant with the explicit flag below, on purpose: should any other uv invocation
+      # re-resolve, it keeps the floors rather than silently reverting to highest.
+      UV_RESOLUTION: lowest-direct
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
+        with:
+          # Floors are only meaningful on the oldest interpreter we claim to support.
+          python-version: "3.10"
+          enable-cache: "false"
+
+      # graphviz-dev is not optional: pygraphviz publishes no manylinux wheels, so it is
+      # built from its sdist.
+      - name: Install graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
+
+      # No --upgrade needed: --resolution overrides the versions pinned in the existing
+      # lock on its own. Rewrites uv.lock in the workspace, so nothing after this point
+      # may assert a clean tree (no `git diff --exit-code`, no `uv lock --check`, no
+      # `uv sync --locked`).
+      - name: Resolve every direct requirement at its declared floor
+        run: uv lock --resolution lowest-direct
+
+      - name: Sync environment (with plot + tarski extras)
+        run: uv sync --frozen --extra plot --extra tarski
+
+      # The point of the job is the floors, so put them in the log.
+      - name: Show the resolved floors
+        run: uv pip list
+
+      # Tests and imports only. `just lint` would fail on formatting
+      # differences from a floored ruff, which says nothing about dependency floors.
+      - name: Run tests
+        run: just test
+
+      - name: Check that every package imports at its floor
+        run: just check-imports
+
+  # The counterpart: with no upper caps declared, this is what notices a breaking upstream
+  # release. Weekly, so a bad release surfaces here rather than in a user's install.
+  canary:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest and newest supported: "a new release dropped 3.10" and "a new release
+        # broke on 3.14" are different failures and both are worth knowing about.
+        python-version: ["3.10", "3.14"]
+    env:
+      UV_NO_SYNC: "1"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: "false"
+
+      - name: Install graphviz
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
+
+      # --upgrade ignores every pin in the committed lock and implies --refresh, so a
+      # stale index cache cannot hide a new release. Rewrites uv.lock in place; there is
+      # no need to delete it first. The exact pins in pyproject.toml (grpcio, mypy) are
+      # manifest constraints rather than lock state, so they correctly survive this.
+      - name: Re-resolve against the newest releases on PyPI
+        run: uv lock --upgrade
+
+      # The most useful line in the log when this job goes red: which release moved.
+      - name: Show what moved relative to the committed lock
+        run: git --no-pager diff --stat -- uv.lock
+
+      - name: Sync environment (with plot + tarski extras)
+        run: uv sync --frozen --extra plot --extra tarski
+
+      - name: Show the resolved versions
+        run: uv pip list
+
+      - name: Run tests
+        run: just test
