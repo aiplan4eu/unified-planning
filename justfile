@@ -34,11 +34,11 @@ precommit:
 check-imports:
     uv run --extra plot --extra tarski python scripts/test_imports.py
 
-# Fail if the installed grpc version is not the one expected for binding generation (old for wide compatibility)
+# Fail if the installed grpc version is not the one the committed bindings were generated against
 check-protobuf-version:
     #!/usr/bin/env -S uv run --script
     import grpc
-    assert grpc.__version__ == '1.66.2'
+    assert grpc.__version__ == '1.76.0'
 
 # Regenerate the protobuf and gRPC bindings in unified_planning/grpc/generated/
 gen-protobuf: check-protobuf-version

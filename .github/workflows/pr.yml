@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/test.yml
 
     # Pull requests deliberately run a single interpreter to keep CI cheap; the
-    # full 3.10-3.13 matrix runs post-merge from release.yml.
+    # full 3.10-3.14 matrix runs post-merge from release.yml.
     with:
       python-version: "3.12"
 
