@@ -13,12 +13,14 @@
 # limitations under the License.
 
 
+from collections import OrderedDict
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import (
     UPUsageError,
     UPTypeError,
     UPConflictingEffectsException,
+    UPProblemDefinitionError,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
@@ -121,6 +123,32 @@ class TestModel(unittest_TestCase):
         self.assertNotEqual(e, e_clone_2)
         self.assertNotEqual(e, e.value)
         self.assertNotEqual(e.value, e)
+
+    def test_effect_target_arguments(self):
+        i_type = IntType(0, 5)
+
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction("choose", i_type, OrderedDict(), choose_impl)
+        other = Fluent("other", i_type)
+        value = Fluent("value", IntType(), i=i_type)
+
+        # an interpreted function in the target's arguments is rejected...
+        a = InstantaneousAction("a")
+        with self.assertRaises(UPProblemDefinitionError):
+            a.add_effect(value(choose()), 9)
+        with self.assertRaises(UPProblemDefinitionError):
+            a.add_increase_effect(value(choose()), 9)
+
+        move = DurativeAction("move")
+        with self.assertRaises(UPProblemDefinitionError):
+            move.add_effect(EndTiming(), value(choose()), 9)
+
+        # ...exactly like a fluent in the target's arguments.
+        b = InstantaneousAction("b")
+        with self.assertRaises(UPProblemDefinitionError):
+            b.add_effect(value(other), 9)
 
     def test_process(self):
         Vehicle = UserType("Vehicle")

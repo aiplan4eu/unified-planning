@@ -66,6 +66,7 @@ class Effect:
     This class represent an effect. It has a :class:`~unified_planning.model.Fluent`, modified by this effect, a value
     that determines how the `Fluent` is modified, a `condition` that determines if the `Effect`
     is actually applied or not and an `EffectKind` that determines the semantic of the `Effect`.
+    The modified `Fluent's` arguments can not contain other `Fluents` nor `InterpretedFunctions`.
     """
 
     def __init__(
@@ -82,6 +83,12 @@ class Effect:
         if fluents_in_fluent:
             raise UPProblemDefinitionError(
                 f"The fluent: {fluent} contains other fluents in his arguments: {fluents_in_fluent}"
+            )
+        ife = fluent.environment.interpreted_functions_extractor
+        interpreted_functions_in_fluent = set(ife.get(fluent))
+        if interpreted_functions_in_fluent:
+            raise UPProblemDefinitionError(
+                f"The fluent: {fluent} contains interpreted functions in his arguments: {interpreted_functions_in_fluent}"
             )
         self._fluent = fluent
         self._value = value
