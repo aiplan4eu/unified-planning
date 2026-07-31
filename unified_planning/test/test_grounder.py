@@ -14,6 +14,7 @@
 #
 
 from typing import cast
+import warnings
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
@@ -367,6 +368,102 @@ class TestGrounder(unittest_TestCase):
             self.assertEqual(first_effect.value, em.Int(i + 1))
             self.assertEqual(second_effect.fluent, f(em.Int(2)))
             self.assertEqual(second_effect.value, em.Int(99))
+
+    def test_zero_parameter_action_effect_target_is_normalized(self):
+        # a zero-parameter action is never routed through create_action_with_given_subs
+        # (there is nothing to substitute), so its effects must still be normalized
+        # explicitly; otherwise a hand-written f(1 + 1) target survives grounding unevaluated.
+        f = Fluent("f", IntType(), i=IntType(0, 3))
+        action = InstantaneousAction("act")
+        action.add_effect(f(Plus(Int(1), Int(1))), 1)
+
+        problem = Problem("zero_param_arith_target")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        # the action keeps its original name: normalization must not reroute it through
+        # get_fresh_name, which would rename it to "act_0".
+        ga = cast(InstantaneousAction, grounded_problem.action("act"))
+        em = problem.environment.expression_manager
+        (effect,) = ga.effects
+        self.assertEqual(effect.fluent, f(em.Int(2)))
+        self.assertEqual(effect.value, em.Int(1))
+
+    def test_zero_parameter_action_conflicting_effects_are_detected(self):
+        # same shape as test_effect_target_arguments_are_simplified, but with zero
+        # parameters: the un-normalized target of the first effect must not let the
+        # conflict with the second effect's f(2) go undetected.
+        f = Fluent("f", IntType(), i=IntType(0, 3))
+        action = InstantaneousAction("act")
+        action.add_effect(f(Plus(Int(1), Int(1))), 1)
+        action.add_effect(f(Int(2)), 99)
+
+        problem = Problem("zero_param_conflict")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 0)
+
+    def test_zero_parameter_action_simulated_effect_survives_normalization(self):
+        # normalizing effects clears and rebuilds the action's bookkeeping, which also
+        # wipes any simulated effect; it must be restored afterwards.
+        f = Fluent("f", IntType())
+        x = Fluent("x", IntType())
+        action = InstantaneousAction("act")
+        action.add_effect(f(), 1)
+
+        def fun(problem, state, actual_params):
+            return [Int(0)]
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            action.set_simulated_effect(SimulatedEffect([FluentExp(x)], fun))
+
+        problem = Problem("zero_param_simulated")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_fluent(x, default_initial_value=1)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        ga = cast(InstantaneousAction, grounded_problem.action("act"))
+        self.assertIsNotNone(ga.simulated_effect)
+
+    def test_zero_parameter_durative_action_effect_target_is_normalized(self):
+        # durative-action variant of test_zero_parameter_action_effect_target_is_normalized:
+        # the target must be normalized at its own timing, and the duration left untouched.
+        f = Fluent("f", IntType(), i=IntType(0, 3))
+        action = DurativeAction("act")
+        action.set_fixed_duration(1)
+        action.add_effect(EndTiming(), f(Plus(Int(1), Int(1))), 1)
+
+        problem = Problem("zero_param_durative_arith_target")
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        ga = cast(DurativeAction, grounded_problem.action("act"))
+        self.assertEqual(ga.duration, action.duration)
+        em = problem.environment.expression_manager
+        (effect,) = ga.effects[EndTiming()]
+        self.assertEqual(effect.fluent, f(em.Int(2)))
+        self.assertEqual(effect.value, em.Int(1))
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):
