@@ -909,6 +909,11 @@ class _KindFactory:
             self.kind.set_effects_kind("FORALL_EFFECTS")
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
             # If the value is a number (int or real) and it violates the constraint
             # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
             # unset simple_numeric_planning
@@ -931,6 +936,11 @@ class _KindFactory:
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_decrease():
             self.kind.set_effects_kind("DECREASE_EFFECTS")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
             # If the value is a number (int or real) and it violates the constraint
             # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
             # unset simple_numeric_planning
@@ -993,8 +1003,16 @@ class _KindFactory:
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
         elif e.is_continuous_increase():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
         elif e.is_continuous_decrease():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
 
     def update_problem_kind_expression(
         self,

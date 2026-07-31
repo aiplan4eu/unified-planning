@@ -150,6 +150,74 @@ class TestModel(unittest_TestCase):
         with self.assertRaises(UPProblemDefinitionError):
             b.add_effect(value(other), 9)
 
+    def test_interpreted_functions_in_numeric_assignments(self):
+        i_type = IntType(0, 5)
+
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction("choose", i_type, OrderedDict(), choose_impl)
+        x = Fluent("x", i_type)
+
+        def problem_with_effect(add_effect_to_action):
+            a = InstantaneousAction("a")
+            add_effect_to_action(a)
+            p = Problem("p")
+            p.add_fluent(x, default_initial_value=0)
+            p.add_action(a)
+            return p
+
+        assign_kind = problem_with_effect(lambda a: a.add_effect(x, choose())).kind
+        increase_kind = problem_with_effect(
+            lambda a: a.add_increase_effect(x, choose())
+        ).kind
+        decrease_kind = problem_with_effect(
+            lambda a: a.add_decrease_effect(x, choose())
+        ).kind
+
+        # the assignment case was already correct; increase/decrease used to miss this flag
+        self.assertTrue(assign_kind.has_interpreted_functions_in_numeric_assignments())
+        self.assertTrue(
+            increase_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+        self.assertTrue(
+            decrease_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+
+    def test_interpreted_functions_in_continuous_effects(self):
+        def choose_impl():
+            return 1.0
+
+        choose = InterpretedFunction("choose", RealType(), OrderedDict(), choose_impl)
+        y = Fluent("y", RealType())
+
+        def problem_with_continuous_effect(add_effect_to_action):
+            move = DurativeAction("move")
+            move.set_fixed_duration(1)
+            add_effect_to_action(move)
+            p = Problem("p")
+            p.add_fluent(y, default_initial_value=0.0)
+            p.add_action(move)
+            return p
+
+        increase_kind = problem_with_continuous_effect(
+            lambda move: move.add_increase_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), y, choose()
+            )
+        ).kind
+        decrease_kind = problem_with_continuous_effect(
+            lambda move: move.add_decrease_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), y, choose()
+            )
+        ).kind
+
+        self.assertTrue(
+            increase_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+        self.assertTrue(
+            decrease_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())
