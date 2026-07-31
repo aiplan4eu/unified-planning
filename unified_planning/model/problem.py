@@ -709,6 +709,8 @@ class Problem(  # type: ignore[misc]
             factory.kind.set_time("TIMED_EFFECTS")
         for process in self._processes:
             factory.update_problem_kind_process(process)
+        for event in self._events:
+            factory.update_problem_kind_event(event)
         for effect in chain(*self._timed_effects.values()):
             factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
@@ -1204,6 +1206,19 @@ class _KindFactory:
                     fluents_in_rhs.add(var.fluent)
         if any(variable in fluents_in_rhs for variable in continuous_fluents):
             self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
+
+    def update_problem_kind_event(
+        self,
+        event: "up.model.natural_transition.Event",
+    ):
+        for param in event.parameters:
+            self.update_action_parameter(param)
+        for c in event.preconditions:
+            self.update_problem_kind_expression(c)
+        for e in event.effects:
+            self.update_problem_kind_effect(e)
+        if event.simulated_effect is not None:
+            self.kind.set_simulated_entities("SIMULATED_EFFECTS")
 
     def update_problem_kind_metric(
         self,

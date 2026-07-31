@@ -182,6 +182,25 @@ class TestModel(unittest_TestCase):
         self.assertEqual(isinstance(fell, Event), True)
         self.assertEqual(isinstance(fell, InstantaneousAction), False)
 
+    def test_event_kind(self):
+        a = Fluent("a", BoolType())
+        b = Fluent("b", BoolType())
+        x = Fluent("x", IntType())
+
+        ev = Event("ev")
+        ev.add_precondition(Or(a, b))
+        ev.add_increase_effect(x, 1)
+
+        p = Problem("p")
+        p.add_fluent(a, default_initial_value=False)
+        p.add_fluent(b, default_initial_value=False)
+        p.add_fluent(x, default_initial_value=0)
+        p.add_event(ev)
+
+        kind = p.kind
+        self.assertTrue(kind.has_disjunctive_conditions())
+        self.assertTrue(kind.has_increase_effects())
+
     def test_istantaneous_action(self):
         Location = UserType("Location")
         move = InstantaneousAction("move", l_from=Location, l_to=Location)
