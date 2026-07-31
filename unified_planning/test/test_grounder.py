@@ -35,6 +35,7 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
+from unified_planning.model.contingent import SensingAction
 
 
 class TestGrounder(unittest_TestCase):
@@ -585,6 +586,115 @@ class TestGrounder(unittest_TestCase):
         (effect,) = ga.effects[EndTiming()]
         self.assertEqual(effect.fluent, f(em.Int(2)))
         self.assertEqual(effect.value, em.Int(1))
+
+    def test_zero_parameter_action_preconditions_are_simplified(self):
+        # the same clone-shortcut that skipped effect normalization at zero
+        # parameters (fixed above) also skipped check_and_simplify_preconditions;
+        # a zero-parameter action's precondition must still be simplified/pruned
+        # exactly like it would be for a parameterized action: a contradiction
+        # drops the action, a top-level And is flattened, and a tautology is
+        # cleared.
+        cases = (
+            ("contradiction", lambda b, c: And(b, Not(b)), None),
+            ("conjunction", lambda b, c: And(b, c), "both"),
+            ("tautology", lambda b, c: Or(b, Not(b)), "none"),
+        )
+        for case_name, build_precondition, expected in cases:
+            with self.subTest(case=case_name):
+                b = Fluent(f"b_{case_name}")
+                c = Fluent(f"c_{case_name}")
+                f = Fluent(f"f_{case_name}")
+                action = InstantaneousAction("act")
+                action.add_precondition(build_precondition(FluentExp(b), FluentExp(c)))
+                action.add_effect(f, True)
+                writer = InstantaneousAction("writer")
+                writer.add_effect(b, True)
+                writer.add_effect(c, True)
+
+                problem = Problem(f"zero_param_{case_name}")
+                problem.add_fluent(b, default_initial_value=False)
+                problem.add_fluent(c, default_initial_value=False)
+                problem.add_fluent(f, default_initial_value=False)
+                problem.add_action(action)
+                problem.add_action(writer)
+
+                grounded_problem = (
+                    Grounder().compile(problem, CompilationKind.GROUNDING).problem
+                )
+                assert isinstance(grounded_problem, Problem)
+                if expected is None:
+                    self.assertEqual(
+                        {a.name for a in grounded_problem.actions}, {"writer"}
+                    )
+                else:
+                    ga = cast(InstantaneousAction, grounded_problem.action("act"))
+                    if expected == "both":
+                        self.assertEqual(
+                            set(ga.preconditions), {FluentExp(b), FluentExp(c)}
+                        )
+                    else:
+                        self.assertEqual(ga.preconditions, [])
+
+    def test_zero_parameter_durative_action_contradictory_condition_is_pruned(self):
+        # durative-action variant: a contradictory condition at a given timing
+        # must still drop the action at zero parameters.
+        b = Fluent("b")
+        f = Fluent("f")
+        action = DurativeAction("act")
+        action.set_fixed_duration(1)
+        action.add_condition(StartTiming(), And(FluentExp(b), Not(FluentExp(b))))
+        action.add_effect(EndTiming(), f, True)
+        writer = InstantaneousAction("writer")
+        writer.add_effect(b, True)
+
+        problem = Problem("zero_param_durative_contradictory_condition")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(
+            {a.name for a in grounded_problem.actions},
+            {"writer"},
+        )
+
+    def test_zero_parameter_sensing_action_is_preserved_after_normalization(self):
+        # normalize_ground_action mutates the action in place; it must not
+        # downgrade a SensingAction to a plain InstantaneousAction, and its
+        # observed fluents and simplified precondition must survive.
+        b = Fluent("b")
+        f = Fluent("f")
+        hidden = Fluent("hidden")
+        action = SensingAction("sense")
+        action.add_precondition(And(FluentExp(b), FluentExp(b)))
+        action.add_effect(f, True)
+        action.add_observed_fluent(FluentExp(hidden))
+        writer = InstantaneousAction("writer")
+        writer.add_effect(b, True)
+
+        problem = Problem("zero_param_sensing")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_fluent(hidden, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        # PARTIAL_OBSERVABILITY (SensingAction) is not part of Grounder.supported_kind;
+        # skip_checks bypasses that check, matching how Ks0Compiler grounds actions
+        # outside the kinds the grounder formally declares support for.
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = grounded_problem.action("sense")
+        self.assertIsInstance(ga, SensingAction)
+        assert isinstance(ga, SensingAction)
+        self.assertEqual(ga.observed_fluents, [FluentExp(hidden)])
+        self.assertEqual(ga.preconditions, [FluentExp(b)])
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):

@@ -160,7 +160,7 @@ def create_effect_with_given_subs(
         )
 
 
-def normalize_ground_action_effects(
+def normalize_ground_action(
     problem: Problem,
     action: Action,
     simplifier,
@@ -169,18 +169,22 @@ def normalize_ground_action_effects(
     Rebuilds the effects (and simulated effect(s)) of an already parameter-less
     action (typically a clone of an action that had no parameters to begin with,
     so it never goes through :func:`create_action_with_given_subs`) through
-    :func:`create_effect_with_given_subs` with an empty substitution.
+    :func:`create_effect_with_given_subs` with an empty substitution, and
+    simplifies/prunes its preconditions or conditions the same way
+    :func:`create_action_with_given_subs` does.
 
-    This gives the action the same target/value/condition normalization applied
-    to actions that do have parameters, and re-runs the conflicting-effects check
-    that a plain ``clone()`` bypasses, since it copies the conflict-checking
-    bookkeeping verbatim instead of re-adding each effect.
+    This gives the action the same target/value/condition normalization and
+    precondition simplification applied to actions that do have parameters,
+    and re-runs the conflicting-effects check that a plain ``clone()``
+    bypasses, since it copies the conflict-checking bookkeeping verbatim
+    instead of re-adding each effect.
 
     :param problem: The `Problem` the action belongs to.
     :param action: The parameter-less action to normalize; it is mutated in place.
     :param simplifier: The `Simplifier` used to normalize effect targets/values/conditions.
     :return: The same `action`, mutated, or `None` if the normalized effects (or
-        simulated effect) conflict with each other.
+        simulated effect) conflict with each other, or if its preconditions or
+        conditions simplify to a contradiction.
     """
     empty_subs: Dict[Expression, Expression] = {}
     if isinstance(action, InstantaneousAction):
@@ -203,6 +207,12 @@ def normalize_ground_action_effects(
                     action.set_simulated_effect(old_simulated_effect)
             except UPConflictingEffectsException:
                 return None
+        is_feasible, new_preconditions = check_and_simplify_preconditions(
+            problem, action, simplifier
+        )
+        if not is_feasible:
+            return None
+        action._set_preconditions(new_preconditions)
         return action
     elif isinstance(action, DurativeAction):
         old_effects_by_timing = {t: list(el) for t, el in action.effects.items()}
@@ -225,6 +235,14 @@ def normalize_ground_action_effects(
                     action.set_simulated_effect(timing, old_simulated_effect)
             except UPConflictingEffectsException:
                 return None
+        is_feasible, new_conditions = check_and_simplify_conditions(
+            problem, action, simplifier
+        )
+        if not is_feasible:
+            return None
+        action.clear_conditions()
+        for interval, c in new_conditions:
+            action.add_condition(interval, c)
         return action
     else:
         # Unknown/unsupported action type: leave it untouched

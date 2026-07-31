@@ -34,7 +34,7 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
-    normalize_ground_action_effects,
+    normalize_ground_action,
     split_all_ands,
 )
 from typing import Dict, List, Optional, Set, Tuple, Iterator, cast
@@ -141,7 +141,7 @@ class GrounderHelper:
                     self._grounding_actions_map is None
                     or self._grounding_actions_map.get(action, None) is not None
                 ):
-                    new_action = normalize_ground_action_effects(
+                    new_action = normalize_ground_action(
                         self._problem, action.clone(), self._simplifier
                     )
                 else:
