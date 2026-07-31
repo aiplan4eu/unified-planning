@@ -474,7 +474,11 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             normalized_problem = disjunction_result.problem
             normalization_results.append(disjunction_result)
 
-        grounder = Grounder()
+        # prune_actions=False: this problem's declared initial values are just
+        # placeholders (the real semantics come from the possible_initial_states
+        # supplied to the compiler), so a fluent that happens to be static here
+        # must not be folded into its declared initial value.
+        grounder = Grounder(prune_actions=False)
         grounder.skip_checks = True
         grounding_result = grounder.compile(
             normalized_problem, CompilationKind.GROUNDING

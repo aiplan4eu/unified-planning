@@ -421,6 +421,13 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 state, se, self._ground_expression(instantiated_effect.condition, ai)
             ):
                 g_fluent = self._ground_expression(instantiated_effect.fluent, ai)
+                if g_fluent.is_fluent_exp():
+                    # The target's arguments must be evaluated in the current state, as the
+                    # UPSequentialSimulator does, otherwise the update is stored under a
+                    # non-normalized key that no read matches.
+                    g_fluent = g_fluent.fluent()(
+                        *(se.evaluate(arg, state=state) for arg in g_fluent.args)
+                    )
                 g_value = self._ground_expression(instantiated_effect.value, ai)
                 if instantiated_effect.kind == EffectKind.ASSIGN:
                     result[g_fluent] = se.evaluate(g_value, state=state)

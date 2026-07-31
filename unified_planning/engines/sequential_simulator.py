@@ -107,7 +107,12 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             else:
                 warn(msg)
         assert isinstance(self._problem, up.model.Problem)
-        self._grounder = GrounderHelper(problem)
+        # prune_actions=False: a fluent that never appears as an effect target is
+        # "static" and would otherwise be folded into its declared initial value,
+        # but the simulator must also support simulating from States that assign
+        # such a fluent a different value (e.g. one of several hypothetical
+        # initial states in a conformant setting), not just the declared one.
+        self._grounder = GrounderHelper(problem, prune_actions=False)
         self._actions = set(self._problem.actions)
         self._se = StateEvaluator(self._problem)
         self._initial_state: Optional[UPState] = None
