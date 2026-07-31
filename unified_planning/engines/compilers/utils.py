@@ -29,6 +29,7 @@ from unified_planning.model import (
     Problem,
     Effect,
     Expression,
+    Fluent,
     BoolExpression,
     NumericConstant,
     SimulatedEffect,
@@ -52,6 +53,7 @@ from typing import (
     Optional,
     OrderedDict,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -545,6 +547,27 @@ def updated_minimize_action_costs(
         else:
             new_costs[new_act] = environment.expression_manager.Int(0)
     return MinimizeActionCosts(new_costs, environment=environment)
+
+
+def remove_fluents(problem: Problem, fluents: Set[Fluent]) -> None:
+    """
+    Removes the given `fluents` from the given `problem`, together with their
+    default values and all their `initial values`.
+
+    This is meant to be used by a compiler on a problem it owns (typically a
+    clone of the original one).
+
+    :param problem: The `Problem` to remove the `fluents` from; modified in place.
+    :param fluents: The `fluents` to remove; must all belong to the given `problem`.
+    """
+    for fluent in fluents:
+        problem._fluents.remove(fluent)
+        problem._fluents_defaults.pop(fluent, None)
+    problem._initial_value = {
+        fluent_exp: value
+        for fluent_exp, value in problem._initial_value.items()
+        if fluent_exp.fluent() not in fluents
+    }
 
 
 def split_all_ands(exp_list: List[FNode]) -> List[FNode]:
