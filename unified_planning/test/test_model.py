@@ -218,6 +218,23 @@ class TestModel(unittest_TestCase):
             decrease_kind.has_interpreted_functions_in_numeric_assignments()
         )
 
+    def test_forall_effect_kind(self):
+        Base = UserType("Base")
+        Sub = UserType("Sub", father=Base)
+        # b is only ever typed over Base; the only Sub in the problem is the
+        # forall-quantified variable below.
+        b = Fluent("b", BoolType(), l=Base)
+
+        a = InstantaneousAction("a")
+        v = Variable("v", Sub)
+        a.add_effect(b(v), True, forall=[v])
+
+        problem = Problem("p")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_action(a)
+
+        self.assertTrue(problem.kind.has_hierarchical_typing())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())

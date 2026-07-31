@@ -907,6 +907,8 @@ class _KindFactory:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         if e.is_forall():
             self.kind.set_effects_kind("FORALL_EFFECTS")
+            for v in e.forall:
+                self.update_problem_kind_type(v.type)
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
             if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
