@@ -18,7 +18,11 @@
 import warnings
 from fractions import Fraction
 import unified_planning as up
-from unified_planning.exceptions import UPConflictingEffectsException, UPUsageError
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPProblemDefinitionError,
+    UPUsageError,
+)
 from unified_planning.environment import Environment
 from unified_planning.model import (
     FNode,
@@ -214,12 +218,16 @@ def create_action_with_given_subs(
         )
         old_duration = old_action.duration
         new_duration = DurationInterval(
-            old_duration.lower.substitute(subs),
-            old_duration.upper.substitute(subs),
+            simplifier.simplify(old_duration.lower.substitute(subs)),
+            simplifier.simplify(old_duration.upper.substitute(subs)),
             old_duration.is_left_open(),
             old_duration.is_right_open(),
         )
-        new_durative_action.set_duration_constraint(new_duration)
+        try:
+            new_durative_action.set_duration_constraint(new_duration)
+        except UPProblemDefinitionError:
+            # the simplified interval is empty, so this grounding can never be applied
+            return None
         for i, cl in old_action.conditions.items():
             for c in cl:
                 new_durative_action.add_condition(i, c.substitute(subs))

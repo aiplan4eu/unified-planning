@@ -280,6 +280,127 @@ class TestGrounder(unittest_TestCase):
             self.assertEqual(len(a.parameters), 0)
             self.assertEqual(len(fvo.get_free_variables(a.duration.lower)), 0)
             self.assertEqual(len(fvo.get_free_variables(a.duration.upper)), 0)
+        # the static fluents used as durations are simplified away to their values
+        expected_durations = {
+            "light_match_m1": 2,
+            "light_match_m2": 3,
+            "light_match_m3": 4,
+            "mend_fuse_f1": 1,
+            "mend_fuse_f2": 2,
+            "mend_fuse_f3": 3,
+        }
+        for name, value in expected_durations.items():
+            a = cast(DurativeAction, grounded_problem.action(name))
+            self.assertEqual(a.duration.lower.constant_value(), value)
+            self.assertEqual(a.duration.upper.constant_value(), value)
+
+    def test_interpreted_functions_in_durations(self):
+        problem = self.problems["interpreted_functions_undef_numeric_durative"].problem
+        assert isinstance(problem, Problem)
+        # regression guard: the Grounder must not reject interpreted functions in durations
+        self.assertTrue(Grounder.supports(problem.kind))
+
+        original_action = problem.action("undef_move")
+        assert isinstance(original_action, DurativeAction)
+        o = original_action.parameter("o")
+        undef_o1 = problem.object("undef_o1")
+        undef_o2 = problem.object("undef_o2")
+
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 2)
+        for a in grounded_problem.actions:
+            self.assertEqual(len(a.parameters), 0)
+        self.assertTrue(
+            grounded_problem.kind <= Grounder.resulting_problem_kind(problem.kind)
+        )
+
+        # undef_durative_value(undef_o1) is defined (2), so the interpreted function call
+        # in the duration is evaluated and replaced by its value
+        move_o1 = cast(DurativeAction, grounded_problem.action("undef_move_undef_o1"))
+        self.assertEqual(move_o1.duration.lower.constant_value(), 4)
+        self.assertEqual(move_o1.duration.upper.constant_value(), 4)
+
+        # undef_durative_value(undef_o2) is left undefined, so the interpreted function
+        # call cannot be evaluated and is carried over, with its argument substituted
+        move_o2 = cast(DurativeAction, grounded_problem.action("undef_move_undef_o2"))
+        expected_duration = original_action.duration.lower.substitute(
+            {o: problem.environment.expression_manager.ObjectExp(undef_o2)}
+        )
+        self.assertEqual(move_o2.duration.lower, expected_duration)
+        self.assertEqual(move_o2.duration.upper, expected_duration)
+
+        assert ground_result.map_back_action_instance is not None
+        lifted = ground_result.map_back_action_instance(move_o1())
+        assert lifted is not None
+        self.assertEqual(lifted.action, original_action)
+        self.assertEqual(
+            lifted.actual_parameters,
+            (problem.environment.expression_manager.ObjectExp(undef_o1),),
+        )
+
+    def test_interpreted_functions_in_duration_inequality(self):
+        problem = self.problems[
+            "interpreted_functions_in_durative_start_effects"
+        ].problem
+        assert isinstance(problem, Problem)
+        self.assertTrue(Grounder.supports(problem.kind))
+
+        original_action = problem.action("charge")
+        assert isinstance(original_action, DurativeAction)
+
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+
+        # battery is not a static fluent, so the interpreted function call in the
+        # lower bound cannot be evaluated and is carried over unchanged
+        charge = cast(DurativeAction, grounded_problem.action("charge"))
+        self.assertEqual(charge.duration.lower, original_action.duration.lower)
+        self.assertEqual(charge.duration.upper, original_action.duration.upper)
+        self.assertEqual(
+            charge.duration.is_left_open(), original_action.duration.is_left_open()
+        )
+        self.assertEqual(
+            charge.duration.is_right_open(), original_action.duration.is_right_open()
+        )
+
+    def test_empty_simplified_duration_drops_action(self):
+        problem = Problem("empty_simplified_duration")
+        Item = UserType("Item")
+        a = Object("a", Item)
+        b = Object("b", Item)
+        static_lower = Fluent("static_lower", IntType(), x=Item)
+        static_upper = Fluent("static_upper", IntType(), x=Item)
+        done = Fluent("done")
+
+        action = DurativeAction("act", x=Item)
+        x = action.parameter("x")
+        action.set_closed_duration_interval(static_lower(x), static_upper(x))
+        action.add_effect(EndTiming(), done, True)
+
+        problem.add_fluent(static_lower, default_initial_value=0)
+        problem.add_fluent(static_upper, default_initial_value=0)
+        problem.add_fluent(done, default_initial_value=False)
+        # for "a" the interval [1, 5] is non-empty; for "b" the interval [5, 1] is empty
+        problem.set_initial_value(static_lower(a), 1)
+        problem.set_initial_value(static_upper(a), 5)
+        problem.set_initial_value(static_lower(b), 5)
+        problem.set_initial_value(static_upper(b), 1)
+        problem.add_object(a)
+        problem.add_object(b)
+        problem.add_action(action)
+
+        gro = Grounder()
+        ground_result = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        self.assertEqual(grounded_problem.actions[0].name, "act_a")
 
     def test_ad_hoc_1(self):
         problem = Problem("ad_hoc")
