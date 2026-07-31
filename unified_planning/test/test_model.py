@@ -235,6 +235,39 @@ class TestModel(unittest_TestCase):
 
         self.assertTrue(problem.kind.has_hierarchical_typing())
 
+    def test_minimize_action_costs_kind(self):
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction(
+            "choose", IntType(0, 5), OrderedDict(), choose_impl
+        )
+        x = Fluent("x", IntType())
+
+        a = InstantaneousAction("a")
+        a.add_effect(x, 1)
+
+        interpreted_function_problem = Problem("p1")
+        interpreted_function_problem.add_fluent(x, default_initial_value=0)
+        interpreted_function_problem.add_action(a)
+        interpreted_function_problem.add_quality_metric(
+            MinimizeActionCosts({a: choose()})
+        )
+
+        non_linear_problem = Problem("p2")
+        non_linear_problem.add_fluent(x, default_initial_value=0)
+        non_linear_problem.add_action(a)
+        non_linear_problem.add_quality_metric(MinimizeActionCosts({a: Times(x, x)}))
+
+        self.assertTrue(
+            interpreted_function_problem.kind.has_interpreted_functions_in_conditions()
+        )
+        self.assertTrue(
+            interpreted_function_problem.kind.has_general_numeric_planning()
+        )
+        self.assertFalse(non_linear_problem.kind.has_simple_numeric_planning())
+        self.assertTrue(non_linear_problem.kind.has_general_numeric_planning())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())

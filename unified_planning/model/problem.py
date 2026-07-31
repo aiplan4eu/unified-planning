@@ -1305,6 +1305,7 @@ class _KindFactory:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."
                         )
+                    self.update_problem_kind_expression(cost)
                     t = cost.type
                     if t.is_int_type():
                         self.kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")
