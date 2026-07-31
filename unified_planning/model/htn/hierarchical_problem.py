@@ -146,16 +146,22 @@ class HierarchicalProblem(up.model.problem.Problem):
         ordering_kind = lvl(self.task_network)
         if len(self.task_network.variables) > 0:
             factory.kind.set_hierarchical("INITIAL_TASK_NETWORK_VARIABLES")
-        if len(self.task_network.non_temporal_constraints()) > 0:
+        non_temporal = self.task_network.non_temporal_constraints()
+        if len(non_temporal) > 0:
             factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+            for c in non_temporal:
+                factory.update_problem_kind_expression(c)
 
         for method in self.methods:
             ordering_kind = max(ordering_kind, lvl(method))
             for method_cond in method.preconditions:
                 factory.kind.set_hierarchical("METHOD_PRECONDITIONS")
                 factory.update_problem_kind_expression(method_cond)
-            if len(method.non_temporal_constraints()) > 0:
+            method_non_temporal = method.non_temporal_constraints()
+            if len(method_non_temporal) > 0:
                 factory.kind.set_hierarchical("TASK_NETWORK_CONSTRAINTS")
+                for c in method_non_temporal:
+                    factory.update_problem_kind_expression(c)
 
         if ordering_kind == TO:
             factory.kind.set_hierarchical("TASK_ORDER_TOTAL")
