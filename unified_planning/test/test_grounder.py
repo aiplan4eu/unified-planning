@@ -35,6 +35,7 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
+from unified_planning.model.contingent import SensingAction
 
 
 class TestGrounder(unittest_TestCase):
@@ -491,9 +492,9 @@ class TestGrounder(unittest_TestCase):
             self.assertEqual(second_effect.value, em.Int(99))
 
     def test_zero_parameter_action_effect_target_is_normalized(self):
-        # a zero-parameter action is never routed through create_action_with_given_subs
-        # (there is nothing to substitute), so its effects must still be normalized
-        # explicitly; otherwise a hand-written f(1 + 1) target survives grounding unevaluated.
+        # create_action_with_given_subs is also used for zero-parameter actions
+        # (with an empty substitution), so their effects must still be normalized;
+        # otherwise a hand-written f(1 + 1) target survives grounding unevaluated.
         f = Fluent("f", IntType(), i=IntType(0, 3))
         action = InstantaneousAction("act")
         action.add_effect(f(Plus(Int(1), Int(1))), 1)
@@ -585,6 +586,233 @@ class TestGrounder(unittest_TestCase):
         (effect,) = ga.effects[EndTiming()]
         self.assertEqual(effect.fluent, f(em.Int(2)))
         self.assertEqual(effect.value, em.Int(1))
+
+    def test_zero_parameter_action_preconditions_are_simplified(self):
+        # a zero-parameter action's precondition must be simplified/pruned exactly
+        # like it would be for a parameterized action: a contradiction drops the
+        # action, a top-level And is flattened, and a tautology is cleared.
+        cases = (
+            ("contradiction", lambda b, c: And(b, Not(b)), None),
+            ("conjunction", lambda b, c: And(b, c), "both"),
+            ("tautology", lambda b, c: Or(b, Not(b)), "none"),
+        )
+        for case_name, build_precondition, expected in cases:
+            with self.subTest(case=case_name):
+                b = Fluent(f"b_{case_name}")
+                c = Fluent(f"c_{case_name}")
+                f = Fluent(f"f_{case_name}")
+                action = InstantaneousAction("act")
+                action.add_precondition(build_precondition(FluentExp(b), FluentExp(c)))
+                action.add_effect(f, True)
+                writer = InstantaneousAction("writer")
+                writer.add_effect(b, True)
+                writer.add_effect(c, True)
+
+                problem = Problem(f"zero_param_{case_name}")
+                problem.add_fluent(b, default_initial_value=False)
+                problem.add_fluent(c, default_initial_value=False)
+                problem.add_fluent(f, default_initial_value=False)
+                problem.add_action(action)
+                problem.add_action(writer)
+
+                grounded_problem = (
+                    Grounder().compile(problem, CompilationKind.GROUNDING).problem
+                )
+                assert isinstance(grounded_problem, Problem)
+                if expected is None:
+                    self.assertEqual(
+                        {a.name for a in grounded_problem.actions}, {"writer"}
+                    )
+                else:
+                    ga = cast(InstantaneousAction, grounded_problem.action("act"))
+                    if expected == "both":
+                        self.assertEqual(
+                            set(ga.preconditions), {FluentExp(b), FluentExp(c)}
+                        )
+                    else:
+                        self.assertEqual(ga.preconditions, [])
+
+    def test_zero_parameter_durative_action_contradictory_condition_is_pruned(self):
+        # durative-action variant: a contradictory condition at a given timing
+        # must still drop the action at zero parameters.
+        b = Fluent("b")
+        f = Fluent("f")
+        action = DurativeAction("act")
+        action.set_fixed_duration(1)
+        action.add_condition(StartTiming(), And(FluentExp(b), Not(FluentExp(b))))
+        action.add_effect(EndTiming(), f, True)
+        writer = InstantaneousAction("writer")
+        writer.add_effect(b, True)
+
+        problem = Problem("zero_param_durative_contradictory_condition")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(
+            {a.name for a in grounded_problem.actions},
+            {"writer"},
+        )
+
+    def test_zero_parameter_durative_action_duration_is_simplified(self):
+        # gap closed by the unified create_action_with_given_subs: a
+        # zero-parameter durative action's duration, if built from static
+        # fluents, must be folded to a constant just like a parameterized
+        # action's duration already is.
+        static_lower = Fluent("static_lower", IntType())
+        static_upper = Fluent("static_upper", IntType())
+        done = Fluent("done")
+        action = DurativeAction("act")
+        action.set_closed_duration_interval(static_lower(), static_upper())
+        action.add_effect(EndTiming(), done, True)
+
+        problem = Problem("zero_param_duration_folds")
+        problem.add_fluent(static_lower, default_initial_value=1)
+        problem.add_fluent(static_upper, default_initial_value=5)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        em = problem.environment.expression_manager
+        ga = cast(DurativeAction, grounded_problem.action("act"))
+        self.assertEqual(ga.duration.lower, em.Int(1))
+        self.assertEqual(ga.duration.upper, em.Int(5))
+
+    def test_zero_parameter_durative_action_empty_duration_drops_action(self):
+        # durative-action variant of test_empty_simplified_duration_drops_action,
+        # at zero parameters: the action must be dropped, not left with an
+        # un-simplified, empty duration interval.
+        static_lower = Fluent("static_lower", IntType())
+        static_upper = Fluent("static_upper", IntType())
+        done = Fluent("done")
+        action = DurativeAction("act")
+        action.set_closed_duration_interval(static_lower(), static_upper())
+        action.add_effect(EndTiming(), done, True)
+
+        problem = Problem("zero_param_duration_empty")
+        problem.add_fluent(static_lower, default_initial_value=5)
+        problem.add_fluent(static_upper, default_initial_value=1)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 0)
+
+    def test_zero_parameter_sensing_action_is_preserved_after_grounding(self):
+        # create_action_with_given_subs clones the action instead of rebuilding a
+        # plain InstantaneousAction, so it must not downgrade a SensingAction; its
+        # observed fluents and simplified precondition must survive grounding.
+        b = Fluent("b")
+        f = Fluent("f")
+        hidden = Fluent("hidden")
+        action = SensingAction("sense")
+        action.add_precondition(And(FluentExp(b), FluentExp(b)))
+        action.add_effect(f, True)
+        action.add_observed_fluent(FluentExp(hidden))
+        writer = InstantaneousAction("writer")
+        writer.add_effect(b, True)
+
+        problem = Problem("zero_param_sensing")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_fluent(hidden, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        # PARTIAL_OBSERVABILITY (SensingAction) is not part of Grounder.supported_kind;
+        # skip_checks bypasses that check, matching how Ks0Compiler grounds actions
+        # outside the kinds the grounder formally declares support for.
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = grounded_problem.action("sense")
+        self.assertIsInstance(ga, SensingAction)
+        assert isinstance(ga, SensingAction)
+        self.assertEqual(ga.observed_fluents, [FluentExp(hidden)])
+        self.assertEqual(ga.preconditions, [FluentExp(b)])
+
+    def test_parameterized_sensing_action_is_preserved_after_grounding(self):
+        # same as above, but with a parameter: the SensingAction's observed_fluents
+        # must survive AND be substituted, not just copied verbatim.
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        l2 = Object("l2", Loc)
+        hidden = Fluent("hidden", BoolType(), l=Loc)
+        f = Fluent("f")
+        action = SensingAction("sense", l=Loc)
+        l = action.parameter("l")
+        action.add_effect(f, True)
+        action.add_observed_fluent(hidden(l))
+
+        problem = Problem("parameterized_sensing")
+        problem.add_objects([l1, l2])
+        problem.add_fluent(hidden, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_action(action)
+
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = grounded_problem.action("sense_l1")
+        self.assertIsInstance(ga, SensingAction)
+        assert isinstance(ga, SensingAction)
+        self.assertEqual(len(ga.parameters), 0)
+        self.assertEqual(ga.observed_fluents, [hidden(l1)])
+
+    def test_durative_action_continuous_effects_preserved_and_substituted_after_grounding(
+        self,
+    ):
+        # create_action_with_given_subs used to silently drop a DurativeAction's
+        # continuous effects entirely; cloning the action must preserve them, and
+        # they must still be substituted like any other effect.
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        rate = Fluent("rate", RealType(), l=Loc)
+        x = Fluent("x", RealType())
+        action = DurativeAction("act", l=Loc)
+        l = action.parameter("l")
+        action.set_fixed_duration(1)
+        action.add_increase_continuous_effect(
+            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(l)
+        )
+        # keeps "rate" non-static, so its read in the continuous effect isn't folded to a
+        # constant: this test is about parameter substitution, not static-fluent folding.
+        writer = InstantaneousAction("writer")
+        writer.add_effect(rate(l1), 3.0)
+
+        problem = Problem("continuous_effect_substitution")
+        problem.add_objects([l1])
+        problem.add_fluent(rate, default_initial_value=2.0)
+        problem.add_fluent(x, default_initial_value=0.0)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        # INCREASE_CONTINUOUS_EFFECTS is not part of Grounder.supported_kind, same as
+        # PARTIAL_OBSERVABILITY for the SensingAction tests above.
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = cast(DurativeAction, grounded_problem.action("act_l1"))
+        self.assertEqual(len(ga.parameters), 0)
+        ((interval, effects),) = ga.continuous_effects.items()
+        (effect,) = effects
+        self.assertTrue(effect.is_continuous_increase())
+        self.assertEqual(effect.value, rate(l1))
 
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):
