@@ -710,6 +710,110 @@ class TestGrounder(unittest_TestCase):
         assert isinstance(grounded_problem, Problem)
         self.assertEqual(len(grounded_problem.actions), 0)
 
+    def test_zero_parameter_sensing_action_is_preserved_after_grounding(self):
+        # create_action_with_given_subs clones the action instead of rebuilding a
+        # plain InstantaneousAction, so it must not downgrade a SensingAction; its
+        # observed fluents and simplified precondition must survive grounding.
+        b = Fluent("b")
+        f = Fluent("f")
+        hidden = Fluent("hidden")
+        action = SensingAction("sense")
+        action.add_precondition(And(FluentExp(b), FluentExp(b)))
+        action.add_effect(f, True)
+        action.add_observed_fluent(FluentExp(hidden))
+        writer = InstantaneousAction("writer")
+        writer.add_effect(b, True)
+
+        problem = Problem("zero_param_sensing")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_fluent(hidden, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        # PARTIAL_OBSERVABILITY (SensingAction) is not part of Grounder.supported_kind;
+        # skip_checks bypasses that check, matching how Ks0Compiler grounds actions
+        # outside the kinds the grounder formally declares support for.
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = grounded_problem.action("sense")
+        self.assertIsInstance(ga, SensingAction)
+        assert isinstance(ga, SensingAction)
+        self.assertEqual(ga.observed_fluents, [FluentExp(hidden)])
+        self.assertEqual(ga.preconditions, [FluentExp(b)])
+
+    def test_parameterized_sensing_action_is_preserved_after_grounding(self):
+        # same as above, but with a parameter: the SensingAction's observed_fluents
+        # must survive AND be substituted, not just copied verbatim.
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        l2 = Object("l2", Loc)
+        hidden = Fluent("hidden", BoolType(), l=Loc)
+        f = Fluent("f")
+        action = SensingAction("sense", l=Loc)
+        l = action.parameter("l")
+        action.add_effect(f, True)
+        action.add_observed_fluent(hidden(l))
+
+        problem = Problem("parameterized_sensing")
+        problem.add_objects([l1, l2])
+        problem.add_fluent(hidden, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_action(action)
+
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = grounded_problem.action("sense_l1")
+        self.assertIsInstance(ga, SensingAction)
+        assert isinstance(ga, SensingAction)
+        self.assertEqual(len(ga.parameters), 0)
+        self.assertEqual(ga.observed_fluents, [hidden(l1)])
+
+    def test_durative_action_continuous_effects_preserved_and_substituted_after_grounding(
+        self,
+    ):
+        # create_action_with_given_subs used to silently drop a DurativeAction's
+        # continuous effects entirely; cloning the action must preserve them, and
+        # they must still be substituted like any other effect.
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        rate = Fluent("rate", RealType(), l=Loc)
+        x = Fluent("x", RealType())
+        action = DurativeAction("act", l=Loc)
+        l = action.parameter("l")
+        action.set_fixed_duration(1)
+        action.add_increase_continuous_effect(
+            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(l)
+        )
+        # keeps "rate" non-static, so its read in the continuous effect isn't folded to a
+        # constant: this test is about parameter substitution, not static-fluent folding.
+        writer = InstantaneousAction("writer")
+        writer.add_effect(rate(l1), 3.0)
+
+        problem = Problem("continuous_effect_substitution")
+        problem.add_objects([l1])
+        problem.add_fluent(rate, default_initial_value=2.0)
+        problem.add_fluent(x, default_initial_value=0.0)
+        problem.add_action(action)
+        problem.add_action(writer)
+
+        # INCREASE_CONTINUOUS_EFFECTS is not part of Grounder.supported_kind, same as
+        # PARTIAL_OBSERVABILITY for the SensingAction tests above.
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        ga = cast(DurativeAction, grounded_problem.action("act_l1"))
+        self.assertEqual(len(ga.parameters), 0)
+        ((interval, effects),) = ga.continuous_effects.items()
+        (effect,) = effects
+        self.assertTrue(effect.is_continuous_increase())
+        self.assertEqual(effect.value, rate(l1))
+
     @skipIfEngineNotAvailable("pyperplan")
     def test_pyperplan_grounder(self):
         problem = self.problems["robot_no_negative_preconditions"].problem
