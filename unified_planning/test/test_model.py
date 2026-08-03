@@ -313,6 +313,28 @@ class TestModel(unittest_TestCase):
         self.assertTrue(object_kind.has_static_fluents_in_object_assignments())
         self.assertFalse(object_kind.has_fluents_in_object_assignments())
 
+    def test_static_and_fluents_in_durations_can_both_be_set(self):
+        # a duration mixing a static fluent (never written) and a non-static one
+        # (written elsewhere) must set BOTH STATIC_FLUENTS_IN_DURATIONS and
+        # FLUENTS_IN_DURATIONS, not just one of the two.
+        static_f = Fluent("static_f", RealType())
+        dynamic_f = Fluent("dynamic_f", RealType())
+
+        move = DurativeAction("move")
+        move.set_fixed_duration(Plus(static_f(), dynamic_f()))
+        touch = InstantaneousAction("touch")
+        touch.add_effect(dynamic_f, 1.0)
+
+        problem = Problem("p")
+        problem.add_fluent(static_f, default_initial_value=1.0)
+        problem.add_fluent(dynamic_f, default_initial_value=0.0)
+        problem.add_action(move)
+        problem.add_action(touch)
+
+        kind = problem.kind
+        self.assertTrue(kind.has_static_fluents_in_durations())
+        self.assertTrue(kind.has_fluents_in_durations())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())

@@ -1109,14 +1109,9 @@ class _KindFactory:
             self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
 
         if len(free_vars) > 0:
-            only_static = True
-            for fv in free_vars:
-                if fv.fluent() not in self.static_fluents:
-                    only_static = False
-                    break
-            if only_static:
+            if any(fv.fluent() in self.static_fluents for fv in free_vars):
                 self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-            else:
+            if any(fv.fluent() not in self.static_fluents for fv in free_vars):
                 self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
 
     def update_action_timed_condition(
