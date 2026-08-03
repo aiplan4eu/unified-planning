@@ -268,6 +268,51 @@ class TestModel(unittest_TestCase):
         self.assertFalse(non_linear_problem.kind.has_simple_numeric_planning())
         self.assertTrue(non_linear_problem.kind.has_general_numeric_planning())
 
+    def test_static_fluents_in_effect_value(self):
+        # a value that references ONLY a static fluent (never written by any action)
+        # must set STATIC_FLUENTS_IN_*_ASSIGNMENTS and must NOT set FLUENTS_IN_*_ASSIGNMENTS.
+        Location = UserType("Location")
+        static_num = Fluent("static_num", RealType())
+        static_bool = Fluent("static_bool", BoolType())
+        static_obj = Fluent("static_obj", Location)
+        l1 = Object("l1", Location)
+
+        x = Fluent("x", RealType())
+        b = Fluent("b", BoolType())
+        o = Fluent("o", Location)
+
+        def problem_with_effect(add_effect_to_action):
+            a = InstantaneousAction("a")
+            add_effect_to_action(a)
+            p = Problem("p")
+            p.add_object(l1)
+            p.add_fluent(static_num, default_initial_value=1.0)
+            p.add_fluent(static_bool, default_initial_value=True)
+            p.add_fluent(static_obj, default_initial_value=l1)
+            p.add_fluent(x, default_initial_value=0.0)
+            p.add_fluent(b, default_initial_value=False)
+            p.add_fluent(o, default_initial_value=l1)
+            p.add_action(a)
+            return p
+
+        assign_kind = problem_with_effect(lambda a: a.add_effect(x, static_num())).kind
+        increase_kind = problem_with_effect(
+            lambda a: a.add_increase_effect(x, static_num())
+        ).kind
+        decrease_kind = problem_with_effect(
+            lambda a: a.add_decrease_effect(x, static_num())
+        ).kind
+        bool_kind = problem_with_effect(lambda a: a.add_effect(b, static_bool())).kind
+        object_kind = problem_with_effect(lambda a: a.add_effect(o, static_obj())).kind
+
+        for kind in (assign_kind, increase_kind, decrease_kind):
+            self.assertTrue(kind.has_static_fluents_in_numeric_assignments())
+            self.assertFalse(kind.has_fluents_in_numeric_assignments())
+        self.assertTrue(bool_kind.has_static_fluents_in_boolean_assignments())
+        self.assertFalse(bool_kind.has_fluents_in_boolean_assignments())
+        self.assertTrue(object_kind.has_static_fluents_in_object_assignments())
+        self.assertFalse(object_kind.has_fluents_in_object_assignments())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())
