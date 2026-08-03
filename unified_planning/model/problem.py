@@ -1023,13 +1023,7 @@ class _KindFactory:
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
                 if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        elif e.is_continuous_increase():
-            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
-                self.kind.set_effects_kind(
-                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
-                )
-        elif e.is_continuous_decrease():
+        elif e.is_continuous_increase() or e.is_continuous_decrease():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                 self.kind.set_effects_kind(

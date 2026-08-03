@@ -21,6 +21,7 @@ from unified_planning.exceptions import (
     UPTypeError,
     UPConflictingEffectsException,
     UPProblemDefinitionError,
+    UPExpressionDefinitionError,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
@@ -764,3 +765,20 @@ class TestModel(unittest_TestCase):
         self.assertIs(pickle.loads(pickle.dumps(tm.BoolType())), tm.BoolType())
         self.assertIs(pickle.loads(pickle.dumps(BOOL)), BOOL)
         self.assertIs(pickle.loads(pickle.dumps(TIME)), TIME)
+
+    def test_set_initial_value_rejects_non_constant_arguments(self):
+        # set_initial_value's own docstring says the fluent must be grounded; a fluent
+        # expression whose argument is itself a fluent (not a constant) must be rejected
+        # here just like initial_value() already rejects it when reading it back.
+        Loc = UserType("Loc")
+        at = Fluent("at", BoolType(), l=Loc)
+        other = Fluent("other", Loc)
+
+        problem = Problem("p")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(other)
+
+        with self.assertRaises(UPExpressionDefinitionError):
+            problem.set_initial_value(at(other()), True)
+        with self.assertRaises(UPExpressionDefinitionError):
+            problem.initial_value(at(other()))
