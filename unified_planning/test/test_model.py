@@ -363,6 +363,28 @@ class TestModel(unittest_TestCase):
         self.assertFalse(kind.has_real_fluents())
         self.assertTrue(kind.has_static_fluents_in_durations())
 
+    def test_cost_only_fluent_excluded_from_fluents_type(self):
+        # a fluent whose only reference is a MinimizeActionCosts cost must NOT
+        # contribute REAL_FLUENTS: ACTIONS_COST_KIND's own features already capture
+        # it, and forcing general numeric-fluent support here would be over-restrictive.
+        Location = UserType("Location")
+        distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+
+        problem = Problem("p")
+        problem.add_objects([l1, l2])
+        problem.add_fluent(distance, default_initial_value=1.0)
+        problem.add_action(move)
+        problem.add_quality_metric(MinimizeActionCosts({move: distance(l_from, l_to)}))
+
+        kind = problem.kind
+        self.assertFalse(kind.has_real_fluents())
+        self.assertTrue(kind.has_static_fluents_in_actions_cost())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())

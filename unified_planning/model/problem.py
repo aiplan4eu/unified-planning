@@ -324,18 +324,21 @@ class Problem(  # type: ignore[misc]
         Set["up.model.fluent.Fluent"],
         Set["up.model.fluent.Fluent"],
         Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
     ]:
         """
         Support method to calculate the set of static fluents (the fluents that are never modified in the problem),
-        the set of the unused fluents (the fluents that are never red in the problem), and the set of fluents_in_durations
-        (the fluents referenced by some DurativeAction's duration).
-        NOTE: The fluents used only in the ActionCost quality metric are in the unused_fluents set anyway.
-        NOTE: A fluent referenced only by a duration is in the unused_fluents set anyway; fluents_in_durations lets
-        callers tell that case apart from a fluent that is unused everywhere, including durations.
+        the set of the unused fluents (the fluents that are never red in the problem), the set of fluents_in_durations
+        (the fluents referenced by some DurativeAction's duration), and the set of fluents_in_action_costs (the
+        fluents referenced by some MinimizeActionCosts cost expression).
+        NOTE: A fluent referenced only by a duration, or only by an action cost, is in the unused_fluents set
+        anyway; fluents_in_durations/fluents_in_action_costs let callers tell those cases apart from a fluent
+        that is unused everywhere, including durations and action costs.
         """
         static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         unused_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         fluents_in_durations: Set["up.model.fluent.Fluent"] = set()
+        fluents_in_action_costs: Set["up.model.fluent.Fluent"] = set()
         fve = self._env.free_vars_extractor
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents  set.
@@ -406,7 +409,19 @@ class Problem(  # type: ignore[misc]
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
                 for _, g in qm.goals.keys():
                     remove_used_fluents(g)
-        return static_fluents, unused_fluents, fluents_in_durations
+            elif isinstance(qm, up.model.metrics.MinimizeActionCosts):
+                costs = list(qm.costs.values())
+                if qm.default is not None:
+                    costs.append(qm.default)
+                fluents_in_action_costs.update(
+                    f.fluent() for e in costs for f in fve.get(e)
+                )
+        return (
+            static_fluents,
+            unused_fluents,
+            fluents_in_durations,
+            fluents_in_action_costs,
+        )
 
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """
@@ -856,6 +871,11 @@ class _KindFactory:
             if isinstance(pb, up.model.Problem)
             else set()
         )
+        self.fluents_in_action_costs: Set[Fluent] = (
+            pb._get_static_and_unused_fluents()[3]
+            if isinstance(pb, up.model.Problem)
+            else set()
+        )
 
         self.environment: up.Environment = environment
         self.kind: up.model.ProblemKind = up.model.ProblemKind(
@@ -1072,11 +1092,12 @@ class _KindFactory:
             ):
                 self.kind.set_numbers("BOUNDED_TYPES")
             # A fluent unused everywhere still needs INT_FLUENTS/REAL_FLUENTS (an engine has to
-            # represent/parse its declared value); a fluent whose only use is inside a duration
-            # doesn't (EXPRESSION_DURATION's own features already capture it precisely).
-            if (
-                fluent not in self.unused_fluents
-                or fluent not in self.fluents_in_durations
+            # represent/parse its declared value); a fluent whose only use is inside a duration or
+            # an action cost doesn't (EXPRESSION_DURATION/ACTIONS_COST_KIND's own features already
+            # capture those cases precisely).
+            if fluent not in self.unused_fluents or (
+                fluent not in self.fluents_in_durations
+                and fluent not in self.fluents_in_action_costs
             ):
                 if type.is_int_type():
                     self.kind.set_fluents_type("INT_FLUENTS")
