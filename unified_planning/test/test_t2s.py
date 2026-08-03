@@ -460,6 +460,9 @@ class TestT2S(unittest_TestCase):
         assert isinstance(keeping_res.problem, Problem)
         self.assertIn("speed", {f.name for f in keeping_res.problem.fluents})
         self.assertEqual(Int(3), keeping_res.problem.initial_value(speed()))
+        # "speed" is now unreferenced by anything (no duration exists in the compiled
+        # problem anymore) rather than duration-only, so it must contribute INT_FLUENTS
+        self.assertTrue(keeping_res.problem.kind.has_int_fluents())
 
         expected_ttp = TimeTriggeredPlan([(Fraction(0), act(), Fraction(3))])
         for comp_res in (pruning_res, keeping_res):

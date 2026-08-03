@@ -335,6 +335,33 @@ class TestModel(unittest_TestCase):
         self.assertTrue(kind.has_static_fluents_in_durations())
         self.assertTrue(kind.has_fluents_in_durations())
 
+    def test_fully_unused_numeric_fluent_sets_fluents_type(self):
+        # a fluent referenced nowhere at all (not even by a duration) still needs to be
+        # represented by any matched engine, so it must contribute REAL_FLUENTS.
+        x = Fluent("x", RealType())
+        problem = Problem("p")
+        problem.add_fluent(x, default_initial_value=1.0)
+        self.assertTrue(problem.kind.has_real_fluents())
+
+    def test_duration_only_fluent_still_excluded_from_fluents_type(self):
+        # a fluent whose only reference is a duration must NOT contribute REAL_FLUENTS:
+        # the duration-specific EXPRESSION_DURATION features already capture it, and
+        # forcing general numeric-fluent support here would be over-restrictive.
+        Location = UserType("Location")
+        distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+        move = DurativeAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        move.set_fixed_duration(distance(l_from, l_to))
+
+        problem = Problem("p")
+        problem.add_fluent(distance, default_initial_value=1.0)
+        problem.add_action(move)
+
+        kind = problem.kind
+        self.assertFalse(kind.has_real_fluents())
+        self.assertTrue(kind.has_static_fluents_in_durations())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())

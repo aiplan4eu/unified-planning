@@ -534,6 +534,8 @@ class TestProblem(unittest_TestCase):
             "sched:optional_activities_effects",
             "1d_Movement",
             "boiling_water",
+            "robot_with_variable_duration",
+            "locations_connected_cost_minimize",
         ]
         for example in self.problems.values():
             problem = example.problem
