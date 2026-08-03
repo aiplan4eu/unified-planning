@@ -128,6 +128,9 @@ class DurativeMotionAction(DurativeAction, MotionConstraintsSetMixin):
         )
         new_durative_motion_action._duration = self._duration
         TimedCondsEffs._clone_to(self, new_durative_motion_action)
+        new_durative_motion_action._continuous_effects = {
+            t: [e.clone() for e in el] for t, el in self._continuous_effects.items()
+        }
         new_durative_motion_action._motion_constraints = self._motion_constraints.copy()
         new_durative_motion_action._motion_constraints_set = (
             self._motion_constraints_set.copy()
