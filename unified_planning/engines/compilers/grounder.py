@@ -34,7 +34,6 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
-    normalize_ground_action,
     split_all_ands,
 )
 from typing import Dict, List, Optional, Set, Tuple, Iterator, cast
@@ -141,8 +140,8 @@ class GrounderHelper:
                     self._grounding_actions_map is None
                     or self._grounding_actions_map.get(action, None) is not None
                 ):
-                    new_action = normalize_ground_action(
-                        self._problem, action.clone(), self._simplifier
+                    new_action = create_action_with_given_subs(
+                        self._problem, action, self._simplifier, {}
                     )
                 else:
                     new_action = None
@@ -332,7 +331,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     grounder's simplifier evaluates it and replaces the call with its value; while any argument is not
     constant, the call is left unevaluated.
 
-    This `Compiler` supports only the the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
+    This `Compiler` supports only the `GROUNDING` :class:`~unified_planning.engines.CompilationKind`.
     """
 
     def __init__(
