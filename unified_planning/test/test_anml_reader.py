@@ -119,10 +119,10 @@ class TestANMLReader(unittest_TestCase):
             "keyword_prefixed_names.anml",
         )
 
-        self.assertEqual(problem.user_type("typewriter").name, "typewriter")
-        self.assertEqual(problem.object("instanceof").name, "instanceof")
-        self.assertEqual(problem.fluent("fluently").name, "fluently")
-        self.assertEqual(problem.action("actionable").name, "actionable")
+        self.assertTrue(problem.has_type("typewriter"))
+        self.assertTrue(problem.has_object("instanceof"))
+        self.assertTrue(problem.has_fluent("fluently"))
+        self.assertTrue(problem.has_action("actionable"))
 
     def test_match_reader(self):
         reader = ANMLReader()
