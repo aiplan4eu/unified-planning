@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from typing import Optional, List, Union, Dict, Set
+from typing import Optional, List, Union, Dict, Set, Tuple
 from warnings import warn
 
 import unified_planning as up
@@ -104,15 +104,28 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._abstract_tasks = self._abstract_tasks.copy()
         return new_p
 
-    def get_unused_fluents(self):
+    def _get_static_and_unused_fluents(
+        self,
+    ) -> Tuple[
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+    ]:
         """
-        Returns the set of `fluents` that are never used in the problem.
+        Support method to calculate the set of static fluents, the set of unused fluents, the
+        set of fluents_in_durations and the set of fluents_in_action_costs, all in one pass.
         """
         # from our parents unused fluents, remove all those that appear in methods preconditions and constraints
-        unused_fluents: Set["up.model.fluent.Fluent"] = super().get_unused_fluents()
+        (
+            static_fluents,
+            unused_fluents,
+            fluents_in_durations,
+            fluents_in_action_costs,
+        ) = super()._get_static_and_unused_fluents()
         fve = self._env.free_vars_extractor
         # function that takes an FNode and removes all the fluents contained in the given FNode
-        # from the unused_fluents  set.
+        # from the unused_fluents set.
         remove_used_fluents = lambda *exps: unused_fluents.difference_update(
             (f.fluent() for e in exps for f in fve.get(e))
         )
@@ -121,7 +134,12 @@ class HierarchicalProblem(up.model.problem.Problem):
             remove_used_fluents(*m.constraints)
         remove_used_fluents(*self.task_network.constraints)
 
-        return unused_fluents
+        return (
+            static_fluents,
+            unused_fluents,
+            fluents_in_durations,
+            fluents_in_action_costs,
+        )
 
     @property
     def kind(self) -> "up.model.problem_kind.ProblemKind":

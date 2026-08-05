@@ -862,20 +862,31 @@ class _KindFactory:
         # WARNING: self.pb may in fact be any subclass of AbstractProblem that has the above mixins.
         # We declare it as a Problem to avoid limitations of the python type system
         self.pb: up.model.Problem = pb
-        self.static_fluents: Set[Fluent] = pb.get_static_fluents()
-        self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
         # _get_static_and_unused_fluents is only defined on Problem, not on every AbstractProblem
         # subclass (e.g. SchedulingProblem)
-        self.fluents_in_durations: Set[Fluent] = (
-            pb._get_static_and_unused_fluents()[2]
-            if isinstance(pb, up.model.Problem)
-            else set()
-        )
-        self.fluents_in_action_costs: Set[Fluent] = (
-            pb._get_static_and_unused_fluents()[3]
-            if isinstance(pb, up.model.Problem)
-            else set()
-        )
+        if isinstance(pb, up.model.Problem):
+            (
+                static_fluents,
+                unused_fluents,
+                fluents_in_durations,
+                fluents_in_action_costs,
+            ) = pb._get_static_and_unused_fluents()
+        else:
+            (
+                static_fluents,
+                unused_fluents,
+                fluents_in_durations,
+                fluents_in_action_costs,
+            ) = (
+                set(),
+                set(),
+                set(),
+                set(),
+            )
+        self.static_fluents: Set[Fluent] = static_fluents
+        self.unused_fluents: Set[Fluent] = unused_fluents
+        self.fluents_in_durations: Set[Fluent] = fluents_in_durations
+        self.fluents_in_action_costs: Set[Fluent] = fluents_in_action_costs
 
         self.environment: up.Environment = environment
         self.kind: up.model.ProblemKind = up.model.ProblemKind(
