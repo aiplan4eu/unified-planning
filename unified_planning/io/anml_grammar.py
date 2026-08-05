@@ -19,9 +19,9 @@ from unified_planning.io.utils import set_results_name, set_parse_action
 from typing import List
 
 import pyparsing
-from pyparsing import Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
+from pyparsing import Keyword, Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
 from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
-from pyparsing import ParseResults, ParserElement
+from pyparsing import MatchFirst, ParseResults, ParserElement
 
 if pyparsing.__version__ < "3.0.0":
     from pyparsing import infixNotation as infix_notation
@@ -84,7 +84,9 @@ TK_GOAL = "goal"
 TK_CONTAINS = "contains"
 TK_BOOLEAN = "boolean"
 TK_INTEGER = "integer"
-TK_FLOAT = one_of(["float", "rational"])  # NOTE both are possible here
+TK_FLOAT = MatchFirst(
+    [Keyword("float"), Keyword("rational")]
+)  # NOTE both are possible here
 TK_SET = "set"
 TK_ALL = "all"
 TK_START = "start"
@@ -101,6 +103,19 @@ TK_FALSE = "false"
 TK_COMMENT = "//"
 TK_WHEN = "when"
 TK_INFINITY = "infinity"
+
+
+def keyword(*words: str) -> ParserElement:
+    """
+    Returns a parser element matching any of the given keywords.
+
+    Keywords are matched only at word boundaries, so an identifier that merely
+    starts with a keyword (``goal_X``, ``typewriter``, ``instanceof``, ...) is
+    not split into a keyword plus the rest of the name.
+    """
+    if len(words) == 1:
+        return Keyword(words[0])
+    return MatchFirst([Keyword(w) for w in words])
 
 
 class ANMLGrammar:
@@ -126,7 +141,7 @@ class ANMLGrammar:
         integer = Word(nums)
         real = Combine(Word(nums) + "." + Word(nums))
         float_const = real | integer
-        boolean_const = one_of([TK_TRUE, TK_FALSE])
+        boolean_const = keyword(TK_TRUE, TK_FALSE)
 
         string_const = Combine('"' + identifier + '"')
 
@@ -173,9 +188,9 @@ class ANMLGrammar:
         boolean_expression <<= infix_notation(
             quantified_expression | relations_expression | boolean_const,
             [
-                (TK_NOT, 1, OpAssoc.RIGHT),
-                (one_of([TK_AND, TK_OR, TK_XOR]), 2, OpAssoc.LEFT, group_binary),
-                (TK_IMPLIES, 2, OpAssoc.RIGHT, group_binary),
+                (keyword(TK_NOT), 1, OpAssoc.RIGHT),
+                (keyword(TK_AND, TK_OR, TK_XOR), 2, OpAssoc.LEFT, group_binary),
+                (keyword(TK_IMPLIES), 2, OpAssoc.RIGHT, group_binary),
                 (
                     one_of([TK_ASSIGN, *TKS_INCREASE, *TKS_DECREASE]),
                     2,
@@ -192,7 +207,7 @@ class ANMLGrammar:
         ) + set_results_name(Group(expression), "expression")
 
         conditional_expression <<= (
-            TK_WHEN
+            keyword(TK_WHEN)
             - set_results_name(Group(timed_expression), "condition")
             - Suppress(TK_L_BRACE)
             - set_results_name(
@@ -213,7 +228,7 @@ class ANMLGrammar:
         temporal_expression = Optional(arithmetic_expression)
 
         in_assignment_expression = (
-            one_of((TK_DURATION,))
+            keyword(TK_DURATION)
             - Literal(TK_IN_ASSIGN)
             - Suppress(TK_L_BRACKET)
             - set_results_name(Group(temporal_expression), "left_bound")
@@ -228,7 +243,7 @@ class ANMLGrammar:
         set_parse_action(action_body, restore_tagged_exp_block)
 
         type_decl = (
-            Suppress(TK_TYPE)
+            Suppress(keyword(TK_TYPE))
             - set_results_name(identifier, "name")
             - set_results_name(
                 Group(ZeroOrMore(Suppress(TK_LT) - identifier)), "supertypes"
@@ -237,9 +252,9 @@ class ANMLGrammar:
         set_parse_action(type_decl, self.types.append)
         identifier_list = identifier - ZeroOrMore(Suppress(TK_COMMA) - identifier)
         primitive_type = (
-            set_results_name(Literal(TK_BOOLEAN), "name")
+            set_results_name(keyword(TK_BOOLEAN), "name")
             | (
-                set_results_name(Literal(TK_INTEGER), "name")
+                set_results_name(keyword(TK_INTEGER), "name")
                 - Optional(
                     Group(
                         (
@@ -250,7 +265,7 @@ class ANMLGrammar:
                             | (
                                 Suppress(TK_L_PARENTHESIS)
                                 - Suppress("-")
-                                - set_results_name(Literal(TK_INFINITY), "left_bound")
+                                - set_results_name(keyword(TK_INFINITY), "left_bound")
                             )
                         )
                         - Suppress(TK_COMMA)
@@ -260,7 +275,7 @@ class ANMLGrammar:
                                 - Suppress(TK_R_BRACKET)
                             )
                             | (
-                                set_results_name(Literal(TK_INFINITY), "right_bound")
+                                set_results_name(keyword(TK_INFINITY), "right_bound")
                                 - Suppress(TK_R_PARENTHESIS)
                             )
                         )
@@ -282,7 +297,7 @@ class ANMLGrammar:
         )
         type_ref = primitive_type | identifier
         instance_decl = (
-            Suppress(TK_INSTANCE)
+            Suppress(keyword(TK_INSTANCE))
             - set_results_name(type_ref, "type")
             - set_results_name(Group(identifier_list), "names")
         )
@@ -295,7 +310,7 @@ class ANMLGrammar:
             Suppress(TK_COMMA) - annotation_item
         )
         constant_decl = (
-            Suppress(TK_CONSTANT)
+            Suppress(keyword(TK_CONSTANT))
             - set_results_name(type_ref, "type")
             - set_results_name(identifier, "name")
             - set_results_name(
@@ -314,7 +329,7 @@ class ANMLGrammar:
         )
         set_parse_action(constant_decl, self.constant_fluents.append)
         fluent_decl = (
-            Suppress(TK_FLUENT)
+            Suppress(keyword(TK_FLUENT))
             - set_results_name(type_ref, "type")
             - set_results_name(identifier, "name")
             - set_results_name(
@@ -333,7 +348,7 @@ class ANMLGrammar:
         )
         set_parse_action(fluent_decl, self.fluents.append)
         action_decl = (
-            Suppress("action")
+            Suppress(keyword(TK_ACTION))
             - set_results_name(identifier, "name")
             - Suppress(TK_L_PARENTHESIS)
             - set_results_name(Group(parameter_list), "parameters")
@@ -365,7 +380,7 @@ class ANMLGrammar:
             + one_of([TK_R_BRACKET, TK_R_PARENTHESIS])
         )
         quantified_expression_def = Group(
-            one_of([TK_FORALL, TK_EXISTS])
+            keyword(TK_FORALL, TK_EXISTS)
             - Suppress(TK_L_PARENTHESIS)
             - set_results_name(Group(parameter_list), "quantifier_variables")
             - Suppress(TK_R_PARENTHESIS)
@@ -393,7 +408,7 @@ class ANMLGrammar:
             (standalone_expression_block | standalone_timed_expression)
             - Suppress(TK_SEMI)
         )
-        goal_decl = TK_GOAL - (
+        goal_decl = keyword(TK_GOAL) - (
             standalone_timed_expression
             | standalone_expression_block
             | TK_L_BRACE - goal_body - TK_R_BRACE

@@ -67,6 +67,63 @@ class TestANMLReader(unittest_TestCase):
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
         self.assertEqual(problem, problem_2)
 
+    def test_identifiers_starting_with_keywords(self):
+        # Identifiers that merely start with a keyword must be read as a single
+        # name, not split into the keyword plus the rest of the name.
+        names = [
+            "goal_X",
+            "goalkeeper",
+            "typewriter",
+            "instanceof",
+            "constantly",
+            "fluently",
+            "actionable",
+            "whenever",
+            "durationless",
+            "startup",
+            "ending",
+            "notation",
+            "andromeda",
+            "orbit",
+            "truebool",
+            "falsehood",
+            "integerish",
+            "booleanish",
+            "floating",
+            "setting",
+            "allocation",
+            "infinityish",
+        ]
+        for index, name in enumerate(names):
+            with self.subTest(name=name):
+                problem = ANMLReader().parse_problem_string(
+                    f"constant integer {name}; {name} := {index};",
+                    "issue_742.anml",
+                )
+                self.assertEqual(
+                    problem.initial_value(problem.fluent(name)), Int(index)
+                )
+
+    def test_fluent_and_action_names_starting_with_keywords(self):
+        problem = ANMLReader().parse_problem_string(
+            """
+            type typewriter;
+            instance typewriter instanceof;
+            fluent boolean fluently(typewriter whenever);
+            action actionable(typewriter constantly) {
+                [start] fluently(constantly) == false;
+                [end] fluently(constantly) := true;
+            };
+            [end] fluently(instanceof) == true;
+            """,
+            "keyword_prefixed_names.anml",
+        )
+
+        self.assertTrue(problem.has_type("typewriter"))
+        self.assertTrue(problem.has_object("instanceof"))
+        self.assertTrue(problem.has_fluent("fluently"))
+        self.assertTrue(problem.has_action("actionable"))
+
     def test_match_reader(self):
         reader = ANMLReader()
 
