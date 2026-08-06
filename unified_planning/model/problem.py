@@ -320,14 +320,25 @@ class Problem(  # type: ignore[misc]
 
     def _get_static_and_unused_fluents(
         self,
-    ) -> Tuple[Set["up.model.fluent.Fluent"], Set["up.model.fluent.Fluent"]]:
+    ) -> Tuple[
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+        Set["up.model.fluent.Fluent"],
+    ]:
         """
-        Support method to calculate the set of static fluents (The fluents that are never modified in the problem)
-        and the set of the unused fluents (The fluents that are never red in the problem.
-        NOTE: The fluents used only in the ActionCost quality metric are in the unused_fluents set anyway).
+        Support method to calculate the set of static fluents (the fluents that are never modified in the problem),
+        the set of the unused fluents (the fluents that are never red in the problem), the set of fluents_in_durations
+        (the fluents referenced by some DurativeAction's duration), and the set of fluents_in_action_costs (the
+        fluents referenced by some MinimizeActionCosts cost expression).
+        NOTE: A fluent referenced only by a duration, or only by an action cost, is in the unused_fluents set
+        anyway; fluents_in_durations/fluents_in_action_costs let callers tell those cases apart from a fluent
+        that is unused everywhere, including durations and action costs.
         """
         static_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
         unused_fluents: Set["up.model.fluent.Fluent"] = set(self._fluents)
+        fluents_in_durations: Set["up.model.fluent.Fluent"] = set()
+        fluents_in_action_costs: Set["up.model.fluent.Fluent"] = set()
         fve = self._env.free_vars_extractor
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents  set.
@@ -346,6 +357,11 @@ class Problem(  # type: ignore[misc]
                     for f in a.simulated_effect.fluents:
                         static_fluents.discard(f.fluent())
             elif isinstance(a, up.model.action.DurativeAction):
+                fluents_in_durations.update(
+                    f.fluent()
+                    for e in (a.duration.lower, a.duration.upper)
+                    for f in fve.get(e)
+                )
                 for cl in a.conditions.values():
                     remove_used_fluents(*cl)
                 for el in a.effects.values():
@@ -393,7 +409,19 @@ class Problem(  # type: ignore[misc]
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
                 for _, g in qm.goals.keys():
                     remove_used_fluents(g)
-        return static_fluents, unused_fluents
+            elif isinstance(qm, up.model.metrics.MinimizeActionCosts):
+                costs = list(qm.costs.values())
+                if qm.default is not None:
+                    costs.append(qm.default)
+                fluents_in_action_costs.update(
+                    f.fluent() for e in costs for f in fve.get(e)
+                )
+        return (
+            static_fluents,
+            unused_fluents,
+            fluents_in_durations,
+            fluents_in_action_costs,
+        )
 
     def get_static_fluents(self) -> Set["up.model.fluent.Fluent"]:
         """
@@ -709,6 +737,8 @@ class Problem(  # type: ignore[misc]
             factory.kind.set_time("TIMED_EFFECTS")
         for process in self._processes:
             factory.update_problem_kind_process(process)
+        for event in self._events:
+            factory.update_problem_kind_event(event)
         for effect in chain(*self._timed_effects.values()):
             factory.update_problem_kind_effect(effect)
         if len(self._timed_goals) > 0:
@@ -719,6 +749,7 @@ class Problem(  # type: ignore[misc]
                 factory.kind.set_constraints_kind("STATE_INVARIANTS")
             else:
                 factory.kind.set_constraints_kind("TRAJECTORY_CONSTRAINTS")
+            factory.update_problem_kind_expression(tc)
         for goal in chain(*self._timed_goals.values(), self._goals):
             factory.update_problem_kind_expression(goal)
         factory.update_problem_kind_initial_state(self)
@@ -831,8 +862,31 @@ class _KindFactory:
         # WARNING: self.pb may in fact be any subclass of AbstractProblem that has the above mixins.
         # We declare it as a Problem to avoid limitations of the python type system
         self.pb: up.model.Problem = pb
-        self.static_fluents: Set[Fluent] = pb.get_static_fluents()
-        self.unused_fluents: Set[Fluent] = pb.get_unused_fluents()
+        # _get_static_and_unused_fluents is only defined on Problem, not on every AbstractProblem
+        # subclass (e.g. SchedulingProblem)
+        if isinstance(pb, up.model.Problem):
+            (
+                static_fluents,
+                unused_fluents,
+                fluents_in_durations,
+                fluents_in_action_costs,
+            ) = pb._get_static_and_unused_fluents()
+        else:
+            (
+                static_fluents,
+                unused_fluents,
+                fluents_in_durations,
+                fluents_in_action_costs,
+            ) = (
+                set(),
+                set(),
+                set(),
+                set(),
+            )
+        self.static_fluents: Set[Fluent] = static_fluents
+        self.unused_fluents: Set[Fluent] = unused_fluents
+        self.fluents_in_durations: Set[Fluent] = fluents_in_durations
+        self.fluents_in_action_costs: Set[Fluent] = fluents_in_action_costs
 
         self.environment: up.Environment = environment
         self.kind: up.model.ProblemKind = up.model.ProblemKind(
@@ -904,8 +958,15 @@ class _KindFactory:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         if e.is_forall():
             self.kind.set_effects_kind("FORALL_EFFECTS")
+            for v in e.forall:
+                self.update_problem_kind_type(v.type)
         if e.is_increase():
             self.kind.set_effects_kind("INCREASE_EFFECTS")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
             # If the value is a number (int or real) and it violates the constraint
             # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
             # unset simple_numeric_planning
@@ -922,12 +983,17 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if any(f in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if any(f not in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_decrease():
             self.kind.set_effects_kind("DECREASE_EFFECTS")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
             # If the value is a number (int or real) and it violates the constraint
             # on the "fluents_to_only_increase" or on "fluents_to_only_decrease",
             # unset simple_numeric_planning
@@ -944,9 +1010,9 @@ class _KindFactory:
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             else:
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-                if any(f in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if any(f not in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
         elif e.is_assignment():
             value_type = value.type
@@ -966,32 +1032,34 @@ class _KindFactory:
                 ):
                     self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
 
-                if any(f in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
-                if any(f not in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
             elif value.type.is_bool_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
                         "INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS"
                     )
-                if any(f in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
-                if any(f not in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
             elif value.type.is_user_type():
                 if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
                     self.kind.set_effects_kind(
                         "INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS"
                     )
-                if any(f in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
-                if any(f not in self.static_fluents for f in fluents_in_value):
+                if any(f.fluent() not in self.static_fluents for f in fluents_in_value):
                     self.kind.set_effects_kind("FLUENTS_IN_OBJECT_ASSIGNMENTS")
-        elif e.is_continuous_increase():
+        elif e.is_continuous_increase() or e.is_continuous_decrease():
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
-        elif e.is_continuous_decrease():
-            self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
+            if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
+                self.kind.set_effects_kind(
+                    "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
+                )
 
     def update_problem_kind_expression(
         self,
@@ -1034,7 +1102,14 @@ class _KindFactory:
                 or numeric_type.upper_bound is not None
             ):
                 self.kind.set_numbers("BOUNDED_TYPES")
-            if fluent not in self.unused_fluents:
+            # A fluent unused everywhere still needs INT_FLUENTS/REAL_FLUENTS (an engine has to
+            # represent/parse its declared value); a fluent whose only use is inside a duration or
+            # an action cost doesn't (EXPRESSION_DURATION/ACTIONS_COST_KIND's own features already
+            # capture those cases precisely).
+            if fluent not in self.unused_fluents or (
+                fluent not in self.fluents_in_durations
+                and fluent not in self.fluents_in_action_costs
+            ):
                 if type.is_int_type():
                     self.kind.set_fluents_type("INT_FLUENTS")
                 else:
@@ -1086,14 +1161,9 @@ class _KindFactory:
             self.kind.set_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
 
         if len(free_vars) > 0:
-            only_static = True
-            for fv in free_vars:
-                if fv.fluent() not in self.static_fluents:
-                    only_static = False
-                    break
-            if only_static:
+            if any(fv.fluent() in self.static_fluents for fv in free_vars):
                 self.kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
-            else:
+            if any(fv.fluent() not in self.static_fluents for fv in free_vars):
                 self.kind.set_expression_duration("FLUENTS_IN_DURATIONS")
 
     def update_action_timed_condition(
@@ -1205,6 +1275,19 @@ class _KindFactory:
         if any(variable in fluents_in_rhs for variable in continuous_fluents):
             self.kind.set_effects_kind("NON_LINEAR_CONTINUOUS_EFFECTS")
 
+    def update_problem_kind_event(
+        self,
+        event: "up.model.natural_transition.Event",
+    ):
+        for param in event.parameters:
+            self.update_action_parameter(param)
+        for c in event.preconditions:
+            self.update_problem_kind_expression(c)
+        for e in event.effects:
+            self.update_problem_kind_effect(e)
+        if event.simulated_effect is not None:
+            self.kind.set_simulated_entities("SIMULATED_EFFECTS")
+
     def update_problem_kind_metric(
         self,
     ) -> Tuple[Set["up.model.Fluent"], Set["up.model.Fluent"]]:
@@ -1269,6 +1352,7 @@ class _KindFactory:
                         raise UPProblemDefinitionError(
                             "The cost of an Action can't be None."
                         )
+                    self.update_problem_kind_expression(cost)
                     t = cost.type
                     if t.is_int_type():
                         self.kind.set_actions_cost_kind("INT_NUMBERS_IN_ACTIONS_COST")

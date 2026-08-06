@@ -59,6 +59,11 @@ class InitialStateMixin:
         """
         fluent_exp, value_exp = self._env.expression_manager.auto_promote(fluent, value)
         assert fluent_exp.is_fluent_exp(), "fluent field must be a fluent"
+        for a in fluent_exp.args:
+            if not a.is_constant():
+                raise UPExpressionDefinitionError(
+                    f"Impossible to set the initial value of a fluent expression with no constant arguments: {fluent_exp}."
+                )
         if not fluent_exp.type.is_compatible(value_exp.type):
             raise UPTypeError("Initial value assignment has not compatible types!")
         self._initial_value[fluent_exp] = value_exp

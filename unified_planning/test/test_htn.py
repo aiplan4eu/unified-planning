@@ -62,6 +62,39 @@ class TestProblem(unittest_TestCase):
             in self.problems["htn-go-temporal"].problem.kind.features
         )
 
+    def test_task_network_constraint_kind(self):
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        l2 = Object("l2", Loc)
+
+        problem = up.model.htn.HierarchicalProblem("p")
+        problem.add_objects([l1, l2])
+        v = problem.task_network.add_variable("v", Loc)
+        problem.task_network.add_constraint(Or(Equals(v, l1), Equals(v, l2)))
+
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+        self.assertTrue(problem.kind.has_equalities())
+
+    def test_method_constraint_kind(self):
+        Loc = UserType("Loc")
+        l1 = Object("l1", Loc)
+        l2 = Object("l2", Loc)
+
+        problem = up.model.htn.HierarchicalProblem("p")
+        problem.add_objects([l1, l2])
+        top_task = Task("top-task")
+        problem.add_task(top_task)
+        problem.task_network.add_subtask(top_task)
+
+        m = up.model.htn.Method("m1", v=Loc)
+        m.set_task(top_task)
+        v = m.parameter("v")
+        m.add_constraint(Or(Equals(v, l1), Equals(v, l2)))
+        problem.add_method(m)
+
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+        self.assertTrue(problem.kind.has_equalities())
+
     def test_ordering(self):
         """Checks that we detect the right orderings in task networks"""
 

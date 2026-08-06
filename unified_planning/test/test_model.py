@@ -13,12 +13,15 @@
 # limitations under the License.
 
 
+from collections import OrderedDict
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import (
     UPUsageError,
     UPTypeError,
     UPConflictingEffectsException,
+    UPProblemDefinitionError,
+    UPExpressionDefinitionError,
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
@@ -122,6 +125,266 @@ class TestModel(unittest_TestCase):
         self.assertNotEqual(e, e.value)
         self.assertNotEqual(e.value, e)
 
+    def test_effect_target_arguments(self):
+        i_type = IntType(0, 5)
+
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction("choose", i_type, OrderedDict(), choose_impl)
+        other = Fluent("other", i_type)
+        value = Fluent("value", IntType(), i=i_type)
+
+        # an interpreted function in the target's arguments is rejected...
+        a = InstantaneousAction("a")
+        with self.assertRaises(UPProblemDefinitionError):
+            a.add_effect(value(choose()), 9)
+        with self.assertRaises(UPProblemDefinitionError):
+            a.add_increase_effect(value(choose()), 9)
+
+        move = DurativeAction("move")
+        with self.assertRaises(UPProblemDefinitionError):
+            move.add_effect(EndTiming(), value(choose()), 9)
+
+        # ...exactly like a fluent in the target's arguments.
+        b = InstantaneousAction("b")
+        with self.assertRaises(UPProblemDefinitionError):
+            b.add_effect(value(other), 9)
+
+    def test_interpreted_functions_in_numeric_assignments(self):
+        i_type = IntType(0, 5)
+
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction("choose", i_type, OrderedDict(), choose_impl)
+        x = Fluent("x", i_type)
+
+        def problem_with_effect(add_effect_to_action):
+            a = InstantaneousAction("a")
+            add_effect_to_action(a)
+            p = Problem("p")
+            p.add_fluent(x, default_initial_value=0)
+            p.add_action(a)
+            return p
+
+        assign_kind = problem_with_effect(lambda a: a.add_effect(x, choose())).kind
+        increase_kind = problem_with_effect(
+            lambda a: a.add_increase_effect(x, choose())
+        ).kind
+        decrease_kind = problem_with_effect(
+            lambda a: a.add_decrease_effect(x, choose())
+        ).kind
+
+        # the assignment case was already correct; increase/decrease used to miss this flag
+        self.assertTrue(assign_kind.has_interpreted_functions_in_numeric_assignments())
+        self.assertTrue(
+            increase_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+        self.assertTrue(
+            decrease_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+
+    def test_interpreted_functions_in_continuous_effects(self):
+        def choose_impl():
+            return 1.0
+
+        choose = InterpretedFunction("choose", RealType(), OrderedDict(), choose_impl)
+        y = Fluent("y", RealType())
+
+        def problem_with_continuous_effect(add_effect_to_action):
+            move = DurativeAction("move")
+            move.set_fixed_duration(1)
+            add_effect_to_action(move)
+            p = Problem("p")
+            p.add_fluent(y, default_initial_value=0.0)
+            p.add_action(move)
+            return p
+
+        increase_kind = problem_with_continuous_effect(
+            lambda move: move.add_increase_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), y, choose()
+            )
+        ).kind
+        decrease_kind = problem_with_continuous_effect(
+            lambda move: move.add_decrease_continuous_effect(
+                ClosedTimeInterval(StartTiming(), EndTiming()), y, choose()
+            )
+        ).kind
+
+        self.assertTrue(
+            increase_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+        self.assertTrue(
+            decrease_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+
+    def test_forall_effect_kind(self):
+        Base = UserType("Base")
+        Sub = UserType("Sub", father=Base)
+        # b is only ever typed over Base; the only Sub in the problem is the
+        # forall-quantified variable below.
+        b = Fluent("b", BoolType(), l=Base)
+
+        a = InstantaneousAction("a")
+        v = Variable("v", Sub)
+        a.add_effect(b(v), True, forall=[v])
+
+        problem = Problem("p")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_action(a)
+
+        self.assertTrue(problem.kind.has_hierarchical_typing())
+
+    def test_minimize_action_costs_kind(self):
+        def choose_impl():
+            return 1
+
+        choose = InterpretedFunction(
+            "choose", IntType(0, 5), OrderedDict(), choose_impl
+        )
+        x = Fluent("x", IntType())
+
+        a = InstantaneousAction("a")
+        a.add_effect(x, 1)
+
+        interpreted_function_problem = Problem("p1")
+        interpreted_function_problem.add_fluent(x, default_initial_value=0)
+        interpreted_function_problem.add_action(a)
+        interpreted_function_problem.add_quality_metric(
+            MinimizeActionCosts({a: choose()})
+        )
+
+        non_linear_problem = Problem("p2")
+        non_linear_problem.add_fluent(x, default_initial_value=0)
+        non_linear_problem.add_action(a)
+        non_linear_problem.add_quality_metric(MinimizeActionCosts({a: Times(x, x)}))
+
+        self.assertTrue(
+            interpreted_function_problem.kind.has_interpreted_functions_in_conditions()
+        )
+        self.assertTrue(
+            interpreted_function_problem.kind.has_general_numeric_planning()
+        )
+        self.assertFalse(non_linear_problem.kind.has_simple_numeric_planning())
+        self.assertTrue(non_linear_problem.kind.has_general_numeric_planning())
+
+    def test_static_fluents_in_effect_value(self):
+        # a value that references ONLY a static fluent (never written by any action)
+        # must set STATIC_FLUENTS_IN_*_ASSIGNMENTS and must NOT set FLUENTS_IN_*_ASSIGNMENTS.
+        Location = UserType("Location")
+        static_num = Fluent("static_num", RealType())
+        static_bool = Fluent("static_bool", BoolType())
+        static_obj = Fluent("static_obj", Location)
+        l1 = Object("l1", Location)
+
+        x = Fluent("x", RealType())
+        b = Fluent("b", BoolType())
+        o = Fluent("o", Location)
+
+        def problem_with_effect(add_effect_to_action):
+            a = InstantaneousAction("a")
+            add_effect_to_action(a)
+            p = Problem("p")
+            p.add_object(l1)
+            p.add_fluent(static_num, default_initial_value=1.0)
+            p.add_fluent(static_bool, default_initial_value=True)
+            p.add_fluent(static_obj, default_initial_value=l1)
+            p.add_fluent(x, default_initial_value=0.0)
+            p.add_fluent(b, default_initial_value=False)
+            p.add_fluent(o, default_initial_value=l1)
+            p.add_action(a)
+            return p
+
+        assign_kind = problem_with_effect(lambda a: a.add_effect(x, static_num())).kind
+        increase_kind = problem_with_effect(
+            lambda a: a.add_increase_effect(x, static_num())
+        ).kind
+        decrease_kind = problem_with_effect(
+            lambda a: a.add_decrease_effect(x, static_num())
+        ).kind
+        bool_kind = problem_with_effect(lambda a: a.add_effect(b, static_bool())).kind
+        object_kind = problem_with_effect(lambda a: a.add_effect(o, static_obj())).kind
+
+        for kind in (assign_kind, increase_kind, decrease_kind):
+            self.assertTrue(kind.has_static_fluents_in_numeric_assignments())
+            self.assertFalse(kind.has_fluents_in_numeric_assignments())
+        self.assertTrue(bool_kind.has_static_fluents_in_boolean_assignments())
+        self.assertFalse(bool_kind.has_fluents_in_boolean_assignments())
+        self.assertTrue(object_kind.has_static_fluents_in_object_assignments())
+        self.assertFalse(object_kind.has_fluents_in_object_assignments())
+
+    def test_static_and_fluents_in_durations_can_both_be_set(self):
+        # a duration mixing a static fluent (never written) and a non-static one
+        # (written elsewhere) must set BOTH STATIC_FLUENTS_IN_DURATIONS and
+        # FLUENTS_IN_DURATIONS, not just one of the two.
+        static_f = Fluent("static_f", RealType())
+        dynamic_f = Fluent("dynamic_f", RealType())
+
+        move = DurativeAction("move")
+        move.set_fixed_duration(Plus(static_f(), dynamic_f()))
+        touch = InstantaneousAction("touch")
+        touch.add_effect(dynamic_f, 1.0)
+
+        problem = Problem("p")
+        problem.add_fluent(static_f, default_initial_value=1.0)
+        problem.add_fluent(dynamic_f, default_initial_value=0.0)
+        problem.add_action(move)
+        problem.add_action(touch)
+
+        kind = problem.kind
+        self.assertTrue(kind.has_static_fluents_in_durations())
+        self.assertTrue(kind.has_fluents_in_durations())
+
+    def test_fully_unused_numeric_fluent_sets_fluents_type(self):
+        # a fluent referenced nowhere at all (not even by a duration) still needs to be
+        # represented by any matched engine, so it must contribute REAL_FLUENTS.
+        x = Fluent("x", RealType())
+        problem = Problem("p")
+        problem.add_fluent(x, default_initial_value=1.0)
+        self.assertTrue(problem.kind.has_real_fluents())
+
+    def test_duration_only_fluent_still_excluded_from_fluents_type(self):
+        # a fluent whose only reference is a duration must NOT contribute REAL_FLUENTS:
+        # the duration-specific EXPRESSION_DURATION features already capture it, and
+        # forcing general numeric-fluent support here would be over-restrictive.
+        Location = UserType("Location")
+        distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+        move = DurativeAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+        move.set_fixed_duration(distance(l_from, l_to))
+
+        problem = Problem("p")
+        problem.add_fluent(distance, default_initial_value=1.0)
+        problem.add_action(move)
+
+        kind = problem.kind
+        self.assertFalse(kind.has_real_fluents())
+        self.assertTrue(kind.has_static_fluents_in_durations())
+
+    def test_cost_only_fluent_excluded_from_fluents_type(self):
+        # a fluent whose only reference is a MinimizeActionCosts cost must NOT
+        # contribute REAL_FLUENTS: ACTIONS_COST_KIND's own features already capture
+        # it, and forcing general numeric-fluent support here would be over-restrictive.
+        Location = UserType("Location")
+        distance = Fluent("distance", RealType(), l_from=Location, l_to=Location)
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        move = InstantaneousAction("move", l_from=Location, l_to=Location)
+        l_from = move.parameter("l_from")
+        l_to = move.parameter("l_to")
+
+        problem = Problem("p")
+        problem.add_objects([l1, l2])
+        problem.add_fluent(distance, default_initial_value=1.0)
+        problem.add_action(move)
+        problem.add_quality_metric(MinimizeActionCosts({move: distance(l_from, l_to)}))
+
+        kind = problem.kind
+        self.assertFalse(kind.has_real_fluents())
+        self.assertTrue(kind.has_static_fluents_in_actions_cost())
+
     def test_process(self):
         Vehicle = UserType("Vehicle")
         a = Fluent("a", BoolType())
@@ -153,6 +416,25 @@ class TestModel(unittest_TestCase):
         self.assertEqual(fell.name, "fell")
         self.assertEqual(isinstance(fell, Event), True)
         self.assertEqual(isinstance(fell, InstantaneousAction), False)
+
+    def test_event_kind(self):
+        a = Fluent("a", BoolType())
+        b = Fluent("b", BoolType())
+        x = Fluent("x", IntType())
+
+        ev = Event("ev")
+        ev.add_precondition(Or(a, b))
+        ev.add_increase_effect(x, 1)
+
+        p = Problem("p")
+        p.add_fluent(a, default_initial_value=False)
+        p.add_fluent(b, default_initial_value=False)
+        p.add_fluent(x, default_initial_value=0)
+        p.add_event(ev)
+
+        kind = p.kind
+        self.assertTrue(kind.has_disjunctive_conditions())
+        self.assertTrue(kind.has_increase_effects())
 
     def test_istantaneous_action(self):
         Location = UserType("Location")
@@ -505,3 +787,20 @@ class TestModel(unittest_TestCase):
         self.assertIs(pickle.loads(pickle.dumps(tm.BoolType())), tm.BoolType())
         self.assertIs(pickle.loads(pickle.dumps(BOOL)), BOOL)
         self.assertIs(pickle.loads(pickle.dumps(TIME)), TIME)
+
+    def test_set_initial_value_rejects_non_constant_arguments(self):
+        # set_initial_value's own docstring says the fluent must be grounded; a fluent
+        # expression whose argument is itself a fluent (not a constant) must be rejected
+        # here just like initial_value() already rejects it when reading it back.
+        Loc = UserType("Loc")
+        at = Fluent("at", BoolType(), l=Loc)
+        other = Fluent("other", Loc)
+
+        problem = Problem("p")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(other)
+
+        with self.assertRaises(UPExpressionDefinitionError):
+            problem.set_initial_value(at(other()), True)
+        with self.assertRaises(UPExpressionDefinitionError):
+            problem.initial_value(at(other()))

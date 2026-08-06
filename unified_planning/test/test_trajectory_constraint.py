@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+from collections import OrderedDict
 import unified_planning
 from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
@@ -295,3 +296,40 @@ class TestTrajectoryConstraint(unittest_TestCase):
             .problem
         )
         self.assertTrue(problem_with_forall_comp == problem_without_forall_comp)
+
+    def test_trajectory_constraint_kind(self):
+        Location = UserType("Location")
+        at = unified_planning.model.Fluent("at", BoolType(), l=Location)
+        b = unified_planning.model.Fluent("b", BoolType())
+        x = unified_planning.model.Fluent("x", IntType())
+        l1 = unified_planning.model.Object("l1", Location)
+        v = Variable("l", Location)
+        # ifun takes a non-constant argument so the Problem.add_trajectory_constraint's
+        # call to simplify() cannot fold it away into a constant.
+        ifun = InterpretedFunction(
+            "ifun", BoolType(), OrderedDict([("v", BoolType())]), lambda v: v
+        )
+
+        a = unified_planning.model.InstantaneousAction("a")
+        a.add_effect(b, True)
+
+        problem = unified_planning.model.Problem("p")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_object(l1)
+        problem.add_action(a)
+        problem.add_goal(b)
+        problem.add_trajectory_constraint(Sometime(Or(b, at(l1))))
+        problem.add_trajectory_constraint(Always(Exists(at(v), v)))
+        problem.add_trajectory_constraint(Sometime(ifun(b)))
+        problem.add_trajectory_constraint(Always(LE(Times(x, x), 10)))
+
+        kind = problem.kind
+        self.assertTrue(kind.has_disjunctive_conditions())
+        self.assertTrue(kind.has_existential_conditions())
+        self.assertTrue(kind.has_interpreted_functions_in_conditions())
+        self.assertFalse(kind.has_simple_numeric_planning())
+        self.assertTrue(kind.has_general_numeric_planning())
+        self.assertTrue(kind.has_state_invariants())
+        self.assertTrue(kind.has_trajectory_constraints())
