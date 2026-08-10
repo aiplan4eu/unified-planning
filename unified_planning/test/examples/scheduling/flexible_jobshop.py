@@ -145,8 +145,8 @@ def create_scheduling_problem(
 
     if not resource_encoding:
         # Directly encode machine usage constraints as no overlaps between any two activities on the same machine
-        for (a1, m1) in all_activities:
-            for (a2, m2) in all_activities:
+        for a1, m1 in all_activities:
+            for a2, m2 in all_activities:
                 if a1.name < a2.name and m1 == m2:
                     problem.add_constraint(
                         Or(LE(a1.end, a2.start), LE(a2.end, a1.start)),
@@ -158,7 +158,6 @@ def create_scheduling_problem(
 
 
 if __name__ == "__main__":
-
     pb = create_scheduling_problem(MT10C1, resource_encoding=False)
     print(pb)
     print(pb.kind)

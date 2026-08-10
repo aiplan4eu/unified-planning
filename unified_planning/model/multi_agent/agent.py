@@ -190,14 +190,14 @@ class Agent(
         :return: The expression of the goal added.
         """
 
-        assert (
-            isinstance(goal, bool) or goal.environment == self._env
-        ), "goal does not have the same environment of the problem"
+        assert isinstance(goal, bool) or goal.environment == self._env, (
+            "goal does not have the same environment of the problem"
+        )
 
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(
-            goal_exp
-        ).is_bool_type(), "A goal must be a boolean expression"
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type(), (
+            "A goal must be a boolean expression"
+        )
 
         goal_list = self._private_goals if is_private_goal else self._public_goals
 

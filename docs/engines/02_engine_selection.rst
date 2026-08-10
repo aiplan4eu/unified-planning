@@ -58,6 +58,3 @@ In addition to plain planning engines, the UP library embeds the concept of “m
             ...
 
 The general idea of a meta-engine is to implement algorithms relying on planning engines to implement certain operation modes. The library uses a special naming convention for meta engines; if the meta engine is called ``meta``, its instantiation with the engine ``e`` is called ``meta[e]``. One can add meta-engine to the library via the ``Factory`` class, similarly to engines, the ``add_meta_engine(name: str, module_name: str, class_name: str)`` method allows the user to add new meta engines, which are automatically instantiated with all the compatible engines. Compatibility between an engine and a meta-engine is determined by the UP thanks to the MetaEngine class that is the base of every meta-engine: each meta-engine must implement the  ``is_compatible_engine(engine: Type[Engine])`` method, which checks if a given engine is compatible with the meta-engine at hand. This schema allows the creation of very general algorithms whose capability varies depending on the engine they are instantiated with.
-
-
-

@@ -197,9 +197,9 @@ def plot_sequential_plan(
         else:
             fig.savefig(filename)
     else:
-        assert (
-            problem is not None
-        ), "As documented, if some expressions must be plotted, the problem is required."
+        assert problem is not None, (
+            "As documented, if some expressions must be plotted, the problem is required."
+        )
         auto_promote = problem.environment.expression_manager.auto_promote
         expressions = (
             []
@@ -209,18 +209,18 @@ def plot_sequential_plan(
         for expression in expressions:
             assert isinstance(expression, FNode)
             et = expression.type
-            assert (
-                et.is_bool_type() or et.is_int_type() or et.is_real_type()
-            ), f"Expression {expression} has type {et}; but only bool, int or real are plottable"
+            assert et.is_bool_type() or et.is_int_type() or et.is_real_type(), (
+                f"Expression {expression} has type {et}; but only bool, int or real are plottable"
+            )
         if isinstance(metric_or_metrics, PlanQualityMetric):
             metrics: List[PlanQualityMetric] = [metric_or_metrics]
         elif metric_or_metrics is not None:
             metrics = list(metric_or_metrics)
         else:
             metrics = []
-        assert all(
-            isinstance(metric, PlanQualityMetric) for metric in metrics
-        ), "Typing not respected"
+        assert all(isinstance(metric, PlanQualityMetric) for metric in metrics), (
+            "Typing not respected"
+        )
         sequential_simulator = UPSequentialSimulator(problem)
         _plot_expressions(
             plan,
@@ -380,9 +380,9 @@ def plot_stn_plan(
 
     # param "sanitization"
     if generate_edge_label is None:
-        edge_label_function: Callable[
-            [Optional[Fraction], Optional[Fraction]], str
-        ] = _generate_stn_edge_label
+        edge_label_function: Callable[[Optional[Fraction], Optional[Fraction]], str] = (
+            _generate_stn_edge_label
+        )
     else:
         edge_label_function = generate_edge_label
     if generate_node_label is None:
@@ -487,9 +487,9 @@ def plot_contingent_plan(
 
     # param "sanitization"
     if generate_edge_label is None:
-        edge_label_function: Callable[
-            [Dict[FNode, FNode]], str
-        ] = _generate_contingent_edge_label
+        edge_label_function: Callable[[Dict[FNode, FNode]], str] = (
+            _generate_contingent_edge_label
+        )
     else:
         edge_label_function = generate_edge_label
     if generate_node_label is None:
@@ -684,9 +684,9 @@ def _plot_expressions(
         if e.type.is_bool_type():
             bool_expressions.append(e)
         else:
-            assert (
-                e.type.is_int_type() or e.type.is_real_type()
-            ), "Only boolean or numeric fluents can be plot"
+            assert e.type.is_int_type() or e.type.is_real_type(), (
+                "Only boolean or numeric fluents can be plot"
+            )
             numeric_expressions.append(e)
 
     # Populate the data_frame with the numeric expressions

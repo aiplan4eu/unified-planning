@@ -18,37 +18,39 @@ Checklist
 
 Before sending a pull-request, you should check the following conditions:
 
- - your code is properly formatted with ``black`` (``just format``)
- - your code passes the linter check (``just check-mypy``)
- - your code passes all existing unit tests
+ - your code is properly formatted with ``ruff`` (``just format``)
+ - your code passes the type check (``just typecheck``)
+ - your code passes all existing unit tests (``just test``)
  - you have added tests to ensure that your change is and remains valid
  - you have updated the documentation to reflect your changes
+
+The formatting and type checks can be run together with ``just check``.
 
 Whenever possible these are automatically check in CI.
 
 Documentation
 -------------
 
-The documentation is maintained in the `docs/` folder of the `main repository <https://github.com/aiplan4eu/unified-planning/tree/master/docs>`_ 
+The documentation is maintained in the `docs/` folder of the `main repository <https://github.com/aiplan4eu/unified-planning/tree/master/docs>`_
 It consists of a collection of reStructuredText documents and python notebooks that rendered to HTML and published on `readthedocs <https://unified-planning.readthedocs.io/en/latest/>`_ on each release.
 
 
 Building the documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The documentation can be built locally like so (``just build-doc``)::
+The documentation can be built locally like so::
 
-    cd docs/  # enter the documentation folder
-    pip install -r requirements.txt  # install documentation toolchain
-    make html
+    just build-doc
 
-After this, the documentation will be available as a set of HTML pages in the `_build/html` folder and can be visualized with a regular web browser.
+This installs the documentation toolchain from the locked ``docs`` dependency group and renders the HTML.
+
+After this, the documentation will be available as a set of HTML pages in the `docs/_build/html` folder and can be visualized with a regular web browser (``just open-doc``).
 
 
 Updating the Reference API
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The reference API part of the documentation is built automatically by the `docs/generate_api_doc.py <https://github.com/aiplan4eu/unified-planning/blob/master/docs/generate_api_doc.py>`_ script. 
+The reference API part of the documentation is built automatically by the `docs/generate_api_doc.py <https://github.com/aiplan4eu/unified-planning/blob/master/docs/generate_api_doc.py>`_ script.
 The script contains the list of classes that will appear in the documentation.
 If you contribute a new *user-facing* class, the list of classes should be updated to make it appear in the API reference.
 

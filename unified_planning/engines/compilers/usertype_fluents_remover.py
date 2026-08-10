@@ -15,7 +15,6 @@
 #
 """This module defines the conditional effects remover class."""
 
-
 import warnings
 from itertools import product
 import unified_planning as up
@@ -209,9 +208,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         for old_action in problem.actions:
             params = OrderedDict(((p.name, p.type) for p in old_action.parameters))
             if isinstance(old_action, InstantaneousAction):
-                new_action: Union[
-                    InstantaneousAction, DurativeAction
-                ] = InstantaneousAction(old_action.name, _parameters=params, _env=env)
+                new_action: Union[InstantaneousAction, DurativeAction] = (
+                    InstantaneousAction(old_action.name, _parameters=params, _env=env)
+                )
                 assert isinstance(new_action, InstantaneousAction)
                 for p in old_action.preconditions:
                     new_action.add_precondition(
@@ -354,14 +353,14 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                 last_fluent,
                 free_fluents,
             ) = utf_remover.remove_usertype_fluents(f)
-            assert (
-                not free_vars and not free_fluents
-            ), "Error in fluent's initial values; expected all constant for fluent arguments"
+            assert not free_vars and not free_fluents, (
+                "Error in fluent's initial values; expected all constant for fluent arguments"
+            )
             if fluent_var is not None:
                 assert last_fluent is not None
-                assert (
-                    v.is_object_exp()
-                ), "Error: Usertype fluents initial value is not an object"
+                assert v.is_object_exp(), (
+                    "Error: Usertype fluents initial value is not an object"
+                )
                 value_obj = v.object()
                 for obj in problem.objects(fluent_var.type):
                     new_problem.set_initial_value(
@@ -414,9 +413,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         compiled_problem, compiled_fluent
                     ):
                         compiled_value = compiled_state.get_value(compiled_fluent_exp)
-                        assert (
-                            compiled_value.is_bool_constant()
-                        ), "Error, boolean value is not a boolean constant in the state"
+                        assert compiled_value.is_bool_constant(), (
+                            "Error, boolean value is not a boolean constant in the state"
+                        )
                         if compiled_value.bool_constant_value():
                             original_fluent_exp = em.FluentExp(
                                 f, compiled_fluent_exp.args[:-1]
@@ -425,9 +424,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             test_value = original_state.setdefault(
                                 original_fluent_exp, obj_exp
                             )
-                            assert (
-                                obj_exp == test_value
-                            ), "Error, found True Value multiple times in the same state for a boolean fluent used to remove a UserType fluent"
+                            assert obj_exp == test_value, (
+                                "Error, found True Value multiple times in the same state for a boolean fluent used to remove a UserType fluent"
+                            )
             state = UPState(original_state, original_problem)
             # populate the ret_val list with the default returned value, when a non
             # usertype fluent is returned, while with a series of True and False
@@ -444,9 +443,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                         assert isinstance(current_val, FNode)
                         current_obj = current_val.args[-1].object()
                         if returned_obj == current_obj:
-                            assert (
-                                not true_found
-                            ), "error, multiple true value found, only 1 accepted"
+                            assert not true_found, (
+                                "error, multiple true value found, only 1 accepted"
+                            )
                             true_found = True
                             ret_val.append(em.TRUE())
                         else:

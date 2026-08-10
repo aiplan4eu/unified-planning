@@ -116,9 +116,9 @@ def plot_causal_graph(
     import matplotlib.pyplot as plt  # type: ignore[import]
 
     if generate_edge_label is None:
-        edge_label_function: Callable[
-            [Action, Sequence[FNode]], str
-        ] = _generate_causal_graph_edge_label
+        edge_label_function: Callable[[Action, Sequence[FNode]], str] = (
+            _generate_causal_graph_edge_label
+        )
     else:
         edge_label_function = generate_edge_label
     if draw_networkx_edge_labels_kwargs is None:

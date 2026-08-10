@@ -6,7 +6,7 @@
         capacity-number - object
   )
 
-  (:predicates 
+  (:predicates
      (road ?l1 ?l2 - location)
      (at ?x - locatable ?v - location)
      (in ?x - package ?v - vehicle)
@@ -40,7 +40,7 @@
     :task (load  ?v ?l ?p)
     :subtasks (pick-up ?v ?l ?p ?s1 ?s2)
   )
-  
+
   (:method m-drive-to
     :parameters (?v - vehicle ?l1 ?l2 - location)
     :task (get-to ?v ?l2)
@@ -62,7 +62,7 @@
     :subtasks (and
         (noop ?v ?l))
   )
-  
+
   (:action drive
     :parameters (?v - vehicle ?l1 ?l2 - location)
     :precondition (and

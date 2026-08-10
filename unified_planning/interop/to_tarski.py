@@ -426,9 +426,9 @@ def convert_problem_to_tarski(
                     lang.get_predicate(fluent_exp.fluent().name), *parameters
                 )
         else:
-            value: Optional[
-                Union[Fraction, int, "tarski.syntax.formulas.Formula"]
-            ] = None
+            value: Optional[Union[Fraction, int, "tarski.syntax.formulas.Formula"]] = (
+                None
+            )
             if value_exp.is_int_constant():
                 value = value_exp.int_constant_value()
             elif value_exp.is_real_constant():

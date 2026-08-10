@@ -70,9 +70,7 @@ class PartialOrderPlan(plans.plan.Plan):
             for (
                 ai_k,
                 ai_v_list,
-            ) in (
-                adjacency_list.items()
-            ):  # check that given environment and the environment in the actions is the same
+            ) in adjacency_list.items():  # check that given environment and the environment in the actions is the same
                 if ai_k.action.environment != self._environment:
                     raise UPUsageError(
                         "The environment given to the plan is not the same of the actions in the plan."

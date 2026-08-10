@@ -24,17 +24,17 @@
 		treatmentstatus - object
 		woodobj - object
 	)
-	(:constants 
+	(:constants
 		large - apartsize
 		medium - apartsize
 		small - apartsize
-		
+
 		natural - acolour
-		
+
 		verysmooth - surface
 		smooth - surface
 		rough - surface
-		
+
 		colourfragments - treatmentstatus
 		untreated - treatmentstatus
 		glazed - treatmentstatus
@@ -296,7 +296,7 @@
 
 	(:action cut_board_large
 		:parameters (?cut_board_large_b - board ?cut_board_large_p - part ?cut_board_large_m - highspeed_saw ?cut_board_large_w - awood ?cut_board_large_surface - surface ?cut_board_large_size_before - aboardsize ?cut_board_large_s1 - aboardsize ?cut_board_large_s2 - aboardsize ?cut_board_large_size_after - aboardsize ?ConstantVariable1278363279 - apartsize ?ConstantVariable313024468 - acolour ?ConstantVariable971968717 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?cut_board_large_p)
 				(goalsize ?cut_board_large_p ?ConstantVariable1278363279)
@@ -322,7 +322,7 @@
 
 	(:action cut_board_medium
 		:parameters (?cut_board_medium_b - board ?cut_board_medium_p - part ?cut_board_medium_m - highspeed_saw ?cut_board_medium_w - awood ?cut_board_medium_surface - surface ?cut_board_medium_size_before - aboardsize ?cut_board_medium_s1 - aboardsize ?cut_board_medium_size_after - aboardsize ?ConstantVariable212106237 - apartsize ?ConstantVariable1690083347 - acolour ?ConstantVariable1650815227 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?cut_board_medium_p)
 				(goalsize ?cut_board_medium_p ?ConstantVariable212106237)
@@ -347,7 +347,7 @@
 
 	(:action cut_board_small
 		:parameters (?cut_board_small_b - board ?cut_board_small_p - part ?cut_board_small_m - highspeed_saw ?cut_board_small_w - awood ?cut_board_small_surface - surface ?cut_board_small_size_before - aboardsize ?cut_board_small_size_after - aboardsize ?ConstantVariable719147384 - apartsize ?ConstantVariable2074871584 - acolour ?ConstantVariable1336658767 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?cut_board_small_p)
 				(goalsize ?cut_board_small_p ?ConstantVariable719147384)
@@ -371,7 +371,7 @@
 
 	(:action do_glaze
 		:parameters (?do_glaze_x - part ?do_glaze_m - glazer ?do_glaze_newcolour - acolour ?ConstantVariable1086871163 - treatmentstatus ?ConstantVariable298245469 - treatmentstatus ?ConstantVariable1900545328 - treatmentstatus ?ConstantVariable422481684 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?do_glaze_x)
 				(has_colour ?do_glaze_m ?do_glaze_newcolour)
@@ -388,7 +388,7 @@
 
 	(:action do_grind
 		:parameters (?do_grind_x - part ?do_grind_oldsurface - surface ?do_grind_oldcolour - acolour ?do_grind_oldtreatment - treatmentstatus ?do_grind_newtreatment - treatmentstatus ?ConstantVariable521350637 - surface ?ConstantVariable1995568423 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?do_grind_x)
 				(surface_condition ?do_grind_x ?do_grind_oldsurface)
@@ -410,7 +410,7 @@
 
 	(:action do_grind_untreated
 		:parameters (?newObj_variable57 - part ?newObj_variable64 - grinder ?newObj_variable65 - surface ?newObj_variable66 - acolour ?ConstantVariable702183411 - treatmentstatus ?ConstantVariable406992733 - treatmentstatus ?ConstantVariable506990077 - treatmentstatus ?ConstantVariable1738120144 - treatmentstatus ?ConstantVariable495324479 - treatmentstatus ?ConstantVariable343357709 - surface ?ConstantVariable1258199451 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?newObj_variable57)
 				(surface_condition ?newObj_variable57 ?newObj_variable65)
@@ -432,7 +432,7 @@
 
 	(:action do_immersion_varnish
 		:parameters (?do_immersion_varnish_x - part ?do_immersion_varnish_m - immersion_varnisher ?do_immersion_varnish_newcolour - acolour ?do_immersion_varnish_surface - surface ?ConstantVariable129458220 - treatmentstatus ?ConstantVariable286632942 - treatmentstatus ?ConstantVariable281362908 - treatmentstatus ?ConstantVariable319059067 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?do_immersion_varnish_x)
 				(has_colour ?do_immersion_varnish_m ?do_immersion_varnish_newcolour)
@@ -451,7 +451,7 @@
 
 	(:action do_plane
 		:parameters (?do_plane_x - part ?do_plane_oldsurface - surface ?do_plane_oldcolour - acolour ?do_plane_oldtreatment - treatmentstatus ?ConstantVariable1637010447 - surface ?ConstantVariable1288755959 - treatmentstatus ?ConstantVariable1631726897 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?do_plane_x)
 				(surface_condition ?do_plane_x ?do_plane_oldsurface)
@@ -471,7 +471,7 @@
 
 	(:action do_plane_untreated
 		:parameters (?newObj_variable75 - part ?newObj_variable76 - planer ?newObj_variable77 - surface ?newObj_variable79 - acolour ?ConstantVariable1607353027 - treatmentstatus ?ConstantVariable684396417 - treatmentstatus ?ConstantVariable1652981517 - treatmentstatus ?ConstantVariable308145609 - surface ?ConstantVariable1068002587 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?newObj_variable75)
 				(machine_present ?newObj_variable76)
@@ -492,7 +492,7 @@
 
 	(:action do_saw_large
 		:parameters (?do_saw_large_b - board ?do_saw_large_p - part ?do_saw_large_w - awood ?do_saw_large_surface - surface ?do_saw_large_size_before - aboardsize ?do_saw_large_s1 - aboardsize ?do_saw_large_s2 - aboardsize ?do_saw_large_size_after - aboardsize ?ConstantVariable2026575395 - apartsize ?ConstantVariable539566862 - acolour ?ConstantVariable583566864 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?do_saw_large_p)
 				(goalsize ?do_saw_large_p ?ConstantVariable2026575395)
@@ -518,7 +518,7 @@
 
 	(:action do_saw_medium
 		:parameters (?do_saw_medium_b - board ?do_saw_medium_p - part ?do_saw_medium_w - awood ?do_saw_medium_surface - surface ?do_saw_medium_size_before - aboardsize ?do_saw_medium_s1 - aboardsize ?do_saw_medium_size_after - aboardsize ?ConstantVariable633833592 - apartsize ?ConstantVariable469443757 - acolour ?ConstantVariable1023882406 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?do_saw_medium_p)
 				(goalsize ?do_saw_medium_p ?ConstantVariable633833592)
@@ -543,7 +543,7 @@
 
 	(:action do_saw_small
 		:parameters (?do_saw_small_b - board ?do_saw_small_p - part ?do_saw_small_w - awood ?do_saw_small_surface - surface ?do_saw_small_size_before - aboardsize ?do_saw_small_size_after - aboardsize ?ConstantVariable1182850905 - apartsize ?ConstantVariable731116025 - acolour ?ConstantVariable2127388439 - treatmentstatus)
-		:precondition 
+		:precondition
 			(and
 				(unused ?do_saw_small_p)
 				(goalsize ?do_saw_small_p ?ConstantVariable1182850905)
@@ -567,7 +567,7 @@
 
 	(:action do_spray_varnish
 		:parameters (?do_spray_varnish_x - part ?do_spray_varnish_m - spray_varnisher ?do_spray_varnish_newcolour - acolour ?do_spray_varnish_surface - surface ?ConstantVariable797888567 - treatmentstatus ?ConstantVariable335041779 - treatmentstatus ?ConstantVariable688467185 - treatmentstatus ?ConstantVariable421409287 - acolour)
-		:precondition 
+		:precondition
 			(and
 				(available ?do_spray_varnish_x)
 				(has_colour ?do_spray_varnish_m ?do_spray_varnish_newcolour)
@@ -586,7 +586,7 @@
 
 	(:action load_highspeed_saw
 		:parameters (?load_highspeed_saw_b - board ?load_highspeed_saw_m - highspeed_saw)
-		:precondition 
+		:precondition
 			(and
 				(empty ?load_highspeed_saw_m)
 				(available ?load_highspeed_saw_b)
@@ -601,7 +601,7 @@
 
 	(:action unload_highspeed_saw
 		:parameters (?unload_highspeed_saw_b - board ?unload_highspeed_saw_m - highspeed_saw)
-		:precondition 
+		:precondition
 			(and
 				(in_highspeed_saw ?unload_highspeed_saw_b ?unload_highspeed_saw_m)
 			)

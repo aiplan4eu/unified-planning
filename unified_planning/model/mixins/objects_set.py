@@ -65,9 +65,9 @@ class ObjectsSetMixin:
         if isinstance(obj_or_name, up.model.object.Object):
             assert typename is None
             obj = obj_or_name
-            assert (
-                obj.environment == self._env
-            ), "Object does not have the same environment fo the problem"
+            assert obj.environment == self._env, (
+                "Object does not have the same environment fo the problem"
+            )
         else:
             assert typename is not None, "Missing type of the object"
             obj = up.model.object.Object(obj_or_name, typename, self._env)

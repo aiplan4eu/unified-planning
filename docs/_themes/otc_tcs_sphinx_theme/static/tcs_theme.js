@@ -36,7 +36,7 @@ for (i = 0; i < contents.length; i++) {
           content.style.maxHeight = 0;
         } else {
           content.style.maxHeight = content.scrollHeight + "px";
-        } 
+        }
       });
 
       //Add the button to the page and remove the header

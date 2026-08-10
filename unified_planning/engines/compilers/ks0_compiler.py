@@ -604,12 +604,12 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
                     (fluent_exp.fluent(), True, tag)
                 ](*fluent_exp.args)
                 knowledge_literal_cache[(fluent_exp, tag)] = positive_knowledge
-                knowledge_literal_cache[
-                    (negated_ground_literals[fluent_exp], tag)
-                ] = negative_knowledge
-                negated_knowledge_literal_cache[
-                    (fluent_exp, tag)
-                ] = expression_manager.Not(negative_knowledge)
+                knowledge_literal_cache[(negated_ground_literals[fluent_exp], tag)] = (
+                    negative_knowledge
+                )
+                negated_knowledge_literal_cache[(fluent_exp, tag)] = (
+                    expression_manager.Not(negative_knowledge)
+                )
                 negated_knowledge_literal_cache[
                     (negated_ground_literals[fluent_exp], tag)
                 ] = expression_manager.Not(positive_knowledge)

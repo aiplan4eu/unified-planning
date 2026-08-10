@@ -16,7 +16,6 @@
 This module defines the `Action` class and some of his extensions.
 """
 
-
 import unified_planning as up
 from unified_planning.environment import get_environment, Environment
 from unified_planning.exceptions import (
@@ -457,10 +456,10 @@ class DurativeAction(Action, TimedCondsEffs):
         interval: "up.model.timing.TimeInterval",
         continuous_effect: "up.model.effect.Effect",
     ):
-        assert (
-            self._environment == continuous_effect.environment
-        ), "effect does not have the same environment of the action"
-        assert (
-            not continuous_effect.is_forall()
-        ), "Continuous effects with forall variables are not supported yet"
+        assert self._environment == continuous_effect.environment, (
+            "effect does not have the same environment of the action"
+        )
+        assert not continuous_effect.is_forall(), (
+            "Continuous effects with forall variables are not supported yet"
+        )
         self._continuous_effects.setdefault(interval, []).append(continuous_effect)

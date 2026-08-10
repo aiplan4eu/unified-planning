@@ -79,9 +79,9 @@ class ContingentPlanNode:
                 res.add_child(o, c.replace_action_instances(replace_function))
             return res
         else:
-            assert (
-                len(self._children) == 1
-            ), "A SensingActionInstance can not be replaced by an empty Action."
+            assert len(self._children) == 1, (
+                "A SensingActionInstance can not be replaced by an empty Action."
+            )
             o, c = self._children[0]
             assert len(o) == 0
             return c.replace_action_instances(replace_function)
@@ -165,8 +165,8 @@ class ContingentPlan(plans.plan.Plan):
         id: Dict[ContingentPlanNode, int] = dict(
             map(swap_couple, enumerate(visit_tree(self._root_node)))
         )
-        convert_action_id = (
-            lambda action_id: f"    {action_id[1]}) {action_id[0].action_instance}"
+        convert_action_id = lambda action_id: (
+            f"    {action_id[1]}) {action_id[0].action_instance}"
         )
         ret = ["ContingentPlan:", "  Actions:"]
         ret.extend(map(convert_action_id, id.items()))

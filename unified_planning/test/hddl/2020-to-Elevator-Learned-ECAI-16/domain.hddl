@@ -1,5 +1,5 @@
 (define (domain elevator )
-(:requirements 
+(:requirements
 	:hierarchy
 	:typing
 	:method-preconditions

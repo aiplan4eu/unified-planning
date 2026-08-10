@@ -14,7 +14,6 @@
 #
 """This module defines the UndefinedInitialNumericRemover class."""
 
-
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -514,9 +513,9 @@ def get_default_initial_values(
                     )
 
     for fluent in undef_fluents_set:
-        assert (
-            fluent.type.is_int_type() or fluent.type.is_real_type()
-        ), f"Fluent '{fluent}' has type '{fluent.type}', expected int or real."
+        assert fluent.type.is_int_type() or fluent.type.is_real_type(), (
+            f"Fluent '{fluent}' has type '{fluent.type}', expected int or real."
+        )
 
         if fluent not in default_initial_value:
             if fluent.type.is_int_type():

@@ -199,9 +199,9 @@ def get_example_problems():
     basic_without_negative_preconditions = TestCase(
         problem=problem, solvable=True, valid_plans=[plan]
     )
-    problems[
-        "basic_without_negative_preconditions"
-    ] = basic_without_negative_preconditions
+    problems["basic_without_negative_preconditions"] = (
+        basic_without_negative_preconditions
+    )
 
     # basic nested conjunctions
     problem = Problem("basic_nested_conjunctions")

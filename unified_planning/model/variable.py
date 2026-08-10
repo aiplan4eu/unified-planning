@@ -17,7 +17,6 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
-
 from typing import List, Optional, FrozenSet
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode
@@ -39,9 +38,9 @@ class Variable:
         self._name = name
         self._typename = typename
         self._env = get_environment(environment)
-        assert self._env.type_manager.has_type(
-            typename
-        ), "type of variable does not belong to the same environment of the variable"
+        assert self._env.type_manager.has_type(typename), (
+            "type of variable does not belong to the same environment of the variable"
+        )
 
     def __repr__(self) -> str:
         return f"{str(self.type)} {self.name}"

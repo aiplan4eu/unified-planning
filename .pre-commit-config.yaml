@@ -1,6 +1,35 @@
-exclude: unified_planning/grpc/generated/
+# So that a plain `pre-commit install` wires the pre-push hook too. Only applies to
+# future installs: whoever already installed the hooks has to run it again.
+default_install_hook_types: [pre-commit, pre-push]
+
+exclude: ^unified_planning/grpc/generated/
 repos:
--   repo: https://github.com/ambv/black
-    rev: 22.6.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    - id: black
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        # two trailing spaces are a hard line break in markdown
+        args: [--markdown-linebreak-ext=md]
+      - id: check-toml
+      - id: check-yaml
+      - id: check-merge-conflict
+
+  - repo: local
+    hooks:
+      - id: lint
+        name: just lint
+        entry: just lint
+        language: system
+        pass_filenames: false
+
+      # Whole-project by nature: types cross module boundaries, so a per-file mypy is
+      # meaningless. Gates the push rather than every commit, because unlike a
+      # formatting failure a type error is not fixable by rerunning a formatter, and
+      # blocking work-in-progress commits on it just teaches everyone --no-verify.
+      - id: typecheck
+        name: just typecheck
+        entry: just typecheck
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

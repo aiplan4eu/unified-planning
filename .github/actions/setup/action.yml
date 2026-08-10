@@ -1,0 +1,31 @@
+name: Set up uv and just
+description: Install uv with lock-keyed caching, provision Python, and install a pinned just.
+
+inputs:
+  python-version:
+    description: Python version for uv to install and use.
+    required: false
+  enable-cache:
+    description: >
+      Whether setup-uv should cache the uv download cache. Jobs that re-resolve and
+      rewrite uv.lock must set this to "false": the cache key is the hash of uv.lock at
+      restore time, so such a job would save a cache keyed on the committed lock but
+      holding only the re-resolved artifacts, and every other job restoring that key
+      would then miss on everything it needs.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv and set the Python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+        enable-cache: ${{ inputs.enable-cache }}
+        cache-dependency-glob: "uv.lock"
+
+    - name: Install just
+      uses: extractions/setup-just@v3
+      with:
+        just-version: "1.30.1"

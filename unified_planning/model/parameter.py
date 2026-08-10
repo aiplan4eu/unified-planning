@@ -16,7 +16,6 @@
 This module defines the Parameter class. Both actions and fluents use this class to represent their parameters.
 """
 
-
 from typing import Optional
 from unified_planning.environment import Environment, get_environment
 import unified_planning as up
@@ -39,9 +38,9 @@ class Parameter:
         self._name = name
         self._typename = typename
         self._env = get_environment(environment)
-        assert self._env.type_manager.has_type(
-            typename
-        ), "type of parameter does not belong to the same environment given to the parameter"
+        assert self._env.type_manager.has_type(typename), (
+            "type of parameter does not belong to the same environment given to the parameter"
+        )
 
     def __repr__(self) -> str:
         return f"{str(self.type)} {self.name}"

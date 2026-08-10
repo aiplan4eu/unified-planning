@@ -14,7 +14,7 @@ We do mention some solvers whose integration is partial, but that may be neverth
 Action-Based Planning
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. list-table:: 
+.. list-table::
 
   * - Engine
     - Operation modes
@@ -25,8 +25,8 @@ Action-Based Planning
   * - `Fast-Downward`_
     - OneShot, Anytime
     - Y
-    - 
-    - 
+    -
+    -
     - plan length, action costs
   * - `ENHSP`_
     - OneShot, Anytime
@@ -39,7 +39,7 @@ Action-Based Planning
     - Y
     - Y
     - Y
-    - 
+    -
   * - `LPG`_
     - OneShot, Repair, Anytime
     - Y
@@ -55,9 +55,9 @@ Action-Based Planning
   * - `Pyperplan`_ [#pyperplan-note]_
     - OneShot
     - Y
-    - 
-    - 
-    - 
+    -
+    -
+    -
 
 .. [#aries-actions] Aries' focus is on hierarchical planning and scheduling and is likely not competitive with other planners in action-based planning.
 .. [#pyperplan-note] Pyperplan is mostly intended for education purposes and cannot be expected to scale to non-trivial problems.
@@ -78,24 +78,24 @@ Plan Validation
   * - `UP (builtin)`
     - Y
     - Y
-    - 
-    - 
-    - 
-    - 
+    -
+    -
+    -
+    -
   * - `Tamer`_
     - Y
     - Y
     - Y
-    - 
-    - 
-    - 
+    -
+    -
+    -
   * - `Aries`_
     - Y
     - Y
     - Y
     - Y
     - Y
-    - 
+    -
   * - `MA-Plan-Validator`_
     - Y
     -
@@ -107,7 +107,7 @@ Plan Validation
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. list-table:: 
+.. list-table::
 
   * - Engine
     - Operation modes
@@ -160,4 +160,3 @@ Support for task and motion planning is currently provided by the `Spiderplan`_ 
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
 .. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md
-

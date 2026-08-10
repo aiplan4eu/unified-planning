@@ -34,9 +34,9 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
             try:
                 to_add = module.get_test_cases()
                 if not isinstance(to_add, dict):
-                    assert (
-                        False
-                    ), f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
+                    assert False, (
+                        f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
+                    )
             except AttributeError:
                 to_expand = is_folder
         else:
@@ -77,9 +77,9 @@ def _get_pddl_test_cases(
             if filter is None or any(f in filename for f in filter):
                 problem_filenames.append(filename)
 
-    assert (
-        len(domain_filenames) == 1
-    ), f"Detected {len(domain_filenames)} domains, only 1 is accepted"
+    assert len(domain_filenames) == 1, (
+        f"Detected {len(domain_filenames)} domains, only 1 is accepted"
+    )
     domain_filename = domain_filenames[0]
     assert problem_filenames, "No problem files detected, check filter and block"
     res = {}

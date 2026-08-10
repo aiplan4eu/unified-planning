@@ -155,9 +155,9 @@ class InitialStateMixin:
                 ds = domain_size(self._object_set, p.type)
                 ground_size *= ds
 
-            assert (
-                inits.get(fluent, 0) <= ground_size
-            ), "Invariant broken: more initial values than state variables"
+            assert inits.get(fluent, 0) <= ground_size, (
+                "Invariant broken: more initial values than state variables"
+            )
             if ground_size != inits.get(fluent, 0):
                 undef_fluents.append(
                     fluent

@@ -19,7 +19,6 @@ singleton objects that are used throughout the system,
 such as the :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeChecker <unified_planning.Environment.type_checker>`, :func:`ExpressionManager <unified_planning.Environment.expression_manager>`, :func:`TypeManager <unified_planning.Environment.type_manager>`.
 """
 
-
 import sys
 from typing import IO, Optional
 import unified_planning

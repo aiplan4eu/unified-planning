@@ -29,10 +29,39 @@ from typing import (
     Union,
 )
 
-from pddl.logic.base import Formula, And, Or, Not, Imply, ForallCondition, ExistsCondition  # type: ignore
+from pddl.logic.base import (
+    Formula,
+    And,
+    Or,
+    Not,
+    Imply,
+    ForallCondition,
+    ExistsCondition,
+)  # type: ignore
 from pddl.logic.effects import When, Forall, Effect  # type: ignore
-from pddl.logic.functions import NumericFunction, BinaryFunction, Increase, Decrease, NumericValue, EqualTo as EqualToFunction, Assign, LesserThan, LesserEqualThan, GreaterThan, GreaterEqualThan, Minus, Plus, Times, Divide, Metric  # type: ignore
-from pddl.logic.predicates import DerivedPredicate, EqualTo as EqualToPredicate, Predicate  # type: ignore
+from pddl.logic.functions import (
+    NumericFunction,
+    BinaryFunction,
+    Increase,
+    Decrease,
+    NumericValue,
+    EqualTo as EqualToFunction,
+    Assign,
+    LesserThan,
+    LesserEqualThan,
+    GreaterThan,
+    GreaterEqualThan,
+    Minus,
+    Plus,
+    Times,
+    Divide,
+    Metric,
+)  # type: ignore
+from pddl.logic.predicates import (
+    DerivedPredicate,
+    EqualTo as EqualToPredicate,
+    Predicate,
+)  # type: ignore
 from pddl.logic.terms import Constant, Variable, Term  # type: ignore
 from pddl.core import Domain, Problem  # type: ignore
 from pddl.action import Action  # type: ignore
@@ -531,12 +560,12 @@ class AIPDDLConverter:
                     assert self._action_costs is not None
                     assert current_quantifier_variables == {}
                     assert current_condition == self._em.TRUE()
-                    self._action_costs[
-                        action_name
-                    ] = self._expression_converter.convert_expression(
-                        pddl_value,
-                        action_parameters_expression,
-                        current_quantifier_variables,
+                    self._action_costs[action_name] = (
+                        self._expression_converter.convert_expression(
+                            pddl_value,
+                            action_parameters_expression,
+                            current_quantifier_variables,
+                        )
                     )
                 else:
                     fluent = self._expression_converter.convert_expression(

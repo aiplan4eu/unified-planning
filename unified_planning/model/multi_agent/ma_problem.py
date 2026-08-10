@@ -293,13 +293,13 @@ class MultiAgentProblem(  # type: ignore[misc]
 
         :param goal: The expression added to the `MultiAgentProblem` :func:`goals <unified_planning.model.multi_agent.MultiAgentProblem.goals>`.
         """
-        assert (
-            isinstance(goal, bool) or goal.environment == self._env
-        ), "goal does not have the same environment of the problem"
+        assert isinstance(goal, bool) or goal.environment == self._env, (
+            "goal does not have the same environment of the problem"
+        )
         (goal_exp,) = self._env.expression_manager.auto_promote(goal)
-        assert self._env.type_checker.get_type(
-            goal_exp
-        ).is_bool_type(), "A goal must be a boolean expression"
+        assert self._env.type_checker.get_type(goal_exp).is_bool_type(), (
+            "A goal must be a boolean expression"
+        )
         if goal_exp != self._env.expression_manager.TRUE():
             self._goals.append(goal_exp)
 

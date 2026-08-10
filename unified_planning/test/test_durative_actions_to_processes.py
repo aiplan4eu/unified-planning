@@ -647,7 +647,6 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         with OneshotPlanner(
             name="opt-pddl-planner",
         ) as solver:
-
             with Compiler(
                 name="up_durative_actions_to_processes",
                 compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,

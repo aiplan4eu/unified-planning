@@ -12,7 +12,7 @@
     (tail ?snake - snake ?tailpos - location)
     (mouse-at ?foodpos - location)
   )
-  
+
   (:task hunt :parameters ())
   (:task move :parameters (?snake - snake ?snakepos ?goalpos - location))
 

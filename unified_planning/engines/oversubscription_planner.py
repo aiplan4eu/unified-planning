@@ -56,7 +56,12 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        return engine.is_oneshot_planner() and engine.supports(ProblemKind({"ACTION_BASED", "NEGATIVE_CONDITIONS"}, version=LATEST_PROBLEM_KIND_VERSION))  # type: ignore
+        return engine.is_oneshot_planner() and engine.supports(  # type: ignore
+            ProblemKind(
+                {"ACTION_BASED", "NEGATIVE_CONDITIONS"},
+                version=LATEST_PROBLEM_KIND_VERSION,
+            )
+        )
 
     @staticmethod
     def _supported_kind(engine: Type[Engine]) -> "ProblemKind":

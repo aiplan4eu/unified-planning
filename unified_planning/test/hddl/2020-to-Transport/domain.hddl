@@ -94,7 +94,7 @@
 
 	(:action drive
 		:parameters (?v - vehicle ?l1 - location ?l2 - location)
-		:precondition 
+		:precondition
 			(and
 				(at ?v ?l1)
 				(road ?l1 ?l2)
@@ -108,7 +108,7 @@
 
 	(:action noop
 		:parameters (?v - vehicle ?l2 - location)
-		:precondition 
+		:precondition
 			(and
 				(at ?v ?l2)
 			)
@@ -117,7 +117,7 @@
 
 	(:action pick_up
 		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition 
+		:precondition
 			(and
 				(at ?v ?l)
 				(at ?p ?l)
@@ -135,7 +135,7 @@
 
 	(:action drop
 		:parameters (?v - vehicle ?l - location ?p - package ?s1 - capacity_number ?s2 - capacity_number)
-		:precondition 
+		:precondition
 			(and
 				(at ?v ?l)
 				(in ?p ?v)

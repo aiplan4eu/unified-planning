@@ -18,7 +18,7 @@ for colab_file in `find ./docs/notebooks -name '*.ipynb'` ; do
     output=$(cd "${file_dir}" && ipython3 "${python_basename_file}" 2>&1)
     exit_code=$?
     rm ${python_file}
-    
+
     # NOTE: 14-task-and-motion-planning.ipynb may exit with code 134/139 even on successful execution
     # due to a OMPL issue (crash at shutdown). These exit codes are treated as success.
     if [ $exit_code -eq 0 ] || {

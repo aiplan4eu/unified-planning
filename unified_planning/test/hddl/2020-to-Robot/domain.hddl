@@ -9,14 +9,14 @@
 
   (:types PACKAGE ROOM ROOMDOOR)
 
-  (:predicates 
+  (:predicates
     (armempty)
-    (rloc ?loc - ROOM) 
+    (rloc ?loc - ROOM)
     (in ?obj - PACKAGE ?loc - ROOM)
     (holding ?obj - PACKAGE)
     (closed ?d - ROOMDOOR)
     (door ?loc1 - ROOM ?loc2 - ROOM ?d - ROOMDOOR)
-    
+
     (goal_in ?obj - PACKAGE ?loc - ROOM))
   (:task achieve-goals :parameters ())
   (:task release :parameters ())
@@ -27,11 +27,11 @@
 
 
 
-(:method release-putdown_abstract 
+(:method release-putdown_abstract
      :parameters (?loc - ROOM ?obj - PACKAGE)
 :task (release)
- :precondition (and 
-        (rloc ?loc) 
+ :precondition (and
+        (rloc ?loc)
         (holding ?obj)
         (goal_in ?obj ?loc))
  :ordered-tasks (and (putdown_abstract) (achieve-goals)))
@@ -53,9 +53,9 @@
 (:method achieve-goals-pickup
  :parameters (?loc - ROOM ?obj - PACKAGE)
  :task (achieve-goals)
- :precondition (and 
-        (rloc ?loc) 
-        (in ?obj ?loc) 
+ :precondition (and
+        (rloc ?loc)
+        (in ?obj ?loc)
         (not (goal_in ?obj ?loc)))
  :ordered-tasks (and (pickup_abstract ?obj) (release)))
 
@@ -102,7 +102,7 @@
 
 (:action pickup
  :parameters (?obj - PACKAGE ?loc - ROOM)
- :precondition (and (armempty) (rloc ?loc) (in ?obj ?loc)) 
+ :precondition (and (armempty) (rloc ?loc) (in ?obj ?loc))
  :effect (and (not (in ?obj ?loc)) (not (armempty)) (holding ?obj))
 )
 

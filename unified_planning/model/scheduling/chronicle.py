@@ -53,17 +53,17 @@ class Chronicle(TimedCondsEffs):
         if _parameters is not None:
             assert len(kwargs) == 0
             for n, t in _parameters.items():
-                assert self._environment.type_manager.has_type(
-                    t
-                ), "type of parameter does not belong to the same environment of the action"
+                assert self._environment.type_manager.has_type(t), (
+                    "type of parameter does not belong to the same environment of the action"
+                )
                 self._parameters[n] = up.model.parameter.Parameter(
                     n, t, self._environment
                 )
         else:
             for n, t in kwargs.items():
-                assert self._environment.type_manager.has_type(
-                    t
-                ), "type of parameter does not belong to the same environment of the action"
+                assert self._environment.type_manager.has_type(t), (
+                    "type of parameter does not belong to the same environment of the action"
+                )
                 self._parameters[n] = up.model.parameter.Parameter(
                     n, t, self._environment
                 )
@@ -80,7 +80,7 @@ class Chronicle(TimedCondsEffs):
             s.append(f"    duration = {str(self.duration)}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
-            for (c, scope) in self._constraints:
+            for c, scope in self._constraints:
                 s.append(f"      {str(c)} {str(scope)}\n")
             s.append("    ]\n")
         if len(self.conditions) > 0:

@@ -351,9 +351,9 @@ class TimedCondsEffs:
         effect: "up.model.effect.Effect",
     ):
         timing = Timing.from_time(timing)
-        assert (
-            self._environment == effect.environment
-        ), "effect does not have the same environment of the action"
+        assert self._environment == effect.environment, (
+            "effect does not have the same environment of the action"
+        )
         fluents_assigned = self._fluents_assigned.setdefault(timing, {})
         fluents_inc_dec = self._fluents_inc_dec.setdefault(timing, set())
         simulated_effect = self._simulated_effects.get(timing, None)

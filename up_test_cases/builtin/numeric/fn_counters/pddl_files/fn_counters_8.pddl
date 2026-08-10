@@ -17,7 +17,7 @@
 	(= (value c7) 0)
   )
 
-  (:goal (and 
+  (:goal (and
     (<= (+ (value c0) 1) (value c1))
 	(<= (+ (value c1) 1) (value c2))
 	(<= (+ (value c2) 1) (value c3))
@@ -27,5 +27,5 @@
 	(<= (+ (value c6) 1) (value c7))
   ))
 
-  
+
 )

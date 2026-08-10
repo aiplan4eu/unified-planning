@@ -9,11 +9,8 @@ on:
     secrets:
       CODECOV_TOKEN:
 
-env:
-  up_pyperplan_commit: "a24854213caf5038e1540e31613d24b93825fbb3"
-  up_fast_downward_commit: "68dff9e38ba1fa33cba2728d7ba18cbf01aacd99"
-  up_enhsp_commit: "4d9e925858483869093eee07d31e37305a120321"
-  up_fmap_commit: "f29e66c8483abcb8f17ff1c46a0745ee9b1e95fa"
+permissions:
+  contents: read
 
 jobs:
   basic-check:
@@ -21,196 +18,106 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
-
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
+          python-version: ${{ inputs.python-version }}
 
       - name: Install graphviz
-        run: sudo apt-get install graphviz graphviz-dev
-
-      - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt
-
-      - name: Install tarski
         run: |
-          python3 -m pip install tarski[arithmetic]
-          sudo apt install -y gringo
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
 
-      - name: Black check
-        run: |
-          python3 -m pip install black==22.6.0
-          python3 -m black --check --exclude=unified_planning/grpc/generated/ .
+      - name: Lint
+        run: just lint
 
       - name: MyPy check
-        run: python3 -m mypy unified_planning
+        run: just typecheck
 
-      - name: Test all packages imports
-        run: python3 scripts/test_imports.py
+      - name: Test all package imports
+        run: just check-imports
+
+  check-protobuf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Re-generate the protobuf bindings
+        run: just gen-protobuf
+
+      - name: Check that committed bindings match the generated ones
+        run: git diff --exit-code
 
   check-documentation:
     runs-on: ubuntu-latest
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
-
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: ${{inputs.python-version}}
-
-      - name: Install pandoc
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y pandoc
-
-      - name: Install python requirements
-        run: |
-          pip install --upgrade pip
-          pip install .
-          pip install -r docs/requirements.txt
-
-      - name: Listing dependency versions
-        run: pip freeze
-
-      - name: Building docs
-        run: make html
-        working-directory: ./docs
-
-  run-tests-ubuntu-22-04:
-    runs-on: ubuntu-22.04
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
+    needs: [basic-check, check-protobuf]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
 
-      - name: Install pyparsing version used in ROS1
-        run: python3 -m pip install pyparsing==2.4.6
-
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
-
-      - name: Install pysmt solver for contingent tests
-        run: yes | pysmt-install --z3
-
-      - name: Install tamerlite
-        run: python3 -m pip install "tamerlite[rust]"
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
+      - name: Install pandoc and graphviz
         run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; ./compile; cd ..
-          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+          sudo apt-get update
+          sudo apt-get install -y pandoc graphviz graphviz-dev
 
-      - name: Run tests
-        run: bash run_tests.sh
+      - name: Build docs
+        run: just build-doc
 
   run-tests-ubuntu:
     runs-on: ubuntu-latest
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
+    needs: [basic-check, check-protobuf]
+    env:
+      # The `uv sync --frozen` below is authoritative; this stops the `uv run`
+      # behind every `just` recipe from re-checking the lock and re-syncing.
+      UV_NO_SYNC: "1"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
-
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
+          python-version: ${{ inputs.python-version }}
 
       - name: Install graphviz
-        run: sudo apt-get install graphviz graphviz-dev
-
-      - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt
-
-      - name: Install tarski
         run: |
-          python3 -m pip install tarski[arithmetic]
-          sudo apt install -y gringo
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
 
-      - name: Install pysmt solver for contingent tests
-        run: yes | pysmt-install --z3
+      # Provisions Java and restores the cached build, so the setup-ci step below finds the
+      # jar already in place. Must come first: setup-ci builds ENHSP when it is missing, and
+      # that needs a JDK.
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
-      - name: Install tamerlite
-        run: python3 -m pip install "tamerlite[rust]"
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; ./compile; cd ..
-          mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public
+      # uv sync is exact: it prunes whatever is not named here, so every extra
+      # this job needs must be listed on this one line.
+      - name: Set up the environment (with plot + tarski + tamerlite + pyperplan extras)
+        run: just setup-ci plot tarski tamerlite pyperplan
 
       - name: Test code-snippets
-        run: bash scripts/test_code_snippets.sh
+        run: just test-snippets
 
       - name: Run tests
-        run: bash run_tests.sh
+        run: just test unified_planning xml
 
-      - name: "Upload coverage to Codecov"
+      - name: Upload coverage to Codecov
         if: ${{ github.repository == 'aiplan4eu/unified-planning' && inputs.python-version == '3.10' }}
         uses: codecov/codecov-action@v4
         with:
@@ -220,233 +127,96 @@ jobs:
 
   run-tests-windows:
     runs-on: windows-latest
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
+    needs: [basic-check, check-protobuf]
+    env:
+      # See run-tests-ubuntu.
+      UV_NO_SYNC: "1"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
 
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
+      # See run-tests-ubuntu: ENHSP first, so setup-ci finds the jar already built.
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
-
-      - name: Install pysmt solver for contingent tests
-        run: echo y | pysmt-install --z3
-
-      - name: Install tamerlite
-        run: python3 -m pip install "tamerlite[rust]"
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; bash ./compile; cd ..
-          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Set up the environment (with tarski + tamerlite + pyperplan extras)
+        run: just setup-ci tarski tamerlite pyperplan
 
       - name: Run tests
-        run: bash run_tests.sh
+        run: just test
 
   run-tests-macos:
     runs-on: macos-latest
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
+    needs: [basic-check, check-protobuf]
+    env:
+      # See run-tests-ubuntu.
+      UV_NO_SYNC: "1"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
+          python-version: ${{ inputs.python-version }}
 
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
+      # See run-tests-ubuntu: ENHSP first, so setup-ci finds the jar already built.
+      - name: Install ENHSP
+        uses: ./.github/actions/install-enhsp
 
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
-
-      - name: Install tarski
-        run: |
-          python3 -m pip install tarski[arithmetic]
-      #          brew install gringo -- Commented because not working on github actions
-
-      - name: Install pysmt solver for contingent tests
-        run: yes | pysmt-install --z3
-
-      - name: Install tamerlite
-        run: python3 -m pip install "tamerlite[rust]"
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
-        with:
-          distribution: "microsoft"
-          java-version: "17"
-
-      - name: Download and install ENHSP
-        run: |
-          git clone https://gitlab.com/enricos83/ENHSP-Public.git
-          cd ENHSP-Public; git checkout enhsp20-0.15.0; bash ./compile; cd ..
-          bash -c "mkdir .planners; mv ENHSP-Public/enhsp-dist .planners/enhsp-20; rm -rf ENHSP-Public"
+      # Exact sync: list every extra this job needs on this one line.
+      - name: Set up the environment (with tarski + tamerlite + pyperplan extras)
+        run: just setup-ci tarski tamerlite pyperplan
 
       - name: Run tests
-        run: bash run_tests.sh
-
-  check-protobuf:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v1
-        with:
-          python-version: ${{inputs.python-version}}
-
-      - name: Install Protobuf compiler
-        run: |
-          python3 -m pip install grpcio-tools==1.66.2
-
-      - name: Check Protobuf generation
-        run: bash scripts/generate_protobuf_bindings.sh
-
-      - name: Check Protobuf bindings
-        run: |
-          echo "Checking that the committed protobuf bindings are exactly the one generated from the declaration"
-          git diff --exit-code
+        run: just test
 
   run-colab-notebooks:
     runs-on: ubuntu-latest
-    needs: [
-        basic-check,
-        check-protobuf,
-      ]
+    needs: [basic-check, check-protobuf]
+    env:
+      # Load-bearing here: `uv run` restores lock-pinned versions, so without
+      # this `just test-colab` would undo the setuptools downgrade below.
+      UV_NO_SYNC: "1"
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v1
+      - name: Set up uv and just
+        uses: ./.github/actions/setup
         with:
-          python-version: ${{inputs.python-version}}
-
-      - name: Install Python dependencies
-        run: python3 -m pip install -r requirements.txt
-
-      - name: Install Development Python dependencies
-        run: python3 -m pip install -r dev-requirements.txt
+          python-version: ${{ inputs.python-version }}
 
       - name: Install graphviz
-        run: sudo apt-get install graphviz graphviz-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz graphviz-dev
 
-      - name: Install plot Python dependencies
-        run: python3 -m pip install -r plot-requirements.txt
+      # Exact sync: list every extra and group this job needs on this one line.
+      # The docs group supplies jupyter and ipython, which scripts/test_colab.sh
+      # needs; the engine extras cover what the notebooks plan with.
+      - name: Sync environment (with plot + engine extras, docs group)
+        run: uv sync --frozen --extra plot --extra tamerlite --extra aries --extra pyperplan --extra fast-downward --extra enhsp --extra fmap --group docs
 
-      - name: Install pysmt solver for contingent tests
-        run: yes | pysmt-install --z3
-
-      - name: Install tamerlite
-        run: python3 -m pip install "tamerlite[rust]"
-
-      - name: Checkout up-pyperplan
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-pyperplan
-          path: up-pyperplan
-          ref: ${{env.up_pyperplan_commit}}
-
-      - name: Install up-pyperplan
-        run: python3 -m pip install up-pyperplan/
-
-      - name: Checkout up-fast-downward
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-fast-downward
-          path: up-fast-downward
-          ref: ${{env.up_fast_downward_commit}}
-
-      - name: Install up-fast-downward
-        run: python3 -m pip install up-fast-downward/
-
-      - name: Setup java for ENHSP
-        uses: actions/setup-java@v2
+      # up-enhsp and up-fmap both shell out to java.
+      - name: Setup java for the ENHSP and FMAP engines
+        uses: actions/setup-java@v4
         with:
           distribution: "microsoft"
           java-version: "17"
 
-      - name: Setup older setuptools for ENHSP
-        run: python3 -m pip install "setuptools<82"  # ENHSP requires pkg_resources
-
-      - name: Checkout up-enhsp
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-enhsp
-          path: up-enhsp
-          ref: ${{env.up_enhsp_commit}}
-
-      - name: Install up-enhsp
-        run: python3 -m pip install up-enhsp/
-
-      - name: Install up-aries
-        run: python3 -m pip install up-aries
-
-      - name: Checkout up-fmap
-        uses: actions/checkout@v2
-        with:
-          repository: aiplan4eu/up-fmap
-          path: up-fmap
-          ref: ${{env.up_fmap_commit}}
-
-      - name: Install up-fmap
-        run: python3 -m pip install up-fmap/
-
-      - name: Install jupyter and ipython3
-        run: |
-          sudo apt-get update
-          sudo apt install jupyter
-          python3 -m pip install ipython
-
-      - name: Install unified-planning from source
-        run: python3 -m pip install .
+      # Must stay after the sync, which would otherwise prune the downgrade away.
+      - name: Downgrade setuptools for up-fmap
+        run: uv pip install "setuptools<82" # up_fmap.fmap_planner imports pkg_resources
 
       - name: Run colabs
-        run: bash scripts/test_colab.sh
+        run: just test-colab

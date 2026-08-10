@@ -145,9 +145,9 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         kind.unset_parameters("UNBOUNDED_INT_ACTION_PARAMETERS")
         kind.unset_parameters("REAL_ACTION_PARAMETERS")
         if not self.skip_checks and not simulator.supports(kind):
-            msg: Optional[
-                str
-            ] = f"We cannot establish whether {self.name} can validate this problem!"
+            msg: Optional[str] = (
+                f"We cannot establish whether {self.name} can validate this problem!"
+            )
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:
@@ -873,9 +873,9 @@ def get_temporal_metric_evaluations(
         if quality_metric.is_minimize_makespan():
             metric_evaluations[quality_metric] = _extract_makespan(problem, plan)
         elif quality_metric.is_minimize_action_costs():
-            assert (
-                trace is not None
-            ), "To evaluate an action_costs metric the trace is required"
+            assert trace is not None, (
+                "To evaluate an action_costs metric the trace is required"
+            )
             value, inapplicable_ai = _extract_action_costs(
                 problem, plan, quality_metric, trace, state_evaluator
             )
@@ -891,9 +891,9 @@ def get_temporal_metric_evaluations(
                 quality_metric,
                 (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
             )
-            assert (
-                trace is not None
-            ), "A trace is required to evaluate a metric that minimizes or maximizes an expression on the final state"
+            assert trace is not None, (
+                "A trace is required to evaluate a metric that minimizes or maximizes an expression on the final state"
+            )
             if state_evaluator is None:
                 state_evaluator = StateEvaluator(problem)
             final_state = trace[max(trace.keys())]

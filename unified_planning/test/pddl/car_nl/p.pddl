@@ -14,7 +14,7 @@
   )
 
   (:goal
-    (and 
+    (and
 	(>= (d) 29.5 )
 	(<= (d) 30.5 )
 	(engine_stopped)

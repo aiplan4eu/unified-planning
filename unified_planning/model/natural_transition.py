@@ -130,9 +130,9 @@ class Process(NaturalTransition):
         self._fluents_inc_dec = set()
 
     def _add_effect_instance(self, effect: "up.model.effect.Effect"):
-        assert (
-            effect.environment == self._environment
-        ), "effect does not have the same environment of the Process"
+        assert effect.environment == self._environment, (
+            "effect does not have the same environment of the Process"
+        )
 
         self._effects.append(effect)
 

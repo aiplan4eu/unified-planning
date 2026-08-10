@@ -14,8 +14,8 @@
 #
 """This module implements the grounder that uses tarski."""
 
-
 import shutil
+from importlib.util import find_spec
 from typing import Optional, Tuple, Dict, List
 import tarski
 import unified_planning as up
@@ -32,9 +32,13 @@ from unified_planning.exceptions import UPUsageError
 from tarski.grounding import LPGroundingStrategy
 
 
-gringo = shutil.which("gringo")
-if gringo is None:
-    raise ImportError("Tarski grounder needs gringo installed")
+# Mirrors tarski's own get_gringo_command(): the clingo Python bindings are sufficient on their
+# own, because tarski drives them through the gringo.py wrapper it ships rather than through an
+# external binary. A system-wide gringo is still honoured for anyone relying on one.
+if shutil.which("gringo") is None and find_spec("clingo") is None:
+    raise ImportError(
+        "Tarski grounder needs gringo or the clingo Python bindings installed"
+    )
 
 
 credits = Credits(
@@ -132,9 +136,9 @@ class TarskiGrounder(Engine, CompilerMixin):
         objects = {object.name: object for object in problem.all_objects}
         types: Dict[str, Optional["up.model.Type"]] = {}
         if not problem.has_type("object"):
-            types[
-                "object"
-            ] = None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+            types["object"] = (
+                None  # we set object as None, so when it is the father of a type in tarski, in UP it will be None.
+            )
         for action_name, list_of_tuple_of_parameters in actions.items():
             action = problem.action(action_name)
             parameters = {parameter.name: parameter for parameter in action.parameters}

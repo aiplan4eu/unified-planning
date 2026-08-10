@@ -194,9 +194,9 @@ def get_example_problems():
     robot_fluent_of_user_type_with_int_id = TestCase(
         problem=problem, solvable=True, valid_plans=[plan]
     )
-    problems[
-        "robot_fluent_of_user_type_with_int_id"
-    ] = robot_fluent_of_user_type_with_int_id
+    problems["robot_fluent_of_user_type_with_int_id"] = (
+        robot_fluent_of_user_type_with_int_id
+    )
 
     # robot locations connected without battery
     Location = UserType("Location")
@@ -277,9 +277,9 @@ def get_example_problems():
     robot_locations_connected_without_battery = TestCase(
         problem=problem, solvable=True, valid_plans=[plan]
     )
-    problems[
-        "robot_locations_connected_without_battery"
-    ] = robot_locations_connected_without_battery
+    problems["robot_locations_connected_without_battery"] = (
+        robot_locations_connected_without_battery
+    )
 
     # robot_loader_weak_bridge
     # version of robot loader with weak bridges that can't be crossed with
@@ -552,9 +552,9 @@ def get_example_problems():
     hierarchical_blocks_world_object_as_root = TestCase(
         problem=problem, solvable=True, valid_plans=[plan]
     )
-    problems[
-        "hierarchical_blocks_world_object_as_root"
-    ] = hierarchical_blocks_world_object_as_root
+    problems["hierarchical_blocks_world_object_as_root"] = (
+        hierarchical_blocks_world_object_as_root
+    )
 
     # hierarchical blocks world with object
     Entity = UserType("Entity", None)  # None can be avoided
@@ -623,9 +623,9 @@ def get_example_problems():
     hierarchical_blocks_world_with_object = TestCase(
         problem=problem, solvable=True, valid_plans=[plan]
     )
-    problems[
-        "hierarchical_blocks_world_with_object"
-    ] = hierarchical_blocks_world_with_object
+    problems["hierarchical_blocks_world_with_object"] = (
+        hierarchical_blocks_world_with_object
+    )
 
     # travel with consumptions
     problem = Problem("travel_with_consumptions")
@@ -868,9 +868,9 @@ def get_example_problems():
     locations_connected_visited_oversubscription = TestCase(
         problem=problem, solvable=True, valid_plans=[plan], optimum=15
     )
-    problems[
-        "locations_connected_visited_oversubscription"
-    ] = locations_connected_visited_oversubscription
+    problems["locations_connected_visited_oversubscription"] = (
+        locations_connected_visited_oversubscription
+    )
 
     # locations connected cost minimize
     Location = UserType("Location")

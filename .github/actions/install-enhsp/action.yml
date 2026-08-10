@@ -1,0 +1,43 @@
+name: Install ENHSP
+description: Set up Java and build ENHSP into .planners/enhsp-20, where the test suite looks for it.
+
+inputs:
+  tag:
+    description: ENHSP-Public tag to build.
+    required: false
+    default: "enhsp20-0.15.0"
+  java-version:
+    description: JDK version used to compile ENHSP.
+    required: false
+    default: "17"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup java for ENHSP
+      uses: actions/setup-java@v4
+      with:
+        distribution: "microsoft"
+        java-version: ${{ inputs.java-version }}
+
+    # Resolved only to key the cache: a moved tag then invalidates it instead of
+    # serving a stale build forever.
+    - name: Resolve the ENHSP tag to a commit
+      id: rev
+      shell: bash
+      run: |
+        sha=$(git ls-remote https://gitlab.com/enricos83/ENHSP-Public.git "refs/tags/${{ inputs.tag }}" | cut -f1)
+        test -n "$sha" || { echo "::error::ENHSP tag ${{ inputs.tag }} not found"; exit 1; }
+        echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+    - name: Restore the ENHSP build
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: .planners/enhsp-20
+        key: enhsp-${{ runner.os }}-${{ inputs.tag }}-${{ steps.rev.outputs.sha }}
+
+    - name: Build ENHSP
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: just install-enhsp "${{ inputs.tag }}"

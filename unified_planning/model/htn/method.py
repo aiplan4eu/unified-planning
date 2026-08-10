@@ -17,6 +17,7 @@ This module defines the Method class.
 A Method has a name, a list of Parameters, a list of conditions
 and a list of subtasks.
 """
+
 from collections import OrderedDict
 from typing import List, Union, Optional
 
@@ -153,9 +154,9 @@ class Method(AbstractTaskNetwork):
     @property
     def achieved_task(self) -> ParameterizedTask:
         """Returns the task that this method achieves."""
-        assert (
-            self._task is not None
-        ), "The achieved task was previously set (see the set_task method)."
+        assert self._task is not None, (
+            "The achieved task was previously set (see the set_task method)."
+        )
         return self._task
 
     def set_task(self, task: Union[Task, ParameterizedTask], *arguments: Parameter):
@@ -180,23 +181,23 @@ class Method(AbstractTaskNetwork):
         """
         assert self._task is None, f"Method {self.name} was already assigned a task"
         if isinstance(task, ParameterizedTask):
-            assert (
-                len(arguments) == 0
-            ), "Unexpected arguments passed along a ParameterizedTask"
-            assert all(
-                p in self.parameters for p in task.parameters
-            ), "A parameter of the task does not appear as a parameter of the method."
+            assert len(arguments) == 0, (
+                "Unexpected arguments passed along a ParameterizedTask"
+            )
+            assert all(p in self.parameters for p in task.parameters), (
+                "A parameter of the task does not appear as a parameter of the method."
+            )
             self._task = task
         elif isinstance(task, Task) and len(arguments) == 0:
             for task_param in task.parameters:
-                assert (
-                    task_param.name in self._parameters
-                ), f"Missing task parameter '{task_param.name}' in method {self._name}. Please pass all parameters explicitly."
+                assert task_param.name in self._parameters, (
+                    f"Missing task parameter '{task_param.name}' in method {self._name}. Please pass all parameters explicitly."
+                )
             self._task = ParameterizedTask(task, *task.parameters)
         else:
-            assert all(
-                p in self.parameters for p in arguments
-            ), "An argument passed to the task does not appear as a parameter of the method."
+            assert all(p in self.parameters for p in arguments), (
+                "An argument passed to the task does not appear as a parameter of the method."
+            )
             self._task = ParameterizedTask(task, *arguments)
 
     @property

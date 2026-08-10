@@ -1057,7 +1057,7 @@ class TestPddlIO(unittest_TestCase):
                 problem.add_object(object_j)
                 problem.set_initial_value(value_fluent(object_j), 0)
                 if j > 0:
-                    previous_object = problem.object(f"c{str(j-1)}")
+                    previous_object = problem.object(f"c{str(j - 1)}")
                     problem.add_goal(
                         LE(
                             Plus(value_fluent(previous_object), 1),
@@ -1083,9 +1083,9 @@ class TestPddlIO(unittest_TestCase):
             "(:goal (and (x) (y) (z)))",
             "(:goal (and (or (x) (y)) (y) (z)))",
         ]
-        assert len(goals) == len(
-            expected_goals
-        ), "goals and expected_goals must have the same length"
+        assert len(goals) == len(expected_goals), (
+            "goals and expected_goals must have the same length"
+        )
         for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
             problem = Problem(f"test_{i}")
             problem.add_fluent(x, default_initial_value=False)

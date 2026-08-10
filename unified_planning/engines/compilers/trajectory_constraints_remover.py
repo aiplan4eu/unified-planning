@@ -25,6 +25,7 @@ from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.expression import Expression
 from functools import partial
+from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
@@ -143,9 +144,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         assert isinstance(problem, Problem)
         env = problem.environment
         expression_quantifier_remover = ExpressionQuantifiersRemover(env)
-        grounding_result = engines.compilers.grounder.Grounder().compile(
-            problem, CompilationKind.GROUNDING
-        )
+        grounding_result = Grounder().compile(problem, CompilationKind.GROUNDING)
         assert isinstance(grounding_result.problem, Problem)
         grounded_problem = grounding_result.problem
         new_problem = grounded_problem.clone()

@@ -180,9 +180,9 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: FrozenSet[
-            "up.model.variable.Variable"
-        ] = self.environment.free_vars_oracle.get_free_variables(args[0])
+        free_vars: FrozenSet["up.model.variable.Variable"] = (
+            self.environment.free_vars_oracle.get_free_variables(args[0])
+        )
         vars = set(var for var in expression.variables() if var in free_vars)
         # Here we check if the arg is in the form:
         # phi(l_i) and l_i == x with phi and x general formulae and l_i a variable
@@ -226,9 +226,9 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
-        free_vars: FrozenSet[
-            "up.model.variable.Variable"
-        ] = self.environment.free_vars_oracle.get_free_variables(args[0])
+        free_vars: FrozenSet["up.model.variable.Variable"] = (
+            self.environment.free_vars_oracle.get_free_variables(args[0])
+        )
         vars = tuple(var for var in expression.variables() if var in free_vars)
         if len(vars) == 0:
             return args[0]

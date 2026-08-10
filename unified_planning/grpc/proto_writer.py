@@ -650,7 +650,7 @@ class ProtobufWriter(Converter):
 
         constraints = []
         scoped_constraints = []
-        for (c, scope) in problem.base_scoped_constraints:
+        for c, scope in problem.base_scoped_constraints:
             constraint = self.convert(c)
             scope = [self.convert(scope_item) for scope_item in scope]
             scoped_constraints.append(
