@@ -76,7 +76,18 @@ from unified_planning.model import (
 from fractions import Fraction
 from typing import Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
 from pyparsing import ParseResults
-from unified_planning.io.utils import parse_string, parse_file
+
+
+def _parse_file(grammar, problem_filename: Union[str, Sequence[str]], parse_all: bool):
+    """Parses a single ANML file, or several of them concatenated into one problem."""
+    if isinstance(problem_filename, str):
+        return grammar.parse_file(problem_filename, parse_all=parse_all)
+    problem_parts: List[str] = []
+    for filename in problem_filename:
+        assert isinstance(filename, str), "Typing not respected"
+        with open(filename, encoding="utf-8-sig") as file:
+            problem_parts.append(file.read())
+    return grammar.parse_string("\n".join(problem_parts), parse_all=parse_all)
 
 
 class ANMLReader:
@@ -238,7 +249,7 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        parse_file(grammar.problem, problem_filename, parse_all=True)
+        _parse_file(grammar.problem, problem_filename, parse_all=True)
         if problem_name is None:
             if isinstance(problem_filename, str):
                 problem_name = problem_filename
@@ -262,7 +273,7 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        parse_string(grammar.problem, problem_str, parse_all=True)
+        grammar.problem.parse_string(problem_str, parse_all=True)
 
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
