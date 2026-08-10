@@ -8,15 +8,17 @@ license = "Apache-2.0"
 authors = [{ name = "AIPlan4EU Project", email = "aiplan4eu@fbk.eu" }]
 keywords = ["planning", "logic", "STRIPS", "RDDL"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
 ]
 dependencies = [
     "pyparsing>=3.0.0",
@@ -29,6 +31,9 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://www.aiplan4eu-project.eu"
+Documentation = "https://unified-planning.readthedocs.io/en/latest/"
+Source = "https://github.com/aiplan4eu/unified-planning"
+Issues = "https://github.com/aiplan4eu/unified-planning/issues"
 
 [project.scripts]
 up = "unified_planning.cmd.up:main"
