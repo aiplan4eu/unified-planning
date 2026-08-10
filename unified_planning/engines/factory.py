@@ -400,12 +400,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definitionof '%s' engine" % name
+                "Missing 'module_name' value in definition of '%s' engine" % name
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definitionof '%s' engine" % name
+                "Missing 'class_name' value in definition of '%s' engine" % name
             )
 
             self.add_engine(name, module_name, class_name)
