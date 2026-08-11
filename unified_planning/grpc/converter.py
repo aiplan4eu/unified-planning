@@ -14,8 +14,10 @@
 #
 
 
+from typing import Set, Tuple, Type
+
 # global variable to avoid repetition of warnings
-_PREVIOUS_WARNINGS = set()
+_PREVIOUS_WARNINGS: Set[Tuple[Type, Type]] = set()
 
 
 class handles:

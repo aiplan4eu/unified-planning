@@ -307,8 +307,12 @@ class TypeChecker(walkers.dag.DagWalker):
                 lower = l
                 upper = u
             else:
-                lower = min(lower * l, lower * u, upper * l, upper * u)
-                upper = max(lower * l, lower * u, upper * l, upper * u)
+                assert upper is not None
+                # both bounds must be computed from the same products: assigning
+                # lower first and reusing it for upper overestimates the latter.
+                products = (lower * l, lower * u, upper * l, upper * u)
+                lower = min(products)
+                upper = max(products)
         if lower == -float("inf") or (
             lower is not None and math.isnan(cast(float, lower))
         ):

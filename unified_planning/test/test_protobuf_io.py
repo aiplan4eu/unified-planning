@@ -15,6 +15,7 @@
 
 
 import dataclasses
+from typing import Callable, List, Union
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
@@ -336,6 +337,7 @@ class TestProtobufIO(unittest_TestCase):
         global_end_symbol = "up:global_end"
         int_delay = 5
         frac_delay = Fraction(1, 5)
+        delays: List[Union[int, Fraction]] = [int_delay, frac_delay]
         act = InstantaneousAction("move")
 
         # [ ] Delay
@@ -352,12 +354,18 @@ class TestProtobufIO(unittest_TestCase):
         # [x] Delay
         # [ ] Container
         # StartTiming(5) --> (up:plus (up:start) 5)
-        for timing, symbol in zip(
-            [StartTiming, EndTiming, GlobalStartTiming, GlobalEndTiming],
+        timing_builders: List[Callable[..., Timing]] = [
+            StartTiming,
+            EndTiming,
+            GlobalStartTiming,
+            GlobalEndTiming,
+        ]
+        for timing_builder, symbol in zip(
+            timing_builders,
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
         ):
-            for delay in [int_delay, frac_delay]:
-                t_pb = build(timing() + delay)
+            for delay in delays:
+                t_pb = build(timing_builder() + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=1)
@@ -382,12 +390,16 @@ class TestProtobufIO(unittest_TestCase):
         # [x] Delay
         # [x] Container
         # StartTiming(5, move) --> (up:plus (up:start move) 5)
-        for timing, symbol in zip(
-            [StartTiming, EndTiming],
+        contained_timing_builders: List[Callable[..., Timing]] = [
+            StartTiming,
+            EndTiming,
+        ]
+        for timing_builder, symbol in zip(
+            contained_timing_builders,
             [start_symbol, end_symbol],
         ):
-            for delay in [int_delay, frac_delay]:
-                t_pb = build(timing(container=act.name) + delay)
+            for delay in delays:
+                t_pb = build(timing_builder(container=act.name) + delay)
                 check(t_pb, fun_app_kind, tpe=time_type, length=3)
                 check(t_pb.list[0], fun_sym_kind, symbol=add_symbol)
                 check(t_pb.list[1], fun_app_kind, tpe=time_type, length=2)

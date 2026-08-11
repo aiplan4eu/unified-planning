@@ -394,6 +394,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         for action in problem.actions:
             if isinstance(action, InstantaneousAction):
                 new_action = name_action_map[action.name]
+                assert isinstance(new_action, InstantaneousAction)
                 new_effects: List[Effect] = []
                 for e in new_action.effects:
                     fl, v = e.fluent, e.value
@@ -417,6 +418,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                 new_to_old[new_action] = action
             elif isinstance(action, DurativeAction):
                 new_durative_action = name_action_map[action.name]
+                assert isinstance(new_durative_action, DurativeAction)
                 new_durative_action.set_duration_constraint(action.duration)
 
                 for t, el in new_durative_action.effects.items():
