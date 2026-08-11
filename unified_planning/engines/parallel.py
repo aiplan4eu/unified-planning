@@ -14,6 +14,7 @@
 #
 
 
+import sys
 import warnings
 import unified_planning as up
 import unified_planning.engines as engines
@@ -27,8 +28,18 @@ from unified_planning.engines.results import (
     ValidationResult,
     PlanGenerationResult,
 )
-from typing import IO, Dict, List, Optional, Tuple, Callable, cast
-from multiprocessing import Process, Queue
+from typing import IO, Any, Dict, List, Optional, Tuple, Callable, cast
+from multiprocessing import Queue, get_all_start_methods, get_context
+
+
+# Keep forking where it was the default before Python 3.14: the `forkserver` method it
+# switched Linux to re-imports `__main__` in every child, which breaks callers that have no
+# `if __name__ == "__main__":` guard. Windows and macOS were already on `spawn`.
+_mp_context: Any
+if sys.platform != "darwin" and "fork" in get_all_start_methods():
+    _mp_context = get_context("fork")
+else:
+    _mp_context = get_context()
 
 
 class Parallel(
@@ -75,11 +86,11 @@ class Parallel(
         return True
 
     def _run_parallel(self, fname, *args) -> List[Result]:
-        signaling_queue: Queue = Queue()
+        signaling_queue: Queue = _mp_context.Queue()
         processes = []
         for idx, (engine_name, opts) in enumerate(self.engines):
             options = opts
-            _p = Process(
+            _p = _mp_context.Process(
                 name=str(idx),
                 target=_run,
                 args=(
