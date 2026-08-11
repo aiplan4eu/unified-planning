@@ -121,7 +121,7 @@ jobs:
         run: just test unified_planning xml
 
       - name: Upload coverage to Codecov
-        if: ${{ github.repository == 'aiplan4eu/unified-planning' && inputs.python-version == '3.10' }}
+        if: ${{ github.repository == 'aiplan4eu/unified-planning' && github.ref == 'refs/heads/master' && inputs.python-version == '3.12' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
