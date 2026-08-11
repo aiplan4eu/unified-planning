@@ -26,6 +26,6 @@ runs:
         cache-dependency-glob: "uv.lock"
 
     - name: Install just
-      uses: extractions/setup-just@v3
+      uses: extractions/setup-just@v4
       with:
         just-version: "1.30.1"
