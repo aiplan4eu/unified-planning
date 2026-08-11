@@ -50,6 +50,9 @@ jobs:
         uses: ./.github/actions/setup
         with:
           python-version: ${{ inputs.python-version }}
+          # Starts at the same time as basic-check and computes the same cache key, so on
+          # a cold cache the two would race to reserve it. basic-check writes; this reads.
+          save-cache: "false"
 
       - name: Re-generate the protobuf bindings
         run: just gen-protobuf

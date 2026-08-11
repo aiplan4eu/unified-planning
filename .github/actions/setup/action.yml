@@ -14,6 +14,15 @@ inputs:
       would then miss on everything it needs.
     required: false
     default: "true"
+  save-cache:
+    description: >
+      Whether setup-uv should write the cache back at the end of the job. The key is
+      keyed on the lock, the OS and the Python version but not on the job, so every
+      concurrent job in a matrix leg computes the same one; on a cold cache they race
+      to reserve it and the losers warn. Set this to "false" on every job but the one
+      designated to populate the cache. Restoring is unaffected.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -23,6 +32,7 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
         enable-cache: ${{ inputs.enable-cache }}
+        save-cache: ${{ inputs.save-cache }}
         cache-dependency-glob: "uv.lock"
 
     - name: Install just
