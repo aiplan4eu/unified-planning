@@ -395,6 +395,7 @@ def run_command_posix_select(
         cwd=cwd,
     )
     engine._process = process
+    assert process.stdout is not None and process.stderr is not None
     if hasattr(output_stream, "process"):
         setattr(output_stream, "process", process)
     timeout_occurred: bool = False

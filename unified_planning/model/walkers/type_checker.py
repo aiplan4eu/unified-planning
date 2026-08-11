@@ -307,6 +307,7 @@ class TypeChecker(walkers.dag.DagWalker):
                 lower = l
                 upper = u
             else:
+                assert upper is not None
                 lower = min(lower * l, lower * u, upper * l, upper * u)
                 upper = max(lower * l, lower * u, upper * l, upper * u)
         if lower == -float("inf") or (
