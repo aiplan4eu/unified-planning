@@ -4668,14 +4668,14 @@ wheels = [
 
 [[package]]
 name = "up-symk"
-version = "1.5.0"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "setuptools" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/8d/e627f0855abc727772d6adaa4be1ac6eb40c75c67857bf53274ab466280f/up_symk-1.5.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:e737170db528beab50c2d49b841c5a6528e27bce311e19e257dfd5d59e81d963", size = 2142236, upload-time = "2026-07-23T10:28:34.052Z" },
-    { url = "https://files.pythonhosted.org/packages/49/18/08161a89bab9a6a594db6bc43b671e6dd31aab1f721e4d256b2e7aa6867c/up_symk-1.5.0-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:d3f1dcba19a684f3e1289a6ad7b596043228e78d1636343a21e53c52f5096b54", size = 62666971, upload-time = "2026-07-23T10:28:38.533Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/63/1707cb70b6d9934cbd125794473f682e480419388ac4d04b13eb7f39684e/up_symk-1.6.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c72bab1834474f3ab760199ac09120485805b93dde4044ecb6651174e2d898c6", size = 2142443, upload-time = "2026-07-30T08:51:55.524Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/e1/a3a13b16f5a1fde2f23c3df32922375abdbaa9f39f3a051c773456a1a14f/up_symk-1.6.0-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4f4b7eaca208ebeec30924b78c271906f8370ba1084e0684898092e027214e94", size = 62667068, upload-time = "2026-07-30T08:51:57.467Z" },
 ]
 
 [[package]]
