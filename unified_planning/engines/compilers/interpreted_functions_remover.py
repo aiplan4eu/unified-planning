@@ -558,7 +558,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if simplified_c.is_bool_constant():
                     if simplified_c.constant_value() == False:
                         return None
-                    elif simplified_c.constant_value() == True:
+                    if simplified_c.constant_value() == True:
                         continue
                 for nii, ncs in new_dur_a.conditions.items():
                     if nii == ii and em.Not(simplified_c) in ncs:
@@ -582,7 +582,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 if simplified_c.is_bool_constant():
                     if simplified_c.constant_value() == False:
                         return None
-                    elif simplified_c.constant_value() == True:
+                    if simplified_c.constant_value() == True:
                         continue
                 if em.Not(simplified_c) not in new_ia.preconditions:
                     new_ia.add_precondition(simplified_c)
@@ -606,21 +606,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         """
         if t.is_bool_type():
             return False
-        elif t.is_int_type() or t.is_real_type():
+        if t.is_int_type() or t.is_real_type():
             assert hasattr(t, "lower_bound")
             assert hasattr(t, "upper_bound")
             c = int if t.is_int_type() else Fraction
             if t.lower_bound is None:
                 if t.upper_bound is None:
                     return c(0)
-                else:
-                    return c(t.upper_bound - 1)
-            else:
-                if t.upper_bound is None:
-                    return c(t.lower_bound + 1)
-                else:
-                    return c((t.upper_bound + t.lower_bound) / 2)
-        elif t.is_user_type():
+                return c(t.upper_bound - 1)
+            if t.upper_bound is None:
+                return c(t.lower_bound + 1)
+            return c((t.upper_bound + t.lower_bound) / 2)
+        if t.is_user_type():
             try:
                 return next(problem.objects(t))
             except StopIteration:
@@ -788,8 +785,7 @@ def custom_replace(
             action_instance.agent,
             action_instance.motion_paths,
         )
-    else:
-        return None
+    return None
 
 
 def knowledge_compatible(

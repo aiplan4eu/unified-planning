@@ -102,8 +102,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         assert isinstance(self._problem, up.model.Problem)
         # prune_actions=False: a fluent that never appears as an effect target is
         # "static" and would otherwise be folded into its declared initial value,
@@ -384,43 +383,38 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                             f"The fluent {fluent} is modified by 2 different assignments in the same action."
                         )
                     # solve with add-after-delete logic
-                    elif not old_value.bool_constant_value():
+                    if not old_value.bool_constant_value():
                         return fluent, new_value
-                    else:
-                        return None, None
-                elif old_value is not None and fluent not in assigned_fluent:
+                    return None, None
+                if old_value is not None and fluent not in assigned_fluent:
                     raise UPConflictingEffectsException(
                         f"The fluent {fluent} is modified by 1 assignments and an increase/decrease in the same action."
                     )
-                else:
-                    assigned_fluent.add(fluent)
-                    return fluent, new_value
-            else:
-                if fluent in assigned_fluent:
-                    raise UPConflictingEffectsException(
-                        f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same action."
-                    )
-                # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
-                # otherwise we take it's evaluation in the state as it's value.
-                f_eval = updated_values.get(fluent, evaluate(fluent))
-                if effect.is_increase():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() + new_value.constant_value()
-                        )[0],
-                    )
-                elif effect.is_decrease():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() - new_value.constant_value()
-                        )[0],
-                    )
-                else:
-                    raise NotImplementedError
-        else:
-            return None, None
+                assigned_fluent.add(fluent)
+                return fluent, new_value
+            if fluent in assigned_fluent:
+                raise UPConflictingEffectsException(
+                    f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same action."
+                )
+            # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
+            # otherwise we take it's evaluation in the state as it's value.
+            f_eval = updated_values.get(fluent, evaluate(fluent))
+            if effect.is_increase():
+                return (
+                    fluent,
+                    em.auto_promote(
+                        f_eval.constant_value() + new_value.constant_value()
+                    )[0],
+                )
+            if effect.is_decrease():
+                return (
+                    fluent,
+                    em.auto_promote(
+                        f_eval.constant_value() - new_value.constant_value()
+                    )[0],
+                )
+            raise NotImplementedError
+        return None, None
 
     def _get_applicable_actions(
         self, state: "up.model.State"
@@ -740,9 +734,9 @@ def evaluate_quality_metric(
         action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
         assert isinstance(action_cost, up.model.FNode)
         return se.evaluate(action_cost, state).constant_value() + metric_value
-    elif quality_metric.is_minimize_sequential_plan_length():
+    if quality_metric.is_minimize_sequential_plan_length():
         return metric_value + 1
-    elif (
+    if (
         quality_metric.is_minimize_expression_on_final_state()
         or quality_metric.is_maximize_expression_on_final_state()
     ):
@@ -751,17 +745,16 @@ def evaluate_quality_metric(
             (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
         )
         return se.evaluate(quality_metric.expression, next_state).constant_value()
-    elif quality_metric.is_oversubscription():
+    if quality_metric.is_oversubscription():
         assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, next_state).bool_constant_value():
                 total_gain += gain
         return total_gain
-    else:
-        raise NotImplementedError(
-            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
-        )
+    raise NotImplementedError(
+        f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+    )
 
 
 def evaluate_quality_metric_in_initial_state(
@@ -785,9 +778,9 @@ def evaluate_quality_metric_in_initial_state(
     initial_state = simulator.get_initial_state()
     if quality_metric.is_minimize_action_costs():
         return 0
-    elif quality_metric.is_minimize_sequential_plan_length():
+    if quality_metric.is_minimize_sequential_plan_length():
         return 0
-    elif (
+    if (
         quality_metric.is_minimize_expression_on_final_state()
         or quality_metric.is_maximize_expression_on_final_state()
     ):
@@ -796,14 +789,13 @@ def evaluate_quality_metric_in_initial_state(
             (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
         )
         return se.evaluate(quality_metric.expression, initial_state).constant_value()
-    elif quality_metric.is_oversubscription():
+    if quality_metric.is_oversubscription():
         assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, initial_state).bool_constant_value():
                 total_gain += gain
         return total_gain
-    else:
-        raise NotImplementedError(
-            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
-        )
+    raise NotImplementedError(
+        f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+    )

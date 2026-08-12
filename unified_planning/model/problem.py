@@ -212,7 +212,7 @@ class Problem(  # type: ignore[misc]
             oth_tel = oth._timed_effects.get(t, None)
             if oth_tel is None:
                 return False
-            elif set(tel) != set(oth_tel):
+            if set(tel) != set(oth_tel):
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
             return False
@@ -220,7 +220,7 @@ class Problem(  # type: ignore[misc]
             oth_tgl = oth._timed_goals.get(i, None)
             if oth_tgl is None:
                 return False
-            elif set(tgl) != set(oth_tgl):
+            if set(tgl) != set(oth_tgl):
                 return False
         return True
 

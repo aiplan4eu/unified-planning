@@ -85,7 +85,7 @@ class NegativeFluentRemover(IdentityDagWalker):
                 )
             self._fluent_mapping[f] = nf
             return self._env.expression_manager.FluentExp(nf, tuple(args[0].args))
-        elif args[0].is_equals():
+        if args[0].is_equals():
             equals_node = args[0]
             left = equals_node.args[0]
             right = equals_node.args[1]
@@ -115,7 +115,7 @@ class NegativeFluentRemover(IdentityDagWalker):
                     for right_obj in right_list:
                         if left_obj == right_obj:
                             continue
-                        elif len(left_list) == 1:
+                        if len(left_list) == 1:
                             # left is a constant, only consider right
                             temp_exp = self._env.expression_manager.Equals(
                                 right, right_obj
@@ -128,20 +128,18 @@ class NegativeFluentRemover(IdentityDagWalker):
                             )
                         exps.append(temp_exp)
                 return self._env.expression_manager.Or(exps)
-            else:
-                exp_1 = self._env.expression_manager.GT(*equals_node.args)
-                exp_2 = self._env.expression_manager.LT(*equals_node.args)
-                return self._env.expression_manager.Or(exp_1, exp_2)
-        elif args[0].is_le():
+            exp_1 = self._env.expression_manager.GT(*equals_node.args)
+            exp_2 = self._env.expression_manager.LT(*equals_node.args)
+            return self._env.expression_manager.Or(exp_1, exp_2)
+        if args[0].is_le():
             return self._env.expression_manager.GT(*args[0].args)
-        elif args[0].is_lt():
+        if args[0].is_lt():
             return self._env.expression_manager.GE(*args[0].args)
-        elif args[0].is_iff() or args[0].is_and() or args[0].is_or():
+        if args[0].is_iff() or args[0].is_and() or args[0].is_or():
             raise UPExpressionDefinitionError(f"Expression: {expression} is not NNF")
-        else:
-            raise UPExpressionDefinitionError(
-                f"Unable to remove negative conditions from expression: {expression}"
-            )
+        raise UPExpressionDefinitionError(
+            f"Unable to remove negative conditions from expression: {expression}"
+        )
 
     @property
     def fluent_mapping(self) -> Dict[Fluent, Fluent]:

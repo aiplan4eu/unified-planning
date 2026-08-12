@@ -309,8 +309,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
             new_fluents.append(fake_fluent)
             return env.expression_manager.FluentExp(fake_fluent)
-        else:
-            return new_goal
+        return new_goal
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
@@ -327,7 +326,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             c = c.simplify()
             if c.is_false():
                 return None
-            elif c.is_and():
+            if c.is_and():
                 for co in c.args:
                     new_action.add_condition(i, co)
             else:

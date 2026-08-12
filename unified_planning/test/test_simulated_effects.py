@@ -50,8 +50,7 @@ class TestSimulatedEffects(unittest_TestCase):
         def fun(problem, state, actual_params):
             if state.get_value(FluentExp(x)).is_false():
                 return [TRUE()]
-            else:
-                return [FALSE()]
+            return [FALSE()]
 
         a.set_simulated_effect(SimulatedEffect([FluentExp(x)], fun))
         problem = Problem("basic_with_simulated_effects")

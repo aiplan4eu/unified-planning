@@ -136,10 +136,9 @@ class LinearChecker(DagWalker):
         if positivity_unknown:
             fluents = positive_fluents | negative_fluents
             return (is_linear, fluents, fluents)
-        elif positivity:
+        if positivity:
             return (is_linear, positive_fluents, negative_fluents)
-        else:
-            return (is_linear, negative_fluents, positive_fluents)
+        return (is_linear, negative_fluents, positive_fluents)
 
     def walk_div(
         self,
@@ -183,8 +182,7 @@ class LinearChecker(DagWalker):
 
         if positivity:
             return (is_linear, positive_fluents, negative_fluents)
-        else:
-            return (is_linear, negative_fluents, positive_fluents)
+        return (is_linear, negative_fluents, positive_fluents)
 
     def walk_minus(
         self,
@@ -209,8 +207,7 @@ class LinearChecker(DagWalker):
         positive_fluents |= snf
         if not is_linear:
             return (is_linear, set(), set())
-        else:
-            return (is_linear, positive_fluents, negative_fluents)
+        return (is_linear, positive_fluents, negative_fluents)
 
     def walk_fluent_exp(
         self,

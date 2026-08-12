@@ -94,12 +94,10 @@ def ordering(
     if not qualitative:
         # At least one constraint cannot be encoded as a precedence
         return TemporalConstraints(time_constraints)
-    else:
-        to = _build_total_order(set(task_ids), precedences)
-        if to is not None:
-            return TotalOrder(to)
-        else:
-            return PartialOrder(precedences)
+    to = _build_total_order(set(task_ids), precedences)
+    if to is not None:
+        return TotalOrder(to)
+    return PartialOrder(precedences)
 
 
 def _build_total_order(

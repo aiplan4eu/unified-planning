@@ -192,7 +192,7 @@ class STNPlan(plans.plan.Plan):
                 if a_node.environment is not None:
                     env = a_node.environment
                     break
-                elif b_node.environment is not None:
+                if b_node.environment is not None:
                     env = b_node.environment
                     break
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
@@ -293,8 +293,7 @@ class STNPlan(plans.plan.Plan):
                     if not self_c in oth_cl:
                         return False
             return False
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count = 0
@@ -310,8 +309,7 @@ class STNPlan(plans.plan.Plan):
                 and item.is_semantically_equivalent(n.action_instance)
                 for n in self._stn.distances
             )
-        else:
-            return False
+        return False
 
     def get_constraints(
         self,
@@ -464,10 +462,9 @@ class STNPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
+        if plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
             return self._convert_to_time_triggered(problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def is_consistent(self) -> bool:
         """

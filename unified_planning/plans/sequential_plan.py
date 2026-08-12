@@ -67,8 +67,7 @@ class SequentialPlan(plans.plan.Plan):
                 if not ai.is_semantically_equivalent(oth_ai):
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -79,8 +78,7 @@ class SequentialPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, plans.plan.ActionInstance):
             return any(item.is_semantically_equivalent(a) for a in self._actions)
-        else:
-            return False
+        return False
 
     @property
     def actions(self) -> List["plans.plan.ActionInstance"]:
@@ -232,8 +230,7 @@ class SequentialPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.PARTIAL_ORDER_PLAN:
+        if plan_kind == plans.plan.PlanKind.PARTIAL_ORDER_PLAN:
             assert isinstance(problem, up.model.mixins.ObjectsSetMixin)
             return self._to_partial_order_plan(problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")

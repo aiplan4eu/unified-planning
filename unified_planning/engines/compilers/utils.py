@@ -155,10 +155,9 @@ def create_effect_with_given_subs(
     new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
     if new_condition == em.FALSE():
         return None
-    else:
-        return Effect(
-            new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
-        )
+    return Effect(
+        new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
+    )
 
 
 def create_action_with_given_subs(
@@ -242,7 +241,7 @@ def create_action_with_given_subs(
             return None
         new_action._set_preconditions(new_preconditions)
         return new_action
-    elif isinstance(old_action, DurativeAction):
+    if isinstance(old_action, DurativeAction):
         new_durative_action = cast(DurativeAction, old_action.clone())
         new_durative_action.name = (
             old_action.name
@@ -329,8 +328,7 @@ def create_action_with_given_subs(
         for interval, c in new_conditions:
             new_durative_action.add_condition(interval, c)
         return new_durative_action
-    else:
-        raise NotImplementedError
+    raise NotImplementedError
 
 
 def get_fresh_name(
@@ -396,8 +394,7 @@ def replace_action(
             action_instance.agent,
             action_instance.motion_paths,
         )
-    else:
-        return None
+    return None
 
 
 def add_invariant_condition_apply_function_to_problem_expressions(
@@ -449,7 +446,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             ).simplify()
             if new_cond.is_false():
                 continue
-            elif new_cond.is_and():
+            if new_cond.is_and():
                 for arg in new_cond.args:
                     new_action.add_precondition(arg)
             else:
@@ -473,7 +470,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                 new_cond = em.And(*map(function, cond_list), condition).simplify()
                 if new_cond.is_false():
                     continue
-                elif new_cond.is_and():
+                if new_cond.is_and():
                     for arg in new_cond.args:
                         new_action.add_condition(interval, arg)
                 else:

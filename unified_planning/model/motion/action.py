@@ -45,8 +45,7 @@ class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):
                 super().__eq__(oth)
                 and self._motion_constraints_set == oth._motion_constraints_set
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()
@@ -100,8 +99,7 @@ class DurativeMotionAction(DurativeAction, MotionConstraintsSetMixin):
                 super().__eq__(oth)
                 and self._motion_constraints_set == oth._motion_constraints_set
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()

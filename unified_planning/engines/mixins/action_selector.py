@@ -40,8 +40,7 @@ class ActionSelectorMixin:
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
 
     @staticmethod
     def is_action_selector() -> bool:

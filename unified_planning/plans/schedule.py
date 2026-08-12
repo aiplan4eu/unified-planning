@@ -124,5 +124,4 @@ class Schedule(Plan):
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         if plan_kind == PlanKind.SCHEDULE:
             return self
-        else:
-            raise ValueError(f"Schedule cannot be converted to {plan_kind.name}")
+        raise ValueError(f"Schedule cannot be converted to {plan_kind.name}")

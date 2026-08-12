@@ -117,14 +117,12 @@ class Parallel(
             processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res
-            else:
-                assert isinstance(res, Result)
-                # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.is_definitive_result(*args):
-                    definitive_result_found = True
-                    break
-                else:
-                    results.append(res)
+            assert isinstance(res, Result)
+            # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
+            if res.is_definitive_result(*args):
+                definitive_result_found = True
+                break
+            results.append(res)
         for p in processes:
             p.terminate()
         if definitive_result_found:  # A planner found a definitive result

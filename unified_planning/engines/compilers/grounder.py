@@ -134,27 +134,26 @@ class GrounderHelper:
         if value != 0:  # The action is already created
             assert isinstance(value, Action) or value is None
             return value
-        else:
-            # if the action does not have parameters, it does not need to be grounded.
-            if len(action.parameters) == 0:
-                if (
-                    self._grounding_actions_map is None
-                    or self._grounding_actions_map.get(action, None) is not None
-                ):
-                    new_action = create_action_with_given_subs(
-                        self._problem, action, self._simplifier, {}
-                    )
-                else:
-                    new_action = None
-            else:
-                subs: Dict[Expression, Expression] = dict(
-                    zip(action.parameters, list(parameters))
-                )
+        # if the action does not have parameters, it does not need to be grounded.
+        if len(action.parameters) == 0:
+            if (
+                self._grounding_actions_map is None
+                or self._grounding_actions_map.get(action, None) is not None
+            ):
                 new_action = create_action_with_given_subs(
-                    self._problem, action, self._simplifier, subs
+                    self._problem, action, self._simplifier, {}
                 )
-            self._grounded_actions[key] = new_action
-            return new_action
+            else:
+                new_action = None
+        else:
+            subs: Dict[Expression, Expression] = dict(
+                zip(action.parameters, list(parameters))
+            )
+            new_action = create_action_with_given_subs(
+                self._problem, action, self._simplifier, subs
+            )
+        self._grounded_actions[key] = new_action
+        return new_action
 
     def get_grounded_actions(
         self,

@@ -119,8 +119,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
             msg = f"goal to remove: {goal_exp} not found inside the problem goals: {goals}"
             if self._error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
 
     def _add_action(self, action: "up.model.action.Action"):
         assert isinstance(self._problem, up.model.Problem)
@@ -140,5 +139,4 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
             msg = f"action to remove: {name} not found inside the problem actions: {list(map(lambda a: a.name, actions))}"
             if self._error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)

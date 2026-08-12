@@ -208,15 +208,14 @@ class ExpressionManager(object):
         res = self.expressions.get(content, None)
         if res is not None:
             return res
-        else:
-            assert all(a.environment == self.environment for a in args), (
-                "2 FNode in the same expression have different environments"
-            )
-            n = up.model.fnode.FNode(content, self._next_free_id, self.environment)
-            self._next_free_id += 1
-            self.expressions[content] = n
-            self.environment.type_checker.get_type(n)
-            return n
+        assert all(a.environment == self.environment for a in args), (
+            "2 FNode in the same expression have different environments"
+        )
+        n = up.model.fnode.FNode(content, self._next_free_id, self.environment)
+        self._next_free_id += 1
+        self.expressions[content] = n
+        self.environment.type_checker.get_type(n)
+        return n
 
     def And(
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
@@ -238,10 +237,9 @@ class ExpressionManager(object):
 
         if len(tuple_args) == 0:
             return self.TRUE()
-        elif len(tuple_args) == 1:
+        if len(tuple_args) == 1:
             return tuple_args[0]
-        else:
-            return self.create_node(node_type=OperatorKind.AND, args=tuple_args)
+        return self.create_node(node_type=OperatorKind.AND, args=tuple_args)
 
     def Or(
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
@@ -263,10 +261,9 @@ class ExpressionManager(object):
 
         if len(tuple_args) == 0:
             return self.FALSE()
-        elif len(tuple_args) == 1:
+        if len(tuple_args) == 1:
             return tuple_args[0]
-        else:
-            return self.create_node(node_type=OperatorKind.OR, args=tuple_args)
+        return self.create_node(node_type=OperatorKind.OR, args=tuple_args)
 
     def XOr(
         self, *args: Union[BoolExpression, Iterable[BoolExpression]]
@@ -288,15 +285,14 @@ class ExpressionManager(object):
 
         if len(tuple_args) == 0:
             return self.FALSE()
-        elif len(tuple_args) == 1:
+        if len(tuple_args) == 1:
             return tuple_args[0]
-        else:
-            new_args = []
-            for a in tuple_args:
-                new_args.append(
-                    self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
-                )
-            return self.Or(new_args)
+        new_args = []
+        for a in tuple_args:
+            new_args.append(
+                self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
+            )
+        return self.Or(new_args)
 
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
         """
@@ -617,8 +613,7 @@ class ExpressionManager(object):
 
         if value:
             return self.true_expression
-        else:
-            return self.false_expression
+        return self.false_expression
 
     def Int(self, value: int) -> "up.model.fnode.FNode":
         """
@@ -661,10 +656,9 @@ class ExpressionManager(object):
 
         if len(tuple_args) == 0:
             return self.Int(0)
-        elif len(tuple_args) == 1:
+        if len(tuple_args) == 1:
             return tuple_args[0]
-        else:
-            return self.create_node(node_type=OperatorKind.PLUS, args=tuple_args)
+        return self.create_node(node_type=OperatorKind.PLUS, args=tuple_args)
 
     def Minus(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
@@ -692,10 +686,9 @@ class ExpressionManager(object):
 
         if len(tuple_args) == 0:
             return self.Int(1)
-        elif len(tuple_args) == 1:
+        if len(tuple_args) == 1:
             return tuple_args[0]
-        else:
-            return self.create_node(node_type=OperatorKind.TIMES, args=tuple_args)
+        return self.create_node(node_type=OperatorKind.TIMES, args=tuple_args)
 
     def Div(self, left: Expression, right: Expression) -> "up.model.fnode.FNode":
         """
@@ -786,5 +779,4 @@ class ExpressionManager(object):
         left, right = self.auto_promote(left, right)
         if left.type.is_bool_type() and right.type.is_bool_type():
             return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
-        else:
-            return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))
+        return self.create_node(node_type=OperatorKind.EQUALS, args=(left, right))

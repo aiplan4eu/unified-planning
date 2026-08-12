@@ -159,6 +159,13 @@ select = [
     "YTT",   # flake8-2020: sys.version comparisons
     "I",     # isort
     "F",     # pyflakes
+    "RET",   # flake8-return
+]
+ignore = [
+    # A named intermediate before `return` is often the only thing saying what the value is
+    # (`problem_clone`, `requirements`, `new_effect`); collapsing 21 of them into bare returns
+    # in library code costs readability and buys nothing. The rest of RET is enforced.
+    "RET504", # unnecessary-assign
 ]
 
 [tool.ruff.lint.per-file-ignores]

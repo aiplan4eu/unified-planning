@@ -85,10 +85,9 @@ class InitialStateMixin:
                 )
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
-        elif fluent_exp.fluent() in self._fluent_set.fluents_defaults:
+        if fluent_exp.fluent() in self._fluent_set.fluents_defaults:
             return self._fluent_set.fluents_defaults[fluent_exp.fluent()]
-        else:
-            return None
+        return None
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -130,7 +129,7 @@ class InitialStateMixin:
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
-            elif value != oth_value:
+            if value != oth_value:
                 return False
         return True
 

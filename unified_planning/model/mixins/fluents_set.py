@@ -143,8 +143,7 @@ class FluentsSetMixin:
                 fluent.name == f.name for f in self._fluents
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         self._fluents.append(fluent)
         if not default_initial_value is None:
             (v_exp,) = self.environment.expression_manager.auto_promote(

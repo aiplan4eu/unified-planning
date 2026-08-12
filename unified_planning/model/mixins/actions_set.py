@@ -145,8 +145,7 @@ class ActionsSetMixin:
                 action.name == a.name for a in self._actions
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         self._actions.append(action)
         for param in action.parameters:
             if param.type.is_user_type():

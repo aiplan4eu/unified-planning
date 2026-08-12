@@ -143,8 +143,7 @@ class TypeChecker(walkers.dag.DagWalker):
             or args[0] != args[1]
         ):
             return None
-        else:
-            return args[0]
+        return args[0]
 
     def walk_sometime_after(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -161,8 +160,7 @@ class TypeChecker(walkers.dag.DagWalker):
             or args[0] != args[1]
         ):
             return None
-        else:
-            return args[0]
+        return args[0]
 
     def walk_variable_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -254,10 +252,9 @@ class TypeChecker(walkers.dag.DagWalker):
             assert lower is None or isinstance(lower, Fraction)  # type: ignore[unreachable]
             assert upper is None or isinstance(upper, Fraction)  # type: ignore[unreachable]
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            assert lower is None or isinstance(lower, int)
-            assert upper is None or isinstance(upper, int)
-            return self.environment.type_manager.IntType(lower, upper)
+        assert lower is None or isinstance(lower, int)
+        assert upper is None or isinstance(upper, int)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_minus(self, expression, args):
         assert len(args) == 2
@@ -290,10 +287,9 @@ class TypeChecker(walkers.dag.DagWalker):
             lower = cast(Optional[Fraction], lower)
             upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            lower = cast(Optional[int], lower)
-            upper = cast(Optional[int], upper)
-            return self.environment.type_manager.IntType(lower, upper)
+        lower = cast(Optional[int], lower)
+        upper = cast(Optional[int], upper)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_times(self, expression, args):
         has_real = False
@@ -329,10 +325,9 @@ class TypeChecker(walkers.dag.DagWalker):
             lower = cast(Optional[Fraction], lower)
             upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            lower = cast(Optional[int], lower)
-            upper = cast(Optional[int], upper)
-            return self.environment.type_manager.IntType(lower, upper)
+        lower = cast(Optional[int], lower)
+        upper = cast(Optional[int], upper)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_div(self, expression, args):
         assert len(args) == 2
@@ -391,7 +386,7 @@ class TypeChecker(walkers.dag.DagWalker):
         for x in args:
             if x is None:
                 return None
-            elif (
+            if (
                 t.is_user_type()
                 and t != x
                 and not t.is_compatible(x)
