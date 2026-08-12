@@ -151,6 +151,27 @@ files = ["unified_planning"]
 module = ["unified_planning.grpc.generated.*"]
 ignore_errors = true
 
+# Third-party packages that ship no type information and have no stubs installed; without
+# this mypy reports every import of them.
+#   pddl, pysmt, networkx    core dependencies, but none ships a py.typed marker
+#   tarski, tamerlite        only in the matching extras, so absent from the environment
+#                            `just typecheck` runs in
+#   matplotlib, plotly,      `plot` extra, imported function-locally in unified_planning/plot.
+#   graphviz                 Listed here rather than carrying a per-import ignore so that
+#                            warn_unused_ignores answers the same whether or not the extra is
+#                            installed. It costs nothing when it is: ignore_missing_imports
+#                            suppresses only the *missing* import error, so a resolvable,
+#                            typed matplotlib is still checked at its call sites.
+# pyparsing is deliberately absent: core dependency, ships py.typed, so it was always a no-op.
 [[tool.mypy.overrides]]
-module = ["tarski.*", "tamerlite.*", "networkx.*", "pyparsing.*", "pysmt.*", "pddl.*"]
+module = [
+    "graphviz.*",
+    "matplotlib.*",
+    "networkx.*",
+    "pddl.*",
+    "plotly.*",
+    "pysmt.*",
+    "tamerlite.*",
+    "tarski.*",
+]
 ignore_missing_imports = true
