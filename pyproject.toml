@@ -159,6 +159,18 @@ files = ["unified_planning"]
 module = ["unified_planning.grpc.generated.*"]
 ignore_errors = true
 
+# Third-party packages that ship no type information and have no stubs installed. The `plot`
+# extra is covered here rather than by per-import ignores, so that warn_unused_ignores answers
+# the same whether or not the extra is installed.
 [[tool.mypy.overrides]]
-module = ["tarski.*", "tamerlite.*", "networkx.*", "pyparsing.*", "pysmt.*", "pddl.*"]
+module = [
+    "graphviz.*",
+    "matplotlib.*",
+    "networkx.*",
+    "pddl.*",
+    "plotly.*",
+    "pysmt.*",
+    "tamerlite.*",
+    "tarski.*",
+]
 ignore_missing_imports = true
