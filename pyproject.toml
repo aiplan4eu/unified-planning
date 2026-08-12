@@ -157,6 +157,8 @@ files = ["unified_planning"]
 # An ignore that no longer suppresses anything is a false statement about the code.
 warn_unused_ignores = true
 no_implicit_optional = true
+# Same argument as warn_unused_ignores, for a cast mypy can prove is a no-op.
+warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
 module = ["unified_planning.grpc.generated.*"]
