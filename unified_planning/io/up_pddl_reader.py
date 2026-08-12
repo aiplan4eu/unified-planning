@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from fractions import Fraction
 import re
-from typing import Dict, Union, Callable, List, cast, Tuple
+from typing import Dict, Union, Callable, List, Tuple
 import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
@@ -1527,7 +1527,7 @@ class UPPDDLReader:
             f = up.model.Fluent(n, fluent_type, params, self._env)
             if n == "total-cost":
                 has_actions_cost = True
-                self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
+                self._totalcost = self._em.FluentExp(f)
             problem.add_fluent(f)
 
         for g in domain_res.get("constants", []):
