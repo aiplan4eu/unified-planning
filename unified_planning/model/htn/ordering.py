@@ -78,12 +78,12 @@ def ordering(
         rhs = c.arg(1)
         if not lhs.is_timing_exp() or not rhs.is_timing_exp():
             break
-        lhs = lhs.timing()  # type: ignore
-        rhs = rhs.timing()  # type: ignore
-        if lhs.delay != 0 or rhs.delay != 0:  # type: ignore
+        lhs = lhs.timing()  # type: ignore[assignment]
+        rhs = rhs.timing()  # type: ignore[assignment]
+        if lhs.delay != 0 or rhs.delay != 0:  # type: ignore[attr-defined]
             break
-        lhs = lhs.timepoint  # type: ignore
-        rhs = rhs.timepoint  # type: ignore
+        lhs = lhs.timepoint  # type: ignore[attr-defined]
+        rhs = rhs.timepoint  # type: ignore[attr-defined]
         if lhs.kind != TimepointKind.END or rhs.kind != TimepointKind.START:
             break
         if lhs.container is None or rhs.container is None:

@@ -30,16 +30,16 @@ class MetaEngineMeta(EngineMeta):
                 f"{engine_class.name} is not compatible with the meta engine {self.name}"
             )
 
-        class MetaEngineImpl(self):  # type: ignore
+        class MetaEngineImpl(self):  # type: ignore[misc, valid-type]
             _engine_class = engine_class
 
             @staticmethod
             def supported_kind() -> ProblemKind:
-                return self._supported_kind(engine_class)  # type: ignore
+                return self._supported_kind(engine_class)  # type: ignore[attr-defined]
 
             @staticmethod
             def supports(problem_kind: ProblemKind) -> bool:
-                return self._supports(problem_kind, engine_class)  # type: ignore
+                return self._supports(problem_kind, engine_class)  # type: ignore[attr-defined]
 
         return MetaEngineImpl
 
@@ -55,7 +55,7 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
 
     def __init__(self, *args, **kwargs):
         Engine.__init__(self)
-        self._engine = self._engine_class(*args, **kwargs)  # type: ignore
+        self._engine = self._engine_class(*args, **kwargs)  # type: ignore[attr-defined]
 
     @property
     def engine(self) -> Engine:
