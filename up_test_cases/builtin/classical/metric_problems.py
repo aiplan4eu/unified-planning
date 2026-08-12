@@ -1,7 +1,6 @@
 # In this problem, one can either apply a single action for high cost
 # or instead 3 actions for overall lower cost.
 
-import unified_planning
 from unified_planning.model.metrics import (
     MinimizeActionCosts,
     MinimizeSequentialPlanLength,

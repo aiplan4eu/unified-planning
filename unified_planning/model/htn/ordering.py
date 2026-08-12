@@ -15,7 +15,7 @@
 from typing import Iterable, List, Optional, Set, Tuple
 
 from unified_planning.environment import get_environment
-from unified_planning.model import EndTiming, FNode, StartTiming, TimepointKind, Timing
+from unified_planning.model import EndTiming, FNode, StartTiming, TimepointKind
 from unified_planning.model.walkers import AnyChecker
 
 

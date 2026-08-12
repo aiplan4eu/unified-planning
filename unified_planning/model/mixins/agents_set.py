@@ -13,12 +13,11 @@
 # limitations under the License.
 #
 
-from typing import Dict, List, Optional, cast
+from typing import List
 from warnings import warn
 
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from unified_planning.model.types import _UserType
 
 
 class AgentsSetMixin:

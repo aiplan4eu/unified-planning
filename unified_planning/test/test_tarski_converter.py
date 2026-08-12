@@ -13,10 +13,8 @@
 # limitations under the License.
 
 
-import unified_planning as up
 from unified_planning.engines import SequentialPlanValidator
 from unified_planning.model.problem_kind import (
-    full_classical_kind,
     hierarchical_kind,
 )
 from unified_planning.plans import ActionInstance, SequentialPlan

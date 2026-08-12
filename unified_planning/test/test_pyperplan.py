@@ -14,11 +14,10 @@
 
 import warnings
 
-import unified_planning as up
 from unified_planning.engines.results import POSITIVE_OUTCOMES
 from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
-from unified_planning.test import main, skipIfEngineNotAvailable, unittest_TestCase
+from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 

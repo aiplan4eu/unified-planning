@@ -40,7 +40,6 @@ from unified_planning.model import (
     ProblemKind,
     TemporalOversubscription,
     TimeInterval,
-    Timing,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers import Dnf

@@ -13,8 +13,6 @@
 # limitations under the License.
 
 
-import unified_planning as up
-from unified_planning.exceptions import UPTypeError
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems

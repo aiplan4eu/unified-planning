@@ -21,7 +21,6 @@ from warnings import warn
 
 import unified_planning as up
 from unified_planning.model import ProblemKind
-from unified_planning.model.fnode import FNode
 
 
 class CompilationKind(Enum):

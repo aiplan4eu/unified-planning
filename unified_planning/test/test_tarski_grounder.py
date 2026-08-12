@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import unified_planning
 from unified_planning.engines import CompilationKind
 from unified_planning.model.problem_kind import (
     basic_classical_kind,

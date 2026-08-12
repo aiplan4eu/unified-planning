@@ -26,7 +26,6 @@ from typing import (
 
 import networkx as nx
 
-import unified_planning as up
 from unified_planning.model import FNode
 from unified_planning.plans.contingent_plan import ContingentPlanNode
 from unified_planning.plans.plan import ActionInstance

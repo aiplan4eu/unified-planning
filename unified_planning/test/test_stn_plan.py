@@ -16,7 +16,6 @@
 from numbers import Real as RealNumbers
 from typing import Dict, List, Set, Tuple, cast
 
-import unified_planning as up
 from unified_planning.plans import *
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
@@ -144,11 +143,11 @@ class TestSTNPlan(unittest_TestCase):
         }
         counter = 0
         for left_node, cl in new_plan.get_constraints().items():
-            for low, up, right_node in cl:
+            for low, upper, right_node in cl:
                 if left_node == right_node:
                     continue
                 self.assertEqual(
-                    (low, up), expected_new_constraints[left_node, right_node]
+                    (low, upper), expected_new_constraints[left_node, right_node]
                 )
                 counter += 1
         self.assertEqual(counter, len(expected_new_constraints))

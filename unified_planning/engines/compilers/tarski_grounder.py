@@ -27,7 +27,6 @@ from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.engine import Credits, Engine
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPUsageError
 from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.interop.to_tarski import convert_problem_to_tarski
 from unified_planning.model import Action, FNode, Problem, ProblemKind

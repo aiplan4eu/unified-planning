@@ -35,8 +35,6 @@ from unified_planning.exceptions import (
 from unified_planning.model import (
     AbstractProblem,
     Action,
-    DurativeAction,
-    InstantaneousAction,
     Problem,
     ProblemKind,
 )

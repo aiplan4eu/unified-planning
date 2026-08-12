@@ -18,10 +18,8 @@ from unified_planning.engines.mixins import (
     CompilerMixin,
     OneshotPlannerMixin,
     PlanRepairerMixin,
-    PlanValidatorMixin,
 )
 from unified_planning.environment import get_environment
-from unified_planning.exceptions import UPNoSuitableEngineAvailableException
 from unified_planning.plans import Plan
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase

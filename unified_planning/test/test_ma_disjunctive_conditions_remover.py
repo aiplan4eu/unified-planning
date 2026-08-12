@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import unified_planning
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.ma_disjunctive_conditions_remover import (
     MADisjunctiveConditionsRemover,

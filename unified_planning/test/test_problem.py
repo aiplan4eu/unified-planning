@@ -27,7 +27,7 @@ from unified_planning.model.mixins import name_index
 from unified_planning.model.multi_agent import Agent, MultiAgentProblem
 from unified_planning.model.scheduling import SchedulingProblem
 from unified_planning.shortcuts import *
-from unified_planning.test import examples, main, unittest_TestCase
+from unified_planning.test import main, unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 

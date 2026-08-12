@@ -17,7 +17,6 @@
 
 from enum import Enum, auto
 from fractions import Fraction
-from itertools import product
 from typing import (
     Callable,
     Dict,
@@ -48,7 +47,6 @@ from unified_planning.exceptions import (
 )
 from unified_planning.model import (
     Action,
-    Expression,
     ExpressionManager,
     Fluent,
     FNode,
@@ -58,7 +56,6 @@ from unified_planning.model import (
     Oversubscription,
     Problem,
     UPState,
-    Variable,
 )
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION

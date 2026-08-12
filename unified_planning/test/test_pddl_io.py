@@ -48,7 +48,6 @@ from unified_planning.model.types import _UserType
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    main,
     skipIfNoOneshotPlannerForProblemKind,
     unittest_TestCase,
 )

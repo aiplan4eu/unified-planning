@@ -18,7 +18,6 @@
 import argparse
 from typing import Optional, cast
 
-import unified_planning as up
 from unified_planning.cmd.arg_parser import create_up_parser
 from unified_planning.engines import (
     CompilerResult,

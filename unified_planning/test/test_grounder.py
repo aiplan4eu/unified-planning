@@ -16,7 +16,6 @@
 import warnings
 from typing import cast
 
-import unified_planning
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.compilers.grounder import GrounderHelper
@@ -26,7 +25,6 @@ from unified_planning.model.motion import InstantaneousMotionAction
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
     classical_kind,
-    full_classical_kind,
     general_numeric_kind,
     hierarchical_kind,
     quantified_conditions_kind,

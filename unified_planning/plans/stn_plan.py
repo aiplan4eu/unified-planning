@@ -16,7 +16,7 @@
 
 from dataclasses import dataclass
 from fractions import Fraction
-from itertools import chain, product
+from itertools import product
 from numbers import Real
 from typing import (
     Callable,

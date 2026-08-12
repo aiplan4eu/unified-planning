@@ -13,11 +13,9 @@
 # limitations under the License.
 
 
-import unified_planning
 from unified_planning.engines import CompilationKind
-from unified_planning.engines.compilers import BoundedTypesRemover
 from unified_planning.shortcuts import *
-from unified_planning.test import main, unittest_TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 

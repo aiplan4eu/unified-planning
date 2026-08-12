@@ -15,3 +15,7 @@
 
 from unified_planning.interop.from_tarski import convert_problem_from_tarski
 from unified_planning.interop.to_tarski import convert_problem_to_tarski
+
+# This module exists to expose the two converters without importing them from
+# interop/__init__.py, which would make the optional tarski dependency mandatory.
+__all__ = ["convert_problem_from_tarski", "convert_problem_to_tarski"]

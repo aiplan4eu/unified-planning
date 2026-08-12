@@ -22,7 +22,7 @@ from unified_planning.engines import (
 )
 from unified_planning.environment import get_environment
 from unified_planning.shortcuts import *
-from unified_planning.test import main, unittest_TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 

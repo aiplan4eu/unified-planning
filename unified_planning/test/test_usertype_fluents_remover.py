@@ -16,7 +16,6 @@
 from itertools import product
 from typing import cast
 
-import unified_planning
 from unified_planning.engines import CompilationKind, ValidationResultStatus
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.problem_kind import full_classical_kind
@@ -24,7 +23,6 @@ from unified_planning.model.types import domain_item, domain_size
 from unified_planning.model.walkers import QuantifierSimplifier
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    main,
     skipIfNoOneshotPlannerForProblemKind,
     skipIfNoPlanValidatorForProblemKind,
     unittest_TestCase,

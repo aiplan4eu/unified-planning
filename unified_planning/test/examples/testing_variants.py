@@ -14,7 +14,6 @@
 
 
 from itertools import product
-from typing import cast
 
 import unified_planning
 from unified_planning.shortcuts import *

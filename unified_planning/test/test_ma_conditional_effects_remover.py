@@ -13,11 +13,7 @@
 # limitations under the License.
 #
 
-import unified_planning
 from unified_planning.engines import CompilationKind
-from unified_planning.engines.compilers.ma_conditional_effects_remover import (
-    MAConditionalEffectsRemover,
-)
 from unified_planning.model.multi_agent import *
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase

@@ -157,9 +157,28 @@ select = [
     "TID",   # flake8-tidy-imports
     "YTT",   # flake8-2020: sys.version comparisons
     "I",     # isort
+    "F401",  # unused-import
+    "F402",  # import-shadowed-by-loop-var
+    "F403",  # undefined-local-with-import-star
+    "F405",  # undefined-local-with-import-star-usage
+    "F811",  # redefined-while-unused
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# Re-export façades: that is the job of these files, and downstream engine packages import
+# names straight out of them. `__all__` is not used instead - adding the missing names to
+# model/__init__.py's would change what `from unified_planning.shortcuts import *` yields.
+"**/__init__.py" = ["F401"]
+# shortcuts.py is the star-export surface itself: `from unified_planning.model import *` is how
+# `from unified_planning.shortcuts import *` reaches the model API, so the star import and
+# every name arriving through it are by design.
+"unified_planning/shortcuts.py" = ["F403", "F405"]
+# The CLI and the protobuf writer consume that surface deliberately.
+"unified_planning/cmd/up.py" = ["F403", "F405"]
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405"]
+# Scoped to these two trees rather than globally, so a *new* star import in library code is an error.
+"unified_planning/test/**" = ["F403", "F405"]
+"up_test_cases/**" = ["F403", "F405"]
 # Import order in these four modules is load-bearing: each re-exports names that a sibling
 # submodule pulls back out of the partially-initialised package, so sorting them raises
 # ImportError or AttributeError at import time. No isort setting avoids it.

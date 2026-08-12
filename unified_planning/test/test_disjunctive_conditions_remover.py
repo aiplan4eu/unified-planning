@@ -13,7 +13,6 @@
 # limitations under the License.
 
 
-import unified_planning
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import (
     DisjunctiveConditionsRemover,
@@ -22,7 +21,6 @@ from unified_planning.engines.compilers import (
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
-    full_classical_kind,
     quantified_conditions_kind,
     simple_numeric_kind,
     temporal_kind,

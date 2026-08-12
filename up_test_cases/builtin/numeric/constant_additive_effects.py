@@ -1,5 +1,4 @@
-import unified_planning
-from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.plans import SequentialPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 

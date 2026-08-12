@@ -13,12 +13,8 @@
 # limitations under the License.
 
 
-import os
-
-import unified_planning
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import QuantifiersRemover
-from unified_planning.environment import get_environment
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
     classical_kind,

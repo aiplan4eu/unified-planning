@@ -18,7 +18,7 @@ from typing import List, Optional, Set, Tuple
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
-from unified_planning.environment import Environment, get_environment
+from unified_planning.environment import get_environment
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import _IntType, _RealType
 from unified_planning.model.walkers.dag import DagWalker
