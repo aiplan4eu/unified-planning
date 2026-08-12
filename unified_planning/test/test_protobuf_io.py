@@ -300,7 +300,7 @@ class TestProtobufIO(unittest_TestCase):
             self.assertEqual(node, node_up)
             return node_pb
 
-        def check(  # pylint: disable = too-many-arguments
+        def check(
             expr: proto.Expression,  # type: ignore[name-defined]
             kind: int,
             tpe: str = "",
@@ -321,7 +321,6 @@ class TestProtobufIO(unittest_TestCase):
             if symbol is not None:
                 self.assertEqual(expr.atom, proto.Atom(symbol=symbol))  # type: ignore[attr-defined]
 
-        # pylint: disable = invalid-name
         cont_kind = proto.ExpressionKind.Value("CONTAINER_ID")  # type: ignore[attr-defined]
         const_kind = proto.ExpressionKind.Value("CONSTANT")  # type: ignore[attr-defined]
         fun_app_kind = proto.ExpressionKind.Value("FUNCTION_APPLICATION")  # type: ignore[attr-defined]
