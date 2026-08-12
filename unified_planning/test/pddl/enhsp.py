@@ -18,12 +18,8 @@ from typing import List, Optional
 import unified_planning as up
 from unified_planning.engines import (
     PDDLAnytimePlanner,
-    PlanGenerationResult,
-    PlanGenerationResultStatus,
 )
-from unified_planning.engines.pddl_anytime_planner import Writer
 from unified_planning.environment import get_environment
-from unified_planning.io import PDDLWriter
 from unified_planning.model import ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 

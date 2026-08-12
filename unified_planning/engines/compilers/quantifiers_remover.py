@@ -15,13 +15,11 @@
 """This module defines the quantifiers remover class."""
 
 from functools import partial
-from itertools import product
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.compilers.utils import (
-    get_fresh_name,
     replace_action,
     updated_minimize_action_costs,
 )
@@ -30,15 +28,11 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
     Action,
     DurativeAction,
-    Effect,
-    Expression,
     InstantaneousAction,
-    Object,
     Oversubscription,
     Problem,
     ProblemKind,
     TemporalOversubscription,
-    Variable,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers import ExpressionQuantifiersRemover

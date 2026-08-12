@@ -17,7 +17,6 @@
 from fractions import Fraction
 from typing import Dict, Optional, Tuple, cast
 
-import unified_planning
 from unified_planning.exceptions import UPTypeError
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
 from unified_planning.model.motion.objects import ConfigurationKind

@@ -2,9 +2,7 @@ from itertools import chain
 
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
-    classical_kind,
     int_duration_kind,
-    temporal_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
 from unified_planning.shortcuts import *

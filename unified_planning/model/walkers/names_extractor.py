@@ -15,11 +15,8 @@
 #
 
 
-from functools import reduce
 from typing import List, Set
 
-import unified_planning as up
-import unified_planning.environment
 import unified_planning.model.operators as op
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode

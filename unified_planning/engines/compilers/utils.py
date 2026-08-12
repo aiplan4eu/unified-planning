@@ -20,7 +20,6 @@ from fractions import Fraction
 from typing import (
     Callable,
     Dict,
-    Iterable,
     List,
     Optional,
     OrderedDict,

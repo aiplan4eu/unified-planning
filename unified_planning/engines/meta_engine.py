@@ -15,7 +15,6 @@
 """This module defines the meta engine interface."""
 
 from abc import abstractmethod
-from functools import partial
 from typing import Type
 
 from unified_planning.engines.engine import Engine, EngineMeta

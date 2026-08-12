@@ -15,7 +15,7 @@
 
 import inspect
 from abc import ABC, abstractmethod
-from typing import Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Iterator, Optional, Sequence, Tuple, Union
 from warnings import warn
 
 import unified_planning as up

@@ -25,7 +25,7 @@ from unified_planning.exceptions import UPUsageError
 from unified_planning.model import State
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
-from unified_planning.test import main, unittest_TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 

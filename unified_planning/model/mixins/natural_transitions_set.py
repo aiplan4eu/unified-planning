@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 
-from typing import Iterable, Iterator, List, Union
+from typing import Iterable, List
 from warnings import warn
 
 import unified_planning as up

@@ -15,7 +15,6 @@
 
 
 from fractions import Fraction
-from functools import partial
 from itertools import chain
 from typing import (
     Callable,
@@ -26,7 +25,6 @@ from typing import (
     OrderedDict,
     Set,
     Tuple,
-    Union,
 )
 
 import unified_planning as up

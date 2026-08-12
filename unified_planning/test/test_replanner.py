@@ -15,13 +15,11 @@
 
 import pytest
 
-import unified_planning as up
 from unified_planning.engines.results import NEGATIVE_OUTCOMES, POSITIVE_OUTCOMES
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    main,
     skipIfEngineNotAvailable,
     skipIfNoOneshotPlannerForProblemKind,
     unittest_TestCase,

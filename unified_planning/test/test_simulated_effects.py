@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unified_planning as up
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
     bounded_types_kind,

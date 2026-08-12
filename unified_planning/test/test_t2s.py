@@ -20,7 +20,6 @@ from unified_planning.engines.results import (
     POSITIVE_OUTCOMES,
     ValidationResultStatus,
 )
-from unified_planning.io import PDDLWriter
 from unified_planning.model.problem_kind import classical_kind
 from unified_planning.model.walkers import InterpretedFunctionsExtractor
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan

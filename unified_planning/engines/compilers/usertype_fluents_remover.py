@@ -40,7 +40,6 @@ from unified_planning.model import (
     MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
     NumericConstant,
-    Object,
     Oversubscription,
     Parameter,
     Problem,

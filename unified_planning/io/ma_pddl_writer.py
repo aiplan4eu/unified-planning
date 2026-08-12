@@ -34,7 +34,7 @@ from unified_planning.io.pddl_writer import (
     _get_pddl_name,
     _write_effect,
 )
-from unified_planning.model import DurativeAction, Fluent, Object
+from unified_planning.model import DurativeAction, Fluent
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.model.types import _UserType
 

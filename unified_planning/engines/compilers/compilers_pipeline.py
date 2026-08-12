@@ -15,7 +15,6 @@
 
 from functools import partial
 from typing import Callable, List, Optional
-from warnings import warn
 
 import unified_planning as up
 import unified_planning.engines as engines

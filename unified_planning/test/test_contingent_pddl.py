@@ -16,11 +16,10 @@ import os
 import warnings
 from typing import cast
 
-import unified_planning
 from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.shortcuts import *
-from unified_planning.test import main, unittest_TestCase
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
