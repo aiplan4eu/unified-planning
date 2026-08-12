@@ -56,7 +56,7 @@ from unified_planning.exceptions import (
 from unified_planning.model.walkers.any import AnyGetter
 
 
-class Problem(  # type: ignore[misc]
+class Problem(
     AbstractProblem,
     UserTypesSetMixin,
     TimeModelMixin,

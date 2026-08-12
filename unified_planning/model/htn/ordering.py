@@ -84,11 +84,11 @@ def ordering(
             break
         lhs = lhs.timepoint  # type: ignore
         rhs = rhs.timepoint  # type: ignore
-        if lhs.kind != TimepointKind.END or rhs.kind != TimepointKind.START:  # type: ignore
+        if lhs.kind != TimepointKind.END or rhs.kind != TimepointKind.START:
             break
-        if lhs.container is None or rhs.container is None:  # type: ignore
+        if lhs.container is None or rhs.container is None:
             break
-        precedences.append((lhs.container, rhs.container))  # type: ignore
+        precedences.append((lhs.container, rhs.container))
 
     qualitative = len(precedences) == len(time_constraints)
     if not qualitative:
