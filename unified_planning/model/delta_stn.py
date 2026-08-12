@@ -135,7 +135,7 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
             solution, must be returned.
         :return: The minimal possible time assignment for the given event.
         """
-        return cast(T, -1 * self._distances[x])
+        return -1 * self._distances[x]
 
     def _is_subsumed(self, x: Any, y: Any, b: T) -> bool:
         neighbor = self._constraints.get(x, None)
