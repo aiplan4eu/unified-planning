@@ -2056,6 +2056,8 @@ class UPPDDLReader:
                         and metric_exp == self._totalcost
                     ):
                         costs: Dict[up.model.Action, up.model.Expression] = {}
+                        # cleared below unless every action costs exactly 1
+                        use_plan_length = True
                         problem._fluents.remove(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
@@ -2073,7 +2075,10 @@ class UPPDDLReader:
                                 if cost is not None:
                                     costs[a] = cost.value
                                     a._effects.remove(cost)
-                                    if cost.value != 1:
+                                    if not (
+                                        cost.value.is_int_constant()
+                                        and cost.value.constant_value() == 1
+                                    ):
                                         use_plan_length = False
                                 else:
                                     use_plan_length = False
