@@ -4852,7 +4852,7 @@ dev = [
     { name = "pre-commit", specifier = ">=3.5" },
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.6.0" },
+    { name = "ruff", specifier = "==0.16.5" },
 ]
 docs = [
     { name = "docutils", specifier = ">=0.20,<0.21" },
