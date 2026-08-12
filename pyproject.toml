@@ -146,6 +146,11 @@ addopts = "--doctest-modules --ignore=unified_planning/grpc --ignore=unified_pla
 [tool.mypy]
 check_untyped_defs = true
 files = ["unified_planning"]
+# An ignore that no longer suppresses anything is a false statement about the code, and it
+# outlives the refactor that made it obsolete: 30 had accumulated when this was turned on.
+warn_unused_ignores = true
+# mypy's default since 0.990; stated so an implicit-Optional signature cannot come back unnoticed.
+no_implicit_optional = true
 
 [[tool.mypy.overrides]]
 module = ["unified_planning.grpc.generated.*"]
