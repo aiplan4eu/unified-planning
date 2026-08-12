@@ -106,8 +106,7 @@ class AbstractTaskNetwork(ABC):
         order = self._ordering()
         if isinstance(order, PartialOrder):
             return order.precedences
-        else:
-            return None
+        return None
 
     def total_order(self) -> Optional[List[str]]:
         """If the temporal constraints define a total order, returns the ordered list of task identifiers.
@@ -116,8 +115,7 @@ class AbstractTaskNetwork(ABC):
         order = self._ordering()
         if isinstance(order, TotalOrder):
             return order.order
-        else:
-            return None
+        return None
 
     def add_constraint(self, constraint: Expression):
         (constraint,) = self._env.expression_manager.auto_promote(constraint)

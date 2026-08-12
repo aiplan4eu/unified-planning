@@ -105,8 +105,7 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
                 and set(self._effects) == set(oth._effects)
                 and self._simulated_effect == oth._simulated_effect
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -221,7 +220,7 @@ class DurativeAction(Action, TimedCondsEffs):
             oth_el = oth._continuous_effects.get(t, None)
             if oth_el is None:
                 return False
-            elif set(el) != set(oth_el):
+            if set(el) != set(oth_el):
                 return False
         return True
 

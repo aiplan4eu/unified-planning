@@ -92,8 +92,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
             start, ai, dur = start_ai_dur
             if dur is None:
                 return f"    {float(start)}: {ai}"
-            else:
-                return f"    {float(start)}: {ai} [{float(dur)}]"
+            return f"    {float(start)}: {ai} [{float(dur)}]"
 
         ret = ["TimeTriggeredPlan:"]
         ret.extend(map(convert_ai, sorted(self._actions, key=lambda x: x[0])))
@@ -112,8 +111,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
                 ):
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -126,8 +124,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, plans.plan.ActionInstance):
             return any(item.is_semantically_equivalent(a) for _, a, _ in self._actions)
-        else:
-            return False
+        return False
 
     @property
     def timed_actions(
@@ -183,10 +180,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.STN_PLAN:
+        if plan_kind == plans.plan.PlanKind.STN_PLAN:
             return _convert_to_stn(self, problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def extract_epsilon(self, problem: Problem) -> Optional[Fraction]:
         """
@@ -240,8 +236,7 @@ def _absolute_time(
     """
     if relative_time.is_from_start():
         return start + relative_time.delay
-    else:
-        return start + duration + relative_time.delay
+    return start + duration + relative_time.delay
 
 
 def _convert_to_stn(

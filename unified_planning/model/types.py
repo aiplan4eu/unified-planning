@@ -262,17 +262,16 @@ def domain_size(
     """
     if typename.is_bool_type():
         return 2
-    elif typename.is_user_type():
+    if typename.is_user_type():
         return len(list(objects_set.objects(typename)))
-    elif typename.is_int_type():
+    if typename.is_int_type():
         typename = cast(_IntType, typename)
         lb = typename.lower_bound
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
         return ub - lb + 1
-    else:
-        raise UPProblemDefinitionError("Parameter not groundable!")
+    raise UPProblemDefinitionError("Parameter not groundable!")
 
 
 def domain_item(
@@ -290,19 +289,18 @@ def domain_item(
     """
     if typename.is_bool_type():
         return objects_set.environment.expression_manager.Bool(idx == 0)
-    elif typename.is_user_type():
+    if typename.is_user_type():
         return objects_set.environment.expression_manager.ObjectExp(
             list(objects_set.objects(typename))[idx]
         )
-    elif typename.is_int_type():
+    if typename.is_int_type():
         typename = cast(_IntType, typename)
         lb = typename.lower_bound
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
         return objects_set.environment.expression_manager.Int(lb + idx)
-    else:
-        raise UPProblemDefinitionError("Parameter not groundable!")
+    raise UPProblemDefinitionError("Parameter not groundable!")
 
 
 def is_compatible_type(
@@ -336,5 +334,4 @@ def is_compatible_type(
     right_upper = float("inf") if t_right.upper_bound is None else t_right.upper_bound
     if right_upper < left_lower or right_lower > left_upper:
         return False
-    else:
-        return True
+    return True

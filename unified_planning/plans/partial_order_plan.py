@@ -126,8 +126,7 @@ class PartialOrderPlan(plans.plan.Plan):
                 oth._graph,
                 node_match=_semantically_equivalent_action_instances,
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(nx.weisfeiler_lehman_graph_hash(self._graph))
@@ -135,8 +134,7 @@ class PartialOrderPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, ActionInstance):
             return any(item.is_semantically_equivalent(a) for a in self._graph.nodes)
-        else:
-            return False
+        return False
 
     @property
     def get_adjacency_list(
@@ -213,12 +211,11 @@ class PartialOrderPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.SEQUENTIAL_PLAN:
+        if plan_kind == plans.plan.PlanKind.SEQUENTIAL_PLAN:
             return SequentialPlan(
                 list(nx.topological_sort(self._graph)), self._environment
             )
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def all_sequential_plans(self) -> Iterator[SequentialPlan]:
         """Returns all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""

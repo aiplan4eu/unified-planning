@@ -129,5 +129,4 @@ class Substituter(IdentityDagWalker):
         res = subs.get(expression, None)
         if res is not None:
             return res
-        else:
-            return IdentityDagWalker.super(self, expression, args, **kwargs)
+        return IdentityDagWalker.super(self, expression, args, **kwargs)

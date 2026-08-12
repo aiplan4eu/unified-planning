@@ -167,7 +167,7 @@ class Dnf(walkers.dag.DagWalker):
             simp = self._simplifier.simplify(self.manager.And(big_conjunction))
             if simp.is_true():
                 return []
-            elif simp.is_false():
+            if simp.is_false():
                 pass
             elif simp.is_and():
                 res.append(simp.args)

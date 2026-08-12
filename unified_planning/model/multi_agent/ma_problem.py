@@ -124,7 +124,7 @@ class MultiAgentProblem(  # type: ignore[misc]
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
-            elif value != oth_value:
+            if value != oth_value:
                 return False
         return True
 
@@ -236,7 +236,7 @@ class MultiAgentProblem(  # type: ignore[misc]
                 )
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
-        elif fluent_exp.is_dot():
+        if fluent_exp.is_dot():
             agent = self.agent(fluent_exp.agent())
             f = fluent_exp.arg(0).fluent()
             if f not in agent.fluents:
@@ -247,10 +247,9 @@ class MultiAgentProblem(  # type: ignore[misc]
             if v is None:
                 raise UPProblemDefinitionError("Initial value not set!")
             return v
-        elif fluent_exp.fluent() in self.ma_environment.fluents_defaults:
+        if fluent_exp.fluent() in self.ma_environment.fluents_defaults:
             return self.ma_environment.fluents_defaults[fluent_exp.fluent()]
-        else:
-            raise UPProblemDefinitionError("Initial value not set!")
+        raise UPProblemDefinitionError("Initial value not set!")
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:

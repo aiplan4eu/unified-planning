@@ -548,8 +548,7 @@ class Factory:
         if name is not None:
             if name in self._engines:
                 return self._engines[name]
-            else:
-                raise up.exceptions.UPNoRequestedEngineAvailableException
+            raise up.exceptions.UPNoRequestedEngineAvailableException
         problem_features = list(problem_kind.features)
         planners_features = []
         # Make sure that optimality guarantees and compilation kind are mutually exclusive
@@ -567,7 +566,7 @@ class Factory:
                 anytime_guarantee,
             ):
                 return EngineClass
-            elif getattr(EngineClass, "is_" + operation_mode.value)():
+            if getattr(EngineClass, "is_" + operation_mode.value)():
                 # The EngineClass satisfies the given OperationMode but does not
                 # satisfy some other features; add it to the error report features if
                 # no NoSuitableEngineAvailable are found.
@@ -688,7 +687,7 @@ class Factory:
             self._print_credits(all_credits)
             p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
-        elif operation_mode == OperationMode.COMPILER and compilation_kinds is not None:
+        if operation_mode == OperationMode.COMPILER and compilation_kinds is not None:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
@@ -715,80 +714,79 @@ class Factory:
                 compilers.append(compiler)
             self._print_credits(all_credits)
             return CompilersPipeline(compilers)
-        else:
-            assert names is None
-            error_failed_checks = name is None
-            if params is None:
-                params = {}
-            assert isinstance(params, Dict)
-            EngineClass = self._get_engine_class(
-                operation_mode,
-                name,
-                problem_kind,
-                optimality_guarantee,
-                compilation_kind,
-                plan_kind,
-                anytime_guarantee,
+        assert names is None
+        error_failed_checks = name is None
+        if params is None:
+            params = {}
+        assert isinstance(params, Dict)
+        EngineClass = self._get_engine_class(
+            operation_mode,
+            name,
+            problem_kind,
+            optimality_guarantee,
+            compilation_kind,
+            plan_kind,
+            anytime_guarantee,
+        )
+        credits = EngineClass.get_credits(**params)
+        self._print_credits([credits])
+        if operation_mode == OperationMode.REPLANNER:
+            assert problem is not None
+            if (
+                problem.kind.has_quality_metrics()
+                and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
+            ):
+                msg = "The problem has no quality metrics but the engine is required to be optimal!"
+                raise up.exceptions.UPUsageError(msg)
+            res = EngineClass(
+                problem=problem,
+                error_on_failed_checks=error_failed_checks,
+                **params,
             )
-            credits = EngineClass.get_credits(**params)
-            self._print_credits([credits])
-            if operation_mode == OperationMode.REPLANNER:
-                assert problem is not None
-                if (
-                    problem.kind.has_quality_metrics()
-                    and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
-                ):
-                    msg = "The problem has no quality metrics but the engine is required to be optimal!"
-                    raise up.exceptions.UPUsageError(msg)
-                res = EngineClass(
-                    problem=problem,
-                    error_on_failed_checks=error_failed_checks,
-                    **params,
-                )
-                assert isinstance(res, ReplannerMixin)
-            elif (
-                operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
-                or operation_mode == OperationMode.ACTION_SELECTOR
+            assert isinstance(res, ReplannerMixin)
+        elif (
+            operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
+            or operation_mode == OperationMode.ACTION_SELECTOR
+        ):
+            assert problem is not None
+            res = EngineClass(
+                problem=problem,
+                error_on_failed_checks=error_failed_checks,
+                **params,
+            )
+            assert isinstance(res, SequentialSimulatorMixin) or isinstance(
+                res, ActionSelectorMixin
+            )
+        elif operation_mode == OperationMode.COMPILER:
+            res = EngineClass(**params)
+            assert isinstance(res, CompilerMixin)
+            if compilation_kind is not None:
+                res.default = compilation_kind
+        elif (
+            operation_mode == OperationMode.ONESHOT_PLANNER
+            or operation_mode == OperationMode.PLAN_REPAIRER
+            or operation_mode == OperationMode.PORTFOLIO_SELECTOR
+        ):
+            res = EngineClass(**params)
+            assert (
+                isinstance(res, OneshotPlannerMixin)
+                or isinstance(res, PortfolioSelectorMixin)
+                or isinstance(res, PlanRepairerMixin)
+            )
+            if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
+                res.optimality_metric_required = True
+        elif operation_mode == OperationMode.ANYTIME_PLANNER:
+            res = EngineClass(**params)
+            assert isinstance(res, AnytimePlannerMixin)
+            if (
+                anytime_guarantee == AnytimeGuarantee.INCREASING_QUALITY
+                or anytime_guarantee == AnytimeGuarantee.OPTIMAL_PLANS
             ):
-                assert problem is not None
-                res = EngineClass(
-                    problem=problem,
-                    error_on_failed_checks=error_failed_checks,
-                    **params,
-                )
-                assert isinstance(res, SequentialSimulatorMixin) or isinstance(
-                    res, ActionSelectorMixin
-                )
-            elif operation_mode == OperationMode.COMPILER:
-                res = EngineClass(**params)
-                assert isinstance(res, CompilerMixin)
-                if compilation_kind is not None:
-                    res.default = compilation_kind
-            elif (
-                operation_mode == OperationMode.ONESHOT_PLANNER
-                or operation_mode == OperationMode.PLAN_REPAIRER
-                or operation_mode == OperationMode.PORTFOLIO_SELECTOR
-            ):
-                res = EngineClass(**params)
-                assert (
-                    isinstance(res, OneshotPlannerMixin)
-                    or isinstance(res, PortfolioSelectorMixin)
-                    or isinstance(res, PlanRepairerMixin)
-                )
-                if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
-                    res.optimality_metric_required = True
-            elif operation_mode == OperationMode.ANYTIME_PLANNER:
-                res = EngineClass(**params)
-                assert isinstance(res, AnytimePlannerMixin)
-                if (
-                    anytime_guarantee == AnytimeGuarantee.INCREASING_QUALITY
-                    or anytime_guarantee == AnytimeGuarantee.OPTIMAL_PLANS
-                ):
-                    res.optimality_metric_required = True
-            else:
-                res = EngineClass(**params)
-            res.error_on_failed_checks = error_failed_checks
-            return res
+                res.optimality_metric_required = True
+        else:
+            res = EngineClass(**params)
+        res.error_on_failed_checks = error_failed_checks
+        return res
 
     @property
     def environment(self) -> "Environment":

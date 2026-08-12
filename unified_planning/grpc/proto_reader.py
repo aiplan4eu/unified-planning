@@ -43,67 +43,66 @@ from unified_planning.plans.hierarchical_plan import Decomposition, MethodInstan
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:
     if s == "up:bool":
         return problem.environment.type_manager.BoolType()
-    elif s == "up:integer":
+    if s == "up:integer":
         return problem.environment.type_manager.IntType()
-    elif "up:integer[" in s:
+    if "up:integer[" in s:
         str_lb = s.split("[")[1].split(",")[0]
         lb = None if "-inf" in str_lb else int(str_lb)
         str_ub = s.split(",")[1].split("]")[0]
         ub = None if "inf" in str_ub else int(str_ub)
         return problem.environment.type_manager.IntType(lb, ub)
-    elif s == "up:real":
+    if s == "up:real":
         return problem.environment.type_manager.RealType()
-    elif "up:real[" in s:
+    if "up:real[" in s:
         return problem.environment.type_manager.RealType(
             lower_bound=fractions.Fraction(s.split("[")[1].split(",")[0]),
             upper_bound=fractions.Fraction(s.split(",")[1].split("]")[0]),
         )
-    else:
-        assert not s.startswith("up:"), f"Unhandled builtin type: {s}"
-        return problem.user_type(s)
+    assert not s.startswith("up:"), f"Unhandled builtin type: {s}"
+    return problem.user_type(s)
 
 
 # The operators are based on SExpressions supported in PDDL.
 def op_to_node_type(op: str) -> OperatorKind:
     if op == "up:plus":
         return OperatorKind.PLUS
-    elif op == "up:minus":
+    if op == "up:minus":
         return OperatorKind.MINUS
-    elif op == "up:times":
+    if op == "up:times":
         return OperatorKind.TIMES
-    elif op == "up:div":
+    if op == "up:div":
         return OperatorKind.DIV
-    elif op == "up:equals":
+    if op == "up:equals":
         return OperatorKind.EQUALS
-    elif op == "up:le":
+    if op == "up:le":
         return OperatorKind.LE
-    elif op == "up:lt":
+    if op == "up:lt":
         return OperatorKind.LT
-    elif op == "up:and":
+    if op == "up:and":
         return OperatorKind.AND
-    elif op == "up:or":
+    if op == "up:or":
         return OperatorKind.OR
-    elif op == "up:not":
+    if op == "up:not":
         return OperatorKind.NOT
-    elif op == "up:exists":
+    if op == "up:exists":
         return OperatorKind.EXISTS
-    elif op == "up:forall":
+    if op == "up:forall":
         return OperatorKind.FORALL
-    elif op == "up:implies":
+    if op == "up:implies":
         return OperatorKind.IMPLIES
-    elif op == "up:iff":
+    if op == "up:iff":
         return OperatorKind.IFF
-    elif op == "up:always":
+    if op == "up:always":
         return OperatorKind.ALWAYS
-    elif op == "up:at_most_once":
+    if op == "up:at_most_once":
         return OperatorKind.AT_MOST_ONCE
-    elif op == "up:sometime":
+    if op == "up:sometime":
         return OperatorKind.SOMETIME
-    elif op == "up:sometime_after":
+    if op == "up:sometime_after":
         return OperatorKind.SOMETIME_AFTER
-    elif op == "up:sometime_before":
+    if op == "up:sometime_before":
         return OperatorKind.SOMETIME_BEFORE
-    elif op == "up:present":
+    if op == "up:present":
         return OperatorKind.PRESENT_EXP
     raise ValueError(f"Unknown operator `{op}`")
 
@@ -145,7 +144,7 @@ class ProtobufReader(Converter):
             assert msg.atom is not None
             return self.convert(msg.atom, problem)
 
-        elif msg.kind == proto.ExpressionKind.Value("PARAMETER"):
+        if msg.kind == proto.ExpressionKind.Value("PARAMETER"):
             return problem.environment.expression_manager.ParameterExp(
                 param=Parameter(
                     msg.atom.symbol,
@@ -153,7 +152,7 @@ class ProtobufReader(Converter):
                     problem.environment,
                 ),
             )
-        elif msg.kind == proto.ExpressionKind.Value("VARIABLE"):
+        if msg.kind == proto.ExpressionKind.Value("VARIABLE"):
             return problem.environment.expression_manager.VariableExp(
                 var=Variable(
                     msg.atom.symbol,
@@ -161,7 +160,7 @@ class ProtobufReader(Converter):
                     problem.environment,
                 ),
             )
-        elif msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
+        if msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
             args = []
             payload = None
 
@@ -174,16 +173,15 @@ class ProtobufReader(Converter):
                 return problem.environment.expression_manager.FluentExp(
                     payload, tuple(args)
                 )
-            else:
-                raise UPException(f"Unable to form fluent expression {msg}")
-        elif (
+            raise UPException(f"Unable to form fluent expression {msg}")
+        if (
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.list[0].atom.symbol == "up:present"
         ):
             container = msg.list[1].atom.symbol
             presence = model.Presence(container)
             return problem.environment.expression_manager.PresentExp(presence)
-        elif (
+        if (
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.type != "up:time"
         ):
@@ -216,7 +214,7 @@ class ProtobufReader(Converter):
                 args=tuple(args),
                 payload=payload,
             )
-        elif (
+        if (
             msg.kind == proto.ExpressionKind.Value("FUNCTION_APPLICATION")
             and msg.type == "up:time"
         ):
@@ -267,21 +265,19 @@ class ProtobufReader(Converter):
         value = getattr(msg, field)
         if field == "int":
             return problem.environment.expression_manager.Int(value)
-        elif field == "real":
+        if field == "real":
             return problem.environment.expression_manager.Real(
                 fractions.Fraction(value.numerator, value.denominator)
             )
-        elif field == "boolean":
+        if field == "boolean":
             return problem.environment.expression_manager.Bool(value)
-        else:
-            # If atom symbols, return the equivalent UP alternative
-            # Note that parameters are directly handled at expression level
-            if problem.has_object(value):
-                return problem.environment.expression_manager.ObjectExp(
-                    obj=problem.object(value)
-                )
-            else:
-                return problem.fluent(value)
+        # If atom symbols, return the equivalent UP alternative
+        # Note that parameters are directly handled at expression level
+        if problem.has_object(value):
+            return problem.environment.expression_manager.ObjectExp(
+                obj=problem.object(value)
+            )
+        return problem.fluent(value)
 
     @handles(proto.TypeDeclaration)
     def _convert_type_declaration(
@@ -289,26 +285,23 @@ class ProtobufReader(Converter):
     ) -> model.Type:
         if msg.type_name == "up:bool":
             return problem.environment.type_manager.BoolType()
-        elif msg.type_name.startswith("up:integer["):
+        if msg.type_name.startswith("up:integer["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             return problem.environment.type_manager.IntType(
                 lower_bound=int(tmp[0]) if tmp[0] != "-inf" else None,
                 upper_bound=int(tmp[1]) if tmp[1] != "inf" else None,
             )
-        elif msg.type_name.startswith("up:real["):
+        if msg.type_name.startswith("up:real["):
             tmp = msg.type_name.split("[")[1].split("]")[0].split(", ")
             lower_bound = fractions.Fraction(tmp[0]) if tmp[0] != "-inf" else None
             upper_bound = fractions.Fraction(tmp[1]) if tmp[1] != "inf" else None
             return problem.environment.type_manager.RealType(
                 lower_bound=lower_bound, upper_bound=upper_bound
             )
-        else:
-            father = (
-                problem.user_type(msg.parent_type) if msg.parent_type != "" else None
-            )
-            return problem.environment.type_manager.UserType(
-                name=msg.type_name, father=father
-            )
+        father = problem.user_type(msg.parent_type) if msg.parent_type != "" else None
+        return problem.environment.type_manager.UserType(
+            name=msg.type_name, father=father
+        )
 
     @handles(proto.Problem)
     def _convert_problem(
@@ -550,35 +543,34 @@ class ProtobufReader(Converter):
                 else None,
             )
 
-        elif msg.kind == proto.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
+        if msg.kind == proto.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
             return metrics.MinimizeSequentialPlanLength()
 
-        elif msg.kind == proto.Metric.MINIMIZE_MAKESPAN:
+        if msg.kind == proto.Metric.MINIMIZE_MAKESPAN:
             return metrics.MinimizeMakespan()
 
-        elif msg.kind == proto.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE:
+        if msg.kind == proto.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE:
             return metrics.MinimizeExpressionOnFinalState(
                 expression=self.convert(msg.expression, problem)
             )
 
-        elif msg.kind == proto.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE:
+        if msg.kind == proto.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE:
             return metrics.MaximizeExpressionOnFinalState(
                 expression=self.convert(msg.expression, problem)
             )
-        elif msg.kind == proto.Metric.OVERSUBSCRIPTION:
+        if msg.kind == proto.Metric.OVERSUBSCRIPTION:
             goals = {}
             for g in msg.goals:
                 goals[self.convert(g.goal, problem)] = self.convert(g.weight)
             return metrics.Oversubscription(goals)
-        elif msg.kind == proto.Metric.TEMPORAL_OVERSUBSCRIPTION:
+        if msg.kind == proto.Metric.TEMPORAL_OVERSUBSCRIPTION:
             timed_goals = {}
             for g in msg.timed_goals:
                 timed_goals[
                     (self.convert(g.timing, problem), self.convert(g.goal, problem))
                 ] = self.convert(g.weight)
             return metrics.TemporalOversubscription(timed_goals)
-        else:
-            raise UPException(f"Unknown metric kind `{msg.kind}`")
+        raise UPException(f"Unknown metric kind `{msg.kind}`")
 
     @handles(proto.Action)
     def _convert_action(self, msg: proto.Action, problem: Problem) -> model.Action:
@@ -768,8 +760,7 @@ class ProtobufReader(Converter):
 
             return unified_planning.plans.HierarchicalPlan(flat_plan, decomposition)
 
-        else:
-            return flat_plan
+        return flat_plan
 
     @handles(proto.ActionInstance)
     def _convert_action_instance(
@@ -798,8 +789,7 @@ class ProtobufReader(Converter):
                 action_instance,
                 (start_time, None if duration == 0 else duration),
             )
-        else:
-            return id, action_instance, None
+        return id, action_instance, None
 
     def _convert_schedule(
         self, msg: proto.Schedule, problem: model.scheduling.SchedulingProblem
@@ -889,23 +879,22 @@ class ProtobufReader(Converter):
                 level=unified_planning.engines.LogLevel.INFO,
                 message=log.message,
             )
-        elif log.level == proto.LogMessage.LogLevel.Value("WARNING"):
+        if log.level == proto.LogMessage.LogLevel.Value("WARNING"):
             return unified_planning.engines.LogMessage(
                 level=unified_planning.engines.LogLevel.WARNING,
                 message=log.message,
             )
-        elif log.level == proto.LogMessage.LogLevel.Value("ERROR"):
+        if log.level == proto.LogMessage.LogLevel.Value("ERROR"):
             return unified_planning.engines.LogMessage(
                 level=unified_planning.engines.LogLevel.ERROR,
                 message=log.message,
             )
-        elif log.level == proto.LogMessage.LogLevel.Value("DEBUG"):
+        if log.level == proto.LogMessage.LogLevel.Value("DEBUG"):
             return unified_planning.engines.LogMessage(
                 level=unified_planning.engines.LogLevel.DEBUG,
                 message=log.message,
             )
-        else:
-            raise UPException(f"Unexpected Log Level: {log.level}")
+        raise UPException(f"Unexpected Log Level: {log.level}")
 
     @handles(proto.CompilerResult)
     def _convert_compiler_result(

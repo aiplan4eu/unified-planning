@@ -134,10 +134,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             """Determines the expressivity level of temporal constraints within a task network"""
             if tn.total_order() is not None:
                 return TO
-            elif tn.partial_order() is not None:
+            if tn.partial_order() is not None:
                 return PO
-            else:
-                return TEMPORAL
+            return TEMPORAL
 
         ordering_kind = lvl(self.task_network)
         if len(self.task_network.variables) > 0:
@@ -206,8 +205,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 task.name == t for t in self._abstract_tasks
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         self._abstract_tasks[task.name] = task
         for param in task.parameters:
             if param.type.is_user_type():
@@ -231,8 +229,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 method.name == m for m in self._methods
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         assert method.achieved_task.task.name in self._abstract_tasks, (
             f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         )

@@ -88,10 +88,9 @@ class Simplifier(walkers.dag.DagWalker):
 
         if len(new_args) == 0:
             return self.manager.TRUE()
-        elif len(new_args) == 1:
+        if len(new_args) == 1:
             return next(iter(new_args))
-        else:
-            return self.manager.And(new_args.keys())
+        return self.manager.And(new_args.keys())
 
     def walk_or(self, expression: FNode, args: List[FNode]) -> FNode:
         if len(args) == 2 and args[0] == args[1]:
@@ -115,10 +114,9 @@ class Simplifier(walkers.dag.DagWalker):
 
         if len(new_args) == 0:
             return self.manager.FALSE()
-        elif len(new_args) == 1:
+        if len(new_args) == 1:
             return next(iter(new_args))
-        else:
-            return self.manager.Or(new_args.keys())
+        return self.manager.Or(new_args.keys())
 
     def walk_not(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
@@ -126,7 +124,7 @@ class Simplifier(walkers.dag.DagWalker):
         if child.is_bool_constant():
             l = child.bool_constant_value()
             return self.manager.Bool(not l)
-        elif child.is_not():
+        if child.is_not():
             return child.arg(0)
 
         return self.manager.Not(child)
@@ -141,20 +139,17 @@ class Simplifier(walkers.dag.DagWalker):
             l = sl.bool_constant_value()
             r = sr.bool_constant_value()
             return self.manager.Bool(l == r)
-        elif sl.is_bool_constant():
+        if sl.is_bool_constant():
             if sl.bool_constant_value():
                 return sr
-            else:
-                return self.manager.Not(sr)
-        elif sr.is_bool_constant():
+            return self.manager.Not(sr)
+        if sr.is_bool_constant():
             if sr.bool_constant_value():
                 return sl
-            else:
-                return self.manager.Not(sl)
-        elif sl == sr:
+            return self.manager.Not(sl)
+        if sl == sr:
             return self.manager.TRUE()
-        else:
-            return self.manager.Iff(sl, sr)
+        return self.manager.Iff(sl, sr)
 
     def walk_implies(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -166,18 +161,15 @@ class Simplifier(walkers.dag.DagWalker):
             l = sl.bool_constant_value()
             if l:
                 return sr
-            else:
-                return self.manager.TRUE()
-        elif sr.is_bool_constant():
+            return self.manager.TRUE()
+        if sr.is_bool_constant():
             r = sr.bool_constant_value()
             if r:
                 return self.manager.TRUE()
-            else:
-                return self.manager.Not(sl)
-        elif sl == sr:
+            return self.manager.Not(sl)
+        if sl == sr:
             return self.manager.TRUE()
-        else:
-            return self.manager.Implies(sl, sr)
+        return self.manager.Implies(sl, sr)
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
@@ -222,8 +214,7 @@ class Simplifier(walkers.dag.DagWalker):
                             break
         if vars:
             return self.manager.Exists(new_arg, *vars)
-        else:
-            return new_arg
+        return new_arg
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 1
@@ -286,9 +277,9 @@ class Simplifier(walkers.dag.DagWalker):
             l = sl.constant_value()
             r = sr.constant_value()
             return self.manager.Bool(l == r)
-        elif sl == sr:
+        if sl == sr:
             return self.manager.TRUE()
-        elif sl.type.is_user_type() and sr.type.is_user_type():
+        if sl.type.is_user_type() and sr.type.is_user_type():
             slt, srt = cast(_UserType, sl.type), cast(_UserType, sr.type)
             if not slt.is_compatible(srt) and not srt.is_compatible(slt):
                 return self.manager.FALSE()
@@ -322,16 +313,15 @@ class Simplifier(walkers.dag.DagWalker):
         new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
         if expression.fluent() not in self.static_fluents:
             return new_exp
-        else:
-            assert self.problem is not None
-            for a in args:
-                if not a.is_constant():
-                    return new_exp
-            static_value = self.problem.initial_value(new_exp)
-            if static_value is not None:
-                return static_value
-            else:  # value is static but is not defined in the initial state
+        assert self.problem is not None
+        for a in args:
+            if not a.is_constant():
                 return new_exp
+        static_value = self.problem.initial_value(new_exp)
+        if static_value is not None:
+            return static_value
+        # value is static but is not defined in the initial state
+        return new_exp
 
     def walk_interpreted_function_exp(
         self, expression: FNode, args: List[FNode]
@@ -343,9 +333,8 @@ class Simplifier(walkers.dag.DagWalker):
         for a in args:
             if not a.is_constant():
                 return new_exp
-            else:
-                v = a.constant_value()
-                newlist.append(v)
+            v = a.constant_value()
+            newlist.append(v)
         constantval = expression.interpreted_function().function(*newlist)
         if expression.interpreted_function().return_type.is_bool_type():
             constantval = self.manager.Bool(constantval)
@@ -384,11 +373,9 @@ class Simplifier(walkers.dag.DagWalker):
                 *new_args_plus, self._number_to_fnode(accumulator)
             )
             return fnode_acc
-        else:
-            if len(new_args_plus) == 0:
-                return self.manager.Int(0)
-            else:
-                return self.manager.Plus(new_args_plus)
+        if len(new_args_plus) == 0:
+            return self.manager.Int(0)
+        return self.manager.Plus(new_args_plus)
 
     def walk_minus(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2
@@ -400,15 +387,13 @@ class Simplifier(walkers.dag.DagWalker):
             value = left.constant_value() - right.constant_value()
             fnode_constant_values = self._number_to_fnode(value)
             return fnode_constant_values
-        elif right.is_int_constant() or right.is_real_constant():
+        if right.is_int_constant() or right.is_real_constant():
             if right.constant_value() < 0:
                 value = -right.constant_value()
                 fnode_constant_values = self._number_to_fnode(value)
                 return self.manager.Plus(left, fnode_constant_values)
-            else:
-                return self.manager.Minus(left, right)
-        else:
             return self.manager.Minus(left, right)
+        return self.manager.Minus(left, right)
 
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
         new_args_times: List[FNode] = list()
@@ -418,15 +403,13 @@ class Simplifier(walkers.dag.DagWalker):
             if a.is_int_constant() or a.is_real_constant():
                 if a.constant_value() == 0:
                     return self.manager.Int(0)
-                else:
-                    accumulator *= a.constant_value()
+                accumulator *= a.constant_value()
             elif a.is_times():
                 for s in a.args:
                     if s.is_int_constant() or s.is_real_constant():
                         if s.constant_value() == 0:
                             return self.manager.Int(0)
-                        else:
-                            accumulator *= s.constant_value()
+                        accumulator *= s.constant_value()
                     else:
                         new_args_times.append(s)
             else:
@@ -436,11 +419,9 @@ class Simplifier(walkers.dag.DagWalker):
         if accumulator != 1:
             fnode_acc = self._number_to_fnode(accumulator)
             return self.manager.Times(*new_args_times, fnode_acc)
-        else:
-            if len(new_args_times) == 0:
-                return self.manager.Int(1)
-            else:
-                return self.manager.Times(new_args_times)
+        if len(new_args_times) == 0:
+            return self.manager.Int(1)
+        return self.manager.Times(new_args_times)
 
     def walk_div(self, expression: FNode, args: List[FNode]) -> FNode:
         assert len(args) == 2

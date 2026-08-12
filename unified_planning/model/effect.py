@@ -159,8 +159,7 @@ class Effect:
                 and self._kind == oth._kind
                 and set(self._forall) == set(oth._forall)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return (
@@ -350,8 +349,7 @@ class SimulatedEffect:
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SimulatedEffect):
             return self._fluents == oth._fluents and self._function == oth._function
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._function)
@@ -423,7 +421,7 @@ def check_conflicting_effects(
                     msg = f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
             # if the same fluent is involved in a simulated effect
-            elif (
+            if (
                 simulated_effect is not None
                 and effect.fluent in simulated_effect.fluents
             ):
@@ -433,7 +431,7 @@ def check_conflicting_effects(
                     msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
             # the same fluent is involved in another assign
-            elif assigned_value is not None:
+            if assigned_value is not None:
                 # if the 2 values are different, raise exception
                 if assigned_value != effect.value and not (
                     assigned_value.is_constant()

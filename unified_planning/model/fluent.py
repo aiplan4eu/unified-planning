@@ -99,8 +99,7 @@ class Fluent:
                 and self._signature == oth._signature
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._typename)

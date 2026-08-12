@@ -119,8 +119,7 @@ def validate_plan(
             check = validator.validate(problem, plan)
             if check.status is ValidationResultStatus.VALID:
                 return Ok("Valid"), check.metric_evaluations
-            else:
-                return Err("Invalid plan generated"), None
+            return Err("Invalid plan generated"), None
     except unified_planning.exceptions.UPNoSuitableEngineAvailableException:
         return Warn("No validator for problem"), None
     except Exception as e:
@@ -131,8 +130,7 @@ def verify(cond: bool, error_tag: str, ok_tag: str = "") -> ResultSet:
     """Returns an Error if the condition passed in parameter does not hold."""
     if cond:
         return Ok(ok_tag)
-    else:
-        return Err(error_tag)
+    return Err(error_tag)
 
 
 def check_result(
@@ -242,7 +240,7 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
             return Ok("Compiled problem unsolvable")
     if plan is None and test.solvable:
         return Warn("No engine to solve compiled problem")
-    elif plan is None:
+    if plan is None:
         return Warn("No engine to prove compiled problem is unsolvable")
 
     assert test.solvable and plan is not None

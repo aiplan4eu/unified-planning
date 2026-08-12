@@ -377,7 +377,7 @@ class ANMLReader:
         assert isinstance(name, str), "parsing error"
         if name == TK_BOOLEAN:
             return self._tm.BoolType()
-        elif name in (TK_INTEGER, TK_FLOAT):
+        if name in (TK_INTEGER, TK_FLOAT):
             lower_bound, upper_bound = None, None
             if len(type_res) == 2:
                 _p: Dict[str, "up.model.Parameter"] = {}
@@ -420,20 +420,15 @@ class ANMLReader:
                         f"Integer bounds of {type_res} must be int expressions"
                     )
                 return self._tm.IntType(lower_bound, upper_bound)
-            else:
-                if isinstance(lower_bound, int):
-                    lower_bound = Fraction(lower_bound)
-                if isinstance(upper_bound, int):
-                    upper_bound = Fraction(upper_bound)
-                return self._tm.RealType(lower_bound, upper_bound)
-        else:
-            ret_type = types_map.get(name, None)
-            if ret_type is not None:
-                return ret_type
-            else:
-                raise ANMLSyntaxError(
-                    f"UserType {name} is referenced but never defined."
-                )
+            if isinstance(lower_bound, int):
+                lower_bound = Fraction(lower_bound)
+            if isinstance(upper_bound, int):
+                upper_bound = Fraction(upper_bound)
+            return self._tm.RealType(lower_bound, upper_bound)
+        ret_type = types_map.get(name, None)
+        if ret_type is not None:
+            return ret_type
+        raise ANMLSyntaxError(f"UserType {name} is referenced but never defined.")
 
     def _parse_fluent(
         self, fluent_res: ParseResults, types_map: Dict[str, "up.model.Type"]
@@ -649,8 +644,7 @@ class ANMLReader:
                 raise UPUnsupportedProblemTypeError(
                     "ANML constant initialization is currently not supported."
                 )
-            else:
-                return StartTiming()
+            return StartTiming()
 
         contains_TK_ALL = TK_ALL in find_strings(interval_res, set((TK_ALL,)))
         if len(interval_res) == 3:
@@ -695,9 +689,9 @@ class ANMLReader:
 
         if l_par == TK_L_BRACKET and r_par == TK_R_BRACKET:
             return up.model.ClosedTimeInterval(start, end)
-        elif l_par == TK_L_BRACKET:
+        if l_par == TK_L_BRACKET:
             return up.model.RightOpenTimeInterval(start, end)
-        elif r_par == TK_R_BRACKET:
+        if r_par == TK_R_BRACKET:
             return up.model.LeftOpenTimeInterval(start, end)
         return up.model.OpenTimeInterval(start, end)
 
@@ -715,9 +709,7 @@ class ANMLReader:
         if parsed_timing_exp.is_timing_exp():
             return parsed_timing_exp.timing()
 
-        elif (
-            parsed_timing_exp.is_int_constant() or parsed_timing_exp.is_real_constant()
-        ):
+        if parsed_timing_exp.is_int_constant() or parsed_timing_exp.is_real_constant():
             if not is_global:
                 raise ANMLSyntaxError(
                     "Interval without start or end outside of an action is not valid."
@@ -729,7 +721,7 @@ class ANMLReader:
                 )
             return GlobalStartTiming(delay)
 
-        elif parsed_timing_exp.is_plus() or parsed_timing_exp.is_minus():
+        if parsed_timing_exp.is_plus() or parsed_timing_exp.is_minus():
             if len(parsed_timing_exp.args) != 2:
                 raise UPUnsupportedProblemTypeError(
                     f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
@@ -761,11 +753,10 @@ class ANMLReader:
             if parsed_timing_exp.is_minus():
                 delay = -delay
             return Timing(delay, timing.timepoint)
-        else:
-            raise UPUnsupportedProblemTypeError(
-                f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
-                f" {TK_START} + constant, {TK_END} - constant or just a constant",
-            )
+        raise UPUnsupportedProblemTypeError(
+            f"Timing parsed: {parsed_timing_exp}. UP currently only supports",
+            f" {TK_START} + constant, {TK_END} - constant or just a constant",
+        )
 
     def _check_conditional_intervals(
         self,

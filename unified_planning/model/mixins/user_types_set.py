@@ -52,8 +52,7 @@ class UserTypesSetMixin:
                     ut.name == cast(_UserType, t).name for t in self._user_types
                 ):
                     raise UPProblemDefinitionError(msg)
-                else:
-                    warn(msg)
+                warn(msg)
             if ut.father is not None:
                 self._add_user_type(ut.father)
             self._user_types.append(type)

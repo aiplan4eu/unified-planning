@@ -79,13 +79,12 @@ class ContingentPlanNode:
             for o, c in self._children:
                 res.add_child(o, c.replace_action_instances(replace_function))
             return res
-        else:
-            assert len(self._children) == 1, (
-                "A SensingActionInstance can not be replaced by an empty Action."
-            )
-            o, c = self._children[0]
-            assert len(o) == 0
-            return c.replace_action_instances(replace_function)
+        assert len(self._children) == 1, (
+            "A SensingActionInstance can not be replaced by an empty Action."
+        )
+        o, c = self._children[0]
+        assert len(o) == 0
+        return c.replace_action_instances(replace_function)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlanNode):
@@ -99,8 +98,7 @@ class ContingentPlanNode:
                 if c not in oth.children:
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -121,8 +119,7 @@ class ContingentPlanNode:
                 if item in c:
                     return True
             return False
-        else:
-            return False
+        return False
 
 
 class ContingentPlan(plans.plan.Plan):
@@ -150,8 +147,7 @@ class ContingentPlan(plans.plan.Plan):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlan) and self.environment == oth.environment:
             return self.root_node == oth.root_node
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self.root_node)
@@ -178,10 +174,9 @@ class ContingentPlan(plans.plan.Plan):
             ft = fluent.type
             if ft.is_bool_type() and value.is_true():
                 return fluent
-            elif ft.is_bool_type() and value.is_false():
+            if ft.is_bool_type() and value.is_false():
                 return em.Not(fluent)
-            else:
-                return em.Equals(fluent, value)
+            return em.Equals(fluent, value)
 
         def convert_node(node):
             node_id = id[node]
@@ -236,8 +231,7 @@ class ContingentPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
 
 def visit_tree(root_node: Optional[ContingentPlanNode]) -> Iterator[ContingentPlanNode]:
