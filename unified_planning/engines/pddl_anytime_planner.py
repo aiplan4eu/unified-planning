@@ -17,7 +17,7 @@
 import os
 from abc import abstractmethod
 from queue import Queue
-from typing import IO, Callable, Iterator, List, Optional, Tuple, Union, cast
+from typing import IO, Callable, Iterator, List, Optional, Tuple, Union
 
 import unified_planning as up
 import unified_planning.engines as engines

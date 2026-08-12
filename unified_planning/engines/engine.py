@@ -14,7 +14,7 @@
 #
 """This module defines the engine interface."""
 
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 from enum import Enum
 from typing import TYPE_CHECKING, Optional
 

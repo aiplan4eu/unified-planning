@@ -21,7 +21,6 @@ from unified_planning.model.problem_kind import (
 )
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    main,
     skipIfNoOneshotPlannerForProblemKind,
     unittest_TestCase,
 )

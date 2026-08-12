@@ -14,7 +14,7 @@
 #
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, OrderedDict, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model.abstract_problem import AbstractProblem

@@ -16,7 +16,6 @@
 from fractions import Fraction
 from typing import List
 
-import unified_planning
 from unified_planning.environment import get_environment
 from unified_planning.model.walkers import Simplifier, Substituter
 from unified_planning.shortcuts import *

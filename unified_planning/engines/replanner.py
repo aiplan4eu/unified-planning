@@ -14,7 +14,7 @@
 #
 
 from fractions import Fraction
-from typing import IO, Callable, List, Optional, Tuple, Type, Union
+from typing import IO, Optional, Type, Union
 from warnings import warn
 
 import unified_planning as up
@@ -22,10 +22,6 @@ import unified_planning.engines.mixins as mixins
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
-from unified_planning.engines.results import (
-    PlanGenerationResult,
-    PlanGenerationResultStatus,
-)
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import ProblemKind
 

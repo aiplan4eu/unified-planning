@@ -15,7 +15,7 @@
 
 import time
 from fractions import Fraction
-from typing import IO, Callable, List, Optional, Tuple, Type, Union
+from typing import IO, Callable, List, Optional, Type, Union
 
 import unified_planning as up
 import unified_planning.engines.mixins as mixins

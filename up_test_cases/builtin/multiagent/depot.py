@@ -1,4 +1,3 @@
-import unified_planning
 from unified_planning.model.multi_agent import *
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase

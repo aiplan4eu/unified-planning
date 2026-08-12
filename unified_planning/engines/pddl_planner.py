@@ -16,14 +16,13 @@
 
 import asyncio
 import os
-import re
 import select
 import signal
 import subprocess
 import sys
 import tempfile
 import time
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
 from asyncio.subprocess import PIPE
 from fractions import Fraction
 from typing import IO, Any, Callable, List, Optional, Tuple, Union, cast

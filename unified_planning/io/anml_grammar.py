@@ -39,8 +39,6 @@ from pyparsing import (
     rest_of_line,
 )
 
-import unified_planning as up
-
 ParserElement.enable_packrat()
 
 

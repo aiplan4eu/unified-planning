@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-from itertools import chain, product
 from typing import (
     Any,
     Callable,
@@ -27,12 +26,6 @@ from typing import (
 
 import networkx as nx
 
-from unified_planning.engines import CompilationKind
-from unified_planning.exceptions import (
-    UPNoSuitableEngineAvailableException,
-    UPUnsupportedProblemTypeError,
-    UPUsageError,
-)
 from unified_planning.model import (
     Action,
     FNode,

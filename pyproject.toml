@@ -158,9 +158,34 @@ select = [
     "TID",   # flake8-tidy-imports
     "YTT",   # flake8-2020: sys.version comparisons
     "I",     # isort
+    "F401",  # unused-import
+    "F402",  # import-shadowed-by-loop-var
+    "F403",  # undefined-local-with-import-star
+    "F405",  # undefined-local-with-import-star-usage
+    "F811",  # redefined-while-unused
 ]
 
 [tool.ruff.lint.per-file-ignores]
+# Every __init__.py in the package is a re-export façade (24 files); 8 declare __all__ and the
+# rest do not. Re-exporting is the job of these files, and the two downstream engine packages
+# installed here import names straight out of them, so F401 is silenced rather than deleting
+# 75 public bindings. It stays live everywhere else, which is what catches a genuinely dead
+# import in library code. Note __all__ is NOT used to silence it: adding the missing names to
+# model/__init__.py's __all__ would change what `from unified_planning.model import *` yields
+# in shortcuts.py, and so what every `from unified_planning.shortcuts import *` sees.
+"**/__init__.py" = ["F401"]
+# shortcuts.py is the star-export surface itself: `from unified_planning.model import *` is how
+# `from unified_planning.shortcuts import *` reaches the model API, so the star import and
+# every name arriving through it are by design.
+"unified_planning/shortcuts.py" = ["F403", "F405"]
+# The CLI and the protobuf writer consume that surface deliberately.
+"unified_planning/cmd/up.py" = ["F403", "F405"]
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405"]
+# 95 of the 111 star imports in the tree are `from unified_planning.shortcuts import *` in a
+# test or a test case, and they account for ~6300 of the F403/F405 hits. Scoping the ignore to
+# these two trees rather than globally keeps a *new* star import in library code an error.
+"unified_planning/test/**" = ["F403", "F405"]
+"up_test_cases/**" = ["F403", "F405"]
 # Import order in these four modules is load-bearing: each re-exports names that a sibling
 # submodule pulls back out of the partially-initialised package while it is being imported.
 # Sorting them raises ImportError or AttributeError at import time - model/__init__.py alone

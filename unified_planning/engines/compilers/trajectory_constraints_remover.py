@@ -35,7 +35,6 @@ from unified_planning.model import (
     Problem,
     ProblemKind,
 )
-from unified_planning.model.expression import Expression
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers import ExpressionQuantifiersRemover
 

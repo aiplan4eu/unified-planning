@@ -34,7 +34,6 @@ from typing import (
 
 import networkx as nx
 
-import unified_planning as up
 from unified_planning.engines.sequential_simulator import (
     UPSequentialSimulator,
     evaluate_quality_metric,

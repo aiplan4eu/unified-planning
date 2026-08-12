@@ -16,7 +16,6 @@
 import sys
 from io import StringIO
 
-import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
 

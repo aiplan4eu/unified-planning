@@ -25,7 +25,6 @@ from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPTypeError,
 )
-from unified_planning.model import walkers
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.expression import ConstantExpression

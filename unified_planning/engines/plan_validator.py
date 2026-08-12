@@ -16,16 +16,12 @@
 
 import heapq
 import warnings
-from dataclasses import dataclass
 from fractions import Fraction
 from typing import (
-    Any,
     Dict,
     Generator,
     List,
     Optional,
-    OrderedDict,
-    Set,
     Tuple,
     Union,
     cast,
@@ -68,7 +64,7 @@ from unified_planning.model.fnode import FNode
 from unified_planning.model.metrics import MinimizeActionCosts, PlanQualityMetric
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.state import UPState
-from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
+from unified_planning.model.timing import TimeInterval, Timing
 from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import PlanKind, SequentialPlan
 from unified_planning.plans.plan import ActionInstance

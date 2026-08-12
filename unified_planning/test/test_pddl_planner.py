@@ -29,7 +29,7 @@ from unified_planning.engines.results import LogMessage
 from unified_planning.io import PDDLWriter
 from unified_planning.model import ProblemKind
 from unified_planning.shortcuts import *
-from unified_planning.test import main, skipIfEngineNotAvailable, unittest_TestCase
+from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 
 VERYSMALL_TIMEOUT = 0.0001
