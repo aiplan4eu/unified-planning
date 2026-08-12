@@ -213,7 +213,7 @@ class TestModel(unittest_TestCase):
     def test_clone_action(self):
         Location = UserType("Location")
         with self.assertRaises(TypeError):
-            a = Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
+            Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
 
     def test_clone_effect(self):
         x = FluentExp(Fluent("x"))
@@ -847,7 +847,7 @@ class TestModel(unittest_TestCase):
             )
         self.assertEqual(
             str(type_error.exception),
-            f"Increase continuous effects can be created only on real type!",
+            "Increase continuous effects can be created only on real type!",
         )
 
         # test add_decrease_continuous_effect exception
@@ -857,7 +857,7 @@ class TestModel(unittest_TestCase):
             )
         self.assertEqual(
             str(type_error.exception),
-            f"Decrease continuous effects can be created only on real type!",
+            "Decrease continuous effects can be created only on real type!",
         )
 
     def test_problem(self):

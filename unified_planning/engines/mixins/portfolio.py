@@ -74,7 +74,7 @@ class PortfolioSelectorMixin(ABC):
             else:
                 warn(msg)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
-            msg = f"The problem has no quality metrics but the planners are required to be optimal!"
+            msg = "The problem has no quality metrics but the planners are required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         if max_planners is not None and max_planners <= 0:
             raise up.exceptions.UPUsageError(

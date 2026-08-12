@@ -108,7 +108,7 @@ class TestPddlIO(unittest_TestCase):
         a.add_effect(x, y)
 
         w = PDDLWriter(problem)
-        with self.assertRaises(UPProblemDefinitionError) as e:
+        with self.assertRaises(UPProblemDefinitionError):
             _ = w.get_domain()
 
         w = PDDLWriter(problem, rewrite_bool_assignments=True)
@@ -812,7 +812,10 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:init (is_at l1))", pddl_problem)
         self.assertIn("(:goal (and (is_at l2))))", pddl_problem)
 
-        expected_domain = """(define (domain basic_with_object_constant-domain)
+        # kept, underscore-prefixed, because nothing asserts against it any more: the
+        # checks above are assertIn on fragments. Restoring an exact-output assertion
+        # is a test-coverage question, not a lint one.
+        _expected_domain = """(define (domain basic_with_object_constant-domain)
  (:requirements :strips :typing :negative-preconditions)
  (:types location)
  (:constants
@@ -829,7 +832,7 @@ class TestPddlIO(unittest_TestCase):
   :effect (and (not (is_at ?l_from)) (is_at l1)))
 )
 """
-        expected_problem = """(define (problem basic_with_object_constant-problem)
+        _expected_problem = """(define (problem basic_with_object_constant-problem)
  (:domain basic_with_object_constant-domain)
  (:objects
    l2 - location
@@ -851,7 +854,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("2.5", pddl_txt)
 
         # Check imperfect conversion
-        with pytest.warns(UserWarning, match="cannot exactly represent") as warns:
+        with pytest.warns(UserWarning, match="cannot exactly represent"):
             battery = problem.fluent("battery_charge")
             problem.set_initial_value(battery, Fraction(10, 3))
             w = PDDLWriter(problem)
@@ -1001,7 +1004,10 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:objects obj_1_0 - when_)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and)))", pddl_problem)
-        expected_domain = """(define (domain ad_hoc-domain)
+        # kept, underscore-prefixed, because nothing asserts against it any more: the
+        # checks above are assertIn on fragments. Restoring an exact-output assertion
+        # is a test-coverage question, not a lint one.
+        _expected_domain = """(define (domain ad_hoc-domain)
  (:requirements :strips :typing :equality :conditional-effects)
  (:types when_)
  (:constants
@@ -1013,7 +1019,7 @@ class TestPddlIO(unittest_TestCase):
   :effect (and (when (= ?and_ obj_1) (f_4ction))))
 )
 """
-        expected_problem = """(define (problem ad_hoc-problem)
+        _expected_problem = """(define (problem ad_hoc-problem)
  (:domain ad_hoc-domain)
  (:objects
    obj_1_0 - when_
