@@ -688,7 +688,7 @@ class Factory:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
-                names = [None for _ in compilation_kinds]  # type: ignore
+                names = [None for _ in compilation_kinds]  # type: ignore[misc]
             if params is None:
                 params = [{} for _ in compilation_kinds]
             assert isinstance(params, List) and len(names) == len(params)

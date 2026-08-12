@@ -128,7 +128,7 @@ class TestProblem(unittest_TestCase):
         assert tn.partial_order() == [("a1", "a2")]
         tn.set_strictly_before(a1.end + 0, a3.start)
         assert_po(tn)
-        assert set(tn.partial_order()) == {("a1", "a2"), ("a1", "a3")}  # type: ignore
+        assert set(tn.partial_order()) == {("a1", "a2"), ("a1", "a3")}  # type: ignore[arg-type]
         tn.set_strictly_before(a2, a3)
         assert_to(tn)
         assert tn.total_order() == ["a1", "a2", "a3"]
