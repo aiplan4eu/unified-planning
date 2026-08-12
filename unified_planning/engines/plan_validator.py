@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 
+import heapq
+import warnings
 from dataclasses import dataclass
 from fractions import Fraction
-import heapq
 from typing import (
     Any,
     Dict,
@@ -29,47 +30,47 @@ from typing import (
     Union,
     cast,
 )
-import warnings
+
 import unified_planning as up
-import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
-from unified_planning.model.fnode import FNode
-from unified_planning.model.metrics import PlanQualityMetric, MinimizeActionCosts
-from unified_planning.model.state import UPState
-from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
-from unified_planning.model import (
-    AbstractProblem,
-    Problem,
-    ProblemKind,
-    State,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-)
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+import unified_planning.environment
 from unified_planning.engines.results import (
+    FailedValidationReason,
+    LogLevel,
+    LogMessage,
     ValidationResult,
     ValidationResultStatus,
-    LogMessage,
-    LogLevel,
-    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
     InapplicabilityReasons,
     UPSequentialSimulator,
     evaluate_quality_metric,
 )
-from unified_planning.model.walkers.state_evaluator import StateEvaluator
-from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
+    UPInvalidActionError,
+    UPProblemDefinitionError,
     UPStateMissingFluentError,
     UPUsageError,
-    UPProblemDefinitionError,
-    UPInvalidActionError,
 )
+from unified_planning.model import (
+    AbstractProblem,
+    MaximizeExpressionOnFinalState,
+    MinimizeExpressionOnFinalState,
+    Problem,
+    ProblemKind,
+    State,
+)
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
+from unified_planning.model.fnode import FNode
+from unified_planning.model.metrics import MinimizeActionCosts, PlanQualityMetric
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.state import UPState
+from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
+from unified_planning.model.walkers.state_evaluator import StateEvaluator
+from unified_planning.plans import PlanKind, SequentialPlan
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 

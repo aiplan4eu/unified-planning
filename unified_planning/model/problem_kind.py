@@ -18,14 +18,13 @@ from functools import lru_cache, partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
 from warnings import warn
-import unified_planning as up
 
+import unified_planning as up
 from unified_planning.model.problem_kind_versioning import (
     FEATURES_VERSIONS,
-    equalize_versions,
     LATEST_PROBLEM_KIND_VERSION,
+    equalize_versions,
 )
-
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {

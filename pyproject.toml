@@ -156,7 +156,17 @@ select = [
     "T10",   # flake8-debugger
     "TID",   # flake8-tidy-imports
     "YTT",   # flake8-2020: sys.version comparisons
+    "I",     # isort
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Import order in these four modules is load-bearing: each re-exports names that a sibling
+# submodule pulls back out of the partially-initialised package, so sorting them raises
+# ImportError or AttributeError at import time. No isort setting avoids it.
+"unified_planning/model/__init__.py" = ["I001"]
+"unified_planning/model/mixins/__init__.py" = ["I001"]
+"unified_planning/model/walkers/__init__.py" = ["I001"]
+"unified_planning/plans/__init__.py" = ["I001"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"

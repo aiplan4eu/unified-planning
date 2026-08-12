@@ -15,14 +15,15 @@
 #
 """This module defines the PlanGenerationResult class."""
 
-from fractions import Fraction
-import unified_planning as up
-from unified_planning.exceptions import UPUsageError, UPValueError
-from unified_planning.model import AbstractProblem, Problem, PlanQualityMetric
-from unified_planning.plans import ActionInstance, TimeTriggeredPlan, Plan
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, Optional, List, Union, cast
+from fractions import Fraction
+from typing import Callable, Dict, List, Optional, Union, cast
+
+import unified_planning as up
+from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.model import AbstractProblem, PlanQualityMetric, Problem
+from unified_planning.plans import ActionInstance, Plan, TimeTriggeredPlan
 
 
 class ValidationResultStatus(Enum):

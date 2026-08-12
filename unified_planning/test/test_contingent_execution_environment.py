@@ -14,6 +14,7 @@
 
 
 from unittest.mock import Mock, patch
+
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import (

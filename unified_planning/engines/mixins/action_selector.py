@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 
-import unified_planning as up
 from typing import Dict
 from warnings import warn
+
+import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
 

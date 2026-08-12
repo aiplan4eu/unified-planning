@@ -15,18 +15,15 @@
 
 import os as osy
 import sys
+from io import StringIO
+from typing import Dict, List, Optional, Set, Union, cast
 
 import unified_planning as up
-from unified_planning.model import DurativeAction, Fluent, Object
-from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.exceptions import (
-    UPTypeError,
-    UPProblemDefinitionError,
     UPException,
+    UPProblemDefinitionError,
+    UPTypeError,
 )
-from unified_planning.model.types import _UserType
-from typing import Dict, List, Optional, Set, Union, cast
-from io import StringIO
 from unified_planning.io.pddl_writer import (
     GENERAL_PDDL_KEYWORDS,
     PDDL3_KEYWORDS,
@@ -34,9 +31,12 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     MangleFunction,
     WithName,
-    _write_effect,
     _get_pddl_name,
+    _write_effect,
 )
+from unified_planning.model import DurativeAction, Fluent, Object
+from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
+from unified_planning.model.types import _UserType
 
 MA_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(TEMPORAL_PDDL_KEYWORDS).union(
     PDDL3_KEYWORDS

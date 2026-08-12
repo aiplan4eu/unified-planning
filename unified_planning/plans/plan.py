@@ -14,14 +14,14 @@
 #
 
 
+from abc import ABC, abstractmethod
+from enum import Enum, auto
+from typing import Callable, Dict, Optional, Sequence, Tuple
+
 import unified_planning as up
-from unified_planning.model import AbstractProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from abc import ABC, abstractmethod
-from typing import Callable, Optional, Sequence, Tuple, Dict
-from enum import Enum, auto
-
+from unified_planning.model import AbstractProblem
 
 """This module defines the general `Plan` interface and the `ActionInstance` class."""
 

@@ -14,24 +14,27 @@
 
 from typing import Dict, Optional
 
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    basic_classical_kind,
-    oversubscription_kind,
-    actions_cost_kind,
-    simple_numeric_kind,
-)
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import (
-    NegativeConditionsRemover,
     ConditionalEffectsRemover,
-    QuantifiersRemover,
     DisjunctiveConditionsRemover,
+    NegativeConditionsRemover,
+    QuantifiersRemover,
 )
 from unified_planning.engines.compilers.utils import updated_minimize_action_costs
+from unified_planning.model.problem_kind import (
+    actions_cost_kind,
+    basic_classical_kind,
+    oversubscription_kind,
+    simple_numeric_kind,
+)
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    main,
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestCompilersPipeline(unittest_TestCase):

@@ -17,6 +17,7 @@ import warnings
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
 from unified_planning.engines.results import CompilerResult, PlanGenerationResultStatus
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import UPState
@@ -25,15 +26,16 @@ from unified_planning.model.problem_kind import classical_kind
 from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
-from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.test.pddl.viplan_hh.viplan_hh_cases import (
     VIPLAN_HH_CASES,
-    parse_problem as parse_viplan_hh_problem,
     plan_from_action_names,
     state_specs_to_upstates,
+)
+from unified_planning.test.pddl.viplan_hh.viplan_hh_cases import (
+    parse_problem as parse_viplan_hh_problem,
 )
 
 

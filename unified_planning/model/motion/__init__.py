@@ -14,34 +14,34 @@
 #
 
 from unified_planning.model.motion.action import (
-    InstantaneousMotionAction,
     DurativeMotionAction,
+    InstantaneousMotionAction,
 )
 from unified_planning.model.motion.activity import MotionActivity
 from unified_planning.model.motion.constraint import (
+    ActivityWaypoints,
     MotionConstraint,
     Waypoints,
-    ActivityWaypoints,
 )
 from unified_planning.model.motion.objects import (
-    ConfigurationKind,
-    ConfigurationInstance,
     SE2,
     SE3,
+    ConfigurationInstance,
+    ConfigurationKind,
+    ConfigurationObject,
     MotionModels,
     MovableObject,
-    ConfigurationObject,
 )
-from unified_planning.model.motion.types import OccupancyMap
 from unified_planning.model.motion.path import (
     Path,
     SE2Path,
-    SE3Path,
     SE2WithControlsPath,
+    SE3Path,
 )
 from unified_planning.model.motion.scheduling_motion_problem import (
     SchedulingMotionProblem,
 )
+from unified_planning.model.motion.types import OccupancyMap
 
 __all__ = [
     "InstantaneousMotionAction",

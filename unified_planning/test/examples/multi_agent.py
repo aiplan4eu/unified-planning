@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from unified_planning.shortcuts import *
 from unified_planning.model.multi_agent import *
+from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 
 

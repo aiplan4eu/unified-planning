@@ -14,18 +14,19 @@
 #
 """This module defines the state invariants remover class."""
 
+from functools import partial
+from typing import Optional
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import Problem, ProblemKind
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     add_invariant_condition_apply_function_to_problem_expressions,
     replace_action,
 )
-from typing import Optional
-from functools import partial
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.model import Problem, ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 
 
 class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):

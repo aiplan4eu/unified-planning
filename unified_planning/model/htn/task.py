@@ -17,15 +17,16 @@ This module defines the Task class.
 A Task has a name and a signature that defines the types of its parameters.
 """
 
+from typing import List, Optional, OrderedDict, Union
+
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
-from typing import List, OrderedDict, Optional, Union
-from unified_planning.model.fnode import FNode
+from unified_planning.environment import Environment, get_environment
 from unified_planning.model.action import Action
+from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
+from unified_planning.model.parameter import Parameter
 from unified_planning.model.timing import Timepoint, TimepointKind
 from unified_planning.model.types import Type
-from unified_planning.model.expression import Expression
-from unified_planning.model.parameter import Parameter
 
 
 class Task:

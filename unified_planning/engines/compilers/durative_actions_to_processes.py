@@ -15,27 +15,42 @@
 
 from collections import defaultdict
 from fractions import Fraction
+from functools import partial
 from itertools import chain
+from typing import (
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Union,
+    cast,
+)
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+)
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model import (
     Action,
-    Problem,
-    ProblemKind,
-    Fluent,
-    InstantaneousAction,
     DurativeAction,
-    Process,
     Event,
-    Timing,
-    TimeInterval,
     Expression,
     ExpressionManager,
+    Fluent,
+    InstantaneousAction,
     MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+    Process,
+    TimeInterval,
+    Timing,
     Type,
 )
 from unified_planning.model.expression import (
@@ -43,29 +58,15 @@ from unified_planning.model.expression import (
     NumericConstant,
     uniform_numeric_constant,
 )
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.type_manager import TypeManager
-from unified_planning.model.walkers import Simplifier
-from unified_planning.engines.compilers.utils import (
-    get_fresh_name,
-)
-from typing import (
-    Dict,
-    Iterator,
-    Optional,
-    OrderedDict,
-    Tuple,
-    List,
-    Union,
-    cast,
-)
-from functools import partial
 from unified_planning.model.timing import (
     DurationInterval,
     EndTiming,
 )
+from unified_planning.model.type_manager import TypeManager
+from unified_planning.model.walkers import Simplifier
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 
 

@@ -14,11 +14,12 @@
 #
 
 
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Union
+
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Union
 
 
 class MotionConstraint(ABC):

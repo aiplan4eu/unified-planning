@@ -13,9 +13,8 @@
 # limitations under the License.
 #
 
-from itertools import chain
-
 from fractions import Fraction
+from itertools import chain
 from typing import (
     Any,
     Callable,
@@ -25,72 +24,88 @@ from typing import (
     Optional,
     OrderedDict,
     Tuple,
-    Type as TypingType,
     Union,
 )
-
-from pddl.logic.base import (
-    Formula,
-    And,
-    Or,
-    Not,
-    Imply,
-    ForallCondition,
-    ExistsCondition,
+from typing import (
+    Type as TypingType,
 )
-from pddl.logic.effects import When, Forall, Effect
+
+from pddl.action import Action
+from pddl.core import Domain, Problem
+from pddl.custom_types import name
+from pddl.logic.base import (
+    And,
+    ExistsCondition,
+    ForallCondition,
+    Formula,
+    Imply,
+    Not,
+    Or,
+)
+from pddl.logic.effects import Effect, Forall, When
 from pddl.logic.functions import (
-    NumericFunction,
-    BinaryFunction,
-    Increase,
-    Decrease,
-    NumericValue,
-    EqualTo as EqualToFunction,
     Assign,
-    LesserThan,
-    LesserEqualThan,
-    GreaterThan,
+    BinaryFunction,
+    Decrease,
+    Divide,
     GreaterEqualThan,
+    GreaterThan,
+    Increase,
+    LesserEqualThan,
+    LesserThan,
+    Metric,
     Minus,
+    NumericFunction,
+    NumericValue,
     Plus,
     Times,
-    Divide,
-    Metric,
+)
+from pddl.logic.functions import (
+    EqualTo as EqualToFunction,
 )
 from pddl.logic.predicates import (
     DerivedPredicate,
-    EqualTo as EqualToPredicate,
     Predicate,
 )
-from pddl.logic.terms import Constant, Variable, Term
-from pddl.core import Domain, Problem
-from pddl.action import Action
-from pddl.custom_types import name
-
-from unified_planning.model import (
-    Fluent,
-    Type,
-    Parameter,
-    Object,
-    InstantaneousAction,
-    FNode,
-    Variable as UPVariable,
-    Effect as UPEffect,
-    Problem as UPProblem,
-    Expression as UPExpression,
-    Action as UPAction,
-    EffectKind,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    MinimizeSequentialPlanLength,
+from pddl.logic.predicates import (
+    EqualTo as EqualToPredicate,
 )
-from unified_planning.model.type_manager import TypeManager
-from unified_planning.model.expression import ExpressionManager
-from unified_planning.environment import get_environment, Environment
+from pddl.logic.terms import Constant, Term, Variable
+
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
+from unified_planning.model import (
+    Action as UPAction,
+)
+from unified_planning.model import (
+    Effect as UPEffect,
+)
+from unified_planning.model import (
+    EffectKind,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    MinimizeSequentialPlanLength,
+    Object,
+    Parameter,
+    Type,
+)
+from unified_planning.model import (
+    Expression as UPExpression,
+)
+from unified_planning.model import (
+    Problem as UPProblem,
+)
+from unified_planning.model import (
+    Variable as UPVariable,
+)
+from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.type_manager import TypeManager
 
 
 def assert_not_none_type(t: Optional[Type]) -> Type:

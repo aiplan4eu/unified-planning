@@ -14,25 +14,41 @@
 #
 
 
+import re
+import typing
 from collections import OrderedDict
 from fractions import Fraction
-import re
-from typing import Dict, Union, Callable, List, Tuple
-import typing
+from typing import Callable, Dict, List, Tuple, Union
+
+from pyparsing import (
+    CharsNotIn,
+    Empty,
+    Forward,
+    Group,
+    Keyword,
+    Located,
+    OneOrMore,
+    Optional,
+    ParseResults,
+    Suppress,
+    Word,
+    ZeroOrMore,
+    alphanums,
+    alphas,
+    col,
+    lineno,
+    one_of,
+    rest_of_line,
+)
+
 import unified_planning as up
 import unified_planning.model.htn as htn
-from unified_planning.model.contingent import ContingentProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
     UPException,
     UPUnsupportedProblemTypeError,
 )
-
-from pyparsing import ParseResults
-from pyparsing import CharsNotIn, Empty, Located, col, lineno
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, Optional, Forward
-from pyparsing import one_of, rest_of_line
+from unified_planning.model.contingent import ContingentProblem
 
 
 class CustomParseResults:

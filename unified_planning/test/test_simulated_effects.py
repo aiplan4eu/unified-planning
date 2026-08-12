@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import unified_planning as up
-from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
     bounded_types_kind,
@@ -23,9 +22,10 @@ from unified_planning.model.problem_kind import (
     simple_numeric_kind,
     simulated_effects_kind,
 )
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 
 

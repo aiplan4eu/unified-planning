@@ -18,26 +18,27 @@ A basic `Effect` has a `fluent` and an `expression`.
 A `condition` can be added to make it a `conditional effect`.
 """
 
+from enum import Enum, auto
 from itertools import product
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
+from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
     UPProblemDefinitionError,
     UPUnboundedVariablesError,
-)
-from enum import Enum, auto
-from warnings import warn
-from typing import (
-    List,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-    Iterable,
-    Tuple,
-    Iterator,
 )
 
 

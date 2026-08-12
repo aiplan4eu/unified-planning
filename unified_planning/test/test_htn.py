@@ -18,12 +18,11 @@ from fractions import Fraction
 
 import unified_planning as up
 from unified_planning.io import PDDLReader, PDDLWriter
-from unified_planning.model.htn import HierarchicalProblem, Method, TaskNetwork, Task
+from unified_planning.model.htn import HierarchicalProblem, Method, Task, TaskNetwork
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main, examples
+from unified_planning.test import examples, main, unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 

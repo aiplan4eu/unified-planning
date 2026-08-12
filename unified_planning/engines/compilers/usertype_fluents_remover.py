@@ -16,42 +16,43 @@
 """This module defines the conditional effects remover class."""
 
 import warnings
+from functools import partial
 from itertools import product
+from typing import Dict, Iterator, List, Optional, OrderedDict, Set, Tuple, Union, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    Fluent,
-    Parameter,
-    BoolExpression,
-    NumericConstant,
     Action,
-    InstantaneousAction,
+    BoolExpression,
+    DurationInterval,
     DurativeAction,
     Effect,
-    SimulatedEffect,
-    FNode,
+    Expression,
     ExpressionManager,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
     MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    Oversubscription,
-    TemporalOversubscription,
+    NumericConstant,
     Object,
-    Expression,
-    DurationInterval,
+    Oversubscription,
+    Parameter,
+    Problem,
+    ProblemKind,
+    SimulatedEffect,
+    TemporalOversubscription,
     UPState,
 )
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.walkers import UsertypeFluentsWalker
-from unified_planning.model.types import _UserType
-from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Iterator, Dict, List, OrderedDict, Set, Tuple, Optional, Union, cast
-from functools import partial
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.types import _UserType
+from unified_planning.model.walkers import UsertypeFluentsWalker
 
 
 class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):

@@ -19,17 +19,18 @@ All objects are memoized so that two syntactically equivalent expressions
 are represented by the same object.
 """
 
+from collections.abc import Iterable as ABCIterable
+from fractions import Fraction
+from typing import Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+
 import unified_planning as up
 import unified_planning.model.types
-from unified_planning.model.operators import OperatorKind
 from unified_planning.exceptions import (
-    UPTypeError,
     UPExpressionDefinitionError,
+    UPTypeError,
     UPValueError,
 )
-from fractions import Fraction
-from collections.abc import Iterable as ABCIterable
-from typing import Optional, Iterable, List, Union, Dict, Tuple, Iterator, Sequence
+from unified_planning.model.operators import OperatorKind
 
 BoolExpression = Union[
     "up.model.fnode.FNode",

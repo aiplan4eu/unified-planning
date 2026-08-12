@@ -14,14 +14,15 @@
 #
 """This module defines an interface for a generic PDDL planner."""
 
-from abc import abstractmethod
 import os
+from abc import abstractmethod
 from queue import Queue
-from typing import IO, Callable, Iterator, Optional, List, Tuple, Union, cast
+from typing import IO, Callable, Iterator, List, Optional, Tuple, Union, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
+from unified_planning.engines.engine import OperationMode
 from unified_planning.engines.pddl_planner import terminate_process
 from unified_planning.engines.results import (
     PlanGenerationResult,

@@ -14,25 +14,26 @@
 #
 """This module defines all the types."""
 
+from fractions import Fraction
+from typing import Dict, Optional, Tuple, cast
+
 import unified_planning
+from unified_planning.exceptions import UPTypeError
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.motion.objects import ConfigurationKind
+from unified_planning.model.motion.types import (
+    OccupancyMap,
+    _ConfigurationType,
+    _MovableType,
+)
 from unified_planning.model.types import (
+    BOOL,
+    TIME,
     Type,
     _IntType,
     _RealType,
     _UserType,
-    BOOL,
-    TIME,
 )
-from unified_planning.model.motion.objects import ConfigurationKind
-from unified_planning.model.motion.types import (
-    _MovableType,
-    _ConfigurationType,
-    OccupancyMap,
-)
-from unified_planning.exceptions import UPTypeError
-from fractions import Fraction
-from typing import Optional, Dict, Tuple, cast
 
 
 class TypeManager:

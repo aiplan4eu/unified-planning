@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import Callable, Generic, List, Optional, Set, TypeVar, cast
+
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import Generic, List, Callable, Optional, Set, TypeVar, cast
 
 
 class AnyChecker(walkers.dag.DagWalker):

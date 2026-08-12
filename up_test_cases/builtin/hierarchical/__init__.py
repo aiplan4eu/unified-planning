@@ -1,7 +1,7 @@
 import unified_planning
-from unified_planning.plans import SequentialPlan, ActionInstance
+from unified_planning.model.htn import HierarchicalProblem, Method, Task
+from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
-from unified_planning.model.htn import Task, Method, HierarchicalProblem
 from unified_planning.test import TestCase
 
 Location = UserType("Location")

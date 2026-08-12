@@ -13,15 +13,15 @@
 # limitations under the License.
 #
 from collections import Counter
-from typing import Union, Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import unified_planning as up
 from unified_planning.exceptions import (
-    UPTypeError,
     UPExpressionDefinitionError,
+    UPTypeError,
 )
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.mixins import ObjectsSetMixin, FluentsSetMixin
+from unified_planning.model.mixins import FluentsSetMixin, ObjectsSetMixin
 from unified_planning.model.types import domain_size
 
 

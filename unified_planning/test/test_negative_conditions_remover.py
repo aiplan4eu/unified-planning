@@ -12,24 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unified_planning.plans import ActionInstance
+from unified_planning.engines import CompilationKind
+from unified_planning.engines.compilers import NegativeConditionsRemover
 from unified_planning.environment import get_environment
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.test.examples import get_example_problems
+from unified_planning.exceptions import UPExpressionDefinitionError
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
-    classical_kind,
     basic_temporal_kind,
+    classical_kind,
     full_classical_kind,
 )
-from unified_planning.engines.compilers import NegativeConditionsRemover
-from unified_planning.engines import CompilationKind
-from unified_planning.exceptions import UPExpressionDefinitionError
+from unified_planning.plans import ActionInstance
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestNegativeConditionsRemover(unittest_TestCase):

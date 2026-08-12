@@ -13,25 +13,37 @@
 # limitations under the License.
 
 
-import unified_planning
 import itertools
-import tarski.fstrips
-from fractions import Fraction
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import Optional, Union, Dict, cast
+from fractions import Fraction
+from typing import Dict, Optional, Union, cast
+
+import tarski.fstrips
+from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect
 from tarski.syntax import Interval
-from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom
 from tarski.syntax.formulas import (
-    Tautology,
     Contradiction,
+    Formula,
     QuantifiedFormula,
     Quantifier,
+    Tautology,
+    is_and,
+    is_atom,
+    is_neg,
+    is_or,
 )
-from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol
-from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol
-from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect
+from tarski.syntax.terms import (
+    BuiltinFunctionSymbol,
+    BuiltinPredicateSymbol,
+    CompoundTerm,
+    Constant,
+    Term,
+    Variable,
+)
+
+import unified_planning
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 def convert_tarski_formula(

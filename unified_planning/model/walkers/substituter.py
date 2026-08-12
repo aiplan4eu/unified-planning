@@ -14,15 +14,15 @@
 #
 
 
-import unified_planning.model.walkers as walkers
+from typing import Dict, List
 
 import unified_planning.environment
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
+import unified_planning.model.walkers as walkers
+from unified_planning.exceptions import UPTypeError
+from unified_planning.model.expression import Expression
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from unified_planning.model.expression import Expression
-from unified_planning.exceptions import UPTypeError
-from typing import List, Dict
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 
 
 class Substituter(IdentityDagWalker):

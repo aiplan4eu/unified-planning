@@ -19,15 +19,15 @@ and a list of subtasks.
 """
 
 from collections import OrderedDict
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
+from unified_planning.model.expression import Expression
+from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import AbstractTaskNetwork
 from unified_planning.model.parameter import Parameter
-from unified_planning.model.htn.task import Task
-from unified_planning.model.expression import Expression
 
 
 class ParameterizedTask:

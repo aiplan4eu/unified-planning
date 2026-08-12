@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Set, Optional, Tuple, Iterable
+from typing import Iterable, List, Optional, Set, Tuple
 
 from unified_planning.environment import get_environment
-from unified_planning.model import FNode, TimepointKind, Timing, StartTiming, EndTiming
+from unified_planning.model import EndTiming, FNode, StartTiming, TimepointKind, Timing
 from unified_planning.model.walkers import AnyChecker
 
 

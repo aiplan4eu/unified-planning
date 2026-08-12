@@ -15,27 +15,28 @@
 
 
 import time
+from typing import IO, Callable, Dict, Optional, OrderedDict, Type, Union
+
 import unified_planning as up
+import unified_planning.engines.mixins as mixins
 from unified_planning.engines.compilers.interpreted_functions_remover import (
     InterpretedFunctionsRemover,
 )
-import unified_planning.engines.mixins as mixins
+from unified_planning.engines.engine import Engine
+from unified_planning.engines.meta_engine import MetaEngine
+from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.plan_validator import (
     SequentialPlanValidator,
     TimeTriggeredPlanValidator,
 )
+from unified_planning.engines.results import (
+    PlanGenerationResult,
+    PlanGenerationResultStatus,
+    ValidationResultStatus,
+)
 from unified_planning.exceptions import UPException
 from unified_planning.model import ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.engine import Engine
-from unified_planning.engines.meta_engine import MetaEngine
-from unified_planning.engines.results import (
-    PlanGenerationResultStatus,
-    PlanGenerationResult,
-    ValidationResultStatus,
-)
-from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
-from typing import Dict, OrderedDict, Type, IO, Optional, Union, Callable
 
 
 class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):

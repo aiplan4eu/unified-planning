@@ -14,13 +14,13 @@
 # limitations under the License.
 #
 
-import unified_planning as up
-from unified_planning.model import ProblemKind
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Optional
 from warnings import warn
 
+import unified_planning as up
+from unified_planning.model import ProblemKind
 from unified_planning.model.fnode import FNode
 
 
