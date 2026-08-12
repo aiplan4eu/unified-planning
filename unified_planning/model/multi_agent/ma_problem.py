@@ -65,7 +65,7 @@ class MultiAgentProblem(  # type: ignore[misc]
 
         self._initial_defaults = initial_defaults
         self._env_ma = up.model.multi_agent.ma_environment.MAEnvironment(self)
-        self._goals: List["up.model.fnode.FNode"] = list()
+        self._goals: List["up.model.fnode.FNode"] = []
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
 
@@ -78,29 +78,29 @@ class MultiAgentProblem(  # type: ignore[misc]
     def __repr__(self) -> str:
         s = []
         if not self.name is None:
-            s.append(f"problem name = {str(self.name)}\n\n")
+            s.append(f"problem name = {self.name!s}\n\n")
         if len(self.user_types) > 0:
-            s.append(f"types = {str(list(self.user_types))}\n\n")
+            s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("environment fluents = [\n")
         for f in self.ma_environment.fluents:
-            s.append(f"  {str(f)}\n")
+            s.append(f"  {f!s}\n")
         s.append("]\n\n")
         s.append("agents = [\n")
         for ag in self.agents:
-            s.append(f"  {str(ag)}\n")
+            s.append(f"  {ag!s}\n")
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
-                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
             s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self._initial_value.items():
-            s.append(f"  {str(k)} := {str(v)}\n")
+            s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("goals = [\n")
         for g in self.goals:
-            s.append(f"  {str(g)}\n")
+            s.append(f"  {g!s}\n")
         s.append("]\n\n")
         return "".join(s)
 

@@ -65,9 +65,9 @@ class InterpretedFunction:
     def __repr__(self) -> str:
         sign = ""
         if self.arity > 0:
-            sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
+            sign_items = [f"{p.name}={p.type!s}" for p in self.signature]
             sign = f"[{', '.join(sign_items)}]"
-        return f"{str(self.return_type)} {self.name}{sign}"
+        return f"{self.return_type!s} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InterpretedFunction):

@@ -290,7 +290,7 @@ class TestContingentExecutionEnvironment(unittest_TestCase):
         observation = env.apply(ai)
         self.assertEqual(observation, {})
         self.assertIs(env._state, new_state)
-        env._simulator.apply.assert_called_once_with(old_state, action, tuple())
+        env._simulator.apply.assert_called_once_with(old_state, action, ())
 
     def test_simulated_apply_returns_observation_for_sensing_action_and_substitutes_parameters(
         self,

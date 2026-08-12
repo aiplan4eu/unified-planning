@@ -62,7 +62,7 @@ class Task:
     def __repr__(self) -> str:
         sign = ""
         if len(self.parameters) > 0:
-            sign_items = [f"{p.name}={str(p.type)}" for p in self.parameters]
+            sign_items = [f"{p.name}={p.type!s}" for p in self.parameters]
             sign = f"[{', '.join(sign_items)}]"
         return f"{self.name}{sign}"
 

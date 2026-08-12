@@ -296,7 +296,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.sort):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i + 1)}"] = type
+            signature[f"p{i + 1!s}"] = type
         fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
@@ -307,7 +307,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.domain):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i + 1)}"] = type
+            signature[f"p{i + 1!s}"] = type
         func_sort = p.sort[-1]
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:

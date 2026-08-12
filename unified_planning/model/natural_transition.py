@@ -68,11 +68,11 @@ class Process(NaturalTransition):
         s.append(" {\n")
         s.append("    preconditions = [\n")
         for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
+            s.append(f"      {c!s}\n")
         s.append("    ]\n")
         s.append("    effects = [\n")
         for e in self.effects:
-            s.append(f"      {str(e)}\n")
+            s.append(f"      {e!s}\n")
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -165,7 +165,7 @@ class Process(NaturalTransition):
                 value_exp,
                 condition_exp,
                 kind=e_kind,
-                forall=tuple(),
+                forall=(),
             )
         )
 
@@ -254,11 +254,11 @@ class Event(UntimedEffectMixin, NaturalTransition):
         s.append(" {\n")
         s.append("    preconditions = [\n")
         for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
+            s.append(f"      {c!s}\n")
         s.append("    ]\n")
         s.append("    effects = [\n")
         for e in self.effects:
-            s.append(f"      {str(e)}\n")
+            s.append(f"      {e!s}\n")
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)

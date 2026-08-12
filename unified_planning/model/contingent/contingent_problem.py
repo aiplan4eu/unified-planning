@@ -54,13 +54,13 @@ class ContingentProblem(Problem):
             return False
         if self._hidden_fluents != oth._hidden_fluents:
             return False
-        if set(frozenset(c) for c in self._or_initial_constraints) != set(
+        if {frozenset(c) for c in self._or_initial_constraints} != {
             frozenset(c) for c in oth._or_initial_constraints
-        ):
+        }:
             return False
-        if set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+        if {frozenset(c) for c in self._oneof_initial_constraints} != {
             frozenset(c) for c in oth._oneof_initial_constraints
-        ):
+        }:
             return False
         return True
 

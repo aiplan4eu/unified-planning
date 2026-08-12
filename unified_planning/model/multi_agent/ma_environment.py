@@ -58,7 +58,7 @@ class MAEnvironment(
         s = []
         s.append("fluents = [\n")
         for f in self._fluents:
-            s.append(f" {str(f)}\n")
+            s.append(f" {f!s}\n")
         s.append("]\n\n")
         return "".join(s)
 

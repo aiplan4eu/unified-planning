@@ -45,7 +45,7 @@ class PartialOrder(TemporalConstraints):
         super().__init__(constraints)
 
     def __repr__(self):
-        precs = map(lambda p: f"{p[0]} < {p[1]}", self.precedences)
+        precs = (f"{p[0]} < {p[1]}" for p in self.precedences)
         return f"[{', '.join(precs)}]"
 
 

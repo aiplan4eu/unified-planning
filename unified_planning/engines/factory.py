@@ -213,8 +213,8 @@ DEFAULT_META_ENGINES_PREFERENCE_LIST = [
 def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = "|"
     for i in range(len(header)):
-        l = max(len(r[i]) for r in [header] + rows)
-        row_template += f" {{:<{str(l)}}} |"
+        l = max(len(r[i]) for r in [header, *rows])
+        row_template += f" {{:<{l!s}}} |"
     header_str = row_template.format(*header)
     row_len = len(header_str)
     rows_str = [f"{'-' * row_len}", f"{header_str}", f"{'=' * row_len}"]
@@ -591,7 +591,7 @@ class Factory:
                 starting_line = f"No available engine supports all the problem features with anytime_guarantee: {anytime_guarantee.name}:"
             else:
                 starting_line = "No available engine supports all the problem features:"
-            header = ["Engine"] + problem_features
+            header = ["Engine", *problem_features]
             if optimality_guarantee is not None:
                 header.append(optimality_guarantee.name)
             elif anytime_guarantee is not None:
@@ -1158,7 +1158,7 @@ class Factory:
             stream.write("\n")
             if show_supported_kind:
                 stream.write(
-                    f"\nThis engine supports the following features:\n{str(Engine.supported_kind())}\n"
+                    f"\nThis engine supports the following features:\n{Engine.supported_kind()!s}\n"
                 )
             stream.write("\n")
 

@@ -561,8 +561,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ) -> Tuple[Problem, Dict[up.model.Action, Optional[up.model.Action]]]:
         environment = problem.environment
         expression_manager = environment.expression_manager
-        tags = ("empty",) + tuple(
-            f"s{index}" for index, _ in enumerate(possible_initial_states)
+        tags = (
+            "empty",
+            *(f"s{index}" for index, _ in enumerate(possible_initial_states)),
         )
 
         base_name = original_problem_name or problem.name or "problem"

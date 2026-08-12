@@ -87,7 +87,7 @@ class PartialOrderPlan(plans.plan.Plan):
             )
 
     def __repr__(self) -> str:
-        return f"PartialOrderPlan({repr(self.get_adjacency_list)})"
+        return f"PartialOrderPlan({self.get_adjacency_list!r})"
 
     def __str__(self) -> str:
         ret = ["PartialOrderPlan:", "  actions:"]
@@ -235,7 +235,7 @@ class PartialOrderPlan(plans.plan.Plan):
             retval = self._graph.neighbors(action_instance)
         except nx.NetworkXError:
             raise UPUsageError(
-                f"The action instance {str(action_instance)} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
+                f"The action instance {action_instance!s} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
             )
         return retval
 

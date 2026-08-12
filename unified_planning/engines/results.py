@@ -147,11 +147,11 @@ class PlanGenerationResult(Result):
         # Checks that plan and status are consistent
         if self.status in POSITIVE_OUTCOMES and self.plan is None:
             raise UPUsageError(
-                f"The Result status is {str(self.status)} but no plan is set."
+                f"The Result status is {self.status!s} but no plan is set."
             )
         if self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(
-                f"The Result status is {str(self.status)} but the plan is {str(self.plan)}.\nWith this status the plan must be None."
+                f"The Result status is {self.status!s} but the plan is {self.plan!s}.\nWith this status the plan must be None."
             )
         return self
 
@@ -208,7 +208,7 @@ def correct_plan_generation_result(
             engine_epsilon = Fraction(engine_epsilon)
         except ValueError as e:
             raise UPValueError(
-                f"Given engine_epsilon is not convertible to Fraction: {str(e)}."
+                f"Given engine_epsilon is not convertible to Fraction: {e!s}."
             )
     if engine_epsilon == problem.epsilon:
         return result

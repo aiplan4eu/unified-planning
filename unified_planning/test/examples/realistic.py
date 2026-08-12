@@ -983,7 +983,7 @@ def get_example_problems():
     NTAB = 6
     tables = [Object("t%s" % i, Table) for i in range(NTAB)]
     problem.add_objects(tables)
-    t0, t1, t2, t3, t4, t5 = tables
+    t0, t1, t2, _t3, _t4, t5 = tables
 
     rob = Object("r", Robot)
     problem.add_object(rob)

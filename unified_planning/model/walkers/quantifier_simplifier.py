@@ -174,7 +174,7 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         raise UPProblemDefinitionError(
-            f"Value of Fluent {str(new_exp)} not found in {str(self._assignments)}"
+            f"Value of Fluent {new_exp!s} not found in {self._assignments!s}"
         )
 
     def walk_variable_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
@@ -185,7 +185,7 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         raise UPProblemDefinitionError(
-            f"Value of Variable {str(expression)} not found in {str(self._variable_assignments)}"
+            f"Value of Variable {expression!s} not found in {self._variable_assignments!s}"
         )
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
@@ -196,5 +196,5 @@ class QuantifierSimplifier(Simplifier):
             assert type(res) is FNode
             return res
         raise UPProblemDefinitionError(
-            f"Value of Parameter {str(expression)} not found in {str(self._assignments)}"
+            f"Value of Parameter {expression!s} not found in {self._assignments!s}"
         )

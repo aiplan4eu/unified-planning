@@ -242,8 +242,8 @@ class TestQuantifiersRemover(unittest_TestCase):
         Obj = UserType("Obj")
         Obj_son = UserType("Obj_son", Obj)
 
-        Obj_objects = list(Object(f"o{i}", Obj) for i in range(3))
-        son_objects = list(Object(f"s{i}", Obj_son) for i in range(2))
+        Obj_objects = [Object(f"o{i}", Obj) for i in range(3)]
+        son_objects = [Object(f"s{i}", Obj_son) for i in range(2)]
 
         o0, o1, o2 = Obj_objects
         s0, s1 = son_objects

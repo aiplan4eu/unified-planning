@@ -18,10 +18,10 @@ from unified_planning.model.htn.task import Subtask, Task
 from unified_planning.model.htn.task_network import TaskNetwork
 
 __all__ = [
-    "Method",
-    "Task",
     "HierarchicalProblem",
-    "Subtask",
-    "TaskNetwork",
+    "Method",
     "ParameterizedTask",
+    "Subtask",
+    "Task",
+    "TaskNetwork",
 ]

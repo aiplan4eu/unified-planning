@@ -15,4 +15,4 @@
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.scheduling_problem import SchedulingProblem
 
-__all__ = ["SchedulingProblem", "Activity"]
+__all__ = ["Activity", "SchedulingProblem"]

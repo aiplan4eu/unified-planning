@@ -58,7 +58,7 @@ class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):
         s = ["motion-", b]
         s.append("    motion constraints = [\n")
         for e in self._motion_constraints:
-            s.append(f"      {str(e)}\n")
+            s.append(f"      {e!s}\n")
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -113,7 +113,7 @@ class DurativeMotionAction(DurativeAction, MotionConstraintsSetMixin):
 
         s.append("    motion constraints = [\n")
         for e in self._motion_constraints:
-            s.append(f"      {str(e)}\n")
+            s.append(f"      {e!s}\n")
         s.append("    ]\n")
         s.append("  }\n")
         return "".join(s)

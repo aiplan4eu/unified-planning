@@ -149,9 +149,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     self._fluent_exps_in_state_invariants.add(f_e)
                     self._state_invariants.append(em.LE(f_e, upper_bound))
 
-        self._fluents_in_state_invariants: Set[Fluent] = set(
-            (fe.fluent() for fe in self._fluent_exps_in_state_invariants)
-        )
+        self._fluents_in_state_invariants: Set[Fluent] = {
+            fe.fluent() for fe in self._fluent_exps_in_state_invariants
+        }
 
     def _ground_action(
         self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]

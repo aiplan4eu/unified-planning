@@ -168,7 +168,7 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = ()
 ) -> FNode:
     """
     | Creates an expression for the given ``fluent`` and ``parameters``.
@@ -184,7 +184,7 @@ def FluentExp(
 
 def InterpretedFunctionExp(
     interpreted_function: "unified_planning.model.InterpretedFunction",
-    params: Sequence[Expression] = tuple(),  # -------
+    params: Sequence[Expression] = (),  # -------
 ) -> FNode:
     """
     | Creates an expression for the given ``interpreted_function`` and ``parameters``.

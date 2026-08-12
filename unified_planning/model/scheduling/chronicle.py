@@ -76,25 +76,25 @@ class Chronicle(TimedCondsEffs):
             s.append(" (optional) ")
         s.append(" {\n")
         if hasattr(self, "duration"):
-            s.append(f"    duration = {str(self.duration)}\n")
+            s.append(f"    duration = {self.duration!s}\n")
         if len(self._constraints) > 0:
             s.append("    constraints = [\n")
             for c, scope in self._constraints:
-                s.append(f"      {str(c)} {str(scope)}\n")
+                s.append(f"      {c!s} {scope!s}\n")
             s.append("    ]\n")
         if len(self.conditions) > 0:
             s.append("    conditions = [\n")
             for i, cl in self.conditions.items():
-                s.append(f"      {str(i)}:\n")
+                s.append(f"      {i!s}:\n")
                 for c in cl:
-                    s.append(f"        {str(c)}\n")
+                    s.append(f"        {c!s}\n")
             s.append("    ]\n")
         if len(self.effects) > 0:
             s.append("    effects = [\n")
             for t, el in self.effects.items():
-                s.append(f"      {str(t)}:\n")
+                s.append(f"      {t!s}:\n")
                 for e in el:
-                    s.append(f"        {str(e)}:\n")
+                    s.append(f"        {e!s}:\n")
             s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -109,9 +109,9 @@ class Chronicle(TimedCondsEffs):
         ):
             return False
 
-        if set((c, tuple(set(scope))) for (c, scope) in self._constraints) != set(
+        if {(c, tuple(set(scope))) for (c, scope) in self._constraints} != {
             (c, tuple(set(scope))) for (c, scope) in oth._constraints
-        ):
+        }:
             return False
         if not TimedCondsEffs.__eq__(self, oth):
             return False

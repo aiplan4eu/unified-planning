@@ -138,9 +138,10 @@ class TestProtobufIO(unittest_TestCase):
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb)
 
-        pb_features = set(
-            [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
-        )
+        pb_features = {
+            up_pb2.Feature.Name(feature)  # type: ignore[attr-defined]
+            for feature in problem_pb.features
+        }
         self.assertEqual(set(problem.kind.features), pb_features)
         self.assertEqual(problem, problem_up)
 

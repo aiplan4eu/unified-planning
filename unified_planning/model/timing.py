@@ -279,7 +279,7 @@ class Interval:
             right_bound = ")"
         else:
             right_bound = "]"
-        return f"{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}"
+        return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Interval):
@@ -435,8 +435,8 @@ class TimeInterval:
         else:
             right_bound = "]"
         if self.lower == self.upper:
-            return f"{left_bound}{str(self.lower)}{right_bound}"
-        return f"{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}"
+            return f"{left_bound}{self.lower!s}{right_bound}"
+        return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, TimeInterval):

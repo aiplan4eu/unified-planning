@@ -373,7 +373,7 @@ class TestProblem(unittest_TestCase):
         move = problem.action("move")
         load = problem.action("load")
         unload = problem.action("unload")
-        l1, l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
+        l1, _l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
         # the plan is bad because going loaded from l3 to l1 violates a global constraint
         invalid_action = up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1)))
         bad_plan = up.plans.SequentialPlan(

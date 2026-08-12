@@ -875,11 +875,11 @@ class TestModel(unittest_TestCase):
         )
         problem.add_action(DurativeAction("move"))
         problem.add_action(InstantaneousAction("stop_moving"))
-        stop_moving_list = [a for a in problem.instantaneous_actions]
+        stop_moving_list = list(problem.instantaneous_actions)
         self.assertEqual(len(stop_moving_list), 1)
         stop_moving = stop_moving_list[0]
         self.assertEqual(stop_moving.name, "stop_moving")
-        move_list = [a for a in problem.durative_actions]
+        move_list = list(problem.durative_actions)
         self.assertEqual(len(move_list), 1)
         move = move_list[0]
         self.assertEqual(move.name, "move")

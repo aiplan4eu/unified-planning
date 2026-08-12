@@ -66,7 +66,7 @@ class AbstractTaskNetwork(ABC):
             subtask = task
         else:
             subtask = Subtask(task, *args, ident=ident)
-        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
+        assert all(subtask.identifier != prev.identifier for prev in self.subtasks)
         self._subtasks.append(subtask)
         return subtask
 
@@ -94,7 +94,7 @@ class AbstractTaskNetwork(ABC):
     def _ordering(self) -> TemporalConstraints:
         """Analyses the temporal constraints and classifies them into TO, PO or Temporal"""
         return ordering(
-            list(t.identifier for t in self.subtasks), self.temporal_constraints()
+            [t.identifier for t in self.subtasks], self.temporal_constraints()
         )
 
     def partial_order(self) -> Optional[List[Tuple[str, str]]]:
@@ -127,7 +127,7 @@ class AbstractTaskNetwork(ABC):
         free_vars = self._env.free_vars_oracle.get_free_variables(constraint)
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
-                f"The constraint {str(constraint)} has unbounded variables:\n{str(free_vars)}"
+                f"The constraint {constraint!s} has unbounded variables:\n{free_vars!s}"
             )
         if (
             constraint != self._env.expression_manager.TRUE()

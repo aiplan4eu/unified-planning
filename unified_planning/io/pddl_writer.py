@@ -339,9 +339,9 @@ class PDDLWriter:
         if len(self.problem.trajectory_constraints) > 0:
             self.pddl_keywords |= PDDL3_KEYWORDS
         if any(
-            map(
-                lambda action: isinstance(action, up.model.action.DurativeAction),
-                self.problem.actions,
+            (
+                isinstance(action, up.model.action.DurativeAction)
+                for action in self.problem.actions
             )
         ):
             self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
@@ -740,7 +740,7 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(" (:objects")
             for t in self.problem.user_types:
-                constants_of_this_type = set(o for o in domain_objects if o.type == t)
+                constants_of_this_type = {o for o in domain_objects if o.type == t}
                 objects = [
                     o
                     for o in self.problem.all_objects

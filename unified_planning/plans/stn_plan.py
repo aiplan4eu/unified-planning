@@ -480,7 +480,7 @@ class STNPlan(plans.plan.Plan):
         action_instance_map: Dict[
             ActionInstance, Tuple[Optional[Fraction], Optional[Fraction]]
         ] = {}
-        for node, time in map(lambda x: (x[0], -x[1]), self._stn.distances.items()):
+        for node, time in ((x[0], -x[1]) for x in self._stn.distances.items()):
             assert time >= 0
             if time == 0:
                 time = Fraction(0)

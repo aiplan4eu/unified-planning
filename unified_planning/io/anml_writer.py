@@ -440,11 +440,11 @@ class ANMLWriter:
     def _convert_anml_timing(self, timing: "up.model.Timing") -> str:
         time = "start" if timing.is_from_start() else "end"
         if timing.delay > 0:
-            return f"{time} + {str(timing.delay)}"
+            return f"{time} + {timing.delay!s}"
         if timing.delay == 0:
             return time
         # timing.delay < 0
-        return f"{time} - {str(timing.delay * (-1))}"
+        return f"{time} - {timing.delay * (-1)!s}"
 
     def _convert_anml_interval(self, interval: "up.model.TimeInterval") -> str:
         left_bracket = "(" if interval.is_left_open() else "["
@@ -518,12 +518,12 @@ def _get_anml_name(
             left_bound = (
                 "(-infinity"
                 if num_type.lower_bound is None
-                else f"[{str(num_type.lower_bound)}"
+                else f"[{num_type.lower_bound!s}"
             )
             right_bound = (
                 "infinity)"
                 if num_type.upper_bound is None
-                else f"{str(num_type.upper_bound)}]"
+                else f"{num_type.upper_bound!s}]"
             )
             new_name = f"integer {left_bound}, {right_bound}"
         elif isinstance(item, up.model.Type) and item.is_real_type():
@@ -546,7 +546,7 @@ def _get_anml_name(
             while (
                 test_name in names_mapping.values()
             ):  # Loop until we find a fresh name
-                test_name = f"{new_name}_{str(count)}"
+                test_name = f"{new_name}_{count!s}"
                 count += 1
             new_name = test_name
             assert _is_valid_anml_name(new_name)

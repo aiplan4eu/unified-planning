@@ -73,7 +73,7 @@ class AnyGetter(walkers.dag.DagWalker, Generic[T]):
         :param expression: The expression from where all the subexrepssions are extracted.
         :return: The set of the subexpressions matching the predicate.
         """
-        return set(self.extractor(x) for x in self.walk(expression))
+        return {self.extractor(x) for x in self.walk(expression)}
 
     @walkers.handles(OperatorKind)
     def walk_all_types(self, expression: FNode, args: List[Set[FNode]]) -> Set[FNode]:

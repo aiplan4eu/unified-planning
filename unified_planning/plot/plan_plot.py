@@ -22,6 +22,7 @@ from functools import partial
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Dict,
     Iterable,
     List,
@@ -297,17 +298,17 @@ def plot_time_triggered_plan(
     x_tick_vals_list = list(tick_vals)
     y_tick_vals_list = list(y_remapping.keys())
     plan_plot.update_layout(
-        xaxis=dict(
-            tickmode="array",
-            tickvals=x_tick_vals_list,
-            ticktext=list(map(x_ticks.get, x_tick_vals_list)),
-            title_text="Time",
-        ),
-        yaxis=dict(
-            tickmode="array",
-            tickvals=y_tick_vals_list,
-            ticktext=list(map(y_remapping.get, y_tick_vals_list)),
-        ),
+        xaxis={
+            "tickmode": "array",
+            "tickvals": x_tick_vals_list,
+            "ticktext": list(map(x_ticks.get, x_tick_vals_list)),
+            "title_text": "Time",
+        },
+        yaxis={
+            "tickmode": "array",
+            "tickvals": y_tick_vals_list,
+            "ticktext": list(map(y_remapping.get, y_tick_vals_list)),
+        },
     )
 
     if filename is not None:
@@ -610,7 +611,7 @@ def _generate_contingent_edge_label(fluents: Dict[FNode, FNode]) -> str:
     if not fluents:
         return ""
     fluents_str: str = "\n".join(
-        map(lambda x: str(_assignment_as_condition(x)), fluents.items())
+        str(_assignment_as_condition(x)) for x in fluents.items()
     )
     return f"if {fluents_str}"
 
@@ -727,12 +728,10 @@ def _plot_expressions(
             parameters=action_instance.actual_parameters,
             next_state=current_state,
         )
-        metric_values = dict(
-            map(
-                lambda x: (x[0], eqm(quality_metric=x[0], metric_value=x[1])),
-                metric_values.items(),
-            )
-        )
+        metric_values = {
+            qm: eqm(quality_metric=qm, metric_value=value)
+            for qm, value in metric_values.items()
+        }
 
         # Populate the data_frame
         label_str = str(action_instance)
@@ -783,7 +782,7 @@ def _plot_expressions(
 
 
 class GraphvizGenerator:
-    available_colors = [
+    available_colors: ClassVar[List[str]] = [
         "firebrick2",
         "gold2",
         "cornflowerblue",

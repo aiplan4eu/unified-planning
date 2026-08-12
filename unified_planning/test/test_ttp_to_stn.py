@@ -72,7 +72,7 @@ class TestTTPToSTN(unittest_TestCase):
         total_stn_nodes = set(
             chain(
                 stn_constraints.keys(),
-                map(lambda x: x[2], chain(*stn_constraints.values())),
+                (x[2] for x in chain(*stn_constraints.values())),
             )
         )
         self.assertEqual(len(total_stn_nodes), len(plan.timed_actions) * 2 + 2)

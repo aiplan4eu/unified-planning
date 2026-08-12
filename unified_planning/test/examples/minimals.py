@@ -366,7 +366,7 @@ def get_example_problems():
     # basic with defaults
     problem = Problem("basic_with_default_values")
     object = UserType("object")
-    objects = [problem.add_object(f"o{i}", object) for i in range(0, 5)]
+    objects = [problem.add_object(f"o{i}", object) for i in range(5)]
     available = Fluent("available", BoolType(), a=object)
 
     on = Fluent("on", object, a=object)

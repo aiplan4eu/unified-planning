@@ -51,8 +51,8 @@ class Agent(
         self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
-        self._private_goals: List["up.model.fnode.FNode"] = list()
-        self._public_goals: List["up.model.fnode.FNode"] = list()
+        self._private_goals: List["up.model.fnode.FNode"] = []
+        self._public_goals: List["up.model.fnode.FNode"] = []
         self._ma_problem_has_name_not_in_agents = ma_problem.has_name_not_in_agents
 
     def __getstate__(self):
@@ -253,26 +253,26 @@ class Agent(
 
     def __repr__(self) -> str:
         s = []
-        s.append(f"Agent name = {str(self._name)}\n\n")
+        s.append(f"Agent name = {self._name!s}\n\n")
         s.append("private fluents = [\n")
         for f in self.private_fluents:
-            s.append(f" {str(f)}\n")
+            s.append(f" {f!s}\n")
         s.append("]\n\n")
         s.append("public fluents = [\n")
         for f in self._public_fluents:
-            s.append(f" {str(f)}\n")
+            s.append(f" {f!s}\n")
         s.append("]\n\n")
         s.append("actions = [\n")
         for a in self._actions:
-            s.append(f" {str(a)}\n")
+            s.append(f" {a!s}\n")
         s.append("]\n\n")
         s.append("private goals = [\n")
         for g in self.private_goals:
-            s.append(f" {str(g)}\n")
+            s.append(f" {g!s}\n")
         s.append("]\n\n")
         s.append("public goals = [\n")
         for g in self._public_goals:
-            s.append(f" {str(g)}\n")
+            s.append(f" {g!s}\n")
         s.append("]\n\n")
         return "".join(s)
 

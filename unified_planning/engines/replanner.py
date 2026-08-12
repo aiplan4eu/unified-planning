@@ -136,7 +136,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
             else:
                 removed = True
         if not self._skip_checks and not removed:
-            msg = f"action to remove: {name} not found inside the problem actions: {list(map(lambda a: a.name, actions))}"
+            msg = f"action to remove: {name} not found inside the problem actions: {[a.name for a in actions]}"
             if self._error_on_failed_checks:
                 raise UPUsageError(msg)
             warn(msg)

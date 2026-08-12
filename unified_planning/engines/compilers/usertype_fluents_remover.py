@@ -347,7 +347,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         for f, v in problem.initial_values.items():
             (
-                new_fluent_exp,
+                _new_fluent_exp,
                 fluent_var,
                 free_vars,
                 last_fluent,

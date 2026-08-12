@@ -433,7 +433,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
             extra_c = [hcf for f, hcf in is_unknown_fluents.items() if f in all_f]
-            new_c = em.Or(extra_c + [exp])
+            new_c = em.Or([*extra_c, exp])
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
                 if t_interval is not None:
@@ -853,7 +853,7 @@ def custom_replace(
         if replaced_action.parameters is not None:
             expected_amount = len(replaced_action.parameters)
 
-    new_list: list = list()
+    new_list: list = []
     i = 0
     while i < expected_amount:
         new_list.append(action_instance.actual_parameters[i])

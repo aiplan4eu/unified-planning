@@ -96,7 +96,7 @@ class TimedCondsEffs:
         """Transfers deep copies of all `self` attributes into `other`"""
         other._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         other._effects = {t: [e.clone() for e in el] for t, el in self._effects.items()}
-        other._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
+        other._simulated_effects = dict(self._simulated_effects.items())
         other._fluents_assigned = {
             t: d.copy() for t, d in self._fluents_assigned.items()
         }
@@ -217,7 +217,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given assignment to the `action's effects`.
@@ -256,7 +256,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given `increment` to the `action's effects`.
@@ -303,7 +303,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given `decrement` to the `action's effects`.

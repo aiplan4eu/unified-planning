@@ -144,7 +144,7 @@ def check_result(
             return Err("Solved unsolvable problem")
         # if the planner guarantees optimality, this should be reflected in
         # the result status
-        metrics: Iterable[Any] = getattr(test.problem, "quality_metrics", tuple())
+        metrics: Iterable[Any] = getattr(test.problem, "quality_metrics", ())
         if not metrics:
             output += verify(
                 result.status
@@ -227,7 +227,7 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
     if not planners:
         return Warn("No engine to solve compiled problem")
     plan = None
-    for planner in map(lambda n: OneshotPlanner(name=n), planners):
+    for planner in (OneshotPlanner(name=n) for n in planners):
         assert isinstance(planner, OneshotPlannerMixin)
         try:
             res = planner.solve(compiled_problem)
@@ -300,7 +300,7 @@ def report_oneshot(
                         assert len(metrics_evaluation) == 1, (
                             "Can't support more than 1 metric in the problem"
                         )
-                        value = tuple(metrics_evaluation.values())[0]
+                        value = next(iter(metrics_evaluation.values()))
                         expected_value = test_case.optimum
                         if expected_value is not None:
                             outcome += verify(
@@ -374,7 +374,7 @@ def report_plan_repair(
                         result = planner.repair(pb, plan)
                         total_execution_time = time.time() - start
                         status = str(result.status.name).ljust(25)
-                        outcome, metrics_evaluation = check_result(
+                        outcome, _metrics_evaluation = check_result(
                             test_case, result, planner
                         )
                         if not outcome.ok():

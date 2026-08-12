@@ -109,17 +109,17 @@ class Method(AbstractTaskNetwork):
         if len(self.preconditions) > 0:
             s.append("  preconditions = [\n")
             for c in self.preconditions:
-                s.append(f"    {str(c)}\n")
+                s.append(f"    {c!s}\n")
             s.append("  ]\n")
         if len(self.constraints) > 0:
             s.append("  constraints = [\n")
             for c in self.constraints:
-                s.append(f"    {str(c)}\n")
+                s.append(f"    {c!s}\n")
             s.append("  ]\n")
         if len(self.subtasks) > 0:
             s.append("  subtasks = [\n")
             for st in self.subtasks:
-                s.append(f"      {str(st)}\n")
+                s.append(f"      {st!s}\n")
             s.append("  ]\n")
         s.append("}")
         return "".join(s)
@@ -261,7 +261,7 @@ class Method(AbstractTaskNetwork):
         free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
+                f"The precondition {precondition_exp!s} has unbounded variables:\n{free_vars!s}"
             )
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)

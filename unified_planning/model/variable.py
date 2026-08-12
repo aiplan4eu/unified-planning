@@ -44,7 +44,7 @@ class Variable:
         )
 
     def __repr__(self) -> str:
-        return f"{str(self.type)} {self.name}"
+        return f"{self.type!s} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Variable):
