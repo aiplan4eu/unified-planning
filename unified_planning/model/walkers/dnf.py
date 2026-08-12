@@ -14,13 +14,14 @@
 #
 
 
+from itertools import product
+from typing import List, Tuple
+
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.exceptions import UPUnreachableCodeError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Tuple
-from itertools import product
 
 
 class Nnf:

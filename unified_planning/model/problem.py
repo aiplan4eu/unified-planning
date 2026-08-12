@@ -15,44 +15,45 @@
 #
 """This module defines the problem class."""
 
-from itertools import chain, product
-import networkx as nx
 from fractions import Fraction
-from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
+from itertools import chain, product
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union, cast
 
+import networkx as nx
+
+import unified_planning as up
+from unified_planning.exceptions import (
+    UPNoSuitableEngineAvailableException,
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPUnsupportedProblemTypeError,
+    UPUsageError,
+)
+from unified_planning.model import Fluent
+from unified_planning.model.abstract_problem import AbstractProblem
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import EffectKind
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.metrics import (
     MaximizeExpressionOnFinalState,
     MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    Oversubscription,
+    TemporalOversubscription,
 )
-from unified_planning.model.metrics import MinimizeExpressionOnFinalState
-import unified_planning as up
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import EffectKind
-from unified_planning.model import Fluent
-from unified_planning.model.abstract_problem import AbstractProblem
-from unified_planning.model.metrics import Oversubscription, TemporalOversubscription
 from unified_planning.model.mixins import (
     ActionsSetMixin,
-    NaturalTransitionsSetMixin,
-    TimeModelMixin,
     FluentsSetMixin,
-    ObjectsSetMixin,
-    UserTypesSetMixin,
     InitialStateMixin,
     MetricsMixin,
+    NaturalTransitionsSetMixin,
+    ObjectsSetMixin,
+    TimeModelMixin,
+    UserTypesSetMixin,
 )
-from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import _IntType
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPTypeError,
-    UPUsageError,
-    UPNoSuitableEngineAvailableException,
-    UPUnsupportedProblemTypeError,
-)
-
 from unified_planning.model.walkers.any import AnyGetter
 
 

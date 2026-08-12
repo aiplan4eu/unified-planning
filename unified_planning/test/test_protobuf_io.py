@@ -16,15 +16,16 @@
 
 import dataclasses
 from typing import Callable, List, Union
+
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfEngineNotAvailable,
     skipIfModuleNotInstalled,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
 
@@ -34,8 +35,12 @@ class TestProtobufIO(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
-        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_reader import (  # type: ignore[attr-defined]
+            ProtobufReader,
+        )
+        from unified_planning.grpc.proto_writer import (  # type: ignore[attr-defined]
+            ProtobufWriter,
+        )
 
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
@@ -415,8 +420,12 @@ class TestProtobufProblems(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
-        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_reader import (  # type: ignore[attr-defined]
+            ProtobufReader,
+        )
+        from unified_planning.grpc.proto_writer import (  # type: ignore[attr-defined]
+            ProtobufWriter,
+        )
 
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()

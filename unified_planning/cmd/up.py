@@ -17,15 +17,16 @@
 
 import argparse
 from typing import Optional, cast
+
 import unified_planning as up
 from unified_planning.cmd.arg_parser import create_up_parser
-from unified_planning.shortcuts import *
 from unified_planning.engines import (
     CompilerResult,
     PlanGenerationResult,
     ValidationResult,
 )
-from unified_planning.io import PDDLReader, PDDLWriter, ANMLReader, ANMLWriter
+from unified_planning.io import ANMLReader, ANMLWriter, PDDLReader, PDDLWriter
+from unified_planning.shortcuts import *
 
 
 def main(args=None):

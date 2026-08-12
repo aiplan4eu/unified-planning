@@ -14,31 +14,31 @@
 #
 """This module defines an interface for a generic PDDL planner."""
 
-from abc import ABCMeta, abstractmethod
 import asyncio
-from asyncio.subprocess import PIPE
+import os
+import re
 import select
 import signal
 import subprocess
 import sys
 import tempfile
-import os
-import re
 import time
+from abc import ABCMeta, abstractmethod
+from asyncio.subprocess import PIPE
+from fractions import Fraction
+from typing import IO, Any, Callable, List, Optional, Tuple, Union, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
+from unified_planning.engines.engine import OperationMode
 from unified_planning.engines.results import (
     LogLevel,
     LogMessage,
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
-from unified_planning.io import PDDLWriter, PDDLReader
-from asyncio.subprocess import PIPE
-from fractions import Fraction
-from typing import IO, Any, Callable, Optional, List, Tuple, Union, cast
+from unified_planning.io import PDDLReader, PDDLWriter
 
 # This module implements two different mechanisms to execute a PDDL planner in a
 # subprocess, processing the output in real-time and imposing a timeout.

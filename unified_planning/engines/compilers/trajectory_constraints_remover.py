@@ -14,23 +14,30 @@
 #
 """This module defines the trajectory constraints remover class."""
 
+from functools import partial
+from typing import Dict, List, Optional, Tuple
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import InstantaneousAction, Action, FNode, Fluent
-from unified_planning.model.walkers import ExpressionQuantifiersRemover
-from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.expression import Expression
-from functools import partial
 from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
-from typing import List, Dict, Tuple, Optional
-
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model import (
+    Action,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+)
+from unified_planning.model.expression import Expression
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.walkers import ExpressionQuantifiersRemover
 
 NUM = "num"
 CONSTRAINTS = "constraints"

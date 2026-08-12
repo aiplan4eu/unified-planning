@@ -14,18 +14,19 @@
 
 
 from collections import OrderedDict
+
 import unified_planning
-from unified_planning.shortcuts import *
 from unified_planning.exceptions import (
-    UPUsageError,
-    UPTypeError,
     UPConflictingEffectsException,
-    UPProblemDefinitionError,
     UPExpressionDefinitionError,
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPUsageError,
 )
-from unified_planning.test.examples import get_example_problems
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.action import InstantaneousAction
+from unified_planning.shortcuts import *
+from unified_planning.test import main, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestModel(unittest_TestCase):

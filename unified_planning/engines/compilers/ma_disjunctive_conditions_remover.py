@@ -14,25 +14,25 @@
 #
 """This module defines the dnf remover class."""
 
+from functools import partial
+from typing import Dict, List, Optional
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import (
-    InstantaneousAction,
-    DurativeAction,
-    Action,
-    ProblemKind,
-)
-from unified_planning.model.walkers import Dnf
-from typing import List, Optional, Dict
-from functools import partial
 from unified_planning.engines.compilers.disjunctive_conditions_remover import (
     DisjunctiveConditionsRemover,
 )
+from unified_planning.engines.compilers.utils import get_fresh_name, replace_action
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.model import (
+    Action,
+    DurativeAction,
+    InstantaneousAction,
+    ProblemKind,
+)
 from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
-from typing import Dict, List, Optional
+from unified_planning.model.walkers import Dnf
 
 
 class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):

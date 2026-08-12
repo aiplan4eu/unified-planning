@@ -14,31 +14,32 @@
 #
 """This module defines the UndefinedInitialNumericRemover class."""
 
+from collections import defaultdict
+from fractions import Fraction
+from functools import partial
+from typing import Dict, List, Optional, Set, Union
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
+    Action,
+    DurativeAction,
+    Expression,
     Fluent,
     FNode,
-    Action,
     InstantaneousAction,
-    DurativeAction,
     MinimizeActionCosts,
-    Timing,
-    TimePointInterval,
+    Problem,
+    ProblemKind,
     StartTiming,
-    Expression,
+    TimePointInterval,
+    Timing,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-from unified_planning.engines.compilers.utils import replace_action
-from fractions import Fraction
-from typing import Optional, Union, List, Dict, Set
-from functools import partial
-from collections import defaultdict
 
 
 class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):

@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-from warnings import warn
-import unified_planning as up
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import IO, Optional, Callable
+from typing import IO, Callable, Optional
+from warnings import warn
+
+import unified_planning as up
 
 
 class _SolveWithParamsNotImplementedError(Exception):

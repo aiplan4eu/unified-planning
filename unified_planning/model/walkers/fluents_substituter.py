@@ -14,10 +14,11 @@
 #
 
 
+from typing import Dict, List
+
 import unified_planning.environment
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.model.fnode import FNode
-from typing import List, Dict
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 
 
 class FluentsSubstituter(IdentityDagWalker):

@@ -13,13 +13,14 @@
 # limitations under the License.
 #
 
-from unified_planning.plans.schedule import Schedule, Variable, Value
-from unified_planning.model.scheduling import Activity
+from typing import Dict, List, Optional, Tuple
+
 from unified_planning.environment import Environment
 from unified_planning.model.motion.activity import MotionActivity
 from unified_planning.model.motion.constraint import MotionConstraint
 from unified_planning.model.motion.path import Path
-from typing import Optional, Tuple, List, Dict
+from unified_planning.model.scheduling import Activity
+from unified_planning.plans.schedule import Schedule, Value, Variable
 
 
 class MotionSchedule(Schedule):

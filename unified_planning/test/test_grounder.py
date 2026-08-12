@@ -13,29 +13,30 @@
 # limitations under the License.
 #
 
-from typing import cast
 import warnings
+from typing import cast
+
 import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    classical_kind,
-    full_classical_kind,
-    simple_numeric_kind,
-    general_numeric_kind,
-    quantified_conditions_kind,
-    basic_temporal_kind,
-    hierarchical_kind,
-)
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
 from unified_planning.model.contingent import SensingAction
+from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
+    classical_kind,
+    full_classical_kind,
+    general_numeric_kind,
+    hierarchical_kind,
+    quantified_conditions_kind,
+    simple_numeric_kind,
+)
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestGrounder(unittest_TestCase):

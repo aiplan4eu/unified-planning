@@ -15,37 +15,37 @@
 
 import os
 import tempfile
-import pytest
 from typing import cast
+
+import pytest
+from pddl import parse_domain, parse_problem
+
 import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    main,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.io import (
-    PDDLWriter,
-    UPPDDLReader,
-    PDDLReader,
-    extract_pddl_requirements,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPUnsupportedProblemTypeError,
 )
-from unified_planning.model.metrics import MinimizeSequentialPlanLength
-from unified_planning.plans import SequentialPlan
-from unified_planning.model.problem_kind import simple_numeric_kind
-from unified_planning.model.types import _UserType
 from unified_planning.interop import (
     check_ai_pddl_requirements,
     convert_problem_from_ai_pddl,
 )
-
-from pddl import parse_domain, parse_problem
-
+from unified_planning.io import (
+    PDDLReader,
+    PDDLWriter,
+    UPPDDLReader,
+    extract_pddl_requirements,
+)
+from unified_planning.model.metrics import MinimizeSequentialPlanLength
+from unified_planning.model.problem_kind import simple_numeric_kind
+from unified_planning.model.types import _UserType
+from unified_planning.plans import SequentialPlan
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    main,
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")

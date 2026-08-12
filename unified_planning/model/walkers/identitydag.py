@@ -15,10 +15,11 @@
 #
 
 
+from typing import List
+
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
-from typing import List
 
 
 class IdentityDagWalker(walkers.dag.DagWalker):

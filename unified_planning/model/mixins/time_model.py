@@ -15,8 +15,9 @@
 
 from decimal import Decimal
 from fractions import Fraction
-from unified_planning.exceptions import UPProblemDefinitionError
 from typing import Optional, Union
+
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class TimeModelMixin:

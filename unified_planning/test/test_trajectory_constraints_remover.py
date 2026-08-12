@@ -16,8 +16,8 @@
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
-from unified_planning.shortcuts import *
 from unified_planning.model.walkers import Simplifier
+from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
 
 

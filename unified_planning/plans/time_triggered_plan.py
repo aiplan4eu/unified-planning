@@ -14,36 +14,37 @@
 #
 
 
+from fractions import Fraction
 from functools import partial
 from itertools import chain
-import unified_planning as up
-import unified_planning.plans as plans
-from unified_planning.model import (
-    InstantaneousAction,
-    Timing,
-    DurativeAction,
-    Problem,
-    FNode,
-    TimepointKind,
-    Effect,
-    TimeInterval,
-    Timepoint,
-    SimulatedEffect,
-)
-from unified_planning.environment import Environment
-from unified_planning.exceptions import UPUsageError
 from typing import (
     Callable,
     Dict,
     Iterator,
+    List,
     Optional,
     OrderedDict,
     Set,
     Tuple,
-    List,
     Union,
 )
-from fractions import Fraction
+
+import unified_planning as up
+import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import (
+    DurativeAction,
+    Effect,
+    FNode,
+    InstantaneousAction,
+    Problem,
+    SimulatedEffect,
+    TimeInterval,
+    Timepoint,
+    TimepointKind,
+    Timing,
+)
 
 
 class TimeTriggeredPlan(plans.plan.Plan):
@@ -253,7 +254,7 @@ def _convert_to_stn(
     # removing the temporal dimension, creating a SequentialPlan, then de-ordering the
     # SequentialPlan creating a PartialOrderPlan and re-adding the temporal dimension,
     # getting an STNPlan in the end.
-    from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
+    from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
 
     assert isinstance(problem, Problem), "This algorithm works only for Problem"
 

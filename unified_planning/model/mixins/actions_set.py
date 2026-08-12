@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Iterator, List
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Iterable
 
 
 class ActionsSetMixin:

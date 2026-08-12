@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unified_planning.shortcuts import *
+from unified_planning.engines import CompilationKind
 from unified_planning.model.problem_kind import (
     classical_kind,
     full_classical_kind,
 )
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
+    main,
     skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import CompilationKind
 
 
 class TestCompilersPipeline(unittest_TestCase):

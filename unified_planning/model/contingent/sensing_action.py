@@ -15,10 +15,11 @@
 #
 
 
+from collections import OrderedDict
+from typing import Iterable, List, Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
-from typing import List, Optional, Iterable
-from collections import OrderedDict
 from unified_planning.model.action import InstantaneousAction
 
 

@@ -14,22 +14,23 @@
 #
 
 
-from fractions import Fraction
 import re
 import sys
+from fractions import Fraction
+from io import StringIO
+from typing import IO, Dict, List, Optional, Union, cast
+
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     DurativeAction,
-    InstantaneousAction,
     Fluent,
-    Parameter,
+    InstantaneousAction,
     Object,
+    Parameter,
 )
-from unified_planning.model.types import _UserType, _RealType, _IntType
-from typing import IO, Dict, List, Optional, cast, Union
-from io import StringIO
+from unified_planning.model.types import _IntType, _RealType, _UserType
 
 ANML_KEYWORDS = {
     "action",

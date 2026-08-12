@@ -14,15 +14,16 @@
 #
 
 
+from collections import OrderedDict
+from typing import Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
-from unified_planning.model.action import InstantaneousAction, DurativeAction
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.mixins.motion_constraints_set import (
     MotionConstraintsSetMixin,
 )
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from typing import Optional
-from collections import OrderedDict
 
 
 class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):

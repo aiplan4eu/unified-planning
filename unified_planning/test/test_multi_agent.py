@@ -15,7 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import main, unittest_TestCase
 from unified_planning.test.examples.multi_agent import get_example_problems
 
 

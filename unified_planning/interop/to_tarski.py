@@ -17,17 +17,21 @@
 from fractions import Fraction
 from typing import List, Optional, Union, cast
 
+import tarski
+
 import unified_planning
 import unified_planning.model
 import unified_planning.model.walkers as walkers
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import (
-    _UserType as UT,
     _IntType as IT,
+)
+from unified_planning.model.types import (
     _RealType as RT,
 )
-
-import tarski
+from unified_planning.model.types import (
+    _UserType as UT,
+)
 
 
 class TarskiFormulaConverter(walkers.DagWalker):

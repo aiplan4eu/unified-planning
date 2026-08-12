@@ -15,9 +15,13 @@
 
 
 import re
-from typing import Callable, List
 import typing
+from typing import Callable, List
 from warnings import warn
+
+from pddl.parser.domain import DomainParser
+from pddl.parser.problem import ProblemParser
+
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
@@ -28,9 +32,6 @@ from unified_planning.interop.from_pddl import (
     convert_problem_from_ai_pddl,
 )
 from unified_planning.io.up_pddl_reader import UPPDDLReader
-
-from pddl.parser.domain import DomainParser
-from pddl.parser.problem import ProblemParser
 
 
 class PDDLReader:

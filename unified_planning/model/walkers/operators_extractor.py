@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import List, Set
+
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Set
 
 
 class OperatorsExtractor(walkers.dag.DagWalker):

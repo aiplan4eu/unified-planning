@@ -16,10 +16,11 @@
 
 
 from typing import Dict, List, Optional
+
 import unified_planning as up
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import Expression
 from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier
 
 

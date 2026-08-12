@@ -13,13 +13,13 @@
 # limitations under the License.
 #
 
-from typing import Callable, Optional, List, Union, Dict
+from typing import Callable, Dict, List, Optional, Union
 
-from unified_planning.model.expression import ConstantExpression
 from unified_planning.environment import Environment
-from unified_planning.model import AbstractProblem, Parameter, Timepoint, FNode
+from unified_planning.model import AbstractProblem, FNode, Parameter, Timepoint
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.scheduling import Activity
-from unified_planning.plans.plan import Plan, PlanKind, ActionInstance
+from unified_planning.plans.plan import ActionInstance, Plan, PlanKind
 
 Variable = Union[Parameter, Timepoint]
 Value = ConstantExpression
