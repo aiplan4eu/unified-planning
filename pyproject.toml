@@ -159,6 +159,8 @@ warn_unused_ignores = true
 no_implicit_optional = true
 # Same argument as warn_unused_ignores, for a cast mypy can prove is a no-op.
 warn_redundant_casts = true
+# `x == y` between types that cannot overlap is always False at runtime, i.e. always a bug.
+strict_equality = true
 
 [[tool.mypy.overrides]]
 module = ["unified_planning.grpc.generated.*"]
