@@ -92,32 +92,32 @@ class SchedulingProblem(  # type: ignore[misc]
     def __repr__(self) -> str:
         s = []
         if self.name is not None:
-            s.append(f"problem name = {str(self.name)}\n\n")
+            s.append(f"problem name = {self.name!s}\n\n")
         if len(self.user_types) > 0:
-            s.append(f"types = {str(list(self.user_types))}\n\n")
+            s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("fluents = [\n")
         for f in self.fluents:
-            s.append(f"  {str(f)}\n")
+            s.append(f"  {f!s}\n")
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
-                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
             s.append("]\n\n")
         s.append("initial fluents default = [\n")
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-                s.append(f"  {str(f)} := {str(v)}\n")
+                s.append(f"  {f!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self.explicit_initial_values.items():
-            s.append(f"  {str(k)} := {str(v)}\n")
+            s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
             for qm in self.quality_metrics:
-                s.append(f"  {str(qm)}\n")
+                s.append(f"  {qm!s}\n")
             s.append("]\n")
         s.append("\nBASE")
         s.append(str(self._base))
@@ -372,11 +372,11 @@ class SchedulingProblem(  # type: ignore[misc]
         """Returns all decision variables (timepoints and parameters) defined in this problem and its activities.
         For each variable, the activity in which it was defined is also given."""
         vars: List[Tuple[Union[Parameter, Timepoint], Optional[Activity]]] = []
-        vars += map(lambda param: (param, None), self._base.parameters)
+        vars += ((param, None) for param in self._base.parameters)
         for activity in self.activities:
             vars.append((activity.start, activity))
             vars.append((activity.end, activity))
-            vars += map(lambda param: (param, activity), activity.parameters)
+            vars += ((param, activity) for param in activity.parameters)
         return vars
 
     def all_constraints(self) -> List[FNode]:
@@ -398,10 +398,10 @@ class SchedulingProblem(  # type: ignore[misc]
         For each condition, the activity in which it was defined is also given."""
         cs: List[Tuple[TimeInterval, FNode, Optional[Activity]]] = []
         for timing, conds in self._base.conditions.items():
-            cs += list(map(lambda cond: (timing, cond, None), conds))
+            cs += [(timing, cond, None) for cond in conds]
         for act in self.activities:
             for timing, conds in act.conditions.items():
-                cs += map(lambda cond: (timing, cond, act), conds)
+                cs += ((timing, cond, act) for cond in conds)
         return cs
 
     def all_effects(self) -> List[Tuple[Timing, Effect, Optional[Activity]]]:
@@ -409,10 +409,10 @@ class SchedulingProblem(  # type: ignore[misc]
         For each effect, the activity in which it was defined is also given."""
         es: List[Tuple[Timing, Effect, Optional[Activity]]] = []
         for timing, effs in self._base.effects.items():
-            es += map(lambda eff: (timing, eff, None), effs)
+            es += ((timing, eff, None) for eff in effs)
         for act in self.activities:
             for timing, effs in act.effects.items():
-                es += map(lambda eff: (timing, eff, act), effs)
+                es += ((timing, eff, act) for eff in effs)
         return es
 
     def normalize_plan(self, plan: "up.plans.Plan") -> "up.plans.Plan":

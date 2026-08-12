@@ -191,7 +191,7 @@ class PreconditionMixin:
         )
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
+                f"The precondition {precondition_exp!s} has unbounded variables:\n{free_vars!s}"
             )
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)
@@ -249,7 +249,7 @@ class UntimedEffectMixin:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `assignment` to the `action's effects`.
@@ -286,7 +286,7 @@ class UntimedEffectMixin:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `increase effect` to the `action's effects`.
@@ -334,7 +334,7 @@ class UntimedEffectMixin:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `decrease effect` to the `action's effects`.

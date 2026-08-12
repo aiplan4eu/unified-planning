@@ -85,7 +85,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:

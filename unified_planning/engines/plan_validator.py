@@ -179,7 +179,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                 )
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
-                    msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+                    msg = f"Preconditions {unsat_conds} of {i!s}-th action instance {ai!s} are not satisfied."
                     return invalid_result(
                         msg,
                         trace,
@@ -204,13 +204,15 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     )
                 trace.append(next_state)
             except UPUsageError as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
+                msg = f"{i!s}-th action instance {ai!s} creates a UsageError: {e!s}"
             except UPInvalidActionError as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
+                msg = (
+                    f"{i!s}-th action instance {ai!s} creates an Invalid Action: {e!s}"
+                )
             except UPConflictingEffectsException as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
+                msg = f"{i!s}-th action instance {ai!s} creates Conflicting Effects: {e!s}"
             except UPStateMissingFluentError:
-                msg = f"{str(i)}-th action instance {str(ai)} involves fluents with undefined values"
+                msg = f"{i!s}-th action instance {ai!s} involves fluents with undefined values"
 
             if msg is not None:
                 return invalid_result(
@@ -547,7 +549,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         ] = []
 
         plan_duration: Fraction = (
-            max(x[0] + (x[2] if x[2] else 0) for x in start_actions)
+            max(x[0] + (x[2] or 0) for x in start_actions)
             if start_actions
             else Fraction(0)
         )

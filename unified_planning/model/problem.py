@@ -107,8 +107,8 @@ class Problem(  # type: ignore[misc]
         self._timed_goals: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
         ] = {}
-        self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
-        self._goals: List["up.model.fnode.FNode"] = list()
+        self._trajectory_constraints: List["up.model.fnode.FNode"] = []
+        self._goals: List["up.model.fnode.FNode"] = []
         self._fluents_assigned: Dict[
             "up.model.timing.Timing",
             Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
@@ -119,13 +119,13 @@ class Problem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
-        custom_str = lambda x: f"  {str(x)}\n"
+        custom_str = lambda x: f"  {x!s}\n"
         if self.name is not None:
-            s.append(f"problem name = {str(self.name)}\n\n")
+            s.append(f"problem name = {self.name!s}\n\n")
         if self._epsilon is not None:
             s.append(f"epsilon separation = {self._epsilon}\n\n")
         if len(self.user_types) > 0:
-            s.append(f"types = {str(list(self.user_types))}\n\n")
+            s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("fluents = [\n")
         s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
@@ -143,31 +143,31 @@ class Problem(  # type: ignore[misc]
         if len(self.user_types) > 0:
             s.append("objects = [\n")
             for ty in self.user_types:
-                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
             s.append("]\n\n")
         s.append("initial fluents default = [\n")
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-                s.append(f"  {str(f)} := {str(v)}\n")
+                s.append(f"  {f!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self.explicit_initial_values.items():
-            s.append(f"  {str(k)} := {str(v)}\n")
+            s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         if len(self.timed_effects) > 0:
             s.append("timed effects = [\n")
             for t, el in self.timed_effects.items():
-                s.append(f"  {str(t)} :\n")
+                s.append(f"  {t!s} :\n")
                 for e in el:
-                    s.append(f"    {str(e)}\n")
+                    s.append(f"    {e!s}\n")
             s.append("]\n\n")
         if len(self.timed_goals) > 0:
             s.append("timed goals = [\n")
             for i, gl in self.timed_goals.items():
-                s.append(f"  {str(i)} :\n")
+                s.append(f"  {i!s} :\n")
                 for g in gl:
-                    s.append(f"    {str(g)}\n")
+                    s.append(f"    {g!s}\n")
             s.append("]\n\n")
         s.append("goals = [\n")
         s.extend(map(custom_str, self.goals))
@@ -263,7 +263,7 @@ class Problem(  # type: ignore[misc]
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
         new_p._fluents_assigned = {
@@ -493,7 +493,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `timed effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -531,7 +531,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `timed increase effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -573,7 +573,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given timed decrease effect to the problem; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -1386,7 +1386,7 @@ class _KindFactory:
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.TemporalOversubscription)
                 self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                oversub_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_goals = (x[1] for x in metric.goals.keys())
                 oversub_gains = metric.goals.values()
             else:
                 assert False, "Unknown quality metric"
@@ -1543,7 +1543,7 @@ def generate_causal_graph(
                         graph.add_edge(left_node, right_node)
                     actions.add(
                         up.plans.ActionInstance(
-                            *actions_mapping.get(ln_action, (ln_action, tuple()))
+                            *actions_mapping.get(ln_action, (ln_action, ()))
                         )
                     )
     return graph, edge_actions_map

@@ -60,7 +60,7 @@ def _get_pddl_test_cases(
     *,
     domain_filter: str = "domain",
     filter: Optional[Iterable[str]] = None,
-    block: Iterable[str] = tuple(),
+    block: Iterable[str] = (),
 ) -> Dict[str, TestCase]:
     pddl_files = glob(os.path.join(pddl_files_path, "*.pddl"))
     plan_files = glob(os.path.join(pddl_files_path, "*.plan"))

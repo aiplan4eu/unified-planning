@@ -89,7 +89,7 @@ class SequentialSimulatorMixin(ABC):
         assert isinstance(act, up.model.Action), "Typing not respected"
         auto_promote = self._problem.environment.expression_manager.auto_promote
         if parameters is None:
-            params = tuple()
+            params = ()
         else:
             assert isinstance(parameters, Sequence), "Typing not respected"
             params = tuple(auto_promote(parameters))

@@ -59,10 +59,10 @@ class MotionActivity(Activity, MotionConstraintsSetMixin):
         s.append(super().__repr__().replace("/n", "\n  "))
         s.append("  motion-constraints")
         for c in self._motion_constraints:
-            s.append(f"      {str(c)}\n")
+            s.append(f"      {c!s}\n")
         s.append("  motion-effects")
         for e in self._motion_effects:
-            s.append(f"      {str(e)}\n")
+            s.append(f"      {e!s}\n")
         s.append("}")
         return "\n".join(s)
 

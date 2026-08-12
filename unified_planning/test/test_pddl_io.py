@@ -492,8 +492,8 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 8)
-        n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
-        n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
+        n_proc = len([el for el in problem.processes if isinstance(el, Process)])
+        n_eve = len([el for el in problem.events if isinstance(el, Event)])
         self.assertEqual(n_proc, 3)
         self.assertEqual(n_eve, 1)
         found_drag_ahead = False
@@ -1058,11 +1058,11 @@ class TestPddlIO(unittest_TestCase):
                 domain.clone()
             )  # Clone the parsed domain, then populate it and solve
             for j in range(i + 1):
-                object_j = Object(f"c{str(j)}", counter_type)
+                object_j = Object(f"c{j!s}", counter_type)
                 problem.add_object(object_j)
                 problem.set_initial_value(value_fluent(object_j), 0)
                 if j > 0:
-                    previous_object = problem.object(f"c{str(j - 1)}")
+                    previous_object = problem.object(f"c{j - 1!s}")
                     problem.add_goal(
                         LE(
                             Plus(value_fluent(previous_object), 1),

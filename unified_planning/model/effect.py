@@ -75,7 +75,7 @@ class Effect:
         value: "up.model.fnode.FNode",
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         fve = fluent.environment.free_vars_extractor
         fluents_in_fluent = set(fve.get(fluent))
@@ -131,9 +131,9 @@ class Effect:
         if self.is_forall():
             s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
-            s.append(f"if {str(self._condition)} then")
+            s.append(f"if {self._condition!s} then")
         if not (self.is_continuous_increase() or self.is_continuous_decrease()):
-            s.append(f"{str(self._fluent)}")
+            s.append(f"{self._fluent!s}")
         if self.is_assignment():
             s.append(":=")
         elif self.is_increase():
@@ -141,10 +141,10 @@ class Effect:
         elif self.is_decrease():
             s.append("-=")
         elif self.is_continuous_increase():
-            s.append(f"d{str(self._fluent)}/dt =")
+            s.append(f"d{self._fluent!s}/dt =")
         elif self.is_continuous_decrease():
-            s.append(f"d{str(self._fluent)}/dt = -")
-        s.append(f"{str(self._value)}")
+            s.append(f"d{self._fluent!s}/dt = -")
+        s.append(f"{self._value!s}")
         return " ".join(s)
 
     def __eq__(self, oth: object) -> bool:

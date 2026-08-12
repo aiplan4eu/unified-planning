@@ -443,7 +443,7 @@ def group_binary(parse_res: ParseResults):
     """
     parsed_tokens = parse_res[0]
     assert len(parsed_tokens) % 2 == 1, "expected an odd number of tokens"
-    tokens_list = [t for t in parsed_tokens.as_list()]
+    tokens_list = list(parsed_tokens.as_list())
     first_element = tokens_list[0]
     for operator, operand in operatorOperands(tokens_list[1:]):
         first_element = ParseResults([first_element, operator, operand])

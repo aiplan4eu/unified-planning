@@ -861,7 +861,7 @@ class TestGrounder(unittest_TestCase):
         assert isinstance(grounded_problem, Problem)
         ga = cast(DurativeAction, grounded_problem.action("act_l1"))
         self.assertEqual(len(ga.parameters), 0)
-        ((interval, effects),) = ga.continuous_effects.items()
+        ((_interval, effects),) = ga.continuous_effects.items()
         (effect,) = effects
         self.assertTrue(effect.is_continuous_increase())
         self.assertEqual(effect.value, rate(l1))

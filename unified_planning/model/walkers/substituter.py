@@ -114,7 +114,7 @@ class Substituter(IdentityDagWalker):
                 new_substitutions[new_k] = new_v
             else:
                 raise UPTypeError(
-                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}"
+                    f"The expression type of {k!s} is not compatible with the given substitution {v!s}"
                 )
         return self.walk(expression, subs=new_substitutions)
 

@@ -85,10 +85,10 @@ class ExpressionManager(object):
         self._next_free_id = 1
 
         self.true_expression = self.create_node(
-            node_type=OperatorKind.BOOL_CONSTANT, args=tuple(), payload=True
+            node_type=OperatorKind.BOOL_CONSTANT, args=(), payload=True
         )
         self.false_expression = self.create_node(
-            node_type=OperatorKind.BOOL_CONSTANT, args=tuple(), payload=False
+            node_type=OperatorKind.BOOL_CONSTANT, args=(), payload=False
         )
         return
 
@@ -360,7 +360,7 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         if len(vars) == 0:
             raise UPExpressionDefinitionError(
-                f"Exists of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed."
+                f"Exists of expression: {expression!s} must be created with at least one variable, otherwise it is not needed."
             )
         for v in vars:
             if not isinstance(v, up.model.variable.Variable):
@@ -386,7 +386,7 @@ class ExpressionManager(object):
         expressions = tuple(self.auto_promote(expression))
         if len(vars) == 0:
             raise UPExpressionDefinitionError(
-                f"Forall of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed."
+                f"Forall of expression: {expression!s} must be created with at least one variable, otherwise it is not needed."
             )
         for v in vars:
             if not isinstance(v, up.model.variable.Variable):
@@ -462,7 +462,7 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.SOMETIME_AFTER, args=expressions)
 
     def FluentExp(
-        self, fluent: "up.model.fluent.Fluent", params: Sequence[Expression] = tuple()
+        self, fluent: "up.model.fluent.Fluent", params: Sequence[Expression] = ()
     ) -> "up.model.fnode.FNode":
         """
         | Creates an expression for the given ``fluent`` and ``parameters``.
@@ -487,7 +487,7 @@ class ExpressionManager(object):
     def InterpretedFunctionExp(
         self,
         interpreted_function: "up.model.interpreted_function.InterpretedFunction",
-        params: Sequence[Expression] = tuple(),
+        params: Sequence[Expression] = (),
     ) -> "up.model.fnode.FNode":
         """
         | Creates an expression for the given ``interpreted_function`` and ``parameters``.
@@ -548,7 +548,7 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given ``param`` as his payload.
         """
         return self.create_node(
-            node_type=OperatorKind.PARAM_EXP, args=tuple(), payload=param
+            node_type=OperatorKind.PARAM_EXP, args=(), payload=param
         )
 
     def VariableExp(self, var: "up.model.variable.Variable") -> "up.model.fnode.FNode":
@@ -560,7 +560,7 @@ class ExpressionManager(object):
         """
         assert var.environment == self.environment
         return self.create_node(
-            node_type=OperatorKind.VARIABLE_EXP, args=tuple(), payload=var
+            node_type=OperatorKind.VARIABLE_EXP, args=(), payload=var
         )
 
     def ObjectExp(self, obj: "up.model.object.Object") -> "up.model.fnode.FNode":
@@ -571,9 +571,7 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given object as his payload.
         """
         assert obj.environment == self.environment
-        return self.create_node(
-            node_type=OperatorKind.OBJECT_EXP, args=tuple(), payload=obj
-        )
+        return self.create_node(node_type=OperatorKind.OBJECT_EXP, args=(), payload=obj)
 
     def TimingExp(self, timing: "up.model.timing.Timing") -> "up.model.fnode.FNode":
         """
@@ -583,14 +581,14 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given ``timing`` as his payload.
         """
         return self.create_node(
-            node_type=OperatorKind.TIMING_EXP, args=tuple(), payload=timing
+            node_type=OperatorKind.TIMING_EXP, args=(), payload=timing
         )
 
     def PresentExp(
         self, presence: "up.model.presence.Presence"
     ) -> "up.model.fnode.FNode":
         return self.create_node(
-            node_type=OperatorKind.PRESENT_EXP, args=tuple(), payload=presence
+            node_type=OperatorKind.PRESENT_EXP, args=(), payload=presence
         )
 
     def TRUE(self) -> "up.model.fnode.FNode":
@@ -625,7 +623,7 @@ class ExpressionManager(object):
         if not isinstance(value, int):
             raise UPTypeError("Expecting int, got %s" % type(value))
         return self.create_node(
-            node_type=OperatorKind.INT_CONSTANT, args=tuple(), payload=value
+            node_type=OperatorKind.INT_CONSTANT, args=(), payload=value
         )
 
     def Real(self, value: Fraction) -> "up.model.fnode.FNode":
@@ -638,7 +636,7 @@ class ExpressionManager(object):
         if not isinstance(value, Fraction):
             raise UPTypeError("Expecting Fraction, got %s" % type(value))
         return self.create_node(
-            node_type=OperatorKind.REAL_CONSTANT, args=tuple(), payload=value
+            node_type=OperatorKind.REAL_CONSTANT, args=(), payload=value
         )
 
     def Plus(

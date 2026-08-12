@@ -54,13 +54,13 @@ class ContingentProblem(Problem):
             return False
         if self._hidden_fluents != oth._hidden_fluents:
             return False
-        if set(frozenset(c) for c in self._or_initial_constraints) != set(
+        if {frozenset(c) for c in self._or_initial_constraints} != {
             frozenset(c) for c in oth._or_initial_constraints
-        ):
+        }:
             return False
-        if set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+        if {frozenset(c) for c in self._oneof_initial_constraints} != {
             frozenset(c) for c in oth._oneof_initial_constraints
-        ):
+        }:
             return False
         return True
 
@@ -81,7 +81,7 @@ class ContingentProblem(Problem):
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:

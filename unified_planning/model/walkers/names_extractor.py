@@ -49,7 +49,7 @@ class NamesExtractor(walkers.dag.DagWalker):
     @walkers.handles(op.OperatorKind.EXISTS, op.OperatorKind.FORALL)
     def walk_quantifier(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         assert len(args) == 1
-        vars_names = set((v.name for v in expression.variables()))
+        vars_names = {v.name for v in expression.variables()}
         return self._args_merge_in_place(args, vars_names)
 
     def walk_fluent_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
