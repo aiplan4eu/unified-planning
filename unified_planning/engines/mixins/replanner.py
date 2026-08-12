@@ -30,8 +30,9 @@ class ReplannerMixin(ABC):
     ):
         self._problem = problem.clone()
         self_class = type(self)
-        assert issubclass(self_class, up.engines.engine.Engine)
-        assert isinstance(self, up.engines.engine.Engine)
+        # see the note on the same asserts in SequentialSimulatorMixin.__init__
+        assert issubclass(self_class, up.engines.engine.Engine)  # type: ignore[unreachable]
+        assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]
         self._error_on_failed_checks: bool = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
