@@ -114,8 +114,10 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
             event `x`.
         """
         if self._is_sat:
-            self._distances.setdefault(x, cast(T, 0))
-            self._distances.setdefault(y, cast(T, 0))
+            # T is value-restricted, so mypy checks this body once per value and calls the
+            # cast redundant for the int expansion only; with T = Fraction it is required.
+            self._distances.setdefault(x, cast(T, 0))  # type: ignore[redundant-cast]
+            self._distances.setdefault(y, cast(T, 0))  # type: ignore[redundant-cast]
             x_constraints = self._constraints.get(x, None)
             self._constraints.setdefault(y, None)
             if not self._is_subsumed(x, y, b):
@@ -198,8 +200,9 @@ class DeltaSimpleTemporalNetwork(Generic[T]):
         if right_bound is not None:
             self.add(right_event, left_event, right_bound)
         if left_bound is None and right_bound is None:
-            self._distances.setdefault(left_event, cast(T, 0))
-            self._distances.setdefault(right_event, cast(T, 0))
+            # see the note on the setdefault calls in `add`
+            self._distances.setdefault(left_event, cast(T, 0))  # type: ignore[redundant-cast]
+            self._distances.setdefault(right_event, cast(T, 0))  # type: ignore[redundant-cast]
 
     def get_constraints(self) -> Dict[Any, List[Tuple[T, Any]]]:
         """
