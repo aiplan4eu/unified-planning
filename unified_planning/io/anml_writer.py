@@ -421,9 +421,9 @@ class ANMLWriter:
         if effect.is_assignment():
             results.append(" := ")
         elif effect.is_increase():
-            results.append(f" :increase ")
+            results.append(" :increase ")
         elif effect.is_decrease():
-            results.append(f" :decrease ")
+            results.append(" :decrease ")
         else:
             raise NotImplementedError
         results.append(f"{converter.convert(effect.value)};\n")

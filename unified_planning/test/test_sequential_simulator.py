@@ -144,7 +144,7 @@ class TestSimulator(unittest_TestCase):
         with self.assertRaises(UPUsageError) as e:
             UPSequentialSimulator(problem)
         self.assertIn("cannot establish whether", str(e.exception))
-        with SequentialSimulator(problem, name="sequential_simulator") as simulator:
+        with SequentialSimulator(problem, name="sequential_simulator"):
             pass
 
     def test_bounded_types(self):

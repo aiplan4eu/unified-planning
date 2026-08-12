@@ -158,11 +158,7 @@ select = [
     "TID",   # flake8-tidy-imports
     "YTT",   # flake8-2020: sys.version comparisons
     "I",     # isort
-    "F401",  # unused-import
-    "F402",  # import-shadowed-by-loop-var
-    "F403",  # undefined-local-with-import-star
-    "F405",  # undefined-local-with-import-star-usage
-    "F811",  # redefined-while-unused
+    "F",     # pyflakes
 ]
 
 [tool.ruff.lint.per-file-ignores]

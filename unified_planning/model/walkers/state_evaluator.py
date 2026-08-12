@@ -85,7 +85,7 @@ class StateEvaluator(QuantifierSimplifier):
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         raise UPProblemDefinitionError(
-            f"The StateEvaluator.evaluate should only be called on grounded expressions."
+            "The StateEvaluator.evaluate should only be called on grounded expressions."
         )
 
     def iter_walk(self, expression: FNode, **kwargs):

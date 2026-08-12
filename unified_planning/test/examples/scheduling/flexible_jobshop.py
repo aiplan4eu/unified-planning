@@ -98,7 +98,7 @@ def create_scheduling_problem(
     """
     jobs, num_machines = parse_instance(instance)
 
-    problem = SchedulingProblem(f"sched:flexible-jobshop")
+    problem = SchedulingProblem("sched:flexible-jobshop")
     machine_objects = []
     if resource_encoding:
         # create one resource per machine

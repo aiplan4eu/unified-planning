@@ -539,9 +539,9 @@ class TestArithmeticOperators(unittest_TestCase):
     def test_general(self):
         s = Simplifier(get_environment())
         x = FluentExp(Fluent("x"))
-        y = FluentExp(Fluent("y", IntType()))
+        FluentExp(Fluent("y", IntType()))
         t = Bool(True)
-        f = Bool(False)
+        Bool(False)
         # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
         e1 = Equals(
             Minus(Times([Div(25, 5), 30, 2, 2]), Times(20, 5)), Div(Times(25, 4, 10), 2)

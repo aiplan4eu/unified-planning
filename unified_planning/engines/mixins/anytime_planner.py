@@ -81,7 +81,7 @@ class AnytimePlannerMixin(ABC):
             else:
                 warn(msg)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
-            msg = f"The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
+            msg = "The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
             raise up.exceptions.UPUsageError(msg)
         try:
             kwargs.setdefault("warm_start_plan", warm_start_plan)

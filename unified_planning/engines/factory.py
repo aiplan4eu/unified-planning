@@ -643,7 +643,7 @@ class Factory:
             if not self._credit_disclaimer_printed:
                 self._credit_disclaimer_printed = True
                 w.write(
-                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
+                    "\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
                 )
             w.write("  *** Credits ***\n")
             w.write(
@@ -738,7 +738,7 @@ class Factory:
                     problem.kind.has_quality_metrics()
                     and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
                 ):
-                    msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+                    msg = "The problem has no quality metrics but the engine is required to be optimal!"
                     raise up.exceptions.UPUsageError(msg)
                 res = EngineClass(
                     problem=problem,

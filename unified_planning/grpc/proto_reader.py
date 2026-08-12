@@ -15,7 +15,7 @@
 # type: ignore
 import fractions
 from functools import partial
-from typing import Optional, OrderedDict, Tuple, Union
+from typing import Dict, List, Optional, OrderedDict, Tuple, Union
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 import unified_planning.plans

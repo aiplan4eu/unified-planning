@@ -29,8 +29,8 @@ class TestSubstituter(unittest_TestCase):
         # small test on already-done expressions to check the id-dagwalker
         x = FluentExp(Fluent("x"))
         y = FluentExp(Fluent("y", IntType()))
-        t = Bool(True)
-        f = Bool(False)
+        Bool(True)
+        Bool(False)
         subs: Dict[Expression, Expression] = {y: 3}
         # ((25/5)*30*2*2) - (20*5) (500) == (25*4*10) / 2 (500)
         e1 = Equals(
@@ -75,7 +75,7 @@ class TestSubstituter(unittest_TestCase):
             subst[And(c, b)] = d
             subst[And(a, b)] = Int(5)
             e3 = And(a, b)
-            s3 = s.substitute(e3, subst)
+            s.substitute(e3, subst)
 
         subst = {}
         subst[a] = c

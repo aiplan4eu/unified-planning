@@ -203,7 +203,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
                     if output_stream is not None:
                         output_stream.write(
-                            f"\nIFPlanner -> dictionary of known interpreted functions values:\n\n"
+                            "\nIFPlanner -> dictionary of known interpreted functions values:\n\n"
                         )
                         for log_if, log_val in knowledge.items():
                             output_stream.write(f"{log_if} : {log_val}\n")
