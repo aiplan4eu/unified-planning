@@ -31,6 +31,9 @@ jobs:
           sudo apt-get install -y graphviz graphviz-dev
 
       - name: Lint
+        env:
+          # inline PR annotations for `ruff check`; `ruff format --check` ignores it
+          RUFF_OUTPUT_FORMAT: github
         run: just lint
 
       - name: MyPy check

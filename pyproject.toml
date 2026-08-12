@@ -87,7 +87,8 @@ dev = [
     "pytest-cov>=5.0",
     # Exact so that type errors appear on code change, not on tool drift.
     "mypy==2.3.1",
-    "ruff>=0.6.0",
+    # Exact, like mypy: `lint.ignore` names rule codes and ruff hard-errors on an unknown one.
+    "ruff==0.16.5",
     "pre-commit>=3.5",
 ]
 docs = [
@@ -137,13 +138,28 @@ line-length = 88
 target-version = "py310"
 # generated protobuf code and docs (notebooks/snippets with IPython magics) are excluded
 extend-exclude = ["unified_planning/grpc/generated", "docs"]
+# "up_test_cases" is what makes report.py's `from utils import ...` sort as first-party.
+src = [".", "up_test_cases"]
 
-# ruff is used purely as the formatter here — the drop-in replacement for black.
-# Linting is intentionally disabled: enabling unused-import/import-sorting autofixes
-# rewrites re-export modules (e.g. unified_planning/interop/tarski.py) and changes the
-# public API. Adopting lint rules is left to a dedicated follow-up PR.
+# Rules are adopted family by family, each with the fixes it requires. Deliberately never
+# selected: E501 (the formatter owns line width), COM (the formatter's job, and ruff warns
+# COM812 conflicts with it), D (the docstrings are Sphinx/reST prose, not PEP 257), ANN (mypy
+# owns annotation coverage), ARG (the walker and mixin signatures are protocol-driven), and TC
+# (it would move `import unified_planning as up` into TYPE_CHECKING and break the runtime uses).
 [tool.ruff.lint]
-select = []
+select = [
+    "E4",    # pycodestyle: import placement
+    "E9",    # pycodestyle: syntax and IO errors
+    "W",     # pycodestyle warnings
+    "ASYNC", # flake8-async
+    "LOG",   # flake8-logging
+    "T10",   # flake8-debugger
+    "TID",   # flake8-tidy-imports
+    "YTT",   # flake8-2020: sys.version comparisons
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.format]
 
