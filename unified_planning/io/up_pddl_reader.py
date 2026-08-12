@@ -642,7 +642,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
             elif op == "assign":
                 eff = (
                     self._parse_exp(
@@ -656,7 +656,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
             elif op == "increase":
                 if "#t" in exp:
                     if not (
@@ -777,7 +777,7 @@ class UPPDDLReader:
                     act.add_increase_effect(
                         *eff if timing is None else (timing, *eff),
                         forall=tuple(forall_variables.values()),
-                    )  # type: ignore
+                    )  # type: ignore[misc, operator]
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -903,7 +903,7 @@ class UPPDDLReader:
                     act.add_decrease_effect(
                         *eff if timing is None else (timing, *eff),
                         forall=tuple(forall_variables.values()),
-                    )  # type: ignore
+                    )  # type: ignore[misc, operator]
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -931,7 +931,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
 
     def _add_condition(
         self,
