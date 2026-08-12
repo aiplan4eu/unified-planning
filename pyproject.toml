@@ -156,6 +156,10 @@ no_implicit_optional = true
 warn_redundant_casts = true
 # `x == y` between types that cannot overlap is always False at runtime, i.e. always a bug.
 strict_equality = true
+# Code mypy proves unreachable is also code mypy never checks, so this is the only way to find
+# out how much of the package is silently unchecked. Version- and platform-gated blocks are
+# exempt by mypy itself, so it does not fire on the `sys.platform == "win32"` branches.
+warn_unreachable = true
 
 [[tool.mypy.overrides]]
 module = ["unified_planning.grpc.generated.*"]
