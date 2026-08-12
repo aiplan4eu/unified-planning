@@ -179,11 +179,11 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     self.name,
                     log_messages=res.log_messages,
                 )
-            elif res.status == PlanGenerationResultStatus.TIMEOUT:
+            if res.status == PlanGenerationResultStatus.TIMEOUT:
                 return PlanGenerationResult(
                     PlanGenerationResultStatus.TIMEOUT, None, self.name
                 )
-            elif res.status in [
+            if res.status in [
                 PlanGenerationResultStatus.MEMOUT,
                 PlanGenerationResultStatus.INTERNAL_ERROR,
                 PlanGenerationResultStatus.UNSUPPORTED_PROBLEM,

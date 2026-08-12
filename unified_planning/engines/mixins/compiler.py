@@ -89,14 +89,12 @@ class CompilerMixin(ABC):
             msg = f"We cannot establish whether {self.name} can handle this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         if not self.supports_compilation(compilation_kind):
             msg = f"{self.name} cannot handle this kind of compilation!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         return self._compile(problem, compilation_kind)
 
     @property

@@ -93,10 +93,9 @@ class ENHSP(PDDLAnytimePlanner):
     ) -> "up.engines.results.PlanGenerationResultStatus":
         if retval != 0:
             return up.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
-        elif plan is None:
+        if plan is None:
             return up.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
-        else:
-            return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
     def _starting_plan_str(self) -> str:
         return "Found Plan:"

@@ -53,8 +53,7 @@ class Parameter:
                 and self._typename == oth._typename
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)

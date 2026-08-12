@@ -640,10 +640,9 @@ def _assignment_as_condition(key_value: Tuple[FNode, FNode]) -> FNode:
     ft = fluent.type
     if ft.is_bool_type() and value.is_true():
         return fluent
-    elif ft.is_bool_type() and value.is_false():
+    if ft.is_bool_type() and value.is_false():
         return em.Not(fluent)
-    else:
-        return em.Equals(fluent, value)
+    return em.Equals(fluent, value)
 
 
 def _plot_expressions(

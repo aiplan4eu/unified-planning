@@ -50,20 +50,19 @@ class ContingentProblem(Problem):
     def __eq__(self, oth: object) -> bool:
         if not isinstance(oth, ContingentProblem):
             return False
-        elif not super().__eq__(oth):
+        if not super().__eq__(oth):
             return False
-        elif self._hidden_fluents != oth._hidden_fluents:
+        if self._hidden_fluents != oth._hidden_fluents:
             return False
-        elif set(frozenset(c) for c in self._or_initial_constraints) != set(
+        if set(frozenset(c) for c in self._or_initial_constraints) != set(
             frozenset(c) for c in oth._or_initial_constraints
         ):
             return False
-        elif set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+        if set(frozenset(c) for c in self._oneof_initial_constraints) != set(
             frozenset(c) for c in oth._oneof_initial_constraints
         ):
             return False
-        else:
-            return True
+        return True
 
     def __hash__(self) -> int:
         res = super().__hash__()

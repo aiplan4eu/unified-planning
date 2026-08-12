@@ -89,8 +89,7 @@ class Process(NaturalTransition):
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -225,8 +224,7 @@ class Event(UntimedEffectMixin, NaturalTransition):
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)

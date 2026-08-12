@@ -147,8 +147,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             )
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warnings.warn(cast(str, msg))
+            warnings.warn(cast(str, msg))
         if metric is not None:
             metric_value: Union[int, Fraction] = 0
 
@@ -249,8 +248,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     trace=trace,
                     calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                 )
-            else:
-                msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
+            msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
         except UPStateMissingFluentError:
             msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
@@ -483,7 +481,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     ) -> Optional[Fraction]:
         if timing.is_from_start():
             return action_start + timing.delay
-        elif timing.is_global():
+        if timing.is_global():
             return None
         assert action_duration is not None
         return action_start + action_duration + timing.delay
@@ -505,10 +503,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
         if ai is None:
             return formula
-        else:
-            return formula.substitute(
-                dict(zip(ai.action.parameters, ai.actual_parameters))
-            )
+        return formula.substitute(dict(zip(ai.action.parameters, ai.actual_parameters)))
 
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
@@ -772,21 +767,18 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             trace={k: v for k, v in trace.items() if k <= end},
                             calculated_interpreted_functions=se.if_values,
                         )
-                    else:
-                        return ValidationResult(
-                            status=ValidationResultStatus.INVALID,
-                            engine_name=self.name,
-                            log_messages=None,
-                            metric_evaluations=None,
-                            reason=FailedValidationReason.UNSATISFIED_GOALS,
-                            inapplicable_action=None,
-                            trace={
-                                k: v
-                                for k, v in trace.items()
-                                if end is None or k <= end
-                            },
-                            calculated_interpreted_functions=se.if_values,
-                        )
+                    return ValidationResult(
+                        status=ValidationResultStatus.INVALID,
+                        engine_name=self.name,
+                        log_messages=None,
+                        metric_evaluations=None,
+                        reason=FailedValidationReason.UNSATISFIED_GOALS,
+                        inapplicable_action=None,
+                        trace={
+                            k: v for k, v in trace.items() if end is None or k <= end
+                        },
+                        calculated_interpreted_functions=se.if_values,
+                    )
 
         for g in problem.goals:
             try:

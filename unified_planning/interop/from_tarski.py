@@ -64,7 +64,7 @@ def convert_tarski_formula(
             for f in formula.subformulas
         ]
         return em.And(*children)
-    elif is_or(formula):
+    if is_or(formula):
         children = [
             convert_tarski_formula(
                 environment, fluents, objects, action_parameters, types, f
@@ -72,7 +72,7 @@ def convert_tarski_formula(
             for f in formula.subformulas
         ]
         return em.Or(*children)
-    elif is_neg(formula):
+    if is_neg(formula):
         assert len(formula.subformulas) == 1
         return em.Not(
             convert_tarski_formula(
@@ -84,7 +84,7 @@ def convert_tarski_formula(
                 formula.subformulas[0],
             )
         )
-    elif is_atom(formula) or isinstance(formula, CompoundTerm):
+    if is_atom(formula) or isinstance(formula, CompoundTerm):
         children = [
             convert_tarski_formula(
                 environment, fluents, objects, action_parameters, types, f
@@ -98,77 +98,73 @@ def convert_tarski_formula(
         if symbol == BuiltinPredicateSymbol.EQ:
             assert len(children) == 2
             return em.Equals(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.NE:
+        if symbol == BuiltinPredicateSymbol.NE:
             assert len(children) == 2
             return em.Not(em.Equals(children[0], children[1]))
-        elif symbol == BuiltinPredicateSymbol.LT:
+        if symbol == BuiltinPredicateSymbol.LT:
             assert len(children) == 2
             return em.LT(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.LE:
+        if symbol == BuiltinPredicateSymbol.LE:
             assert len(children) == 2
             return em.LE(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.GT:
+        if symbol == BuiltinPredicateSymbol.GT:
             assert len(children) == 2
             return em.GT(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.GE:
+        if symbol == BuiltinPredicateSymbol.GE:
             assert len(children) == 2
             return em.GE(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.ADD:
+        if symbol == BuiltinFunctionSymbol.ADD:
             assert len(children) == 2
             return em.Plus(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.SUB:
+        if symbol == BuiltinFunctionSymbol.SUB:
             assert len(children) == 2
             return em.Minus(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.MUL:
+        if symbol == BuiltinFunctionSymbol.MUL:
             assert len(children) == 2
             return em.Times(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.DIV:
+        if symbol == BuiltinFunctionSymbol.DIV:
             assert len(children) == 2
             return em.Div(children[0], children[1])
-        elif symbol in fluents:
+        if symbol in fluents:
             return fluents[symbol](*children)
-        else:
-            raise UPProblemDefinitionError(symbol + " not supported!")
-    elif isinstance(formula, Constant):
+        raise UPProblemDefinitionError(symbol + " not supported!")
+    if isinstance(formula, Constant):
         if formula.sort.name == "number":
             return em.Real(Fraction(float(formula.name)))
-        elif isinstance(formula.sort, tarski.syntax.Interval):
+        if isinstance(formula.sort, tarski.syntax.Interval):
             if formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Integer
             ) or formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Natural
             ):
                 return em.Int(int(formula.name))
-            elif formula.sort.language.is_subtype(
+            if formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Real
             ):
                 return em.Real(Fraction(float(formula.name)))
-            else:
-                raise NotImplementedError
-        elif formula.name in objects:
+            raise NotImplementedError
+        if formula.name in objects:
             return em.ObjectExp(objects[formula.name])
-        else:
-            raise UPProblemDefinitionError(formula + " not supported!")
-    elif isinstance(formula, Variable):
+        raise UPProblemDefinitionError(formula + " not supported!")
+    if isinstance(formula, Variable):
         if formula.symbol in action_parameters:
             return em.ParameterExp(action_parameters[formula.symbol])
-        else:
-            return em.VariableExp(
-                unified_planning.model.Variable(
-                    formula.symbol,
-                    cast(
-                        unified_planning.model.Type,
-                        _convert_type_and_update_dict(
-                            formula.sort,
-                            types,
-                            environment.type_manager,
-                            formula.sort.language,
-                        ),
+        return em.VariableExp(
+            unified_planning.model.Variable(
+                formula.symbol,
+                cast(
+                    unified_planning.model.Type,
+                    _convert_type_and_update_dict(
+                        formula.sort,
+                        types,
+                        environment.type_manager,
+                        formula.sort.language,
                     ),
-                    environment,
-                )
+                ),
+                environment,
             )
-    elif isinstance(formula, QuantifiedFormula):
+        )
+    if isinstance(formula, QuantifiedFormula):
         expression = convert_tarski_formula(
             environment, fluents, objects, action_parameters, types, formula.formula
         )
@@ -187,16 +183,14 @@ def convert_tarski_formula(
         ]
         if formula.quantifier == Quantifier.Exists:
             return em.Exists(expression, *variables)
-        elif formula.quantifier == Quantifier.Forall:
+        if formula.quantifier == Quantifier.Forall:
             return em.Forall(expression, *variables)
-        else:
-            raise NotImplementedError
-    elif isinstance(formula, Tautology):
+        raise NotImplementedError
+    if isinstance(formula, Tautology):
         return em.TRUE()
-    elif isinstance(formula, Contradiction):
+    if isinstance(formula, Contradiction):
         return em.FALSE()
-    else:
-        raise UPProblemDefinitionError(str(formula) + " not supported!")
+    raise UPProblemDefinitionError(str(formula) + " not supported!")
 
 
 def _check_if_tarski_problem_uses_object_type(

@@ -54,7 +54,7 @@ class TimedCondsEffs:
                 oth_cl = oth._conditions.get(i, None)
                 if oth_cl is None:
                     return False
-                elif set(cl) != set(oth_cl):
+                if set(cl) != set(oth_cl):
                     return False
             if len(self._effects) != len(oth._effects):
                 return False
@@ -62,17 +62,16 @@ class TimedCondsEffs:
                 oth_el = oth._effects.get(t, None)
                 if oth_el is None:
                     return False
-                elif set(el) != set(oth_el):
+                if set(el) != set(oth_el):
                     return False
             for t, se in self._simulated_effects.items():
                 oth_se = oth._simulated_effects.get(t, None)
                 if oth_se is None:
                     return False
-                elif se != oth_se:
+                if se != oth_se:
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = 0

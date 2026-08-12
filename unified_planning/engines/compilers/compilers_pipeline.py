@@ -116,6 +116,5 @@ def map_back_action_instance(
         temp_action = f(action)
         if temp_action is None:
             return None
-        else:
-            action = temp_action
+        action = temp_action
     return action

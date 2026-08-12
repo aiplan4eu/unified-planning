@@ -121,7 +121,7 @@ class DagWalker(Walker):
 
     def walk_none(self, expression: FNode, args, **kwargs):
         """Returns None, independently from the children's value."""
-        return None
+        return
 
     def walk_identity(self, expression: FNode, **kwargs):
         """Returns expression, independently from the childrens's value."""

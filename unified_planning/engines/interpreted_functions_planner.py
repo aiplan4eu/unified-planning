@@ -190,24 +190,21 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
                     return PlanGenerationResult(
                         res.status, plan, self.name, log_messages=res.log_messages
                     )
-                else:
-                    assert (
-                        validation_result.calculated_interpreted_functions is not None
+                assert validation_result.calculated_interpreted_functions is not None
+                before = len(knowledge)
+                knowledge.update(validation_result.calculated_interpreted_functions)
+                if not (len(knowledge) > before):
+                    raise UPException(
+                        "Internal Error: InterpretedFunctionsPlanner was not able to retrieve InterpretedFunctions values"
                     )
-                    before = len(knowledge)
-                    knowledge.update(validation_result.calculated_interpreted_functions)
-                    if not (len(knowledge) > before):
-                        raise UPException(
-                            "Internal Error: InterpretedFunctionsPlanner was not able to retrieve InterpretedFunctions values"
-                        )
 
-                    if output_stream is not None:
-                        output_stream.write(
-                            "\nIFPlanner -> dictionary of known interpreted functions values:\n\n"
-                        )
-                        for log_if, log_val in knowledge.items():
-                            output_stream.write(f"{log_if} : {log_val}\n")
-                        output_stream.write("\n")
+                if output_stream is not None:
+                    output_stream.write(
+                        "\nIFPlanner -> dictionary of known interpreted functions values:\n\n"
+                    )
+                    for log_if, log_val in knowledge.items():
+                        output_stream.write(f"{log_if} : {log_val}\n")
+                    output_stream.write("\n")
 
             else:
                 return PlanGenerationResult(res.status, None, self.name)

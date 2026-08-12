@@ -142,8 +142,7 @@ class FluentsSetMixin:
                 fluent.name == f.name for f in self._fluents
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg)
         self._fluents.append(fluent)
         self._fluents_index.note_appended(self._fluents)
         if not default_initial_value is None:

@@ -247,5 +247,4 @@ def extract_pddl_requirements(domain_str: str) -> List[str]:
     if match:
         requirements = match.group(1).split()
         return requirements
-    else:
-        return []
+    return []

@@ -97,9 +97,8 @@ class Decomposition:
                         "Cannot remove an action from a hierarchical plan"
                     )
                 return rep
-            else:
-                assert isinstance(instance, MethodInstance)
-                return instance._replace_action_instances(replace_function)
+            assert isinstance(instance, MethodInstance)
+            return instance._replace_action_instances(replace_function)
 
         return Decomposition(
             {task: replace(dec) for task, dec in self.subtasks.items()}
@@ -208,12 +207,11 @@ class HierarchicalPlan(Plan):
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         if plan_kind == PlanKind.HIERARCHICAL_PLAN:
             return self
-        elif plan_kind in [PlanKind.SEQUENTIAL_PLAN, PlanKind.TIME_TRIGGERED_PLAN]:
+        if plan_kind in [PlanKind.SEQUENTIAL_PLAN, PlanKind.TIME_TRIGGERED_PLAN]:
             # NOTE: we cannot rely on automatic conversion to PARTIAL_ORDER_PLAN or STN_PLAN
             #       because, the hierarchy induces constraints on action orders that would not be accounted for
             #       by translators only aware of the flat structure
             return self._flat_plan.convert_to(plan_kind, problem)
-        else:
-            raise NotImplementedError(
-                f"Unavailable conversion from hierarchical plan to {plan_kind.name}"
-            )
+        raise NotImplementedError(
+            f"Unavailable conversion from hierarchical plan to {plan_kind.name}"
+        )

@@ -303,23 +303,21 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         R = (self._regression(env, phi, a)).simplify()
         if R == phi:
             return None, False
-        else:
-            rho = (
-                env.expression_manager.Or(
-                    env.expression_manager.Not(R),
-                    env.expression_manager.Not(m_atom),
-                    phi,
-                )
-            ).simplify()
-            self._add_cond_eff(env, E, R, m_atom)
-            return rho, True
+        rho = (
+            env.expression_manager.Or(
+                env.expression_manager.Not(R),
+                env.expression_manager.Not(m_atom),
+                phi,
+            )
+        ).simplify()
+        self._add_cond_eff(env, E, R, m_atom)
+        return rho, True
 
     def _manage_always_compilation(self, env, phi, a):
         R = (self._regression(env, phi, a)).simplify()
         if R == phi:
             return None, False
-        else:
-            return R, True
+        return R, True
 
     # in the list E are added new effects based on the type of constraint
     def _add_cond_eff(self, env, E, cond, eff):
@@ -356,7 +354,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         subs = env.substituter.substitute_normalized
         if constr.is_sometime():
             return HOLD, subs(constr.args[0], init_values).simplify()
-        elif constr.is_sometime_after():
+        if constr.is_sometime_after():
             return (
                 HOLD,
                 env.expression_manager.Or(
@@ -364,20 +362,19 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     env.expression_manager.Not(subs(constr.args[0], init_values)),
                 ).simplify(),
             )
-        elif constr.is_sometime_before():
+        if constr.is_sometime_before():
             return (
                 SEEN_PSI,
                 subs(constr.args[1], init_values).simplify(),
             )
-        elif constr.is_at_most_once():
+        if constr.is_at_most_once():
             return (
                 SEEN_PHI,
                 subs(constr.args[0], init_values).simplify(),
             )
-        elif constr.is_bool_constant():
+        if constr.is_bool_constant():
             return None, constr
-        else:
-            return None, subs(constr.args[0], init_values).simplify()
+        return None, subs(constr.args[0], init_values).simplify()
 
     def _get_monitoring_atoms(self, env, C, I):
         monitoring_atoms = []
@@ -448,19 +445,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     def _regression(self, env, phi, action):
         if phi.is_false() or phi.is_true():
             return phi
-        elif phi.is_fluent_exp():
+        if phi.is_fluent_exp():
             return self._gamma_substitution(env, phi, action)
-        elif phi.is_or():
+        if phi.is_or():
             return env.expression_manager.Or(
                 self._regression(env, component, action) for component in phi.args
             )
-        elif phi.is_and():
+        if phi.is_and():
             return env.expression_manager.And(
                 self._regression(env, component, action) for component in phi.args
             )
-        elif phi.is_not():
+        if phi.is_not():
             return env.expression_manager.Not(self._regression(env, phi.arg(0), action))
-        else:
-            raise up.exceptions.UPUsageError(
-                "This compiler cannot handle this expression"
-            )
+        raise up.exceptions.UPUsageError("This compiler cannot handle this expression")

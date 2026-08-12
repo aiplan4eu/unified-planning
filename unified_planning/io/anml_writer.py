@@ -179,8 +179,7 @@ class ConverterToANMLString(walkers.DagWalker):
     def walk_fluent_exp(self, expression, args):
         if len(args) == 0:
             return self._names_mapping[expression.fluent()]
-        else:
-            return f"{self._names_mapping[expression.fluent()]}({', '.join(args)})"
+        return f"{self._names_mapping[expression.fluent()]}({', '.join(args)})"
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
@@ -442,18 +441,17 @@ class ANMLWriter:
         time = "start" if timing.is_from_start() else "end"
         if timing.delay > 0:
             return f"{time} + {str(timing.delay)}"
-        elif timing.delay == 0:
+        if timing.delay == 0:
             return time
-        else:  # timing.delay < 0
-            return f"{time} - {str(timing.delay * (-1))}"
+        # timing.delay < 0
+        return f"{time} - {str(timing.delay * (-1))}"
 
     def _convert_anml_interval(self, interval: "up.model.TimeInterval") -> str:
         left_bracket = "(" if interval.is_left_open() else "["
         right_bracket = ")" if interval.is_right_open() else "]"
         if interval.lower == interval.upper:
             return f"{left_bracket} {self._convert_anml_timing(interval.lower)} {right_bracket}"
-        else:
-            return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
+        return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
 
 
 def _is_valid_anml_name(name: str) -> bool:

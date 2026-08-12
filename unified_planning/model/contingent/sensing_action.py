@@ -41,8 +41,7 @@ class SensingAction(InstantaneousAction):
             return super().__eq__(oth) and set(self._observed_fluents) == set(
                 oth._observed_fluents
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()

@@ -168,5 +168,4 @@ def get_environment(environment: Optional[Environment] = None) -> Environment:
         if GLOBAL_ENVIRONMENT is None:
             GLOBAL_ENVIRONMENT = Environment()
         return GLOBAL_ENVIRONMENT
-    else:
-        return environment
+    return environment

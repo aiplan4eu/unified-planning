@@ -1247,7 +1247,7 @@ class UPPDDLReader:
                 for i in range(1, len(e))
             ]
             return htn.Subtask(task, *parameters)
-        elif len(e) == 2 and e[0].value != "and":
+        if len(e) == 2 and e[0].value != "and":
             # check the form "(task_id (task param1 param2...))"
             task_id = e[0].value
             subtask = self._parse_subtask(
@@ -1257,10 +1257,8 @@ class UPPDDLReader:
                 # the second element of the list is a valid subtask,
                 # return the subtask, with the given identifier
                 return htn.Subtask(subtask.task, *subtask.parameters, ident=task_id)
-            else:
-                return None
-        else:
             return None
+        return None
 
     def _parse_subtasks(
         self,
@@ -1274,9 +1272,9 @@ class UPPDDLReader:
         single_task = self._parse_subtask(e, method, problem, types_map, complete_str)
         if single_task is not None:
             return [single_task]
-        elif len(e) == 0:
+        if len(e) == 0:
             return []
-        elif e[0].value == "and":
+        if e[0].value == "and":
             return [
                 subtask
                 for i in range(1, len(e))
@@ -1284,15 +1282,14 @@ class UPPDDLReader:
                     e[i], method, problem, types_map, complete_str
                 )
             ]
-        else:
-            start_line, start_col = (
-                e.line_start(complete_str),
-                e.col_start(complete_str),
-            )
-            end_line, end_col = e.line_end(complete_str), e.col_end(complete_str)
-            raise SyntaxError(
-                f"Could not parse the subtasks list: {e}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
-            )
+        start_line, start_col = (
+            e.line_start(complete_str),
+            e.col_start(complete_str),
+        )
+        end_line, end_col = e.line_end(complete_str), e.col_end(complete_str)
+        raise SyntaxError(
+            f"Could not parse the subtasks list: {e}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+        )
 
     def _check_if_object_type_is_needed(self, domain_res) -> bool:
         for p in domain_res.get("predicates", []):
@@ -2305,5 +2302,4 @@ class UPPDDLReader:
                 actions.append(act_instance)
         if is_tt:
             return up.plans.TimeTriggeredPlan(actions)
-        else:
-            return up.plans.SequentialPlan(actions)
+        return up.plans.SequentialPlan(actions)

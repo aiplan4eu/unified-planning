@@ -158,6 +158,11 @@ select = [
     "YTT",   # flake8-2020: sys.version comparisons
     "I",     # isort
     "F",     # pyflakes
+    "RET",   # flake8-return
+]
+ignore = [
+    # A named intermediate before `return` is often the only thing saying what the value is.
+    "RET504", # unnecessary-assign
 ]
 
 [tool.ruff.lint.per-file-ignores]

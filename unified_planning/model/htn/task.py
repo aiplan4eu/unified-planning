@@ -73,8 +73,7 @@ class Task:
                 and self._parameters == oth._parameters
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._name) + sum(map(hash, self._parameters))

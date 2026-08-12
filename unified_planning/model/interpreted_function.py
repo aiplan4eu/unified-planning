@@ -78,8 +78,7 @@ class InterpretedFunction:
                 and self._env == oth._env
                 and self._function == oth._function
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._return_type)

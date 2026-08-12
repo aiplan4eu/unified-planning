@@ -84,8 +84,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
         if self._agent is not None and fluent in self._agent.fluents:
             return f"(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{' ' if len(args) > 0 else ''}{' '.join(args)})"
-        else:
-            return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
+        return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
 
 
 class MAPDDLWriter:

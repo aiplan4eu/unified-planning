@@ -344,18 +344,15 @@ async def run_command_asyncio(
 
         if all(oks) and (not lines[0] and not lines[1]):  # EOF
             break
-        else:
-            for idx in range(2):
-                output_string = (
-                    lines[idx].decode(errors="replace").replace("\r\n", "\n")
-                )
-                if type(output_stream) is tuple:
-                    assert len(output_stream) == 2
-                    if output_stream[idx] is not None:
-                        output_stream[idx].write(output_string)
-                else:
-                    cast(IO[str], output_stream).write(output_string)
-                process_output[idx].append(output_string)
+        for idx in range(2):
+            output_string = lines[idx].decode(errors="replace").replace("\r\n", "\n")
+            if type(output_stream) is tuple:
+                assert len(output_stream) == 2
+                if output_stream[idx] is not None:
+                    output_stream[idx].write(output_string)
+            else:
+                cast(IO[str], output_stream).write(output_string)
+            process_output[idx].append(output_string)
         if timeout is not None and time.time() - start >= timeout:
             terminate_process(process)  # Terminate the process
             timeout_occurred = True

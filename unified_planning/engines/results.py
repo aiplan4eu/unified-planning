@@ -43,8 +43,7 @@ class ValidationResultStatus(Enum):
     def __bool__(self):
         if self == ValidationResultStatus.VALID:
             return True
-        else:
-            return False
+        return False
 
 
 class FailedValidationReason(Enum):
@@ -150,7 +149,7 @@ class PlanGenerationResult(Result):
             raise UPUsageError(
                 f"The Result status is {str(self.status)} but no plan is set."
             )
-        elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
+        if self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(
                 f"The Result status is {str(self.status)} but the plan is {str(self.plan)}.\nWith this status the plan must be None."
             )
@@ -213,7 +212,7 @@ def correct_plan_generation_result(
             )
     if engine_epsilon == problem.epsilon:
         return result
-    elif engine_epsilon is None or (
+    if engine_epsilon is None or (
         problem.epsilon is not None and engine_epsilon < problem.epsilon
     ):
         # if engine_epsilon is not specified or it's smaller than the problem's
@@ -249,7 +248,7 @@ def correct_plan_generation_result(
                 result.metrics,
                 result.log_messages,
             )
-        elif result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
+        if result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
             return PlanGenerationResult(
                 PlanGenerationResultStatus.SOLVED_SATISFICING,
                 None,

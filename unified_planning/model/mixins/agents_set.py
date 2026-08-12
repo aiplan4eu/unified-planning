@@ -48,8 +48,7 @@ class AgentsSetMixin:
                     agent.name == a.name for a in self._agents
                 ):
                     raise UPProblemDefinitionError(msg)
-                else:
-                    warn(msg)
+                warn(msg)
             self._agents.append(agent)
 
     @property

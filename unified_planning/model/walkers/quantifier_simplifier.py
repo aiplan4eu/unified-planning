@@ -173,10 +173,9 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Fluent {str(new_exp)} not found in {str(self._assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Fluent {str(new_exp)} not found in {str(self._assignments)}"
+        )
 
     def walk_variable_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         assert self._variable_assignments is not None
@@ -185,10 +184,9 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Variable {str(expression)} not found in {str(self._variable_assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Variable {str(expression)} not found in {str(self._variable_assignments)}"
+        )
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         assert self._assignments is not None
@@ -197,7 +195,6 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Parameter {str(expression)} not found in {str(self._assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Parameter {str(expression)} not found in {str(self._assignments)}"
+        )

@@ -39,8 +39,7 @@ class ReplannerMixin(ABC):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg)
 
     @staticmethod
     def is_replanner() -> bool:

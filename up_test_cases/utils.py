@@ -146,8 +146,7 @@ class Ok(ResultSet):
     def __str__(self):
         if self.msg == "":
             return ""
-        else:
-            return f"{bcolors.OKGREEN}OK({self.msg}){bcolors.ENDC} "
+        return f"{bcolors.OKGREEN}OK({self.msg}){bcolors.ENDC} "
 
 
 class Warn(ResultSet):
