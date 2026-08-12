@@ -853,15 +853,23 @@ class _KindFactory:
         problem_class: str,
         environment: "up.Environment",
     ):
-        assert isinstance(pb, MetricsMixin)
-        assert isinstance(pb, FluentsSetMixin)
-        assert isinstance(pb, ObjectsSetMixin)
-        assert isinstance(pb, UserTypesSetMixin)
-        assert isinstance(pb, TimeModelMixin)
+        # looped rather than one isinstance per mixin: mypy narrows on a literal class but
+        # not on a class object, and narrowing here makes it conclude no such subclass can
+        # exist, which silently stops it checking the rest of this constructor.
+        for mixin in (
+            MetricsMixin,
+            FluentsSetMixin,
+            ObjectsSetMixin,
+            UserTypesSetMixin,
+            TimeModelMixin,
+        ):
+            assert isinstance(pb, mixin), (
+                f"{problem_class} must inherit {mixin.__name__}"
+            )
 
         # WARNING: self.pb may in fact be any subclass of AbstractProblem that has the above mixins.
         # We declare it as a Problem to avoid limitations of the python type system
-        self.pb: up.model.Problem = pb
+        self.pb: up.model.Problem = cast("up.model.Problem", pb)
         # _get_static_and_unused_fluents is only defined on Problem, not on every AbstractProblem
         # subclass (e.g. SchedulingProblem)
         if isinstance(pb, up.model.Problem):

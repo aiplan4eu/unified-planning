@@ -1081,7 +1081,7 @@ def _get_pddl_name(
     item: Union[WithName, "up.model.AbstractProblem"], pddl_keywords: Set[str]
 ) -> str:
     """This function returns a pddl name for the chosen item"""
-    name = item.name  # type: ignore
+    name = item.name  # type: ignore[union-attr]
     assert name is not None
     name = name.lower()
     regex = re.compile(r"^[a-zA-Z]+.*")

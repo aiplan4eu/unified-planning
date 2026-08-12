@@ -112,32 +112,26 @@ class DagWalker(Walker):
         )
 
     def walk_true(self, expression: FNode, args, **kwargs):
-        # pylint: disable=unused-argument
         """Returns True, independently from the children's value."""
         return True
 
     def walk_false(self, expression: FNode, args, **kwargs):
-        # pylint: disable=unused-argument
         """Returns False, independently from the children's value."""
         return False
 
     def walk_none(self, expression: FNode, args, **kwargs):
-        # pylint: disable=unused-argument
         """Returns None, independently from the children's value."""
         return None
 
     def walk_identity(self, expression: FNode, **kwargs):
-        # pylint: disable=unused-argument
         """Returns expression, independently from the childrens's value."""
         return expression
 
     def walk_any(self, expression: FNode, args, **kwargs):
-        # pylint: disable=unused-argument
         """Returns True if any of the children returned True."""
         return any(args)
 
     def walk_all(self, expression: FNode, args, **kwargs):
-        # pylint: disable=unused-argument
         """Returns True if all the children returned True."""
         return all(args)
 

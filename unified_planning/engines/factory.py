@@ -41,7 +41,7 @@ from unified_planning.engines.mixins.sequential_simulator import (
 from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
 from unified_planning.engines.engine import OperationMode
 from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
-from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence, cast
+from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence
 from pathlib import PurePath
 
 
@@ -688,7 +688,7 @@ class Factory:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
-                names = [None for _ in compilation_kinds]  # type: ignore
+                names = [None for _ in compilation_kinds]  # type: ignore[misc]
             if params is None:
                 params = [{} for _ in compilation_kinds]
             assert isinstance(params, List) and len(names) == len(params)
@@ -1223,10 +1223,10 @@ class Factory:
                 EngineClass,
                 operation_mode,
                 problem_kind,
-                cast(Optional[OptimalityGuarantee], optimality_guarantee),
-                cast(Optional[CompilationKind], compilation_kind),
+                optimality_guarantee,
+                compilation_kind,
                 plan_kind,
-                cast(Optional[AnytimeGuarantee], anytime_guarantee),
+                anytime_guarantee,
             ):
                 names.append(name)
         return names

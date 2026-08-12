@@ -186,21 +186,18 @@ class FreeVarsOracle(walkers.DagWalker):
     def walk_variable_exp(
         self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
     ) -> FrozenSet[Variable]:
-        # pylint: disable=unused-argument
         return frozenset((expression.variable(),))
 
     @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_quantifier(
         self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
     ) -> FrozenSet[Variable]:
-        # pylint: disable=unused-argument
         return args[0].difference(expression.variables())
 
     @walkers.handles(op.CONSTANTS)
     def walk_constant(
         self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
     ) -> FrozenSet[Variable]:
-        # pylint: disable=unused-argument
         return frozenset()
 
     @walkers.handles(
