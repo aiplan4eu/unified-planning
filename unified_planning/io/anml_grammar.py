@@ -14,13 +14,32 @@
 #
 
 
-import unified_planning as up
 from typing import List
 
-from pyparsing import Keyword, Word, alphanums, alphas, nums, ZeroOrMore, OneOrMore
-from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
-from pyparsing import MatchFirst, ParseResults, ParserElement
-from pyparsing import infix_notation, rest_of_line, one_of, OpAssoc
+from pyparsing import (
+    Combine,
+    Forward,
+    Group,
+    Keyword,
+    Literal,
+    MatchFirst,
+    OneOrMore,
+    OpAssoc,
+    Optional,
+    ParserElement,
+    ParseResults,
+    Suppress,
+    Word,
+    ZeroOrMore,
+    alphanums,
+    alphas,
+    infix_notation,
+    nums,
+    one_of,
+    rest_of_line,
+)
+
+import unified_planning as up
 
 ParserElement.enable_packrat()
 

@@ -14,14 +14,15 @@
 #
 
 
+from typing import Dict, Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPTypeError
-from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.mixins.motion_constraints_set import (
     MotionConstraintsSetMixin,
 )
-from typing import Optional, Dict
+from unified_planning.model.scheduling.activity import Activity
 
 
 class MotionActivity(Activity, MotionConstraintsSetMixin):

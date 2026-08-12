@@ -13,19 +13,19 @@
 # limitations under the License.
 
 import unified_planning as up
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.shortcuts import *
-from unified_planning.engines import SequentialPlanValidator, FailedValidationReason
-from unified_planning.plans import SequentialPlan, ActionInstance
+from unified_planning.engines import FailedValidationReason, SequentialPlanValidator
 from unified_planning.model.problem_kind import (
+    bounded_types_kind,
     classical_kind,
     general_numeric_kind,
-    bounded_types_kind,
 )
+from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     main,
     skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
 

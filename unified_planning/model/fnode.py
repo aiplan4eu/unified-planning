@@ -15,14 +15,15 @@
 #
 """FNode are the building blocks of expressions."""
 
+import collections
+from fractions import Fraction
+from typing import Dict, List, Set, Union
+
 import unified_planning
 import unified_planning.model.fluent
 import unified_planning.model.interpreted_function
-import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
-from typing import Dict, List, Set, Union
-from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
 

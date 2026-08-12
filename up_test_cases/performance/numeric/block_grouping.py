@@ -1,8 +1,9 @@
+import random
 from collections import namedtuple
 from itertools import chain, combinations
+
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
-import random
 
 # ProblemMetadata is a data structure that contains the information to create different instance of the "block_grouping" problem.
 # since some initial values are created using a random generator, the seed is needed for replication fo the same test.

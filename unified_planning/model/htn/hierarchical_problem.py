@@ -13,15 +13,15 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from typing import Optional, List, Union, Dict, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Union
 from warnings import warn
 
 import unified_planning as up
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
-from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.htn.task_network import AbstractTaskNetwork, TaskNetwork
 from unified_planning.model.walkers.any import AnyGetter
 
 

@@ -13,31 +13,31 @@
 # limitations under the License.
 #
 # type: ignore
-from functools import partial
-from typing import Tuple, Union, Optional
 import fractions
-from typing import OrderedDict
+from functools import partial
+from typing import Optional, OrderedDict, Tuple, Union
 
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-from unified_planning.exceptions import UPException
-from unified_planning import Environment
-from unified_planning import model
-from unified_planning.model import metrics, TimePointInterval, GlobalEndTiming
 import unified_planning.plans
+from unified_planning import Environment, model
+from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model import (
     DurativeAction,
     Effect,
+    GlobalEndTiming,
     InstantaneousAction,
     Parameter,
     Problem,
+    TimePointInterval,
     Variable,
+    metrics,
 )
 from unified_planning.model.effect import EffectKind
+from unified_planning.model.htn.hierarchical_problem import HierarchicalProblem
 from unified_planning.model.operators import OperatorKind
 from unified_planning.plans import ActionInstance
-from unified_planning.plans.hierarchical_plan import MethodInstance, Decomposition
-from unified_planning.model.htn.hierarchical_problem import HierarchicalProblem
+from unified_planning.plans.hierarchical_plan import Decomposition, MethodInstance
 
 
 def convert_type_str(s: str, problem: Problem) -> model.types.Type:

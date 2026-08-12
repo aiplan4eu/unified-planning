@@ -21,11 +21,12 @@ problems containing interpreted functions are currently
 not supported by the parallel planners
 """
 
+from typing import Callable, Iterator, List, Optional, OrderedDict, Union, cast
+
 import unified_planning as up
-from unified_planning.model.types import domain_size, domain_item, _IntType
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from typing import List, OrderedDict, Optional, Union, Iterator, cast, Callable
+from unified_planning.model.types import _IntType, domain_item, domain_size
 
 
 class InterpretedFunction:

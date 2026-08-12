@@ -14,14 +14,15 @@
 #
 """This module defines an agent class."""
 
+from typing import Iterable, List, Optional, Union
+
 import unified_planning as up
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins import (
     ActionsSetMixin,
     FluentsSetMixin,
 )
-from typing import Optional, List, Union, Iterable
-from unified_planning.model.expression import ConstantExpression
-from unified_planning.exceptions import UPUsageError
 
 
 class Agent(

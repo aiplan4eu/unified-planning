@@ -16,18 +16,19 @@
 
 import warnings
 from typing import cast
+
 import unified_planning as up
-from unified_planning.shortcuts import *
-from unified_planning.environment import Environment
-from unified_planning.test import unittest_TestCase, main, examples
-from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPTypeError, UPValueError
 from unified_planning.engines.compilers.utils import remove_fluents
-from unified_planning.model.htn import HierarchicalProblem
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPTypeError, UPValueError
 from unified_planning.model.contingent import ContingentProblem
-from unified_planning.model.multi_agent import MultiAgentProblem, Agent
-from unified_planning.model.scheduling import SchedulingProblem
+from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.mixins import name_index
+from unified_planning.model.multi_agent import Agent, MultiAgentProblem
+from unified_planning.model.scheduling import SchedulingProblem
+from unified_planning.shortcuts import *
+from unified_planning.test import examples, main, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestProblem(unittest_TestCase):

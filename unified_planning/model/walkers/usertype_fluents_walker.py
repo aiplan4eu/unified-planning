@@ -16,12 +16,13 @@
 
 
 from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.environment
-import unified_planning.model.walkers as walkers
 import unified_planning.model.operators as op
-from unified_planning.model.fnode import FNode
+import unified_planning.model.walkers as walkers
 from unified_planning.model.fluent import Fluent
+from unified_planning.model.fnode import FNode
 from unified_planning.model.types import _UserType
 
 

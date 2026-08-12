@@ -15,24 +15,33 @@
 
 
 from collections import OrderedDict
-import unified_planning as up
+from fractions import Fraction
+from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
+
 import networkx as nx
+from pyparsing import ParseResults
+
+import unified_planning as up
+from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import ANMLSyntaxError, UPUnsupportedProblemTypeError
 from unified_planning.io.anml_grammar import (
     TK_ALL,
     TK_AND,
     TK_ASSIGN,
-    TKS_DECREASE,
+    TK_BOOLEAN,
     TK_DIV,
     TK_DURATION,
     TK_END,
     TK_EQUALS,
-    TK_FALSE,
-    TK_FORALL,
     TK_EXISTS,
+    TK_FALSE,
+    TK_FLOAT,
+    TK_FORALL,
     TK_GE,
     TK_GT,
     TK_IMPLIES,
-    TKS_INCREASE,
+    TK_INFINITY,
+    TK_INTEGER,
     TK_L_BRACKET,
     TK_L_PARENTHESIS,
     TK_LE,
@@ -49,33 +58,26 @@ from unified_planning.io.anml_grammar import (
     TK_TRUE,
     TK_WHEN,
     TK_XOR,
+    TKS_DECREASE,
+    TKS_INCREASE,
     ANMLGrammar,
-    TK_BOOLEAN,
-    TK_INTEGER,
-    TK_INFINITY,
-    TK_FLOAT,
 )
-from unified_planning.environment import Environment, get_environment
-from unified_planning.exceptions import ANMLSyntaxError, UPUnsupportedProblemTypeError
 from unified_planning.model import (
     DurationInterval,
     Effect,
     EffectKind,
-    FNode,
-    StartTiming,
-    GlobalStartTiming,
     EndTiming,
-    GlobalEndTiming,
     FixedDuration,
-    Timing,
-    TimeInterval,
-    Type,
+    FNode,
+    GlobalEndTiming,
+    GlobalStartTiming,
     Parameter,
+    StartTiming,
+    TimeInterval,
+    Timing,
+    Type,
     Variable,
 )
-from fractions import Fraction
-from typing import Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
-from pyparsing import ParseResults
 
 
 def _parse_file(grammar, problem_filename: Union[str, Sequence[str]], parse_all: bool):

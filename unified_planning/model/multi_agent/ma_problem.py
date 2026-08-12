@@ -14,29 +14,29 @@
 #
 """This module defines the MultiAgentProblem class."""
 
+from fractions import Fraction
+from itertools import chain
+from typing import Dict, Iterable, List, Optional, Set, Union, cast
+
 import unified_planning as up
+from unified_planning.exceptions import (
+    UPExpressionDefinitionError,
+    UPPlanDefinitionError,
+    UPProblemDefinitionError,
+    UPTypeError,
+)
 from unified_planning.model import walkers
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.operators import OperatorKind
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPTypeError,
-    UPExpressionDefinitionError,
-    UPPlanDefinitionError,
-)
-from typing import Optional, List, Dict, Set, Union, cast, Iterable
 from unified_planning.model.mixins import (
+    AgentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
-    AgentsSetMixin,
 )
-from fractions import Fraction
-from itertools import chain
-
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.any import AnyGetter
 
 

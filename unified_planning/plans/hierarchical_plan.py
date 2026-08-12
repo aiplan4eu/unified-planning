@@ -14,18 +14,15 @@
 #
 
 from dataclasses import dataclass, field
-from typing import Union, Dict, Optional, Tuple, List, OrderedDict, Callable
-
-from unified_planning.model.abstract_problem import AbstractProblem
+from typing import Callable, Dict, List, Optional, OrderedDict, Tuple, Union
 
 from unified_planning.exceptions import UPUsageError
+from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.fnode import FNode
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.plans.sequential_plan import SequentialPlan
-from unified_planning.plans.plan import Plan, PlanKind
 from unified_planning.model.htn import Method
-from unified_planning.plans.plan import ActionInstance
-
+from unified_planning.plans.plan import ActionInstance, Plan, PlanKind
+from unified_planning.plans.sequential_plan import SequentialPlan
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 
 FlatPlan = Union[SequentialPlan, TimeTriggeredPlan]
 

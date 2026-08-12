@@ -14,49 +14,14 @@
 #
 
 
-import unified_planning as up
-from unified_planning.engines.sequential_simulator import (
-    UPSequentialSimulator,
-    evaluate_quality_metric_in_initial_state,
-    evaluate_quality_metric,
-)
-from unified_planning.model import (
-    FNode,
-    Problem,
-    State,
-    PlanQualityMetric,
-    Expression,
-)
-from unified_planning.model.walkers import StateEvaluator
-from unified_planning.plans.plan import ActionInstance, Plan
-from unified_planning.plans.sequential_plan import SequentialPlan
-from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.plans.contingent_plan import (
-    ContingentPlan,
-    ContingentPlanNode,
-    visit_tree,
-)
-from unified_planning.plans.partial_order_plan import PartialOrderPlan
-from unified_planning.plot.utils import (
-    FIGSIZE,
-    FIGSIZE_SCALE_FACTOR,
-    ARROWSIZE,
-    NODE_COLOR,
-    EDGE_COLOR,
-    FONT_SIZE,
-    FONT_COLOR,
-    EDGE_FONT_SIZE,
-    EDGE_FONT_COLOR,
-    draw_base_graph,
-)
-
 import datetime
+import random
+import tempfile
 from fractions import Fraction
 from functools import partial
-import networkx as nx
 from typing import (
     Any,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -65,11 +30,47 @@ from typing import (
     Set,
     Tuple,
     Union,
-    Callable,
+)
+
+import networkx as nx
+
+import unified_planning as up
+from unified_planning.engines.sequential_simulator import (
+    UPSequentialSimulator,
+    evaluate_quality_metric,
+    evaluate_quality_metric_in_initial_state,
+)
+from unified_planning.model import (
+    Expression,
+    FNode,
+    PlanQualityMetric,
+    Problem,
+    State,
 )
 from unified_planning.model.multi_agent.agent import Agent
-import tempfile
-import random
+from unified_planning.model.walkers import StateEvaluator
+from unified_planning.plans.contingent_plan import (
+    ContingentPlan,
+    ContingentPlanNode,
+    visit_tree,
+)
+from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.plans.plan import ActionInstance, Plan
+from unified_planning.plans.sequential_plan import SequentialPlan
+from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
+from unified_planning.plot.utils import (
+    ARROWSIZE,
+    EDGE_COLOR,
+    EDGE_FONT_COLOR,
+    EDGE_FONT_SIZE,
+    FIGSIZE,
+    FIGSIZE_SCALE_FACTOR,
+    FONT_COLOR,
+    FONT_SIZE,
+    NODE_COLOR,
+    draw_base_graph,
+)
 
 
 def plot_plan(

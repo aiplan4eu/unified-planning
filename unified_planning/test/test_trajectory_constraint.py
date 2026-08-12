@@ -14,13 +14,14 @@
 
 
 from collections import OrderedDict
+
 import unified_planning
-from unified_planning.test.examples import get_example_problems
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
+from unified_planning.shortcuts import *
+from unified_planning.test import main, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestTrajectoryConstraint(unittest_TestCase):

@@ -17,39 +17,6 @@
 
 import warnings
 from fractions import Fraction
-import unified_planning as up
-from unified_planning.exceptions import (
-    UPConflictingEffectsException,
-    UPProblemDefinitionError,
-    UPUsageError,
-)
-from unified_planning.environment import Environment
-from unified_planning.model.contingent import SensingAction
-from unified_planning.model import (
-    FNode,
-    TimeInterval,
-    Action,
-    InstantaneousAction,
-    DurativeAction,
-    Problem,
-    Effect,
-    Expression,
-    Fluent,
-    BoolExpression,
-    NumericConstant,
-    SimulatedEffect,
-    Parameter,
-    DurationInterval,
-    TimePointInterval,
-    PlanQualityMetric,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    Oversubscription,
-    TemporalOversubscription,
-    AbstractProblem,
-)
-from unified_planning.plans import ActionInstance
 from typing import (
     Callable,
     Dict,
@@ -63,6 +30,40 @@ from typing import (
     Union,
     cast,
 )
+
+import unified_planning as up
+from unified_planning.environment import Environment
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPProblemDefinitionError,
+    UPUsageError,
+)
+from unified_planning.model import (
+    AbstractProblem,
+    Action,
+    BoolExpression,
+    DurationInterval,
+    DurativeAction,
+    Effect,
+    Expression,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    NumericConstant,
+    Oversubscription,
+    Parameter,
+    PlanQualityMetric,
+    Problem,
+    SimulatedEffect,
+    TemporalOversubscription,
+    TimeInterval,
+    TimePointInterval,
+)
+from unified_planning.model.contingent import SensingAction
+from unified_planning.plans import ActionInstance
 
 
 def check_and_simplify_conditions(

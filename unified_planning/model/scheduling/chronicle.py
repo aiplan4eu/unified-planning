@@ -13,16 +13,15 @@
 # limitations under the License.
 #
 
-from typing import Optional, List, OrderedDict, Sequence, Union, Tuple
+from typing import List, Optional, OrderedDict, Sequence, Tuple, Union
 
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import BoolExpression
 import unified_planning as up
 from unified_planning import Environment
 from unified_planning.model import Parameter
+from unified_planning.model.expression import BoolExpression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
 from unified_planning.model.types import Type
-
 
 Scope = List[FNode]
 Constraint = Union[

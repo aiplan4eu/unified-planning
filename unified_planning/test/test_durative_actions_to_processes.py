@@ -13,27 +13,28 @@
 # limitations under the License.
 
 from typing import Tuple
+
 import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    full_classical_kind,
-    basic_temporal_kind,
-)
-from unified_planning.test import unittest_TestCase
-from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.durative_actions_to_processes import (
     DurativeActionToProcesses,
 )
 from unified_planning.engines.results import (
-    ValidationResultStatus,
     PlanGenerationResultStatus,
+    ValidationResultStatus,
+)
+from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
+    full_classical_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestDurativeActionsToProcesses(unittest_TestCase):

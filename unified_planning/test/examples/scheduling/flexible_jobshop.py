@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.shortcuts import *
-from unified_planning.model.scheduling import *
-from unified_planning.model.scheduling import SchedulingProblem, Activity
 from typing import List, Tuple
+
+from unified_planning.model.scheduling import *
+from unified_planning.model.scheduling import Activity, SchedulingProblem
+from unified_planning.shortcuts import *
 
 # Text representation
 MINI_FSP = """2   2   1

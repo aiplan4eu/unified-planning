@@ -14,16 +14,10 @@
 #
 
 
+from dataclasses import dataclass
+from fractions import Fraction
 from itertools import chain, product
 from numbers import Real
-import unified_planning as up
-import unified_planning.plans as plans
-from unified_planning.environment import Environment
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import DeltaSimpleTemporalNetwork, TimepointKind
-from unified_planning.plans.plan import ActionInstance
-from fractions import Fraction
-from dataclasses import dataclass
 from typing import (
     Callable,
     Dict,
@@ -35,6 +29,13 @@ from typing import (
     Union,
     cast,
 )
+
+import unified_planning as up
+import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import DeltaSimpleTemporalNetwork, TimepointKind
+from unified_planning.plans.plan import ActionInstance
 
 
 @dataclass(unsafe_hash=True, frozen=True)

@@ -13,12 +13,13 @@
 # limitations under the License.
 
 
-from typing import Set, cast, List, Tuple, Dict
 from numbers import Real as RealNumbers
+from typing import Dict, List, Set, Tuple, cast
+
 import unified_planning as up
+from unified_planning.plans import *
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from unified_planning.plans import *
 from unified_planning.test.examples import get_example_problems
 
 

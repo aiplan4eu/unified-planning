@@ -14,32 +14,33 @@
 # limitations under the License.
 #
 
+from functools import partial
+from itertools import product
+from typing import Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import (
+    create_action_with_given_subs,
+    lift_action_instance,
+    split_all_ands,
+)
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
     Action,
-    Type,
     Expression,
     FNode,
     MinimizeActionCosts,
     Parameter,
+    Problem,
+    ProblemKind,
+    Type,
 )
-from unified_planning.model.types import domain_size, domain_item
-from unified_planning.model.walkers import Simplifier
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.compilers.utils import (
-    lift_action_instance,
-    create_action_with_given_subs,
-    split_all_ands,
-)
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Iterator, cast
-from itertools import product
-from functools import partial
+from unified_planning.model.types import domain_item, domain_size
+from unified_planning.model.walkers import Simplifier
 
 
 class _AtomPattern(NamedTuple):

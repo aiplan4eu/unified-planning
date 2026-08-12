@@ -13,19 +13,19 @@
 # limitations under the License.
 
 import os
+from typing import List, Optional
+
 import unified_planning as up
-from unified_planning.model import ProblemKind
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines import (
+    PDDLAnytimePlanner,
     PlanGenerationResult,
     PlanGenerationResultStatus,
-    PDDLAnytimePlanner,
 )
 from unified_planning.engines.pddl_anytime_planner import Writer
 from unified_planning.environment import get_environment
 from unified_planning.io import PDDLWriter
-from typing import List, Optional
-
+from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 

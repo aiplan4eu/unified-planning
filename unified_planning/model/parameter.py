@@ -17,8 +17,9 @@ This module defines the Parameter class. Both actions and fluents use this class
 """
 
 from typing import Optional
-from unified_planning.environment import Environment, get_environment
+
 import unified_planning as up
+from unified_planning.environment import Environment, get_environment
 
 
 class Parameter:

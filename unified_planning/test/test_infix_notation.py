@@ -14,10 +14,11 @@
 # limitations under the License.
 #
 
+from typing import List, OrderedDict, Tuple
+
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from typing import List, OrderedDict, Tuple
 
 
 class TestInfixNotation(unittest_TestCase):

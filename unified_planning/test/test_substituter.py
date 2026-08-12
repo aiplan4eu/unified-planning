@@ -13,11 +13,11 @@
 # limitations under the License.
 
 
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.model.walkers import Substituter
 from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPTypeError
+from unified_planning.model.walkers import Substituter
+from unified_planning.shortcuts import *
+from unified_planning.test import main, unittest_TestCase
 
 
 class TestSubstituter(unittest_TestCase):

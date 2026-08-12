@@ -14,9 +14,10 @@
 #
 """This module defines an abstract problem class."""
 
-import unified_planning as up
 from abc import ABC, abstractmethod
 from typing import Optional
+
+import unified_planning as up
 
 
 class AbstractProblem(ABC):

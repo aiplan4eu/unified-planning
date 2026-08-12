@@ -14,11 +14,12 @@
 #
 """This module defines all the types."""
 
-import unified_planning
-from typing import Iterator, Optional, cast
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 from abc import ABC
 from fractions import Fraction
+from typing import Iterator, Optional, cast
+
+import unified_planning
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type(ABC):

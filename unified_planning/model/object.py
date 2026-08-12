@@ -18,8 +18,9 @@ An Object is represented by a name and by its type.
 """
 
 from typing import Optional
-from unified_planning.environment import Environment, get_environment
+
 import unified_planning.model.types
+from unified_planning.environment import Environment, get_environment
 
 
 class Object:

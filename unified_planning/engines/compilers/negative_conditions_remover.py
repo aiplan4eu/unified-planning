@@ -15,33 +15,34 @@
 #
 """This module defines the negative preconditions remover class."""
 
+from functools import partial
+from typing import Dict, List, Optional, Union
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import (
-    Fluent,
-    Problem,
-    InstantaneousAction,
-    DurativeAction,
-    FNode,
-    Action,
-    Effect,
-    ProblemKind,
-    Oversubscription,
-    TemporalOversubscription,
-)
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
-from unified_planning.model.walkers.dnf import Nnf
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
     updated_minimize_action_costs,
 )
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPExpressionDefinitionError, UPUsageError
-from typing import List, Dict, Union, Optional
-from functools import partial
+from unified_planning.model import (
+    Action,
+    DurativeAction,
+    Effect,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    Oversubscription,
+    Problem,
+    ProblemKind,
+    TemporalOversubscription,
+)
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.walkers.dnf import Nnf
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 
 
 class NegativeFluentRemover(IdentityDagWalker):

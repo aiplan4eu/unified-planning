@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-import unified_planning as up
 from abc import ABC, abstractmethod
 from fractions import Fraction
 from typing import IO, Optional, Union
 from warnings import warn
+
+import unified_planning as up
 
 
 class ReplannerMixin(ABC):

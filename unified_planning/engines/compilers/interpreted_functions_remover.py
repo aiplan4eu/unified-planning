@@ -14,40 +14,40 @@
 #
 """This module defines the interpreted functions remover class."""
 
+import itertools
+from collections import OrderedDict
+from enum import Enum, auto
 from fractions import Fraction
 from functools import partial
-import itertools
-from enum import Enum, auto
-from collections import OrderedDict
-from typing import Dict, List, Optional, Union, Tuple, Iterable, FrozenSet, Set, Any
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    Action,
-)
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.fluent import Fluent
-from unified_planning.model.object import Object
-from unified_planning.model.effect import Effect
-from unified_planning.model.fnode import FNode
-from unified_planning.model.types import Type
-from unified_planning.model.expression import ExpressionManager
-from unified_planning.model.parameter import Parameter
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     get_fresh_parameter_name,
 )
-from unified_planning.model.timing import StartTiming, Timing, TimeInterval
-from unified_planning.plans.plan import ActionInstance
-from unified_planning.model.walkers import Simplifier
-from unified_planning.exceptions import UPUnsupportedProblemTypeError
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPUnsupportedProblemTypeError, UPUsageError
+from unified_planning.model import (
+    Action,
+    Problem,
+    ProblemKind,
+)
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import Effect
+from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.fluent import Fluent
+from unified_planning.model.fnode import FNode
 from unified_planning.model.interpreted_function import InterpretedFunction
+from unified_planning.model.object import Object
+from unified_planning.model.parameter import Parameter
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.timing import StartTiming, TimeInterval, Timing
+from unified_planning.model.types import Type
+from unified_planning.model.walkers import Simplifier
+from unified_planning.plans.plan import ActionInstance
 
 
 class ElementKind(Enum):

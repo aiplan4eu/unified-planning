@@ -2,12 +2,12 @@
 # or instead 3 actions for overall lower cost.
 
 import unified_planning
-from unified_planning.shortcuts import *
 from unified_planning.model.metrics import (
     MinimizeActionCosts,
     MinimizeSequentialPlanLength,
 )
-from unified_planning.plans import SequentialPlan, ActionInstance
+from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 
 

@@ -13,17 +13,17 @@
 # limitations under the License.
 
 import unified_planning
-from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
-    static_fluents_duration_kind,
     classical_kind,
+    static_fluents_duration_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     main,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
 

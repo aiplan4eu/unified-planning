@@ -32,8 +32,8 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPStateMissingFluentError, UPUsageError
 from unified_planning.model import (
     ExpressionManager,
-    FNode,
     Fluent,
+    FNode,
     InstantaneousAction,
     Problem,
     ProblemKind,

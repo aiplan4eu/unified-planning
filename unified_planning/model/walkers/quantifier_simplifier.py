@@ -14,14 +14,14 @@
 #
 
 
-from typing import Dict, List, Optional
 from itertools import product
+from typing import Dict, List, Optional
 
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model.fnode import FNode
 from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.walkers.simplifier import Simplifier
 

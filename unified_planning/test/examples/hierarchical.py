@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
+from unified_planning.model.htn import *
 from unified_planning.plans import ActionInstance
 from unified_planning.plans.hierarchical_plan import (
-    MethodInstance,
     Decomposition,
     HierarchicalPlan,
+    MethodInstance,
 )
 from unified_planning.shortcuts import *
-from unified_planning.model.htn import *
 from unified_planning.test import TestCase
-from typing import List
 
 
 def get_example_problems():

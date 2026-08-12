@@ -14,8 +14,17 @@
 #
 
 from fractions import Fraction
-from typing import Optional, List, Union, Dict, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
+import unified_planning as up
+from unified_planning.model import (
+    Fluent,
+    FNode,
+    Parameter,
+    TimeInterval,
+    Type,
+)
+from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.effect import Effect
 from unified_planning.model.expression import ConstantExpression, TimeExpression
 from unified_planning.model.mixins import (
@@ -23,22 +32,12 @@ from unified_planning.model.mixins import (
     MetricsMixin,
     TimeModelMixin,
 )
-from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.fluents_set import FluentsSetMixin
+from unified_planning.model.mixins.objects_set import ObjectsSetMixin
 from unified_planning.model.mixins.user_types_set import UserTypesSetMixin
-from unified_planning.model.abstract_problem import AbstractProblem
-
-import unified_planning as up
-from unified_planning.model import (
-    Type,
-    Parameter,
-    Fluent,
-    FNode,
-    TimeInterval,
-)
 from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.scheduling.chronicle import Chronicle, Scope
-from unified_planning.model.timing import Timing, Timepoint
+from unified_planning.model.timing import Timepoint, Timing
 
 
 class SchedulingProblem(  # type: ignore[misc]

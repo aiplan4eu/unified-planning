@@ -14,24 +14,23 @@
 #
 
 
-from io import StringIO
-import unified_planning as up
-from unified_planning.shortcuts import *
-from unified_planning.engines import PlanGenerationResultStatus
-from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
-from unified_planning.test.examples import get_example_problems
-
 import os
 import tempfile
+from io import StringIO
 from queue import Empty, Queue
 from typing import List, Optional
 from unittest.mock import MagicMock, patch
 
+import unified_planning as up
+from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.engines.pddl_anytime_planner import PDDLAnytimePlanner, Writer
 from unified_planning.engines.pddl_planner import PDDLPlanner
 from unified_planning.engines.results import LogMessage
 from unified_planning.io import PDDLWriter
 from unified_planning.model import ProblemKind
+from unified_planning.shortcuts import *
+from unified_planning.test import main, skipIfEngineNotAvailable, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 VERYSMALL_TIMEOUT = 0.0001
 

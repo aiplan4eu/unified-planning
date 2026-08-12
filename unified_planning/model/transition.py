@@ -18,18 +18,19 @@ A `Transition` has a `name`, a `list` of `Parameter`, a `list` of `preconditions
 and a `list` of `effects`.
 """
 
+from abc import ABC, abstractmethod
+from collections import OrderedDict
+from typing import Any, Dict, Iterable, List, Optional, Set, Union
+
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
+    UPProblemDefinitionError,
     UPTypeError,
     UPUnboundedVariablesError,
-    UPProblemDefinitionError,
     UPUsageError,
 )
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Set, Union, Optional, Iterable
-from collections import OrderedDict
 
 
 class Transition(ABC):

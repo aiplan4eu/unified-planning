@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.shortcuts import *
-from unified_planning.model.scheduling import *
 from typing import List
+
+from unified_planning.model.scheduling import *
+from unified_planning.shortcuts import *
 
 # Text representation of the FT-O6 instance (Fisher and Thompson)
 FT06 = """nb_jobs nb_machines

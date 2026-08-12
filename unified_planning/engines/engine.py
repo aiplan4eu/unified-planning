@@ -14,11 +14,12 @@
 #
 """This module defines the engine interface."""
 
-from unified_planning.model.problem_kind import ProblemKind
-from unified_planning.engines.credits import Credits
-from abc import ABCMeta, abstractmethod, ABC
+from abc import ABC, ABCMeta, abstractmethod
 from enum import Enum
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
+from unified_planning.engines.credits import Credits
+from unified_planning.model.problem_kind import ProblemKind
 
 if TYPE_CHECKING:
     from ConfigSpace import ConfigurationSpace

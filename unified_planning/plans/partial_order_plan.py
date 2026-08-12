@@ -14,14 +14,16 @@
 #
 
 
+from typing import Callable, Dict, Iterator, List, Optional
+
 import networkx as nx
+
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.sequential_plan import SequentialPlan
-from typing import Callable, Dict, Iterator, List, Optional
 
 
 class PartialOrderPlan(plans.plan.Plan):

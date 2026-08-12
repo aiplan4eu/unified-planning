@@ -14,44 +14,45 @@
 #
 """This module defines the timed to sequential problem converter class."""
 
+from fractions import Fraction
+from functools import partial
+from typing import Dict, List, Optional, OrderedDict, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import remove_fluents
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
+from unified_planning.exceptions import (
+    UPUnreachableCodeError,
+    UPUnsupportedProblemTypeError,
+    UPUsageError,
+)
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    InstantaneousAction,
-    DurativeAction,
     Action,
+    DurativeAction,
     Effect,
-    State,
-    UPState,
     ExpressionManager,
     Fluent,
     FNode,
+    InstantaneousAction,
     MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+    State,
+    UPState,
 )
-from unified_planning.model.timing import StartTiming, EndTiming, Interval
+from unified_planning.model.problem_kind import FEATURES
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from typing import Dict, Optional, List, Set, Tuple, OrderedDict, cast
-from fractions import Fraction
-from functools import partial
-from unified_planning.exceptions import (
-    UPUnsupportedProblemTypeError,
-    UPUsageError,
-    UPUnreachableCodeError,
-)
+from unified_planning.model.timing import EndTiming, Interval, StartTiming
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
 from unified_planning.model.walkers.simplifier import Simplifier
 from unified_planning.plans import (
+    ActionInstance,
     SequentialPlan,
     TimeTriggeredPlan,
-    ActionInstance,
 )
-from unified_planning.model.problem_kind import FEATURES
-from unified_planning.engines.compilers.utils import remove_fluents
-from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 
 
 def plan_back_conversion_callable(

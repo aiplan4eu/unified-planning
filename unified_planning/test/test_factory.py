@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import inspect
+import os
 import tempfile
+
 import unified_planning
-from unified_planning.test.examples import get_example_problems
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, skipIfEngineNotAvailable
+from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestFactory(unittest_TestCase):

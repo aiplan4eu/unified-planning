@@ -14,17 +14,17 @@
 
 
 import unittest
-import unified_planning as up
 from fractions import Fraction
 from functools import wraps
 from importlib.util import find_spec
+from typing import List, Optional, Union
+
+import unified_planning as up
 from unified_planning.engines import OperationMode
 from unified_planning.environment import get_environment
-from unified_planning.model import ProblemKind, Problem, AbstractProblem
+from unified_planning.model import AbstractProblem, Problem, ProblemKind
 from unified_planning.plans import Plan
 from unified_planning.test.pddl import enhsp
-from typing import Optional, Union, List
-
 
 skipIf = unittest.skipIf
 SkipTest = unittest.SkipTest

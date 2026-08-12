@@ -17,27 +17,25 @@ import fractions
 from itertools import product
 from typing import List, Union
 
+import unified_planning.engines
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-from unified_planning import model
-import unified_planning.engines
 import unified_planning.model.htn
-import unified_planning.engines
-import unified_planning.plans
-from unified_planning.environment import get_environment
-from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
 import unified_planning.plans
-from unified_planning.model.types import domain_size, domain_item
+from unified_planning import model
+from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
     BOOL_OPERATORS,
     IRA_OPERATORS,
     RELATIONS,
-    OperatorKind,
     TRAJECTORY_CONSTRAINTS,
+    OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
+from unified_planning.model.types import domain_item, domain_size
+from unified_planning.plans.hierarchical_plan import *
 
 
 def map_operator(op: int) -> str:

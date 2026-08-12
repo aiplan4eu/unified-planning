@@ -15,16 +15,17 @@
 #
 
 
+import math
 from fractions import Fraction
-import unified_planning.model.types
+from typing import List, Optional, cast
+
 import unified_planning.environment
+import unified_planning.model.types
 import unified_planning.model.walkers as walkers
-from unified_planning.model.types import BOOL, TIME, _UserType
+from unified_planning.exceptions import UPTypeError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from unified_planning.exceptions import UPTypeError
-from typing import List, Optional, cast
-import math
+from unified_planning.model.types import BOOL, TIME, _UserType
 
 
 class TypeChecker(walkers.dag.DagWalker):

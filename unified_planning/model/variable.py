@@ -17,13 +17,14 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
-from typing import List, Optional, FrozenSet
+from typing import FrozenSet, List, Optional
+
+import unified_planning
+import unified_planning.model.operators as op
+import unified_planning.model.walkers as walkers
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-import unified_planning
-import unified_planning.model.walkers as walkers
-import unified_planning.model.operators as op
 
 
 class Variable:

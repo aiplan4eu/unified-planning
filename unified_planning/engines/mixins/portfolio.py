@@ -14,9 +14,10 @@
 #
 
 from abc import ABC, abstractmethod
-from warnings import warn
-import unified_planning as up
 from typing import Any, Dict, List, Optional, Tuple
+from warnings import warn
+
+import unified_planning as up
 
 
 class PortfolioSelectorMixin(ABC):

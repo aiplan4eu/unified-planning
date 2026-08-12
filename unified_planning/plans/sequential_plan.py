@@ -14,14 +14,16 @@
 #
 
 
+from typing import Callable, Dict, List, Optional, Set
+
 import networkx as nx
+
 import unified_planning as up
-import unified_planning.plans as plans
 import unified_planning.model.walkers as walkers
+import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode, InstantaneousAction, Expression
-from typing import Callable, Dict, Optional, Set, List
+from unified_planning.model import Expression, FNode, InstantaneousAction
 
 
 class SequentialPlan(plans.plan.Plan):

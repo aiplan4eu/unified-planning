@@ -14,6 +14,7 @@
 
 
 from itertools import chain, product
+
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase

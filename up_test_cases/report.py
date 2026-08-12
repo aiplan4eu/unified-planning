@@ -1,44 +1,40 @@
 import importlib
 import sys
 import time
+import warnings
 from functools import partial
 from itertools import chain
 from typing import List, Tuple
-import warnings
 
 from unified_planning.engines import (
     CompilerResult,
-    PlanGenerationResultStatus,
-    ValidationResultStatus,
     PlanGenerationResult,
+    PlanGenerationResultStatus,
     ValidationResult,
+    ValidationResultStatus,
 )
 from unified_planning.engines.mixins import (
-    CompilerMixin,
     AnytimePlannerMixin,
-    PlanValidatorMixin,
+    CompilerMixin,
     OneshotPlannerMixin,
     PlanRepairerMixin,
+    PlanValidatorMixin,
 )
-
-from unified_planning.plans import Plan
-
-from unified_planning.shortcuts import *
 from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPNoSuitableEngineAvailableException
+from unified_planning.plans import Plan
+from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
-
 from utils import (
-    Ok,
     Err,
+    Ok,
     ResultSet,
-    Warn,
-    bcolors,
     Void,
-    get_report_parser,
+    Warn,
     _get_test_cases,
+    bcolors,
+    get_report_parser,
 )  # type: ignore
-
 
 get_environment().credits_stream = None  # silence credits
 factory = get_environment().factory

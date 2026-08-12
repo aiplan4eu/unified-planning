@@ -1,19 +1,19 @@
 from itertools import chain
-from unified_planning.shortcuts import *
+
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
-    temporal_kind,
     classical_kind,
     int_duration_kind,
+    temporal_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
-from unified_planning.test.examples import get_example_problems
-from unified_planning.test import unittest_TestCase
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
 )
-
+from unified_planning.test.examples import get_example_problems
 
 up.shortcuts.get_environment().credits_stream = None
 

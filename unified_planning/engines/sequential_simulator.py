@@ -18,39 +18,6 @@
 from enum import Enum, auto
 from fractions import Fraction
 from itertools import product
-from warnings import warn
-import unified_planning as up
-from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
-from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.sequential_simulator import (
-    SequentialSimulatorMixin,
-)
-from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.exceptions import (
-    UPUsageError,
-    UPConflictingEffectsException,
-    UPInvalidActionError,
-    UPUnreachableCodeError,
-    UPProblemDefinitionError,
-    UPStateMissingFluentError,
-)
-from unified_planning.model import (
-    Action,
-    Fluent,
-    FNode,
-    ExpressionManager,
-    UPState,
-    Problem,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    Oversubscription,
-    Expression,
-    Variable,
-)
-from unified_planning.model.types import _RealType
-from unified_planning.model.walkers import StateEvaluator, ExpressionQuantifiersRemover
 from typing import (
     Callable,
     Dict,
@@ -63,6 +30,40 @@ from typing import (
     Union,
     cast,
 )
+from warnings import warn
+
+import unified_planning as up
+from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
+from unified_planning.engines.engine import Engine
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPInvalidActionError,
+    UPProblemDefinitionError,
+    UPStateMissingFluentError,
+    UPUnreachableCodeError,
+    UPUsageError,
+)
+from unified_planning.model import (
+    Action,
+    Expression,
+    ExpressionManager,
+    Fluent,
+    FNode,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    Oversubscription,
+    Problem,
+    UPState,
+    Variable,
+)
+from unified_planning.model.fluent import get_all_fluent_exp
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.types import _RealType
+from unified_planning.model.walkers import ExpressionQuantifiersRemover, StateEvaluator
 
 
 class InapplicabilityReasons(Enum):

@@ -18,11 +18,12 @@ A Fluent has a name, a type and a signature
 that defines the types of its parameters.
 """
 
+from typing import Iterator, List, Optional, OrderedDict, Union, cast
+
 import unified_planning as up
-from unified_planning.model.types import domain_size, domain_item, _IntType
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from typing import List, OrderedDict, Optional, Union, Iterator, cast
+from unified_planning.model.types import _IntType, domain_item, domain_size
 
 
 class Fluent:

@@ -14,41 +14,40 @@
 #
 
 
-import sys
 import re
-
+import sys
+from functools import reduce
+from io import StringIO
+from typing import IO, Callable, Dict, List, Optional, Set, Union, cast
 from warnings import warn
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
+from unified_planning.exceptions import (
+    UPException,
+    UPProblemDefinitionError,
+    UPTypeError,
+)
 from unified_planning.io.utils import decimal_literal
 from unified_planning.model import (
-    InstantaneousAction,
     DurativeAction,
+    Effect,
     Fluent,
+    InstantaneousAction,
+    Object,
     Parameter,
     Problem,
-    Object,
-    Effect,
     Timing,
 )
-from unified_planning.exceptions import (
-    UPTypeError,
-    UPProblemDefinitionError,
-    UPException,
-)
-from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.contingent import ContingentProblem, SensingAction
+from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
+    ActionInstance,
+    Plan,
     SequentialPlan,
     TimeTriggeredPlan,
-    Plan,
-    ActionInstance,
 )
-from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
-from io import StringIO
-from functools import reduce
 
 GENERAL_PDDL_KEYWORDS = {
     "define",

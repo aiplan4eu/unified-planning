@@ -14,15 +14,15 @@
 # limitations under the License.
 
 
+import os
 import tempfile
 from typing import cast
-from unified_planning.shortcuts import *
-from unified_planning.model import DurativeAction
-from unified_planning.test import unittest_TestCase
-from unified_planning.io import ANMLReader, ANMLWriter
-from unified_planning.test.examples import get_example_problems
-import os
 
+from unified_planning.io import ANMLReader, ANMLWriter
+from unified_planning.model import DurativeAction
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")

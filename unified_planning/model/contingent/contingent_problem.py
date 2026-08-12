@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from typing import Dict, Iterable, List, Optional, Set, Union
+
 import unified_planning as up
-from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Dict, Optional, Iterable, Set, List, Union
+from unified_planning.model.problem import Problem
 
 
 class ContingentProblem(Problem):

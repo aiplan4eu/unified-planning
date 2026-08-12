@@ -13,10 +13,11 @@
 # limitations under the License.
 
 from random import shuffle
+
 import unified_planning
+from unified_planning.exceptions import UPValueError
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from unified_planning.exceptions import UPValueError
 
 
 class TestUPState(unittest_TestCase):

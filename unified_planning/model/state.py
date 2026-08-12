@@ -17,10 +17,11 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from operator import xor
 from typing import Dict, List, Optional, Tuple
+
 import unified_planning as up
+from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPStateMissingFluentError, UPValueError
 from unified_planning.model.mixins import FluentsSetMixin
-from unified_planning.environment import get_environment
 
 
 class State(ABC):

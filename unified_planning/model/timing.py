@@ -14,17 +14,18 @@
 #
 
 
-from unified_planning.environment import Environment
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import (
-    NumericConstant,
-    uniform_numeric_constant,
-    TimeExpression,
-)
 from abc import ABC
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union, Optional
+from typing import Optional, Union
+
+from unified_planning.environment import Environment
+from unified_planning.model.expression import (
+    NumericConstant,
+    TimeExpression,
+    uniform_numeric_constant,
+)
+from unified_planning.model.fnode import FNode
 
 
 class TimepointKind(Enum):

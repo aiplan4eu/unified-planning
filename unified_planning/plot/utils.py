@@ -14,21 +14,23 @@
 #
 
 
-import unified_planning as up
-from unified_planning.model import FNode
-from unified_planning.plans.plan import ActionInstance
-from unified_planning.plans.stn_plan import STNPlanNode
-from unified_planning.plans.contingent_plan import ContingentPlanNode
-import networkx as nx
 from typing import (
     Any,
+    Callable,
     Dict,
     Optional,
     Sequence,
     Tuple,
     Union,
-    Callable,
 )
+
+import networkx as nx
+
+import unified_planning as up
+from unified_planning.model import FNode
+from unified_planning.plans.contingent_plan import ContingentPlanNode
+from unified_planning.plans.plan import ActionInstance
+from unified_planning.plans.stn_plan import STNPlanNode
 
 # Defaults
 FIGSIZE = (13.0, 8.0)

@@ -14,20 +14,19 @@
 
 
 import unified_planning as up
-
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoOneshotPlannerForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
+from unified_planning.engines import SequentialPlanValidator
 from unified_planning.model.problem_kind import (
     full_classical_kind,
     hierarchical_kind,
 )
-from unified_planning.plans import SequentialPlan, ActionInstance
-from unified_planning.engines import SequentialPlanValidator
+from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestTarskiConverter(unittest_TestCase):

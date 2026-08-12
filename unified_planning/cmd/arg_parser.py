@@ -14,11 +14,12 @@
 #
 
 import argparse
+
 from unified_planning.engines import (
     AnytimeGuarantee,
-    OptimalityGuarantee,
     CompilationKind,
     OperationMode,
+    OptimalityGuarantee,
 )
 
 

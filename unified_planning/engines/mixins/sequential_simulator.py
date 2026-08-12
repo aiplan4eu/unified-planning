@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
-from abc import ABC, abstractmethod
 import inspect
-from typing import Iterator, List, Optional, Tuple, Union, Sequence
+from abc import ABC, abstractmethod
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 

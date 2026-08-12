@@ -14,7 +14,7 @@
 #
 
 
-from typing import Optional, Dict, List, Set, Union, Iterable
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment

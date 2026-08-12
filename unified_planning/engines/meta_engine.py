@@ -15,11 +15,12 @@
 """This module defines the meta engine interface."""
 
 from abc import abstractmethod
-from unified_planning.exceptions import UPUsageError
-from unified_planning.engines.engine import Engine, EngineMeta
-from unified_planning.model import ProblemKind
 from functools import partial
 from typing import Type
+
+from unified_planning.engines.engine import Engine, EngineMeta
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import ProblemKind
 
 
 class MetaEngineMeta(EngineMeta):

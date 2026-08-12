@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from collections import deque
+from typing import Callable, Deque, Dict, Iterator, List, Optional, Set, Tuple
+
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.exceptions import UPUsageError
-from typing import Callable, Dict, Iterator, Optional, List, Set, Tuple, Deque
-from collections import deque
 
 
 class ContingentPlanNode:
