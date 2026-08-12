@@ -59,7 +59,7 @@ class STNPlanNode:
             and self.action_instance is not None
         ):
             raise UPUsageError(
-                f"A global kind represents Start/End of the plan;",
+                "A global kind represents Start/End of the plan;",
                 "the ActionInstance is not accepted.",
             )
         if (
@@ -67,7 +67,7 @@ class STNPlanNode:
             and self.action_instance is None
         ):
             raise UPUsageError(
-                f"kind represents Start/End of an ActionInstance",
+                "kind represents Start/End of an ActionInstance",
                 "but the ActionInstance is not given.",
             )
 

@@ -47,7 +47,7 @@ def parse(instance: str, instance_name: str) -> SchedulingProblem:
     def int_matrix(lines) -> List[List[int]]:
         return list(map(ints, lines))
 
-    header = lines.pop(0)
+    lines.pop(0)
     sizes = ints(lines.pop(0))
     num_jobs = sizes[0]
     num_machines = sizes[1]

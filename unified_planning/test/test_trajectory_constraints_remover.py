@@ -96,7 +96,7 @@ class TestTrajectoryConstraintsRemoverCase(unittest_TestCase):
         )
 
     def test_regression_2(self):
-        traj_remover = TrajectoryConstraintsRemover()
+        TrajectoryConstraintsRemover()
         a_phi = FluentExp(self.fluents[0])
         b_phi = FluentExp(self.fluents[1])
         c_phi = FluentExp(self.fluents[2])
@@ -127,7 +127,7 @@ class TestTrajectoryConstraintsRemoverCase(unittest_TestCase):
         )
 
     def test_regression_3(self):
-        traj_remover = TrajectoryConstraintsRemover()
+        TrajectoryConstraintsRemover()
         a_phi = FluentExp(self.fluents[0])
         b_phi = FluentExp(self.fluents[1])
         c_phi = FluentExp(self.fluents[2])

@@ -539,7 +539,7 @@ class Problem(
         """
         if timing.is_from_end():
             raise UPProblemDefinitionError(
-                f"Timing used in timed effect cannot be EndTiming."
+                "Timing used in timed effect cannot be EndTiming."
             )
         (
             fluent_exp,

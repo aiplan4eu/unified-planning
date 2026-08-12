@@ -192,7 +192,7 @@ class MAPDDLWriter:
 
             if self.problem_kind.has_hierarchical_typing():
                 user_types_hierarchy = self.problem.user_types_hierarchy
-                out.write(f" (:types\n")
+                out.write(" (:types\n")
                 stack: List["up.model.Type"] = (
                     user_types_hierarchy[None] if None in user_types_hierarchy else []
                 )
@@ -300,9 +300,6 @@ class MAPDDLWriter:
             for g in self.problem.goals:
                 if g.is_dot():
                     f = g.args[0].fluent()
-                    agent = g.agent()
-                    # args = g.args
-                    # objects = g.args[0].args
                     if f not in ag.fluents and f not in self.all_public_fluents:
                         if f.type.is_bool_type():
                             params = []
@@ -343,7 +340,7 @@ class MAPDDLWriter:
 
             nl = "\n  "
             out.write(
-                f" (:predicates\n "
+                " (:predicates\n "
                 if len(predicates_environment) > 0
                 or len(predicates_agents) > 0
                 or len(predicates_agent_goal) > 0
@@ -379,7 +376,7 @@ class MAPDDLWriter:
                     else ""
                 )
             out.write(
-                f")\n"
+                ")\n"
                 if len(predicates_environment) > 0
                 or len(predicates_agents) > 0
                 or len(predicates_agent_goal) > 0
@@ -388,7 +385,7 @@ class MAPDDLWriter:
             )
 
             out.write(
-                f" (:functions\n"
+                " (:functions\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
@@ -416,7 +413,7 @@ class MAPDDLWriter:
                 else ""
             )
             out.write(
-                f" )\n"
+                " )\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
@@ -441,7 +438,7 @@ class MAPDDLWriter:
                         if self.unfactored:
                             out.write(f"\n  :agent ?{ag.name} - {ag.name + '_type'}")
 
-                        out.write(f"\n  :parameters (")
+                        out.write("\n  :parameters (")
 
                         if not self.unfactored:
                             out.write(
@@ -458,10 +455,10 @@ class MAPDDLWriter:
                                 )
                         out.write(")")
                         if len(a.preconditions) > 0:
-                            out.write(f"\n  :precondition (and \n")
+                            out.write("\n  :precondition (and \n")
                             for p in a.preconditions:
                                 out.write(f"   {converter.convert(p)}\n")
-                            out.write(f"  )")
+                            out.write("  )")
 
                         if len(a.effects) > 0:
                             out.write("\n  :effect (and\n")
@@ -483,7 +480,7 @@ class MAPDDLWriter:
                         out.write(")\n")
                     elif isinstance(a, DurativeAction):
                         out.write(f" (:durative-action {self._get_mangled_name(a)}")
-                        out.write(f"\n  :parameters (")
+                        out.write("\n  :parameters (")
                         for ap in a.parameters:
                             if ap.type.is_user_type():
                                 out.write(
@@ -500,7 +497,7 @@ class MAPDDLWriter:
                                 f"\n  :duration (= ?duration {converter.convert(l)})"
                             )
                         else:
-                            out.write(f"\n  :duration (and ")
+                            out.write("\n  :duration (and ")
                             if a.duration.is_left_open():
                                 out.write(f"(> ?duration {converter.convert(l)})")
                             else:
@@ -511,7 +508,7 @@ class MAPDDLWriter:
                                 out.write(f"(<= ?duration {converter.convert(r)})")
                             out.write(")")
                         if len(a.conditions) > 0:
-                            out.write(f"\n  :condition (and ")
+                            out.write("\n  :condition (and ")
                             for interval, cl in a.conditions.items():
                                 for c in cl:
                                     if interval.lower == interval.upper:
@@ -616,7 +613,7 @@ class MAPDDLWriter:
                             f"\n   {self._get_mangled_name(agent)} - {self._get_mangled_name(agent) + '_type'}"
                         )
                     else:
-                        out.write(f"")
+                        out.write("")
 
                 out.write("\n )\n")
 
@@ -629,7 +626,6 @@ class MAPDDLWriter:
                 if v.is_true():
                     if f.is_dot():
                         fluent = f.args[0].fluent()
-                        args = f.args
                         if not self.unfactored:
                             if (
                                 fluent in self.all_public_fluents
@@ -643,7 +639,7 @@ class MAPDDLWriter:
                             ):
                                 out.write(f"\n  {converter.convert(f)}")
                             else:
-                                out.write(f"")
+                                out.write("")
                         else:
                             out.write(f"\n  {converter.convert(f)}")
                     else:
@@ -652,7 +648,6 @@ class MAPDDLWriter:
                     if self.explicit_false_initial_states:
                         if f.is_dot():
                             fluent = f.args[0].fluent()
-                            args = f.args
                             if not self.unfactored:
                                 if (
                                     fluent in self.all_public_fluents
@@ -666,7 +661,7 @@ class MAPDDLWriter:
                                 ):
                                     out.write(f"\n  (not {converter.convert(f)})")
                                 else:
-                                    out.write(f"")
+                                    out.write("")
                             else:
                                 out.write(f"\n  (not {converter.convert(f)})")
                         else:
@@ -676,12 +671,12 @@ class MAPDDLWriter:
                 else:
                     out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
             if self.problem.kind.has_actions_cost():
-                out.write(f" (= (total-cost) 0)")
+                out.write(" (= (total-cost) 0)")
             out.write(")\n")
-            out.write(f" (:goal (and")
+            out.write(" (:goal (and")
             for p in self.problem.goals:
                 out.write(f" {converter.convert(p)}")
-            out.write(f"))")
+            out.write("))")
             out.write("\n)")
             ag_problems[self._get_mangled_name(ag)] = out.getvalue()
             out.close()

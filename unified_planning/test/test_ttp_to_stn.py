@@ -91,7 +91,7 @@ class TestTTPToSTN(unittest_TestCase):
                         ) as validator:
                             val_res = validator.validate(tc.problem, tt_plan)
                             self.assertTrue(val_res)
-                    except up.exceptions.UPNoSuitableEngineAvailableException as e:
+                    except up.exceptions.UPNoSuitableEngineAvailableException:
                         pass
 
     @skipIfNoPlanValidatorForProblemKind(sim_problem.kind)

@@ -720,7 +720,7 @@ class ANMLReader:
         ):
             if not is_global:
                 raise ANMLSyntaxError(
-                    f"Interval without start or end outside of an action is not valid."
+                    "Interval without start or end outside of an action is not valid."
                 )
             delay = parsed_timing_exp.constant_value()
             if delay < 0:

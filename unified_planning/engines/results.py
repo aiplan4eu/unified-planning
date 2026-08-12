@@ -295,7 +295,7 @@ class ValidationResult(Result):
             f"engine: {self.engine_name}",
         ]
         if self.metric_evaluations is not None:
-            ret.append(f"metrics: ")
+            ret.append("metrics: ")
             for metric, value in self.metric_evaluations.items():
                 ret.append(f"    {metric}: {value}")
         if self.reason is not None:
@@ -340,7 +340,7 @@ class CompilerResult(Result):
             self.map_back_action_instance is None and self.plan_back_conversion is None
         ):
             raise UPUsageError(
-                f"The compiled Problem is not None but both map_back_action_instance and plan_back_conversion are None."
+                "The compiled Problem is not None but both map_back_action_instance and plan_back_conversion are None."
             )
 
         if self.map_back_action_instance is not None:

@@ -266,7 +266,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         "--deliverable",
         action="store_true",
         dest="deliverable",
-        help=f"Adds information needed in the evaluation report",
+        help="Adds information needed in the evaluation report",
     )
 
     return parser

@@ -370,7 +370,6 @@ class TestANMLReader(unittest_TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "hydrone.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 5)
