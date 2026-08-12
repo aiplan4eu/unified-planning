@@ -27,13 +27,20 @@ setup-ci *extras=ci_extras:
     uv sync --frozen {{ prepend('--extra ', extras) }}
     just install-enhsp
 
-# Format the code base (ruff, drop-in replacement for black)
+# Format the code base and apply every fix ruff can make on its own (ruff replaces black).
+# `--fix` rewrites source and a few of its fixes are wrong here - see the `# noqa` comments in
+# engines/pddl_planner.py - so the result of this recipe always wants reading.
 format:
-    uv run ruff format unified_planning up_test_cases scripts
+    uv run ruff format unified_planning up_test_cases scripts ci
+    uv run ruff check --fix unified_planning up_test_cases scripts ci
 
-# Check that the code base is correctly formatted
+# Lint, then check the formatting. A lint finding says something about the code while a
+# formatting diff only says `just format` has not been run, so the informative one comes
+# first. The directories are named explicitly rather than passing `.`: a working tree
+# normally has untracked scratch scripts at the root, and `.` would lint those.
 lint:
-    uv run ruff format --check unified_planning up_test_cases scripts
+    uv run ruff check unified_planning up_test_cases scripts ci
+    uv run ruff format --check unified_planning up_test_cases scripts ci
 
 # Run the mypy type checker (configuration lives in pyproject.toml)
 typecheck:

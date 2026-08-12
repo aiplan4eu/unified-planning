@@ -87,7 +87,10 @@ dev = [
     "pytest-cov>=5.0",
     # Exact so that type errors appear on code change, not on tool drift.
     "mypy==2.3.0",
-    "ruff>=0.6.0",
+    # Exact, like mypy: `lint.ignore` names specific rule codes, and ruff hard-errors on an
+    # unknown selector rather than warning, so a resolution that picked an older ruff would
+    # fail to start rather than merely disagree.
+    "ruff==0.16.2",
     "pre-commit>=3.5",
 ]
 docs = [
@@ -129,13 +132,36 @@ line-length = 88
 target-version = "py310"
 # generated protobuf code and docs (notebooks/snippets with IPython magics) are excluded
 extend-exclude = ["unified_planning/grpc/generated", "docs"]
+# First-party roots for the import sorter. "up_test_cases" is what makes report.py's
+# `from utils import ...` resolve to up_test_cases/utils.py rather than being sorted as a
+# third-party package and hoisted above the unified_planning block.
+src = [".", "up_test_cases"]
 
-# ruff is used purely as the formatter here — the drop-in replacement for black.
-# Linting is intentionally disabled: enabling unused-import/import-sorting autofixes
-# rewrites re-export modules (e.g. unified_planning/interop/tarski.py) and changes the
-# public API. Adopting lint rules is left to a dedicated follow-up PR.
+# Rules are adopted family by family, each with the fixes it requires, so that every commit
+# is green under its own configuration. Deliberately never selected:
+#   E501  line-too-long        the formatter owns line width (1802 would-be hits, all in
+#                              docstrings and PDDL/ANML string literals it will not reflow)
+#   COM   flake8-commas        the formatter's job, and ruff warns COM812 conflicts with it
+#   D     pydocstyle           the docstrings are Sphinx/reST prose, not PEP 257
+#   ANN   flake8-annotations   mypy owns annotation coverage
+#   ARG   flake8-unused-args   the walker and mixin signatures are protocol-driven
+#   TC    flake8-type-checking would move `import unified_planning as up` into a
+#                              TYPE_CHECKING block and break the runtime `up.` uses
 [tool.ruff.lint]
-select = []
+select = [
+    "E4",    # pycodestyle: import placement
+    "E9",    # pycodestyle: syntax and IO errors
+    "W",     # pycodestyle warnings
+    "ASYNC", # flake8-async
+    "LOG",   # flake8-logging
+    "T10",   # flake8-debugger: no stray breakpoint()/pdb.set_trace()
+    "TID",   # flake8-tidy-imports
+    "YTT",   # flake8-2020: sys.version comparisons
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# The tree is already 100% absolute imports; this keeps it that way.
+ban-relative-imports = "all"
 
 [tool.ruff.format]
 
