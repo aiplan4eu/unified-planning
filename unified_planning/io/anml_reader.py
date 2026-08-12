@@ -524,7 +524,7 @@ class ANMLReader:
                     ):
                         raise UPUnsupportedProblemTypeError(
                             "An expression contains the duration keyword and the assignment operand "
-                            + "but it's not in the supported form: 'duration := exp;'"
+                            "but it's not in the supported form: 'duration := exp;'"
                         )
                     action.set_duration_constraint(
                         FixedDuration(
@@ -538,7 +538,7 @@ class ANMLReader:
                         if duration_exp[0][0] != TK_DURATION:
                             raise UPUnsupportedProblemTypeError(
                                 "An expression contains the duration keyword and the equals operand "
-                                + "but it's not in the supported form: 'duration == exp;'"
+                                "but it's not in the supported form: 'duration == exp;'"
                             )
                         action.set_duration_constraint(
                             FixedDuration(
@@ -551,7 +551,7 @@ class ANMLReader:
                         if duration_exp[1] != TK_AND:
                             raise UPUnsupportedProblemTypeError(
                                 "An expression that contains the duration keyword and no equals or assignment operand "
-                                + "is supported only if the top level operand is an and. The supported form is: 'duration < exp and duration >= exp;'"
+                                "is supported only if the top level operand is an and. The supported form is: 'duration < exp and duration >= exp;'"
                             )
                         left_bound = duration_exp[0]
                         right_bound = duration_exp[2]
@@ -561,19 +561,19 @@ class ANMLReader:
                         ):
                             raise UPUnsupportedProblemTypeError(
                                 "A duration expression in the form: 'duration < exp and duration >= exp;' is only "
-                                + "supported with the duration on the left side of the relational operator."
+                                "supported with the duration on the left side of the relational operator."
                             )
                         if left_bound[1] not in (TK_GT, TK_GE):
                             left_bound, right_bound = right_bound, left_bound
                         if left_bound[1] not in (TK_GT, TK_GE):
                             raise UPUnsupportedProblemTypeError(
                                 "duration expression in the form: 'duration > exp and duration < exp;' detected, "
-                                + f"but was found {left_bound[1]} instead of '>/>='."
+                                f"but was found {left_bound[1]} instead of '>/>='."
                             )
                         if right_bound[1] not in (TK_LT, TK_LE):
                             raise UPUnsupportedProblemTypeError(
                                 "duration expression in the form: 'duration > exp and duration < exp;' detected, "
-                                + f"but was found {right_bound[1]} instead of '</<='."
+                                f"but was found {right_bound[1]} instead of '</<='."
                             )
                         is_left_open = left_bound[1] == TK_GT
                         is_right_open = right_bound[1] == TK_LT
@@ -646,7 +646,7 @@ class ANMLReader:
                 )
             return StartTiming()
 
-        contains_TK_ALL = TK_ALL in find_strings(interval_res, set((TK_ALL,)))
+        contains_TK_ALL = TK_ALL in find_strings(interval_res, {TK_ALL})
         if len(interval_res) == 3:
             l_par = interval_res[0]
             timing_exp = interval_res[1]
@@ -774,8 +774,8 @@ class ANMLReader:
             if str(condition_interval) != str(res):
                 raise UPUnsupportedProblemTypeError(
                     "In conditional effect parsing the "
-                    + "condition time interval and the time interval outside the block are different, "
-                    + "this is not supported by the UP."
+                    "condition time interval and the time interval outside the block are different, "
+                    "this is not supported by the UP."
                 )
         elif condition_interval:
             res = condition_interval
@@ -783,8 +783,8 @@ class ANMLReader:
             if str(effect_interval) != str(res):
                 raise UPUnsupportedProblemTypeError(
                     "In conditional effect parsing the "
-                    + "condition time interval and the time interval outside the block are different, "
-                    + "this is not supported by the UP."
+                    "condition time interval and the time interval outside the block are different, "
+                    "this is not supported by the UP."
                 )
         elif effect_interval:
             res = effect_interval
@@ -815,14 +815,12 @@ class ANMLReader:
             effect_exp = effect_res[0]
         variables: Dict[str, "up.model.Variable"] = {}
         if effect_exp[0] == TK_FORALL:  # Forall assignment
-            variables = dict(
-                (
-                    (n, Variable(n, t))
-                    for n, t in self._parse_parameters_def(
-                        effect_exp["quantifier_variables"], types_map
-                    ).items()
-                )
-            )
+            variables = {
+                n: Variable(n, t)
+                for n, t in self._parse_parameters_def(
+                    effect_exp["quantifier_variables"], types_map
+                ).items()
+            }
             effect_exp = effect_exp[2]
             if effect_exp[0] == TK_WHEN:  # Conditional effect
                 assert len(effect_exp) == 3, "Multiple expressions in forall assignment"
@@ -900,7 +898,6 @@ class ANMLReader:
                 assert isinstance(exp, ParseResults) or isinstance(exp, List)
                 if len(exp) <= 1:
                     assert len(exp) == 1, "algorithm error"
-                    pass
                 elif len(exp) == 2:
                     first_elem = exp[0]
                     if isinstance(first_elem, List) or isinstance(
@@ -910,7 +907,6 @@ class ANMLReader:
                         assert isinstance(second_elem, List) or isinstance(
                             second_elem, ParseResults
                         )
-                        pass
                     elif first_elem == TK_MINUS:  # unary minus
                         solved.append(self._em.Times(-1, solved.pop()))
                     elif first_elem == TK_PLUS:  # unary plus
@@ -972,7 +968,6 @@ class ANMLReader:
                             assert isinstance(exp[2], List) or isinstance(
                                 exp[2], ParseResults
                             )
-                            pass
                         elif isinstance(operator, str):  # binary operator
                             # '==' needs special care, because in ANML it can both mean '==' or 'Iff',
                             # but in the UP those 2 cases are handled differently.
@@ -1004,7 +999,6 @@ class ANMLReader:
                         assert isinstance(e, List) or isinstance(e, ParseResults), (
                             f"expression {exp} is expected to be a parameters list, but it's not"
                         )
-                        pass
             else:  # not solved
                 if isinstance(exp, ParseResults) or isinstance(exp, List):
                     first_token = exp[0]

@@ -591,9 +591,7 @@ class MAPDDLWriter:
             if len(self.problem.user_types) + len(self.problem.agents) > 0:
                 out.write(" (:objects")
                 for t in self.problem.user_types:
-                    constants_of_this_type = set(
-                        o for o in domain_objects if o.type == t
-                    )
+                    constants_of_this_type = {o for o in domain_objects if o.type == t}
 
                     objects = [
                         o
@@ -626,10 +624,8 @@ class MAPDDLWriter:
                     if f.is_dot():
                         fluent = f.args[0].fluent()
                         if not self.unfactored:
-                            if (
-                                fluent in self.all_public_fluents
-                                or fluent in ag.fluents
-                                and f.agent() == ag.name
+                            if fluent in self.all_public_fluents or (
+                                fluent in ag.fluents and f.agent() == ag.name
                             ):
                                 out.write(f"\n  {converter.convert(f)}")
                             elif (
@@ -648,10 +644,8 @@ class MAPDDLWriter:
                         if f.is_dot():
                             fluent = f.args[0].fluent()
                             if not self.unfactored:
-                                if (
-                                    fluent in self.all_public_fluents
-                                    or fluent in ag.fluents
-                                    and f.agent() == ag.name
+                                if fluent in self.all_public_fluents or (
+                                    fluent in ag.fluents and f.agent() == ag.name
                                 ):
                                     out.write(f"\n  (not {converter.convert(f)})")
                                 elif (

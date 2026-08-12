@@ -24,17 +24,17 @@ from unified_planning.plans.schedule import Schedule
 from unified_planning.plans.motion_schedule import MotionSchedule
 
 __all__ = [
+    "ActionInstance",
+    "ContingentPlan",
+    "ContingentPlanNode",
+    "HierarchicalPlan",
+    "MotionSchedule",
+    "PartialOrderPlan",
     "Plan",
     "PlanKind",
-    "ActionInstance",
+    "STNPlan",
+    "STNPlanNode",
+    "Schedule",
     "SequentialPlan",
     "TimeTriggeredPlan",
-    "PartialOrderPlan",
-    "ContingentPlanNode",
-    "ContingentPlan",
-    "STNPlanNode",
-    "STNPlan",
-    "HierarchicalPlan",
-    "Schedule",
-    "MotionSchedule",
 ]

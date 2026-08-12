@@ -176,7 +176,7 @@ class Simplifier(walkers.dag.DagWalker):
         free_vars: FrozenSet["up.model.variable.Variable"] = (
             self.environment.free_vars_oracle.get_free_variables(args[0])
         )
-        vars = set(var for var in expression.variables() if var in free_vars)
+        vars = {var for var in expression.variables() if var in free_vars}
         # Here we check if the arg is in the form:
         # phi(l_i) and l_i == x with phi and x general formulae and l_i a variable
         # bounded to this Exists.
@@ -352,7 +352,7 @@ class Simplifier(walkers.dag.DagWalker):
         return self.manager.Dot(expression.agent(), args[0])
 
     def walk_plus(self, expression: FNode, args: List[FNode]) -> FNode:
-        new_args_plus: List[FNode] = list()
+        new_args_plus: List[FNode] = []
         accumulator: Union[int, Fraction] = 0
         # divide constant FNode and accumulate their value into accumulator
         for a in args:
@@ -396,7 +396,7 @@ class Simplifier(walkers.dag.DagWalker):
         return self.manager.Minus(left, right)
 
     def walk_times(self, expression: FNode, args: List[FNode]) -> FNode:
-        new_args_times: List[FNode] = list()
+        new_args_times: List[FNode] = []
         accumulator: Union[int, Fraction] = 1
         # divide constant FNode and accumulate their value into accumulator
         for a in args:

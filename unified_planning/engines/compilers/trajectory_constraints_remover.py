@@ -167,7 +167,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
-        A_prime: List["up.model.InstantaneousAction"] = list()
+        A_prime: List["up.model.InstantaneousAction"] = []
         I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]

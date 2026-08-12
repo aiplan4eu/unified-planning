@@ -159,6 +159,11 @@ select = [
     "I",     # isort
     "F",     # pyflakes
     "RET",   # flake8-return
+    "C4",    # flake8-comprehensions
+    "PIE",   # flake8-pie
+    "FURB",  # refurb
+    "ISC",   # flake8-implicit-str-concat
+    "RUF",   # ruff-specific
 ]
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is.

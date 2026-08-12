@@ -957,7 +957,7 @@ class TestGrounder(unittest_TestCase):
         assert isinstance(grounded_problem, Problem)
         ga = cast(DurativeAction, grounded_problem.action("act_l1"))
         self.assertEqual(len(ga.parameters), 0)
-        ((interval, effects),) = ga.continuous_effects.items()
+        ((_interval, effects),) = ga.continuous_effects.items()
         (effect,) = effects
         self.assertTrue(effect.is_continuous_increase())
         self.assertEqual(effect.value, rate(l1))
@@ -1265,7 +1265,7 @@ class TestGrounderJoinPruning(unittest_TestCase):
 
         problem.add_fluent(at, default_initial_value=False)
         problem.add_fluent(dummy, default_initial_value=False)
-        problem.add_objects(items + [l1, l2])
+        problem.add_objects([*items, l1, l2])
         problem.set_initial_value(at(items[0], l1), True)
         problem.set_initial_value(
             at(items[1], l2), True

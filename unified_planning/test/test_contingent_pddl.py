@@ -45,7 +45,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(problem is not None)
         self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 10)
-        sensing_actions = [sa for sa in problem.sensing_actions]
+        sensing_actions = list(problem.sensing_actions)
         self.assertEqual(len(sensing_actions), 3)
         self.assertEqual(len(problem.actions), 12)
 
@@ -69,7 +69,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(problem is not None)
         self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 8)
-        sensing_actions = [sa for sa in problem.sensing_actions]
+        sensing_actions = list(problem.sensing_actions)
         self.assertEqual(len(sensing_actions), 2)
         self.assertEqual(len(problem.actions), 5)
 

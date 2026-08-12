@@ -390,7 +390,7 @@ def create_action_with_given_subs(
 def get_fresh_name(
     problem: AbstractProblem,
     original_name: str,
-    parameters_names: Sequence[str] = tuple(),
+    parameters_names: Sequence[str] = (),
     trailing_info: Optional[str] = None,
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
@@ -402,7 +402,7 @@ def get_fresh_name(
     base_name = new_name
     count = 0
     while problem.has_name(new_name):
-        new_name = f"{base_name}_{str(count)}"
+        new_name = f"{base_name}_{count!s}"
         count += 1
     return new_name
 
@@ -415,7 +415,7 @@ def get_fresh_parameter_name(action: Action, name: str):
     count = 0
     new_name = name
     while new_name in name_list:
-        new_name = f"{name}_{str(count)}"
+        new_name = f"{name}_{count!s}"
         count += 1
     return new_name
 

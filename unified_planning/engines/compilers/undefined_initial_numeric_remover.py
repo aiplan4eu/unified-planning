@@ -471,9 +471,7 @@ class UndefinedInitialNumericRemover(engines.engine.Engine, CompilerMixin):
             if isinstance(metric, MinimizeActionCosts):
                 # Recreate the costs dictionary since action instances may have been
                 # mutated, potentially invalidating them as dictionary keys.
-                new_costs: Dict[Action, Expression] = {
-                    action: cost_exp for action, cost_exp in metric.costs.items()
-                }
+                new_costs: Dict[Action, Expression] = dict(metric.costs)
                 metric = MinimizeActionCosts(new_costs, metric.default)
             problem.add_quality_metric(metric)
 

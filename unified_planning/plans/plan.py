@@ -37,7 +37,7 @@ class ActionInstance:
     def __init__(
         self,
         action: "up.model.Action",
-        params: Sequence["up.model.Expression"] = tuple(),
+        params: Sequence["up.model.Expression"] = (),
         agent: Optional["up.model.multi_agent.Agent"] = None,
         motion_paths: Optional[
             Dict["up.model.motion.MotionConstraint", "up.model.motion.Path"]

@@ -232,7 +232,7 @@ class FNode2Protobuf(walkers.DagWalker):
             kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
         )
         tp_exp = proto.Expression(
-            list=[fn_exp] + args,
+            list=[fn_exp, *args],
             type="up:time",
             kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
         )

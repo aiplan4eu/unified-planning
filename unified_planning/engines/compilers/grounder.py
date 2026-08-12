@@ -176,7 +176,7 @@ class GrounderHelper:
         return self._simplifier
 
     def ground_action(
-        self, action: Action, parameters: Tuple[FNode, ...] = tuple()
+        self, action: Action, parameters: Tuple[FNode, ...] = ()
     ) -> Optional[Action]:
         """
         Grounds the given action with the given parameters.
@@ -258,7 +258,7 @@ class GrounderHelper:
                 self._grounding_actions_map is None
                 or self._grounding_actions_map.get(action, None) is not None
             ):
-                res: Iterator[Tuple[FNode, ...]] = iter([tuple()])
+                res: Iterator[Tuple[FNode, ...]] = iter([()])
             else:
                 res = iter([])
         else:
@@ -360,7 +360,7 @@ class GrounderHelper:
         params = list(action.parameters)
         num_params = len(params)
         if num_params == 0:
-            return [tuple()]
+            return [()]
         static_fluents = self._static_bool_fluents(action)
         if static_fluents is None:
             # Not an InstantaneousAction/DurativeAction -- an action type this file doesn't

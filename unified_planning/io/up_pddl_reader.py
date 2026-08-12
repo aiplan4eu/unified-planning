@@ -511,7 +511,7 @@ class UPPDDLReader:
                                 )
                                 raise SyntaxError(
                                     f"Undefined variable's type: {g[1]}."
-                                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                                    f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                                 )
                             for o in g.value[0]:
                                 new_vars[o] = up.model.Variable(o, t, self._env)
@@ -567,7 +567,7 @@ class UPPDDLReader:
                             )
                             raise SyntaxError(
                                 f"Undefined name found: {exp.value[1:]}.\nError in expression from"
-                                + f" line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
+                                f" line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                             )
                     elif problem.has_fluent(exp.value):  # fluent
                         solved.append(self._em.FluentExp(problem.fluent(exp.value)))
@@ -988,7 +988,7 @@ class UPPDDLReader:
                         )
                         raise SyntaxError(
                             f"Undefined variable's type: {g[1]}."
-                            + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                            f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                         )
                     for o in g.value[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
@@ -1214,7 +1214,7 @@ class UPPDDLReader:
                 )
                 raise SyntaxError(
                     f"Undefined parameter's type: {g.value[1]}."
-                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                 )
             for p in g.value[0]:
                 a_params[p] = t
@@ -1480,7 +1480,7 @@ class UPPDDLReader:
                     )
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                        f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
                 for param_name in g.value[0]:
                     params[param_name] = param_type
@@ -1505,7 +1505,7 @@ class UPPDDLReader:
                 except KeyError:
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                        f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
                 for param_name in g.value[0]:
                     if param_name not in params:
@@ -1521,8 +1521,8 @@ class UPPDDLReader:
                         )
                         raise SyntaxError(
                             f"In definition of function {n} the parameter {param_name} "
-                            + f"is defined twice.\nError from line: {g_start_line}, col: {g_start_col}"
-                            + f" to line: {g_end_line}, col: {g_end_col}."
+                            f"is defined twice.\nError from line: {g_start_line}, col: {g_start_col}"
+                            f" to line: {g_end_line}, col: {g_end_col}."
                         )
             # Determine return type: object type if annotated, else RealType
             if len(p) > 1:
@@ -1557,7 +1557,7 @@ class UPPDDLReader:
                 )
                 raise SyntaxError(
                     f"Undefined variable's type: {g.value[1]}."
-                    + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                    f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                 )
             for o in g.value[0]:
                 problem.add_object(up.model.Object(o, t, problem.environment))
@@ -1580,7 +1580,7 @@ class UPPDDLReader:
                     )
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
-                        + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
+                        f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
                 for p in g.value[0]:
                     task_params[p] = t
@@ -1667,12 +1667,12 @@ class UPPDDLReader:
                         else:
                             raise SyntaxError(
                                 f"Not able to handle duration constraint of action {n}"
-                                + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                                f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                             )
                     if lower is None or upper is None:
                         raise SyntaxError(
                             f"Not able to handle duration constraint of action {n}"
-                            + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                            f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                         )
                     assert is_left_open is not None and is_right_open is not None
                     d = up.model.DurationInterval(
@@ -1682,7 +1682,7 @@ class UPPDDLReader:
                 else:
                     raise SyntaxError(
                         f"Not able to handle duration constraint of action {n}"
-                        + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
+                        f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                     )
                 if "cond" in a:
                     cond = CustomParseResults(a["cond"][0])
@@ -1762,7 +1762,7 @@ class UPPDDLReader:
                 if pname[0] != "?":
                     raise SyntaxError(
                         f"All arguments of the task {achieved_task} should be parameters."
-                        + f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
+                        f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
                     )
                 pnames.append(pname)
             achieved_task_params = [method.parameter(pname[1:]) for pname in pnames]
@@ -1796,7 +1796,7 @@ class UPPDDLReader:
                         if len(ordering) != 3:
                             raise SyntaxError(
                                 f"Wrong number of parameters in ordering relation: {ordering}"
-                                + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = method.get_subtask(ordering[1].value)
                         right = method.get_subtask(ordering[2].value)
@@ -1804,7 +1804,7 @@ class UPPDDLReader:
                     else:
                         raise SyntaxError(
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
-                            + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
             if "precondition" in m:
                 method.add_precondition(
@@ -1883,7 +1883,7 @@ class UPPDDLReader:
                         if len(ordering) != 3:
                             raise SyntaxError(
                                 f"Wrong number of parameters in ordering relation: {ordering}"
-                                + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                                f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
                         left = problem.task_network.get_subtask(ordering[1].value)
                         right = problem.task_network.get_subtask(ordering[2].value)
@@ -1891,7 +1891,7 @@ class UPPDDLReader:
                     else:
                         raise SyntaxError(
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
-                            + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
+                            f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
 
                 cs = tasknet.get("constraints", None)
@@ -1968,7 +1968,7 @@ class UPPDDLReader:
                         else:
                             raise SyntaxError(
                                 f"Not able to handle this TIL {init}"
-                                + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                                f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                             )
                 elif operator == "oneof":
                     assert isinstance(problem, ContingentProblem)
@@ -1993,7 +1993,7 @@ class UPPDDLReader:
                     if len(init) != 2:
                         raise SyntaxError(
                             "`unknown` constraint requires exactly one argument."
-                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
                     arg = self._parse_exp(
                         problem, None, types_map, {}, init[1], problem_str
@@ -2007,7 +2007,7 @@ class UPPDDLReader:
                         if not exp.is_fluent_exp():
                             raise SyntaxError(
                                 f"In init expected predicate, found {exp}\n"
-                                + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                                f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                             )
                         problem.set_initial_value(
                             exp,
@@ -2016,7 +2016,7 @@ class UPPDDLReader:
                     elif not exp.arg(0).is_fluent_exp():
                         raise SyntaxError(
                             f"In init expected (not predicate), found {exp}\n"
-                            + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
+                            f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
             if "goal" in problem_res:
                 problem.add_goal(

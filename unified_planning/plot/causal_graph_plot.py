@@ -121,7 +121,7 @@ def plot_causal_graph(
 
     graph, edge_actions = generate_causal_graph(problem)
     edge_labels_set: Dict[Tuple[FNode, FNode], Set[str]] = {
-        k: set(edge_label_function(e.action, e.actual_parameters) for e in v)
+        k: {edge_label_function(e.action, e.actual_parameters) for e in v}
         for k, v in edge_actions.items()
     }
 

@@ -26,4 +26,4 @@ def get_example_problems():
         examples.optional_activities_conditions(),
         examples.TestCase(jobshop.parse(jobshop.FT06, "ft06"), solvable=True),
     ]
-    return dict((instance.problem.name, instance) for instance in instances)
+    return {instance.problem.name: instance for instance in instances}
