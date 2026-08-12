@@ -115,7 +115,7 @@ class MethodInstance:
 
     method: Method
     parameters: Tuple[FNode, ...]
-    decomposition: "Decomposition" = Decomposition()
+    decomposition: "Decomposition" = field(default_factory=Decomposition)
 
     def __repr__(self):
         return f"{self.method.name}{self.parameters}\n{self.decomposition}"

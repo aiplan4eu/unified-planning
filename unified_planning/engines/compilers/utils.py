@@ -304,14 +304,16 @@ def create_action_with_given_subs(
             for f in old_se.fluents:
                 new_fluents.append(f.substitute(subs))
 
-            def fun(_problem, _state, _):
-                return old_se.function(_problem, _state, c_subs)
+            # _old_se bound as a default: the closure outlives the iteration, so capturing
+            # the loop variable would make every timing call the last one's function.
+            def durative_fun(_problem, _state, _, _old_se=old_se):
+                return _old_se.function(_problem, _state, c_subs)
 
             # this rebuilds a simulated effect the user already defined (and got
             # warned about), so the deprecation warning is silenced here
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", DeprecationWarning)
-                new_simulated_effect = SimulatedEffect(new_fluents, fun)
+                new_simulated_effect = SimulatedEffect(new_fluents, durative_fun)
             # We try to add the new simulated effect, but a compiler might generate conflicting effects,
             # so the action is just considered invalid
             try:
