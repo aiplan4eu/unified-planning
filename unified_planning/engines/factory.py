@@ -816,7 +816,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.ONESHOT_PLANNER,
             name,
@@ -858,7 +858,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.ANYTIME_PLANNER,
             name,
@@ -931,7 +931,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
-                )
+                ) from None
         kinds: Optional[List[CompilationKind]] = None
         if compilation_kinds is not None:
             kinds = []
@@ -940,7 +940,9 @@ class Factory:
                     try:
                         kinds.append(CompilationKind[kind.upper()])
                     except KeyError:
-                        raise UPUsageError(f"{kind} is not a valid CompilationKind.")
+                        raise UPUsageError(
+                            f"{kind} is not a valid CompilationKind."
+                        ) from None
                 else:
                     assert isinstance(kind, CompilationKind), "Typing not respected"
                     kinds.append(kind)
@@ -1000,7 +1002,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.REPLANNER,
             name,
@@ -1032,14 +1034,14 @@ class Factory:
             try:
                 plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
-                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.") from None
         if isinstance(optimality_guarantee, str):
             try:
                 optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.PLAN_REPAIRER,
             name=name,
@@ -1096,7 +1098,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.PORTFOLIO_SELECTOR,
             name=name,
@@ -1134,7 +1136,9 @@ class Factory:
             try:
                 operation_mode = OperationMode[operation_mode.upper()]
             except KeyError:
-                raise UPUsageError(f"{operation_mode} is not a valid OperationMode.")
+                raise UPUsageError(
+                    f"{operation_mode} is not a valid OperationMode."
+                ) from None
         for engine_name, Engine in self._engines.items():
             if (
                 operation_mode is not None
@@ -1196,26 +1200,26 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         if isinstance(anytime_guarantee, str):
             try:
                 anytime_guarantee = AnytimeGuarantee[anytime_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
-                )
+                ) from None
         if isinstance(compilation_kind, str):
             try:
                 compilation_kind = CompilationKind[compilation_kind.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
-                )
+                ) from None
         if isinstance(plan_kind, str):
             try:
                 plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
-                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.") from None
         names: List[str] = []
         for name in self._preference_list:
             EngineClass = self._engines[name]

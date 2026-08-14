@@ -35,11 +35,13 @@ class MotionSchedule(Schedule):
         self,
         activities: Optional[List[Activity]] = None,
         assignment: Optional[Dict[Variable, Value]] = None,
-        motion_paths: Dict[Tuple[MotionActivity, MotionConstraint], Path] = {},
+        motion_paths: Optional[
+            Dict[Tuple[MotionActivity, MotionConstraint], Path]
+        ] = None,
         environment: Optional[Environment] = None,
     ):
         super().__init__(activities, assignment, environment)
-        self._motion_paths = motion_paths
+        self._motion_paths = motion_paths or {}
 
     @property
     def motion_paths(

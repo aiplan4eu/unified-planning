@@ -162,7 +162,7 @@ select = [
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
     "PERF",  # perflint
-    "B905",  # bugbear: zip() without an explicit strict=
+    "B",     # flake8-bugbear
     "PIE",   # flake8-pie
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat
@@ -173,6 +173,9 @@ ignore = [
     "RET504", # unnecessary-assign
     # Per-item handling that cannot be hoisted, and a `try` that does not raise is free since 3.11.
     "PERF203", # try-except-in-loop
+    # Abstract by contract, with shared concrete behaviour and nothing to mark @abstractmethod.
+    # Dropping ABC would change the metaclass of public base classes that downstream engines subclass.
+    "B024", # abstract-base-class-without-abstract-method
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -180,10 +183,9 @@ ignore = [
 # names straight out of them. `__all__` is not used instead - adding the missing names to
 # model/__init__.py's would change what `from unified_planning.shortcuts import *` yields.
 "**/__init__.py" = ["F401"]
-# shortcuts.py is the star-export surface itself: `from unified_planning.model import *` is how
-# `from unified_planning.shortcuts import *` reaches the model API, so the star import and
-# every name arriving through it are by design.
-"unified_planning/shortcuts.py" = ["F403", "F405"]
+# shortcuts.py is the star-export surface itself. B008 rides along because ProblemKind arrives
+# through that same star import, so extend-immutable-calls cannot resolve the name here.
+"unified_planning/shortcuts.py" = ["F403", "F405", "B008"]
 # The CLI and the protobuf writer consume that surface deliberately.
 "unified_planning/cmd/up.py" = ["F403", "F405"]
 "unified_planning/grpc/proto_writer.py" = ["F403", "F405"]
@@ -197,6 +199,15 @@ ignore = [
 "unified_planning/model/mixins/__init__.py" = ["I001"]
 "unified_planning/model/walkers/__init__.py" = ["I001"]
 "unified_planning/plans/__init__.py" = ["I001"]
+# One pattern: write_action is defined and called inside the same `for ag in ...agents`
+# iteration, so no closure outlives its loop. Threading `out`/`costs` through as parameters is
+# a real refactor of a writer that has no unit tests - see the follow-up issue.
+"unified_planning/io/ma_pddl_writer.py" = ["B023"]
+
+[tool.ruff.lint.flake8-bugbear]
+# `typing.cast` is the identity at runtime, and the `ProblemKind()` defaults in factory.py are
+# only ever read, so the shared default cannot be mutated across calls.
+extend-immutable-calls = ["typing.cast", "unified_planning.model.ProblemKind"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"

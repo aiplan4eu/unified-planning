@@ -23,16 +23,19 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
 
         try:
             module = importlib.import_module(current_package_name)
-        except:
-            print(current_package_name)
-            assert False
+        except Exception as e:
+            # chained, so the original traceback survives: this used to swallow it and
+            # raise a contentless AssertionError instead
+            raise ImportError(
+                f"Could not import test case package {current_package_name}"
+            ) from e
 
         to_expand = False
         if current_package_name != package_name:
             try:
                 to_add = module.get_test_cases()
                 if not isinstance(to_add, dict):
-                    assert False, (
+                    raise AssertionError(
                         f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
                     )
             except AttributeError:

@@ -82,7 +82,7 @@ class Schedule(Plan):
             s.append(a.name)
             if len(a.parameters) > 0:
 
-                def fmt(p):
+                def fmt(p, a=a):
                     prefix = a.name + "."
                     assert p.name.startswith(prefix)
                     return f"{p.name[len(prefix) :]}={self.get(p)}"

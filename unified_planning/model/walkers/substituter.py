@@ -14,7 +14,7 @@
 #
 
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
@@ -74,7 +74,9 @@ class Substituter(IdentityDagWalker):
             IdentityDagWalker._push_with_children_to_stack(self, expression, **kwargs)
 
     def substitute(
-        self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
+        self,
+        expression: FNode,
+        substitutions: Optional[Dict[Expression, Expression]] = None,
     ) -> FNode:
         """
         Performs substitution into the given expression.
@@ -106,12 +108,12 @@ class Substituter(IdentityDagWalker):
         substitute(f, subs) = c
         """
 
-        if len(substitutions) == 0:
+        if not substitutions:
             return expression
         return self.walk(expression, subs=self.normalize_substitutions(substitutions))
 
     def normalize_substitutions(
-        self, substitutions: Dict[Expression, Expression] = {}
+        self, substitutions: Optional[Dict[Expression, Expression]] = None
     ) -> Dict[FNode, FNode]:
         """
         Auto-promotes and type-checks every entry of the given substitutions map, returning the
@@ -127,7 +129,7 @@ class Substituter(IdentityDagWalker):
         :return: The equivalent `FNode -> FNode` substitutions map.
         """
         new_substitutions: Dict[FNode, FNode] = {}
-        for k, v in substitutions.items():
+        for k, v in (substitutions or {}).items():
             new_k, new_v = self.manager.auto_promote(k, v)
             if new_k.type.is_compatible(new_v.type):
                 new_substitutions[new_k] = new_v
@@ -165,10 +167,10 @@ class Substituter(IdentityDagWalker):
         self,
         expression: FNode,
         args: List[FNode],
-        subs: Dict[FNode, FNode] = {},
+        subs: Optional[Dict[FNode, FNode]] = None,
         **kwargs,
     ) -> FNode:
-        res = subs.get(expression)
+        res = subs.get(expression) if subs else None
         if res is not None:
             return res
         return IdentityDagWalker.super(self, expression, args, **kwargs)

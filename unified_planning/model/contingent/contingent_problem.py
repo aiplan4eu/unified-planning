@@ -29,7 +29,9 @@ class ContingentProblem(Problem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         Problem.__init__(self, name, environment, initial_defaults=initial_defaults)
         self._hidden_fluents: Set["up.model.fnode.FNode"] = set()

@@ -130,7 +130,7 @@ class TarskiGrounder(Engine, CompilerMixin):
         except tarski.grounding.errors.ReachabilityLPUnsolvable:
             raise up.exceptions.UPUsageError(
                 "tarski grounder can not find a solvable grounding."
-            )
+            ) from None
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name: fluent for fluent in problem.fluents}
         objects = {object.name: object for object in problem.all_objects}

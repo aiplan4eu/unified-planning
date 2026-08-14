@@ -142,7 +142,8 @@ class PDDLReader:
                     raise e
                 if not self._disable_warnings:
                     warn(
-                        f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
+                        f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}",
+                        stacklevel=2,
                     )
             if not ai_pddl_parsing_failed:
                 try:
@@ -154,7 +155,8 @@ class PDDLReader:
                         raise e
                     if not self._disable_warnings:
                         warn(
-                            f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+                            f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}",
+                            stacklevel=2,
                         )
         if self._up_pddl_reader is None:
             self._up_pddl_reader = UPPDDLReader(self._env)

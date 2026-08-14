@@ -79,7 +79,7 @@ class AnytimePlannerMixin(ABC):
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
             else:
-                warn(msg)
+                warn(msg, stacklevel=2)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = "The problem has no quality metrics but the engine is required to satisfies some optimality guarantee!"
             raise up.exceptions.UPUsageError(msg)

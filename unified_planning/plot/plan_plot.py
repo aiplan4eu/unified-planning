@@ -834,7 +834,7 @@ class GraphvizGenerator:
         graphviz_out += "digraph {\n"
 
         # Iteration of the adjacency_list to identify agents
-        for start, end_list in adjacency_list.items():
+        for start in adjacency_list:
             agent_name = start.agent
             if agent_name not in agent_colors:
                 # Get a new color for the agent

@@ -207,7 +207,7 @@ def correct_plan_generation_result(
         except ValueError as e:
             raise UPValueError(
                 f"Given engine_epsilon is not convertible to Fraction: {e!s}."
-            )
+            ) from e
     if engine_epsilon == problem.epsilon:
         return result
     if engine_epsilon is None or (

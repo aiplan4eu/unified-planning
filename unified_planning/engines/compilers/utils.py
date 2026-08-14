@@ -437,7 +437,7 @@ def replace_action(
     except KeyError:
         raise UPUsageError(
             "The Action of the given ActionInstance does not have a valid replacement."
-        )
+        ) from None
     if replaced_action is not None:
         return ActionInstance(
             replaced_action,

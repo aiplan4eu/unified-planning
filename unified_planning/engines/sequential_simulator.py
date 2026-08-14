@@ -102,7 +102,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         assert isinstance(self._problem, up.model.Problem)
         # prune_actions=False: a fluent that never appears as an effect target is
         # "static" and would otherwise be folded into its declared initial value,
@@ -574,7 +574,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                             except UPConflictingEffectsException:
                                 raise UPUnreachableCodeError(
                                     "Conflicting effects should be caught above"
-                                )
+                                ) from None
 
             if not isinstance(state, up.model.UPState):
                 raise UPUsageError(

@@ -54,7 +54,9 @@ class MultiAgentProblem(  # type: ignore[misc]
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
@@ -63,7 +65,7 @@ class MultiAgentProblem(  # type: ignore[misc]
         )
         AgentsSetMixin.__init__(self, self.environment, self.has_name)
 
-        self._initial_defaults = initial_defaults
+        self._initial_defaults = initial_defaults or {}
         self._env_ma = up.model.multi_agent.ma_environment.MAEnvironment(self)
         self._goals: List["up.model.fnode.FNode"] = []
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}

@@ -52,12 +52,12 @@ class PlanValidatorMixin(ABC):
             msg = f"We cannot establish whether {self.name} can validate this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         if not self.skip_checks and not self.supports_plan(plan.kind):
             msg = f"{self.name} cannot validate this kind of plan!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         return self._validate(problem, plan)
 
     @abstractmethod

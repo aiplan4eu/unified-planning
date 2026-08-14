@@ -79,7 +79,7 @@ def parse_instance(instance: str):
         for t in range(num_tasks):
             machines = job[i]
             i += 1
-            for m in range(machines):
+            for _m in range(machines):
                 machine, processing_time = job[i : i + 2]
 
                 tasks[t].append((processing_time, machine - 1))

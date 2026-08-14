@@ -145,12 +145,15 @@ class Parallel(
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
         if output_stream is not None:
             warnings.warn(
-                "Parallel engines do not support the output stream system.", UserWarning
+                "Parallel engines do not support the output stream system.",
+                UserWarning,
+                stacklevel=2,
             )
         if heuristic is not None:
             warnings.warn(
                 "Parallel engines do not support heuristic functions; the heuristic will be ignored.",
                 UserWarning,
+                stacklevel=2,
             )
 
         final_reports = self._run_parallel(
