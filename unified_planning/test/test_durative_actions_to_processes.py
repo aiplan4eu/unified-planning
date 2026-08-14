@@ -417,14 +417,14 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_action(put_down)
         problem.add_action(move)
         NLOC = 6
-        locations = [Object("l%s" % i, Room) for i in range(NLOC)]
+        locations = [Object(f"l{i}", Room) for i in range(NLOC)]
         problem.add_objects(locations)
         NTAB = 6
-        tables = [Object("t%s" % i, Table) for i in range(NTAB)]
+        tables = [Object(f"t{i}", Table) for i in range(NTAB)]
         problem.add_objects(tables)
         rob = Object("r", Robot)
         problem.add_object(rob)
-        objects = [Object("o%s" % i, Obj) for i in range(2)]
+        objects = [Object(f"o{i}", Obj) for i in range(2)]
         problem.add_objects(objects)
         for i in range(NLOC - 1):
             problem.set_initial_value(connect(locations[i], locations[i + 1]), True)
@@ -516,14 +516,14 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_action(put_down)
         problem.add_action(move)
         NLOC = 6
-        locations = [Object("l%s" % i, Room) for i in range(NLOC)]
+        locations = [Object(f"l{i}", Room) for i in range(NLOC)]
         problem.add_objects(locations)
         NTAB = 6
-        tables = [Object("t%s" % i, Table) for i in range(NTAB)]
+        tables = [Object(f"t{i}", Table) for i in range(NTAB)]
         problem.add_objects(tables)
         rob = Object("r", Robot)
         problem.add_object(rob)
-        objects = [Object("o%s" % i, Obj) for i in range(2)]
+        objects = [Object(f"o{i}", Obj) for i in range(2)]
         problem.add_objects(objects)
         for i in range(NLOC - 1):
             problem.set_initial_value(connect(locations[i], locations[i + 1]), True)
@@ -614,14 +614,14 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         problem.add_action(put_down)
         problem.add_action(move)
         NLOC = 6
-        locations = [Object("l%s" % i, Room) for i in range(NLOC)]
+        locations = [Object(f"l{i}", Room) for i in range(NLOC)]
         problem.add_objects(locations)
         NTAB = 6
-        tables = [Object("t%s" % i, Table) for i in range(NTAB)]
+        tables = [Object(f"t{i}", Table) for i in range(NTAB)]
         problem.add_objects(tables)
         rob = Object("r", Robot)
         problem.add_object(rob)
-        objects = [Object("o%s" % i, Obj) for i in range(2)]
+        objects = [Object(f"o{i}", Obj) for i in range(2)]
         problem.add_objects(objects)
         for i in range(NLOC - 1):
             problem.set_initial_value(connect(locations[i], locations[i + 1]), True)

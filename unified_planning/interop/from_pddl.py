@@ -373,14 +373,12 @@ class AIPDDLConverter:
         # extracts all the parameters of the fluents
         def get_all_fluents_terms() -> Iterator[Term]:
             for fluent in chain(self._domain.predicates, self._domain.functions):
-                for term in fluent.terms:
-                    yield term
+                yield from fluent.terms
 
         # extracts all the parameters of the actions
         def get_all_actions_params() -> Iterator[Variable]:
             for action in self._domain.actions:
-                for param in action.parameters:
-                    yield param
+                yield from action.parameters
 
         for typed_element in chain(
             objects, get_all_fluents_terms(), get_all_actions_params()

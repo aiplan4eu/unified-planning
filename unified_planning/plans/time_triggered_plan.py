@@ -501,7 +501,7 @@ def _extract_instantenous_actions(
     ):
         inst_action = InstantaneousAction(
             f"{action.name}_{i}",
-            _parameters=OrderedDict(((p.name, p.type) for p in action.parameters)),
+            _parameters=OrderedDict((p.name, p.type) for p in action.parameters),
         )
         for cond in _get_timepoint_conditions(action, timing, start, duration):
             inst_action.add_precondition(cond)

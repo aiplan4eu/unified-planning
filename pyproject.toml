@@ -171,6 +171,7 @@ select = [
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat
     "RUF",   # ruff-specific, including RUF100 (stale noqa)
+    "UP",    # pyupgrade, minus the PEP 585/604/695 rewrites in `ignore` below
 ]
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is
@@ -188,6 +189,18 @@ ignore = [
     # mark @abstractmethod. Dropping ABC would change the metaclass of public base classes
     # that downstream engine packages subclass, to satisfy a rule about a keyword.
     "B024", # abstract-base-class-without-abstract-method
+    # The library annotates with typing.Optional/Union/List/Dict throughout. These seven
+    # would rewrite 3253 annotations to PEP 585/604/695 syntax: an annotation-style
+    # migration, not lint adoption, so it lands in its own PR. fbk-pso/tamerlite selects
+    # `UP` wholesale, so deleting this block is the end state, not a rejection. Note a
+    # future ruff may split a new PEP-585-adjacent rule into `UP` that this list misses.
+    "UP006", # non-pep585-annotation          Dict -> dict
+    "UP007", # non-pep604-annotation-union    Union[a, b] -> a | b
+    "UP035", # deprecated-import              typing.Dict -> collections.abc
+    "UP037", # quoted-annotation
+    "UP045", # non-pep604-annotation-optional Optional[a] -> a | None
+    "UP046", # non-pep695-generic-class
+    "UP047", # non-pep695-generic-function
 ]
 
 [tool.ruff.lint.per-file-ignores]

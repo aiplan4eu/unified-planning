@@ -44,9 +44,7 @@ class TypeChecker(walkers.dag.DagWalker):
         """
         res = self.walk(expression)
         if res is None:
-            raise UPTypeError(
-                "The expression '%s' is not well-formed" % str(expression)
-            )
+            raise UPTypeError(f"The expression '{expression!s}' is not well-formed")
         return res
 
     @walkers.handles(
@@ -379,9 +377,9 @@ class TypeChecker(walkers.dag.DagWalker):
 
         if t.is_bool_type():
             raise UPTypeError(
-                "The expression '%s' is not well-formed."
+                f"The expression '{expression!s}' is not well-formed."
                 "Equality operator is not supported for Boolean"
-                " terms. Use Iff instead." % str(expression)
+                " terms. Use Iff instead."
             )
         for x in args:
             if x is None:

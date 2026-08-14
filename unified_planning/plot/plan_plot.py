@@ -775,8 +775,7 @@ def _plot_expressions(
                 y=list(map(partial(get_bool_value_from_state, exp), state_sequence)),
                 line_shape="hv",
                 name=str(exp),
-                hovertemplate="variable=%s<br>Action name=%%{x}<br>value=%%{y}<extra></extra>"
-                % exp,
+                hovertemplate=f"variable={exp}<br>Action name=%{{x}}<br>value=%{{y}}<extra></extra>",
             )
 
     if filename is not None:
@@ -810,7 +809,7 @@ class GraphvizGenerator:
             cls.random_color_counter += 1
         else:
             # If available_colors run out, generate a random color
-            color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            color = f"#{random.randint(0, 0xFFFFFF):06x}"
         return color
 
     @classmethod

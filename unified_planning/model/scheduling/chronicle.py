@@ -201,7 +201,7 @@ class Chronicle(TimedCondsEffs):
         This is a convenience method for scheduling problems with no optional tasks, in which constraint typically would not have any scope.
 
         Note: To get all constraints (with and without scope) consider the `scoped_constraints` property."""
-        if any((len(scope) != 0 for (_, scope) in self._constraints)):
+        if any(len(scope) != 0 for (_, scope) in self._constraints):
             print(
                 "Warning: at least one constraint has a non-empty scope.",
                 [

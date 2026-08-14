@@ -956,7 +956,7 @@ class ProtobufWriter(Converter):
             return proto.PlanGenerationResult.Status.Value("UNSUPPORTED_PROBLEM")
         if status == unified_planning.engines.PlanGenerationResultStatus.INTERMEDIATE:
             return proto.PlanGenerationResult.Status.Value("INTERMEDIATE")
-        raise ValueError("Unknown status: {}".format(status))
+        raise ValueError(f"Unknown status: {status}")
 
     @handles(unified_planning.engines.LogMessage)
     def _convert_log_messages(

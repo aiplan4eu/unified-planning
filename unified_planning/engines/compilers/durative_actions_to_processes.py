@@ -438,7 +438,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         tm: TypeManager = env.type_manager
         mgr: ExpressionManager = env.expression_manager
         fve = env.free_vars_extractor
-        params = OrderedDict(((p.name, p.type) for p in action.parameters))
+        params = OrderedDict((p.name, p.type) for p in action.parameters)
 
         add_new_fluent = partial(
             _add_new_fluent, new_problem=new_problem, action=action, params=params

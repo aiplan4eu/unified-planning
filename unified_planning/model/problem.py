@@ -350,7 +350,7 @@ class Problem(  # type: ignore[misc]
         # from the unused_fluents  set.
         def remove_used_fluents(*exps):
             return unused_fluents.difference_update(
-                (f.fluent() for e in exps for f in fve.get(e))
+                f.fluent() for e in exps for f in fve.get(e)
             )
 
         for a in self._actions:

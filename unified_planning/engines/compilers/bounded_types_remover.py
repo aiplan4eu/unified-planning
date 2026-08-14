@@ -174,9 +174,7 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
                     old_fluent_type.lower_bound is not None
                     or old_fluent_type.upper_bound is not None
                 ), "Error, old_fluent_type should equal int_type"
-                signature = OrderedDict(
-                    ((p.name, p.type) for p in old_fluent.signature)
-                )
+                signature = OrderedDict((p.name, p.type) for p in old_fluent.signature)
                 new_fluent = Fluent(old_fluent.name, int_type, signature, env)
 
             # old_fluent.type != real_type is used to check if the type of the old_fluent
@@ -187,9 +185,7 @@ class BoundedTypesRemover(engines.engine.Engine, CompilerMixin):
                     old_fluent_type.lower_bound is not None
                     or old_fluent_type.upper_bound is not None
                 ), "Error, old_fluent_type should equal real_type"
-                signature = OrderedDict(
-                    ((p.name, p.type) for p in old_fluent.signature)
-                )
+                signature = OrderedDict((p.name, p.type) for p in old_fluent.signature)
                 new_fluent = Fluent(old_fluent.name, real_type, signature, env)
 
             if new_fluent is not None:

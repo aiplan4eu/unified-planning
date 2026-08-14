@@ -184,8 +184,7 @@ class ConverterToPDDLString(walkers.DagWalker):
 
             if Fraction(dec) != frac:
                 warn(
-                    "The PDDL printer cannot exactly represent the real constant '%s'"
-                    % frac,
+                    f"The PDDL printer cannot exactly represent the real constant '{frac}'",
                     stacklevel=2,
                 )
             return float(dec)
@@ -349,10 +348,8 @@ class PDDLWriter:
         if len(self.problem.trajectory_constraints) > 0:
             self.pddl_keywords |= PDDL3_KEYWORDS
         if any(
-            (
-                isinstance(action, up.model.action.DurativeAction)
-                for action in self.problem.actions
-            )
+            isinstance(action, up.model.action.DurativeAction)
+            for action in self.problem.actions
         ):
             self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
         if isinstance(self.problem, ContingentProblem):
@@ -857,7 +854,7 @@ class PDDLWriter:
         def _format_action_instance(action_instance: ActionInstance) -> str:
             param_str = ""
             if action_instance.actual_parameters:
-                param_str = f" {' '.join((self._get_mangled_name(p.object()) for p in action_instance.actual_parameters))}"
+                param_str = f" {' '.join(self._get_mangled_name(p.object()) for p in action_instance.actual_parameters)}"
             return f"({self._get_mangled_name(action_instance.action)}{param_str})"
 
         if isinstance(plan, SequentialPlan):
@@ -1126,10 +1123,7 @@ def _write_effect(
     forall_str = ""
     if effect.is_forall():
         mid_str = " ".join(
-            (
-                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
-                for v in effect.forall
-            )
+            f"{get_mangled_name(v)} - {get_mangled_name(v.type)}" for v in effect.forall
         )
         forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
