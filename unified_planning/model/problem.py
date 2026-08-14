@@ -408,7 +408,7 @@ class Problem(  # type: ignore[misc]
             elif isinstance(qm, up.model.metrics.Oversubscription):
                 remove_used_fluents(*qm.goals.keys())
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
-                for _, g in qm.goals.keys():
+                for _, g in qm.goals:
                     remove_used_fluents(g)
             elif isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 costs = list(qm.costs.values())
@@ -833,10 +833,10 @@ class Problem(  # type: ignore[misc]
             ):
                 domain_constants.update(extractor.get(qm.expression))
             elif isinstance(qm, Oversubscription):
-                for g in qm.goals.keys():
+                for g in qm.goals:
                     domain_constants.update(extractor.get(g))
             elif isinstance(qm, TemporalOversubscription):
-                for _, g in qm.goals.keys():
+                for _, g in qm.goals:
                     domain_constants.update(extractor.get(g))
             elif isinstance(qm, MinimizeActionCosts):
                 for c in qm.costs.values():
@@ -1217,9 +1217,11 @@ class _KindFactory:
             self.update_action_parameter(param)
         if isinstance(action, up.model.contingent.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
-        if isinstance(action, up.model.mixins.MotionConstraintsSetMixin):
-            if len(action.motion_constraints) > 0:
-                self.kind.set_problem_class("TAMP")
+        if (
+            isinstance(action, up.model.mixins.MotionConstraintsSetMixin)
+            and len(action.motion_constraints) > 0
+        ):
+            self.kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
@@ -1244,7 +1246,7 @@ class _KindFactory:
             self.kind.set_time("CONTINUOUS_TIME")
             continuous_fluents = set()
             fluents_in_rhs = set()
-            for eff_time in action.continuous_effects.keys():
+            for eff_time in action.continuous_effects:
                 for e in action.continuous_effects[eff_time]:
                     if e.kind == EffectKind.CONTINUOUS_INCREASE:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
@@ -1386,7 +1388,7 @@ class _KindFactory:
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.TemporalOversubscription)
                 self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                oversub_goals = (x[1] for x in metric.goals.keys())
+                oversub_goals = (x[1] for x in metric.goals)
                 oversub_gains = metric.goals.values()
             else:
                 assert False, "Unknown quality metric"

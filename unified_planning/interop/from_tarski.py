@@ -91,10 +91,7 @@ def convert_tarski_formula(
             )
             for f in formula.subterms
         ]
-        if is_atom(formula):
-            symbol = formula.predicate.symbol
-        else:
-            symbol = formula.symbol.name
+        symbol = formula.predicate.symbol if is_atom(formula) else formula.symbol.name
         if symbol == BuiltinPredicateSymbol.EQ:
             assert len(children) == 2
             return em.Equals(children[0], children[1])
@@ -372,7 +369,7 @@ def convert_problem_from_tarski(
             parameters[p.symbol] = type
         action = unified_planning.model.InstantaneousAction(a_name, parameters)
         action_parameters = {}
-        for p in parameters.keys():
+        for p in parameters:
             action_parameters[p] = action.parameter(p)
         f = convert_tarski_formula(
             environment, fluents, objects, action_parameters, types, a.precondition

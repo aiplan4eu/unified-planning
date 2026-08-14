@@ -407,7 +407,7 @@ def check_conflicting_effects(
     :param name: string used for better error indexing.
     :raises: UPConflictingException if the given effect is in conflict with the data structure around it.
     """
-    assigned_value = fluents_assigned.get(effect.fluent, None)
+    assigned_value = fluents_assigned.get(effect.fluent)
     if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
         if effect.is_assignment():
             # if the same fluent is involved in an increase/decrease, raise exception

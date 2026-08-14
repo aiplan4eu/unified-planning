@@ -113,10 +113,7 @@ class ObjectsSetMixin:
         :return: `True` if an `object` with the given `name` is in the `problem`,
                 `False` otherwise.
         """
-        for o in self._objects:
-            if o.name == name:
-                return True
-        return False
+        return any(o.name == name for o in self._objects)
 
     def objects(
         self, typename: "up.model.types.Type"

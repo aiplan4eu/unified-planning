@@ -161,6 +161,7 @@ select = [
     "F",     # pyflakes
     "RET",   # flake8-return
     "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
     "PIE",   # flake8-pie
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat

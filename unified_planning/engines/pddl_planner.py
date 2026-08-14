@@ -208,11 +208,12 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             metrics=metrics,
         )
         problem_kind = problem.kind
-        if problem_kind.has_continuous_time() or problem_kind.has_discrete_time():
-            if isinstance(plan, up.plans.TimeTriggeredPlan) or plan is None:
-                return up.engines.results.correct_plan_generation_result(
-                    res, problem, self._get_engine_epsilon()
-                )
+        if (
+            problem_kind.has_continuous_time() or problem_kind.has_discrete_time()
+        ) and (isinstance(plan, up.plans.TimeTriggeredPlan) or plan is None):
+            return up.engines.results.correct_plan_generation_result(
+                res, problem, self._get_engine_epsilon()
+            )
         return res
 
     @abstractmethod

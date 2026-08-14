@@ -154,12 +154,7 @@ class ExpressionManager(object):
                 res.append(self.PresentExp(e))
             elif isinstance(e, bool):
                 res.append(self.Bool(e))
-            elif (
-                isinstance(e, int)
-                or isinstance(e, float)
-                or isinstance(e, Fraction)
-                or isinstance(e, str)
-            ):
+            elif isinstance(e, (int, float, Fraction, str)):
                 number = uniform_numeric_constant(e)
                 if isinstance(number, int):
                     res.append(self.Int(number))

@@ -82,10 +82,7 @@ class FluentsSetMixin:
         :return: `True` if the `fluent` with the given `name` is in the `problem`,
             `False` otherwise.
         """
-        for f in self._fluents:
-            if f.name == name:
-                return True
-        return False
+        return any(f.name == name for f in self._fluents)
 
     def add_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
@@ -183,9 +180,7 @@ class FluentsSetMixin:
         # ignores default values as they may have no impact on the initial state
         if not isinstance(oth, FluentsSetMixin):
             return False
-        if set(self._fluents) != set(oth._fluents):
-            return False
-        return True
+        return set(self._fluents) == set(oth._fluents)
 
     def __hash__(self):
         return sum(map(hash, self._fluents))

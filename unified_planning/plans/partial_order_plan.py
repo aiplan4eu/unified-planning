@@ -54,7 +54,7 @@ class PartialOrderPlan(plans.plan.Plan):
         # If we don't have a specific environment, use the environment of the first action
         else:
             assert len(adjacency_list) > 0
-            for ai in adjacency_list.keys():
+            for ai in adjacency_list:
                 plans.plan.Plan.__init__(
                     self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, ai.action.environment
                 )
@@ -174,18 +174,18 @@ class PartialOrderPlan(plans.plan.Plan):
         # Populate the new adjacency list with the replaced action instances
 
         for ai in self._graph.nodes:
-            replaced_ai = original_to_replaced_ai.get(ai, None)
+            replaced_ai = original_to_replaced_ai.get(ai)
             if replaced_ai is not None:
                 replaced_ai = original_to_replaced_ai[ai]
                 replaced_neighbors = []
                 for successor in self._graph.neighbors(ai):
-                    replaced_successor = original_to_replaced_ai.get(successor, None)
+                    replaced_successor = original_to_replaced_ai.get(successor)
                     if replaced_successor is not None:
                         replaced_neighbors.append(replaced_successor)
                 new_adj_list[replaced_ai] = replaced_neighbors
 
         new_env = self._environment
-        for ai in new_adj_list.keys():
+        for ai in new_adj_list:
             new_env = ai.action.environment
             break
         return up.plans.PartialOrderPlan(new_adj_list, new_env)

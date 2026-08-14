@@ -194,10 +194,10 @@ class TimeTriggeredPlan(plans.plan.Plan):
             returned if the plan does not have at least 2 events.
         """
         times: Set[Fraction] = {Fraction(0)}
-        for i in problem.timed_goals.keys():
+        for i in problem.timed_goals:
             times.add(Fraction(i.lower.delay))
             times.add(Fraction(i.upper.delay))
-        for t in problem.timed_effects.keys():
+        for t in problem.timed_effects:
             times.add(Fraction(t.delay))
         for start, ai, duration in self._actions:
             times.add(start)
@@ -472,7 +472,7 @@ def _extract_action_timings(
     absolute_time = lambda timing: _absolute_time(timing, start, duration)
     timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
 
-    for interval in action.conditions.keys():
+    for interval in action.conditions:
         lower_increment: Fraction = epsilon if interval.is_left_open() else Fraction(0)
         upper_increment: Fraction = (
             -epsilon if interval.is_right_open() else Fraction(0)

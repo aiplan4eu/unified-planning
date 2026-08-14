@@ -16,6 +16,7 @@
 
 
 import configparser
+import contextlib
 import importlib
 import inspect
 import os
@@ -252,10 +253,9 @@ class Factory:
         self._meta_engines_info: List[Tuple[str, str, str]] = []
         self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in DEFAULT_ENGINES.items():
-            try:
+            # an engine whose package is not installed is simply not registered
+            with contextlib.suppress(ImportError):
                 self._add_engine(name, module_name, class_name)
-            except ImportError:
-                pass
         engines = dict(self._engines)
         for name, (module_name, class_name) in DEFAULT_META_ENGINES.items():
             try:
@@ -270,7 +270,7 @@ class Factory:
             if name in self._engines:
                 self._preference_list.append(name)
         for name in DEFAULT_META_ENGINES_PREFERENCE_LIST:
-            for e in self._engines.keys():
+            for e in self._engines:
                 if e.startswith(f"{name}["):
                     self._preference_list.append(e)
         self.configure_from_file()
@@ -754,9 +754,7 @@ class Factory:
                 error_on_failed_checks=error_failed_checks,
                 **params,
             )
-            assert isinstance(res, SequentialSimulatorMixin) or isinstance(
-                res, ActionSelectorMixin
-            )
+            assert isinstance(res, (SequentialSimulatorMixin, ActionSelectorMixin))
         elif operation_mode == OperationMode.COMPILER:
             res = EngineClass(**params)
             assert isinstance(res, CompilerMixin)
@@ -768,10 +766,8 @@ class Factory:
             or operation_mode == OperationMode.PORTFOLIO_SELECTOR
         ):
             res = EngineClass(**params)
-            assert (
-                isinstance(res, OneshotPlannerMixin)
-                or isinstance(res, PortfolioSelectorMixin)
-                or isinstance(res, PlanRepairerMixin)
+            assert isinstance(
+                res, (OneshotPlannerMixin, PortfolioSelectorMixin, PlanRepairerMixin)
             )
             if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
                 res.optimality_metric_required = True

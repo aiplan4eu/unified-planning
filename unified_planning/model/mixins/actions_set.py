@@ -125,10 +125,7 @@ class ActionsSetMixin:
         :param name: The `name` of the target `action`.
         :return: `True` if the `problem` has an `action` with the given `name`, `False` otherwise.
         """
-        for a in self._actions:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._actions)
 
     def add_action(self, action: "up.model.action.Action"):
         """

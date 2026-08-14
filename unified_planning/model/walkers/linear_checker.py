@@ -122,7 +122,7 @@ class LinearChecker(DagWalker):
                 negative_fluents |= snf
             else:
                 t = tc.get_type(expression.arg(i))
-                assert isinstance(t, _IntType) or isinstance(t, _RealType)
+                assert isinstance(t, (_IntType, _RealType))
                 if t.lower_bound is None or t.upper_bound is None:
                     positivity_unknown = True
                 elif t.lower_bound > 0:
