@@ -191,7 +191,7 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         self._state = new_state
         res = {}
         subs: Dict["up.model.Expression", "up.model.Expression"] = dict(
-            zip(action.action.parameters, action.actual_parameters)
+            zip(action.action.parameters, action.actual_parameters, strict=True)
         )
         if isinstance(action.action, up.model.contingent.sensing_action.SensingAction):
             for f in action.action.observed_fluents:

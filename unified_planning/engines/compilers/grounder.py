@@ -214,7 +214,7 @@ class GrounderHelper:
                 new_action = None
         else:
             subs: Dict[Expression, Expression] = dict(
-                zip(action.parameters, list(parameters))
+                zip(action.parameters, list(parameters), strict=True)
             )
             new_action = create_action_with_given_subs(
                 self._problem, action, self._simplifier, subs
@@ -425,7 +425,7 @@ class GrounderHelper:
             if free_columns:
                 for combo in product(*free_domains):
                     full_binding = dict(binding)
-                    full_binding.update(zip(free_columns, combo))
+                    full_binding.update(zip(free_columns, combo, strict=True))
                     tuples.append(tuple(full_binding[i] for i in range(num_params)))
             else:
                 tuples.append(tuple(binding[i] for i in range(num_params)))
@@ -667,7 +667,7 @@ class GrounderHelper:
         # sound, and using all of them is strictly stronger pruning than using only one.
         em = self._problem.environment.expression_manager
         return_list = []
-        for param, object_list in zip(params, items_list):
+        for param, object_list in zip(params, items_list, strict=True):
             temp_list = list(object_list)
             param_exp = em.ParameterExp(param)
             for static_fluent in conds:
@@ -915,7 +915,7 @@ def ground_minimize_action_costs_metric(
     for new_action, (old_action, params) in trace_back_map.items():
         subs = cast(
             Dict[Expression, Expression],
-            dict(zip(old_action.parameters, params)),
+            dict(zip(old_action.parameters, params, strict=True)),
         )
         old_cost = metric.get_action_cost(old_action)
         if old_cost is not None:

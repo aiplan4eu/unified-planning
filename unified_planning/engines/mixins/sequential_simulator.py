@@ -94,7 +94,8 @@ class SequentialSimulatorMixin(ABC):
             assert isinstance(parameters, Sequence), "Typing not respected"
             params = tuple(auto_promote(parameters))
         if len(params) != len(act.parameters) or any(
-            not ap.type.is_compatible(p.type) for p, ap in zip(params, act.parameters)
+            not ap.type.is_compatible(p.type)
+            for p, ap in zip(params, act.parameters, strict=True)
         ):
             method_name = inspect.stack()[1].function
             assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]

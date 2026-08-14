@@ -286,6 +286,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
         for condition, compiled_condition in zip(
             cast(InstantaneousAction, problem.action("a")).preconditions,
             cast(InstantaneousAction, compiled_problem.action("a")).preconditions,
+            strict=True,
         ):
             all_fluent_exp = [
                 f
@@ -302,7 +303,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
             for values in product(*gen):
                 assert len(all_fluent_exp) == len(values)
                 original_assignments: Dict[Expression, Expression] = dict(
-                    zip(all_fluent_exp, values)
+                    zip(all_fluent_exp, values, strict=True)
                 )
                 compiled_assignments: Dict[Expression, Expression] = {}
                 for fluent, val in original_assignments.items():

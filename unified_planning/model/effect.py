@@ -248,7 +248,7 @@ class Effect:
                 assert len(self._forall) == len(objects)
                 subs: Dict[
                     "up.model.expression.Expression", "up.model.expression.Expression"
-                ] = dict(zip(self._forall, objects))
+                ] = dict(zip(self._forall, objects, strict=True))
                 yield up.model.Effect(
                     fluent=self.fluent.substitute(subs),
                     value=self.value.substitute(subs),

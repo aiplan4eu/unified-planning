@@ -34,7 +34,9 @@ def add_method(pb, name, task, *subtasks):
 
 def set_costs(pb, *costs):
     cost_map: Dict[Action, Expression] = {}
-    for action, cost in zip(actions, costs):
+    # strict=False: `actions` is a fixed pool of 10 and each caller passes costs for
+    # only the first few, so the truncation is what assigns them
+    for action, cost in zip(actions, costs, strict=False):
         cost_map[action] = Int(cost)
     pb.add_quality_metric(up.model.metrics.MinimizeActionCosts(cost_map))
 

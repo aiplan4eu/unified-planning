@@ -133,7 +133,9 @@ class QuantifierSimplifier(Simplifier):
         # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
-            subs: Dict["Expression", "Expression"] = dict(zip(vars, list(o)))
+            subs: Dict["Expression", "Expression"] = dict(
+                zip(vars, list(o), strict=True)
+            )
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if result.bool_constant_value():
@@ -158,7 +160,9 @@ class QuantifierSimplifier(Simplifier):
         # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
-            subs: Dict["Expression", "Expression"] = dict(zip(vars, list(o)))
+            subs: Dict["Expression", "Expression"] = dict(
+                zip(vars, list(o), strict=True)
+            )
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if not result.bool_constant_value():

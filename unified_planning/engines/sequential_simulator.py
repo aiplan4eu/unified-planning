@@ -302,6 +302,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             for f, v in zip(
                 grounded_action.simulated_effect.fluents,
                 grounded_action.simulated_effect.function(self._problem, state, {}),
+                strict=True,
             ):
                 updated_values[f] = v
                 assigned_fluent.add(f)
@@ -494,6 +495,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 for f, v in zip(
                     sim_eff.fluents,
                     sim_eff.function(self._problem, state, {}),
+                    strict=True,
                 ):
                     updated_values[f] = v
                     assigned_fluent.add(f)
@@ -738,7 +740,9 @@ def evaluate_quality_metric(
             raise UPUsageError(
                 "The parameters length is different than the action's parameters length."
             )
-        action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
+        action_cost = action_cost.substitute(
+            dict(zip(action.parameters, parameters, strict=True))
+        )
         assert isinstance(action_cost, up.model.FNode)
         return se.evaluate(action_cost, state).constant_value() + metric_value
     if quality_metric.is_minimize_sequential_plan_length():

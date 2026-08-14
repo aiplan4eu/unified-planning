@@ -513,7 +513,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         # the Effect and proceed with the next iteration
         for objects in product(*(problem.objects(v.type) for v in vars_list)):
             assert len(objects) == len(vars_list)
-            subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
+            subs: Dict[Expression, Expression] = dict(
+                zip(vars_list, objects, strict=True)
+            )
             resulting_effect_fluent = new_fluent.substitute(subs).simplify()
             resulting_effect_value = new_value.substitute(subs).simplify()
             # Check if the type is boolean and not a constant, make it a conditional
