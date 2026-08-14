@@ -136,10 +136,10 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
             writer.pddl_writer if writer.pddl_writer is not None else self._writer
         )
         assert isinstance(pddl_writer, PDDLWriter)
-        for l in planner_output.splitlines():
-            if self._starting_plan_str() in l:
+        for line in planner_output.splitlines():
+            if self._starting_plan_str() in line:
                 writer.storing = True
-            elif writer.storing and self._ending_plan_str() in l:
+            elif writer.storing and self._ending_plan_str() in line:
                 plan_str = "\n".join(writer.current_plan)
                 plan = self._plan_from_str(
                     writer.problem, plan_str, pddl_writer.get_item_named
@@ -152,8 +152,8 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
                 writer.res_queue.put(res)
                 writer.current_plan = []
                 writer.storing = False
-            elif writer.storing and l and not self._skip_plan_line(l):
-                writer.current_plan.append(self._parse_plan_line(l))
+            elif writer.storing and line and not self._skip_plan_line(line):
+                writer.current_plan.append(self._parse_plan_line(line))
 
     def _starting_plan_str(self) -> str:
         """

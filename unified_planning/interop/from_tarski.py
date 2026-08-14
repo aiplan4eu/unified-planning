@@ -404,7 +404,7 @@ def convert_problem_from_tarski(
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects(p.type) for p in fluent.signature]
+        param_objects = [problem.objects(p.type) for p in fluent.signature]
         if fluent.type.is_bool_type():
             default_value = em.FALSE()
         elif fluent.type.is_real_type():
@@ -413,10 +413,10 @@ def convert_problem_from_tarski(
             default_value = em.Int(0)
         elif fluent.type.is_user_type():
             continue
-        if len(l) == 0:
+        if len(param_objects) == 0:
             initial_values[em.FluentExp(fluent)] = default_value
         else:
-            for args in itertools.product(*l):
+            for args in itertools.product(*param_objects):
                 initial_values[fluent(*args)] = default_value
     for i in tarski_problem.init.as_atoms():
         if isinstance(i, tuple):

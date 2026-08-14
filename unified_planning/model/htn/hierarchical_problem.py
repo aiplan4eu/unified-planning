@@ -99,11 +99,14 @@ class HierarchicalProblem(up.model.problem.Problem):
             fluents_in_action_costs,
         ) = super()._get_static_and_unused_fluents()
         fve = self._env.free_vars_extractor
+
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents set.
-        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
-            (f.fluent() for e in exps for f in fve.get(e))
-        )
+        def remove_used_fluents(*exps):
+            return unused_fluents.difference_update(
+                (f.fluent() for e in exps for f in fve.get(e))
+            )
+
         for m in self.methods:
             remove_used_fluents(*m.preconditions)
             remove_used_fluents(*m.constraints)

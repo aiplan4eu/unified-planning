@@ -157,12 +157,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = grounded_problem.clone()
         assert isinstance(new_problem, Problem)
         new_problem.name = f"{self.name}_{problem.name}"
-        # `I` is substituted into every trajectory constraint below (`_evaluate_constraint`,
+        # `init` is substituted into every trajectory constraint below (`_evaluate_constraint`,
         # `_get_monitoring_atoms`), once per constraint; normalizing it once here instead of
         # letting `FNode.substitute` re-normalize (auto_promote + type-check) the whole
         # initial-value map on every one of those calls avoids doing that rebuild once per
         # constraint -- see `Substituter.substitute_normalized`.
-        I = env.substituter.normalize_substitutions(
+        init = env.substituter.normalize_substitutions(
             cast(Dict[Expression, Expression], new_problem.initial_values)
         )
         C = []
@@ -176,7 +176,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
         A_prime: List["up.model.InstantaneousAction"] = []
-        I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
+        I_prime, F_prime = self._get_monitoring_atoms(env, C, init)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
@@ -379,19 +379,19 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             return None, constr
         return None, subs(constr.args[0], init_values).simplify()
 
-    def _get_monitoring_atoms(self, env, C, I):
+    def _get_monitoring_atoms(self, env, C, init):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
         initial_state_prime = []
         subs = env.substituter.substitute_normalized
         for constr in C:
             if constr.is_always():
-                if subs(constr.args[0], I).simplify().is_false():
+                if subs(constr.args[0], init).simplify().is_false():
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
             else:
-                type, init_state_value = self._evaluate_constraint(env, constr, I)
+                type, init_state_value = self._evaluate_constraint(env, constr, init)
                 fluent = up.model.Fluent(
                     f"{type}{SEPARATOR}{monitoring_atoms_counter}",
                     env.type_manager.BoolType(),
@@ -403,7 +403,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     initial_state_prime.append(monitoring_atom)
                 if (
                     constr.is_sometime_before()
-                    and subs(constr.args[0], I).simplify().is_true()
+                    and subs(constr.args[0], init).simplify().is_true()
                 ):
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"

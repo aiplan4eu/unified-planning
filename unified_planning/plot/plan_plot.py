@@ -270,8 +270,10 @@ def plot_time_triggered_plan(
         else:
             end = start + instantaneous_actions_length
         start, end = float(start), float(end)
-        start_date = datetime.datetime.fromtimestamp(start)
-        end_date = datetime.datetime.fromtimestamp(end)
+        # tz-aware so the rendered epoch does not depend on the runner's timezone;
+        # these are plan-relative second counts and the tick labels are overridden below
+        start_date = datetime.datetime.fromtimestamp(start, tz=datetime.timezone.utc)
+        end_date = datetime.datetime.fromtimestamp(end, tz=datetime.timezone.utc)
         tick_vals.add(start_date)
         tick_vals.add(end_date)
         x_ticks.setdefault(start_date, str(start))
@@ -494,7 +496,10 @@ def plot_contingent_plan(
     else:
         edge_label_function = generate_edge_label
     if generate_node_label is None:
-        generate_node_label = lambda x: str(x.action_instance)
+
+        def generate_node_label(x):
+            return str(x.action_instance)
+
     if draw_networkx_edge_labels_kwargs is None:
         draw_networkx_edge_labels_kwargs = {}
     edge_labels: Dict[Tuple[ContingentPlanNode, ContingentPlanNode], str] = {}

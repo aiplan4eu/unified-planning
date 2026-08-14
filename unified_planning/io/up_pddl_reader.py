@@ -1069,7 +1069,7 @@ class UPPDDLReader:
                         eff[1][2],
                         complete_str,
                     )
-                    if len(eff[2]) == 3 and not "#t" in eff[2] and "start" in eff[2]:
+                    if len(eff[2]) == 3 and "#t" not in eff[2] and "start" in eff[2]:
                         self._add_effect(
                             problem,
                             act,
@@ -2251,7 +2251,7 @@ class UPPDDLReader:
                 line,
             )
             if s_ai:
-                assert is_tt == False
+                assert not is_tt
                 name = s_ai.group(1)
                 params_name = s_ai.group(2).split()
             elif t_ai:

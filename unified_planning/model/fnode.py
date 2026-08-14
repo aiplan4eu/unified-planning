@@ -222,11 +222,11 @@ class FNode(object):
 
     def is_true(self) -> bool:
         """Test whether the expression is the `True` Boolean constant."""
-        return self.is_bool_constant() and self.bool_constant_value() == True
+        return self.is_bool_constant() and self.bool_constant_value()
 
     def is_false(self) -> bool:
         """Test whether the expression is the `False` Boolean constant."""
-        return self.is_bool_constant() and self.bool_constant_value() == False
+        return self.is_bool_constant() and not self.bool_constant_value()
 
     def is_and(self) -> bool:
         """Test whether the node is the `And` operator."""

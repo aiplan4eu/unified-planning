@@ -348,7 +348,7 @@ def _convert_to_stn(
         ai_to_start_node[ai] = start_node
 
     simultaneous_events: List[Set["plans.plan.ActionInstance"]] = [
-        set(l) for l in events.values() if len(l) > 1
+        set(el) for el in events.values() if len(el) > 1
     ]
 
     sorted_events = sorted(events.items(), key=lambda acts: acts[0])
@@ -471,7 +471,9 @@ def _extract_action_timings(
     """
     timings: Set[Fraction] = set()
 
-    absolute_time = lambda timing: _absolute_time(timing, start, duration)
+    def absolute_time(timing):
+        return _absolute_time(timing, start, duration)
+
     timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
 
     for interval in action.conditions:

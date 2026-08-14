@@ -172,7 +172,7 @@ class _IntType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound is None) or (not self.upper_bound is None):
+        if (self.lower_bound is not None) or (self.upper_bound is not None):
             b.append("[")
             b.append("-inf" if self.lower_bound is None else str(self.lower_bound))
             b.append(", ")
@@ -214,7 +214,7 @@ class _RealType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound is None) or (not self.upper_bound is None):
+        if (self.lower_bound is not None) or (self.upper_bound is not None):
             b.append("[")
             b.append("-inf" if self.lower_bound is None else str(self.lower_bound))
             b.append(", ")

@@ -214,8 +214,8 @@ DEFAULT_META_ENGINES_PREFERENCE_LIST = [
 def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = "|"
     for i in range(len(header)):
-        l = max(len(r[i]) for r in [header, *rows])
-        row_template += f" {{:<{l!s}}} |"
+        width = max(len(r[i]) for r in [header, *rows])
+        row_template += f" {{:<{width!s}}} |"
     header_str = row_template.format(*header)
     row_len = len(header_str)
     rows_str = [f"{'-' * row_len}", f"{header_str}", f"{'=' * row_len}"]

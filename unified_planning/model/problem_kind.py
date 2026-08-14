@@ -187,15 +187,19 @@ class ProblemKindMeta(type):
             return len(self._features.intersection(features)) > 0
 
         obj = type.__new__(cls, name, bases, dct)
-        for m, l in FEATURES.items():
-            setattr(obj, "set_" + m.lower(), partialmethod(_set, possible_features=l))
+        for m, group in FEATURES.items():
             setattr(
-                obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
+                obj, "set_" + m.lower(), partialmethod(_set, possible_features=group)
+            )
+            setattr(
+                obj,
+                "unset_" + m.lower(),
+                partialmethod(_unset, possible_features=group),
             )
             # given a group { X = [ Y, Z ], ...}, consider that it `has_x` if one of the features {X,Y,Z} is present
             # This is necessary, because, at least for scheduling, the name of the group is also a standalone feature
-            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=[*l, m]))
-            for f in l:
+            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=[*group, m]))
+            for f in group:
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, features=[f]))
         return obj
 

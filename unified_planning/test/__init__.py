@@ -68,7 +68,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
                 problem_kind=self.kind,
                 optimality_guarantee=self.optimality_guarantee,
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)
@@ -99,7 +99,7 @@ class skipIfNoAnytimePlannerForProblemKind(object):
                 problem_kind=self.kind,
                 anytime_guarantee=self.anytime_guarantee,
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)
@@ -123,7 +123,7 @@ class skipIfNoPlanValidatorForProblemKind(object):
             get_environment().factory._get_engine_class(
                 OperationMode.PLAN_VALIDATOR, problem_kind=self.kind
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)

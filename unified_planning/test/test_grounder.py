@@ -871,9 +871,9 @@ class TestGrounder(unittest_TestCase):
         hidden = Fluent("hidden", BoolType(), l=Loc)
         f = Fluent("f")
         action = SensingAction("sense", l=Loc)
-        l = action.parameter("l")
+        loc = action.parameter("l")
         action.add_effect(f, True)
-        action.add_observed_fluent(hidden(l))
+        action.add_observed_fluent(hidden(loc))
 
         problem = Problem("parameterized_sensing")
         problem.add_objects([l1, l2])
@@ -932,10 +932,10 @@ class TestGrounder(unittest_TestCase):
         rate = Fluent("rate", RealType(), l=Loc)
         x = Fluent("x", RealType())
         action = DurativeAction("act", l=Loc)
-        l = action.parameter("l")
+        loc = action.parameter("l")
         action.set_fixed_duration(1)
         action.add_increase_continuous_effect(
-            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(l)
+            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(loc)
         )
         # keeps "rate" non-static, so its read in the continuous effect isn't folded to a
         # constant: this test is about parameter substitution, not static-fluent folding.
