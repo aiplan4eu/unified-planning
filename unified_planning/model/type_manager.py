@@ -14,25 +14,25 @@
 #
 """This module defines all the types."""
 
-import unified_planning
+from fractions import Fraction
+from typing import Dict, Optional, Tuple, cast
+
+from unified_planning.exceptions import UPTypeError
 from unified_planning.model.expression import NumericConstant, uniform_numeric_constant
+from unified_planning.model.motion.objects import ConfigurationKind
+from unified_planning.model.motion.types import (
+    OccupancyMap,
+    _ConfigurationType,
+    _MovableType,
+)
 from unified_planning.model.types import (
+    BOOL,
+    TIME,
     Type,
     _IntType,
     _RealType,
     _UserType,
-    BOOL,
-    TIME,
 )
-from unified_planning.model.motion.objects import ConfigurationKind
-from unified_planning.model.motion.types import (
-    _MovableType,
-    _ConfigurationType,
-    OccupancyMap,
-)
-from unified_planning.exceptions import UPTypeError
-from fractions import Fraction
-from typing import Optional, Dict, Tuple, cast
 
 
 class TypeManager:
@@ -57,18 +57,18 @@ class TypeManager:
         """
         if type.is_bool_type():
             return type == self._bool
-        elif type.is_int_type():
+        if type.is_int_type():
             assert isinstance(type, _IntType)
             return self._ints.get((type.lower_bound, type.upper_bound), None) == type
-        elif type.is_real_type():
+        if type.is_real_type():
             assert isinstance(type, _RealType)
             return self._reals.get((type.lower_bound, type.upper_bound), None) == type
-        elif type.is_time_type():
+        if type.is_time_type():
             return type == TIME
-        elif type.is_movable_type():
+        if type.is_movable_type():
             assert isinstance(type, _MovableType)
             return self._movable_types.get((type.name, type.father), None) == type
-        elif type.is_configuration_type():
+        if type.is_configuration_type():
             assert isinstance(type, _ConfigurationType)
             return (
                 self._configuration_types.get(
@@ -76,11 +76,10 @@ class TypeManager:
                 )
                 == type
             )
-        elif type.is_user_type():
+        if type.is_user_type():
             assert isinstance(type, _UserType)
             return self._user_types.get((type.name, type.father), None) == type
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     def BoolType(self) -> Type:
         """Returns this `Environment's` boolean `Type`."""
@@ -100,10 +99,9 @@ class TypeManager:
         k = (lower_bound, upper_bound)
         if k in self._ints:
             return self._ints[k]
-        else:
-            it = _IntType(lower_bound, upper_bound)
-            self._ints[k] = it
-            return it
+        it = _IntType(lower_bound, upper_bound)
+        self._ints[k] = it
+        return it
 
     def RealType(
         self,
@@ -129,10 +127,9 @@ class TypeManager:
         k = (lower_bound, upper_bound)
         if k in self._reals:
             return self._reals[k]
-        else:
-            rt = _RealType(lower_bound, upper_bound)
-            self._reals[k] = rt
-            return rt
+        rt = _RealType(lower_bound, upper_bound)
+        self._reals[k] = rt
+        return rt
 
     def UserType(self, name: str, father: Optional[Type] = None) -> Type:
         """
@@ -145,19 +142,17 @@ class TypeManager:
         """
         if (name, father) in self._user_types:
             return self._user_types[(name, father)]
-        else:
-            if father is not None:
-                assert isinstance(father, _UserType)
-                if any(
-                    cast(_UserType, ancestor).name == name
-                    for ancestor in father.ancestors
-                ):
-                    raise UPTypeError(
-                        f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
-                    )
-            ut = _UserType(name, father)
-            self._user_types[(name, father)] = ut
-            return ut
+        if father is not None:
+            assert isinstance(father, _UserType)
+            if any(
+                cast(_UserType, ancestor).name == name for ancestor in father.ancestors
+            ):
+                raise UPTypeError(
+                    f"The name: {name} is already used. A UserType and one of his ancestors can not share the name."
+                )
+        ut = _UserType(name, father)
+        self._user_types[(name, father)] = ut
+        return ut
 
     def MovableType(self, name: str, father: Optional[Type] = None) -> Type:
         """
@@ -170,19 +165,18 @@ class TypeManager:
         """
         if (name, father) in self._movable_types:
             return self._movable_types[(name, father)]
-        else:
-            if father is not None:
-                assert isinstance(father, _MovableType)
-                if any(
-                    cast(_MovableType, ancestor).name == name
-                    for ancestor in father.ancestors
-                ):
-                    raise UPTypeError(
-                        f"The name: {name} is already used. A MovableType and one of his ancestors can not share the name."
-                    )
-            mt = _MovableType(name, father)
-            self._movable_types[(name, father)] = mt
-            return mt
+        if father is not None:
+            assert isinstance(father, _MovableType)
+            if any(
+                cast(_MovableType, ancestor).name == name
+                for ancestor in father.ancestors
+            ):
+                raise UPTypeError(
+                    f"The name: {name} is already used. A MovableType and one of his ancestors can not share the name."
+                )
+        mt = _MovableType(name, father)
+        self._movable_types[(name, father)] = mt
+        return mt
 
     def ConfigurationType(
         self, name: str, occupancy_map: OccupancyMap, kind: ConfigurationKind
@@ -199,7 +193,6 @@ class TypeManager:
         """
         if (name, occupancy_map, kind) in self._configuration_types:
             return self._configuration_types[(name, occupancy_map, kind)]
-        else:
-            ct = _ConfigurationType(name, occupancy_map, kind)
-            self._configuration_types[(name, occupancy_map, kind)] = ct
-            return ct
+        ct = _ConfigurationType(name, occupancy_map, kind)
+        self._configuration_types[(name, occupancy_map, kind)] = ct
+        return ct

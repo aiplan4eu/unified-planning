@@ -16,21 +16,21 @@
 
 import shutil
 from importlib.util import find_spec
-from typing import Optional, Tuple, Dict, List
+from typing import Dict, List, Optional, Tuple
+
 import tarski
+from tarski.grounding import LPGroundingStrategy
+
 import unified_planning as up
 import unified_planning.interop
+from unified_planning.engines.compilers.grounder import Grounder
+from unified_planning.engines.engine import Credits, Engine
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
 from unified_planning.interop.from_tarski import convert_tarski_formula
 from unified_planning.interop.to_tarski import convert_problem_to_tarski
 from unified_planning.model import Action, FNode, Problem, ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.engine import Engine, Credits
-from unified_planning.engines.results import CompilerResult
-from unified_planning.engines.compilers.grounder import Grounder
-from unified_planning.exceptions import UPUsageError
-from tarski.grounding import LPGroundingStrategy
-
 
 # Mirrors tarski's own get_gringo_command(): the clingo Python bindings are sufficient on their
 # own, because tarski drives them through the gringo.py wrapper it ships rather than through an
@@ -130,7 +130,7 @@ class TarskiGrounder(Engine, CompilerMixin):
         except tarski.grounding.errors.ReachabilityLPUnsolvable:
             raise up.exceptions.UPUsageError(
                 "tarski grounder can not find a solvable grounding."
-            )
+            ) from None
         grounded_actions_map: Dict[Action, List[Tuple[FNode, ...]]] = {}
         fluents = {fluent.name: fluent for fluent in problem.fluents}
         objects = {object.name: object for object in problem.all_objects}

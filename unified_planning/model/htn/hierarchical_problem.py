@@ -13,15 +13,15 @@
 # limitations under the License.
 #
 from collections import OrderedDict
-from typing import Optional, List, Union, Dict, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple, Union
 from warnings import warn
 
 import unified_planning as up
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.htn.method import Method
 from unified_planning.model.htn.task import Task
-from unified_planning.model.htn.task_network import TaskNetwork, AbstractTaskNetwork
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.htn.task_network import AbstractTaskNetwork, TaskNetwork
 from unified_planning.model.walkers.any import AnyGetter
 
 
@@ -31,10 +31,9 @@ class HierarchicalProblem(up.model.problem.Problem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict[
-            "up.model.types.Type",
-            ConstantExpression,
-        ] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", ConstantExpression]
+        ] = None,
     ):
         super().__init__(
             name=name, environment=environment, initial_defaults=initial_defaults
@@ -46,12 +45,10 @@ class HierarchicalProblem(up.model.problem.Problem):
     def __repr__(self):
         s = [super().__repr__()]
         s.append("abstract tasks = [\n")
-        for t in self._abstract_tasks.values():
-            s.append(f"  {t}\n")
+        s.extend(f"  {t}\n" for t in self._abstract_tasks.values())
         s.append("]\n\n")
         s.append("methods = [")
-        for m in self._methods.values():
-            s.append(("\n" + str(m)).replace("\n", "\n  "))
+        s.extend(("\n" + str(m)).replace("\n", "\n  ") for m in self._methods.values())
         s.append("\n]\n\n")
         s.append(str(self._initial_task_network))
         return "".join(s)
@@ -85,7 +82,7 @@ class HierarchicalProblem(up.model.problem.Problem):
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:
@@ -124,11 +121,14 @@ class HierarchicalProblem(up.model.problem.Problem):
             fluents_in_action_costs,
         ) = super()._get_static_and_unused_fluents()
         fve = self._env.free_vars_extractor
+
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents set.
-        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
-            (f.fluent() for e in exps for f in fve.get(e))
-        )
+        def remove_used_fluents(*exps):
+            return unused_fluents.difference_update(
+                f.fluent() for e in exps for f in fve.get(e)
+            )
+
         for m in self.methods:
             remove_used_fluents(*m.preconditions)
             remove_used_fluents(*m.constraints)
@@ -156,10 +156,9 @@ class HierarchicalProblem(up.model.problem.Problem):
             """Determines the expressivity level of temporal constraints within a task network"""
             if tn.total_order() is not None:
                 return TO
-            elif tn.partial_order() is not None:
+            if tn.partial_order() is not None:
                 return PO
-            else:
-                return TEMPORAL
+            return TEMPORAL
 
         ordering_kind = lvl(self.task_network)
         if len(self.task_network.variables) > 0:
@@ -228,8 +227,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 task.name == t for t in self._abstract_tasks
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._abstract_tasks[task.name] = task
         for param in task.parameters:
             if param.type.is_user_type():
@@ -245,7 +243,7 @@ class HierarchicalProblem(up.model.problem.Problem):
 
     def add_method(self, method: Method):
         assert method.achieved_task is not None, (
-            f"No achieved task was specified for this method."
+            "No achieved task was specified for this method."
         )
         if self.has_name(method.name):
             msg = f"Name of method {method.name} already defined! Different elements of a problem can have the same name if the environment flag error_used_name is disabled."
@@ -253,8 +251,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 method.name == m for m in self._methods
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         assert method.achieved_task.task.name in self._abstract_tasks, (
             f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         )

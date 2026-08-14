@@ -14,40 +14,40 @@
 #
 """This module defines the interpreted functions remover class."""
 
+import itertools
+from collections import OrderedDict
+from enum import Enum, auto
 from fractions import Fraction
 from functools import partial
-import itertools
-from enum import Enum, auto
-from collections import OrderedDict
-from typing import Dict, List, Optional, Union, Tuple, Iterable, FrozenSet, Set, Any
+from typing import Any, Dict, FrozenSet, Iterable, List, Optional, Set, Tuple, Union
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    Action,
-)
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.fluent import Fluent
-from unified_planning.model.object import Object
-from unified_planning.model.effect import Effect
-from unified_planning.model.fnode import FNode
-from unified_planning.model.types import Type
-from unified_planning.model.expression import ExpressionManager
-from unified_planning.model.parameter import Parameter
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     get_fresh_parameter_name,
 )
-from unified_planning.model.timing import StartTiming, Timing, TimeInterval
-from unified_planning.plans.plan import ActionInstance
-from unified_planning.model.walkers import Simplifier
-from unified_planning.exceptions import UPUnsupportedProblemTypeError
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPUnsupportedProblemTypeError, UPUsageError
+from unified_planning.model import (
+    Action,
+    Problem,
+    ProblemKind,
+)
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import Effect
+from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.fluent import Fluent
+from unified_planning.model.fnode import FNode
 from unified_planning.model.interpreted_function import InterpretedFunction
+from unified_planning.model.object import Object
+from unified_planning.model.parameter import Parameter
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.timing import StartTiming, TimeInterval, Timing
+from unified_planning.model.types import Type
+from unified_planning.model.walkers import Simplifier
+from unified_planning.plans.plan import ActionInstance
 
 
 class ElementKind(Enum):
@@ -299,9 +299,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             # the fluents contained in it are unknown
             g_c = goal_c
             all_fluents_fnodes = self.free_vars_extractor.get(goal_c)
-            all_fluents = []
-            for f_fnode in all_fluents_fnodes:
-                all_fluents.append(f_fnode.fluent())
+            all_fluents = [f_fnode.fluent() for f_fnode in all_fluents_fnodes]
             for k in is_unknown_fluents:
                 if k in all_fluents:
                     g_c = em.Or(goal_c, is_unknown_fluents[k])
@@ -353,14 +351,13 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             all_fluent_exps = self.free_vars_extractor.get(exp)
             all_f = [f_exp.fluent() for f_exp in all_fluent_exps]
             extra_c = [hcf for f, hcf in is_unknown_fluents.items() if f in all_f]
-            new_c = em.Or(extra_c + [exp])
+            new_c = em.Or([*extra_c, exp])
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
-                if t_interval is not None:
-                    if t_interval.lower != t_interval.upper:
-                        raise UPUnsupportedProblemTypeError(
-                            "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
-                        )
+                if t_interval is not None and t_interval.lower != t_interval.upper:
+                    raise UPUnsupportedProblemTypeError(
+                        "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
+                    )
                 ifs.append((t_interval, new_c, ifuns, ElementKind.CONDITION, None))
             else:
                 conds.append((t_interval, new_c))
@@ -416,7 +413,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 ],
                 up.model.Parameter,
             ] = {}
-            for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
+            for (t, exp, ifuns, case, eff_instance), known in zip(
+                ifs, known_vec, strict=True
+            ):
                 subs: Dict = {}
                 implies = []
                 l1 = []
@@ -438,7 +437,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 ifun,
                                 ifun_exp.args,
                                 t,
-                            ) not in IF_and_pars_and_timestamp_to_knum.keys():
+                            ) not in IF_and_pars_and_timestamp_to_knum:
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
@@ -455,7 +454,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             if (
                                 ifun,
                                 ifun_exp.args,
-                            ) not in IF_and_pars_to_knum.keys():
+                            ) not in IF_and_pars_to_knum:
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
@@ -471,7 +470,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         pf = em.And(
                             [
                                 em.EqualsOrIff(v1, v2)
-                                for v1, v2 in zip(ifun_exp.args, p_known)
+                                for v1, v2 in zip(ifun_exp.args, p_known, strict=True)
                             ]
                         )
                         if known:
@@ -556,9 +555,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for ii, c in conditions:
                 simplified_c = da_simp.simplify(c)
                 if simplified_c.is_bool_constant():
-                    if simplified_c.constant_value() == False:
+                    if not simplified_c.constant_value():
                         return None
-                    elif simplified_c.constant_value() == True:
+                    if simplified_c.constant_value():
                         continue
                 for nii, ncs in new_dur_a.conditions.items():
                     if nii == ii and em.Not(simplified_c) in ncs:
@@ -571,7 +570,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_a = new_dur_a
         elif isinstance(a, up.model.InstantaneousAction):
             new_ia = InstantaneousAction(a.name, updated_params, a.environment)
-            for time, eff in effects:
+            for _time, eff in effects:
                 new_ia._add_effect_instance(eff.clone())
             if a.simulated_effect is not None:
                 new_ia.set_simulated_effect(a.simulated_effect)
@@ -580,9 +579,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for _, c in conditions:
                 simplified_c = ia_simp.simplify(c)
                 if simplified_c.is_bool_constant():
-                    if simplified_c.constant_value() == False:
+                    if not simplified_c.constant_value():
                         return None
-                    elif simplified_c.constant_value() == True:
+                    if simplified_c.constant_value():
                         continue
                 if em.Not(simplified_c) not in new_ia.preconditions:
                     new_ia.add_precondition(simplified_c)
@@ -606,21 +605,18 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         """
         if t.is_bool_type():
             return False
-        elif t.is_int_type() or t.is_real_type():
+        if t.is_int_type() or t.is_real_type():
             assert hasattr(t, "lower_bound")
             assert hasattr(t, "upper_bound")
             c = int if t.is_int_type() else Fraction
             if t.lower_bound is None:
                 if t.upper_bound is None:
                     return c(0)
-                else:
-                    return c(t.upper_bound - 1)
-            else:
-                if t.upper_bound is None:
-                    return c(t.lower_bound + 1)
-                else:
-                    return c((t.upper_bound + t.lower_bound) / 2)
-        elif t.is_user_type():
+                return c(t.upper_bound - 1)
+            if t.upper_bound is None:
+                return c(t.lower_bound + 1)
+            return c((t.upper_bound + t.lower_bound) / 2)
+        if t.is_user_type():
             try:
                 return next(problem.objects(t))
             except StopIteration:
@@ -671,10 +667,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         :return: the newely created effect
         """
         f = ef.fluent.fluent()
-        f_list = []
-        for v in self.free_vars_extractor.get(ef.value):
-            if v.fluent() in is_unknown_fluents:
-                f_list.append(v.fluent())
+        f_list = [
+            v.fluent()
+            for v in self.free_vars_extractor.get(ef.value)
+            if v.fluent() in is_unknown_fluents
+        ]
 
         o_e = em.Or([em.FluentExp(is_unknown_fluents[vf]) for vf in f_list])
         tracking_fluent_exp = em.FluentExp(is_unknown_fluents[f])
@@ -708,7 +705,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     time_list.append(time)
         else:
             raise NotImplementedError
-        return zip(time_list, eff_list)
+        return zip(time_list, eff_list, strict=True)
 
     def _get_conditions(
         self, a: Action
@@ -738,7 +735,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for fp in fixed_p_list:
                     cond_list.append(fp)
                     time_list.append(None)
-        return zip(time_list, cond_list)
+        return zip(time_list, cond_list, strict=True)
 
 
 def _split_ands(e: FNode) -> List[FNode]:
@@ -748,13 +745,9 @@ def _split_ands(e: FNode) -> List[FNode]:
     :param e: the expression we want to split
     :returns: the list of expressions after splitting
     """
-    templist = []
     if e.is_and():
-        for sub in e.args:
-            templist.append(sub)
-    else:
-        templist.append(e)
-    return templist
+        return list(e.args)
+    return [e]
 
 
 def custom_replace(
@@ -770,13 +763,12 @@ def custom_replace(
     except KeyError:
         raise UPUsageError(
             "The Action of the given ActionInstance does not have a valid replacement."
-        )
+        ) from None
     expected_amount = 0
-    if replaced_action is not None:
-        if replaced_action.parameters is not None:
-            expected_amount = len(replaced_action.parameters)
+    if replaced_action is not None and replaced_action.parameters is not None:
+        expected_amount = len(replaced_action.parameters)
 
-    new_list: list = list()
+    new_list: list = []
     i = 0
     while i < expected_amount:
         new_list.append(action_instance.actual_parameters[i])
@@ -788,8 +780,7 @@ def custom_replace(
             action_instance.agent,
             action_instance.motion_paths,
         )
-    else:
-        return None
+    return None
 
 
 def knowledge_compatible(
@@ -812,7 +803,7 @@ def knowledge_compatible(
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, _, ifuns, _, _), k in zip(ifs, known):
+    for (t, _, ifuns, _, _), k in zip(ifs, known, strict=True):
         if k:
             for ifun in ifuns:
                 if (t, ifun) in ukifuns:

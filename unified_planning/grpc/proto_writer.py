@@ -17,67 +17,65 @@ import fractions
 from itertools import product
 from typing import List, Union
 
+import unified_planning.engines
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
-from unified_planning import model
-import unified_planning.engines
 import unified_planning.model.htn
-import unified_planning.engines
-import unified_planning.plans
-from unified_planning.environment import get_environment
-from unified_planning.plans.hierarchical_plan import *
 import unified_planning.model.walkers as walkers
 import unified_planning.plans
-from unified_planning.model.types import domain_size, domain_item
+from unified_planning import model
+from unified_planning.environment import get_environment
 from unified_planning.exceptions import UPException
 from unified_planning.grpc.converter import Converter, handles
 from unified_planning.model.operators import (
     BOOL_OPERATORS,
     IRA_OPERATORS,
     RELATIONS,
-    OperatorKind,
     TRAJECTORY_CONSTRAINTS,
+    OperatorKind,
 )
 from unified_planning.model.timing import TimepointKind
+from unified_planning.model.types import domain_item, domain_size
+from unified_planning.plans.hierarchical_plan import *
 
 
 def map_operator(op: int) -> str:
     if op == OperatorKind.PLUS:
         return "up:plus"
-    elif op == OperatorKind.MINUS:
+    if op == OperatorKind.MINUS:
         return "up:minus"
-    elif op == OperatorKind.TIMES:
+    if op == OperatorKind.TIMES:
         return "up:times"
-    elif op == OperatorKind.DIV:
+    if op == OperatorKind.DIV:
         return "up:div"
-    elif op == OperatorKind.LE:
+    if op == OperatorKind.LE:
         return "up:le"
-    elif op == OperatorKind.LT:
+    if op == OperatorKind.LT:
         return "up:lt"
-    elif op == OperatorKind.EQUALS:
+    if op == OperatorKind.EQUALS:
         return "up:equals"
-    elif op == OperatorKind.AND:
+    if op == OperatorKind.AND:
         return "up:and"
-    elif op == OperatorKind.OR:
+    if op == OperatorKind.OR:
         return "up:or"
-    elif op == OperatorKind.NOT:
+    if op == OperatorKind.NOT:
         return "up:not"
-    elif op == OperatorKind.IMPLIES:
+    if op == OperatorKind.IMPLIES:
         return "up:implies"
-    elif op == OperatorKind.IFF:
+    if op == OperatorKind.IFF:
         return "up:iff"
-    elif op == OperatorKind.EXISTS:
+    if op == OperatorKind.EXISTS:
         return "up:exists"
-    elif op == OperatorKind.FORALL:
+    if op == OperatorKind.FORALL:
         return "up:forall"
-    elif op == OperatorKind.ALWAYS:
+    if op == OperatorKind.ALWAYS:
         return "up:always"
-    elif op == OperatorKind.AT_MOST_ONCE:
+    if op == OperatorKind.AT_MOST_ONCE:
         return "up:at_most_once"
-    elif op == OperatorKind.SOMETIME:
+    if op == OperatorKind.SOMETIME:
         return "up:sometime"
-    elif op == OperatorKind.SOMETIME_AFTER:
+    if op == OperatorKind.SOMETIME_AFTER:
         return "up:sometime_after"
-    elif op == OperatorKind.SOMETIME_BEFORE:
+    if op == OperatorKind.SOMETIME_BEFORE:
         return "up:sometime_before"
     raise ValueError(f"Unknown operator `{op}`")
 
@@ -85,12 +83,15 @@ def map_operator(op: int) -> str:
 def proto_type(tpe: model.Type) -> str:
     if tpe.is_bool_type():
         return "up:bool"
-    elif tpe.is_time_type():
+    if tpe.is_time_type():
         return "up:time"
-    elif tpe.is_int_type() or tpe.is_real_type():
+    if tpe.is_int_type() or tpe.is_real_type():
         return f"up:{tpe}"
-    elif isinstance(tpe, model.types._UserType):
+    if isinstance(tpe, model.types._UserType):
         return str(tpe.name)
+    # falling through used to return None from a function annotated `-> str`, which would
+    # then be written into a protobuf string field
+    raise ValueError(f"Unhandled type: {tpe}")
 
 
 def int_expression(value: int) -> proto.Expression:
@@ -117,12 +118,9 @@ def real_expression(value: fractions.Fraction) -> proto.Expression:
 def num_expression(value: Union[int, fractions.Fraction]) -> proto.Expression:
     if isinstance(value, int):
         return int_expression(value)
-    elif isinstance(value, fractions.Fraction):
+    if isinstance(value, fractions.Fraction):
         return real_expression(value)
-    else:
-        raise ValueError(
-            f"Cannot be converted into a numeric protobuf expression: {value}"
-        )
+    raise ValueError(f"Cannot be converted into a numeric protobuf expression: {value}")
 
 
 class FNode2Protobuf(walkers.DagWalker):
@@ -234,7 +232,7 @@ class FNode2Protobuf(walkers.DagWalker):
             kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
         )
         tp_exp = proto.Expression(
-            list=[fn_exp] + args,
+            list=[fn_exp, *args],
             type="up:time",
             kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
         )
@@ -242,18 +240,17 @@ class FNode2Protobuf(walkers.DagWalker):
             # no delay for this timing, the expression will somthing of the form (QUALIFIER [CONTAINER])
             return tp_exp
 
-        else:
-            # we have a delay, build an expression of the form (up:plus (QUALIFIER [CONTAINER]) DELAY)
-            add_exp = proto.Expression(
-                atom=proto.Atom(symbol=map_operator(OperatorKind.PLUS)),
-                kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
-            )
-            dl_exp = num_expression(timing.delay)
-            return proto.Expression(
-                list=[add_exp, tp_exp, dl_exp],
-                type="up:time",
-                kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
-            )
+        # we have a delay, build an expression of the form (up:plus (QUALIFIER [CONTAINER]) DELAY)
+        add_exp = proto.Expression(
+            atom=proto.Atom(symbol=map_operator(OperatorKind.PLUS)),
+            kind=proto.ExpressionKind.Value("FUNCTION_SYMBOL"),
+        )
+        dl_exp = num_expression(timing.delay)
+        return proto.Expression(
+            list=[add_exp, tp_exp, dl_exp],
+            type="up:time",
+            kind=proto.ExpressionKind.Value("FUNCTION_APPLICATION"),
+        )
 
     def walk_fluent_exp(
         self, expression: model.FNode, args: List[proto.Expression]
@@ -389,19 +386,19 @@ class ProtobufWriter(Converter):
     def _convert_instantaneous_action(
         self, a: model.InstantaneousAction
     ) -> proto.Action:
-        effects = []
-        conditions = []
 
-        for cond in a.preconditions:
-            conditions.append(
-                proto.Condition(
-                    cond=self.convert(cond),
-                    span=None,
-                )
+        conditions = [
+            proto.Condition(
+                cond=self.convert(cond),
+                span=None,
             )
+            for cond in a.preconditions
+        ]
 
-        for eff in a.effects:
-            effects.append(proto.Effect(effect=self.convert(eff), occurrence_time=None))
+        effects = [
+            proto.Effect(effect=self.convert(eff), occurrence_time=None)
+            for eff in a.effects
+        ]
 
         return proto.Action(
             name=a.name,
@@ -428,13 +425,13 @@ class ProtobufWriter(Converter):
 
         for span, cond in conds.items():
             span = self.convert(span)
-            for c in cond:
-                conditions.append(
-                    proto.Condition(
-                        cond=self.convert(c),
-                        span=span,
-                    )
+            conditions.extend(
+                proto.Condition(
+                    cond=self.convert(c),
+                    span=span,
                 )
+                for c in cond
+            )
         return conditions
 
     def _convert_timed_effects(
@@ -443,13 +440,13 @@ class ProtobufWriter(Converter):
         effects = []
         for ot, eff in effs.items():
             ot = self._convert_timing(ot)
-            for e in eff:
-                effects.append(
-                    proto.Effect(
-                        effect=self.convert(e),
-                        occurrence_time=ot,
-                    )
+            effects.extend(
+                proto.Effect(
+                    effect=self.convert(e),
+                    occurrence_time=ot,
                 )
+                for e in eff
+            )
         return effects
 
     @handles(model.scheduling.Activity)
@@ -539,16 +536,15 @@ class ProtobufWriter(Converter):
     def _convert_parameterized_task(
         self, task: model.htn.ParameterizedTask
     ) -> proto.Task:
-        parameters = []
-        for p in task.parameters:
-            parameters.append(
-                proto.Expression(
-                    atom=proto.Atom(symbol=p.name),
-                    list=[],
-                    kind=proto.ExpressionKind.Value("PARAMETER"),
-                    type=proto_type(p.type),
-                )
+        parameters = [
+            proto.Expression(
+                atom=proto.Atom(symbol=p.name),
+                list=[],
+                kind=proto.ExpressionKind.Value("PARAMETER"),
+                type=proto_type(p.type),
             )
+            for p in task.parameters
+        ]
         return proto.Task(id="", task_name=task.task.name, parameters=parameters)
 
     @handles(model.htn.Subtask)
@@ -605,12 +601,12 @@ class ProtobufWriter(Converter):
         timed_effects = []
         for timing, eff_l in problem.timed_effects.items():
             proto_timing = self.convert(timing)
-            for eff in eff_l:
-                timed_effects.append(
-                    proto.TimedEffect(
-                        effect=self.convert(eff), occurrence_time=proto_timing
-                    )
+            timed_effects.extend(
+                proto.TimedEffect(
+                    effect=self.convert(eff), occurrence_time=proto_timing
                 )
+                for eff in eff_l
+            )
 
         return proto.Problem(
             domain_name=problem_name + "_domain",
@@ -932,38 +928,35 @@ class ProtobufWriter(Converter):
         ):
             return proto.PlanGenerationResult.Status.Value("SOLVED_SATISFICING")
 
-        elif (
+        if (
             status
             == unified_planning.engines.PlanGenerationResultStatus.SOLVED_OPTIMALLY
         ):
             return proto.PlanGenerationResult.Status.Value("SOLVED_OPTIMALLY")
-        elif (
+        if (
             status
             == unified_planning.engines.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
         ):
             return proto.PlanGenerationResult.Status.Value("UNSOLVABLE_PROVEN")
-        elif (
+        if (
             status
             == unified_planning.engines.PlanGenerationResultStatus.UNSOLVABLE_INCOMPLETELY
         ):
             return proto.PlanGenerationResult.Status.Value("UNSOLVABLE_INCOMPLETELY")
-        elif status == unified_planning.engines.PlanGenerationResultStatus.TIMEOUT:
+        if status == unified_planning.engines.PlanGenerationResultStatus.TIMEOUT:
             return proto.PlanGenerationResult.Status.Value("TIMEOUT")
-        elif status == unified_planning.engines.PlanGenerationResultStatus.MEMOUT:
+        if status == unified_planning.engines.PlanGenerationResultStatus.MEMOUT:
             return proto.PlanGenerationResult.Status.Value("MEMOUT")
-        elif (
-            status == unified_planning.engines.PlanGenerationResultStatus.INTERNAL_ERROR
-        ):
+        if status == unified_planning.engines.PlanGenerationResultStatus.INTERNAL_ERROR:
             return proto.PlanGenerationResult.Status.Value("INTERNAL_ERROR")
-        elif (
+        if (
             status
             == unified_planning.engines.PlanGenerationResultStatus.UNSUPPORTED_PROBLEM
         ):
             return proto.PlanGenerationResult.Status.Value("UNSUPPORTED_PROBLEM")
-        elif status == unified_planning.engines.PlanGenerationResultStatus.INTERMEDIATE:
+        if status == unified_planning.engines.PlanGenerationResultStatus.INTERMEDIATE:
             return proto.PlanGenerationResult.Status.Value("INTERMEDIATE")
-        else:
-            raise ValueError("Unknown status: {}".format(status))
+        raise ValueError(f"Unknown status: {status}")
 
     @handles(unified_planning.engines.LogMessage)
     def _convert_log_messages(
@@ -1007,7 +1000,7 @@ class ProtobufWriter(Converter):
                     domain_sizes.append(ds)
                     ground_size *= ds
                 items_list: List[List[FNode]] = []
-                for size, type in zip(domain_sizes, type_list):
+                for size, type in zip(domain_sizes, type_list, strict=True):
                     items_list.append(
                         [domain_item(result.problem, type, j) for j in range(size)]
                     )
@@ -1042,9 +1035,8 @@ class ProtobufWriter(Converter):
     ) -> proto.ValidationResult.ValidationResultStatus:
         if status == unified_planning.engines.ValidationResultStatus.VALID:
             return proto.ValidationResult.ValidationResultStatus.Value("VALID")
-        elif status == unified_planning.engines.ValidationResultStatus.INVALID:
+        if status == unified_planning.engines.ValidationResultStatus.INVALID:
             return proto.ValidationResult.ValidationResultStatus.Value("INVALID")
-        elif status == unified_planning.engines.ValidationResultStatus.UNKNOWN:
+        if status == unified_planning.engines.ValidationResultStatus.UNKNOWN:
             return proto.ValidationResult.ValidationResultStatus.Value("UNKNOWN")
-        else:
-            raise UPException(f"Unknown result status: {status}")
+        raise UPException(f"Unknown result status: {status}")

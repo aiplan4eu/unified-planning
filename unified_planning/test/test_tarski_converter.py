@@ -13,21 +13,18 @@
 # limitations under the License.
 
 
-import unified_planning as up
-
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoOneshotPlannerForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
+from unified_planning.engines import SequentialPlanValidator
 from unified_planning.model.problem_kind import (
-    full_classical_kind,
     hierarchical_kind,
 )
-from unified_planning.plans import SequentialPlan, ActionInstance
-from unified_planning.engines import SequentialPlanValidator
+from unified_planning.plans import ActionInstance, SequentialPlan
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestTarskiConverter(unittest_TestCase):
@@ -115,10 +112,9 @@ class TestTarskiConverter(unittest_TestCase):
 
 def _switch_plan(original_plan, new_problem):
     # This function switches a plan to be a plan of the given problem
-    new_plan_action_instances = []
-    for ai in original_plan.actions:
-        new_plan_action_instances.append(
-            ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters)
-        )
+    new_plan_action_instances = [
+        ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters)
+        for ai in original_plan.actions
+    ]
     new_plan = SequentialPlan(new_plan_action_instances)
     return new_plan

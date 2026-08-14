@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from collections import deque
+from typing import Callable, Deque, Dict, Iterator, List, Optional, Set, Tuple
+
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.exceptions import UPUsageError
-from typing import Callable, Dict, Iterator, Optional, List, Set, Tuple, Deque
-from collections import deque
 
 
 class ContingentPlanNode:
@@ -78,13 +79,12 @@ class ContingentPlanNode:
             for o, c in self._children:
                 res.add_child(o, c.replace_action_instances(replace_function))
             return res
-        else:
-            assert len(self._children) == 1, (
-                "A SensingActionInstance can not be replaced by an empty Action."
-            )
-            o, c = self._children[0]
-            assert len(o) == 0
-            return c.replace_action_instances(replace_function)
+        assert len(self._children) == 1, (
+            "A SensingActionInstance can not be replaced by an empty Action."
+        )
+        o, c = self._children[0]
+        assert len(o) == 0
+        return c.replace_action_instances(replace_function)
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlanNode):
@@ -94,12 +94,8 @@ class ContingentPlanNode:
                 return False
             if not len(self._children) == len(oth.children):
                 return False
-            for c in self._children:
-                if c not in oth.children:
-                    return False
-            return True
-        else:
-            return False
+            return all(c in oth.children for c in self._children)
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -116,12 +112,8 @@ class ContingentPlanNode:
         if isinstance(item, plans.plan.ActionInstance):
             if item.is_semantically_equivalent(self._action_instance):
                 return True
-            for _, c in self._children:
-                if item in c:
-                    return True
-            return False
-        else:
-            return False
+            return any(item in c for _, c in self._children)
+        return False
 
 
 class ContingentPlan(plans.plan.Plan):
@@ -149,8 +141,7 @@ class ContingentPlan(plans.plan.Plan):
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, ContingentPlan) and self.environment == self.environment:
             return self.root_node == oth.root_node
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self.root_node)
@@ -160,14 +151,18 @@ class ContingentPlan(plans.plan.Plan):
             return "ContingentPlan:\n  Actions:\n  Constraints:"
         em = self.environment.expression_manager
         nodes = list(visit_tree(self._root_node))
+
         # give an ID, starting from 0, to every Node in the Plan
-        swap_couple = lambda x: (x[1], x[0])
+        def swap_couple(x):
+            return (x[1], x[0])
+
         id: Dict[ContingentPlanNode, int] = dict(
             map(swap_couple, enumerate(visit_tree(self._root_node)))
         )
-        convert_action_id = lambda action_id: (
-            f"    {action_id[1]}) {action_id[0].action_instance}"
-        )
+
+        def convert_action_id(action_id):
+            return f"    {action_id[1]}) {action_id[0].action_instance}"
+
         ret = ["ContingentPlan:", "  Actions:"]
         ret.extend(map(convert_action_id, id.items()))
         ret.append("  Constraints:")
@@ -177,10 +172,9 @@ class ContingentPlan(plans.plan.Plan):
             ft = fluent.type
             if ft.is_bool_type() and value.is_true():
                 return fluent
-            elif ft.is_bool_type() and value.is_false():
+            if ft.is_bool_type() and value.is_false():
                 return em.Not(fluent)
-            else:
-                return em.Equals(fluent, value)
+            return em.Equals(fluent, value)
 
         def convert_node(node):
             node_id = id[node]
@@ -235,8 +229,7 @@ class ContingentPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
 
 def visit_tree(root_node: Optional[ContingentPlanNode]) -> Iterator[ContingentPlanNode]:
@@ -254,6 +247,9 @@ def visit_tree(root_node: Optional[ContingentPlanNode]) -> Iterator[ContingentPl
         current_element: ContingentPlanNode = stack.popleft()
         if current_element not in already_visited:
             already_visited.add(current_element)
-            get_second_element = lambda x: x[1]
+
+            def get_second_element(x):
+                return x[1]
+
             stack.extend(map(get_second_element, current_element.children))
             yield current_element

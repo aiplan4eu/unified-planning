@@ -52,7 +52,7 @@ class TestUndefinedInitialNumericRemover(unittest_TestCase):
         )
         self.assertTrue(
             is_value_defined_value_o2 is not None
-            and is_value_defined_value_o2.constant_value() == False
+            and not is_value_defined_value_o2.constant_value()
         )
 
         for action in compiled_problem.actions:
@@ -92,7 +92,7 @@ class TestUndefinedInitialNumericRemover(unittest_TestCase):
         )
         self.assertTrue(
             is_value_defined_value_o2 is not None
-            and is_value_defined_value_o2.constant_value() == False
+            and not is_value_defined_value_o2.constant_value()
         )
 
         for action in compiled_problem.actions:
@@ -150,7 +150,7 @@ class TestUndefinedInitialNumericRemover(unittest_TestCase):
         )
         self.assertTrue(
             is_value_defined_undef_value_o2 is not None
-            and is_value_defined_undef_value_o2.constant_value() == False
+            and not is_value_defined_undef_value_o2.constant_value()
         )
 
         for action in compiled_problem.actions:
@@ -204,8 +204,7 @@ class TestUndefinedInitialNumericRemover(unittest_TestCase):
             is_value_defined_o1 is not None and is_value_defined_o1.constant_value()
         )
         self.assertTrue(
-            is_value_defined_o2 is not None
-            and is_value_defined_o2.constant_value() == False
+            is_value_defined_o2 is not None and not is_value_defined_o2.constant_value()
         )
 
         undef_move = compiled_problem.action("undef_move")

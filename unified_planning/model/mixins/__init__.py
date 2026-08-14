@@ -30,13 +30,13 @@ from unified_planning.model.mixins.motion_constraints_set import (
 
 __all__ = [
     "ActionsSetMixin",
-    "NaturalTransitionsSetMixin",
-    "TimeModelMixin",
-    "FluentsSetMixin",
-    "ObjectsSetMixin",
-    "UserTypesSetMixin",
     "AgentsSetMixin",
+    "FluentsSetMixin",
     "InitialStateMixin",
     "MetricsMixin",
     "MotionConstraintsSetMixin",
+    "NaturalTransitionsSetMixin",
+    "ObjectsSetMixin",
+    "TimeModelMixin",
+    "UserTypesSetMixin",
 ]

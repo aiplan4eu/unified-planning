@@ -14,14 +14,14 @@
 #
 
 
+from abc import ABC, abstractmethod
+from enum import Enum, auto
+from typing import Callable, Dict, Optional, Sequence, Tuple
+
 import unified_planning as up
-from unified_planning.model import AbstractProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from abc import ABC, abstractmethod
-from typing import Callable, Optional, Sequence, Tuple, Dict
-from enum import Enum, auto
-
+from unified_planning.model import AbstractProblem
 
 """This module defines the general `Plan` interface and the `ActionInstance` class."""
 
@@ -37,7 +37,7 @@ class ActionInstance:
     def __init__(
         self,
         action: "up.model.Action",
-        params: Sequence["up.model.Expression"] = tuple(),
+        params: Sequence["up.model.Expression"] = (),
         agent: Optional["up.model.multi_agent.Agent"] = None,
         motion_paths: Optional[
             Dict["up.model.motion.MotionConstraint", "up.model.motion.Path"]
@@ -51,7 +51,7 @@ class ActionInstance:
         self._action = action
         self._params: Tuple["up.model.FNode", ...] = tuple(auto_promote(params))
         assert len(action.parameters) == len(self._params)
-        for param, assigned_value in zip(action.parameters, self._params):
+        for param, assigned_value in zip(action.parameters, self._params, strict=True):
             if not param.type.is_compatible(assigned_value.type):
                 raise UPTypeError(
                     f"Incompatible parameter type assignment. {assigned_value} can't be assigned to: {param}"

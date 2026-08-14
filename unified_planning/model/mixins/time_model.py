@@ -15,8 +15,9 @@
 
 from decimal import Decimal
 from fractions import Fraction
-from unified_planning.exceptions import UPProblemDefinitionError
 from typing import Optional, Union
+
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 class TimeModelMixin:
@@ -61,7 +62,7 @@ class TimeModelMixin:
                 except ValueError:
                     raise UPProblemDefinitionError(
                         "The epsilon of a problem must be convertible to a Fraction."
-                    )
+                    ) from None
             if new_value < 0:
                 raise UPProblemDefinitionError("The epsilon must be a positive value!")
         self._epsilon = new_value

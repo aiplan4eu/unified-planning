@@ -13,24 +13,21 @@
 # limitations under the License.
 
 
-import os
-import unified_planning
-from unified_planning.environment import get_environment
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    classical_kind,
-    full_classical_kind,
-    basic_temporal_kind,
-    simple_numeric_kind,
-)
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import QuantifiersRemover
+from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
+    classical_kind,
+    full_classical_kind,
+    simple_numeric_kind,
+)
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestQuantifiersRemover(unittest_TestCase):
@@ -160,8 +157,8 @@ class TestQuantifiersRemover(unittest_TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            for (s, a, d), (s_1, a_1, d_1) in zip(
-                new_plan.timed_actions, uq_plan.timed_actions
+            for (s, a, d), (s_1, _a_1, d_1) in zip(
+                new_plan.timed_actions, uq_plan.timed_actions, strict=True
             ):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)
@@ -215,8 +212,8 @@ class TestQuantifiersRemover(unittest_TestCase):
         Obj = UserType("Obj")
         Obj_son = UserType("Obj_son", Obj)
 
-        Obj_objects = list(Object(f"o{i}", Obj) for i in range(3))
-        son_objects = list(Object(f"s{i}", Obj_son) for i in range(2))
+        Obj_objects = [Object(f"o{i}", Obj) for i in range(3)]
+        son_objects = [Object(f"s{i}", Obj_son) for i in range(2)]
 
         o0, o1, o2 = Obj_objects
         s0, s1 = son_objects

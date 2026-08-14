@@ -14,35 +14,35 @@
 #
 """This module defines the dnf remover class."""
 
+from functools import partial
+from itertools import product
+from typing import Dict, Iterator, List, Optional, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.compilers.utils import (
     get_fresh_name,
     replace_action,
     updated_minimize_action_costs,
 )
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
     AbstractProblem,
-    FNode,
-    Problem,
-    BoolExpression,
-    NumericConstant,
-    InstantaneousAction,
-    DurativeAction,
-    TimeInterval,
-    Timing,
     Action,
-    ProblemKind,
+    BoolExpression,
+    DurativeAction,
+    FNode,
+    InstantaneousAction,
+    NumericConstant,
     Oversubscription,
+    Problem,
+    ProblemKind,
     TemporalOversubscription,
+    TimeInterval,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers import Dnf
-from typing import Iterator, List, Optional, Tuple, Dict, cast
-from itertools import product
-from functools import partial
 
 
 class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
@@ -309,8 +309,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
             new_problem.add_fluent(fake_fluent, default_initial_value=False)
             new_fluents.append(fake_fluent)
             return env.expression_manager.FluentExp(fake_fluent)
-        else:
-            return new_goal
+        return new_goal
 
     def _create_new_durative_action_with_given_conds_at_given_times(
         self,
@@ -323,11 +322,11 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_action = original_action.clone()
         new_action.name = get_fresh_name(new_problem, original_action.name)
         new_action.clear_conditions()
-        for i, c in zip(interval_list, cond_list):
+        for i, c in zip(interval_list, cond_list, strict=True):
             c = c.simplify()
             if c.is_false():
                 return None
-            elif c.is_and():
+            if c.is_and():
                 for co in c.args:
                     new_action.add_condition(i, co)
             else:

@@ -17,8 +17,9 @@ This module defines the Parameter class. Both actions and fluents use this class
 """
 
 from typing import Optional
-from unified_planning.environment import Environment, get_environment
+
 import unified_planning as up
+from unified_planning.environment import Environment, get_environment
 
 
 class Parameter:
@@ -43,7 +44,7 @@ class Parameter:
         )
 
     def __repr__(self) -> str:
-        return f"{str(self.type)} {self.name}"
+        return f"{self.type!s} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Parameter):
@@ -52,8 +53,7 @@ class Parameter:
                 and self._typename == oth._typename
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)

@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
-from abc import ABC, abstractmethod
 import inspect
-from typing import Iterator, List, Optional, Tuple, Union, Sequence
+from abc import ABC, abstractmethod
+from typing import Iterator, Optional, Sequence, Tuple, Union
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
@@ -56,8 +57,7 @@ class SequentialSimulatorMixin(ABC):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
 
     def _get_action_and_parameters(
         self,
@@ -89,12 +89,13 @@ class SequentialSimulatorMixin(ABC):
         assert isinstance(act, up.model.Action), "Typing not respected"
         auto_promote = self._problem.environment.expression_manager.auto_promote
         if parameters is None:
-            params = tuple()
+            params = ()
         else:
             assert isinstance(parameters, Sequence), "Typing not respected"
             params = tuple(auto_promote(parameters))
         if len(params) != len(act.parameters) or any(
-            not ap.type.is_compatible(p.type) for p, ap in zip(params, act.parameters)
+            not ap.type.is_compatible(p.type)
+            for p, ap in zip(params, act.parameters, strict=True)
         ):
             method_name = inspect.stack()[1].function
             assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]

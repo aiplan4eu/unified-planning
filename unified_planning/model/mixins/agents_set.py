@@ -13,11 +13,11 @@
 # limitations under the License.
 #
 
+from typing import List
 from warnings import warn
+
 import unified_planning as up
-from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import List, Dict, Optional, cast
 
 
 class AgentsSetMixin:
@@ -48,8 +48,7 @@ class AgentsSetMixin:
                     agent.name == a.name for a in self._agents
                 ):
                     raise UPProblemDefinitionError(msg)
-                else:
-                    warn(msg)
+                warn(msg, stacklevel=2)
             self._agents.append(agent)
 
     @property
@@ -66,7 +65,4 @@ class AgentsSetMixin:
 
     def has_agent(self, name: str) -> bool:
         """Returns True iff the agent 'name' is defined."""
-        for agent in self._agents:
-            if agent.name == name:
-                return True
-        return False
+        return any(agent.name == name for agent in self._agents)

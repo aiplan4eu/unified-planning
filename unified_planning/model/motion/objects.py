@@ -16,12 +16,12 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Dict, Optional, Any, Tuple, List, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from unified_planning.model import Object
+import unified_planning.model.types
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-import unified_planning.model.types
+from unified_planning.model import Object
 
 
 class ConfigurationKind(Enum):

@@ -14,22 +14,22 @@
 
 
 import unified_planning
-from unified_planning.shortcuts import *
+from unified_planning.engines import CompilationKind
+from unified_planning.engines.compilers import ConditionalEffectsRemover
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import GlobalStartTiming
 from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
     classical_kind,
     full_classical_kind,
-    basic_temporal_kind,
 )
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines.compilers import ConditionalEffectsRemover
-from unified_planning.engines import CompilationKind
 
 
 class TestConditionalEffectsRemover(unittest_TestCase):
@@ -100,8 +100,8 @@ class TestConditionalEffectsRemover(unittest_TestCase):
             new_plan = uncond_plan.replace_action_instances(
                 res.map_back_action_instance
             )
-            for (s, a, d), (s_1, a_1, d_1) in zip(
-                new_plan.timed_actions, uncond_plan.timed_actions
+            for (s, a, d), (s_1, _a_1, d_1) in zip(
+                new_plan.timed_actions, uncond_plan.timed_actions, strict=True
             ):
                 self.assertEqual(s, s_1)
                 self.assertEqual(d, d_1)

@@ -16,21 +16,21 @@
 
 import sys
 import warnings
+from multiprocessing import Queue, get_all_start_methods, get_context
+from typing import IO, Any, Callable, Dict, List, Optional, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.plans import Plan
-from unified_planning.model import ProblemKind
-from unified_planning.exceptions import UPUsageError
 from unified_planning.engines.results import (
     LogLevel,
+    PlanGenerationResult,
     PlanGenerationResultStatus,
     Result,
     ValidationResult,
-    PlanGenerationResult,
 )
-from typing import IO, Any, Dict, List, Optional, Tuple, Callable, cast
-from multiprocessing import Queue, get_all_start_methods, get_context
-
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import ProblemKind
+from unified_planning.plans import Plan
 
 # Keep forking where it was the default before Python 3.14: the `forkserver` method it
 # switched Linux to re-imports `__main__` in every child, which breaks callers that have no
@@ -117,14 +117,12 @@ class Parallel(
             processes_alive -= 1
             if isinstance(res, BaseException):
                 raise res
-            else:
-                assert isinstance(res, Result)
-                # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.is_definitive_result(*args):
-                    definitive_result_found = True
-                    break
-                else:
-                    results.append(res)
+            assert isinstance(res, Result)
+            # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
+            if res.is_definitive_result(*args):
+                definitive_result_found = True
+                break
+            results.append(res)
         for p in processes:
             p.terminate()
         if definitive_result_found:  # A planner found a definitive result
@@ -143,7 +141,9 @@ class Parallel(
             assert issubclass(engine, engines.mixins.OneshotPlannerMixin)
         if output_stream is not None:
             warnings.warn(
-                "Parallel engines do not support the output stream system.", UserWarning
+                "Parallel engines do not support the output stream system.",
+                UserWarning,
+                stacklevel=2,
             )
 
         final_reports = self._run_parallel("solve", problem, timeout, None)

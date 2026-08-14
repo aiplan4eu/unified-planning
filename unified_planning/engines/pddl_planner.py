@@ -14,31 +14,30 @@
 #
 """This module defines an interface for a generic PDDL planner."""
 
-from abc import ABCMeta, abstractmethod
 import asyncio
-from asyncio.subprocess import PIPE
+import os
 import select
 import signal
 import subprocess
 import sys
 import tempfile
-import os
-import re
 import time
+from abc import abstractmethod
+from asyncio.subprocess import PIPE
+from fractions import Fraction
+from typing import IO, Any, Callable, List, Optional, Tuple, Union, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.engine import OperationMode
 import unified_planning.engines.mixins as mixins
+from unified_planning.engines.engine import OperationMode
 from unified_planning.engines.results import (
     LogLevel,
     LogMessage,
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
-from unified_planning.io import PDDLWriter, PDDLReader
-from asyncio.subprocess import PIPE
-from fractions import Fraction
-from typing import IO, Any, Callable, Optional, List, Tuple, Union, cast
+from unified_planning.io import PDDLReader, PDDLWriter
 
 # This module implements two different mechanisms to execute a PDDL planner in a
 # subprocess, processing the output in real-time and imposing a timeout.
@@ -157,7 +156,9 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
         )
         self._writer = pddl_writer
         if hasattr(output_stream, "pddl_writer"):
-            setattr(output_stream, "pddl_writer", pddl_writer)
+            # output_stream is IO[str] and declares no such attribute, so the plain
+            # assignment B010 asks for is a mypy union-attr error
+            setattr(output_stream, "pddl_writer", pddl_writer)  # noqa: B010
         plan = None
         logs: List["up.engines.results.LogMessage"] = []
         with tempfile.TemporaryDirectory() as tempdir:
@@ -209,11 +210,12 @@ class PDDLPlanner(engines.engine.Engine, mixins.OneshotPlannerMixin):
             metrics=metrics,
         )
         problem_kind = problem.kind
-        if problem_kind.has_continuous_time() or problem_kind.has_discrete_time():
-            if isinstance(plan, up.plans.TimeTriggeredPlan) or plan is None:
-                return up.engines.results.correct_plan_generation_result(
-                    res, problem, self._get_engine_epsilon()
-                )
+        if (
+            problem_kind.has_continuous_time() or problem_kind.has_discrete_time()
+        ) and (isinstance(plan, up.plans.TimeTriggeredPlan) or plan is None):
+            return up.engines.results.correct_plan_generation_result(
+                res, problem, self._get_engine_epsilon()
+            )
         return res
 
     @abstractmethod
@@ -329,7 +331,7 @@ async def run_command_asyncio(
     )
     engine._process = process
     if hasattr(output_stream, "process"):
-        setattr(output_stream, "process", process)
+        setattr(output_stream, "process", process)  # noqa: B010  (see _solve)
 
     timeout_occurred = False
     process_output: Tuple[List[str], List[str]] = ([], [])  # stdout, stderr
@@ -345,18 +347,15 @@ async def run_command_asyncio(
 
         if all(oks) and (not lines[0] and not lines[1]):  # EOF
             break
-        else:
-            for idx in range(2):
-                output_string = (
-                    lines[idx].decode(errors="replace").replace("\r\n", "\n")
-                )
-                if type(output_stream) is tuple:
-                    assert len(output_stream) == 2
-                    if output_stream[idx] is not None:
-                        output_stream[idx].write(output_string)
-                else:
-                    cast(IO[str], output_stream).write(output_string)
-                process_output[idx].append(output_string)
+        for idx in range(2):
+            output_string = lines[idx].decode(errors="replace").replace("\r\n", "\n")
+            if type(output_stream) is tuple:
+                assert len(output_stream) == 2
+                if output_stream[idx] is not None:
+                    output_stream[idx].write(output_string)
+            else:
+                cast(IO[str], output_stream).write(output_string)
+            process_output[idx].append(output_string)
         if timeout is not None and time.time() - start >= timeout:
             terminate_process(process)  # Terminate the process
             timeout_occurred = True
@@ -397,7 +396,7 @@ def run_command_posix_select(
     engine._process = process
     assert process.stdout is not None and process.stderr is not None
     if hasattr(output_stream, "process"):
-        setattr(output_stream, "process", process)
+        setattr(output_stream, "process", process)  # noqa: B010  (see _solve)
     timeout_occurred: bool = False
     start_time = time.time()
     last_red_out, last_red_err = 0, 0  # Variables needed for the correct loop exit

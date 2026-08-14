@@ -17,17 +17,21 @@
 from fractions import Fraction
 from typing import List, Optional, Union, cast
 
+import tarski
+
 import unified_planning
 import unified_planning.model
 import unified_planning.model.walkers as walkers
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import (
-    _UserType as UT,
     _IntType as IT,
+)
+from unified_planning.model.types import (
     _RealType as RT,
 )
-
-import tarski
+from unified_planning.model.types import (
+    _UserType as UT,
+)
 
 
 class TarskiFormulaConverter(walkers.DagWalker):
@@ -255,13 +259,10 @@ class TarskiFormulaConverter(walkers.DagWalker):
                     else self.object_freshname
                 ),
             )
-        else:
-            return self.lang.variable(
-                expression.parameter().name,
-                self.lang.get_sort(
-                    _type_name_added_to_language_if_needed(self.lang, type)
-                ),
-            )
+        return self.lang.variable(
+            expression.parameter().name,
+            self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)),
+        )
 
     def walk_variable_exp(
         self,
@@ -278,13 +279,10 @@ class TarskiFormulaConverter(walkers.DagWalker):
                     else self.object_freshname
                 ),
             )
-        else:
-            return self.lang.variable(
-                expression.variable().name,
-                self.lang.get_sort(
-                    _type_name_added_to_language_if_needed(self.lang, type)
-                ),
-            )
+        return self.lang.variable(
+            expression.variable().name,
+            self.lang.get_sort(_type_name_added_to_language_if_needed(self.lang, type)),
+        )
 
     def walk_object_exp(
         self,
@@ -496,15 +494,13 @@ def _convert_effect(
     if effect.value.is_bool_constant():
         if effect.value.constant_value():
             return tarski.fstrips.AddEffect(predicate, condition)
-        else:
-            return tarski.fstrips.DelEffect(predicate, condition)
+        return tarski.fstrips.DelEffect(predicate, condition)
+    if effect.kind == unified_planning.model.EffectKind.ASSIGN:
+        value = tfc.convert_formula(effect.value)
+    elif effect.kind == unified_planning.model.EffectKind.INCREASE:
+        value = tfc.convert_formula(em.Plus(effect.fluent, effect.value))
+    elif effect.kind == unified_planning.model.EffectKind.DECREASE:
+        value = tfc.convert_formula(em.Minus(effect.fluent, effect.value))
     else:
-        if effect.kind == unified_planning.model.EffectKind.ASSIGN:
-            value = tfc.convert_formula(effect.value)
-        elif effect.kind == unified_planning.model.EffectKind.INCREASE:
-            value = tfc.convert_formula(em.Plus(effect.fluent, effect.value))
-        elif effect.kind == unified_planning.model.EffectKind.DECREASE:
-            value = tfc.convert_formula(em.Minus(effect.fluent, effect.value))
-        else:
-            raise NotImplementedError
-        return tarski.fstrips.FunctionalEffect(predicate, value, condition)
+        raise NotImplementedError
+    return tarski.fstrips.FunctionalEffect(predicate, value, condition)

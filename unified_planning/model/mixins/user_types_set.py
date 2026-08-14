@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from typing import Dict, List, Optional, cast
 from warnings import warn
+
 import unified_planning as up
-from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import List, Dict, Optional, cast
+from unified_planning.model.types import _UserType
 
 
 class UserTypesSetMixin:
@@ -49,8 +50,7 @@ class UserTypesSetMixin:
                     ut.name == cast(_UserType, t).name for t in self._user_types
                 ):
                     raise UPProblemDefinitionError(msg)
-                else:
-                    warn(msg)
+                warn(msg, stacklevel=2)
             if ut.father is not None:
                 self._add_user_type(ut.father)
             self._user_types.append(type)

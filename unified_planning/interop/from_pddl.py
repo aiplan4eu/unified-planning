@@ -13,9 +13,8 @@
 # limitations under the License.
 #
 
-from itertools import chain
-
 from fractions import Fraction
+from itertools import chain
 from typing import (
     Any,
     Callable,
@@ -25,72 +24,88 @@ from typing import (
     Optional,
     OrderedDict,
     Tuple,
-    Type as TypingType,
     Union,
 )
-
-from pddl.logic.base import (
-    Formula,
-    And,
-    Or,
-    Not,
-    Imply,
-    ForallCondition,
-    ExistsCondition,
+from typing import (
+    Type as TypingType,
 )
-from pddl.logic.effects import When, Forall, Effect
+
+from pddl.action import Action
+from pddl.core import Domain, Problem
+from pddl.custom_types import name
+from pddl.logic.base import (
+    And,
+    ExistsCondition,
+    ForallCondition,
+    Formula,
+    Imply,
+    Not,
+    Or,
+)
+from pddl.logic.effects import Effect, Forall, When
 from pddl.logic.functions import (
-    NumericFunction,
-    BinaryFunction,
-    Increase,
-    Decrease,
-    NumericValue,
-    EqualTo as EqualToFunction,
     Assign,
-    LesserThan,
-    LesserEqualThan,
-    GreaterThan,
+    BinaryFunction,
+    Decrease,
+    Divide,
     GreaterEqualThan,
+    GreaterThan,
+    Increase,
+    LesserEqualThan,
+    LesserThan,
+    Metric,
     Minus,
+    NumericFunction,
+    NumericValue,
     Plus,
     Times,
-    Divide,
-    Metric,
+)
+from pddl.logic.functions import (
+    EqualTo as EqualToFunction,
 )
 from pddl.logic.predicates import (
     DerivedPredicate,
-    EqualTo as EqualToPredicate,
     Predicate,
 )
-from pddl.logic.terms import Constant, Variable, Term
-from pddl.core import Domain, Problem
-from pddl.action import Action
-from pddl.custom_types import name
-
-from unified_planning.model import (
-    Fluent,
-    Type,
-    Parameter,
-    Object,
-    InstantaneousAction,
-    FNode,
-    Variable as UPVariable,
-    Effect as UPEffect,
-    Problem as UPProblem,
-    Expression as UPExpression,
-    Action as UPAction,
-    EffectKind,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    MinimizeSequentialPlanLength,
+from pddl.logic.predicates import (
+    EqualTo as EqualToPredicate,
 )
-from unified_planning.model.type_manager import TypeManager
-from unified_planning.model.expression import ExpressionManager
-from unified_planning.environment import get_environment, Environment
+from pddl.logic.terms import Constant, Term, Variable
+
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
+from unified_planning.model import (
+    Action as UPAction,
+)
+from unified_planning.model import (
+    Effect as UPEffect,
+)
+from unified_planning.model import (
+    EffectKind,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    MinimizeSequentialPlanLength,
+    Object,
+    Parameter,
+    Type,
+)
+from unified_planning.model import (
+    Expression as UPExpression,
+)
+from unified_planning.model import (
+    Problem as UPProblem,
+)
+from unified_planning.model import (
+    Variable as UPVariable,
+)
+from unified_planning.model.expression import ExpressionManager
+from unified_planning.model.type_manager import TypeManager
 
 
 def assert_not_none_type(t: Optional[Type]) -> Type:
@@ -161,14 +176,14 @@ class _ExpressionConverter:
                 else:
                     result_stack.append(em.Real(formula_value))
             elif type(current_formula) in self._direct_matching_expressions:
-                for operand in current_formula.operands:
-                    stack.append(
-                        (
-                            operand,
-                            current_action_parameters,
-                            current_quantifier_variables,
-                        )
+                stack.extend(
+                    (
+                        operand,
+                        current_action_parameters,
+                        current_quantifier_variables,
                     )
+                    for operand in current_formula.operands
+                )
                 result_stack.append(
                     (type(current_formula), len(current_formula.operands))
                 )
@@ -184,10 +199,10 @@ class _ExpressionConverter:
             elif isinstance(current_formula, Constant):
                 result_stack.append(em.ObjectExp(self._objects[current_formula.name]))
             elif isinstance(current_formula, (Predicate, NumericFunction)):
-                for term in current_formula.terms:
-                    stack.append(
-                        (term, current_action_parameters, current_quantifier_variables)
-                    )
+                stack.extend(
+                    (term, current_action_parameters, current_quantifier_variables)
+                    for term in current_formula.terms
+                )
                 result_stack.append((current_formula.name, len(current_formula.terms)))
             elif isinstance(current_formula, DerivedPredicate):
                 raise UPUnsupportedProblemTypeError(
@@ -358,14 +373,12 @@ class AIPDDLConverter:
         # extracts all the parameters of the fluents
         def get_all_fluents_terms() -> Iterator[Term]:
             for fluent in chain(self._domain.predicates, self._domain.functions):
-                for term in fluent.terms:
-                    yield term
+                yield from fluent.terms
 
         # extracts all the parameters of the actions
         def get_all_actions_params() -> Iterator[Variable]:
             for action in self._domain.actions:
-                for param in action.parameters:
-                    yield param
+                yield from action.parameters
 
         for typed_element in chain(
             objects, get_all_fluents_terms(), get_all_actions_params()
@@ -647,10 +660,10 @@ class AIPDDLConverter:
                     (current_effect.effect, new_quantifier_variables, current_condition)
                 )
             elif isinstance(current_effect, And):
-                for sub_effect in current_effect.operands:
-                    stack.append(
-                        (sub_effect, current_quantifier_variables, current_condition)
-                    )
+                stack.extend(
+                    (sub_effect, current_quantifier_variables, current_condition)
+                    for sub_effect in current_effect.operands
+                )
             else:
                 raise UPUnsupportedProblemTypeError(
                     f"Effect {current_effect} of type {type(current_effect)} not supported"

@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-from warnings import warn
-import unified_planning as up
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import IO, Optional, Callable
+from typing import IO, Callable, Optional
+from warnings import warn
+
+import unified_planning as up
 
 
 class _SolveWithParamsNotImplementedError(Exception):
@@ -79,10 +80,9 @@ class OneshotPlannerMixin(ABC):
             msg = f"We cannot establish whether {self.name} can solve this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
-            msg = f"The problem has no quality metrics but the engine is required to be optimal!"
+            msg = "The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         try:
             kwargs.setdefault("warm_start_plan", warm_start_plan)

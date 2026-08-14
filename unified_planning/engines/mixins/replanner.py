@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-import unified_planning as up
 from abc import ABC, abstractmethod
 from fractions import Fraction
 from typing import IO, Optional, Union
 from warnings import warn
+
+import unified_planning as up
 
 
 class ReplannerMixin(ABC):
@@ -38,8 +39,7 @@ class ReplannerMixin(ABC):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
 
     @staticmethod
     def is_replanner() -> bool:

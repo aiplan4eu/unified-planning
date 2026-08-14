@@ -13,29 +13,28 @@
 # limitations under the License.
 #
 
-from typing import cast
 import warnings
-import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import (
-    classical_kind,
-    full_classical_kind,
-    simple_numeric_kind,
-    general_numeric_kind,
-    quantified_conditions_kind,
-    basic_temporal_kind,
-    hierarchical_kind,
-)
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
+from typing import cast
+
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
 from unified_planning.model.contingent import SensingAction
+from unified_planning.model.problem_kind import (
+    basic_temporal_kind,
+    classical_kind,
+    general_numeric_kind,
+    hierarchical_kind,
+    quantified_conditions_kind,
+    simple_numeric_kind,
+)
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestGrounder(unittest_TestCase):
@@ -806,9 +805,9 @@ class TestGrounder(unittest_TestCase):
         hidden = Fluent("hidden", BoolType(), l=Loc)
         f = Fluent("f")
         action = SensingAction("sense", l=Loc)
-        l = action.parameter("l")
+        loc = action.parameter("l")
         action.add_effect(f, True)
-        action.add_observed_fluent(hidden(l))
+        action.add_observed_fluent(hidden(loc))
 
         problem = Problem("parameterized_sensing")
         problem.add_objects([l1, l2])
@@ -837,10 +836,10 @@ class TestGrounder(unittest_TestCase):
         rate = Fluent("rate", RealType(), l=Loc)
         x = Fluent("x", RealType())
         action = DurativeAction("act", l=Loc)
-        l = action.parameter("l")
+        loc = action.parameter("l")
         action.set_fixed_duration(1)
         action.add_increase_continuous_effect(
-            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(l)
+            ClosedTimeInterval(StartTiming(), EndTiming()), x, rate(loc)
         )
         # keeps "rate" non-static, so its read in the continuous effect isn't folded to a
         # constant: this test is about parameter substitution, not static-fluent folding.
@@ -862,7 +861,7 @@ class TestGrounder(unittest_TestCase):
         assert isinstance(grounded_problem, Problem)
         ga = cast(DurativeAction, grounded_problem.action("act_l1"))
         self.assertEqual(len(ga.parameters), 0)
-        ((interval, effects),) = ga.continuous_effects.items()
+        ((_interval, effects),) = ga.continuous_effects.items()
         (effect,) = effects
         self.assertTrue(effect.is_continuous_increase())
         self.assertEqual(effect.value, rate(l1))

@@ -13,13 +13,14 @@
 # limitations under the License.
 #
 
-from unified_planning.plans.schedule import Schedule, Variable, Value
-from unified_planning.model.scheduling import Activity
+from typing import Dict, List, Optional, Tuple
+
 from unified_planning.environment import Environment
 from unified_planning.model.motion.activity import MotionActivity
 from unified_planning.model.motion.constraint import MotionConstraint
 from unified_planning.model.motion.path import Path
-from typing import Optional, Tuple, List, Dict
+from unified_planning.model.scheduling import Activity
+from unified_planning.plans.schedule import Schedule, Value, Variable
 
 
 class MotionSchedule(Schedule):
@@ -34,11 +35,13 @@ class MotionSchedule(Schedule):
         self,
         activities: Optional[List[Activity]] = None,
         assignment: Optional[Dict[Variable, Value]] = None,
-        motion_paths: Dict[Tuple[MotionActivity, MotionConstraint], Path] = {},
+        motion_paths: Optional[
+            Dict[Tuple[MotionActivity, MotionConstraint], Path]
+        ] = None,
         environment: Optional[Environment] = None,
     ):
         super().__init__(activities, assignment, environment)
-        self._motion_paths = motion_paths
+        self._motion_paths = motion_paths or {}
 
     @property
     def motion_paths(

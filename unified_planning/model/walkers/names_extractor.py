@@ -15,13 +15,11 @@
 #
 
 
-from functools import reduce
 from typing import List, Set
-import unified_planning as up
-import unified_planning.environment
+
+import unified_planning.model.operators as op
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
-import unified_planning.model.operators as op
 
 
 class NamesExtractor(walkers.dag.DagWalker):
@@ -51,7 +49,7 @@ class NamesExtractor(walkers.dag.DagWalker):
     @walkers.handles(op.OperatorKind.EXISTS, op.OperatorKind.FORALL)
     def walk_quantifier(self, expression: FNode, args: List[Set[str]]) -> Set[str]:
         assert len(args) == 1
-        vars_names = set((v.name for v in expression.variables()))
+        vars_names = {v.name for v in expression.variables()}
         return self._args_merge_in_place(args, vars_names)
 
     def walk_fluent_exp(self, expression: FNode, args: List[Set[str]]) -> Set[str]:

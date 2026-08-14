@@ -25,7 +25,7 @@ def main() -> None:
     pyproject = pathlib.Path("pyproject.toml")
     text = pyproject.read_text()
 
-    match = re.search(r'^version = "(\d+\.\d+\.\d+)"', text, flags=re.M)
+    match = re.search(r'^version = "(\d+\.\d+\.\d+)"', text, flags=re.MULTILINE)
     if match is None:
         sys.exit(
             "refusing to stamp: a plain 'X.Y.Z' version was not found in "
@@ -43,7 +43,7 @@ def main() -> None:
             f'version = "{dev_version}"',
             text,
             count=1,
-            flags=re.M,
+            flags=re.MULTILINE,
         )
     )
     print(f"stamped version = {dev_version}")

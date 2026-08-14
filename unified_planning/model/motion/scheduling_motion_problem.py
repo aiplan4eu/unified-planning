@@ -13,21 +13,21 @@
 # limitations under the License.
 #
 
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import unified_planning as up
-from unified_planning.model.expression import ConstantExpression
-from unified_planning.model.scheduling import SchedulingProblem
-from unified_planning.model.motion import MotionActivity
 from unified_planning.exceptions import UPTypeError
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins import (
-    UserTypesSetMixin,
-    TimeModelMixin,
     FluentsSetMixin,
-    ObjectsSetMixin,
     InitialStateMixin,
     MetricsMixin,
+    ObjectsSetMixin,
+    TimeModelMixin,
+    UserTypesSetMixin,
 )
+from unified_planning.model.motion import MotionActivity
+from unified_planning.model.scheduling import SchedulingProblem
 
 
 class SchedulingMotionProblem(SchedulingProblem):
@@ -44,7 +44,9 @@ class SchedulingMotionProblem(SchedulingProblem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         SchedulingProblem.__init__(
             self, name, environment, initial_defaults=initial_defaults

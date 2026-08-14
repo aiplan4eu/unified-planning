@@ -13,12 +13,10 @@
 # limitations under the License.
 
 
-import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.test.examples import get_example_problems
-from unified_planning.engines.compilers import BoundedTypesRemover
 from unified_planning.engines import CompilationKind
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestBoundedTypesRemover(unittest_TestCase):
@@ -41,7 +39,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
 
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -66,7 +64,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -113,7 +111,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -138,7 +136,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -199,7 +197,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -251,7 +249,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -276,7 +274,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(
@@ -301,7 +299,7 @@ class TestBoundedTypesRemover(unittest_TestCase):
         self.assertTrue(kind.has_bounded_types())
         self.assertFalse(compiled_kind.has_bounded_types())
         self.assertEqual(len(problem.actions), len(compiled_problem.actions))
-        for a, ca in zip(problem.actions, compiled_problem.actions):
+        for a, ca in zip(problem.actions, compiled_problem.actions, strict=True):
             assert isinstance(a, InstantaneousAction)
             assert isinstance(ca, InstantaneousAction)
             self.assertEqual(

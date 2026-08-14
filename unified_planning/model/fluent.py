@@ -18,11 +18,12 @@ A Fluent has a name, a type and a signature
 that defines the types of its parameters.
 """
 
+from typing import Iterator, List, Optional, OrderedDict, Union, cast
+
 import unified_planning as up
-from unified_planning.model.types import domain_size, domain_item, _IntType
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from typing import List, OrderedDict, Optional, Union, Iterator, cast
+from unified_planning.model.types import _IntType, domain_item, domain_size
 
 
 class Fluent:
@@ -86,9 +87,9 @@ class Fluent:
     def __repr__(self) -> str:
         sign = ""
         if self.arity > 0:
-            sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
+            sign_items = [f"{p.name}={p.type!s}" for p in self.signature]
             sign = f"[{', '.join(sign_items)}]"
-        return f"{str(self.type)} {self.name}{sign}"
+        return f"{self.type!s} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Fluent):
@@ -98,8 +99,7 @@ class Fluent:
                 and self._signature == oth._signature
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._typename)
@@ -258,7 +258,7 @@ def get_ith_fluent_exp(
     quot = idx
     rem = 0
     actual_parameters = []
-    for i, p in enumerate(fluent.signature):
+    for i, _p in enumerate(fluent.signature):
         ds = len(domains[i])
         rem = quot % ds
         quot //= ds

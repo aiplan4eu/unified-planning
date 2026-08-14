@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Iterator, List
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Iterable
 
 
 class ActionsSetMixin:
@@ -124,10 +125,7 @@ class ActionsSetMixin:
         :param name: The `name` of the target `action`.
         :return: `True` if the `problem` has an `action` with the given `name`, `False` otherwise.
         """
-        for a in self._actions:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._actions)
 
     def add_action(self, action: "up.model.action.Action"):
         """
@@ -144,8 +142,7 @@ class ActionsSetMixin:
                 action.name == a.name for a in self._actions
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._actions.append(action)
         for param in action.parameters:
             if param.type.is_user_type():

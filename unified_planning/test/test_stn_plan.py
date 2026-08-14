@@ -13,12 +13,12 @@
 # limitations under the License.
 
 
-from typing import Set, cast, List, Tuple, Dict
 from numbers import Real as RealNumbers
-import unified_planning as up
+from typing import Dict, List, Set, Tuple, cast
+
+from unified_planning.plans import *
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from unified_planning.plans import *
 from unified_planning.test.examples import get_example_problems
 
 
@@ -143,11 +143,11 @@ class TestSTNPlan(unittest_TestCase):
         }
         counter = 0
         for left_node, cl in new_plan.get_constraints().items():
-            for low, up, right_node in cl:
+            for low, upper, right_node in cl:
                 if left_node == right_node:
                     continue
                 self.assertEqual(
-                    (low, up), expected_new_constraints[left_node, right_node]
+                    (low, upper), expected_new_constraints[left_node, right_node]
                 )
                 counter += 1
         self.assertEqual(counter, len(expected_new_constraints))

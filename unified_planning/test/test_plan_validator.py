@@ -15,15 +15,15 @@
 
 
 import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import (
     SequentialPlanValidator,
-    ValidationResultStatus,
     TimeTriggeredPlanValidator,
+    ValidationResultStatus,
 )
 from unified_planning.environment import get_environment
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestProblem(unittest_TestCase):
@@ -373,7 +373,7 @@ class TestProblem(unittest_TestCase):
         move = problem.action("move")
         load = problem.action("load")
         unload = problem.action("unload")
-        l1, l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
+        l1, _l2, l3 = [problem.object(f"l{i}") for i in range(1, 4)]
         # the plan is bad because going loaded from l3 to l1 violates a global constraint
         invalid_action = up.plans.ActionInstance(move, (ObjectExp(l3), ObjectExp(l1)))
         bad_plan = up.plans.SequentialPlan(

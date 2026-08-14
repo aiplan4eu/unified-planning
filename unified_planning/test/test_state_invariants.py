@@ -13,23 +13,12 @@
 # limitations under the License.
 
 
-import unified_planning
+from unified_planning.engines import CompilationKind
 from unified_planning.shortcuts import *
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model import GlobalStartTiming
-from unified_planning.model.problem_kind import (
-    classical_kind,
-    full_classical_kind,
-    basic_temporal_kind,
-)
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines.compilers import ConditionalEffectsRemover
-from unified_planning.engines import CompilationKind
 
 
 class TestStateInvariantsRemover(unittest_TestCase):

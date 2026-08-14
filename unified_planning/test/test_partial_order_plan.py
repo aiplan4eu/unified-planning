@@ -14,13 +14,12 @@
 
 
 import unified_planning as up
-from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import basic_classical_kind, hierarchical_kind
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
-    main,
     skipIfEngineNotAvailable,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
 

@@ -18,26 +18,27 @@ A basic `Effect` has a `fluent` and an `expression`.
 A `condition` can be added to make it a `conditional effect`.
 """
 
+from enum import Enum, auto
 from itertools import product
+from typing import (
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+)
+from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
     UPProblemDefinitionError,
     UPUnboundedVariablesError,
-)
-from enum import Enum, auto
-from warnings import warn
-from typing import (
-    List,
-    Callable,
-    Dict,
-    Optional,
-    Sequence,
-    Set,
-    Union,
-    Iterable,
-    Tuple,
-    Iterator,
 )
 
 
@@ -74,7 +75,7 @@ class Effect:
         value: "up.model.fnode.FNode",
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         fve = fluent.environment.free_vars_extractor
         fluents_in_fluent = set(fve.get(fluent))
@@ -130,9 +131,9 @@ class Effect:
         if self.is_forall():
             s.append(f"forall {', '.join(str(v) for v in self._forall)}")
         if self.is_conditional():
-            s.append(f"if {str(self._condition)} then")
+            s.append(f"if {self._condition!s} then")
         if not (self.is_continuous_increase() or self.is_continuous_decrease()):
-            s.append(f"{str(self._fluent)}")
+            s.append(f"{self._fluent!s}")
         if self.is_assignment():
             s.append(":=")
         elif self.is_increase():
@@ -140,10 +141,10 @@ class Effect:
         elif self.is_decrease():
             s.append("-=")
         elif self.is_continuous_increase():
-            s.append(f"d{str(self._fluent)}/dt =")
+            s.append(f"d{self._fluent!s}/dt =")
         elif self.is_continuous_decrease():
-            s.append(f"d{str(self._fluent)}/dt = -")
-        s.append(f"{str(self._value)}")
+            s.append(f"d{self._fluent!s}/dt = -")
+        s.append(f"{self._value!s}")
         return " ".join(s)
 
     def __eq__(self, oth: object) -> bool:
@@ -155,8 +156,7 @@ class Effect:
                 and self._kind == oth._kind
                 and set(self._forall) == set(oth._forall)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return (
@@ -245,7 +245,7 @@ class Effect:
                 assert len(self._forall) == len(objects)
                 subs: Dict[
                     "up.model.expression.Expression", "up.model.expression.Expression"
-                ] = dict(zip(self._forall, objects))
+                ] = dict(zip(self._forall, objects, strict=True))
                 yield up.model.Effect(
                     fluent=self.fluent.substitute(subs),
                     value=self.value.substitute(subs),
@@ -346,8 +346,7 @@ class SimulatedEffect:
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SimulatedEffect):
             return self._fluents == oth._fluents and self._function == oth._function
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._function)
@@ -408,7 +407,7 @@ def check_conflicting_effects(
     :param name: string used for better error indexing.
     :raises: UPConflictingException if the given effect is in conflict with the data structure around it.
     """
-    assigned_value = fluents_assigned.get(effect.fluent, None)
+    assigned_value = fluents_assigned.get(effect.fluent)
     if not effect.is_conditional() and not effect.fluent.type.is_bool_type():
         if effect.is_assignment():
             # if the same fluent is involved in an increase/decrease, raise exception
@@ -419,7 +418,7 @@ def check_conflicting_effects(
                     msg = f"The effect {effect} at timing {timing} is in conflict with the increase/decrease effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
             # if the same fluent is involved in a simulated effect
-            elif (
+            if (
                 simulated_effect is not None
                 and effect.fluent in simulated_effect.fluents
             ):
@@ -429,7 +428,7 @@ def check_conflicting_effects(
                     msg = f"The effect {effect} at timing {timing} is in conflict with the simulated effects already in the {name}."
                 raise UPConflictingEffectsException(msg)
             # the same fluent is involved in another assign
-            elif assigned_value is not None:
+            if assigned_value is not None:
                 # if the 2 values are different, raise exception
                 if assigned_value != effect.value and not (
                     assigned_value.is_constant()

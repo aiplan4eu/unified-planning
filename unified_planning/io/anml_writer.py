@@ -14,22 +14,23 @@
 #
 
 
-from fractions import Fraction
 import re
 import sys
+from fractions import Fraction
+from io import StringIO
+from typing import IO, Dict, List, Optional, Union, cast
+
 import unified_planning as up
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.model import (
     DurativeAction,
-    InstantaneousAction,
     Fluent,
-    Parameter,
+    InstantaneousAction,
     Object,
+    Parameter,
 )
-from unified_planning.model.types import _UserType, _RealType, _IntType
-from typing import IO, Dict, List, Optional, cast, Union
-from io import StringIO
+from unified_planning.model.types import _IntType, _RealType, _UserType
 
 ANML_KEYWORDS = {
     "action",
@@ -175,8 +176,7 @@ class ConverterToANMLString(walkers.DagWalker):
     def walk_fluent_exp(self, expression, args):
         if len(args) == 0:
             return self._names_mapping[expression.fluent()]
-        else:
-            return f"{self._names_mapping[expression.fluent()]}({', '.join(args)})"
+        return f"{self._names_mapping[expression.fluent()]}({', '.join(args)})"
 
     def walk_param_exp(self, expression, args):
         assert len(args) == 0
@@ -420,9 +420,9 @@ class ANMLWriter:
         if effect.is_assignment():
             results.append(" := ")
         elif effect.is_increase():
-            results.append(f" :increase ")
+            results.append(" :increase ")
         elif effect.is_decrease():
-            results.append(f" :decrease ")
+            results.append(" :decrease ")
         else:
             raise NotImplementedError
         results.append(f"{converter.convert(effect.value)};\n")
@@ -437,28 +437,24 @@ class ANMLWriter:
     def _convert_anml_timing(self, timing: "up.model.Timing") -> str:
         time = "start" if timing.is_from_start() else "end"
         if timing.delay > 0:
-            return f"{time} + {str(timing.delay)}"
-        elif timing.delay == 0:
+            return f"{time} + {timing.delay!s}"
+        if timing.delay == 0:
             return time
-        else:  # timing.delay < 0
-            return f"{time} - {str(timing.delay * (-1))}"
+        # timing.delay < 0
+        return f"{time} - {timing.delay * (-1)!s}"
 
     def _convert_anml_interval(self, interval: "up.model.TimeInterval") -> str:
         left_bracket = "(" if interval.is_left_open() else "["
         right_bracket = ")" if interval.is_right_open() else "]"
         if interval.lower == interval.upper:
             return f"{left_bracket} {self._convert_anml_timing(interval.lower)} {right_bracket}"
-        else:
-            return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
+        return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
 
 
 def _is_valid_anml_name(name: str) -> bool:
     regex = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*")
-    if (
-        re.match(regex, name) is None or name in ANML_KEYWORDS
-    ):  # If the name does not start with an alphabetic char or is a keyword
-        return False
-    return True
+    # valid means: starts with an alphabetic char, and is not a keyword
+    return re.match(regex, name) is not None and name not in ANML_KEYWORDS
 
 
 def _get_anml_valid_name(
@@ -509,19 +505,19 @@ def _get_anml_name(
     ],
 ) -> str:
     """Important note: This method updates the names_mapping"""
-    new_name: Optional[str] = names_mapping.get(item, None)
+    new_name: Optional[str] = names_mapping.get(item)
     if new_name is None:  # The type is not in the dictionary, so his name must be added
         if isinstance(item, up.model.Type) and item.is_int_type():
             num_type = cast(_IntType, item)
             left_bound = (
                 "(-infinity"
                 if num_type.lower_bound is None
-                else f"[{str(num_type.lower_bound)}"
+                else f"[{num_type.lower_bound!s}"
             )
             right_bound = (
                 "infinity)"
                 if num_type.upper_bound is None
-                else f"{str(num_type.upper_bound)}]"
+                else f"{num_type.upper_bound!s}]"
             )
             new_name = f"integer {left_bound}, {right_bound}"
         elif isinstance(item, up.model.Type) and item.is_real_type():
@@ -529,15 +525,15 @@ def _get_anml_name(
             if num_real_type.lower_bound is None:
                 left_bound = "(-infinity"
             elif num_real_type.lower_bound.denominator == 1:
-                left_bound = f"[{str(num_real_type.lower_bound)}.0"
+                left_bound = f"[{num_real_type.lower_bound!s}.0"
             else:
-                left_bound = f"[{str(num_real_type.lower_bound)}"
+                left_bound = f"[{num_real_type.lower_bound!s}"
             if num_real_type.upper_bound is None:
                 right_bound = "infinity)"
             elif num_real_type.upper_bound.denominator == 1:
-                right_bound = f"{str(num_real_type.upper_bound)}.0]"
+                right_bound = f"{num_real_type.upper_bound!s}.0]"
             else:
-                right_bound = f"{str(num_real_type.upper_bound)}]"
+                right_bound = f"{num_real_type.upper_bound!s}]"
             new_name = f"float {left_bound}, {right_bound}"
         else:  # We mangle the name and get a fresh one
             new_name = _get_anml_valid_name(item)
@@ -546,7 +542,7 @@ def _get_anml_name(
             while (
                 test_name in names_mapping.values()
             ):  # Loop until we find a fresh name
-                test_name = f"{new_name}_{str(count)}"
+                test_name = f"{new_name}_{count!s}"
                 count += 1
             new_name = test_name
             assert _is_valid_anml_name(new_name)

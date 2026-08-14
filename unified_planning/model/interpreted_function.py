@@ -21,11 +21,10 @@ problems containing interpreted functions are currently
 not supported by the parallel planners
 """
 
+from typing import Callable, List, Optional, OrderedDict
+
 import unified_planning as up
-from unified_planning.model.types import domain_size, domain_item, _IntType
-from unified_planning.environment import get_environment, Environment
-from unified_planning.exceptions import UPTypeError
-from typing import List, OrderedDict, Optional, Union, Iterator, cast, Callable
+from unified_planning.environment import Environment, get_environment
 
 
 class InterpretedFunction:
@@ -66,9 +65,9 @@ class InterpretedFunction:
     def __repr__(self) -> str:
         sign = ""
         if self.arity > 0:
-            sign_items = [f"{p.name}={str(p.type)}" for p in self.signature]
+            sign_items = [f"{p.name}={p.type!s}" for p in self.signature]
             sign = f"[{', '.join(sign_items)}]"
-        return f"{str(self.return_type)} {self.name}{sign}"
+        return f"{self.return_type!s} {self.name}{sign}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, InterpretedFunction):
@@ -79,8 +78,7 @@ class InterpretedFunction:
                 and self._env == oth._env
                 and self._function == oth._function
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._return_type)

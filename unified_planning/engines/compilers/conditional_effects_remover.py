@@ -14,33 +14,32 @@
 #
 """This module defines the conditional effects remover class."""
 
+from functools import partial
+from typing import Dict, Iterator, List, Optional, Tuple
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import (
+    check_and_simplify_conditions,
+    check_and_simplify_preconditions,
+    get_fresh_name,
+    replace_action,
+    updated_minimize_action_costs,
+)
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.compilers.utils import updated_minimize_action_costs
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import (
-    UPProblemDefinitionError,
     UPConflictingEffectsException,
+    UPProblemDefinitionError,
 )
 from unified_planning.model import (
+    AbstractProblem,
+    Action,
     Problem,
     ProblemKind,
-    Action,
-    InstantaneousAction,
-    DurativeAction,
-    AbstractProblem,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.compilers.utils import (
-    get_fresh_name,
-    check_and_simplify_preconditions,
-    check_and_simplify_conditions,
-    replace_action,
-)
 from unified_planning.utils import powerset
-from typing import List, Dict, Tuple, Optional, Iterator
-from functools import partial
 
 
 class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):

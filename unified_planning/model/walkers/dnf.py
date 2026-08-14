@@ -14,13 +14,14 @@
 #
 
 
+from itertools import product
+from typing import List, Tuple
+
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
 from unified_planning.exceptions import UPUnreachableCodeError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Tuple
-from itertools import product
 
 
 class Nnf:
@@ -57,17 +58,11 @@ class Nnf:
             if status:
                 if e.is_and():
                     args = [solved.pop() for _ in range(len(e.args))]
-                    if p:
-                        new_e = self.manager.And(args)
-                    else:
-                        new_e = self.manager.Or(args)
+                    new_e = self.manager.And(args) if p else self.manager.Or(args)
                     solved.append(new_e)
                 elif e.is_or():
                     args = [solved.pop() for _ in range(len(e.args))]
-                    if p:
-                        new_e = self.manager.Or(args)
-                    else:
-                        new_e = self.manager.And(args)
+                    new_e = self.manager.Or(args) if p else self.manager.And(args)
                     solved.append(new_e)
                 else:
                     raise UPUnreachableCodeError(
@@ -78,8 +73,7 @@ class Nnf:
                     stack.append((not p, e.arg(0), False))
                 elif e.is_and() or e.is_or():
                     stack.append((p, e, True))
-                    for arg in e.args:
-                        stack.append((p, arg, False))
+                    stack.extend((p, arg, False) for arg in e.args)
                 elif e.is_implies():
                     na1 = self.manager.Not(e.arg(0))
                     new_e = self.manager.Or(na1, e.arg(1))
@@ -166,7 +160,7 @@ class Dnf(walkers.dag.DagWalker):
             simp = self._simplifier.simplify(self.manager.And(big_conjunction))
             if simp.is_true():
                 return []
-            elif simp.is_false():
+            if simp.is_false():
                 pass
             elif simp.is_and():
                 res.append(simp.args)

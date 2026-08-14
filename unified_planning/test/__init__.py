@@ -14,30 +14,30 @@
 
 
 import unittest
-import unified_planning as up
 from fractions import Fraction
 from functools import wraps
 from importlib.util import find_spec
+from typing import List, Optional, Union
+
+import unified_planning as up
 from unified_planning.engines import OperationMode
 from unified_planning.environment import get_environment
-from unified_planning.model import ProblemKind, Problem, AbstractProblem
+from unified_planning.model import AbstractProblem, Problem, ProblemKind
 from unified_planning.plans import Plan
 from unified_planning.test.pddl import enhsp
-from typing import Optional, Union, List
-
 
 skipIf = unittest.skipIf
 SkipTest = unittest.SkipTest
 
 
-class skipIfEngineNotAvailable(object):
+class skipIfEngineNotAvailable:
     """Skip a test if the given engine is not available."""
 
     def __init__(self, engine):
         self.engine = engine
 
     def __call__(self, test_fun):
-        msg = "%s not available" % self.engine
+        msg = f"{self.engine} not available"
         cond = self.engine not in get_environment().factory.engines
 
         @unittest.skipIf(cond, msg)
@@ -48,7 +48,7 @@ class skipIfEngineNotAvailable(object):
         return wrapper
 
 
-class skipIfNoOneshotPlannerForProblemKind(object):
+class skipIfNoOneshotPlannerForProblemKind:
     """Skip a test if there are no oneshot planner for the given problem kind."""
 
     def __init__(
@@ -68,7 +68,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
                 problem_kind=self.kind,
                 optimality_guarantee=self.optimality_guarantee,
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)
@@ -79,7 +79,7 @@ class skipIfNoOneshotPlannerForProblemKind(object):
         return wrapper
 
 
-class skipIfNoAnytimePlannerForProblemKind(object):
+class skipIfNoAnytimePlannerForProblemKind:
     """Skip a test if there are no anytime planner for the given problem kind."""
 
     def __init__(
@@ -99,7 +99,7 @@ class skipIfNoAnytimePlannerForProblemKind(object):
                 problem_kind=self.kind,
                 anytime_guarantee=self.anytime_guarantee,
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)
@@ -110,7 +110,7 @@ class skipIfNoAnytimePlannerForProblemKind(object):
         return wrapper
 
 
-class skipIfNoPlanValidatorForProblemKind(object):
+class skipIfNoPlanValidatorForProblemKind:
     """Skip a test if there are no plan validator for the given problem kind."""
 
     def __init__(self, kind: ProblemKind):
@@ -123,7 +123,7 @@ class skipIfNoPlanValidatorForProblemKind(object):
             get_environment().factory._get_engine_class(
                 OperationMode.PLAN_VALIDATOR, problem_kind=self.kind
             )
-        except:
+        except Exception:
             cond = True
 
         @unittest.skipIf(cond, msg)
@@ -134,7 +134,7 @@ class skipIfNoPlanValidatorForProblemKind(object):
         return wrapper
 
 
-class skipIfModuleNotInstalled(object):
+class skipIfModuleNotInstalled:
     """Skip a test if the given module is not installed."""
 
     def __init__(self, module_name: str):

@@ -87,7 +87,10 @@ dev = [
     "pytest-cov>=5.0",
     # Exact so that type errors appear on code change, not on tool drift.
     "mypy==2.3.0",
-    "ruff>=0.6.0",
+    # Exact, like mypy: `lint.ignore` names specific rule codes, and ruff hard-errors on an
+    # unknown selector rather than warning, so a resolution that picked an older ruff would
+    # fail to start rather than merely disagree.
+    "ruff==0.16.2",
     "pre-commit>=3.5",
 ]
 docs = [
@@ -129,13 +132,136 @@ line-length = 88
 target-version = "py310"
 # generated protobuf code and docs (notebooks/snippets with IPython magics) are excluded
 extend-exclude = ["unified_planning/grpc/generated", "docs"]
+# First-party roots for the import sorter. "up_test_cases" is what makes report.py's
+# `from utils import ...` resolve to up_test_cases/utils.py rather than being sorted as a
+# third-party package and hoisted above the unified_planning block.
+src = [".", "up_test_cases"]
 
-# ruff is used purely as the formatter here — the drop-in replacement for black.
-# Linting is intentionally disabled: enabling unused-import/import-sorting autofixes
-# rewrites re-export modules (e.g. unified_planning/interop/tarski.py) and changes the
-# public API. Adopting lint rules is left to a dedicated follow-up PR.
+# Rules are adopted family by family, each with the fixes it requires, so that every commit
+# is green under its own configuration. Deliberately never selected:
+#   E501  line-too-long        the formatter owns line width (1802 would-be hits, all in
+#                              docstrings and PDDL/ANML string literals it will not reflow)
+#   COM   flake8-commas        the formatter's job, and ruff warns COM812 conflicts with it
+#   D     pydocstyle           the docstrings are Sphinx/reST prose, not PEP 257
+#   ANN   flake8-annotations   mypy owns annotation coverage
+#   ARG   flake8-unused-args   the walker and mixin signatures are protocol-driven
+#   TC    flake8-type-checking would move `import unified_planning as up` into a
+#                              TYPE_CHECKING block and break the runtime `up.` uses
 [tool.ruff.lint]
-select = []
+select = [
+    "E4",    # pycodestyle: import placement
+    "E7",    # pycodestyle: statement-level errors, minus E501 - see the note above
+    "E9",    # pycodestyle: syntax and IO errors
+    "W",     # pycodestyle warnings
+    "DTZ",   # flake8-datetimez
+    "EXE",   # flake8-executable
+    "ASYNC", # flake8-async
+    "LOG",   # flake8-logging
+    "T10",   # flake8-debugger: no stray breakpoint()/pdb.set_trace()
+    "TID",   # flake8-tidy-imports
+    "YTT",   # flake8-2020: sys.version comparisons
+    "I",     # isort
+    "F",     # pyflakes
+    "RET",   # flake8-return
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+    "PERF",  # perflint
+    "B",     # flake8-bugbear
+    "PIE",   # flake8-pie
+    "FURB",  # refurb
+    "ISC",   # flake8-implicit-str-concat
+    "RUF",   # ruff-specific, including RUF100 (stale noqa)
+    "UP",    # pyupgrade, minus the PEP 585/604/695 rewrites in `ignore` below
+    "PGH",   # pygrep-hooks: blanket `# type: ignore` (PGH003) and blanket `# noqa` (PGH004)
+]
+ignore = [
+    # A named intermediate before `return` is often the only thing saying what the value is
+    # (`problem_clone`, `requirements`, `new_effect`); collapsing 21 of them into bare returns
+    # in library code costs readability and buys nothing. The rest of RET is enforced.
+    "RET504", # unnecessary-assign
+    # All 3 hits are per-item handling that cannot be hoisted out of the loop: the engine
+    # registration loops in factory.py must survive one missing package and keep going,
+    # anml_grammar.py's `except StopIteration: break` *is* the loop control of a pairwise
+    # generator, and walkers/generic.py falls back to walk_error per operator kind. The rule
+    # also predates zero-cost exceptions, so a `try` that does not raise is free since 3.11.
+    "PERF203", # try-except-in-loop
+    # All 4 hits are deliberate: Type, Duration, PlanQualityMetric and AbstractTaskNetwork
+    # are abstract by contract and carry shared concrete behaviour, so they have nothing to
+    # mark @abstractmethod. Dropping ABC would change the metaclass of public base classes
+    # that downstream engine packages subclass, to satisfy a rule about a keyword.
+    "B024", # abstract-base-class-without-abstract-method
+    # The library annotates with typing.Optional/Union/List/Dict throughout. These seven
+    # would rewrite 3253 annotations to PEP 585/604/695 syntax: an annotation-style
+    # migration, not lint adoption, so it lands in its own PR. fbk-pso/tamerlite selects
+    # `UP` wholesale, so deleting this block is the end state, not a rejection. Note a
+    # future ruff may split a new PEP-585-adjacent rule into `UP` that this list misses.
+    "UP006", # non-pep585-annotation          Dict -> dict
+    "UP007", # non-pep604-annotation-union    Union[a, b] -> a | b
+    "UP035", # deprecated-import              typing.Dict -> collections.abc
+    "UP037", # quoted-annotation
+    "UP045", # non-pep604-annotation-optional Optional[a] -> a | None
+    "UP046", # non-pep695-generic-class
+    "UP047", # non-pep695-generic-function
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Every __init__.py in the package is a re-export façade (24 files); 8 declare __all__ and the
+# rest do not. Re-exporting is the job of these files, and the two downstream engine packages
+# installed here import names straight out of them, so F401 is silenced rather than deleting
+# 75 public bindings. It stays live everywhere else, which is what catches a genuinely dead
+# import in library code. Note __all__ is NOT used to silence it: adding the missing names to
+# model/__init__.py's __all__ would change what `from unified_planning.model import *` yields
+# in shortcuts.py, and so what every `from unified_planning.shortcuts import *` sees.
+"**/__init__.py" = ["F401"]
+# shortcuts.py is the star-export surface itself: `from unified_planning.model import *` is how
+# `from unified_planning.shortcuts import *` reaches the model API, so the star import and
+# every name arriving through it are by design.
+# B008 rides along here because ProblemKind arrives through that same star import, so
+# extend-immutable-calls below cannot resolve the name in this one file.
+"unified_planning/shortcuts.py" = ["F403", "F405", "B008"]
+# The CLI and the protobuf writer consume that surface deliberately.
+"unified_planning/cmd/up.py" = ["F403", "F405"]
+# PGH003 here is TEMPORARY: both gRPC converters still carry a whole-file `# type: ignore`
+# (see #786), which PGH003 flags. The follow-up that replaces it with a narrow
+# `# mypy: disable-error-code=` directive must delete both entries - RUF100 catches a stale
+# `# noqa` but never a stale per-file-ignore, so nothing here will remind anyone.
+# Note the two tools disagree on these files: mypy's `ignore-without-code` returns early for
+# a file in `ignored_files`, so mypy stays silent about them while ruff does not.
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405", "PGH003"]
+"unified_planning/grpc/proto_reader.py" = ["PGH003"]
+# 95 of the 111 star imports in the tree are `from unified_planning.shortcuts import *` in a
+# test or a test case, and they account for ~6300 of the F403/F405 hits. Scoping the ignore to
+# these two trees rather than globally keeps a *new* star import in library code an error.
+"unified_planning/test/**" = ["F403", "F405"]
+"up_test_cases/**" = ["F403", "F405"]
+# Import order in these four modules is load-bearing: each re-exports names that a sibling
+# submodule pulls back out of the partially-initialised package while it is being imported.
+# Sorting them raises ImportError or AttributeError at import time - model/__init__.py alone
+# is enough to make `import unified_planning.shortcuts` fail on a stock install - and neither
+# mypy nor ruff can see it. There is no isort setting that avoids this; force-sort-within-
+# sections still interleaves the submodule imports ahead of the names they depend on.
+"unified_planning/model/__init__.py" = ["I001"]
+"unified_planning/model/mixins/__init__.py" = ["I001"]
+"unified_planning/model/walkers/__init__.py" = ["I001"]
+"unified_planning/plans/__init__.py" = ["I001"]
+# 42 hits, one pattern: write_action (:429) is defined inside `for ag in ...agents` (:134)
+# and called at :560/:562 in the same iteration, so no closure outlives its loop. Threading
+# `out`/`costs` through as parameters is a real refactor of a 750-line writer that has no
+# unit tests at all - see the follow-up issue. B023 stays live everywhere else: it found a
+# real bug in engines/compilers/utils.py (#785).
+"unified_planning/io/ma_pddl_writer.py" = ["B023"]
+
+[tool.ruff.lint.flake8-bugbear]
+# `typing.cast` is the identity at runtime (delta_stn.py's `epsilon=cast(T, 0)`), and the
+# `ProblemKind()` defaults in factory.py are only ever read - nothing on those paths calls a
+# set_*/unset_* on the incoming kind - so the shared default cannot be mutated across calls.
+# Keeping `= ProblemKind(version=LATEST_PROBLEM_KIND_VERSION)` in the signature also keeps
+# the default self-documenting, which `= None` would throw away.
+extend-immutable-calls = ["typing.cast", "unified_planning.model.ProblemKind"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# The tree is already 100% absolute imports; this keeps it that way.
+ban-relative-imports = "all"
 
 [tool.ruff.format]
 

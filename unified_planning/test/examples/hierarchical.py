@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
+from unified_planning.model.htn import *
 from unified_planning.plans import ActionInstance
 from unified_planning.plans.hierarchical_plan import (
-    MethodInstance,
     Decomposition,
     HierarchicalPlan,
+    MethodInstance,
 )
 from unified_planning.shortcuts import *
-from unified_planning.model.htn import *
 from unified_planning.test import TestCase
-from typing import List
 
 
 def get_example_problems():
@@ -103,15 +104,14 @@ def get_example_problems():
         (target,) = get_environment().expression_manager.auto_promote(target)
         if len(acts) == 0:
             return MethodInstance(go_noop, parameters=(target,))
-        else:
-            a = acts[0]
-            return MethodInstance(
-                go_recursive,
-                parameters=(a.actual_parameters[0], a.actual_parameters[1], target),
-                decomposition=Decomposition(
-                    {t1.identifier: acts[0], t2.identifier: goto_hier(acts[1:], target)}
-                ),
-            )
+        a = acts[0]
+        return MethodInstance(
+            go_recursive,
+            parameters=(a.actual_parameters[0], a.actual_parameters[1], target),
+            decomposition=Decomposition(
+                {t1.identifier: acts[0], t2.identifier: goto_hier(acts[1:], target)}
+            ),
+        )
 
     plan = HierarchicalPlan(
         flat_plan,

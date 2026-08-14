@@ -14,29 +14,28 @@
 #
 """This module defines the MultiAgentProblem class."""
 
+from fractions import Fraction
+from itertools import chain
+from typing import Dict, Iterable, List, Optional, Set, Union, cast
+
 import unified_planning as up
-from unified_planning.model import walkers
+from unified_planning.exceptions import (
+    UPExpressionDefinitionError,
+    UPPlanDefinitionError,
+    UPProblemDefinitionError,
+    UPTypeError,
+)
 from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.operators import OperatorKind
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPTypeError,
-    UPExpressionDefinitionError,
-    UPPlanDefinitionError,
-)
-from typing import Optional, List, Dict, Set, Union, cast, Iterable
 from unified_planning.model.mixins import (
+    AgentsSetMixin,
     ObjectsSetMixin,
     UserTypesSetMixin,
-    AgentsSetMixin,
 )
-from fractions import Fraction
-from itertools import chain
-
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers.any import AnyGetter
 
 
@@ -55,7 +54,9 @@ class MultiAgentProblem(  # type: ignore[misc]
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
@@ -64,9 +65,9 @@ class MultiAgentProblem(  # type: ignore[misc]
         )
         AgentsSetMixin.__init__(self, self.environment, self.has_name)
 
-        self._initial_defaults = initial_defaults
+        self._initial_defaults = initial_defaults or {}
         self._env_ma = up.model.multi_agent.ma_environment.MAEnvironment(self)
-        self._goals: List["up.model.fnode.FNode"] = list()
+        self._goals: List["up.model.fnode.FNode"] = []
         self._initial_value: Dict["up.model.fnode.FNode", "up.model.fnode.FNode"] = {}
         self._operators_extractor = up.model.walkers.OperatorsExtractor()
 
@@ -78,30 +79,28 @@ class MultiAgentProblem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
-        if not self.name is None:
-            s.append(f"problem name = {str(self.name)}\n\n")
+        if self.name is not None:
+            s.append(f"problem name = {self.name!s}\n\n")
         if len(self.user_types) > 0:
-            s.append(f"types = {str(list(self.user_types))}\n\n")
+            s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("environment fluents = [\n")
-        for f in self.ma_environment.fluents:
-            s.append(f"  {str(f)}\n")
+        s.extend(f"  {f!s}\n" for f in self.ma_environment.fluents)
         s.append("]\n\n")
         s.append("agents = [\n")
-        for ag in self.agents:
-            s.append(f"  {str(ag)}\n")
+        s.extend(f"  {ag!s}\n" for ag in self.agents)
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
-            for ty in self.user_types:
-                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+            s.extend(
+                f"  {ty!s}: {list(self.objects(ty))!s}\n" for ty in self.user_types
+            )
             s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self._initial_value.items():
-            s.append(f"  {str(k)} := {str(v)}\n")
+            s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("goals = [\n")
-        for g in self.goals:
-            s.append(f"  {str(g)}\n")
+        s.extend(f"  {g!s}\n" for g in self.goals)
         s.append("]\n\n")
         return "".join(s)
 
@@ -125,7 +124,7 @@ class MultiAgentProblem(  # type: ignore[misc]
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
-            elif value != oth_value:
+            if value != oth_value:
                 return False
         return True
 
@@ -237,7 +236,7 @@ class MultiAgentProblem(  # type: ignore[misc]
                 )
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
-        elif fluent_exp.is_dot():
+        if fluent_exp.is_dot():
             agent = self.agent(fluent_exp.agent())
             f = fluent_exp.arg(0).fluent()
             if f not in agent.fluents:
@@ -248,10 +247,9 @@ class MultiAgentProblem(  # type: ignore[misc]
             if v is None:
                 raise UPProblemDefinitionError("Initial value not set!")
             return v
-        elif fluent_exp.fluent() in self.ma_environment.fluents_defaults:
+        if fluent_exp.fluent() in self.ma_environment.fluents_defaults:
             return self.ma_environment.fluents_defaults[fluent_exp.fluent()]
-        else:
-            raise UPProblemDefinitionError("Initial value not set!")
+        raise UPProblemDefinitionError("Initial value not set!")
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -485,10 +483,10 @@ class MultiAgentProblem(  # type: ignore[misc]
                         domain_constants.update(extractor.get(e.value))
                         domain_constants.update(extractor.get(e.condition))
                 elif isinstance(a, DurativeAction):
-                    for _, cnds in a.conditions.items():
+                    for cnds in a.conditions.values():
                         for c in cnds:
                             domain_constants.update(extractor.get(c))
-                        for _, effs in a.effects.items():
+                        for effs in a.effects.values():
                             for e in effs:
                                 domain_constants.update(extractor.get(e.fluent))
                                 domain_constants.update(extractor.get(e.value))

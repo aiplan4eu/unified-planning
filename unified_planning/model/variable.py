@@ -17,13 +17,14 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
-from typing import List, Optional, FrozenSet
+from typing import FrozenSet, List, Optional
+
+import unified_planning
+import unified_planning.model.operators as op
+import unified_planning.model.walkers as walkers
 from unified_planning.environment import Environment, get_environment
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-import unified_planning
-import unified_planning.model.walkers as walkers
-import unified_planning.model.operators as op
 
 
 class Variable:
@@ -43,7 +44,7 @@ class Variable:
         )
 
     def __repr__(self) -> str:
-        return f"{str(self.type)} {self.name}"
+        return f"{self.type!s} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Variable):
@@ -52,8 +53,7 @@ class Variable:
                 and self._typename == oth._typename
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)

@@ -13,41 +13,34 @@
 # limitations under the License.
 #
 
-from unified_planning.exceptions import (
-    UPUsageError,
-    UPNoSuitableEngineAvailableException,
-    UPUnsupportedProblemTypeError,
-)
-from unified_planning.model import (
-    Problem,
-    FNode,
-    Action,
-    generate_causal_graph,
-)
-from unified_planning.plot.utils import (
-    ARROWSIZE,
-    NODE_COLOR,
-    EDGE_COLOR,
-    FONT_SIZE,
-    FONT_COLOR,
-    EDGE_FONT_SIZE,
-    EDGE_FONT_COLOR,
-    draw_base_graph,
-)
-from unified_planning.engines import CompilationKind
-
-
-from itertools import chain, product
-import networkx as nx
 from typing import (
     Any,
+    Callable,
     Dict,
     Optional,
     Sequence,
     Set,
     Tuple,
     Union,
-    Callable,
+)
+
+import networkx as nx
+
+from unified_planning.model import (
+    Action,
+    FNode,
+    Problem,
+    generate_causal_graph,
+)
+from unified_planning.plot.utils import (
+    ARROWSIZE,
+    EDGE_COLOR,
+    EDGE_FONT_COLOR,
+    EDGE_FONT_SIZE,
+    FONT_COLOR,
+    FONT_SIZE,
+    NODE_COLOR,
+    draw_base_graph,
 )
 
 
@@ -128,7 +121,7 @@ def plot_causal_graph(
 
     graph, edge_actions = generate_causal_graph(problem)
     edge_labels_set: Dict[Tuple[FNode, FNode], Set[str]] = {
-        k: set(edge_label_function(e.action, e.actual_parameters) for e in v)
+        k: {edge_label_function(e.action, e.actual_parameters) for e in v}
         for k, v in edge_actions.items()
     }
 

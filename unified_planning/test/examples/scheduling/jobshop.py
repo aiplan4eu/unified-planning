@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.shortcuts import *
-from unified_planning.model.scheduling import *
 from typing import List
+
+from unified_planning.model.scheduling import *
+from unified_planning.shortcuts import *
 
 # Text representation of the FT-O6 instance (Fisher and Thompson)
 FT06 = """nb_jobs nb_machines
@@ -46,7 +47,7 @@ def parse(instance: str, instance_name: str) -> SchedulingProblem:
     def int_matrix(lines) -> List[List[int]]:
         return list(map(ints, lines))
 
-    header = lines.pop(0)
+    lines.pop(0)
     sizes = ints(lines.pop(0))
     num_jobs = sizes[0]
     num_machines = sizes[1]

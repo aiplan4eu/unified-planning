@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Iterator, List, Optional, Union, cast
 from warnings import warn
+
 import unified_planning as up
-from unified_planning.model.types import _UserType
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Union, Optional, cast, Iterable
+from unified_planning.model.types import _UserType
 
 
 class ObjectsSetMixin:
@@ -77,8 +78,7 @@ class ObjectsSetMixin:
                 obj.name == o.name for o in self._objects
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._objects.append(obj)
         if obj.type.is_user_type():
             self._add_user_type_method(obj.type)
@@ -113,10 +113,7 @@ class ObjectsSetMixin:
         :return: `True` if an `object` with the given `name` is in the `problem`,
                 `False` otherwise.
         """
-        for o in self._objects:
-            if o.name == name:
-                return True
-        return False
+        return any(o.name == name for o in self._objects)
 
     def objects(
         self, typename: "up.model.types.Type"

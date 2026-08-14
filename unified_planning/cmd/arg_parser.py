@@ -14,11 +14,12 @@
 #
 
 import argparse
+
 from unified_planning.engines import (
     AnytimeGuarantee,
-    OptimalityGuarantee,
     CompilationKind,
     OperationMode,
+    OptimalityGuarantee,
 )
 
 
@@ -27,7 +28,7 @@ def create_up_parser() -> argparse.ArgumentParser:
         description="Perform a Unified Planning Operation mode.",
         allow_abbrev=False,
     )
-    compilation_kind_explaination = f"COMPILATION_KIND is one of {{{','.join((ck.name.lower() for ck in CompilationKind))}}}"
+    compilation_kind_explaination = f"COMPILATION_KIND is one of {{{','.join(ck.name.lower() for ck in CompilationKind)}}}"
     subparsers = parser.add_subparsers(
         title="modes",
         description="valid modes",

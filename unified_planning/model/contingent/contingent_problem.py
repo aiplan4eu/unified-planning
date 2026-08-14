@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from typing import Dict, Iterable, List, Optional, Set, Union
+
 import unified_planning as up
-from unified_planning.model.problem import Problem
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Dict, Optional, Iterable, Set, List, Union
+from unified_planning.model.problem import Problem
 
 
 class ContingentProblem(Problem):
@@ -28,7 +29,9 @@ class ContingentProblem(Problem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         Problem.__init__(self, name, environment, initial_defaults=initial_defaults)
         self._hidden_fluents: Set["up.model.fnode.FNode"] = set()
@@ -39,30 +42,31 @@ class ContingentProblem(Problem):
         s = []
         s.append(super().__repr__())
         s.append("initial constraints = [\n")
-        for c in self._or_initial_constraints:
-            s.append(f"  (or {' '.join([str(f) for f in c])})\n")
-        for c in self._oneof_initial_constraints:
-            s.append(f"  (oneof {' '.join([str(f) for f in c])})\n")
+        s.extend(
+            f"  (or {' '.join([str(f) for f in c])})\n"
+            for c in self._or_initial_constraints
+        )
+        s.extend(
+            f"  (oneof {' '.join([str(f) for f in c])})\n"
+            for c in self._oneof_initial_constraints
+        )
         s.append("]\n\n")
         return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
         if not isinstance(oth, ContingentProblem):
             return False
-        elif not super().__eq__(oth):
+        if not super().__eq__(oth):
             return False
-        elif self._hidden_fluents != oth._hidden_fluents:
+        if self._hidden_fluents != oth._hidden_fluents:
             return False
-        elif set(frozenset(c) for c in self._or_initial_constraints) != set(
+        if {frozenset(c) for c in self._or_initial_constraints} != {
             frozenset(c) for c in oth._or_initial_constraints
-        ):
+        }:
             return False
-        elif set(frozenset(c) for c in self._oneof_initial_constraints) != set(
+        return {frozenset(c) for c in self._oneof_initial_constraints} == {
             frozenset(c) for c in oth._oneof_initial_constraints
-        ):
-            return False
-        else:
-            return True
+        }
 
     def __hash__(self) -> int:
         res = super().__hash__()
@@ -81,7 +85,7 @@ class ContingentProblem(Problem):
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._metrics = []
         for m in self._metrics:

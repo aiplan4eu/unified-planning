@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unified_planning.model.walkers.generic import Walker
 from unified_planning.model.fnode import FNode
+from unified_planning.model.walkers.generic import Walker
 
 
 class DagWalker(Walker):
@@ -121,7 +121,7 @@ class DagWalker(Walker):
 
     def walk_none(self, expression: FNode, args, **kwargs):
         """Returns None, independently from the children's value."""
-        return None
+        return
 
     def walk_identity(self, expression: FNode, **kwargs):
         """Returns expression, independently from the childrens's value."""

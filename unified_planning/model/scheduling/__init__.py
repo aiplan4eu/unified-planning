@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.model.scheduling.scheduling_problem import SchedulingProblem
 from unified_planning.model.scheduling.activity import Activity
+from unified_planning.model.scheduling.scheduling_problem import SchedulingProblem
 
-__all__ = ["SchedulingProblem", "Activity"]
+__all__ = ["Activity", "SchedulingProblem"]

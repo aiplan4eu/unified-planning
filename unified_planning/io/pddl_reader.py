@@ -15,9 +15,13 @@
 
 
 import re
-from typing import Callable, List
 import typing
+from typing import Callable, List
 from warnings import warn
+
+from pddl.parser.domain import DomainParser
+from pddl.parser.problem import ProblemParser
+
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
@@ -28,9 +32,6 @@ from unified_planning.interop.from_pddl import (
     convert_problem_from_ai_pddl,
 )
 from unified_planning.io.up_pddl_reader import UPPDDLReader
-
-from pddl.parser.domain import DomainParser
-from pddl.parser.problem import ProblemParser
 
 
 class PDDLReader:
@@ -141,7 +142,8 @@ class PDDLReader:
                     raise e
                 if not self._disable_warnings:
                     warn(
-                        f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}"
+                        f"The problem could not be converted using the AI Planning reader due to an issue in the AI PDDL parser: {e}",
+                        stacklevel=2,
                     )
             if not ai_pddl_parsing_failed:
                 try:
@@ -153,7 +155,8 @@ class PDDLReader:
                         raise e
                     if not self._disable_warnings:
                         warn(
-                            f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}"
+                            f"The problem could not be converted using the AI Planning reader due to an issue in the UP converter: {e}",
+                            stacklevel=2,
                         )
         if self._up_pddl_reader is None:
             self._up_pddl_reader = UPPDDLReader(self._env)
@@ -246,5 +249,4 @@ def extract_pddl_requirements(domain_str: str) -> List[str]:
     if match:
         requirements = match.group(1).split()
         return requirements
-    else:
-        return []
+    return []

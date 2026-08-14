@@ -14,13 +14,13 @@
 # limitations under the License.
 
 
-import unified_planning.test.examples.minimals as minimals
-import unified_planning.test.examples.realistic as realistic
-import unified_planning.test.examples.testing_variants as testing_variants
 import unified_planning.test.examples.hierarchical as hierarchical
-import unified_planning.test.examples.scheduling as scheduling
-import unified_planning.test.examples.processes as processes
 import unified_planning.test.examples.interpreted_functions_examples as interpreted_functions_examples
+import unified_planning.test.examples.minimals as minimals
+import unified_planning.test.examples.processes as processes
+import unified_planning.test.examples.realistic as realistic
+import unified_planning.test.examples.scheduling as scheduling
+import unified_planning.test.examples.testing_variants as testing_variants
 
 
 def get_example_problems():
