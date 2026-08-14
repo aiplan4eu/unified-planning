@@ -162,6 +162,7 @@ select = [
     "RET",   # flake8-return
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
+    "PERF",  # perflint
     "PIE",   # flake8-pie
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat
@@ -172,6 +173,12 @@ ignore = [
     # (`problem_clone`, `requirements`, `new_effect`); collapsing 21 of them into bare returns
     # in library code costs readability and buys nothing. The rest of RET is enforced.
     "RET504", # unnecessary-assign
+    # All 3 hits are per-item handling that cannot be hoisted out of the loop: the engine
+    # registration loops in factory.py must survive one missing package and keep going,
+    # anml_grammar.py's `except StopIteration: break` *is* the loop control of a pairwise
+    # generator, and walkers/generic.py falls back to walk_error per operator kind. The rule
+    # also predates zero-cost exceptions, so a `try` that does not raise is free since 3.11.
+    "PERF203", # try-except-in-loop
 ]
 
 [tool.ruff.lint.per-file-ignores]

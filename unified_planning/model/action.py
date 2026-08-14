@@ -80,12 +80,10 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
             s.append(")")
         s.append(" {\n")
         s.append("    preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"      {c!s}\n")
+        s.extend(f"      {c!s}\n" for c in self.preconditions)
         s.append("    ]\n")
         s.append("    effects = [\n")
-        for e in self.effects:
-            s.append(f"      {e!s}\n")
+        s.extend(f"      {e!s}\n" for e in self.effects)
         s.append("    ]\n")
         if self._simulated_effect is not None:
             s.append(f"    simulated effect = {self._simulated_effect}\n")
@@ -170,18 +168,15 @@ class DurativeAction(Action, TimedCondsEffs):
         s.append("    conditions = [\n")
         for i, cl in self.conditions.items():
             s.append(f"      {i!s}:\n")
-            for c in cl:
-                s.append(f"        {c!s}\n")
+            s.extend(f"        {c!s}\n" for c in cl)
         s.append("    ]\n")
         s.append("    effects = [\n")
         for t, el in self.effects.items():
             s.append(f"      {t!s}:\n")
-            for e in el:
-                s.append(f"        {e!s}:\n")
+            s.extend(f"        {e!s}:\n" for e in el)
         for t, el in self.continuous_effects.items():
             s.append(f"      {t!s}:\n")
-            for e in el:
-                s.append(f"        {e!s}:\n")
+            s.extend(f"        {e!s}:\n" for e in el)
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():

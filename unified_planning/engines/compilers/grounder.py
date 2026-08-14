@@ -222,14 +222,13 @@ class GrounderHelper:
                     action, up.model.action.InstantaneousAction
                 ):
                     no_and_list = split_all_ands(action.preconditions)
-                    bool_conditions = []
-                    for c in no_and_list:
-                        if (
-                            c.is_fluent_exp()
-                            and c.fluent().type.is_bool_type()
-                            and c.fluent() in problem_static_fluents
-                        ):
-                            bool_conditions.append(c)
+                    bool_conditions = [
+                        c
+                        for c in no_and_list
+                        if c.is_fluent_exp()
+                        and c.fluent().type.is_bool_type()
+                        and c.fluent() in problem_static_fluents
+                    ]
                     items_list = self._purge_items_list(
                         items_list=items_list,
                         params=action.parameters,
@@ -239,7 +238,7 @@ class GrounderHelper:
                     action, up.model.action.DurativeAction
                 ):
                     condlist = []
-                    for _, cl in action.conditions.items():
+                    for cl in action.conditions.values():
                         condlist.extend(cl)
 
                     no_and_list = split_all_ands(condlist)

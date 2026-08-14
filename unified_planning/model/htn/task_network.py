@@ -171,17 +171,14 @@ class TaskNetwork(AbstractTaskNetwork):
         s = ["task network {\n"]
         if len(self._variables) > 0:
             s.append("  variables = [\n")
-            for v in self.variables:
-                s.append(f"    {v}\n")
+            s.extend(f"    {v}\n" for v in self.variables)
             s.append("  ]\n")
         s.append("  subtasks = [\n")
-        for t in self.subtasks:
-            s.append(f"    {t}\n")
+        s.extend(f"    {t}\n" for t in self.subtasks)
         s.append("  ]\n")
         if len(self._constraints) > 0:
             s.append("  constraints = [\n")
-            for c in self.constraints:
-                s.append(f"    {c}\n")
+            s.extend(f"    {c}\n" for c in self.constraints)
             s.append("  ]\n")
         s.append("}")
         return "".join(s)

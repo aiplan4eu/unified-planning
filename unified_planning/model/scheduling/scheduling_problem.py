@@ -96,13 +96,13 @@ class SchedulingProblem(  # type: ignore[misc]
         if len(self.user_types) > 0:
             s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("fluents = [\n")
-        for f in self.fluents:
-            s.append(f"  {f!s}\n")
+        s.extend(f"  {f!s}\n" for f in self.fluents)
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
-            for ty in self.user_types:
-                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
+            s.extend(
+                f"  {ty!s}: {list(self.objects(ty))!s}\n" for ty in self.user_types
+            )
             s.append("]\n\n")
         s.append("initial fluents default = [\n")
         for f in self._fluents:
@@ -116,8 +116,7 @@ class SchedulingProblem(  # type: ignore[misc]
         s.append("]\n\n")
         if len(self.quality_metrics) > 0:
             s.append("quality metrics = [\n")
-            for qm in self.quality_metrics:
-                s.append(f"  {qm!s}\n")
+            s.extend(f"  {qm!s}\n" for qm in self.quality_metrics)
             s.append("]\n")
         s.append("\nBASE")
         s.append(str(self._base))

@@ -106,12 +106,12 @@ def plan_back_conversion_callable(
                 if tinterval.lower.is_constant():
                     dtime = Fraction(tinterval.lower.constant_value())
                 else:
-                    par_sub_dict: Dict = {}
-                    for paramname, paramvalue in zip(
-                        action_for_mapback.parameters,
-                        action_instance.actual_parameters,
-                    ):
-                        par_sub_dict[paramname] = paramvalue
+                    par_sub_dict: Dict = dict(
+                        zip(
+                            action_for_mapback.parameters,
+                            action_instance.actual_parameters,
+                        )
+                    )
                     tlower_with_pars = tinterval.lower.substitute(par_sub_dict)
                     flu_subs_dict: Dict = {}
                     for flu_obj in fve.get(tlower_with_pars):

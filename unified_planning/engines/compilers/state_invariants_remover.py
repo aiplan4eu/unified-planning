@@ -15,7 +15,7 @@
 """This module defines the state invariants remover class."""
 
 from functools import partial
-from typing import Optional
+from typing import List, Optional
 
 import unified_planning as up
 import unified_planning.engines as engines
@@ -25,7 +25,7 @@ from unified_planning.engines.compilers.utils import (
 )
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
-from unified_planning.model import Problem, ProblemKind
+from unified_planning.model import FNode, Problem, ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 
 
@@ -152,12 +152,10 @@ class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):
         )
 
         # Add to the problem all the trajectory constraints that are not an always
-        new_traj_constraints = []
+        new_traj_constraints: List[FNode] = []
         for tc in new_problem.trajectory_constraints:
             if tc.is_and():
-                for a in tc.args:
-                    if not a.is_always():
-                        new_traj_constraints.append(a)
+                new_traj_constraints.extend(a for a in tc.args if not a.is_always())
             elif tc.is_forall():
                 if not tc.arg(0).is_always():
                     new_traj_constraints.append(tc)

@@ -124,9 +124,7 @@ class ProtobufReader(Converter):
     @handles(proto.Fluent)
     def _convert_fluent(self, msg: proto.Fluent, problem: Problem) -> model.Fluent:
         value_type: model.types.Type = convert_type_str(msg.value_type, problem)
-        sig: list = []
-        for p in msg.parameters:
-            sig.append(self.convert(p, problem))
+        sig: list = [self.convert(p, problem) for p in msg.parameters]
         fluent = model.Fluent(msg.name, value_type, sig, problem.environment)
         return fluent
 
@@ -491,9 +489,9 @@ class ProtobufReader(Converter):
             [self.convert(p, problem) for p in msg.parameters],
             problem.environment,
         )
-        achieved_task_params = []
-        for p in msg.achieved_task.parameters:
-            achieved_task_params.append(method.parameter(p.atom.symbol))
+        achieved_task_params = [
+            method.parameter(p.atom.symbol) for p in msg.achieved_task.parameters
+        ]
         method.set_task(
             problem.get_task(msg.achieved_task.task_name), *achieved_task_params
         )

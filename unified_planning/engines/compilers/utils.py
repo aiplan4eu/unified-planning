@@ -95,8 +95,7 @@ def check_and_simplify_conditions(
                 )
         else:
             if cs.is_and():
-                for new_cond in cs.args:
-                    nac.append((i, new_cond))
+                nac.extend((i, new_cond) for new_cond in cs.args)
             else:
                 nac.append((i, cs))
     return (True, nac)
@@ -215,9 +214,7 @@ def create_action_with_given_subs(
                 except UPConflictingEffectsException:
                     return None
         if old_simulated_effect is not None:
-            new_fluents = []
-            for f in old_simulated_effect.fluents:
-                new_fluents.append(f.substitute(subs))
+            new_fluents = [f.substitute(subs) for f in old_simulated_effect.fluents]
 
             def fun(_problem, _state, _):
                 assert old_simulated_effect is not None
@@ -353,9 +350,7 @@ def get_fresh_name(
 
 def get_fresh_parameter_name(action: Action, name: str):
     """This method returns a fresh name for a parameter in the action, given a name and the action"""
-    name_list: List[str] = []
-    for p in action.parameters:
-        name_list.append(p.name)
+    name_list: List[str] = [p.name for p in action.parameters]
     count = 0
     new_name = name
     while new_name in name_list:
@@ -647,8 +642,7 @@ def split_all_ands(exp_list: List[FNode]) -> List[FNode]:
         temp_list = []
         for exp in start_list:
             if exp.is_and():
-                for sub_exp in exp.args:
-                    temp_list.append(sub_exp)
+                temp_list.extend(exp.args)
             else:
                 end_list.append(exp)
         start_list = temp_list

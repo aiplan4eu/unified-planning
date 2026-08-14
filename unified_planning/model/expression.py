@@ -282,11 +282,10 @@ class ExpressionManager(object):
             return self.FALSE()
         if len(tuple_args) == 1:
             return tuple_args[0]
-        new_args = []
-        for a in tuple_args:
-            new_args.append(
-                self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
-            )
+        new_args = [
+            self.And([a] + [self.Not(o) for o in tuple_args if o is not a])
+            for a in tuple_args
+        ]
         return self.Or(new_args)
 
     def Not(self, expression: BoolExpression) -> "up.model.fnode.FNode":
