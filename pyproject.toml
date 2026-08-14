@@ -172,6 +172,7 @@ select = [
     "ISC",   # flake8-implicit-str-concat
     "RUF",   # ruff-specific, including RUF100 (stale noqa)
     "UP",    # pyupgrade, minus the PEP 585/604/695 rewrites in `ignore` below
+    "PGH",   # pygrep-hooks: blanket `# type: ignore` (PGH003) and blanket `# noqa` (PGH004)
 ]
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is
@@ -220,7 +221,14 @@ ignore = [
 "unified_planning/shortcuts.py" = ["F403", "F405", "B008"]
 # The CLI and the protobuf writer consume that surface deliberately.
 "unified_planning/cmd/up.py" = ["F403", "F405"]
-"unified_planning/grpc/proto_writer.py" = ["F403", "F405"]
+# PGH003 here is TEMPORARY: both gRPC converters still carry a whole-file `# type: ignore`
+# (see #786), which PGH003 flags. The follow-up that replaces it with a narrow
+# `# mypy: disable-error-code=` directive must delete both entries - RUF100 catches a stale
+# `# noqa` but never a stale per-file-ignore, so nothing here will remind anyone.
+# Note the two tools disagree on these files: mypy's `ignore-without-code` returns early for
+# a file in `ignored_files`, so mypy stays silent about them while ruff does not.
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405", "PGH003"]
+"unified_planning/grpc/proto_reader.py" = ["PGH003"]
 # 95 of the 111 star imports in the tree are `from unified_planning.shortcuts import *` in a
 # test or a test case, and they account for ~6300 of the F403/F405 hits. Scoping the ignore to
 # these two trees rather than globally keeps a *new* star import in library code an error.

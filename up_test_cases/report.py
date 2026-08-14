@@ -23,7 +23,7 @@ from unified_planning.environment import get_environment
 from unified_planning.plans import Plan
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
-from utils import (
+from utils import (  # type: ignore[import-not-found]
     Err,
     Ok,
     ResultSet,
@@ -32,7 +32,7 @@ from utils import (
     _get_test_cases,
     bcolors,
     get_report_parser,
-)  # type: ignore
+)
 
 get_environment().credits_stream = None  # silence credits
 factory = get_environment().factory
