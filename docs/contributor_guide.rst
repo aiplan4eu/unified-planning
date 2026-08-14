@@ -18,13 +18,15 @@ Checklist
 
 Before sending a pull-request, you should check the following conditions:
 
- - your code is properly formatted with ``ruff`` (``just format``)
+ - your code is formatted and passes the linter, both ``ruff`` (``just lint``).
+   ``just format`` applies the formatter and every fix ruff can make on its own;
+   it rewrites source, so read what it did before committing
  - your code passes the type check (``just typecheck``)
  - your code passes all existing unit tests (``just test``)
  - you have added tests to ensure that your change is and remains valid
  - you have updated the documentation to reflect your changes
 
-The formatting and type checks can be run together with ``just check``.
+The lint, formatting and type checks can be run together with ``just check``.
 
 Whenever possible these are automatically check in CI.
 
