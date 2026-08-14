@@ -838,7 +838,7 @@ def get_example_problems():
     r = dur_move.parameter("r")
     l_from = dur_move.parameter("l_from")
     l_to = dur_move.parameter("l_to")
-    dur_move.set_fixed_duration((distance(l_from, l_to)))
+    dur_move.set_fixed_duration(distance(l_from, l_to))
     dur_move.add_condition(StartTiming(), is_connected(l_from, l_to))
     dur_move.add_condition(StartTiming(), is_at(l_from, r))
     dur_move.add_condition(StartTiming(), Not(is_at(l_to, r)))
@@ -977,17 +977,17 @@ def get_example_problems():
     problem.add_action(put_down)
     problem.add_action(move)
     NLOC = 6
-    locations = [Object("l%s" % i, Room) for i in range(NLOC)]
+    locations = [Object(f"l{i}", Room) for i in range(NLOC)]
     problem.add_objects(locations)
     l0, l1, l2, l3, l4, l5 = locations
     NTAB = 6
-    tables = [Object("t%s" % i, Table) for i in range(NTAB)]
+    tables = [Object(f"t{i}", Table) for i in range(NTAB)]
     problem.add_objects(tables)
     t0, t1, t2, _t3, _t4, t5 = tables
 
     rob = Object("r", Robot)
     problem.add_object(rob)
-    objects = [Object("o%s" % i, Obj) for i in range(2)]
+    objects = [Object(f"o{i}", Obj) for i in range(2)]
     problem.add_objects(objects)
     o0, o1 = objects
     for i in range(NLOC - 1):

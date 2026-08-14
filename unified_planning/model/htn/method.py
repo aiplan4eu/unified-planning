@@ -73,7 +73,7 @@ class Method(AbstractTaskNetwork):
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        super(Method, self).__init__(_env)
+        super().__init__(_env)
         self._task: Optional[ParameterizedTask] = None
         self._name = _name
         self._parameters: "OrderedDict[str, Parameter]" = OrderedDict()

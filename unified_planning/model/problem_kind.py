@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 
-from functools import lru_cache, partialmethod, total_ordering
+from functools import cache, partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
 from warnings import warn
@@ -146,7 +146,7 @@ FEATURES = {
 all_features = set(chain(*FEATURES.values()))
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_valid_features(version: int) -> Set[str]:
     """
     Returns the set of features that are present and not deprecated in the

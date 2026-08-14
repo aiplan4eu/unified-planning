@@ -77,7 +77,7 @@ def uniform_numeric_constant(value: NumericConstant) -> Union[Fraction, int]:
     return number
 
 
-class ExpressionManager(object):
+class ExpressionManager:
     """ExpressionManager is responsible for the creation of all expressions."""
 
     def __init__(self, environment: "up.environment.Environment"):
@@ -112,8 +112,7 @@ class ExpressionManager(object):
             if isinstance(a, up.model.fnode.FNode):
                 yield a
             elif isinstance(a, ABCIterable) and not isinstance(a, str):
-                for p in a:
-                    yield p
+                yield from a
             else:
                 yield a
 
@@ -614,7 +613,7 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given ``value`` as his payload.
         """
         if not isinstance(value, bool):
-            raise UPTypeError("Expecting bool, got %s" % type(value))
+            raise UPTypeError(f"Expecting bool, got {type(value)}")
 
         if value:
             return self.true_expression
@@ -628,7 +627,7 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given ``integer`` as his payload.
         """
         if not isinstance(value, int):
-            raise UPTypeError("Expecting int, got %s" % type(value))
+            raise UPTypeError(f"Expecting int, got {type(value)}")
         return self.create_node(
             node_type=OperatorKind.INT_CONSTANT, args=(), payload=value
         )
@@ -641,7 +640,7 @@ class ExpressionManager(object):
         :return: The ``FNode`` containing the given ``value`` as his payload.
         """
         if not isinstance(value, Fraction):
-            raise UPTypeError("Expecting Fraction, got %s" % type(value))
+            raise UPTypeError(f"Expecting Fraction, got {type(value)}")
         return self.create_node(
             node_type=OperatorKind.REAL_CONSTANT, args=(), payload=value
         )

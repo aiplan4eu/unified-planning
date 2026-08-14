@@ -240,7 +240,7 @@ class ANMLGrammar:
             - Suppress(TK_R_BRACKET)
         )
         action_body = ZeroOrMore(
-            Group((expression_block | timed_expression | in_assignment_expression))
+            Group(expression_block | timed_expression | in_assignment_expression)
             - Suppress(TK_SEMI)
         )
         action_body.set_parse_action(restore_tagged_exp_block)

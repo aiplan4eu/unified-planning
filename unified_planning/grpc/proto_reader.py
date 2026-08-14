@@ -695,7 +695,7 @@ class ProtobufReader(Converter):
         elif msg.kind == proto.Timepoint.TimepointKind.Value("END"):
             kind = model.timing.TimepointKind.END
         else:
-            raise UPException("Unknown timepoint kind: {}".format(msg.kind))
+            raise UPException(f"Unknown timepoint kind: {msg.kind}")
         container = msg.container_id if msg.container_id != "" else None
         return model.timing.Timepoint(kind, container)
 

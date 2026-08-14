@@ -489,7 +489,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
         new_problem.add_trajectory_constraint(function(constraint))
 
     for original_action in original_problem.actions:
-        params = OrderedDict(((p.name, p.type) for p in original_action.parameters))
+        params = OrderedDict((p.name, p.type) for p in original_action.parameters)
         if isinstance(original_action, InstantaneousAction):
             new_action: Union[InstantaneousAction, DurativeAction] = (
                 InstantaneousAction(original_action.name, params, env)
@@ -635,7 +635,7 @@ def _apply_function_to_effect(
         function(effect.value),
         function(effect.condition),
         effect.kind,
-        tuple((exp.variable() for exp in auto_promote(effect.forall))),
+        tuple(exp.variable() for exp in auto_promote(effect.forall)),
     )
 
 
