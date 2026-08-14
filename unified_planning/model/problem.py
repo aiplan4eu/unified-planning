@@ -142,8 +142,9 @@ class Problem(
             s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
-            for ty in self.user_types:
-                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
+            s.extend(
+                f"  {ty!s}: {list(self.objects(ty))!s}\n" for ty in self.user_types
+            )
             s.append("]\n\n")
         s.append("initial fluents default = [\n")
         for f in self._fluents:
@@ -159,15 +160,13 @@ class Problem(
             s.append("timed effects = [\n")
             for t, el in self.timed_effects.items():
                 s.append(f"  {t!s} :\n")
-                for e in el:
-                    s.append(f"    {e!s}\n")
+                s.extend(f"    {e!s}\n" for e in el)
             s.append("]\n\n")
         if len(self.timed_goals) > 0:
             s.append("timed goals = [\n")
             for i, gl in self.timed_goals.items():
                 s.append(f"  {i!s} :\n")
-                for g in gl:
-                    s.append(f"    {g!s}\n")
+                s.extend(f"    {g!s}\n" for g in gl)
             s.append("]\n\n")
         s.append("goals = [\n")
         s.extend(map(custom_str, self.goals))
@@ -729,9 +728,7 @@ class Problem(
             if tc.is_always():
                 state_invariants.append(tc.arg(0))
             elif tc.is_and():
-                for a in tc.args:
-                    if a.is_always():
-                        state_invariants.append(a.arg(0))
+                state_invariants.extend(a.arg(0) for a in tc.args if a.is_always())
             elif tc.is_forall() and tc.arg(0).is_always():
                 state_invariants.append(em.Forall(tc.arg(0).arg(0), *tc.variables()))
         return state_invariants
@@ -817,10 +814,10 @@ class Problem(
                     for of in action.observed_fluents:
                         domain_constants.update(extractor.get(of))
             elif isinstance(action, DurativeAction):
-                for _, cnds in action.conditions.items():
+                for cnds in action.conditions.values():
                     for c in cnds:
                         domain_constants.update(extractor.get(c))
-                for _, effs in action.effects.items():
+                for effs in action.effects.values():
                     for e in effs:
                         domain_constants.update(extractor.get(e.fluent))
                         domain_constants.update(extractor.get(e.value))

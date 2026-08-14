@@ -819,7 +819,7 @@ class GraphvizGenerator:
         :param adjacency_list: The adjacency list representing the partial order plan.
         :return: The Graphviz representation as a string.
         """
-        for action_instance, _ in adjacency_list.items():
+        for action_instance in adjacency_list:
             if action_instance.agent is not None:
                 return cls._create_graphviz_output_with_agents(adjacency_list)
         return cls._create_graphviz_output_simple(adjacency_list)

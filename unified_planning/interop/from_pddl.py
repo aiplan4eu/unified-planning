@@ -183,14 +183,14 @@ class _ExpressionConverter:
                 else:
                     result_stack.append(em.Real(formula_value))
             elif type(current_formula) in self._direct_matching_expressions:
-                for operand in current_formula.operands:
-                    stack.append(
-                        (
-                            operand,
-                            current_action_parameters,
-                            current_quantifier_variables,
-                        )
+                stack.extend(
+                    (
+                        operand,
+                        current_action_parameters,
+                        current_quantifier_variables,
                     )
+                    for operand in current_formula.operands
+                )
                 result_stack.append(
                     (type(current_formula), len(current_formula.operands))
                 )
@@ -206,10 +206,10 @@ class _ExpressionConverter:
             elif isinstance(current_formula, Constant):
                 result_stack.append(em.ObjectExp(self._objects[current_formula.name]))
             elif isinstance(current_formula, (Predicate, NumericFunction)):
-                for term in current_formula.terms:
-                    stack.append(
-                        (term, current_action_parameters, current_quantifier_variables)
-                    )
+                stack.extend(
+                    (term, current_action_parameters, current_quantifier_variables)
+                    for term in current_formula.terms
+                )
                 result_stack.append((current_formula.name, len(current_formula.terms)))
             elif isinstance(current_formula, DerivedPredicate):
                 raise UPUnsupportedProblemTypeError(
@@ -685,10 +685,10 @@ class AIPDDLConverter:
                     (current_effect.effect, new_quantifier_variables, current_condition)
                 )
             elif isinstance(current_effect, And):
-                for sub_effect in current_effect.operands:
-                    stack.append(
-                        (sub_effect, current_quantifier_variables, current_condition)
-                    )
+                stack.extend(
+                    (sub_effect, current_quantifier_variables, current_condition)
+                    for sub_effect in current_effect.operands
+                )
             else:
                 raise UPUnsupportedProblemTypeError(
                     f"Effect {current_effect} of type {type(current_effect)} not supported"

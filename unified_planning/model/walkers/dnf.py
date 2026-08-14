@@ -73,8 +73,7 @@ class Nnf:
                     stack.append((not p, e.arg(0), False))
                 elif e.is_and() or e.is_or():
                     stack.append((p, e, True))
-                    for arg in e.args:
-                        stack.append((p, arg, False))
+                    stack.extend((p, arg, False) for arg in e.args)
                 elif e.is_implies():
                     na1 = self.manager.Not(e.arg(0))
                     new_e = self.manager.Or(na1, e.arg(1))

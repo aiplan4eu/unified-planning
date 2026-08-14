@@ -545,7 +545,7 @@ class GrounderHelper:
             conds = list(action.preconditions)
         elif isinstance(action, up.model.action.DurativeAction):
             conds = []
-            for _, cl in action.conditions.items():
+            for cl in action.conditions.values():
                 conds.extend(cl)
         else:
             return None

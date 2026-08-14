@@ -78,8 +78,7 @@ class CustomParseResults:
                 if exp.value == string:
                     return True
             elif isinstance(exp.value, ParseResults):
-                for e in exp:
-                    stack.append(e)
+                stack.extend(exp)
             else:
                 raise SyntaxError(f"Not able to handle: {exp}")
         return False
@@ -487,8 +486,7 @@ class UPPDDLReader:
                         stack.append((var, exp[1], False))
                     elif exp[0].value in self._operators:  # n-ary operators
                         stack.append((var, exp, True))
-                        for i in range(1, len(exp)):
-                            stack.append((var, exp[i], False))
+                        stack.extend((var, exp[i], False) for i in range(1, len(exp)))
                     elif exp[0].value in ["exists", "forall"]:  # quantifier operators
                         vars_string = " ".join([e.value for e in exp[1]])
                         vars_res = self._pp_parameters.parse_string(
@@ -525,12 +523,10 @@ class UPPDDLReader:
                         exp[0].value in self._trajectory_constraints
                     ):  # trajectory_constraints reference
                         stack.append((var, exp, True))
-                        for i in range(1, len(exp)):
-                            stack.append((var, exp[i], False))
+                        stack.extend((var, exp[i], False) for i in range(1, len(exp)))
                     elif problem.has_fluent(exp[0].value):  # fluent reference
                         stack.append((var, exp, True))
-                        for i in range(1, len(exp)):
-                            stack.append((var, exp[i], False))
+                        stack.extend((var, exp[i], False) for i in range(1, len(exp)))
                     elif len(exp) == 1:  # expand an element inside brackets
                         stack.append((var, exp[0], False))
                     else:
@@ -635,8 +631,9 @@ class UPPDDLReader:
                 continue  # ignore the case where the effect list is empty, e.g., `:effect ()`
             op = exp[0].value
             if op == "and":
-                for i in range(1, len(exp)):
-                    to_add.append((exp[i], cond, forall_variables))
+                to_add.extend(
+                    (exp[i], cond, forall_variables) for i in range(1, len(exp))
+                )
             elif op == "when":
                 cond = self._parse_exp(
                     problem, act, types_map, forall_variables, exp[1], complete_str
@@ -963,8 +960,7 @@ class UPPDDLReader:
                 continue
             op = exp[0].value
             if op == "and":
-                for i in range(1, len(exp)):
-                    to_add.append((exp[i], vars))
+                to_add.extend((exp[i], vars) for i in range(1, len(exp)))
             elif op == "forall":
                 vars_string = " ".join([e.value for e in exp[1]])
                 vars_res = self._pp_parameters.parse_string(
@@ -1058,8 +1054,7 @@ class UPPDDLReader:
             eff, forall_variables = to_add.pop(0)
             op = eff[0].value
             if op == "and":
-                for i in range(1, len(eff)):
-                    to_add.append((eff[i], forall_variables))
+                to_add.extend((eff[i], forall_variables) for i in range(1, len(eff)))
             elif op == "when":
                 if (
                     len(eff) == 3
@@ -1321,12 +1316,12 @@ class UPPDDLReader:
             dur_act.duration.lower
         ) or self._totalcost in self._fve.get(dur_act.duration.upper):
             return False
-        for _, cl in dur_act.conditions.items():
+        for cl in dur_act.conditions.values():
             for c in cl:
                 if self._totalcost in self._fve.get(c):
                     return False
         cost_found = False
-        for _, el in dur_act.effects.items():
+        for el in dur_act.effects.values():
             for e in el:
                 if self._totalcost in self._fve.get(e.fluent):
                     if cost_found:
@@ -1361,7 +1356,7 @@ class UPPDDLReader:
             return False
         if initial_value.constant_value() != 0:
             return False
-        for _, el in problem.timed_effects.items():
+        for el in problem.timed_effects.values():
             for e in el:
                 if (
                     self._totalcost in self._fve.get(e.fluent)
@@ -1786,8 +1781,7 @@ class UPPDDLReader:
                         pass
                     elif ordering[0].value == "and":
                         # add the rest of the expression to the queue
-                        for i in range(1, len(ordering)):
-                            stack.append(ordering[i])
+                        stack.extend(ordering[i] for i in range(1, len(ordering)))
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
                             raise SyntaxError(

@@ -46,12 +46,10 @@ class HierarchicalProblem(up.model.problem.Problem):
     def __repr__(self):
         s = [super().__repr__()]
         s.append("abstract tasks = [\n")
-        for t in self._abstract_tasks.values():
-            s.append(f"  {t}\n")
+        s.extend(f"  {t}\n" for t in self._abstract_tasks.values())
         s.append("]\n\n")
         s.append("methods = [")
-        for m in self._methods.values():
-            s.append(("\n" + str(m)).replace("\n", "\n  "))
+        s.extend(("\n" + str(m)).replace("\n", "\n  ") for m in self._methods.values())
         s.append("\n]\n\n")
         s.append(str(self._initial_task_network))
         return "".join(s)

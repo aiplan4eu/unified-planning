@@ -859,16 +859,15 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             fluent_exp: expression_manager.Not(fluent_exp)
             for fluent_exp in prepared_problem.ground_fluent_expressions
         }
-        complete_state_literals = []
-        for state in possible_initial_states:
-            complete_state_literals.append(
-                frozenset(
-                    fluent_exp
-                    if state.get_value(fluent_exp).bool_constant_value()
-                    else negated_literals[fluent_exp]
-                    for fluent_exp in prepared_problem.ground_fluent_expressions
-                )
+        complete_state_literals = [
+            frozenset(
+                fluent_exp
+                if state.get_value(fluent_exp).bool_constant_value()
+                else negated_literals[fluent_exp]
+                for fluent_exp in prepared_problem.ground_fluent_expressions
             )
+            for state in possible_initial_states
+        ]
 
         relevance = cls._get_relevance_relation(prepared_problem, expression_manager)
         relevant_sources_by_target = {

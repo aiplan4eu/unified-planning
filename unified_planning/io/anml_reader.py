@@ -1006,8 +1006,7 @@ class ANMLReader:
                         stack.append((exp, True, new_vars))
                         all_vars = vars.copy()
                         all_vars.update(new_vars)
-                        for e in exp[2]:
-                            stack.append((e, False, all_vars))
+                        stack.extend((e, False, all_vars) for e in exp[2])
                     else:
                         stack.append((exp, True, vars))
                         for e in exp:
