@@ -680,7 +680,7 @@ class Factory:
             assert isinstance(params, List) and len(names) == len(params)
             engines = []
             all_credits = []
-            for name, param in zip(names, params):
+            for name, param in zip(names, params, strict=True):
                 EngineClass = self._get_engine_class(operation_mode, name)
                 all_credits.append(EngineClass.get_credits(**param))
                 engines.append((name, param))
@@ -697,7 +697,9 @@ class Factory:
             assert isinstance(params, List) and len(names) == len(params)
             compilers: List["up.engines.engine.Engine"] = []
             all_credits = []
-            for name, param, compilation_kind in zip(names, params, compilation_kinds):
+            for name, param, compilation_kind in zip(
+                names, params, compilation_kinds, strict=True
+            ):
                 EngineClass = self._get_engine_class(
                     operation_mode,
                     name,

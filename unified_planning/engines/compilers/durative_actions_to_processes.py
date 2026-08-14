@@ -1048,7 +1048,7 @@ def _back_plan_to_plan(
                 # to revert a plan you need to simulate it and know the value of the duration in the state where the action is started
                 assert len(original_action.parameters) == len(parameters)
                 subs: Dict[Expression, Expression] = dict(
-                    zip(original_action.parameters, parameters)
+                    zip(original_action.parameters, parameters, strict=True)
                 )
                 duration_lower = simplifier.simplify(
                     original_action.duration.lower.substitute(subs)

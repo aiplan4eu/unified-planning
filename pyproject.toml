@@ -163,6 +163,7 @@ select = [
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
     "PERF",  # perflint
+    "B905",  # bugbear: zip() without an explicit strict=
     "PIE",   # flake8-pie
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat

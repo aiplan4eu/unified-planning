@@ -347,7 +347,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         for assignment in partial_assignments:
             for free_values in product((False, True), repeat=len(free_atoms)):
                 candidate = dict(assignment)
-                candidate.update(zip(free_atoms, free_values))
+                candidate.update(zip(free_atoms, free_values, strict=True))
                 if all(
                     any(
                         Ks0Compiler._literal_holds(candidate, literal)

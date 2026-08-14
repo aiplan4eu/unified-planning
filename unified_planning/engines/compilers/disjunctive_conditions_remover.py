@@ -322,7 +322,7 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_action = original_action.clone()
         new_action.name = get_fresh_name(new_problem, original_action.name)
         new_action.clear_conditions()
-        for i, c in zip(interval_list, cond_list):
+        for i, c in zip(interval_list, cond_list, strict=True):
             c = c.simplify()
             if c.is_false():
                 return None

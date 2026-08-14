@@ -51,7 +51,7 @@ class ActionInstance:
         self._action = action
         self._params: Tuple["up.model.FNode", ...] = tuple(auto_promote(params))
         assert len(action.parameters) == len(self._params)
-        for param, assigned_value in zip(action.parameters, self._params):
+        for param, assigned_value in zip(action.parameters, self._params, strict=True):
             if not param.type.is_compatible(assigned_value.type):
                 raise UPTypeError(
                     f"Incompatible parameter type assignment. {assigned_value} can't be assigned to: {param}"

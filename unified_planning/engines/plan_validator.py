@@ -170,7 +170,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
         msg = None
         trace: List[State] = [simulator.get_initial_state()]
-        for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
+        for i, ai in enumerate(plan.actions, start=1):
             try:
                 unsat_conds, reason = simulator.get_unsatisfied_conditions(
                     trace[-1], ai
@@ -383,9 +383,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 values = sim_eff.function(
                     problem,
                     state,
-                    dict(zip(ai.action.parameters, ai.actual_parameters)),
+                    dict(zip(ai.action.parameters, ai.actual_parameters, strict=True)),
                 )
-                for f, v in zip(fluents, values):
+                for f, v in zip(fluents, values, strict=True):
                     if f in updates:
                         if f.type.is_bool_type() and assigned[f] == ai:
                             # Handle "delete before add" semantics
@@ -501,7 +501,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
         if ai is None:
             return formula
-        return formula.substitute(dict(zip(ai.action.parameters, ai.actual_parameters)))
+        return formula.substitute(
+            dict(zip(ai.action.parameters, ai.actual_parameters, strict=True))
+        )
 
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
@@ -943,7 +945,7 @@ def _extract_action_costs(
                 "The parameters length is different than the action's parameters length."
             )
         action_cost_exp = action_cost_exp.substitute(
-            dict(zip(action.parameters, parameters))
+            dict(zip(action.parameters, parameters, strict=True))
         )
         assert isinstance(action_cost_exp, up.model.FNode)
 

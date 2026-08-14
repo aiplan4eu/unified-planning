@@ -47,7 +47,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
 
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
@@ -72,7 +72,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
         self.assertEqual(
@@ -97,7 +97,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         ) as cer:
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertTrue(isinstance(a, InstantaneousAction))
             self.assertTrue(isinstance(na, InstantaneousAction))
         self.assertEqual(len(problem.actions), len(new_problem.actions))
@@ -115,7 +115,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertTrue(isinstance(a, InstantaneousAction))
             self.assertTrue(isinstance(na, InstantaneousAction))
         self.assertEqual(len(problem.actions), len(new_problem.actions))
@@ -131,7 +131,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         ) as cer:
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertTrue(isinstance(a, DurativeAction))
             self.assertFalse(isinstance(na, DurativeAction))
         # every action has an end event, a duration exceeded event and
@@ -150,7 +150,7 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
             res = cer.compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
         new_problem = res.problem
         self.assertFalse(cer._use_counter)
-        for a, na in zip(problem.actions, new_problem.actions):
+        for a, na in zip(problem.actions, new_problem.actions, strict=True):
             self.assertIsInstance(a, DurativeAction)
             self.assertIsInstance(na, InstantaneousAction)
         goal_counter = len(problem.goals) + 1  # old goals + alive

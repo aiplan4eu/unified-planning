@@ -148,5 +148,5 @@ class TestProblem(unittest_TestCase):
 
         cloned_problem = problem.clone()
         cloned_plan = cloned_problem.normalize_plan(plan)
-        for a, ca in zip(plan.actions, cloned_plan.actions):
+        for a, ca in zip(plan.actions, cloned_plan.actions, strict=True):
             self.assertTrue(a.is_semantically_equivalent(ca))

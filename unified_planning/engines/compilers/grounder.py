@@ -147,7 +147,7 @@ class GrounderHelper:
                 new_action = None
         else:
             subs: Dict[Expression, Expression] = dict(
-                zip(action.parameters, list(parameters))
+                zip(action.parameters, list(parameters), strict=True)
             )
             new_action = create_action_with_given_subs(
                 self._problem, action, self._simplifier, subs
@@ -212,7 +212,7 @@ class GrounderHelper:
                     domain_sizes.append(ds)
                     ground_size *= ds
                 items_list: List[List[FNode]] = []
-                for size, type in zip(domain_sizes, type_list):
+                for size, type in zip(domain_sizes, type_list, strict=True):
                     items_list.append(
                         [domain_item(self._problem, type, j) for j in range(size)]
                     )
@@ -274,7 +274,7 @@ class GrounderHelper:
         :return: the items_list input pruned off of the objects that would generate always invalid actions.
         """
         return_list = []
-        for param, object_list in zip(params, items_list):
+        for param, object_list in zip(params, items_list, strict=True):
             temp_list = list(object_list)
             for cond in conds:
                 static_fluent = cond
@@ -500,7 +500,7 @@ def ground_minimize_action_costs_metric(
     for new_action, (old_action, params) in trace_back_map.items():
         subs = cast(
             Dict[Expression, Expression],
-            dict(zip(old_action.parameters, params)),
+            dict(zip(old_action.parameters, params, strict=True)),
         )
         old_cost = metric.get_action_cost(old_action)
         if old_cost is not None:

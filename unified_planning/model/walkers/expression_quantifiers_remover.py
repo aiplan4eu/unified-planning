@@ -73,7 +73,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         subs_results = []
         for o in product(*possible_objects):
-            subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
+            subs: Dict[Expression, Expression] = dict(zip(vars, list(o), strict=True))
             subs_results.append(args[0].substitute(subs))
         return subs_results
 

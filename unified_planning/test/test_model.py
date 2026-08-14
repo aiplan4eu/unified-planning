@@ -73,7 +73,7 @@ class TestModel(unittest_TestCase):
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
             for action_1, action_2 in zip(
-                problem_clone_1.actions, problem_clone_2.actions
+                problem_clone_1.actions, problem_clone_2.actions, strict=True
             ):
                 if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []

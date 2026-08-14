@@ -351,6 +351,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing, symbol in zip(
             [StartTiming(), EndTiming(), GlobalStartTiming(), GlobalEndTiming()],
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+            strict=True,
         ):
             t_pb = build(timing)
             check(t_pb, fun_app_kind, tpe=time_type, length=1)
@@ -368,6 +369,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing_builder, symbol in zip(
             timing_builders,
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+            strict=True,
         ):
             for delay in delays:
                 t_pb = build(timing_builder() + delay)
@@ -386,6 +388,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing, symbol in zip(
             [StartTiming(container=act.name), EndTiming(container=act.name)],
             [start_symbol, end_symbol],
+            strict=True,
         ):
             t_pb = build(timing)
             check(t_pb, fun_app_kind, tpe=time_type, length=2)
@@ -402,6 +405,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing_builder, symbol in zip(
             contained_timing_builders,
             [start_symbol, end_symbol],
+            strict=True,
         ):
             for delay in delays:
                 t_pb = build(timing_builder(container=act.name) + delay)
