@@ -171,6 +171,7 @@ select = [
     "ISC",   # flake8-implicit-str-concat
     "RUF",   # ruff-specific
     "UP",    # pyupgrade
+    "PGH",   # pygrep-hooks
 ]
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is.
@@ -201,7 +202,11 @@ ignore = [
 "unified_planning/shortcuts.py" = ["F403", "F405", "B008"]
 # The CLI and the protobuf writer consume that surface deliberately.
 "unified_planning/cmd/up.py" = ["F403", "F405"]
-"unified_planning/grpc/proto_writer.py" = ["F403", "F405"]
+# PGH003 here is TEMPORARY: both gRPC converters still carry a whole-file `# type: ignore`
+# (see #786). The follow-up that narrows it must delete both entries, since nothing else flags
+# a stale per-file-ignore.
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405", "PGH003"]
+"unified_planning/grpc/proto_reader.py" = ["PGH003"]
 # Scoped to these two trees rather than globally, so a *new* star import in library code is an error.
 "unified_planning/test/**" = ["F403", "F405"]
 "up_test_cases/**" = ["F403", "F405"]
