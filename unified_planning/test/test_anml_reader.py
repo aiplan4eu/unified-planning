@@ -300,13 +300,14 @@ class TestANMLReader(unittest_TestCase):
             ),
             p,
         )
-        l = Variable("l", Location, problem.environment)
-        l2 = Variable("l2", Location, problem.environment)
+        loc = Variable("l", Location, problem.environment)
+        loc2 = Variable("l2", Location, problem.environment)
         goal_test = em.Forall(
             em.And(
-                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+                visited(loc),
+                em.Forall(em.Or(em.Not(precedes(loc2, loc)), visited(loc2)), loc2),
             ),
-            l,
+            loc,
         )
         self.assertEqual(
             visit.duration,

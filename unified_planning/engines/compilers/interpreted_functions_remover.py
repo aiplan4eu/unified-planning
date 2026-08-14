@@ -555,9 +555,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for ii, c in conditions:
                 simplified_c = da_simp.simplify(c)
                 if simplified_c.is_bool_constant():
-                    if simplified_c.constant_value() == False:
+                    if not simplified_c.constant_value():
                         return None
-                    if simplified_c.constant_value() == True:
+                    if simplified_c.constant_value():
                         continue
                 for nii, ncs in new_dur_a.conditions.items():
                     if nii == ii and em.Not(simplified_c) in ncs:
@@ -579,9 +579,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             for _, c in conditions:
                 simplified_c = ia_simp.simplify(c)
                 if simplified_c.is_bool_constant():
-                    if simplified_c.constant_value() == False:
+                    if not simplified_c.constant_value():
                         return None
-                    if simplified_c.constant_value() == True:
+                    if simplified_c.constant_value():
                         continue
                 if em.Not(simplified_c) not in new_ia.preconditions:
                     new_ia.add_precondition(simplified_c)

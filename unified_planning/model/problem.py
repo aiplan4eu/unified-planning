@@ -121,7 +121,10 @@ class Problem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
-        custom_str = lambda x: f"  {x!s}\n"
+
+        def custom_str(x):
+            return f"  {x!s}\n"
+
         if self.name is not None:
             s.append(f"problem name = {self.name!s}\n\n")
         if self._epsilon is not None:
@@ -342,11 +345,14 @@ class Problem(  # type: ignore[misc]
         fluents_in_durations: Set["up.model.fluent.Fluent"] = set()
         fluents_in_action_costs: Set["up.model.fluent.Fluent"] = set()
         fve = self._env.free_vars_extractor
+
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents  set.
-        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
-            (f.fluent() for e in exps for f in fve.get(e))
-        )
+        def remove_used_fluents(*exps):
+            return unused_fluents.difference_update(
+                (f.fluent() for e in exps for f in fve.get(e))
+            )
+
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 remove_used_fluents(*a.preconditions)
@@ -1442,7 +1448,7 @@ def generate_causal_graph(
         (up.model.htn.HierarchicalProblem, up.model.contingent.ContingentProblem),
     ):
         raise NotImplementedError
-    assert type(problem) == Problem, "Error not handled."
+    assert type(problem) is Problem, "Error not handled."
 
     if not problem.actions:
         raise UPUsageError("Can't create the causal graph of a Problem without actions")

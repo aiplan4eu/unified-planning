@@ -151,14 +151,18 @@ class ContingentPlan(plans.plan.Plan):
             return "ContingentPlan:\n  Actions:\n  Constraints:"
         em = self.environment.expression_manager
         nodes = list(visit_tree(self._root_node))
+
         # give an ID, starting from 0, to every Node in the Plan
-        swap_couple = lambda x: (x[1], x[0])
+        def swap_couple(x):
+            return (x[1], x[0])
+
         id: Dict[ContingentPlanNode, int] = dict(
             map(swap_couple, enumerate(visit_tree(self._root_node)))
         )
-        convert_action_id = lambda action_id: (
-            f"    {action_id[1]}) {action_id[0].action_instance}"
-        )
+
+        def convert_action_id(action_id):
+            return f"    {action_id[1]}) {action_id[0].action_instance}"
+
         ret = ["ContingentPlan:", "  Actions:"]
         ret.extend(map(convert_action_id, id.items()))
         ret.append("  Constraints:")
@@ -243,6 +247,9 @@ def visit_tree(root_node: Optional[ContingentPlanNode]) -> Iterator[ContingentPl
         current_element: ContingentPlanNode = stack.popleft()
         if current_element not in already_visited:
             already_visited.add(current_element)
-            get_second_element = lambda x: x[1]
+
+            def get_second_element(x):
+                return x[1]
+
             stack.extend(map(get_second_element, current_element.children))
             yield current_element

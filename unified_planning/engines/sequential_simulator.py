@@ -18,7 +18,6 @@
 from enum import Enum, auto
 from fractions import Fraction
 from typing import (
-    Callable,
     Dict,
     Iterator,
     List,
@@ -362,7 +361,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :raises UPStateMissingFluentError: If an expression involves a fluent with an
             undefined value in the state.
         """
-        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
+
+        def evaluate(exp: FNode) -> FNode:
+            return self._se.evaluate(exp, state)
+
         if evaluated_fluent is not None:
             fluent = evaluated_fluent
         else:
@@ -470,7 +472,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             raise UPInvalidActionError(
                 "The given action grounded with the given parameters does not create a valid action."
             )
-        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
+
+        def evaluate(exp: FNode) -> FNode:
+            return self._se.evaluate(exp, state)
+
         reason: Optional[InapplicabilityReasons] = None
         unsatisfied_conditions = []
         for c in g_action.preconditions:

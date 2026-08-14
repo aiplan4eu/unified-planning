@@ -630,19 +630,19 @@ class PDDLWriter:
                     else:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
-                l, r = a.duration.lower, a.duration.upper
-                if l == r:
-                    out.write(f"\n  :duration (= ?duration {converter.convert(l)})")
+                low, upp = a.duration.lower, a.duration.upper
+                if low == upp:
+                    out.write(f"\n  :duration (= ?duration {converter.convert(low)})")
                 else:
                     out.write("\n  :duration (and ")
                     if a.duration.is_left_open():
-                        out.write(f"(> ?duration {converter.convert(l)})")
+                        out.write(f"(> ?duration {converter.convert(low)})")
                     else:
-                        out.write(f"(>= ?duration {converter.convert(l)})")
+                        out.write(f"(>= ?duration {converter.convert(low)})")
                     if a.duration.is_right_open():
-                        out.write(f"(< ?duration {converter.convert(r)})")
+                        out.write(f"(< ?duration {converter.convert(upp)})")
                     else:
-                        out.write(f"(<= ?duration {converter.convert(r)})")
+                        out.write(f"(<= ?duration {converter.convert(upp)})")
                     out.write(")")
                 if len(a.conditions) > 0:
                     out.write("\n  :condition (and ")

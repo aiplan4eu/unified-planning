@@ -54,7 +54,10 @@ class SequentialPlan(plans.plan.Plan):
 
     def __str__(self) -> str:
         ret = ["SequentialPlan:"]
-        convert_ai = lambda ai: f"    {ai}"
+
+        def convert_ai(ai):
+            return f"    {ai}"
+
         ret.extend(map(convert_ai, self._actions))
         return "\n".join(ret)
 

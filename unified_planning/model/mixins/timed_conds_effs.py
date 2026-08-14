@@ -171,7 +171,7 @@ class TimedCondsEffs:
 
     def is_conditional(self) -> bool:
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
-        return any(e.is_conditional() for l in self._effects.values() for e in l)
+        return any(e.is_conditional() for el in self._effects.values() for e in el)
 
     def add_condition(
         self,

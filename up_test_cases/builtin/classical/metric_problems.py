@@ -51,7 +51,9 @@ def get_test_cases():
     }
     action_costs_problem.add_quality_metric(MinimizeActionCosts(costs, 1))
 
-    create_ai = lambda a: ActionInstance(a)
+    def create_ai(a):
+        return ActionInstance(a)
+
     plan = SequentialPlan(list(map(create_ai, (a_cheap_1, a_cheap_2, a_cheap_3))))
     res[action_costs_problem.name] = TestCase(
         problem=action_costs_problem, solvable=True, optimum=4, valid_plans=[plan]

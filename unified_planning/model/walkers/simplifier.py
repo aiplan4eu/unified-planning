@@ -122,8 +122,8 @@ class Simplifier(walkers.dag.DagWalker):
         assert len(args) == 1
         child = args[0]
         if child.is_bool_constant():
-            l = child.bool_constant_value()
-            return self.manager.Bool(not l)
+            lv = child.bool_constant_value()
+            return self.manager.Bool(not lv)
         if child.is_not():
             return child.arg(0)
 
@@ -136,9 +136,9 @@ class Simplifier(walkers.dag.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant() and sr.is_bool_constant():
-            l = sl.bool_constant_value()
-            r = sr.bool_constant_value()
-            return self.manager.Bool(l == r)
+            lv = sl.bool_constant_value()
+            rv = sr.bool_constant_value()
+            return self.manager.Bool(lv == rv)
         if sl.is_bool_constant():
             if sl.bool_constant_value():
                 return sr
@@ -158,13 +158,13 @@ class Simplifier(walkers.dag.DagWalker):
         sr = args[1]
 
         if sl.is_bool_constant():
-            l = sl.bool_constant_value()
-            if l:
+            lv = sl.bool_constant_value()
+            if lv:
                 return sr
             return self.manager.TRUE()
         if sr.is_bool_constant():
-            r = sr.bool_constant_value()
-            if r:
+            rv = sr.bool_constant_value()
+            if rv:
                 return self.manager.TRUE()
             return self.manager.Not(sl)
         if sl == sr:
@@ -274,9 +274,9 @@ class Simplifier(walkers.dag.DagWalker):
         sr = args[1]
 
         if sl.is_constant() and sr.is_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
-            return self.manager.Bool(l == r)
+            lv = sl.constant_value()
+            rv = sr.constant_value()
+            return self.manager.Bool(lv == rv)
         if sl == sr:
             return self.manager.TRUE()
         if sl.type.is_user_type() and sr.type.is_user_type():
@@ -292,9 +292,9 @@ class Simplifier(walkers.dag.DagWalker):
         sr = args[1]
 
         if sl.is_constant() and sr.is_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
-            return self.manager.Bool(l <= r)
+            lv = sl.constant_value()
+            rv = sr.constant_value()
+            return self.manager.Bool(lv <= rv)
         return self.manager.LE(sl, sr)
 
     def walk_lt(self, expression: FNode, args: List[FNode]) -> FNode:
@@ -304,9 +304,9 @@ class Simplifier(walkers.dag.DagWalker):
         sr = args[1]
 
         if sl.is_constant() and sr.is_constant():
-            l = sl.constant_value()
-            r = sr.constant_value()
-            return self.manager.Bool(l < r)
+            lv = sl.constant_value()
+            rv = sr.constant_value()
+            return self.manager.Bool(lv < rv)
         return self.manager.LT(sl, sr)
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:

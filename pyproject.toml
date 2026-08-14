@@ -150,8 +150,11 @@ src = [".", "up_test_cases"]
 [tool.ruff.lint]
 select = [
     "E4",    # pycodestyle: import placement
+    "E7",    # pycodestyle: statement-level errors, minus E501 - see the note above
     "E9",    # pycodestyle: syntax and IO errors
     "W",     # pycodestyle warnings
+    "DTZ",   # flake8-datetimez
+    "EXE",   # flake8-executable
     "ASYNC", # flake8-async
     "LOG",   # flake8-logging
     "T10",   # flake8-debugger: no stray breakpoint()/pdb.set_trace()

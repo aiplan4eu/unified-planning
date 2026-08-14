@@ -423,7 +423,10 @@ def add_invariant_condition_apply_function_to_problem_expressions(
         condition = em.TRUE()
     assert condition is not None
     if function is None:
-        function = lambda x: x
+
+        def function(x):
+            return x
+
     new_to_old: Dict[Action, Optional[Action]] = {}
 
     for constraint in original_problem.trajectory_constraints:

@@ -111,7 +111,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         self._problem.clear_goals()
         removed = False
         for g in goals:
-            if not g is goal_exp:
+            if g is not goal_exp:
                 self._problem.add_goal(g)
             else:
                 removed = True

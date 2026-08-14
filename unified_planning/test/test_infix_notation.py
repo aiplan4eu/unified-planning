@@ -66,7 +66,9 @@ class TestInfixNotation(unittest_TestCase):
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_with_interpreted_functions(self):
-        placeholder = lambda *args: None
+        def placeholder(*args):
+            return None
+
         signature_empty: OrderedDict = OrderedDict()
         i_1 = InterpretedFunction("i_1", IntType(), signature_empty, placeholder)
         r_1 = InterpretedFunction("r_1", RealType(), signature_empty, placeholder)
