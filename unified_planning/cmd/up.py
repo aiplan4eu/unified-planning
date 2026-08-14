@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 #
 # Copyright 2021-2023 AIPlan4EU project
 #

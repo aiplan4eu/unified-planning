@@ -93,11 +93,16 @@ class PartialOrderPlan(plans.plan.Plan):
         ret = ["PartialOrderPlan:", "  actions:"]
 
         # give an ID, starting from 0, to every ActionInstance in the Plan
-        swap_couple = lambda x: (x[1], x[0])
+        def swap_couple(x):
+            return (x[1], x[0])
+
         id: Dict[ActionInstance, int] = dict(
             map(swap_couple, enumerate(nx.topological_sort(self._graph)))
         )
-        convert_action_id = lambda action_id: f"    {action_id[1]}) {action_id[0]}"
+
+        def convert_action_id(action_id):
+            return f"    {action_id[1]}) {action_id[0]}"
+
         ret.extend(map(convert_action_id, id.items()))
 
         ret.append("  constraints:")
@@ -106,7 +111,10 @@ class PartialOrderPlan(plans.plan.Plan):
         def convert_action_adjlist(action_adjlist):
             action = action_adjlist[0]
             adj_list = action_adjlist[1]
-            get_id_as_str = lambda ai: str(id[ai])
+
+            def get_id_as_str(ai):
+                return str(id[ai])
+
             adj_list_str = " ,".join(map(get_id_as_str, adj_list))
             return f"    {id[action]} < {adj_list_str}"
 

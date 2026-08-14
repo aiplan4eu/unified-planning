@@ -156,7 +156,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = grounded_problem.clone()
         assert isinstance(new_problem, Problem)
         new_problem.name = f"{self.name}_{problem.name}"
-        I = new_problem.initial_values
+        init = new_problem.initial_values
         C = []
         for c in new_problem.trajectory_constraints:
             new_c = expression_quantifier_remover.remove_quantifiers(c, new_problem)
@@ -168,7 +168,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
         A_prime: List["up.model.InstantaneousAction"] = []
-        I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
+        I_prime, F_prime = self._get_monitoring_atoms(env, C, init)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
@@ -368,18 +368,18 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
             return None, constr
         return None, constr.args[0].substitute(init_values).simplify()
 
-    def _get_monitoring_atoms(self, env, C, I):
+    def _get_monitoring_atoms(self, env, C, init):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
         initial_state_prime = []
         for constr in C:
             if constr.is_always():
-                if constr.args[0].substitute(I).simplify().is_false():
+                if constr.args[0].substitute(init).simplify().is_false():
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
             else:
-                type, init_state_value = self._evaluate_constraint(env, constr, I)
+                type, init_state_value = self._evaluate_constraint(env, constr, init)
                 fluent = up.model.Fluent(
                     f"{type}{SEPARATOR}{monitoring_atoms_counter}",
                     env.type_manager.BoolType(),
@@ -391,7 +391,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     initial_state_prime.append(monitoring_atom)
                 if (
                     constr.is_sometime_before()
-                    and constr.args[0].substitute(I).simplify().is_true()
+                    and constr.args[0].substitute(init).simplify().is_true()
                 ):
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"

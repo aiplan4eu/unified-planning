@@ -1114,13 +1114,14 @@ class TestPddlIO(unittest_TestCase):
             ),
             p,
         )
-        l = Variable("l_0", location, problem.environment)
-        l2 = Variable("l2", location, problem.environment)
+        loc = Variable("l_0", location, problem.environment)
+        loc2 = Variable("l2", location, problem.environment)
         goal_test = em.Forall(
             em.And(
-                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+                visited(loc),
+                em.Forall(em.Or(em.Not(precedes(loc2, loc)), visited(loc2)), loc2),
             ),
-            l,
+            loc,
         )
         self.assertEqual(
             visit.duration,

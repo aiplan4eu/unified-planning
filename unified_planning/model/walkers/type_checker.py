@@ -301,16 +301,16 @@ class TypeChecker(walkers.dag.DagWalker):
             if x.is_real_type():
                 has_real = True
         for x in args:
-            l = -float("inf") if x.lower_bound is None else x.lower_bound
-            u = float("inf") if x.upper_bound is None else x.upper_bound
+            low = -float("inf") if x.lower_bound is None else x.lower_bound
+            upp = float("inf") if x.upper_bound is None else x.upper_bound
             if lower is None:
-                lower = l
-                upper = u
+                lower = low
+                upper = upp
             else:
                 assert upper is not None
                 # both bounds must be computed from the same products: assigning
                 # lower first and reusing it for upper overestimates the latter.
-                products = (lower * l, lower * u, upper * l, upper * u)
+                products = (lower * low, lower * upp, upper * low, upper * upp)
                 lower = min(products)
                 upper = max(products)
         if lower == -float("inf") or (

@@ -147,7 +147,7 @@ class FluentsSetMixin:
             warn(msg, stacklevel=2)
         self._fluents.append(fluent)
         self._fluents_index.note_appended(self._fluents)
-        if not default_initial_value is None:
+        if default_initial_value is not None:
             (v_exp,) = self.environment.expression_manager.auto_promote(
                 default_initial_value
             )

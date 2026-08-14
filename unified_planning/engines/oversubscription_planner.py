@@ -141,10 +141,10 @@ class OversubscriptionPlanner(MetaEngine, mixins.OneshotPlannerMixin):
             )
             goals = list(qm.goals.items())
         q = []
-        for l in powerset(goals):
+        for subset in powerset(goals):
             weight: Union[Fraction, int] = 0
             sg = []
-            for g, c in l:
+            for g, c in subset:
                 weight += c
                 sg.append(g)
             q.append((weight, sg))

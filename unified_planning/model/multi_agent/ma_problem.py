@@ -79,7 +79,7 @@ class MultiAgentProblem(  # type: ignore[misc]
 
     def __repr__(self) -> str:
         s = []
-        if not self.name is None:
+        if self.name is not None:
             s.append(f"problem name = {self.name!s}\n\n")
         if len(self.user_types) > 0:
             s.append(f"types = {list(self.user_types)!s}\n\n")
