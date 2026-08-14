@@ -383,7 +383,7 @@ def get_example_problems():
     instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
     increase_val = InstantaneousAction("increase_val")
     increase_val.add_effect(itwo, Plus(itwo, 2))
-    instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
+    instant_action_i_f_condition.add_precondition(funx(ione, itwo))
     instant_action_i_f_condition.add_effect(end_goal, True)
     problem.add_fluent(end_goal)
     problem.add_fluent(ione)

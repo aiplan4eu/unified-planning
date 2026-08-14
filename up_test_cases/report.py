@@ -89,24 +89,22 @@ def report_runtime(
         overhead_percentage = None
     if deliverable:
         if total_time > 1 and overhead_percentage is not None:
-            overhead_str = "{:.0%}".format(overhead_percentage)
+            overhead_str = f"{overhead_percentage:.0%}"
             overhead = (
                 Ok(overhead_str)
                 if overhead_percentage < max_overhead
                 else Warn(overhead_str)
             )
-            runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
+            runtime_report = f"{total_time:.3f}s {overhead}".ljust(30)
         elif total_time < 1:
             runtime_report = "{:.3f}s {}".format(total_time, Ok("<1s")).ljust(30)
         else:
-            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+            runtime_report = f"{total_time:.3f}s".ljust(30)
     else:
         if internal_time_str is not None:
-            runtime_report = "{:.3f}s ({:.3f}s)".format(
-                total_time, internal_time
-            ).ljust(30)
+            runtime_report = f"{total_time:.3f}s ({internal_time:.3f}s)".ljust(30)
         else:
-            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+            runtime_report = f"{total_time:.3f}s".ljust(30)
     return runtime_report
 
 
@@ -656,11 +654,11 @@ def report_grounding(
                         pb, compilation_kind=CompilationKind.GROUNDING
                     )
                     end = time.time()
-                    status = str("COMPILED").ljust(25)
+                    status = "COMPILED".ljust(25)
                     outcome = check_grounding_result(test_case, result)
                     if not outcome.ok():
                         errors.append((engine_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(15)
+                    runtime = f"{end - start:.3f}s".ljust(15)
                     print(status, "    ", runtime, outcome)
 
                 except Exception as e:

@@ -94,8 +94,8 @@ class Schedule(Plan):
         return "".join(s)
 
     def __hash__(self):
-        h = sum((hash(a.name) for a in self.activities))
-        h += sum((hash(kv[0]) + hash(kv[1]) for kv in self.assignment.items()))
+        h = sum(hash(a.name) for a in self.activities)
+        h += sum(hash(kv[0]) + hash(kv[1]) for kv in self.assignment.items())
         return h
 
     def __eq__(self, other):

@@ -206,7 +206,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         utf_remover = UsertypeFluentsWalker(fluents_map, used_names, env)
 
         for old_action in problem.actions:
-            params = OrderedDict(((p.name, p.type) for p in old_action.parameters))
+            params = OrderedDict((p.name, p.type) for p in old_action.parameters)
             if isinstance(old_action, InstantaneousAction):
                 new_action: Union[InstantaneousAction, DurativeAction] = (
                     InstantaneousAction(old_action.name, _parameters=params, _env=env)

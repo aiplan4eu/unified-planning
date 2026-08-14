@@ -61,7 +61,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -168,7 +168,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -198,7 +198,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -234,7 +234,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -266,7 +266,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -325,7 +325,7 @@ class TestANMLReader(unittest_TestCase):
         for g in problem.goals:
             self.assertEqual(g, goal_test)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -360,7 +360,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -399,7 +399,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -450,7 +450,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -508,7 +508,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -632,7 +632,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -664,7 +664,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -703,7 +703,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -742,7 +742,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)

@@ -28,7 +28,7 @@ from unified_planning.model.operators import OperatorKind
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
 
 
-class FNode(object):
+class FNode:
     """
     The `FNode` class represents an `expression tree` in the `unified_planning` library.
 

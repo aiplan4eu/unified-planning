@@ -87,7 +87,7 @@ class _StubAnytimePlanner(PDDLAnytimePlanner):
         return "end-of-plan"
 
     def _parse_plan_line(self, plan_line: str) -> str:
-        return "(%s)" % plan_line.split("(")[0].strip()
+        return "({})".format(plan_line.split("(")[0].strip())
 
 
 class _StubOneshotPlanner(PDDLPlanner):

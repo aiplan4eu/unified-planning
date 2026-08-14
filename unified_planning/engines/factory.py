@@ -404,12 +404,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definition of '%s' engine" % name
+                f"Missing 'module_name' value in definition of '{name}' engine"
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definition of '%s' engine" % name
+                f"Missing 'class_name' value in definition of '{name}' engine"
             )
 
             self.add_engine(name, module_name, class_name)
@@ -423,12 +423,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definition of '%s' meta-engine" % name
+                f"Missing 'module_name' value in definition of '{name}' meta-engine"
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definition of '%s' meta-engine" % name
+                f"Missing 'class_name' value in definition of '{name}' meta-engine"
             )
 
             self.add_meta_engine(name, module_name, class_name)

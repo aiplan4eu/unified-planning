@@ -170,6 +170,7 @@ select = [
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat
     "RUF",   # ruff-specific
+    "UP",    # pyupgrade
 ]
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is.
@@ -179,6 +180,15 @@ ignore = [
     # Abstract by contract, with shared concrete behaviour and nothing to mark @abstractmethod.
     # Dropping ABC would change the metaclass of public base classes that downstream engines subclass.
     "B024", # abstract-base-class-without-abstract-method
+    # A PEP 585/604/695 annotation migration rather than lint adoption, so it lands in its own
+    # PR; deleting this block is the end state. A future ruff may add a rule this list misses.
+    "UP006", # non-pep585-annotation          Dict -> dict
+    "UP007", # non-pep604-annotation-union    Union[a, b] -> a | b
+    "UP035", # deprecated-import              typing.Dict -> collections.abc
+    "UP037", # quoted-annotation
+    "UP045", # non-pep604-annotation-optional Optional[a] -> a | None
+    "UP046", # non-pep695-generic-class
+    "UP047", # non-pep695-generic-function
 ]
 
 [tool.ruff.lint.per-file-ignores]
