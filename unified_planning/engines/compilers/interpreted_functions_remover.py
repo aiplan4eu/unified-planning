@@ -570,7 +570,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_a = new_dur_a
         elif isinstance(a, up.model.InstantaneousAction):
             new_ia = InstantaneousAction(a.name, updated_params, a.environment)
-            for time, eff in effects:
+            for _time, eff in effects:
                 new_ia._add_effect_instance(eff.clone())
             if a.simulated_effect is not None:
                 new_ia.set_simulated_effect(a.simulated_effect)
@@ -763,7 +763,7 @@ def custom_replace(
     except KeyError:
         raise UPUsageError(
             "The Action of the given ActionInstance does not have a valid replacement."
-        )
+        ) from None
     expected_amount = 0
     if replaced_action is not None and replaced_action.parameters is not None:
         expected_amount = len(replaced_action.parameters)

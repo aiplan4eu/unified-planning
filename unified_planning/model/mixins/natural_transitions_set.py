@@ -132,7 +132,7 @@ class NaturalTransitionsSetMixin:
                 process.name == a.name for a in self._processes
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._processes.append(process)
         for param in process.parameters:
             if param.type.is_user_type():
@@ -153,7 +153,7 @@ class NaturalTransitionsSetMixin:
                 event.name == a.name for a in self._events
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._events.append(event)
         for param in event.parameters:
             if param.type.is_user_type():

@@ -62,7 +62,7 @@ class TimeModelMixin:
                 except ValueError:
                     raise UPProblemDefinitionError(
                         "The epsilon of a problem must be convertible to a Fraction."
-                    )
+                    ) from None
             if new_value < 0:
                 raise UPProblemDefinitionError("The epsilon must be a positive value!")
         self._epsilon = new_value

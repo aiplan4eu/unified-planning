@@ -35,7 +35,9 @@ class FluentsSetMixin:
         environment,
         add_user_type_method,
         has_name_method,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         self._env = environment
         self._add_user_type_method = add_user_type_method
@@ -45,7 +47,7 @@ class FluentsSetMixin:
             "up.model.fluent.Fluent", "up.model.fnode.FNode"
         ] = {}
         self._initial_defaults: Dict["up.model.types.Type", "up.model.fnode.FNode"] = {}
-        for k, v in initial_defaults.items():
+        for k, v in (initial_defaults or {}).items():
             (v_exp,) = self.environment.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
         # The field initial default optionally associates a type to a default value. When a new fluent is
@@ -140,7 +142,7 @@ class FluentsSetMixin:
                 fluent.name == f.name for f in self._fluents
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._fluents.append(fluent)
         if not default_initial_value is None:
             (v_exp,) = self.environment.expression_manager.auto_promote(

@@ -31,10 +31,9 @@ class HierarchicalProblem(up.model.problem.Problem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict[
-            "up.model.types.Type",
-            ConstantExpression,
-        ] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", ConstantExpression]
+        ] = None,
     ):
         super().__init__(
             name=name, environment=environment, initial_defaults=initial_defaults
@@ -225,7 +224,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 task.name == t for t in self._abstract_tasks
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._abstract_tasks[task.name] = task
         for param in task.parameters:
             if param.type.is_user_type():
@@ -249,7 +248,7 @@ class HierarchicalProblem(up.model.problem.Problem):
                 method.name == m for m in self._methods
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         assert method.achieved_task.task.name in self._abstract_tasks, (
             f"Method is associated to an unregistered task '{method.achieved_task.task.name}'"
         )

@@ -14,7 +14,7 @@
 #
 
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import unified_planning.environment
 import unified_planning.model.walkers as walkers
@@ -74,7 +74,9 @@ class Substituter(IdentityDagWalker):
             IdentityDagWalker._push_with_children_to_stack(self, expression, **kwargs)
 
     def substitute(
-        self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
+        self,
+        expression: FNode,
+        substitutions: Optional[Dict[Expression, Expression]] = None,
     ) -> FNode:
         """
         Performs substitution into the given expression.
@@ -106,7 +108,7 @@ class Substituter(IdentityDagWalker):
         substitute(f, subs) = c
         """
 
-        if len(substitutions) == 0:
+        if not substitutions:
             return expression
         new_substitutions: Dict[FNode, FNode] = {}
         for k, v in substitutions.items():
@@ -124,10 +126,10 @@ class Substituter(IdentityDagWalker):
         self,
         expression: FNode,
         args: List[FNode],
-        subs: Dict[FNode, FNode] = {},
+        subs: Optional[Dict[FNode, FNode]] = None,
         **kwargs,
     ) -> FNode:
-        res = subs.get(expression)
+        res = subs.get(expression) if subs else None
         if res is not None:
             return res
         return IdentityDagWalker.super(self, expression, args, **kwargs)

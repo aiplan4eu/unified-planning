@@ -821,7 +821,9 @@ class MAPDDLWriter:
         try:
             return self.nto_renamings[name]
         except KeyError:
-            raise UPException(f"The name {name} does not correspond to any item.")
+            raise UPException(
+                f"The name {name} does not correspond to any item."
+            ) from None
 
     def get_ma_pddl_name(
         self,
@@ -846,7 +848,7 @@ class MAPDDLWriter:
         except KeyError:
             raise UPException(
                 f"The item {item} does not correspond to any item renamed."
-            )
+            ) from None
 
     def _all_public_fluents(
         self,

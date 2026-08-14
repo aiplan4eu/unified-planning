@@ -303,7 +303,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                         new_durative_action.add_condition(
                             i, fluent_remover.remove_negative_fluents(c)
                         )
-                for t, cel in new_durative_action.conditional_effects.items():
+                for cel in new_durative_action.conditional_effects.values():
                     for ce in cel:
                         ce.set_condition(
                             fluent_remover.remove_negative_fluents(ce.condition)
@@ -316,7 +316,7 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
             for e in el:
                 new_problem._add_effect_instance(t, e.clone())
 
-        for t, el in new_problem.timed_effects.items():
+        for el in new_problem.timed_effects.values():
             for e in el:
                 if e.is_conditional():
                     e.set_condition(fluent_remover.remove_negative_fluents(e.condition))
