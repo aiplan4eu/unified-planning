@@ -112,10 +112,9 @@ class TestTarskiConverter(unittest_TestCase):
 
 def _switch_plan(original_plan, new_problem):
     # This function switches a plan to be a plan of the given problem
-    new_plan_action_instances = []
-    for ai in original_plan.actions:
-        new_plan_action_instances.append(
-            ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters)
-        )
+    new_plan_action_instances = [
+        ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters)
+        for ai in original_plan.actions
+    ]
     new_plan = SequentialPlan(new_plan_action_instances)
     return new_plan

@@ -82,25 +82,23 @@ class MultiAgentProblem(  # type: ignore[misc]
         if len(self.user_types) > 0:
             s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("environment fluents = [\n")
-        for f in self.ma_environment.fluents:
-            s.append(f"  {f!s}\n")
+        s.extend(f"  {f!s}\n" for f in self.ma_environment.fluents)
         s.append("]\n\n")
         s.append("agents = [\n")
-        for ag in self.agents:
-            s.append(f"  {ag!s}\n")
+        s.extend(f"  {ag!s}\n" for ag in self.agents)
         s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
-            for ty in self.user_types:
-                s.append(f"  {ty!s}: {list(self.objects(ty))!s}\n")
+            s.extend(
+                f"  {ty!s}: {list(self.objects(ty))!s}\n" for ty in self.user_types
+            )
             s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self._initial_value.items():
             s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("goals = [\n")
-        for g in self.goals:
-            s.append(f"  {g!s}\n")
+        s.extend(f"  {g!s}\n" for g in self.goals)
         s.append("]\n\n")
         return "".join(s)
 
@@ -487,10 +485,10 @@ class MultiAgentProblem(  # type: ignore[misc]
                         domain_constants.update(extractor.get(e.value))
                         domain_constants.update(extractor.get(e.condition))
                 elif isinstance(a, DurativeAction):
-                    for _, cnds in a.conditions.items():
+                    for cnds in a.conditions.values():
                         for c in cnds:
                             domain_constants.update(extractor.get(c))
-                        for _, effs in a.effects.items():
+                        for effs in a.effects.values():
                             for e in effs:
                                 domain_constants.update(extractor.get(e.fluent))
                                 domain_constants.update(extractor.get(e.value))

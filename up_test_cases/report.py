@@ -482,10 +482,8 @@ def report_anytime(
                     assert isinstance(planner, AnytimePlannerMixin), (
                         "Error in Anytime selection"
                     )
-                    results = []
                     start = time.time()
-                    for result in planner.get_solutions(pb, timeout=timeout):
-                        results.append(result)
+                    results = list(planner.get_solutions(pb, timeout=timeout))
                     total_execution_time = time.time() - start
                     for result in results:
                         status = str(result.status.name).ljust(25)

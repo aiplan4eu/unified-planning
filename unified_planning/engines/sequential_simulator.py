@@ -682,15 +682,20 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
     def get_interpreted_functions_values(self):
-        if_values = {}
         simplifier = self._problem.environment.simplifier
-        for key, value in simplifier.memoization.items():
-            if key.is_interpreted_function_exp() and value.is_constant():
-                if_values[key] = value
+        if_values = {
+            key: value
+            for key, value in simplifier.memoization.items()
+            if key.is_interpreted_function_exp() and value.is_constant()
+        }
         simplifier = self._grounder.simplifier
-        for key, value in simplifier.memoization.items():
-            if key.is_interpreted_function_exp() and value.is_constant():
-                if_values[key] = value
+        if_values.update(
+            {
+                key: value
+                for key, value in simplifier.memoization.items()
+                if key.is_interpreted_function_exp() and value.is_constant()
+            }
+        )
         if_values.update(self._se.if_values)
         return if_values
 

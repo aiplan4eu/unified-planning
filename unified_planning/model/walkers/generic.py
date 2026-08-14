@@ -60,7 +60,7 @@ class MetaNodeTypeHandler(type):
 
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for k, v in dct.items():
+        for v in dct.values():
             if hasattr(v, "nodetypes"):
                 obj.set_handler(v, *v.nodetypes)  # type: ignore[attr-defined]
         return obj

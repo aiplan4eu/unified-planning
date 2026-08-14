@@ -78,7 +78,7 @@ class TestTTPToSTN(unittest_TestCase):
         self.assertEqual(len(total_stn_nodes), len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
-        for name, tc in self.problems.items():
+        for tc in self.problems.values():
             for valid_plan in tc.valid_plans:
                 if valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN:
                     stn_plan = valid_plan.convert_to(PlanKind.STN_PLAN, tc.problem)

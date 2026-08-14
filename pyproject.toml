@@ -161,6 +161,7 @@ select = [
     "RET",   # flake8-return
     "C4",    # flake8-comprehensions
     "SIM",   # flake8-simplify
+    "PERF",  # perflint
     "PIE",   # flake8-pie
     "FURB",  # refurb
     "ISC",   # flake8-implicit-str-concat
@@ -169,6 +170,8 @@ select = [
 ignore = [
     # A named intermediate before `return` is often the only thing saying what the value is.
     "RET504", # unnecessary-assign
+    # Per-item handling that cannot be hoisted, and a `try` that does not raise is free since 3.11.
+    "PERF203", # try-except-in-loop
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -57,8 +57,7 @@ class MAEnvironment(
     def __repr__(self) -> str:
         s = []
         s.append("fluents = [\n")
-        for f in self._fluents:
-            s.append(f" {f!s}\n")
+        s.extend(f" {f!s}\n" for f in self._fluents)
         s.append("]\n\n")
         return "".join(s)
 

@@ -379,9 +379,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             # the fluents contained in it are unknown
             g_c = goal_c
             all_fluents_fnodes = self.free_vars_extractor.get(goal_c)
-            all_fluents = []
-            for f_fnode in all_fluents_fnodes:
-                all_fluents.append(f_fnode.fluent())
+            all_fluents = [f_fnode.fluent() for f_fnode in all_fluents_fnodes]
             for k in is_unknown_fluents:
                 if k in all_fluents:
                     g_c = em.Or(goal_c, is_unknown_fluents[k])
@@ -747,10 +745,11 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
         :return: the newely created effect
         """
         f = ef.fluent.fluent()
-        f_list = []
-        for v in self.free_vars_extractor.get(ef.value):
-            if v.fluent() in is_unknown_fluents:
-                f_list.append(v.fluent())
+        f_list = [
+            v.fluent()
+            for v in self.free_vars_extractor.get(ef.value)
+            if v.fluent() in is_unknown_fluents
+        ]
 
         o_e = em.Or([em.FluentExp(is_unknown_fluents[vf]) for vf in f_list])
         tracking_fluent_exp = em.FluentExp(is_unknown_fluents[f])
@@ -824,13 +823,9 @@ def _split_ands(e: FNode) -> List[FNode]:
     :param e: the expression we want to split
     :returns: the list of expressions after splitting
     """
-    templist = []
     if e.is_and():
-        for sub in e.args:
-            templist.append(sub)
-    else:
-        templist.append(e)
-    return templist
+        return list(e.args)
+    return [e]
 
 
 def custom_replace(

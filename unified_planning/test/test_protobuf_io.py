@@ -470,7 +470,7 @@ class TestProtobufProblems(unittest_TestCase):
                 )
 
     def test_all_plans(self):
-        for name, example in self.problems.items():
+        for example in self.problems.values():
             problem = example.problem
             plans = example.valid_plans
             plan = plans[0] if plans else None

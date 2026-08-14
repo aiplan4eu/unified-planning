@@ -257,24 +257,19 @@ class Agent(
         s = []
         s.append(f"Agent name = {self._name!s}\n\n")
         s.append("private fluents = [\n")
-        for f in self.private_fluents:
-            s.append(f" {f!s}\n")
+        s.extend(f" {f!s}\n" for f in self.private_fluents)
         s.append("]\n\n")
         s.append("public fluents = [\n")
-        for f in self._public_fluents:
-            s.append(f" {f!s}\n")
+        s.extend(f" {f!s}\n" for f in self._public_fluents)
         s.append("]\n\n")
         s.append("actions = [\n")
-        for a in self._actions:
-            s.append(f" {a!s}\n")
+        s.extend(f" {a!s}\n" for a in self._actions)
         s.append("]\n\n")
         s.append("private goals = [\n")
-        for g in self.private_goals:
-            s.append(f" {g!s}\n")
+        s.extend(f" {g!s}\n" for g in self.private_goals)
         s.append("]\n\n")
         s.append("public goals = [\n")
-        for g in self._public_goals:
-            s.append(f" {g!s}\n")
+        s.extend(f" {g!s}\n" for g in self._public_goals)
         s.append("]\n\n")
         return "".join(s)
 

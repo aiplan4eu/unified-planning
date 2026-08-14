@@ -386,19 +386,19 @@ class ProtobufWriter(Converter):
     def _convert_instantaneous_action(
         self, a: model.InstantaneousAction
     ) -> proto.Action:
-        effects = []
-        conditions = []
 
-        for cond in a.preconditions:
-            conditions.append(
-                proto.Condition(
-                    cond=self.convert(cond),
-                    span=None,
-                )
+        conditions = [
+            proto.Condition(
+                cond=self.convert(cond),
+                span=None,
             )
+            for cond in a.preconditions
+        ]
 
-        for eff in a.effects:
-            effects.append(proto.Effect(effect=self.convert(eff), occurrence_time=None))
+        effects = [
+            proto.Effect(effect=self.convert(eff), occurrence_time=None)
+            for eff in a.effects
+        ]
 
         return proto.Action(
             name=a.name,
@@ -425,13 +425,13 @@ class ProtobufWriter(Converter):
 
         for span, cond in conds.items():
             span = self.convert(span)
-            for c in cond:
-                conditions.append(
-                    proto.Condition(
-                        cond=self.convert(c),
-                        span=span,
-                    )
+            conditions.extend(
+                proto.Condition(
+                    cond=self.convert(c),
+                    span=span,
                 )
+                for c in cond
+            )
         return conditions
 
     def _convert_timed_effects(
@@ -440,13 +440,13 @@ class ProtobufWriter(Converter):
         effects = []
         for ot, eff in effs.items():
             ot = self._convert_timing(ot)
-            for e in eff:
-                effects.append(
-                    proto.Effect(
-                        effect=self.convert(e),
-                        occurrence_time=ot,
-                    )
+            effects.extend(
+                proto.Effect(
+                    effect=self.convert(e),
+                    occurrence_time=ot,
                 )
+                for e in eff
+            )
         return effects
 
     @handles(model.scheduling.Activity)
@@ -536,16 +536,15 @@ class ProtobufWriter(Converter):
     def _convert_parameterized_task(
         self, task: model.htn.ParameterizedTask
     ) -> proto.Task:
-        parameters = []
-        for p in task.parameters:
-            parameters.append(
-                proto.Expression(
-                    atom=proto.Atom(symbol=p.name),
-                    list=[],
-                    kind=proto.ExpressionKind.Value("PARAMETER"),
-                    type=proto_type(p.type),
-                )
+        parameters = [
+            proto.Expression(
+                atom=proto.Atom(symbol=p.name),
+                list=[],
+                kind=proto.ExpressionKind.Value("PARAMETER"),
+                type=proto_type(p.type),
             )
+            for p in task.parameters
+        ]
         return proto.Task(id="", task_name=task.task.name, parameters=parameters)
 
     @handles(model.htn.Subtask)
@@ -602,12 +601,12 @@ class ProtobufWriter(Converter):
         timed_effects = []
         for timing, eff_l in problem.timed_effects.items():
             proto_timing = self.convert(timing)
-            for eff in eff_l:
-                timed_effects.append(
-                    proto.TimedEffect(
-                        effect=self.convert(eff), occurrence_time=proto_timing
-                    )
+            timed_effects.extend(
+                proto.TimedEffect(
+                    effect=self.convert(eff), occurrence_time=proto_timing
                 )
+                for eff in eff_l
+            )
 
         return proto.Problem(
             domain_name=problem_name + "_domain",

@@ -45,16 +45,17 @@ class Substituter(IdentityDagWalker):
             # 1. We create a new substitution in which we remove the
             #    bound variables from the substitution map
             substitutions: Dict[FNode, FNode] = kwargs["subs"]
-            new_subs: Dict[Expression, Expression] = {}
-            for k, v in substitutions.items():
-                # If at least one bound variable is in the cone of k,
-                # we do not consider this substitution in the body of
-                # the quantifier.
+            # If at least one bound variable is in the cone of k,
+            # we do not consider this substitution in the body of
+            # the quantifier.
+            new_subs: Dict[Expression, Expression] = {
+                k: v
+                for k, v in substitutions.items()
                 if all(
                     m not in expression.variables()
                     for m in self.environment.free_vars_oracle.get_free_variables(k)
-                ):
-                    new_subs[k] = v
+                )
+            }
 
             # 2. We apply the substitution on the quantifier body with
             #    the new 'reduced' map

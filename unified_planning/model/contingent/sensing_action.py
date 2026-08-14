@@ -88,8 +88,7 @@ class SensingAction(InstantaneousAction):
         b = InstantaneousAction.__repr__(self)[0:-3]
         s = ["sensing-", b]
         s.append("    observations = [\n")
-        for e in self._observed_fluents:
-            s.append(f"      {e!s}\n")
+        s.extend(f"      {e!s}\n" for e in self._observed_fluents)
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
