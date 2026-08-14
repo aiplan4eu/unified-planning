@@ -489,20 +489,20 @@ class TestANMLReader(unittest_TestCase):
         for interval, cond_list in mend_fuse.conditions.items():
             if interval == self.start_interval:
                 self.assertEqual(len(cond_list), 2)
-            elif interval == OpenTimeInterval(self.start_timing, self.end_timing):
-                self.assertEqual(len(cond_list), 1)
-            elif interval == TimePointInterval(start_plus_one):
+            elif interval == OpenTimeInterval(
+                self.start_timing, self.end_timing
+            ) or interval == TimePointInterval(start_plus_one):
                 self.assertEqual(len(cond_list), 1)
             elif interval == LeftOpenTimeInterval(start_plus_one, self.end_timing):
                 self.assertEqual(len(cond_list), 2)
             else:
                 self.assertTrue(False)
         for timing, effect_list in mend_fuse.effects.items():
-            if timing == self.start_timing:
-                self.assertEqual(len(effect_list), 2)
-            elif timing == start_plus_one:
-                self.assertEqual(len(effect_list), 2)
-            elif timing == self.end_timing:
+            if (
+                timing == self.start_timing
+                or timing == start_plus_one
+                or timing == self.end_timing
+            ):
                 self.assertEqual(len(effect_list), 2)
             else:
                 self.assertTrue(False)
@@ -561,9 +561,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
         for timing, effect_list in recipe.effects.items():
-            if timing == self.start_timing:
-                self.assertEqual(len(effect_list), 1)
-            elif timing == self.end_timing:
+            if timing == self.start_timing or timing == self.end_timing:
                 self.assertEqual(len(effect_list), 1)
             else:
                 self.assertTrue(False)

@@ -58,11 +58,9 @@ class ContingentProblem(Problem):
             frozenset(c) for c in oth._or_initial_constraints
         }:
             return False
-        if {frozenset(c) for c in self._oneof_initial_constraints} != {
+        return {frozenset(c) for c in self._oneof_initial_constraints} == {
             frozenset(c) for c in oth._oneof_initial_constraints
-        }:
-            return False
-        return True
+        }
 
     def __hash__(self) -> int:
         res = super().__hash__()

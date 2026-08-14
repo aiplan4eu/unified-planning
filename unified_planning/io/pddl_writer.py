@@ -439,9 +439,7 @@ class PDDLWriter:
         if self.problem_kind.has_hierarchical_typing():
             user_types_hierarchy = self.problem.user_types_hierarchy
             out.write(" (:types\n")
-            stack: List["up.model.Type"] = (
-                user_types_hierarchy[None] if None in user_types_hierarchy else []
-            )
+            stack: List["up.model.Type"] = user_types_hierarchy.get(None, [])
             out.write(
                 f"    {' '.join(self._get_mangled_name(t) for t in stack)} - object\n"
             )
@@ -1097,7 +1095,7 @@ def _get_pddl_name(
         name in pddl_keywords
     ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f"{name}_"
-    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
+    if isinstance(item, (up.model.Parameter, up.model.Variable)):
         name = f"?{name}"
     return name
 

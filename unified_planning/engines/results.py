@@ -41,9 +41,7 @@ class ValidationResultStatus(Enum):
     )  # The planner can't tell if the plan is valid or invalid for the given problem
 
     def __bool__(self):
-        if self == ValidationResultStatus.VALID:
-            return True
-        return False
+        return self == ValidationResultStatus.VALID
 
 
 class FailedValidationReason(Enum):

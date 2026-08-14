@@ -436,11 +436,10 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
             new_c = em.Or([*extra_c, exp])
             ifuns = self.interpreted_functions_extractor.get(exp)
             if ifuns:
-                if t_interval is not None:
-                    if t_interval.lower != t_interval.upper:
-                        raise UPUnsupportedProblemTypeError(
-                            "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
-                        )
+                if t_interval is not None and t_interval.lower != t_interval.upper:
+                    raise UPUnsupportedProblemTypeError(
+                        "Interpreted Functions Remover does not support durative conditions that contain Interpreted Functions"
+                    )
                 ifs.append((t_interval, new_c, ifuns, ElementKind.CONDITION, None))
             else:
                 conds.append((t_interval, new_c))
@@ -518,7 +517,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                                 ifun,
                                 ifun_exp.args,
                                 t,
-                            ) not in IF_and_pars_and_timestamp_to_knum.keys():
+                            ) not in IF_and_pars_and_timestamp_to_knum:
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
@@ -535,7 +534,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                             if (
                                 ifun,
                                 ifun_exp.args,
-                            ) not in IF_and_pars_to_knum.keys():
+                            ) not in IF_and_pars_to_knum:
                                 p_n = get_fresh_parameter_name(
                                     a, f"_p_{ifun.name}_" + str(i)
                                 )
@@ -849,9 +848,8 @@ def custom_replace(
             "The Action of the given ActionInstance does not have a valid replacement."
         )
     expected_amount = 0
-    if replaced_action is not None:
-        if replaced_action.parameters is not None:
-            expected_amount = len(replaced_action.parameters)
+    if replaced_action is not None and replaced_action.parameters is not None:
+        expected_amount = len(replaced_action.parameters)
 
     new_list: list = []
     i = 0

@@ -126,7 +126,7 @@ class Substituter(IdentityDagWalker):
         subs: Dict[FNode, FNode] = {},
         **kwargs,
     ) -> FNode:
-        res = subs.get(expression, None)
+        res = subs.get(expression)
         if res is not None:
             return res
         return IdentityDagWalker.super(self, expression, args, **kwargs)

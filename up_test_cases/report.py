@@ -231,8 +231,10 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
         assert isinstance(planner, OneshotPlannerMixin)
         try:
             res = planner.solve(compiled_problem)
-        except:
-            pass
+        except Exception:
+            # `res` stays unbound, so falling through would read the previous
+            # planner's result - or raise UnboundLocalError on the first engine
+            continue
         if test.solvable and res.plan is not None:
             plan = res.plan
             break

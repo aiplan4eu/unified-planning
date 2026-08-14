@@ -284,9 +284,12 @@ class GrounderHelper:
                 items_list: List[List[FNode]] = [
                     self._get_domain_items(t) for t in type_list
                 ]
-                if self._prune_actions and (
-                    isinstance(action, up.model.action.InstantaneousAction)
-                    or isinstance(action, up.model.action.DurativeAction)
+                if self._prune_actions and isinstance(
+                    action,
+                    (
+                        up.model.action.InstantaneousAction,
+                        up.model.action.DurativeAction,
+                    ),
                 ):
                     bool_conditions = self._static_bool_fluents(action) or []
                     items_list = self._purge_items_list(

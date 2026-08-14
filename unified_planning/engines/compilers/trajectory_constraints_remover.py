@@ -217,9 +217,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     raise Exception(
                         f"ERROR This compiler cannot handle this constraint = {c}"
                     )
-                if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
-                    if to_add and not precondition.is_true():
-                        a.add_precondition(precondition)
+                if (
+                    (c.is_always() or c.is_at_most_once() or c.is_sometime_before())
+                    and to_add
+                    and not precondition.is_true()
+                ):
+                    a.add_precondition(precondition)
             for eff in effects_to_add:
                 a._add_effect_instance(eff)
             if env.expression_manager.FALSE() not in a.preconditions:
@@ -274,7 +277,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_sometime_compilation(self, env, phi, m_atom, a, E):
         R = (self._regression(env, phi, a)).simplify()
-        if R != phi:
+        if phi != R:
             self._add_cond_eff(env, E, R, m_atom)
 
     def _manage_sb_compilation(self, env, phi, psi, m_atom, a, E):
@@ -293,7 +296,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_amo_compilation(self, env, phi, m_atom, a, E):
         R = (self._regression(env, phi, a)).simplify()
-        if R == phi:
+        if phi == R:
             return None, False
         rho = (
             env.expression_manager.Or(
@@ -307,7 +310,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_always_compilation(self, env, phi, a):
         R = (self._regression(env, phi, a)).simplify()
-        if R == phi:
+        if phi == R:
             return None, False
         return R, True
 
@@ -386,11 +389,13 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 self._monitoring_atom_dict[constr] = monitoring_atom
                 if init_state_value.is_true():
                     initial_state_prime.append(monitoring_atom)
-                if constr.is_sometime_before():
-                    if constr.args[0].substitute(I).simplify().is_true():
-                        raise UPProblemDefinitionError(
-                            "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
-                        )
+                if (
+                    constr.is_sometime_before()
+                    and constr.args[0].substitute(I).simplify().is_true()
+                ):
+                    raise UPProblemDefinitionError(
+                        "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
+                    )
                 monitoring_atoms_counter += 1
         return initial_state_prime, monitoring_atoms
 

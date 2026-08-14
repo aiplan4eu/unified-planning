@@ -353,7 +353,7 @@ class STNPlan(plans.plan.Plan):
         for (left_node, right_node), upper_bound in upper_bounds.items():
             key = (left_node, right_node)
             seen_couples.add(key)
-            lower_bound = lower_bounds.get(key, None)
+            lower_bound = lower_bounds.get(key)
             cl = constraints.setdefault(left_node, [])
             cl.append((lower_bound, upper_bound, right_node))
         for (left_node, right_node), lower_bound in lower_bounds.items():

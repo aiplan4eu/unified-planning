@@ -56,9 +56,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
 
     @staticmethod
     def satisfies(optimality_guarantee: OptimalityGuarantee) -> bool:
-        if optimality_guarantee == OptimalityGuarantee.SATISFICING:
-            return True
-        return False
+        return optimality_guarantee == OptimalityGuarantee.SATISFICING
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:

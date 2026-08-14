@@ -666,47 +666,49 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_all(self):
-        with OneshotPlanner(
-            name="opt-pddl-planner",
-        ) as solver:
-            with Compiler(
+        with (
+            OneshotPlanner(
+                name="opt-pddl-planner",
+            ) as solver,
+            Compiler(
                 name="up_durative_actions_to_processes",
                 compilation_kind=CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
-            ) as cer:
-                for problem_name, tc in self.problems.items():
-                    problem = tc.problem
-                    if not isinstance(problem, Problem):
-                        continue
-                    kind = problem.kind
-                    if any(
-                        not isinstance(a, (DurativeAction, InstantaneousAction))
-                        for a in problem.actions
-                    ):
-                        continue
-                    if all(isinstance(a, InstantaneousAction) for a in problem.actions):
-                        continue
-                    if not cer.supports(kind):
-                        continue
-                    res = cer.compile(
-                        problem,
-                        CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
-                    )
-                    compiled_problem = res.problem
-                    if not solver.supports(compiled_problem.kind):
-                        continue
-                    solver_res = solver.solve(compiled_problem, timeout=5)
-                    compiled_plan = solver_res.plan
-                    if solver_res.status == PlanGenerationResultStatus.TIMEOUT:
-                        continue
-                    self.assertIsInstance(
-                        compiled_plan,
-                        TimeTriggeredPlan,
-                        f"{problem_name}: {solver_res}",
-                    )
-                    original_plan = res.plan_back_conversion(compiled_plan)
+            ) as cer,
+        ):
+            for problem_name, tc in self.problems.items():
+                problem = tc.problem
+                if not isinstance(problem, Problem):
+                    continue
+                kind = problem.kind
+                if any(
+                    not isinstance(a, (DurativeAction, InstantaneousAction))
+                    for a in problem.actions
+                ):
+                    continue
+                if all(isinstance(a, InstantaneousAction) for a in problem.actions):
+                    continue
+                if not cer.supports(kind):
+                    continue
+                res = cer.compile(
+                    problem,
+                    CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES,
+                )
+                compiled_problem = res.problem
+                if not solver.supports(compiled_problem.kind):
+                    continue
+                solver_res = solver.solve(compiled_problem, timeout=5)
+                compiled_plan = solver_res.plan
+                if solver_res.status == PlanGenerationResultStatus.TIMEOUT:
+                    continue
+                self.assertIsInstance(
+                    compiled_plan,
+                    TimeTriggeredPlan,
+                    f"{problem_name}: {solver_res}",
+                )
+                original_plan = res.plan_back_conversion(compiled_plan)
 
-                    with PlanValidator(problem_kind=problem.kind) as validator:
-                        val_res = validator.validate(problem, original_plan)
-                        self.assertEqual(
-                            val_res.status, ValidationResultStatus.VALID, problem_name
-                        )
+                with PlanValidator(problem_kind=problem.kind) as validator:
+                    val_res = validator.validate(problem, original_plan)
+                    self.assertEqual(
+                        val_res.status, ValidationResultStatus.VALID, problem_name
+                    )

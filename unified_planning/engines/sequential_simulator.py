@@ -373,7 +373,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         if evaluated_condition:
             new_value = evaluate(effect.value)
             if effect.is_assignment():
-                old_value = updated_values.get(fluent, None)
+                old_value = updated_values.get(fluent)
                 if (
                     old_value is not None
                     and new_value.constant_value() != old_value.constant_value()
@@ -529,7 +529,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                         cast(up.model.mixins.ObjectsSetMixin, self._problem)
                     ):
                         ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
-                        values = updated_values.get(ev_fluent, None)
+                        values = updated_values.get(ev_fluent)
                         if values is not None:
                             try:
                                 fluent, value = self._evaluate_effect(
@@ -554,23 +554,25 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 ):
                     if e.fluent.fluent() in self._fluents_in_state_invariants:
                         ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
-                        if ev_fluent in self._fluent_exps_in_state_invariants:
-                            if ev_fluent not in updated_values:
-                                try:
-                                    fluent, value = self._evaluate_effect(
-                                        e,
-                                        state,
-                                        updated_values,
-                                        assigned_fluent,
-                                        em,
-                                        evaluated_fluent=ev_fluent,
-                                    )
-                                    assert fluent is not None and value is not None
-                                    updated_values[fluent] = value
-                                except UPConflictingEffectsException:
-                                    raise UPUnreachableCodeError(
-                                        "Conflicting effects should be caught above"
-                                    )
+                        if (
+                            ev_fluent in self._fluent_exps_in_state_invariants
+                            and ev_fluent not in updated_values
+                        ):
+                            try:
+                                fluent, value = self._evaluate_effect(
+                                    e,
+                                    state,
+                                    updated_values,
+                                    assigned_fluent,
+                                    em,
+                                    evaluated_fluent=ev_fluent,
+                                )
+                                assert fluent is not None and value is not None
+                                updated_values[fluent] = value
+                            except UPConflictingEffectsException:
+                                raise UPUnreachableCodeError(
+                                    "Conflicting effects should be caught above"
+                                )
 
             if not isinstance(state, up.model.UPState):
                 raise UPUsageError(
