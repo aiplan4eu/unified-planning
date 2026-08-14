@@ -258,7 +258,7 @@ def get_ith_fluent_exp(
     quot = idx
     rem = 0
     actual_parameters = []
-    for i, p in enumerate(fluent.signature):
+    for i, _p in enumerate(fluent.signature):
         ds = len(domains[i])
         rem = quot % ds
         quot //= ds

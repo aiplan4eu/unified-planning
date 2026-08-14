@@ -217,6 +217,6 @@ class LinearChecker(DagWalker):
         ],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        for b, spf, snf in args:
+        for b, _spf, _snf in args:
             is_linear = is_linear and b
         return (is_linear, {expression}, set())

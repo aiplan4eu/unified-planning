@@ -146,7 +146,7 @@ class ActionsSetMixin:
                 action.name == a.name for a in self._actions
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._actions.append(action)
         self._actions_index.note_appended(self._actions)
         for param in action.parameters:

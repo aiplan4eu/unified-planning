@@ -421,7 +421,8 @@ class TestPDDLPlanner(unittest_TestCase):
         q: Queue = Queue()
         writer_a = Writer(None, q, planner, problem_a)
 
-        setattr(
+        # setattr, not a plain assignment: B010's fix is a mypy method-assign error
+        setattr(  # noqa: B010
             planner,
             "_get_cmd",
             lambda domain_filename, problem_filename, plan_filename: ["true"],
@@ -513,7 +514,7 @@ class TestPDDLPlanner(unittest_TestCase):
             )
             return original_get_cmd(domain_filename, _problem, _plan)
 
-        setattr(planner, "_get_cmd", intercepting_get_cmd)
+        setattr(planner, "_get_cmd", intercepting_get_cmd)  # noqa: B010
 
         def mock_popen(_cmd, *_args, **kwargs):
             captured_cwd.append(kwargs.get("cwd"))

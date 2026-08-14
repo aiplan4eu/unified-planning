@@ -464,7 +464,7 @@ class UPPDDLReader:
                         raise SyntaxError(
                             repr(e)
                             + f"\nError from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
-                        )
+                        ) from e
                 else:
                     start_line, start_col = (
                         exp.line_start(complete_str),
@@ -510,7 +510,7 @@ class UPPDDLReader:
                                 raise SyntaxError(
                                     f"Undefined variable's type: {g[1]}."
                                     f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                                )
+                                ) from None
                             for o in g.value[0]:
                                 new_vars[o] = up.model.Variable(o, t, self._env)
                         # new_vars are the variables defined by the quantifier currently being solved
@@ -564,7 +564,7 @@ class UPPDDLReader:
                             raise SyntaxError(
                                 f"Undefined name found: {exp.value[1:]}.\nError in expression from"
                                 f" line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
-                            )
+                            ) from None
                     elif problem.has_fluent(exp.value):  # fluent
                         solved.append(self._em.FluentExp(problem.fluent(exp.value)))
                     elif problem.has_object(exp.value):  # object
@@ -583,7 +583,7 @@ class UPPDDLReader:
                             )
                             raise SyntaxError(
                                 f"Found invalid expression: {complete_str[exp.locn_start : exp.locn_end]}. From line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
-                            )
+                            ) from None
                         if n.denominator == 1:
                             solved.append(self._em.Int(n.numerator))
                         else:
@@ -983,7 +983,7 @@ class UPPDDLReader:
                         raise SyntaxError(
                             f"Undefined variable's type: {g[1]}."
                             f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                        )
+                        ) from None
                     for o in g.value[0]:
                         vars[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], vars))
@@ -1208,7 +1208,7 @@ class UPPDDLReader:
                 raise SyntaxError(
                     f"Undefined parameter's type: {g.value[1]}."
                     f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                )
+                ) from None
             for p in g.value[0]:
                 a_params[p] = t
         return a_params
@@ -1472,7 +1472,7 @@ class UPPDDLReader:
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
+                    ) from None
                 for param_name in g.value[0]:
                     params[param_name] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
@@ -1497,7 +1497,7 @@ class UPPDDLReader:
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
+                    ) from None
                 for param_name in g.value[0]:
                     if param_name not in params:
                         params[param_name] = param_type
@@ -1549,7 +1549,7 @@ class UPPDDLReader:
                 raise SyntaxError(
                     f"Undefined variable's type: {g.value[1]}."
                     f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                )
+                ) from None
             for o in g.value[0]:
                 problem.add_object(up.model.Object(o, t, problem.environment))
 
@@ -1572,7 +1572,7 @@ class UPPDDLReader:
                     raise SyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
-                    )
+                    ) from None
                 for p in g.value[0]:
                     task_params[p] = t
             task = htn.Task(name, task_params)
@@ -1933,7 +1933,7 @@ class UPPDDLReader:
                         )
                         raise SyntaxError(
                             f"Expected number, found {init[1].value} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
-                        )
+                        ) from None
                     if init[2][0].value in ["assign", "increase", "decrease"]:
                         fe = self._parse_exp(
                             problem, None, types_map, {}, init[2][1], problem_str

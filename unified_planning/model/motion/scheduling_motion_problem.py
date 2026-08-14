@@ -44,7 +44,9 @@ class SchedulingMotionProblem(SchedulingProblem):
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         SchedulingProblem.__init__(
             self, name, environment, initial_defaults=initial_defaults

@@ -595,7 +595,8 @@ class PDDLWriter:
                     obs = a.observed_fluents
                     if len(obs) == 0:
                         warn(
-                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe."
+                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe.",
+                            stacklevel=2,
                         )
                     elif len(obs) == 1:
                         out.write(f"\n  :observe {converter.convert(obs[0])}")
@@ -974,7 +975,9 @@ class PDDLWriter:
         try:
             return self.nto_renamings[name]
         except KeyError:
-            raise UPException(f"The name {name} does not correspond to any item.")
+            raise UPException(
+                f"The name {name} does not correspond to any item."
+            ) from None
 
     def get_pddl_name(
         self,
@@ -992,7 +995,7 @@ class PDDLWriter:
         except KeyError:
             raise UPException(
                 f"The item {item} does not correspond to any item renamed."
-            )
+            ) from None
 
     def _write_task_network(
         self,

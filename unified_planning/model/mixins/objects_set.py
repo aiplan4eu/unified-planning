@@ -80,7 +80,7 @@ class ObjectsSetMixin:
                 obj.name == o.name for o in self._objects
             ):
                 raise UPProblemDefinitionError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         self._objects.append(obj)
         self._objects_index.note_appended(self._objects)
         if obj.type.is_user_type():

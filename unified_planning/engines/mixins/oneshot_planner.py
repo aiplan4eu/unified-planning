@@ -80,7 +80,7 @@ class OneshotPlannerMixin(ABC):
             msg = f"We cannot establish whether {self.name} can solve this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            warn(msg)
+            warn(msg, stacklevel=2)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
             msg = "The problem has no quality metrics but the engine is required to be optimal!"
             raise up.exceptions.UPUsageError(msg)

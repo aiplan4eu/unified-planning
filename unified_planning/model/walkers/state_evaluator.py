@@ -36,7 +36,7 @@ class StateEvaluator(QuantifierSimplifier):
         self,
         expression: "FNode",
         state: "up.model.state.State",
-        _variable_assignments: Dict["Expression", "Expression"] = {},
+        _variable_assignments: Optional[Dict["Expression", "Expression"]] = None,
     ) -> FNode:
         """
         Evaluates the given expression in the given `State`.
@@ -53,7 +53,7 @@ class StateEvaluator(QuantifierSimplifier):
         assert self._assignments is None
         assert self._variable_assignments is None
         self._variable_assignments: Optional[Dict["Expression", "Expression"]] = (
-            _variable_assignments
+            _variable_assignments or {}
         )
         self._state = state
         r = self.walk(expression)

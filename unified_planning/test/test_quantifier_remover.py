@@ -187,7 +187,7 @@ class TestQuantifiersRemover(unittest_TestCase):
             self.assertNotEqual(planner, None)
             uq_plan = planner.solve(uq_problem).plan
             new_plan = uq_plan.replace_action_instances(res.map_back_action_instance)
-            for (s, a, d), (s_1, a_1, d_1) in zip(
+            for (s, a, d), (s_1, _a_1, d_1) in zip(
                 new_plan.timed_actions, uq_plan.timed_actions, strict=True
             ):
                 self.assertEqual(s, s_1)

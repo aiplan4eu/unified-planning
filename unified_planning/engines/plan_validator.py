@@ -145,7 +145,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             )
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            warnings.warn(cast(str, msg))
+            warnings.warn(cast(str, msg), stacklevel=2)
         if metric is not None:
             metric_value: Union[int, Fraction] = 0
 
@@ -744,7 +744,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         # Check (durative) conditions
         for (start, end, is_open), _, c, opt_ai in durative_conditions:
-            for t, state in self._states_in_interval(
+            for _t, state in self._states_in_interval(
                 trace=trace, start=start, end=end, open_interval=is_open
             ):
                 try:

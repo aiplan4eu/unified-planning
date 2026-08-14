@@ -64,7 +64,7 @@ class FNode(object):
         try:
             repr_fn = _REPR_DISPATCH[self.node_type]
         except KeyError:
-            raise ValueError("Unknown FNode type found")
+            raise ValueError("Unknown FNode type found") from None
         return repr_fn(self)
 
     @property

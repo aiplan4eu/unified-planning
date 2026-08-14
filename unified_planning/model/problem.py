@@ -79,7 +79,9 @@ class Problem(
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
@@ -1415,7 +1417,7 @@ class _KindFactory:
                 oversub_goals = (x[1] for x in metric.goals)
                 oversub_gains = metric.goals.values()
             else:
-                assert False, "Unknown quality metric"
+                raise AssertionError("Unknown quality metric")
             for goal in oversub_goals:
                 self.update_problem_kind_expression(goal)
             for oversub_gain in oversub_gains:
@@ -1495,7 +1497,7 @@ def generate_causal_graph(
             raise UPUsageError(
                 "To plot the causal graph of a problem, the problem must be grounded or a grounder capable of handling the given problem must be installed.\n"
                 + str(ex)
-            )
+            ) from ex
 
     # Populate 2 maps:
     #  one from a fluent to all the actions reading that fluent

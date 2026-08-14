@@ -236,7 +236,7 @@ class PartialOrderPlan(plans.plan.Plan):
         except nx.NetworkXError:
             raise UPUsageError(
                 f"The action instance {action_instance!s} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
-            )
+            ) from None
         return retval
 
 
