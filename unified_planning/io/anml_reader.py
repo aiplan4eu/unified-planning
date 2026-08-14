@@ -425,7 +425,7 @@ class ANMLReader:
             if isinstance(upper_bound, int):
                 upper_bound = Fraction(upper_bound)
             return self._tm.RealType(lower_bound, upper_bound)
-        ret_type = types_map.get(name, None)
+        ret_type = types_map.get(name)
         if ret_type is not None:
             return ret_type
         raise ANMLSyntaxError(f"UserType {name} is referenced but never defined.")
@@ -895,18 +895,14 @@ class ANMLReader:
         while len(stack) > 0:
             exp, already_expanded, vars = stack.pop()
             if already_expanded:
-                assert isinstance(exp, ParseResults) or isinstance(exp, List)
+                assert isinstance(exp, (ParseResults, List))
                 if len(exp) <= 1:
                     assert len(exp) == 1, "algorithm error"
                 elif len(exp) == 2:
                     first_elem = exp[0]
-                    if isinstance(first_elem, List) or isinstance(
-                        first_elem, ParseResults
-                    ):  # parameters list
+                    if isinstance(first_elem, (List, ParseResults)):  # parameters list
                         second_elem = exp[1]
-                        assert isinstance(second_elem, List) or isinstance(
-                            second_elem, ParseResults
-                        )
+                        assert isinstance(second_elem, (List, ParseResults))
                     elif first_elem == TK_MINUS:  # unary minus
                         solved.append(self._em.Times(-1, solved.pop()))
                     elif first_elem == TK_PLUS:  # unary plus
@@ -950,7 +946,7 @@ class ANMLReader:
                         TK_FORALL,
                         TK_EXISTS,
                     ):
-                        assert isinstance(exp, ParseResults) or isinstance(exp, list)
+                        assert isinstance(exp, (ParseResults, list))
                         quantified_expressions = [solved.pop() for _ in exp[2]]
                         solved.append(
                             self._operators[first_token](
@@ -959,15 +955,11 @@ class ANMLReader:
                         )
                     else:
                         operator = exp[1]
-                        if isinstance(operator, List) or isinstance(
-                            operator, ParseResults
+                        if isinstance(
+                            operator, (List, ParseResults)
                         ):  # parameters list
-                            assert isinstance(exp[0], List) or isinstance(
-                                exp[0], ParseResults
-                            )
-                            assert isinstance(exp[2], List) or isinstance(
-                                exp[2], ParseResults
-                            )
+                            assert isinstance(exp[0], (List, ParseResults))
+                            assert isinstance(exp[2], (List, ParseResults))
                         elif isinstance(operator, str):  # binary operator
                             # '==' needs special care, because in ANML it can both mean '==' or 'Iff',
                             # but in the UP those 2 cases are handled differently.
@@ -996,17 +988,17 @@ class ANMLReader:
                             )
                 else:  # expression longer than 3, must be a parameters list
                     for e in exp:
-                        assert isinstance(e, List) or isinstance(e, ParseResults), (
+                        assert isinstance(e, (List, ParseResults)), (
                             f"expression {exp} is expected to be a parameters list, but it's not"
                         )
             else:  # not solved
-                if isinstance(exp, ParseResults) or isinstance(exp, List):
+                if isinstance(exp, (ParseResults, List)):
                     first_token = exp[0]
                     if isinstance(first_token, str) and first_token in (
                         TK_FORALL,
                         TK_EXISTS,
                     ):  # quantifier
-                        assert isinstance(exp, ParseResults) or isinstance(exp, list), (
+                        assert isinstance(exp, (ParseResults, list)), (
                             f"{exp} <- {expression}, {type(exp)}"
                         )
                         name_type = self._parse_parameters_def(exp[1], types_map)
@@ -1025,10 +1017,9 @@ class ANMLReader:
                             else:
                                 assert isinstance(e, str)
                                 if (
-                                    e.isnumeric()
+                                    e in (TK_TRUE, TK_FALSE)
+                                    or e.isnumeric()
                                     or is_float(e)
-                                    or e == TK_TRUE
-                                    or e == TK_FALSE
                                 ):
                                     stack.append((e, False, vars))
                 elif isinstance(exp, str):
@@ -1064,7 +1055,7 @@ def find_strings(result: Union[ParseResults, List], strings: Set[str]) -> Set[st
     while len(stack) > 0:
         res = stack.pop()
         for word in res:
-            if isinstance(word, ParseResults) or isinstance(word, List):
+            if isinstance(word, (ParseResults, List)):
                 stack.append(word)
             else:
                 assert isinstance(word, str)

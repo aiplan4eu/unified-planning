@@ -95,7 +95,7 @@ def plot_plan(
         ContingentPlan: plot_contingent_plan,
         PartialOrderPlan: plot_partial_order_plan,
     }
-    plot_plan_function = functions_map.get(type(plan), None)
+    plot_plan_function = functions_map.get(type(plan))
     if plot_plan_function is None:
         raise NotImplementedError(
             f"{type(plan).__name__} is not supported in the plot_plan function"

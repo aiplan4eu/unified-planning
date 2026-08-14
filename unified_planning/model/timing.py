@@ -179,11 +179,7 @@ class Timing:
     @staticmethod
     def from_time(time: TimeExpression) -> "Timing":
         """Converts any supported time expression into its canonical Timing representation."""
-        if (
-            isinstance(time, int)
-            or isinstance(time, float)
-            or isinstance(time, Fraction)
-        ):
+        if isinstance(time, (int, float, Fraction)):
             return GlobalStartTiming() + time
         if isinstance(time, Timepoint):
             return Timing(timepoint=time, delay=0)
@@ -271,14 +267,8 @@ class Interval:
         )
 
     def __repr__(self) -> str:
-        if self.is_left_open():
-            left_bound = "("
-        else:
-            left_bound = "["
-        if self.is_right_open():
-            right_bound = ")"
-        else:
-            right_bound = "]"
+        left_bound = "(" if self.is_left_open() else "["
+        right_bound = ")" if self.is_right_open() else "]"
         return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"
 
     def __eq__(self, oth: object) -> bool:
@@ -426,14 +416,8 @@ class TimeInterval:
         self._is_right_open = is_right_open
 
     def __repr__(self) -> str:
-        if self.is_left_open():
-            left_bound = "("
-        else:
-            left_bound = "["
-        if self.is_right_open():
-            right_bound = ")"
-        else:
-            right_bound = "]"
+        left_bound = "(" if self.is_left_open() else "["
+        right_bound = ")" if self.is_right_open() else "]"
         if self.lower == self.upper:
             return f"{left_bound}{self.lower!s}{right_bound}"
         return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"

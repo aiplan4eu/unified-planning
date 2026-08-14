@@ -453,7 +453,7 @@ class TestPDDLPlanner(unittest_TestCase):
         captured_cwd: List = []
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(
@@ -477,7 +477,7 @@ class TestPDDLPlanner(unittest_TestCase):
         captured_cwd: List = []
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(
@@ -516,7 +516,7 @@ class TestPDDLPlanner(unittest_TestCase):
         setattr(planner, "_get_cmd", intercepting_get_cmd)
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(

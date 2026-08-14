@@ -208,9 +208,7 @@ def get_example_problems():
         return out_val
 
     def if_is_there_enough_pizza(in_val):
-        if in_val >= Fraction(1, 8):
-            return True
-        return False
+        return in_val >= Fraction(1, 8)
 
     signature_if_both = OrderedDict()
     signature_if_both["i_one"] = RealType()

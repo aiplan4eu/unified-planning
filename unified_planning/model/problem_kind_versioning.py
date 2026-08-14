@@ -67,13 +67,17 @@ def upgrade_1_2(version_1_features: Set[str]) -> Set[str]:
     """Upgrade features from version 1 to version 2."""
     version_2_features = version_1_features.copy()
 
-    if "CONTINUOUS_NUMBERS" in version_1_features:
-        if "NUMERIC_FLUENTS" in version_1_features:
-            version_2_features.update({"REAL_FLUENTS"})
+    if (
+        "CONTINUOUS_NUMBERS" in version_1_features
+        and "NUMERIC_FLUENTS" in version_1_features
+    ):
+        version_2_features.update({"REAL_FLUENTS"})
 
-    if "DISCRETE_NUMBERS" in version_1_features:
-        if "NUMERIC_FLUENTS" in version_1_features:
-            version_2_features.update({"INT_FLUENTS"})
+    if (
+        "DISCRETE_NUMBERS" in version_1_features
+        and "NUMERIC_FLUENTS" in version_1_features
+    ):
+        version_2_features.update({"INT_FLUENTS"})
 
     if "ACTIONS_COST" in version_1_features:
         version_2_features.update(

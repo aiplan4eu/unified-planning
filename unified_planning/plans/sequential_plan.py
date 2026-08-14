@@ -184,7 +184,7 @@ class SequentialPlan(plans.plan.Plan):
             for required_fluent in required_fluents:
                 action_instance_list = all_required.setdefault(required_fluent, [])
                 action_instance_list.append(action_instance)
-                required_fluent_last_modifier = last_modifier.get(required_fluent, None)
+                required_fluent_last_modifier = last_modifier.get(required_fluent)
                 if required_fluent_last_modifier is not None:
                     assert (
                         required_fluent_last_modifier != action_instance

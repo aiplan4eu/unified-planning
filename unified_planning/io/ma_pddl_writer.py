@@ -192,9 +192,7 @@ class MAPDDLWriter:
             if self.problem_kind.has_hierarchical_typing():
                 user_types_hierarchy = self.problem.user_types_hierarchy
                 out.write(" (:types\n")
-                stack: List["up.model.Type"] = (
-                    user_types_hierarchy[None] if None in user_types_hierarchy else []
-                )
+                stack: List["up.model.Type"] = user_types_hierarchy.get(None, [])
                 out.write(
                     f"    {' '.join(self._get_mangled_name(t) for t in stack)}{' ' if len(self.problem.agents) > 0 else ''}ag - object\n"
                 )
@@ -605,7 +603,7 @@ class MAPDDLWriter:
 
                 # If agents are not defined as "constant" in the domain, they are defined in the problem
                 for agent in self.problem.agents:
-                    if agent not in self.domain_objects_agents.keys():
+                    if agent not in self.domain_objects_agents:
                         out.write(
                             f"\n   {self._get_mangled_name(agent)} - {self._get_mangled_name(agent) + '_type'}"
                         )
@@ -628,11 +626,6 @@ class MAPDDLWriter:
                                 fluent in ag.fluents and f.agent() == ag.name
                             ):
                                 out.write(f"\n  {converter.convert(f)}")
-                            elif (
-                                f.agent() != ag.name
-                                and fluent in self.all_public_fluents
-                            ):
-                                out.write(f"\n  {converter.convert(f)}")
                             else:
                                 out.write("")
                         else:
@@ -646,11 +639,6 @@ class MAPDDLWriter:
                             if not self.unfactored:
                                 if fluent in self.all_public_fluents or (
                                     fluent in ag.fluents and f.agent() == ag.name
-                                ):
-                                    out.write(f"\n  (not {converter.convert(f)})")
-                                elif (
-                                    f.agent() != ag.name
-                                    and fluent in self.all_public_fluents
                                 ):
                                     out.write(f"\n  (not {converter.convert(f)})")
                                 else:
@@ -718,10 +706,7 @@ class MAPDDLWriter:
         ag_domains = self._write_domain()
         osy.makedirs(directory_name, exist_ok=True)
         for ag, domain in ag_domains.items():
-            if not self.unfactored:
-                name_domain = ag + "_"
-            else:
-                name_domain = ""
+            name_domain = "" if self.unfactored else ag + "_"
             path_ma_pddl = osy.path.join(directory_name, name_domain + "domain.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(domain)
@@ -731,10 +716,7 @@ class MAPDDLWriter:
         ag_problems = self._write_problem()
         osy.makedirs(directory_name, exist_ok=True)
         for ag, problem in ag_problems.items():
-            if not self.unfactored:
-                name_problem = ag + "_"
-            else:
-                name_problem = ""
+            name_problem = "" if self.unfactored else ag + "_"
             path_ma_pddl = osy.path.join(directory_name, name_problem + "problem.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(problem)

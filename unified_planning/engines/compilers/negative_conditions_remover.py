@@ -68,7 +68,7 @@ class NegativeFluentRemover(IdentityDagWalker):
                     neg_fluent, tuple(args[0].args)
                 )
             f = args[0].fluent()
-            if f in self._fluent_mapping.keys():
+            if f in self._fluent_mapping:
                 nf = self._fluent_mapping[f]
             elif f in self._fluent_mapping.values():
                 for k, v in self._fluent_mapping.items():

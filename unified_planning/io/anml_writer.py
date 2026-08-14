@@ -456,11 +456,8 @@ class ANMLWriter:
 
 def _is_valid_anml_name(name: str) -> bool:
     regex = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*")
-    if (
-        re.match(regex, name) is None or name in ANML_KEYWORDS
-    ):  # If the name does not start with an alphabetic char or is a keyword
-        return False
-    return True
+    # valid means: starts with an alphabetic char, and is not a keyword
+    return re.match(regex, name) is not None and name not in ANML_KEYWORDS
 
 
 def _get_anml_valid_name(
@@ -511,7 +508,7 @@ def _get_anml_name(
     ],
 ) -> str:
     """Important note: This method updates the names_mapping"""
-    new_name: Optional[str] = names_mapping.get(item, None)
+    new_name: Optional[str] = names_mapping.get(item)
     if new_name is None:  # The type is not in the dictionary, so his name must be added
         if isinstance(item, up.model.Type) and item.is_int_type():
             num_type = cast(_IntType, item)

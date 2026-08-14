@@ -108,9 +108,7 @@ class Waypoints(MotionConstraint):
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
-        if set(self._waypoints) != set(oth._waypoints):
-            return False
-        return True
+        return set(self._waypoints) == set(oth._waypoints)
 
     def __hash__(self) -> int:
         res = hash(self._movable)
@@ -235,9 +233,7 @@ class ActivityWaypoints(MotionConstraint):
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
-        if set(self._waypoints) != set(oth._waypoints):
-            return False
-        return True
+        return set(self._waypoints) == set(oth._waypoints)
 
     def __hash__(self) -> int:
         res = hash(self._movable)

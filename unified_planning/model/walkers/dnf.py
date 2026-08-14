@@ -58,17 +58,11 @@ class Nnf:
             if status:
                 if e.is_and():
                     args = [solved.pop() for _ in range(len(e.args))]
-                    if p:
-                        new_e = self.manager.And(args)
-                    else:
-                        new_e = self.manager.Or(args)
+                    new_e = self.manager.And(args) if p else self.manager.Or(args)
                     solved.append(new_e)
                 elif e.is_or():
                     args = [solved.pop() for _ in range(len(e.args))]
-                    if p:
-                        new_e = self.manager.Or(args)
-                    else:
-                        new_e = self.manager.And(args)
+                    new_e = self.manager.Or(args) if p else self.manager.And(args)
                     solved.append(new_e)
                 else:
                     raise UPUnreachableCodeError(

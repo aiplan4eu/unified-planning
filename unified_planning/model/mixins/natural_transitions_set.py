@@ -105,10 +105,7 @@ class NaturalTransitionsSetMixin:
         :param name: The `name` of the target `process`.
         :return: `True` if the `problem` has an `process` with the given `name`, `False` otherwise.
         """
-        for a in self._processes:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._processes)
 
     def has_event(self, name: str) -> bool:
         """
@@ -118,10 +115,7 @@ class NaturalTransitionsSetMixin:
         :param name: The `name` of the target `event`.
         :return: `True` if the `problem` has an `event` with the given `name`, `False` otherwise.
         """
-        for a in self._events:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._events)
 
     def add_process(self, process: "up.model.natural_transition.Process"):
         """

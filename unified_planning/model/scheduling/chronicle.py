@@ -113,9 +113,7 @@ class Chronicle(TimedCondsEffs):
             (c, tuple(set(scope))) for (c, scope) in oth._constraints
         }:
             return False
-        if not TimedCondsEffs.__eq__(self, oth):
-            return False
-        return True
+        return TimedCondsEffs.__eq__(self, oth)
 
     def __hash__(self) -> int:
         res = hash(self._name)

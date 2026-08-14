@@ -676,8 +676,7 @@ class UPPDDLReader:
             elif op == "increase":
                 if "#t" in exp:
                     if not (
-                        isinstance(act, up.model.Process)
-                        or isinstance(act, up.model.DurativeAction)
+                        isinstance(act, (up.model.Process, up.model.DurativeAction))
                     ):
                         raise UPUnsupportedProblemTypeError(
                             "Continuous change is supported only in processes and durative actions"
@@ -797,8 +796,7 @@ class UPPDDLReader:
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
-                        isinstance(act, up.model.Process)
-                        or isinstance(act, up.model.DurativeAction)
+                        isinstance(act, (up.model.Process, up.model.DurativeAction))
                     ):
                         raise UPUnsupportedProblemTypeError(
                             "Continuous change is supported only in processes and durative actions"
@@ -1241,7 +1239,7 @@ class UPPDDLReader:
                 task = problem.get_task(task_name)
             else:
                 task = problem.action(task_name)
-            assert isinstance(task, htn.Task) or isinstance(task, up.model.Action)
+            assert isinstance(task, (htn.Task, up.model.Action))
             parameters = [
                 self._parse_exp(problem, method, types_map, {}, e[i], complete_str)
                 for i in range(1, len(e))
@@ -1349,9 +1347,10 @@ class UPPDDLReader:
                 e.value
             ) or self._totalcost in self._fve.get(e.condition):
                 return False
-            if e.fluent == self._totalcost:
-                if not e.is_increase() or not e.condition.is_true():
-                    return False
+            if e.fluent == self._totalcost and (
+                not e.is_increase() or not e.condition.is_true()
+            ):
+                return False
         return True
 
     def _problem_has_actions_cost(self, problem: up.model.Problem):
@@ -1370,10 +1369,7 @@ class UPPDDLReader:
                     or self._totalcost in self._fve.get(e.condition)
                 ):
                     return False
-        for c in problem.goals:
-            if self._totalcost in self._fve.get(c):
-                return False
-        return True
+        return all(self._totalcost not in self._fve.get(c) for c in problem.goals)
 
     def _parse_problem(
         self,

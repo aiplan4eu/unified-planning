@@ -94,10 +94,7 @@ class ContingentPlanNode:
                 return False
             if not len(self._children) == len(oth.children):
                 return False
-            for c in self._children:
-                if c not in oth.children:
-                    return False
-            return True
+            return all(c in oth.children for c in self._children)
         return False
 
     def __hash__(self) -> int:
@@ -115,10 +112,7 @@ class ContingentPlanNode:
         if isinstance(item, plans.plan.ActionInstance):
             if item.is_semantically_equivalent(self._action_instance):
                 return True
-            for _, c in self._children:
-                if item in c:
-                    return True
-            return False
+            return any(item in c for _, c in self._children)
         return False
 
 

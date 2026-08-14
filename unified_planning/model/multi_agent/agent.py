@@ -202,9 +202,11 @@ class Agent(
 
         goal_list = self._private_goals if is_private_goal else self._public_goals
 
-        if goal_exp != self._env.expression_manager.TRUE():
-            if goal_exp not in goal_list:
-                goal_list.append(goal_exp)
+        if (
+            goal_exp != self._env.expression_manager.TRUE()
+            and goal_exp not in goal_list
+        ):
+            goal_list.append(goal_exp)
 
         return goal_exp
 
@@ -289,9 +291,7 @@ class Agent(
             return False
         if set(self._private_goals) != set(oth._private_goals):
             return False
-        if set(self._public_goals) != set(oth._public_goals):
-            return False
-        return True
+        return set(self._public_goals) == set(oth._public_goals)
 
     def __hash__(self) -> int:
         res = hash(self._name)

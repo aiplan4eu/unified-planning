@@ -64,10 +64,7 @@ def plan_back_conversion_callable(
 ) -> TimeTriggeredPlan:
     if not isinstance(sp, SequentialPlan):
         raise UPUsageError("Plan to map back is not sequential")
-    if problem.epsilon is not None:
-        min_time_step = problem.epsilon
-    else:
-        min_time_step = Fraction(1, 100)
+    min_time_step = problem.epsilon if problem.epsilon is not None else Fraction(1, 100)
     simulator = UPSequentialSimulator(new_problem)
     simplifier = Simplifier(problem.environment)
     fve = FreeVarsExtractor()
@@ -278,12 +275,12 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         for timepoint, oel in action.effects.items():
             if timepoint == StartTiming():
                 for oe in oel:
-                    if oe.fluent not in old_start_effects.keys():
+                    if oe.fluent not in old_start_effects:
                         old_start_effects[oe.fluent] = []
                     old_start_effects[oe.fluent].append(oe)
             elif timepoint == EndTiming():
                 for oe in oel:
-                    if oe.fluent not in old_end_effects.keys():
+                    if oe.fluent not in old_end_effects:
                         old_end_effects[oe.fluent] = []
                     old_end_effects[oe.fluent].append(oe)
             else:
@@ -312,7 +309,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             start_effects_subs[osef] = osef
             for ose in osel:
                 assert isinstance(ose, Effect)
-                if not ose.condition == em.TRUE():
+                if ose.condition != em.TRUE():
                     dangerous_fluent = ose.fluent
                     for tinterval, ocl in action.conditions.items():
                         if tinterval.upper == EndTiming():
@@ -420,7 +417,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 for oee in oeel:
                     assert isinstance(oee, Effect)
                     new_value: Optional[FNode] = None
-                    if not oee.condition == em.TRUE():
+                    if oee.condition != em.TRUE():
                         new_cond = problem.environment.simplifier.simplify(
                             oee.condition.substitute(start_effects_subs)
                         )
@@ -461,7 +458,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             for osef, osel in old_start_effects.items():
                 for ose in osel:
                     assert isinstance(ose, Effect)
-                    if osef not in old_end_effects.keys():
+                    if osef not in old_end_effects:
                         if ose.is_assignment():
                             new_action.add_effect(osef, ose.value, ose.condition)
                         elif ose.is_increase():

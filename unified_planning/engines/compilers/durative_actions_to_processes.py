@@ -365,7 +365,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             time_process.add_precondition(alive)
             time_process.add_increase_continuous_effect(global_clock, 1)
             new_problem.add_process(time_process)
-            max_t = max(t.delay for t in problem.timed_effects.keys())
+            max_t = max(t.delay for t in problem.timed_effects)
         for i, (t, effects) in enumerate(problem.timed_effects.items()):
             te_done = Fluent(f"timed_effects_done_{i}", tm.BoolType(), environment=env)
             new_problem.add_fluent(te_done, default_initial_value=mgr.FALSE())
@@ -1018,7 +1018,7 @@ def _convert_action_costs(
         cost = qm.get_action_cost(original_action)
         if cost is not None:
             new_costs[compiled_action] = cost
-    for compiled_action in first_end_actions.keys():
+    for compiled_action in first_end_actions:
         new_costs[compiled_action] = 0
     return MinimizeActionCosts(new_costs, qm.default, qm.environment)
 

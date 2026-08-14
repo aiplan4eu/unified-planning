@@ -81,10 +81,14 @@ class TestReplanner(unittest_TestCase):
         problem = self.problems["robot"].problem
 
         warn_str = "We cannot establish whether ENHSP can solve this problem!"
-        with pytest.warns(UserWarning, match=warn_str):
-            with OneshotPlanner(name="opt-pddl-planner") as planner:
-                planner.solve(problem)
+        with (
+            pytest.warns(UserWarning, match=warn_str),
+            OneshotPlanner(name="opt-pddl-planner") as planner,
+        ):
+            planner.solve(problem)
 
-        with pytest.warns(UserWarning, match=warn_str):
-            with Replanner(problem, name="replanner[opt-pddl-planner]") as replanner:
-                replanner.resolve()
+        with (
+            pytest.warns(UserWarning, match=warn_str),
+            Replanner(problem, name="replanner[opt-pddl-planner]") as replanner,
+        ):
+            replanner.resolve()

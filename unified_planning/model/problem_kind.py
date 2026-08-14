@@ -236,7 +236,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         for k, fl in FEATURES.items():
             for feature in self._features:
                 if feature in fl:
-                    feature_list = features_mapped.get(k, None)
+                    feature_list = features_mapped.get(k)
                     if feature_list is None:
                         features_mapped[k] = [feature]
                     else:
@@ -245,18 +245,17 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         return "\n".join(result_str)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ProblemKind):
-            if (
-                self._version is None
-                or oth._version is None
-                or self._version == oth._version
-            ):
-                if self.version != oth.version:
-                    return False
-                valid_features = get_valid_features(self.version)
-                self_feat = self._features.intersection(valid_features)
-                oth_feat = oth._features.intersection(valid_features)
-                return self_feat == oth_feat
+        if isinstance(oth, ProblemKind) and (
+            self._version is None
+            or oth._version is None
+            or self._version == oth._version
+        ):
+            if self.version != oth.version:
+                return False
+            valid_features = get_valid_features(self.version)
+            self_feat = self._features.intersection(valid_features)
+            oth_feat = oth._features.intersection(valid_features)
+            return self_feat == oth_feat
         return False
 
     def __hash__(self) -> int:

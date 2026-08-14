@@ -115,9 +115,7 @@ class ENHSP(PDDLAnytimePlanner):
 
     @staticmethod
     def ensures(anytime_guarantee: up.engines.AnytimeGuarantee) -> bool:
-        if anytime_guarantee == up.engines.AnytimeGuarantee.INCREASING_QUALITY:
-            return True
-        return False
+        return anytime_guarantee == up.engines.AnytimeGuarantee.INCREASING_QUALITY
 
     @staticmethod
     def supported_kind() -> ProblemKind:

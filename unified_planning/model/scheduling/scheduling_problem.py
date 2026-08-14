@@ -148,9 +148,7 @@ class SchedulingProblem(  # type: ignore[misc]
 
         if self._base != oth._base:
             return False
-        if set(self._activities) != set(oth._activities):
-            return False
-        return True
+        return set(self._activities) == set(oth._activities)
 
     def __hash__(self) -> int:
         res = hash(self.kind) + hash(self._name)

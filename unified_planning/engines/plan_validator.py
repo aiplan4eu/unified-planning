@@ -84,9 +84,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         engines.engine.Engine.__init__(self)
         mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
-            unified_planning.environment.get_environment(
-                options.get("environment", None)
-            )
+            unified_planning.environment.get_environment(options.get("environment"))
         )
 
     @property
@@ -276,9 +274,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         engines.engine.Engine.__init__(self)
         mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
-            unified_planning.environment.get_environment(
-                options.get("environment", None)
-            )
+            unified_planning.environment.get_environment(options.get("environment"))
         )
 
     @property

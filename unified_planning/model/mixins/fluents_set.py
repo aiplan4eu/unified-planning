@@ -195,9 +195,7 @@ class FluentsSetMixin:
         # ignores default values as they may have no impact on the initial state
         if not isinstance(oth, FluentsSetMixin):
             return False
-        if set(self._fluents) != set(oth._fluents):
-            return False
-        return True
+        return set(self._fluents) == set(oth._fluents)
 
     def __hash__(self):
         return sum(map(hash, self._fluents))
