@@ -1000,7 +1000,7 @@ class ProtobufWriter(Converter):
                     domain_sizes.append(ds)
                     ground_size *= ds
                 items_list: List[List[FNode]] = []
-                for size, type in zip(domain_sizes, type_list):
+                for size, type in zip(domain_sizes, type_list, strict=True):
                     items_list.append(
                         [domain_item(result.problem, type, j) for j in range(size)]
                     )

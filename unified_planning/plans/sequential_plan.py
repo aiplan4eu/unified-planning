@@ -63,7 +63,7 @@ class SequentialPlan(plans.plan.Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
-            for ai, oth_ai in zip(self._actions, oth._actions):
+            for ai, oth_ai in zip(self._actions, oth._actions, strict=True):
                 if not ai.is_semantically_equivalent(oth_ai):
                     return False
             return True
@@ -164,7 +164,11 @@ class SequentialPlan(plans.plan.Plan):
                     )
 
             assignments: Dict[Expression, Expression] = dict(
-                zip(inst_action.parameters, action_instance.actual_parameters)
+                zip(
+                    inst_action.parameters,
+                    action_instance.actual_parameters,
+                    strict=True,
+                )
             )
             for lifted_fluent in lifted_required_fluents:
                 assert lifted_fluent.is_fluent_exp()

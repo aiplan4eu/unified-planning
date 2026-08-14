@@ -723,7 +723,7 @@ class TestPddlIO(unittest_TestCase):
                         self.assertEqual(a, w.get_item_named(parsed_a.name))
 
                         for param, parsed_param in zip(
-                            a.parameters, parsed_a.parameters
+                            a.parameters, parsed_a.parameters, strict=True
                         ):
                             self.assertEqual(
                                 param.type,
@@ -1222,7 +1222,9 @@ class TestPddlIO(unittest_TestCase):
         assert len(goals) == len(expected_goals), (
             "goals and expected_goals must have the same length"
         )
-        for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
+        for i, (goal, expected_goal) in enumerate(
+            zip(goals, expected_goals, strict=True)
+        ):
             problem = Problem(f"test_{i}")
             problem.add_fluent(x, default_initial_value=False)
             problem.add_fluent(y, default_initial_value=False)

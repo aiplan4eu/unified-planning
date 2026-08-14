@@ -781,7 +781,9 @@ class TestANMLReader(unittest_TestCase):
                 parsed_problem = reader.parse_problem(problem_filename)
             self.assertEqual(len(problem.user_types), len(parsed_problem.user_types))
             self.assertEqual(len(problem.actions), len(parsed_problem.actions))
-            for act, parsed_act in zip(problem.actions, parsed_problem.actions):
+            for act, parsed_act in zip(
+                problem.actions, parsed_problem.actions, strict=True
+            ):
                 if isinstance(act, InstantaneousAction):
                     instant_conditions = act.preconditions
                     instant_effects = act.effects
@@ -792,7 +794,9 @@ class TestANMLReader(unittest_TestCase):
                         )
                     if instant_effects != parsed_act.effects:
                         self.assertEqual(len(instant_effects), len(parsed_act.effects))
-                        for e, pe in zip(instant_effects, parsed_act.effects):
+                        for e, pe in zip(
+                            instant_effects, parsed_act.effects, strict=True
+                        ):
                             self.assertTrue(e.is_conditional() == pe.is_conditional())
                             self.assertTrue(e.is_forall() == pe.is_forall())
                 else:
@@ -808,7 +812,7 @@ class TestANMLReader(unittest_TestCase):
                         for t, el in effects.items():
                             parsed_el = parsed_act.effects[t]
                             self.assertEqual(len(el), len(parsed_el))
-                            for eff, parsed_eff in zip(el, parsed_el):
+                            for eff, parsed_eff in zip(el, parsed_el, strict=True):
                                 self.assertTrue(
                                     eff.is_conditional() == parsed_eff.is_conditional()
                                 )

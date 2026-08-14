@@ -493,7 +493,9 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 ],
                 up.model.Parameter,
             ] = {}
-            for (t, exp, ifuns, case, eff_instance), known in zip(ifs, known_vec):
+            for (t, exp, ifuns, case, eff_instance), known in zip(
+                ifs, known_vec, strict=True
+            ):
                 subs: Dict = {}
                 implies = []
                 l1 = []
@@ -548,7 +550,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                         pf = em.And(
                             [
                                 em.EqualsOrIff(v1, v2)
-                                for v1, v2 in zip(ifun_exp.args, p_known)
+                                for v1, v2 in zip(ifun_exp.args, p_known, strict=True)
                             ]
                         )
                         if known:
@@ -783,7 +785,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                     time_list.append(time)
         else:
             raise NotImplementedError
-        return zip(time_list, eff_list)
+        return zip(time_list, eff_list, strict=True)
 
     def _get_conditions(
         self, a: Action
@@ -813,7 +815,7 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
                 for fp in fixed_p_list:
                     cond_list.append(fp)
                     time_list.append(None)
-        return zip(time_list, cond_list)
+        return zip(time_list, cond_list, strict=True)
 
 
 def _split_ands(e: FNode) -> List[FNode]:
@@ -881,7 +883,7 @@ def knowledge_compatible(
     retval = True
     kifuns = []
     ukifuns = []
-    for (t, _, ifuns, _, _), k in zip(ifs, known):
+    for (t, _, ifuns, _, _), k in zip(ifs, known, strict=True):
         if k:
             for ifun in ifuns:
                 if (t, ifun) in ukifuns:

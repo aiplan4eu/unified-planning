@@ -110,6 +110,7 @@ def plan_back_conversion_callable(
                         zip(
                             action_for_mapback.parameters,
                             action_instance.actual_parameters,
+                            strict=True,
                         )
                     )
                     tlower_with_pars = tinterval.lower.substitute(par_sub_dict)

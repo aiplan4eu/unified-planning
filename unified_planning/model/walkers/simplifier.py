@@ -132,7 +132,8 @@ class _EffectTargetIndex:
             args = fluent_exp.args
             for pattern in patterns:
                 if all(
-                    self._arg_matches(spec, arg) for spec, arg in zip(pattern, args)
+                    self._arg_matches(spec, arg)
+                    for spec, arg in zip(pattern, args, strict=True)
                 ):
                     result = True
                     break

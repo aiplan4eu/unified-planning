@@ -702,7 +702,7 @@ def _plot_expressions(
     x_labels: List[str] = [label_str]
     data_frame_element: Dict[str, Any] = {"Action name": label_str}
     expressions_str = list(map(str, numeric_expressions))
-    for exp, exp_str in zip(numeric_expressions, expressions_str):
+    for exp, exp_str in zip(numeric_expressions, expressions_str, strict=True):
         assert current_state is not None
         data_frame_element[exp_str] = get_numeric_value_from_state(exp, current_state)
     for metric, value in metric_values.items():
@@ -737,7 +737,7 @@ def _plot_expressions(
         label_str = str(action_instance)
         x_labels.append(label_str)
         data_frame_element = {"Action name": label_str}
-        for exp, exp_str in zip(numeric_expressions, expressions_str):
+        for exp, exp_str in zip(numeric_expressions, expressions_str, strict=True):
             data_frame_element[exp_str] = get_numeric_value_from_state(
                 exp, current_state
             )

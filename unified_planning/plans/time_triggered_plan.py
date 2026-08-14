@@ -102,7 +102,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(
             oth._actions
         ):
-            for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(self._actions, oth._actions):
+            for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(
+                self._actions, oth._actions, strict=True
+            ):
                 if (
                     s != oth_s
                     or ai.action != oth_ai.action

@@ -1163,12 +1163,14 @@ def get_example_problems():
     unload.add_effect(package_at(unload.package, unload.position), True)
     problem.add_action(unload)
 
-    for rob, vel in zip(robots, velocities):
+    # strict=False: the padding loops above double these lists until they are long
+    # enough, so they can legitimately overshoot n_robots / n_locations - 1
+    for rob, vel in zip(robots, velocities, strict=False):
         problem.set_initial_value(robot_at(rob, locations[0]), True)
         problem.set_initial_value(velocity(rob), vel)
     for p in packages:
         problem.set_initial_value(package_at(p, locations[0]), True)
-    for l1, l2, d in zip(locations[:-1], locations[1:], distances):
+    for l1, l2, d in zip(locations[:-1], locations[1:], distances, strict=False):
         problem.set_initial_value(is_connected(l1, l2), True)
         problem.set_initial_value(is_connected(l2, l1), True)
         problem.set_initial_value(distance(l1, l2), d)
