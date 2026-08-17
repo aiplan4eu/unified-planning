@@ -1048,7 +1048,7 @@ class ANMLReader:
                     if exp.isnumeric():  # int
                         solved.append(self._em.Int(int(exp)))
                     elif is_float(exp):  # float
-                        solved.append(self._em.Real(Fraction(float(exp))))
+                        solved.append(self._em.Real(Fraction(exp)))
                     elif exp == TK_TRUE:  # true
                         solved.append(self._em.TRUE())
                     elif exp == TK_FALSE:  # false

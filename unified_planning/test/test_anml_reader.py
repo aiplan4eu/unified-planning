@@ -818,3 +818,42 @@ class TestANMLReader(unittest_TestCase):
                                 self.assertTrue(
                                     eff.is_forall() == parsed_eff.is_forall()
                                 )
+
+    def test_decimal_literal_precision(self):
+        # Decimal literals must be parsed as exact rationals, not routed through a
+        # binary `float` that bakes in IEEE-754 rounding error (`Fraction("0.1")` is
+        # exactly 1/10, but `Fraction(float("0.1"))` is not).
+        reader = ANMLReader()
+        anml = """
+        fluent float x := 0.1;
+        action Dummy() {
+            duration := 1.3;
+        };
+        """
+        problem = reader.parse_problem_string(anml, "test_decimal_literal_precision")
+        em = problem.environment.expression_manager
+
+        x = problem.fluent("x")
+        self.assertEqual(problem.initial_value(x()), em.Real(Fraction(1, 10)))
+        dummy = cast(DurativeAction, problem.action("Dummy"))
+        self.assertEqual(dummy.duration, FixedDuration(em.Real(Fraction(13, 10))))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            problem_filename = os.path.join(tempdir, "problem.anml")
+            ANMLWriter(problem).write_problem(problem_filename)
+            reparsed_problem = ANMLReader().parse_problem(
+                problem_filename, problem.name
+            )
+        self.assertEqual(problem, reparsed_problem)
+
+        # Same precision requirement for a non-integer real-type bound.
+        bounded_anml = "fluent float[0.1, 0.3] y;"
+        bounded_problem = reader.parse_problem_string(
+            bounded_anml, "test_decimal_literal_precision_bounds"
+        )
+        self.assertEqual(
+            bounded_problem.fluent("y").type,
+            bounded_problem.environment.type_manager.RealType(
+                Fraction(1, 10), Fraction(3, 10)
+            ),
+        )
