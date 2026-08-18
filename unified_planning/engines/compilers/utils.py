@@ -598,6 +598,12 @@ def updated_minimize_action_costs(
     updated equivalent metric for the new problem. This simply changes the costs keys
     and does not alter the cost expression, so it does not cover use-cases like grounding.
 
+    The original metric's `default` is carried over unchanged to the returned metric. Actions
+    with no original counterpart (mapped to `None` in `new_to_old`) always get cost `0`, not the
+    default: they are compiler-introduced bookkeeping actions (e.g. the fake actions
+    `DisjunctiveConditionsRemover` adds to encode a disjunctive goal) that every valid compiled
+    plan must apply, so giving them a non-zero cost would change the compiled problem's optimum.
+
     :param quality_metric: The `MinimizeActionCosts`metric to update.
     :param new_to_old: The action's mapping from the compiled problem to the original problem.
     :param environment: The environment of the new problem (therefore, also of the new actions).
@@ -611,7 +617,9 @@ def updated_minimize_action_costs(
                 new_costs[new_act] = new_cost
         else:
             new_costs[new_act] = environment.expression_manager.Int(0)
-    return MinimizeActionCosts(new_costs, environment=environment)
+    return MinimizeActionCosts(
+        new_costs, default=quality_metric.default, environment=environment
+    )
 
 
 def remove_fluents(problem: Problem, fluents: Set[Fluent]) -> None:
