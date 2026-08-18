@@ -14,6 +14,7 @@
 #
 
 
+from decimal import Decimal, localcontext
 from fractions import Fraction
 import re
 import sys
@@ -30,6 +31,7 @@ from unified_planning.model import (
 from unified_planning.model.types import _UserType, _RealType, _IntType
 from typing import IO, Dict, List, Optional, cast, Union
 from io import StringIO
+from warnings import warn
 
 ANML_KEYWORDS = {
     "action",
@@ -452,6 +454,22 @@ class ANMLWriter:
             return f"{left_bracket} {self._convert_anml_timing(interval.lower)}, {self._convert_anml_timing(interval.upper)} {right_bracket}"
 
 
+ANML_DECIMAL_PRECISION = 10  # Number of decimal places used for real type bounds
+
+
+def _anml_decimal(frac: Fraction) -> str:
+    """Formats a Fraction as an ANML `real` literal (digits "." digits)."""
+    with localcontext() as ctx:
+        ctx.prec = ANML_DECIMAL_PRECISION
+        dec = frac.numerator / Decimal(frac.denominator, ctx)
+        if Fraction(dec) != frac:
+            warn(
+                f"The ANML printer cannot exactly represent the real constant '{frac}'"
+            )
+        res = format(dec, "f")  # never scientific notation
+    return res if "." in res else f"{res}.0"  # the grammar requires a fractional part
+
+
 def _is_valid_anml_name(name: str) -> bool:
     regex = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*")
     if (
@@ -526,18 +544,16 @@ def _get_anml_name(
             new_name = f"integer {left_bound}, {right_bound}"
         elif isinstance(item, up.model.Type) and item.is_real_type():
             num_real_type = cast(_RealType, item)
-            if num_real_type.lower_bound is None:
-                left_bound = "(-infinity"
-            elif num_real_type.lower_bound.denominator == 1:
-                left_bound = f"[{str(num_real_type.lower_bound)}.0"
-            else:
-                left_bound = f"[{str(num_real_type.lower_bound)}"
-            if num_real_type.upper_bound is None:
-                right_bound = "infinity)"
-            elif num_real_type.upper_bound.denominator == 1:
-                right_bound = f"{str(num_real_type.upper_bound)}.0]"
-            else:
-                right_bound = f"{str(num_real_type.upper_bound)}]"
+            left_bound = (
+                "(-infinity"
+                if num_real_type.lower_bound is None
+                else f"[{_anml_decimal(num_real_type.lower_bound)}"
+            )
+            right_bound = (
+                "infinity)"
+                if num_real_type.upper_bound is None
+                else f"{_anml_decimal(num_real_type.upper_bound)}]"
+            )
             new_name = f"float {left_bound}, {right_bound}"
         else:  # We mangle the name and get a fresh one
             new_name = _get_anml_valid_name(item)
