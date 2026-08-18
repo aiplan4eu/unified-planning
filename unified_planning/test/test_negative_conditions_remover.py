@@ -457,3 +457,39 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         assert isinstance(comp_res.problem, Problem)
         self.assertEqual(expected_action, comp_res.problem.action("test_action"))
+
+    def test_resulting_kind_negated_conjunction_is_disjunctive(self):
+        # Negating a conjunction (`Not(And(a, b))`) turns into `Or(not_a, not_b)` in
+        # NNF, even though the input problem has no equalities at all.
+        # `resulting_problem_kind` must claim `DISJUNCTIVE_CONDITIONS` here.
+        a = Fluent("a")
+        b = Fluent("b")
+        goal_f = Fluent("goal_f")
+        act = InstantaneousAction("act")
+        act.add_precondition(Not(And(a, b)))
+        act.add_effect(goal_f, True)
+        problem = Problem("test")
+        problem.add_fluent(a, default_initial_value=True)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(goal_f, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(goal_f)
+
+        self.assertTrue(problem.kind.has_negative_conditions())
+        self.assertFalse(problem.kind.has_disjunctive_conditions())
+        self.assertFalse(problem.kind.has_equalities())
+
+        ncr = NegativeConditionsRemover()
+        resulting_kind = ncr.resulting_problem_kind(
+            problem.kind, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+        )
+        comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        # the compiled problem really has an Or in it...
+        self.assertTrue(compiled_kind.has_disjunctive_conditions())
+        # ...and the claimed resulting kind must not hide that.
+        self.assertFalse(resulting_kind.has_negative_conditions())
+        self.assertTrue(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(compiled_kind <= resulting_kind)
