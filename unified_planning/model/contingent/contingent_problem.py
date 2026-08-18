@@ -72,29 +72,7 @@ class ContingentProblem(Problem):
 
     def clone(self):
         new_p = ContingentProblem(self._name, self._env)
-        new_p._fluents = self._fluents[:]
-        new_p._actions = [a.clone() for a in self._actions]
-        new_p._user_types = self._user_types[:]
-        new_p._user_types_hierarchy = self._user_types_hierarchy.copy()
-        new_p._objects = self._objects[:]
-        new_p._initial_value = self._initial_value.copy()
-        new_p._timed_effects = {
-            t: [e.clone() for e in el] for t, el in self._timed_effects.items()
-        }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
-        new_p._goals = self._goals[:]
-        new_p._metrics = []
-        for m in self._metrics:
-            if m.is_minimize_action_costs():
-                assert isinstance(m, up.model.metrics.MinimizeActionCosts)
-                costs: Dict["up.model.Action", "up.model.Expression"] = {
-                    new_p.action(a.name): c for a, c in m.costs.items()
-                }
-                new_p._metrics.append(up.model.metrics.MinimizeActionCosts(costs))
-            else:
-                new_p._metrics.append(m)
-        new_p._initial_defaults = self._initial_defaults.copy()
-        new_p._fluents_defaults = self._fluents_defaults.copy()
+        Problem._clone_to(self, new_p)
         new_p._hidden_fluents = self._hidden_fluents.copy()
         new_p._or_initial_constraints = self._or_initial_constraints.copy()
         new_p._oneof_initial_constraints = self._oneof_initial_constraints.copy()

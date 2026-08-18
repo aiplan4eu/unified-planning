@@ -250,6 +250,15 @@ class Problem(  # type: ignore[misc]
 
     def clone(self):
         new_p = Problem(self._name, self._env)
+        self._clone_to(new_p)
+        return new_p
+
+    def _clone_to(self, new_p: "Problem"):  # type: ignore[override]
+        """
+        Copies this `Problem`'s state onto `new_p`, which must already be a fresh instance of
+        `Problem` (or a subclass sharing the same fields). Used by `clone()` and by subclasses
+        (e.g. `HierarchicalProblem`, `ContingentProblem`) that add their own state around it.
+        """
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
@@ -271,7 +280,6 @@ class Problem(  # type: ignore[misc]
 
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
-        return new_p
 
     def has_name(self, name: str) -> bool:
         """

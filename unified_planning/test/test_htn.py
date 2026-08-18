@@ -14,10 +14,11 @@
 
 import os
 import tempfile
+from fractions import Fraction
 
 import unified_planning as up
 from unified_planning.io import PDDLReader, PDDLWriter
-from unified_planning.model.htn import TaskNetwork, Task
+from unified_planning.model.htn import HierarchicalProblem, Method, TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main, examples
@@ -61,6 +62,64 @@ class TestProblem(unittest_TestCase):
             "TASK_ORDER_TEMPORAL"
             in self.problems["htn-go-temporal"].problem.kind.features
         )
+
+    def test_hierarchical_problem_clone_preserves_fields(self):
+        x = Fluent("x", BoolType())
+        a = InstantaneousAction("a")
+        a.add_effect(x, True)
+
+        problem = HierarchicalProblem("p")
+        problem.add_fluent(x, default_initial_value=False)
+        problem.add_action(a)
+
+        # TimeModelMixin state
+        problem.epsilon = Fraction(1, 100)
+        problem.discrete_time = True
+        problem.self_overlapping = True
+
+        # natural transitions
+        event = Event("ev")
+        event.add_effect(x, True)
+        problem.add_event(event)
+        process = Process("proc")
+        y = Fluent("y", RealType())
+        problem.add_fluent(y, default_initial_value=0)
+        process.add_increase_continuous_effect(y, 1)
+        problem.add_process(process)
+
+        # quality metric default
+        problem.add_quality_metric(MinimizeActionCosts({a: 5}, default=99))
+
+        # trajectory constraint
+        problem.add_trajectory_constraint(Always(x))
+
+        # HTN-specific state
+        go = problem.add_task("go")
+        go_noop = Method("go-noop")
+        go_noop.set_task(go)
+        problem.add_method(go_noop)
+        problem.task_network.add_subtask(go, ident="go1")
+
+        clone = problem.clone()
+
+        self.assertEqual(problem.epsilon, clone.epsilon)
+        self.assertEqual(problem.discrete_time, clone.discrete_time)
+        self.assertEqual(problem.self_overlapping, clone.self_overlapping)
+        self.assertEqual(len(problem.events), len(clone.events))
+        self.assertEqual(len(problem.processes), len(clone.processes))
+        metric, clone_metric = problem.quality_metrics[0], clone.quality_metrics[0]
+        assert isinstance(metric, MinimizeActionCosts) and isinstance(
+            clone_metric, MinimizeActionCosts
+        )
+        self.assertEqual(metric.default, clone_metric.default)
+        self.assertEqual(problem.trajectory_constraints, clone.trajectory_constraints)
+        self.assertEqual(len(problem.tasks), len(clone.tasks))
+        self.assertEqual(len(problem.methods), len(clone.methods))
+        self.assertEqual(
+            len(problem.task_network.subtasks), len(clone.task_network.subtasks)
+        )
+        self.assertEqual(problem, clone)
+        self.assertEqual(clone, problem)
 
     def test_task_network_constraint_kind(self):
         Loc = UserType("Loc")
