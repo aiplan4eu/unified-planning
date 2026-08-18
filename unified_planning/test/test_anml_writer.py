@@ -16,7 +16,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-from unified_planning.io import ANMLWriter, PDDLReader
+from unified_planning.io import ANMLReader, ANMLWriter, PDDLReader
 import os
 
 
@@ -257,6 +257,31 @@ instance when_ predicate_;
 [ start ] f_4ction := false;
 """
         self.assertEqual(anml_problem, expected_result)
+
+    def test_bounded_real_fluent(self):
+        # A non-integer real-type bound must be written as a plain decimal literal
+        # (e.g. "0.1"), not as "numerator/denominator", which the ANML grammar's
+        # `real` literal cannot parse.
+        tm = get_environment().type_manager
+        problem = Problem("bounded_types")
+        x = Fluent("x", tm.RealType(Fraction(1, 10), Fraction(3, 10)))
+        y = Fluent("y", tm.RealType(0, 100))
+        problem.add_fluent(x, default_initial_value=Fraction(1, 5))
+        problem.add_fluent(y, default_initial_value=50)
+        aw = ANMLWriter(problem)
+        anml_problem = aw.get_problem()
+        expected_result = """constant float [0.1, 0.3] x;
+constant float [0.0, 100.0] y;
+x := (1/5);
+y := 50;
+"""
+        self.assertEqual(anml_problem, expected_result)
+
+        reparsed_problem = ANMLReader().parse_problem_string(
+            anml_problem, "bounded_types"
+        )
+        self.assertEqual(reparsed_problem.fluent("x").type, x.type)
+        self.assertEqual(reparsed_problem.fluent("y").type, y.type)
 
     def test_forall_effects(self):
         FILE_PATH = os.path.dirname(os.path.abspath(__file__))

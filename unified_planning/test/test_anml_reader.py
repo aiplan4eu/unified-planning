@@ -826,6 +826,7 @@ class TestANMLReader(unittest_TestCase):
         reader = ANMLReader()
         anml = """
         fluent float x := 0.1;
+        fluent float[0.1, 0.3] y := 0.2;
         action Dummy() {
             duration := 1.3;
         };
@@ -835,6 +836,10 @@ class TestANMLReader(unittest_TestCase):
 
         x = problem.fluent("x")
         self.assertEqual(problem.initial_value(x()), em.Real(Fraction(1, 10)))
+        self.assertEqual(
+            problem.fluent("y").type,
+            problem.environment.type_manager.RealType(Fraction(1, 10), Fraction(3, 10)),
+        )
         dummy = cast(DurativeAction, problem.action("Dummy"))
         self.assertEqual(dummy.duration, FixedDuration(em.Real(Fraction(13, 10))))
 
@@ -845,15 +850,3 @@ class TestANMLReader(unittest_TestCase):
                 problem_filename, problem.name
             )
         self.assertEqual(problem, reparsed_problem)
-
-        # Same precision requirement for a non-integer real-type bound.
-        bounded_anml = "fluent float[0.1, 0.3] y;"
-        bounded_problem = reader.parse_problem_string(
-            bounded_anml, "test_decimal_literal_precision_bounds"
-        )
-        self.assertEqual(
-            bounded_problem.fluent("y").type,
-            bounded_problem.environment.type_manager.RealType(
-                Fraction(1, 10), Fraction(3, 10)
-            ),
-        )
