@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict, Optional
+
 from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
@@ -23,6 +25,13 @@ from unified_planning.test import unittest_TestCase, main
 from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
+from unified_planning.engines.compilers import (
+    NegativeConditionsRemover,
+    ConditionalEffectsRemover,
+    QuantifiersRemover,
+    DisjunctiveConditionsRemover,
+)
+from unified_planning.engines.compilers.utils import updated_minimize_action_costs
 
 
 class TestCompilersPipeline(unittest_TestCase):
@@ -75,3 +84,63 @@ class TestCompilersPipeline(unittest_TestCase):
             plan = planner.solve(new_problem).plan
             new_plan = plan.replace_action_instances(res.map_back_action_instance)
             self.assertEqual(new_plan, test_plan)
+
+
+class TestUpdatedMinimizeActionCosts(unittest_TestCase):
+    def _build_problem(self):
+        a = Fluent("a")
+        goal_f = Fluent("goal_f")
+        act = InstantaneousAction("act")
+        act.add_precondition(Not(a))
+        act.add_effect(goal_f, True)
+        problem = Problem("test")
+        problem.add_fluent(a, default_initial_value=True)
+        problem.add_fluent(goal_f, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(goal_f)
+        problem.add_quality_metric(MinimizeActionCosts({act: 5}, default=99))
+        return problem
+
+    def test_default_is_preserved_across_compilers(self):
+        compilers_and_kinds = [
+            (NegativeConditionsRemover, CompilationKind.NEGATIVE_CONDITIONS_REMOVING),
+            (ConditionalEffectsRemover, CompilationKind.CONDITIONAL_EFFECTS_REMOVING),
+            (QuantifiersRemover, CompilationKind.QUANTIFIERS_REMOVING),
+            (
+                DisjunctiveConditionsRemover,
+                CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING,
+            ),
+        ]
+        for compiler_class, compilation_kind in compilers_and_kinds:
+            with self.subTest(compiler=compiler_class.__name__):
+                problem = self._build_problem()
+                compiler = compiler_class()
+                comp_res = compiler.compile(problem, compilation_kind)
+                new_problem = comp_res.problem
+                assert isinstance(new_problem, Problem)
+
+                self.assertEqual(len(new_problem.quality_metrics), 1)
+                new_metric = new_problem.quality_metrics[0]
+                assert isinstance(new_metric, MinimizeActionCosts)
+                self.assertEqual(new_metric.default, Int(99))
+                new_action = new_problem.action("act")
+                self.assertEqual(new_metric.get_action_cost(new_action), Int(5))
+
+    def test_helper_preserves_default_and_zeroes_new_actions(self):
+        old_act = InstantaneousAction("old")
+        new_act = InstantaneousAction("new")
+        fake_act = InstantaneousAction("fake")
+        metric = MinimizeActionCosts({old_act: 5}, default=99)
+        new_to_old: Dict[Action, Optional[Action]] = {
+            new_act: old_act,
+            fake_act: None,
+        }
+        updated = updated_minimize_action_costs(metric, new_to_old, get_environment())
+        assert isinstance(updated, MinimizeActionCosts)
+        self.assertEqual(updated.default, Int(99))
+        self.assertEqual(updated.get_action_cost(new_act), Int(5))
+        # Actions with no original counterpart (e.g. DisjunctiveConditionsRemover's
+        # fake bookkeeping actions) must keep cost 0, not inherit the default: every
+        # valid compiled plan applies exactly one of them, so a non-zero cost would
+        # change the compiled problem's optimum relative to the original.
+        self.assertEqual(updated.get_action_cost(fake_act), Int(0))
