@@ -340,11 +340,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
-                new_problem.add_quality_metric(
-                    updated_minimize_action_costs(
-                        qm, new_to_old, new_problem.environment
-                    )
-                )
+                # Handled below, once new_to_old is populated by the actions loop.
+                continue
             elif qm.is_oversubscription():
                 assert isinstance(qm, Oversubscription)
                 new_problem.add_quality_metric(
@@ -468,6 +465,14 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                             e.forall,
                         ),
                     )
+
+        for qm in problem.quality_metrics:
+            if qm.is_minimize_action_costs():
+                new_problem.add_quality_metric(
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
+                )
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
