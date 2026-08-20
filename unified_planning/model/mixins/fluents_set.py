@@ -41,9 +41,7 @@ class FluentsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._fluents: List["up.model.fluent.Fluent"] = []
-        self._fluents_index: NameIndex["up.model.fluent.Fluent"] = NameIndex(
-            lambda f: f.name
-        )
+        self._fluents_index: NameIndex["up.model.fluent.Fluent"] = NameIndex()
         self._fluents_defaults: Dict[
             "up.model.fluent.Fluent", "up.model.fnode.FNode"
         ] = {}

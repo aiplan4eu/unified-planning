@@ -788,6 +788,35 @@ class TestModel(unittest_TestCase):
         self.assertIs(pickle.loads(pickle.dumps(BOOL)), BOOL)
         self.assertIs(pickle.loads(pickle.dumps(TIME)), TIME)
 
+    def test_problem_pickle_roundtrip_keeps_name_lookups(self):
+        # a problem is pickled whole when the parallel engine sends it to another process
+        # (with the `spawn` start method), so nothing reachable from it may be a closure;
+        # the by-name indexes must also still resolve on the unpickled copy
+        import pickle
+
+        problem = self.problems["robot"].problem
+        clone = pickle.loads(pickle.dumps(problem))
+
+        for fluent in problem.fluents:
+            self.assertTrue(clone.has_fluent(fluent.name))
+            self.assertEqual(clone.fluent(fluent.name).name, fluent.name)
+        for action in problem.actions:
+            self.assertTrue(clone.has_action(action.name))
+            self.assertEqual(clone.action(action.name).name, action.name)
+        for obj in problem.all_objects:
+            self.assertTrue(clone.has_object(obj.name))
+        for user_type in problem.user_types:
+            self.assertTrue(clone.has_type(user_type.name))
+
+        # the index must keep working for elements added after the round-trip
+        # (the `note_appended` fast path is keyed on the list it last saw)
+        clone.add_fluent(
+            Fluent("added_after_unpickling", BoolType(), environment=clone.environment),
+            default_initial_value=False,
+        )
+        self.assertTrue(clone.has_fluent("added_after_unpickling"))
+        self.assertFalse(problem.has_fluent("added_after_unpickling"))
+
     def test_set_initial_value_rejects_non_constant_arguments(self):
         # set_initial_value's own docstring says the fluent must be grounded; a fluent
         # expression whose argument is itself a fluent (not a constant) must be rejected

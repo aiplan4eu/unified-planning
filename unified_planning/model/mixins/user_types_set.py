@@ -34,9 +34,7 @@ class UserTypesSetMixin:
         self._env = env
         self._has_name_method = has_name_method
         self._user_types: List["up.model.types.Type"] = []
-        self._user_types_index: NameIndex["up.model.types.Type"] = NameIndex(
-            lambda t: cast(_UserType, t).name
-        )
+        self._user_types_index: NameIndex["up.model.types.Type"] = NameIndex()
         # The field _user_types_hierarchy stores the information about the types and the list of their sons.
         self._user_types_hierarchy: Dict[
             Optional["up.model.types.Type"], List["up.model.types.Type"]

@@ -35,9 +35,7 @@ class ObjectsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._objects: List["up.model.object.Object"] = []
-        self._objects_index: NameIndex["up.model.object.Object"] = NameIndex(
-            lambda o: o.name
-        )
+        self._objects_index: NameIndex["up.model.object.Object"] = NameIndex()
 
     @property
     def environment(self) -> "up.environment.Environment":
