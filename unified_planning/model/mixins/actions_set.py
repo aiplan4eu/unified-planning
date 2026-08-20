@@ -34,9 +34,7 @@ class ActionsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._actions: List["up.model.action.Action"] = []
-        self._actions_index: NameIndex["up.model.action.Action"] = NameIndex(
-            lambda a: a.name
-        )
+        self._actions_index: NameIndex["up.model.action.Action"] = NameIndex()
 
     @property
     def environment(self) -> "up.environment.Environment":

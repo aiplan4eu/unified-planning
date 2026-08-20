@@ -22,9 +22,17 @@ elements in a plain `list` and used to look an element up by name with a linear 
 `add_fluent`/..., adding N elements one at a time made that assembly step O(N^2).
 """
 
-from typing import Callable, Dict, Generic, List, Optional, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 T = TypeVar("T")
+
+
+def name_of(item: Any) -> str:
+    """Default `NameIndex` key. Deliberately a module-level function and not a lambda: a
+    `NameIndex` is instance state of a `Problem`/`Agent`, and whole problems are pickled to be
+    sent to other processes (see `unified_planning/engines/parallel.py`, which uses the `spawn`
+    start method outside Linux), which a closure defined inside `__init__` would break."""
+    return item.name
 
 
 class NameIndex(Generic[T]):
@@ -46,13 +54,19 @@ class NameIndex(Generic[T]):
 
     __slots__ = ("_key", "_index", "_items", "_len")
 
-    def __init__(self, key: Callable[[T], str]) -> None:
+    def __init__(self, key: Callable[[T], str] = name_of) -> None:
         """:param key: Extracts the name from an element. Fixed for the lifetime of this
         index -- every element in the indexed list is expected to be named the same way."""
         self._key = key
         self._index: Optional[Dict[str, T]] = None
         self._items: Optional[List[T]] = None
         self._len: int = -1
+
+    def __getstate__(self):
+        # `_index`/`_items`/`_len` are a pure cache over a list this object does not own; don't
+        # carry them across a pickle round-trip (whole problems are sent to other processes),
+        # just let the next lookup rebuild it.
+        return (None, {"_key": self._key, "_index": None, "_items": None, "_len": -1})
 
     def _refresh(self, items: List[T]) -> None:
         if self._index is None or self._items is not items or self._len != len(items):
