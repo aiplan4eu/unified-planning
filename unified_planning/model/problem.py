@@ -249,6 +249,23 @@ class Problem(  # type: ignore[misc]
         return res
 
     def clone(self):
+        new_p = self._clone_without_actions()
+        new_p._actions = [a.clone() for a in self._actions]
+        # last as it requires actions to be cloned already
+        MetricsMixin._clone_to(self, new_p, new_actions=new_p)
+        return new_p
+
+    def _clone_without_actions(self) -> "Problem":
+        """Same as :func:`clone`, but leaves the clone with no actions (an empty action
+        list) and no quality metrics, instead of deep-cloning the current ones. Several
+        compilers in `engines/compilers/` call `clone()` and then immediately
+        `clear_actions()`, discarding every cloned action right away -- cloning them first
+        is wasted work, and so is `MetricsMixin._clone_to`'s subsequent remapping of any
+        `MinimizeActionCosts` metric against those cloned actions (`new_actions.action(a.name)`
+        per cost entry), since it depends on the very actions that get thrown away. A caller
+        using this method is expected to add its own actions and, if needed, its own quality
+        metrics afterward.
+        """
         new_p = Problem(self._name, self._env)
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
@@ -256,7 +273,6 @@ class Problem(  # type: ignore[misc]
         InitialStateMixin._clone_to(self, new_p)
         TimeModelMixin._clone_to(self, new_p)
 
-        new_p._actions = [a.clone() for a in self._actions]
         new_p._events = [a.clone() for a in self._events]
         new_p._processes = [a.clone() for a in self._processes]
         new_p._timed_effects = {
@@ -268,9 +284,6 @@ class Problem(  # type: ignore[misc]
         new_p._fluents_assigned = {
             t: d.copy() for t, d in self._fluents_assigned.items()
         }
-
-        # last as it requires actions to be cloned already
-        MetricsMixin._clone_to(self, new_p, new_actions=new_p)
         return new_p
 
     def has_name(self, name: str) -> bool:
