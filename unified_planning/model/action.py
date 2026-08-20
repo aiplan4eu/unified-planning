@@ -123,6 +123,22 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
         return res
 
     def clone(self):
+        new_instantaneous_action = self._clone_without_effects()
+        new_instantaneous_action._effects = [e.clone() for e in self._effects]
+        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
+        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
+        new_instantaneous_action._simulated_effect = self._simulated_effect
+        return new_instantaneous_action
+
+    def _clone_without_effects(self) -> "InstantaneousAction":
+        """Same as :func:`clone`, but leaves the clone with no effects (an empty
+        effects list, no assigned/inc-dec fluents, no simulated effect) instead of deep-cloning
+        the current ones. For a caller that is about to discard and rebuild every effect
+        anyway (as the grounder's ``create_action_with_given_subs`` does), cloning them first
+        is wasted work: each :class:`~unified_planning.model.Effect` clone re-runs
+        :func:`~unified_planning.model.Effect.__init__`'s free-variables/interpreted-function
+        extraction, on top of being immediately discarded.
+        """
         new_params = OrderedDict(
             (param_name, param.type) for param_name, param in self._parameters.items()
         )
@@ -130,10 +146,6 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
             self._name, new_params, self._environment
         )
         new_instantaneous_action._preconditions = self._preconditions[:]
-        new_instantaneous_action._effects = [e.clone() for e in self._effects]
-        new_instantaneous_action._fluents_assigned = self._fluents_assigned.copy()
-        new_instantaneous_action._fluents_inc_dec = self._fluents_inc_dec.copy()
-        new_instantaneous_action._simulated_effect = self._simulated_effect
         return new_instantaneous_action
 
 

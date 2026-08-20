@@ -16,6 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.model.expression import ConstantExpression
+from unified_planning.model.mixins.name_index import NameIndex
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import Optional, List, Dict, Union, Iterable, Set
 
@@ -40,6 +41,7 @@ class FluentsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._fluents: List["up.model.fluent.Fluent"] = []
+        self._fluents_index: NameIndex["up.model.fluent.Fluent"] = NameIndex()
         self._fluents_defaults: Dict[
             "up.model.fluent.Fluent", "up.model.fnode.FNode"
         ] = {}
@@ -67,10 +69,10 @@ class FluentsSetMixin:
         :param name: The `name` of the target `fluent`:
         :return: The `fluent` with the given `name`.
         """
-        for f in self._fluents:
-            if f.name == name:
-                return f
-        raise UPValueError(f"Fluent of name: {name} is not defined!")
+        fluent = self._fluents_index.get(self._fluents, name)
+        if fluent is None:
+            raise UPValueError(f"Fluent of name: {name} is not defined!")
+        return fluent
 
     def has_fluent(self, name: str) -> bool:
         """
@@ -81,10 +83,7 @@ class FluentsSetMixin:
         :return: `True` if the `fluent` with the given `name` is in the `problem`,
             `False` otherwise.
         """
-        for f in self._fluents:
-            if f.name == name:
-                return True
-        return False
+        return self._fluents_index.contains(self._fluents, name)
 
     def add_fluents(self, fluents: Iterable["up.model.fluent.Fluent"]):
         """
@@ -145,6 +144,7 @@ class FluentsSetMixin:
             else:
                 warn(msg)
         self._fluents.append(fluent)
+        self._fluents_index.note_appended(self._fluents)
         if not default_initial_value is None:
             (v_exp,) = self.environment.expression_manager.auto_promote(
                 default_initial_value

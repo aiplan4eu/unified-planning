@@ -16,6 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
+from unified_planning.model.mixins.name_index import NameIndex
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import Iterator, List, Union, Optional, cast, Iterable
 
@@ -34,6 +35,7 @@ class ObjectsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._objects: List["up.model.object.Object"] = []
+        self._objects_index: NameIndex["up.model.object.Object"] = NameIndex()
 
     @property
     def environment(self) -> "up.environment.Environment":
@@ -80,6 +82,7 @@ class ObjectsSetMixin:
             else:
                 warn(msg)
         self._objects.append(obj)
+        self._objects_index.note_appended(self._objects)
         if obj.type.is_user_type():
             self._add_user_type_method(obj.type)
         return obj
@@ -99,10 +102,10 @@ class ObjectsSetMixin:
 
         :param name: The `name` of the target `object` in the `problem`.
         """
-        for o in self._objects:
-            if o.name == name:
-                return o
-        raise UPValueError(f"Object of name: {name} is not defined!")
+        obj = self._objects_index.get(self._objects, name)
+        if obj is None:
+            raise UPValueError(f"Object of name: {name} is not defined!")
+        return obj
 
     def has_object(self, name: str) -> bool:
         """
@@ -113,10 +116,7 @@ class ObjectsSetMixin:
         :return: `True` if an `object` with the given `name` is in the `problem`,
                 `False` otherwise.
         """
-        for o in self._objects:
-            if o.name == name:
-                return True
-        return False
+        return self._objects_index.contains(self._objects, name)
 
     def objects(
         self, typename: "up.model.types.Type"
