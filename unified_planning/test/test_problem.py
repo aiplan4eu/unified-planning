@@ -14,11 +14,19 @@
 # limitations under the License.
 
 
+import warnings
+from typing import cast
 import unified_planning as up
 from unified_planning.shortcuts import *
+from unified_planning.environment import Environment
 from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import UPTypeError
+from unified_planning.engines.compilers.utils import remove_fluents
+from unified_planning.model.htn import HierarchicalProblem
+from unified_planning.model.contingent import ContingentProblem
+from unified_planning.model.multi_agent import MultiAgentProblem, Agent
+from unified_planning.model.scheduling import SchedulingProblem
 
 
 class TestProblem(unittest_TestCase):
@@ -653,6 +661,148 @@ class TestProblem(unittest_TestCase):
         problem = self.problems["interpreted_functions_in_numeric_assignment"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_numeric_assignments())
         self.assertFalse(problem.kind.has_simple_numeric_planning())
+
+    def test_name_index_consistency(self):
+        # ActionsSetMixin/FluentsSetMixin/ObjectsSetMixin/UserTypesSetMixin each keep a
+        # lazily-rebuilt name index (unified_planning/model/mixins/name_index.py) instead of
+        # a linear scan; this exercises every way the underlying list can change and asserts
+        # has_action/has_fluent/has_object/has_type (and the singular accessors) always agree
+        # with a brute-force scan, catching any desync the index's self-healing token might miss.
+        loc = UserType("Loc")
+
+        def check(problem):
+            for a in problem.actions:
+                self.assertTrue(problem.has_action(a.name))
+                self.assertIs(problem.action(a.name), a)
+            for f in problem.fluents:
+                self.assertTrue(problem.has_fluent(f.name))
+                self.assertIs(problem.fluent(f.name), f)
+            for o in problem.all_objects:
+                self.assertTrue(problem.has_object(o.name))
+                self.assertIs(problem.object(o.name), o)
+            for t in problem.user_types:
+                name = cast(up.model.types._UserType, t).name
+                self.assertTrue(problem.has_type(name))
+                self.assertIs(problem.user_type(name), t)
+            self.assertFalse(problem.has_action("__nonexistent__"))
+            self.assertFalse(problem.has_fluent("__nonexistent__"))
+            self.assertFalse(problem.has_object("__nonexistent__"))
+            self.assertFalse(problem.has_type("__nonexistent__"))
+
+        problem = Problem("name_index")
+        f1 = Fluent("f1", BoolType(), l=loc)
+        f2 = Fluent("f2", BoolType())
+        problem.add_fluent(f1, default_initial_value=False)
+        problem.add_fluent(f2, default_initial_value=False)
+        o1 = Object("o1", loc)
+        o2 = Object("o2", loc)
+        problem.add_objects([o1, o2])
+        a1 = InstantaneousAction("a1", x=loc)
+        a1.add_effect(f1(a1.parameter("x")), True)
+        a2 = InstantaneousAction("a2")
+        a2.add_effect(f2, True)
+        problem.add_action(a1)
+        problem.add_action(a2)
+        check(problem)
+
+        # clear_actions/clear_fluents reassign the underlying list wholesale.
+        problem.clear_actions()
+        check(problem)
+        problem.add_action(a1)
+        problem.clear_fluents()
+        check(problem)
+        problem.add_fluent(f1, default_initial_value=False)
+        check(problem)
+
+        # remove_fluents mutates the list in place (list.remove), not via clear_fluents.
+        problem.add_fluent(f2, default_initial_value=False)
+        remove_fluents(problem, {f2})
+        check(problem)
+
+        # clone() reassigns every list wholesale, bypassing add_*/clear_*.
+        cloned = problem.clone()
+        check(cloned)
+
+        # Renaming an action in place (list identity and length both unchanged) is a known,
+        # pre-existing gap, not introduced by the index: if the index was already built (by
+        # an earlier has_action/action call) before the rename, it keeps reporting the old
+        # name as present, since nothing about the list itself changed to trigger a rebuild.
+        # This matches test_pddl_io.py's test_renamings, which relies on exactly this: it
+        # renames an action after reading it via problem.action(...), and a subsequent
+        # add_object call must not treat the rename as a fresh collision. Documented here so
+        # a future change to this behavior is deliberate, not a silent regression.
+        renamed = problem.clone()
+        target = renamed.actions[0]
+        old_name = target.name
+        self.assertTrue(renamed.has_action(old_name))  # force the index to build now
+        target.name = "renamed_action"
+        self.assertTrue(renamed.has_action(old_name))  # stale: rename isn't tracked
+        self.assertFalse(renamed.has_action("renamed_action"))
+
+        # A name shared ACROSS categories (here, an action and a fluent) is legal when
+        # error_used_name is disabled -- add_action's own duplicate guard always raises for
+        # two entries of the *same* category regardless of this flag, so that case can't
+        # arise through the public API. Each category keeps its own independent index, so
+        # this must not create any cross-category confusion.
+        env = Environment()
+        env.error_used_name = False
+        dup_problem = Problem("dup_names", env)
+        dup_fluent = Fluent("dup", BoolType(), environment=env)
+        dup_problem.add_fluent(dup_fluent, default_initial_value=False)
+        dup_action = InstantaneousAction("dup", _env=env)
+        dup_action.add_effect(dup_fluent, True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            dup_problem.add_action(dup_action)
+        self.assertTrue(dup_problem.has_action("dup"))
+        self.assertTrue(dup_problem.has_fluent("dup"))
+        self.assertIs(dup_problem.action("dup"), dup_action)
+        self.assertIs(dup_problem.fluent("dup"), dup_fluent)
+
+    def test_name_index_consistency_on_problem_subclasses(self):
+        # Lighter smoke checks that the same index machinery is wired correctly through every
+        # AbstractProblem subclass with its own has_name composition (see
+        # unified_planning/model/mixins/name_index.py's docstring for why a shared global
+        # index would be wrong here: each subclass's has_name covers a different set of
+        # name-bearing collections).
+        loc = UserType("Loc")
+
+        htn = HierarchicalProblem("htn_name_index")
+        f = Fluent("f", BoolType())
+        htn.add_fluent(f, default_initial_value=False)
+        a = InstantaneousAction("a")
+        a.add_effect(f, True)
+        htn.add_action(a)
+        self.assertTrue(htn.has_action("a") and htn.has_fluent("f"))
+        self.assertIs(htn.action("a"), a)
+        cloned_htn = htn.clone()
+        self.assertTrue(cloned_htn.has_action("a"))
+        self.assertIsNot(cloned_htn.action("a"), a)  # actions are cloned, not shared
+
+        cp = ContingentProblem("contingent_name_index")
+        cp.add_fluent(f, default_initial_value=False)
+        cp.add_action(a)
+        self.assertTrue(cp.has_action("a") and cp.has_fluent("f"))
+        cloned_cp = cp.clone()
+        self.assertTrue(cloned_cp.has_action("a"))
+
+        ma = MultiAgentProblem("ma_name_index")
+        agent = Agent("ag1", ma)
+        agent.add_fluent(f, default_initial_value=False)
+        agent.add_action(a)
+        ma.add_agent(agent)
+        o = Object("o1", loc)
+        ma.add_object(o)
+        self.assertTrue(ma.has_object("o1"))
+        self.assertTrue(agent.has_action("a") and agent.has_fluent("f"))
+        self.assertIs(agent.action("a"), a)
+
+        sp = SchedulingProblem("scheduling_name_index")
+        sp.add_fluent(f, default_initial_value=False)
+        sp.add_object(o)
+        self.assertTrue(sp.has_fluent("f") and sp.has_object("o1"))
+        self.assertIs(sp.fluent("f"), f)
+        self.assertIs(sp.object("o1"), o)
 
     def test_interpreted_functions_complex(self):
         problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem

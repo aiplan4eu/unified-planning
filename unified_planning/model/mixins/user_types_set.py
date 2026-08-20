@@ -16,6 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.model.types import _UserType
+from unified_planning.model.mixins.name_index import NameIndex
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from typing import List, Dict, Optional, cast
 
@@ -33,6 +34,9 @@ class UserTypesSetMixin:
         self._env = env
         self._has_name_method = has_name_method
         self._user_types: List["up.model.types.Type"] = []
+        self._user_types_index: NameIndex["up.model.types.Type"] = NameIndex(
+            lambda t: cast(_UserType, t).name
+        )
         # The field _user_types_hierarchy stores the information about the types and the list of their sons.
         self._user_types_hierarchy: Dict[
             Optional["up.model.types.Type"], List["up.model.types.Type"]
@@ -54,6 +58,7 @@ class UserTypesSetMixin:
             if ut.father is not None:
                 self._add_user_type(ut.father)
             self._user_types.append(type)
+            self._user_types_index.note_appended(self._user_types)
 
     @property
     def user_types(self) -> List["up.model.types.Type"]:
@@ -67,11 +72,10 @@ class UserTypesSetMixin:
         :param name: The target `name` for the `type`.
         :return: The `type` in the `problem` with the given `name`.
         """
-        for ut in self.user_types:
-            assert ut.is_user_type()
-            if cast(_UserType, ut).name == name:
-                return ut
-        raise UPValueError(f"UserType {name} is not defined!")
+        ut = self._user_types_index.get(self._user_types, name)
+        if ut is None:
+            raise UPValueError(f"UserType {name} is not defined!")
+        return ut
 
     def has_type(self, name: str) -> bool:
         """
@@ -82,11 +86,7 @@ class UserTypesSetMixin:
         :return: `True` if a `type` with the given `name` is in the `problem`,
             `False` otherwise.
         """
-        for ut in self.user_types:
-            assert ut.is_user_type()
-            if cast(_UserType, ut).name == name:
-                return True
-        return False
+        return self._user_types_index.contains(self._user_types, name)
 
     @property
     def user_types_hierarchy(

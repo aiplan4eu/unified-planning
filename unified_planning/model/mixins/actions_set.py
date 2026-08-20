@@ -16,6 +16,7 @@
 from warnings import warn
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
+from unified_planning.model.mixins.name_index import NameIndex
 from typing import Iterator, List, Iterable
 
 
@@ -33,6 +34,9 @@ class ActionsSetMixin:
         self._add_user_type_method = add_user_type_method
         self._has_name_method = has_name_method
         self._actions: List["up.model.action.Action"] = []
+        self._actions_index: NameIndex["up.model.action.Action"] = NameIndex(
+            lambda a: a.name
+        )
 
     @property
     def environment(self) -> "up.environment.Environment":
@@ -111,10 +115,10 @@ class ActionsSetMixin:
         :param name: The `name` of the target `action`.
         :return: The `action` in the `problem` with the given `name`.
         """
-        for a in self._actions:
-            if a.name == name:
-                return a
-        raise UPValueError(f"Action of name: {name} is not defined!")
+        action = self._actions_index.get(self._actions, name)
+        if action is None:
+            raise UPValueError(f"Action of name: {name} is not defined!")
+        return action
 
     def has_action(self, name: str) -> bool:
         """
@@ -124,10 +128,7 @@ class ActionsSetMixin:
         :param name: The `name` of the target `action`.
         :return: `True` if the `problem` has an `action` with the given `name`, `False` otherwise.
         """
-        for a in self._actions:
-            if a.name == name:
-                return True
-        return False
+        return self._actions_index.contains(self._actions, name)
 
     def add_action(self, action: "up.model.action.Action"):
         """
@@ -147,6 +148,7 @@ class ActionsSetMixin:
             else:
                 warn(msg)
         self._actions.append(action)
+        self._actions_index.note_appended(self._actions)
         for param in action.parameters:
             if param.type.is_user_type():
                 self._add_user_type_method(param.type)
