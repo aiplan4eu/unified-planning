@@ -138,6 +138,46 @@ def check_and_simplify_preconditions(
     return (True, nap)
 
 
+def _naming_list(subs: Dict[Expression, Expression]) -> List[str]:
+    """Builds the fresh-name suffix for a grounded action from its substitution map. Kept as
+    a separate call (instead of at the very top of `create_action_with_given_subs`) so it, and
+    the `FNode.__repr__` call `str(value)` triggers, are only paid for an accepted candidate,
+    not for one rejected by the early feasibility check below."""
+    naming_list = []
+    for param, value in subs.items():
+        assert isinstance(param, Parameter)
+        assert isinstance(value, FNode)
+        naming_list.append(str(value))
+    return naming_list
+
+
+def _substitute_and_simplify_preconditions(
+    preconditions: List[FNode],
+    subs: Dict[Expression, Expression],
+    simplifier,
+    em,
+) -> Optional[List[FNode]]:
+    """Substitutes `subs` into `preconditions` and simplifies their conjunction, returning
+    the resulting precondition list, or `None` if the conjunction simplifies to a
+    contradiction (the grounding is infeasible).
+
+    Used by `create_action_with_given_subs` to test feasibility *before* cloning the action,
+    building its name or rebuilding its effects -- all of which are wasted work for a
+    candidate that gets rejected here anyway -- and, on the accepted path, to compute the
+    action's final preconditions directly instead of substituting them once (raw) and then
+    simplifying them a second time via `check_and_simplify_preconditions`.
+    """
+    if not preconditions:
+        return []
+    substituted = [p.substitute(subs) for p in preconditions]
+    ps = simplifier.simplify(em.And(substituted))
+    if ps.is_bool_constant():
+        return [] if ps.bool_constant_value() else None
+    if ps.is_and():
+        return list(ps.args)
+    return [ps]
+
+
 def create_effect_with_given_subs(
     problem: Problem,
     old_effect: Effect,
@@ -179,15 +219,37 @@ def create_action_with_given_subs(
     original name instead of going through :func:`get_fresh_name`: since ``old_action``
     is still registered in ``problem`` under that name, `get_fresh_name` would otherwise
     treat it as colliding with itself and rename it needlessly.
+
+    For an `InstantaneousAction`, feasibility is checked *before* any of the above: its
+    preconditions are substituted and simplified first, and if that simplifies to a
+    contradiction, `None` is returned immediately without cloning the action, computing its
+    name, or rebuilding its effects -- all of which would otherwise be wasted work for a
+    candidate that gets rejected anyway. (This does not extend to `DurativeAction` yet: its
+    conditions are de-duplicated per timing interval by `add_condition` on the way in, so an
+    early check over the raw substituted list is not guaranteed to see the same argument
+    multiset as the current post-clone path when substitution collapses two distinct lifted
+    conditions into one.)
     """
-    naming_list: List[str] = []
-    for param, value in subs.items():
-        assert isinstance(param, Parameter)
-        assert isinstance(value, FNode)
-        naming_list.append(str(value))
+    em = problem.environment.expression_manager
     c_subs = cast(Dict[Parameter, FNode], subs)
     if isinstance(old_action, InstantaneousAction):
-        new_action = cast(InstantaneousAction, old_action.clone())
+        new_preconditions = _substitute_and_simplify_preconditions(
+            old_action.preconditions, subs, simplifier, em
+        )
+        if new_preconditions is None:
+            return None
+        naming_list = _naming_list(subs)
+        new_action: InstantaneousAction
+        if type(old_action) is InstantaneousAction:
+            # Cloned without effects: they would only be immediately discarded and rebuilt
+            # below from old_action's (not new_action's) effects, so cloning them first via
+            # the generic clone() would be pure waste -- see _clone_without_effects's docstring.
+            new_action = old_action._clone_without_effects()
+        else:
+            # Any InstantaneousAction *subclass* (SensingAction, InstantaneousMotionAction,
+            # or any future one) falls back to a full clone() + clear_effects() instead.
+            new_action = cast(InstantaneousAction, old_action.clone())
+            new_action.clear_effects()
         new_action.name = (
             old_action.name
             if not subs
@@ -200,12 +262,10 @@ def create_action_with_given_subs(
             new_action._observed_fluents = [
                 f.substitute(subs) for f in new_action.observed_fluents
             ]
-        old_preconditions = new_action.preconditions
-        new_action._set_preconditions([p.substitute(subs) for p in old_preconditions])
+        new_action._set_preconditions(new_preconditions)
 
-        old_effects = list(new_action.effects)
-        old_simulated_effect = new_action.simulated_effect
-        new_action.clear_effects()
+        old_effects = old_action.effects
+        old_simulated_effect = old_action.simulated_effect
         for e in old_effects:
             new_effect = create_effect_with_given_subs(problem, e, simplifier, subs)
             if new_effect is not None:
@@ -235,14 +295,9 @@ def create_action_with_given_subs(
                 new_action.set_simulated_effect(new_simulated_effect)
             except UPConflictingEffectsException:
                 return None
-        is_feasible, new_preconditions = check_and_simplify_preconditions(
-            problem, new_action, simplifier
-        )
-        if not is_feasible:
-            return None
-        new_action._set_preconditions(new_preconditions)
         return new_action
     elif isinstance(old_action, DurativeAction):
+        naming_list = _naming_list(subs)
         new_durative_action = cast(DurativeAction, old_action.clone())
         new_durative_action.name = (
             old_action.name
