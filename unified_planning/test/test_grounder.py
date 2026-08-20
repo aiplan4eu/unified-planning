@@ -37,6 +37,7 @@ from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.compilers.grounder import GrounderHelper
 from unified_planning.model.contingent import SensingAction
+from unified_planning.model.motion import InstantaneousMotionAction
 
 
 class TestGrounder(unittest_TestCase):
@@ -808,6 +809,36 @@ class TestGrounder(unittest_TestCase):
         assert isinstance(ga, SensingAction)
         self.assertEqual(len(ga.parameters), 0)
         self.assertEqual(ga.observed_fluents, [hidden(l1)])
+
+    def test_instantaneous_motion_action_is_preserved_after_grounding(self):
+        # create_action_with_given_subs's InstantaneousAction branch must not downgrade a
+        # subclass it doesn't specifically special-case (unlike SensingAction, which it
+        # does): InstantaneousMotionAction relies on this too, via its own motion_constraints
+        # rather than observed_fluents, but the fix (falling back to a full clone() for any
+        # InstantaneousAction subclass, not just SensingAction) must cover it the same way.
+        from unified_planning.test.examples.tamp import (
+            get_example_problems as get_tamp_example_problems,
+        )
+
+        problem = get_tamp_example_problems()["tamp_feasible"].problem
+        assert isinstance(problem, Problem)
+        self.assertTrue(
+            any(isinstance(a, InstantaneousMotionAction) for a in problem.actions)
+        )
+
+        compiler = Grounder()
+        compiler.skip_checks = True
+        grounded_problem = compiler.compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertGreater(len(grounded_problem.actions), 0)
+        for ga in grounded_problem.actions:
+            self.assertIsInstance(ga, InstantaneousMotionAction)
+            assert isinstance(ga, InstantaneousMotionAction)
+            self.assertEqual(len(ga.parameters), 0)
+            # motion_constraints must at least survive grounding (even though, like
+            # DurativeMotionAction, they are not substituted with the grounding parameters --
+            # a separate, pre-existing gap, not what this test is pinning down).
+            self.assertGreater(len(ga.motion_constraints), 0)
 
     def test_durative_action_continuous_effects_preserved_and_substituted_after_grounding(
         self,
