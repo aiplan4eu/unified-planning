@@ -826,9 +826,18 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
 
-        new_problem = problem.clone()
+        if type(problem) is Problem:
+            # _clone_without_actions() skips deep-cloning every lifted action.
+            # Restricted to the exact Problem class: Problem subclasses
+            # like HierarchicalProblem/ContingentProblem hand-roll their own clone() that
+            # _clone_without_actions() knows nothing about, and calling the inherited
+            # Problem._clone_without_actions() on one of them would silently construct a
+            # plain Problem, downgrading it and dropping its subclass-only state.
+            new_problem = problem._clone_without_actions()
+        else:
+            new_problem = problem.clone()
+            new_problem.clear_actions()
         new_problem.name = f"{self.name}_{problem.name}"
-        new_problem.clear_actions()
         for (
             old_action,
             parameters,

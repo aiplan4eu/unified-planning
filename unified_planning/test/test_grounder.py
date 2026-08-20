@@ -59,6 +59,34 @@ class TestGrounder(unittest_TestCase):
         grounded_problem.name = problem.name
         self.assertEqual(grounded_problem, problem)
 
+    def test_grounding_keeps_the_action_cost_metric(self):
+        Item = UserType("Item")
+        i1 = Object("i1", Item)
+        i2 = Object("i2", Item)
+        done = Fluent("done", BoolType(), x=Item)
+        act = InstantaneousAction("act", x=Item)
+        x = act.parameter("x")
+        act.add_effect(done(x), True)
+
+        problem = Problem("mockup")
+        problem.add_object(i1)
+        problem.add_object(i2)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(done(i1))
+        problem.add_quality_metric(MinimizeActionCosts({act: 7}))
+
+        gro = Grounder()
+        res = gro.compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = res.problem
+        assert isinstance(grounded_problem, Problem)
+
+        self.assertEqual(len(grounded_problem.quality_metrics), 1)
+        metric = grounded_problem.quality_metrics[0]
+        assert isinstance(metric, MinimizeActionCosts)
+        costs = {metric.get_action_cost(a) for a in grounded_problem.actions}
+        self.assertEqual(costs, {Int(7)})
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(general_numeric_kind))
     def test_robot(self):
