@@ -35,6 +35,7 @@ from unified_planning.test import (
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Grounder
+from unified_planning.engines.compilers.grounder import GrounderHelper
 from unified_planning.model.contingent import SensingAction
 
 
@@ -459,6 +460,41 @@ class TestGrounder(unittest_TestCase):
         self.assertEqual(len(grounded_problem.actions), 1)
         self.assertEqual(grounded_problem.actions[0].name, "act_a")
         self.assertEqual(len(grounded_problem.actions[0].parameters), 0)
+
+    def test_static_bool_condition_prunes_on_every_matching_position(self):
+        # A static atom that mentions the SAME parameter at more than one argument
+        # position (here, a "diagonal" relation applied as sym(?x, ?x)) must be pruned using
+        # the intersection of every matching position, not just the first one found: sym is
+        # only ever true off-diagonal, so no object can ever satisfy sym(x, x), and the
+        # grounder must produce zero ground actions.
+        problem = Problem("static_bool_all_positions")
+        item_type = UserType("Item")
+        objs = [Object(f"o{i}", item_type) for i in range(4)]
+        sym = Fluent("sym", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type)
+        x = action.parameter("x")
+        action.add_precondition(sym(x, x))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(sym, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(objs)
+        # o0 appears at position 0 and o1/o0 appear at position 1, but no tuple has equal
+        # arguments, so sym(x, x) is unsatisfiable for every x.
+        problem.set_initial_value(sym(objs[0], objs[1]), True)
+        problem.set_initial_value(sym(objs[1], objs[0]), True)
+        problem.set_initial_value(sym(objs[2], objs[1]), True)
+        problem.add_action(action)
+
+        # The join's hash-join also has to handle the same parameter appearing at more than
+        # one position of a single atom (its `binding[val] != arg_value` check, matching the
+        # per-parameter fallback's intersection above) -- must agree it's unsatisfiable too.
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 0)
 
     def test_effect_target_arguments_are_simplified(self):
         # the effect's target fluent must be normalized like its value: f(x + 1) grounded
@@ -938,3 +974,262 @@ class TestGrounder(unittest_TestCase):
                     problem_kind=problem.kind, plan_kind=plan.kind
                 ) as pv:
                     self.assertTrue(pv.validate(problem, plan))
+
+
+class TestGrounderJoinPruning(unittest_TestCase):
+    """Tests for the grounder's join-based static-fluent pruning
+    (`GrounderHelper._compute_join_pruned_parameters`). Static atoms are hash-joined together
+    instead of pruning each action parameter independently, so a static predicate that
+    correlates several of an action's parameters together (which independent per-parameter
+    pruning can't see) gets pruned to the tuples actually consistent with it. When the join
+    isn't applicable/safe for a given action, that one action automatically falls back to the
+    older per-parameter-independent pruning (`GrounderHelper._purge_items_list`). The two must
+    always produce list-equal (not just set-equal) ground-action names, since the join is a
+    pure performance improvement over the fallback, never a behavior change: it only narrows
+    the per-parameter candidate lists that feed the exact, all-parameters-bound feasibility
+    check every candidate still goes through regardless of which one produced it.
+    """
+
+    def setUp(self):
+        unittest_TestCase.setUp(self)
+        self.problems = get_example_problems()
+
+    @staticmethod
+    def _ground_names(problem, force_fallback_only=False):
+        original_cap = GrounderHelper._JOIN_MAX_CANDIDATES
+        if force_fallback_only:
+            # A cap of 0 makes every join attempt bail out immediately, forcing every
+            # (non-zero-parameter) action through the per-parameter-independent fallback --
+            # used to check the join never changes output versus that fallback.
+            GrounderHelper._JOIN_MAX_CANDIDATES = 0
+        try:
+            result = Grounder().compile(problem, CompilationKind.GROUNDING)
+        finally:
+            GrounderHelper._JOIN_MAX_CANDIDATES = original_cap
+        grounded = result.problem
+        assert isinstance(grounded, Problem)
+        return [a.name for a in grounded.actions]
+
+    def test_join_unsafe_actually_prunes_and_does_not_silently_fail(self):
+        # `_compute_join_pruned_parameters` wraps everything in a bare `try/except Exception:
+        # return None`, so a broken join (a missing helper method, a typo, any internal bug)
+        # silently degrades to the per-parameter fallback -- correctly, but with none of the
+        # join's benefit, and invisibly to every other test in this class, since comparing
+        # "join" output to "fallback" output trivially matches when "join" is always silently
+        # failing and actually always running the fallback. This calls
+        # `_compute_join_pruned_parameters_unsafe` directly, bypassing that exception handler,
+        # so a broken join surfaces as a raised exception here instead of a silent no-op, and
+        # asserts the exact pruned candidate count, so a join that silently stopped pruning
+        # (while still returning *some* answer) would also be caught.
+        problem = Problem("join_actually_prunes")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(4)]
+        rel = Fluent("rel", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type, y=item_type)
+        x = action.parameter("x")
+        y = action.parameter("y")
+        action.add_precondition(rel(x, y))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(rel, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        # Only 2 of the 4x4=16 possible (x, y) pairs are ever true.
+        problem.set_initial_value(rel(items[0], items[1]), True)
+        problem.set_initial_value(rel(items[2], items[3]), True)
+        problem.add_action(action)
+
+        gh = GrounderHelper(problem)
+        type_list = [p.type for p in action.parameters]
+        result = gh._compute_join_pruned_parameters_unsafe(action, type_list)
+        assert result is not None
+        self.assertEqual(
+            set(result),
+            {rel(items[0], items[1]).args, rel(items[2], items[3]).args},
+        )
+
+    def test_join_equivalent_to_fallback_pruning_on_example_problems(self):
+        # The single most important check: for every example problem this repo already has
+        # test fixtures for, the join and the per-parameter fallback must produce list-equal
+        # ground-action names.
+        for name, tc in self.problems.items():
+            problem = tc.problem
+            if not isinstance(problem, Problem) or not problem.actions:
+                continue
+            if not Grounder.supports(problem.kind):
+                continue
+            joined_names = self._ground_names(problem)
+            fallback_names = self._ground_names(problem, force_fallback_only=True)
+            self.assertEqual(
+                joined_names,
+                fallback_names,
+                f'the join diverged from the per-parameter fallback on example problem "{name}"',
+            )
+
+    def test_join_zero_parameter_action(self):
+        problem = Problem("join_zero_param")
+        done = Fluent("done")
+        action = InstantaneousAction("act")
+        action.add_effect(done, True)
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(action)
+
+        grounded = Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded, Problem)
+        self.assertEqual(len(grounded.actions), 1)
+        self.assertEqual(grounded.actions[0].name, "act")
+
+    def test_join_constant_argument(self):
+        # A static atom with a constant argument (e.g. `at(?x, l1)`) must correctly filter on
+        # that fixed value, not just on the parameter-bound positions.
+        problem = Problem("join_constant_arg")
+        item_type = UserType("Item")
+        loc_type = UserType("Location")
+        items = [Object(f"i{i}", item_type) for i in range(3)]
+        l1 = Object("l1", loc_type)
+        l2 = Object("l2", loc_type)
+        at = Fluent("at", BoolType(), i=item_type, l=loc_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type)
+        x = action.parameter("x")
+        action.add_precondition(at(x, l1))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items + [l1, l2])
+        problem.set_initial_value(at(items[0], l1), True)
+        problem.set_initial_value(
+            at(items[1], l2), True
+        )  # wrong location: must be pruned
+        problem.add_action(action)
+
+        grounded = Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded, Problem)
+        self.assertEqual([a.name for a in grounded.actions], ["act_i0"])
+
+    def test_join_hierarchical_typing(self):
+        # A static fact declared over a supertype must not bind an object to an action
+        # parameter typed to a subtype unless that object actually belongs to the subtype --
+        # otherwise this produces an ill-typed substitution.
+        location = UserType("Location")
+        grass = UserType("Grass", father=location)
+        problem = Problem("join_hierarchical_typing")
+        g1 = Object("g1", grass)
+        loc1 = Object("loc1", location)  # a Location but NOT a Grass
+        connected = Fluent("connected", BoolType(), a=location, b=location)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=grass)
+        x = action.parameter("x")
+        action.add_precondition(connected(x, x))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(connected, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects([g1, loc1])
+        problem.set_initial_value(connected(g1, g1), True)
+        problem.set_initial_value(connected(loc1, loc1), True)
+        problem.add_action(action)
+
+        # Must not raise a type error, and must not ground with x := loc1 (not a Grass).
+        grounded = Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded, Problem)
+        self.assertEqual([a.name for a in grounded.actions], ["act_g1"])
+
+    def test_join_default_true_fluent_with_explicit_overrides(self):
+        problem = Problem("join_default_true")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(4)]
+        usable = Fluent("usable", BoolType(), i=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type)
+        x = action.parameter("x")
+        action.add_precondition(usable(x))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(usable, default_initial_value=True)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        problem.set_initial_value(usable(items[0]), False)  # explicit override
+        problem.add_action(action)
+
+        for force_fallback_only in (False, True):
+            names = sorted(
+                self._ground_names(problem, force_fallback_only=force_fallback_only)
+            )
+            self.assertEqual(
+                names,
+                ["act_i1", "act_i2", "act_i3"],
+                f"mismatch with force_fallback_only={force_fallback_only}",
+            )
+
+    def test_join_wildcard_nested_argument(self):
+        # An atom argument that is neither a bare action parameter nor a constant (here, a
+        # nested `Plus` expression) can't be used to filter parameters -- it must be treated
+        # as an unconstrained wildcard by the join, exactly like the per-parameter fallback
+        # already does.
+        problem = Problem("join_wildcard")
+        int_type = IntType(0, 3)
+        static = Fluent("static", BoolType(), a=int_type, b=int_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=int_type)
+        x = action.parameter("x")
+        action.add_precondition(static(x, x + 0))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(static, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.set_initial_value(static(1, 1), True)
+        problem.add_action(action)
+
+        joined_names = self._ground_names(problem)
+        fallback_names = self._ground_names(problem, force_fallback_only=True)
+        self.assertEqual(joined_names, fallback_names)
+
+    def test_join_empty_relation(self):
+        # A static atom whose relation has no true tuples at all must prune to zero
+        # groundings, matching the per-parameter fallback.
+        problem = Problem("join_empty_relation")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(3)]
+        never_true = Fluent("never_true", BoolType(), i=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type)
+        x = action.parameter("x")
+        action.add_precondition(never_true(x))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(never_true, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        problem.add_action(action)
+
+        grounded = Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        assert isinstance(grounded, Problem)
+        self.assertEqual(len(grounded.actions), 0)
+
+    def test_join_max_candidates_fallback(self):
+        # Forcing the safety cap very low must fall back to the per-parameter cross-product
+        # path for the affected action, not lose any otherwise-valid ground action.
+        problem = Problem("join_fallback")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(5)]
+        rel = Fluent("rel", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type, y=item_type)
+        x = action.parameter("x")
+        y = action.parameter("y")
+        action.add_precondition(rel(x, y))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(rel, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        for i in range(len(items) - 1):
+            problem.set_initial_value(rel(items[i], items[i + 1]), True)
+        problem.add_action(action)
+
+        expected = sorted(self._ground_names(problem, force_fallback_only=True))
+        actual = sorted(self._ground_names(problem))
+        self.assertEqual(expected, actual)
