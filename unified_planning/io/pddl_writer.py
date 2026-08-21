@@ -857,10 +857,22 @@ class PDDLWriter:
                 out.write(f"{_format_action_instance(ai)}\n")
         elif isinstance(plan, TimeTriggeredPlan):
             for s, ai, dur in plan.timed_actions:
-                start = s.numerator if s.denominator == 1 else float(s)
+                start = (
+                    s.numerator
+                    if s.denominator == 1
+                    else decimal_literal(
+                        s, ConverterToPDDLString.DECIMAL_PRECISION, "PDDL"
+                    )
+                )
                 out.write(f"{start}: {_format_action_instance(ai)}")
                 if dur is not None:
-                    duration = dur.numerator if dur.denominator == 1 else float(dur)
+                    duration = (
+                        dur.numerator
+                        if dur.denominator == 1
+                        else decimal_literal(
+                            dur, ConverterToPDDLString.DECIMAL_PRECISION, "PDDL"
+                        )
+                    )
                     out.write(f"[{duration}]")
                 out.write("\n")
         else:
