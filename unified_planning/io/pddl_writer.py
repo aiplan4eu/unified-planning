@@ -14,15 +14,14 @@
 #
 
 
-from fractions import Fraction
 import sys
 import re
 
-from decimal import Decimal, localcontext
 from warnings import warn
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
+from unified_planning.io.utils import decimal_literal
 from unified_planning.model import (
     InstantaneousAction,
     DurativeAction,
@@ -163,7 +162,7 @@ MangleFunction = Callable[[WithName], str]
 class ConverterToPDDLString(walkers.DagWalker):
     """Expression converter to a PDDL string."""
 
-    DECIMAL_PRECISION = 10  # Number of decimal places to print real constants
+    DECIMAL_PRECISION = 10  # Number of significant digits used to print real constants
 
     def __init__(
         self,
@@ -178,17 +177,9 @@ class ConverterToPDDLString(walkers.DagWalker):
         """Converts the given expression to a PDDL string."""
         return self.walk(self.simplifier.simplify(expression))
 
-    def convert_fraction(self, frac):
-        with localcontext() as ctx:
-            ctx.prec = self.DECIMAL_PRECISION
-            dec = frac.numerator / Decimal(frac.denominator, ctx)
-
-            if Fraction(dec) != frac:
-                warn(
-                    "The PDDL printer cannot exactly represent the real constant '%s'"
-                    % frac
-                )
-            return float(dec)
+    def convert_fraction(self, frac) -> str:
+        """Formats a Fraction as a PDDL number literal (digits ["." digits])."""
+        return decimal_literal(frac, self.DECIMAL_PRECISION, "PDDL")
 
     def walk_exists(self, expression, args):
         assert len(args) == 1
@@ -272,7 +263,7 @@ class ConverterToPDDLString(walkers.DagWalker):
     def walk_real_constant(self, expression, args):
         assert len(args) == 0
         frac = expression.constant_value()
-        return str(self.convert_fraction(frac))
+        return self.convert_fraction(frac)
 
     def walk_int_constant(self, expression, args):
         assert len(args) == 0
@@ -784,7 +775,7 @@ class PDDLWriter:
         for tm, le in self.problem.timed_effects.items():
             for e in le:
                 out.write(f"\n             ")
-                out.write(f" (at {str(converter.convert_fraction(tm.delay))}")
+                out.write(f" (at {converter.convert_fraction(tm.delay)}")
                 _write_effect(
                     e,
                     None,
@@ -866,10 +857,22 @@ class PDDLWriter:
                 out.write(f"{_format_action_instance(ai)}\n")
         elif isinstance(plan, TimeTriggeredPlan):
             for s, ai, dur in plan.timed_actions:
-                start = s.numerator if s.denominator == 1 else float(s)
+                start = (
+                    s.numerator
+                    if s.denominator == 1
+                    else decimal_literal(
+                        s, ConverterToPDDLString.DECIMAL_PRECISION, "PDDL"
+                    )
+                )
                 out.write(f"{start}: {_format_action_instance(ai)}")
                 if dur is not None:
-                    duration = dur.numerator if dur.denominator == 1 else float(dur)
+                    duration = (
+                        dur.numerator
+                        if dur.denominator == 1
+                        else decimal_literal(
+                            dur, ConverterToPDDLString.DECIMAL_PRECISION, "PDDL"
+                        )
+                    )
                     out.write(f"[{duration}]")
                 out.write("\n")
         else:
