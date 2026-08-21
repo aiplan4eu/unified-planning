@@ -14,6 +14,7 @@
 # limitations under the License
 
 import os
+import re
 import tempfile
 import pytest
 from typing import cast
@@ -869,6 +870,36 @@ class TestPddlIO(unittest_TestCase):
             parsed_problem_small.initial_value(parsed_battery_small()),
             Real(Fraction(1, 100000)),
         )
+
+    def test_small_rationals(self):
+        # A real constant whose magnitude makes Python's str()/repr() switch to
+        # scientific notation (below 1e-4) must still be written as a plain decimal:
+        # PDDL's numeric-literal grammar has no exponent notation, so e.g. "1e-05" is
+        # not valid PDDL and the strict ai-pddl-parser rejects it outright.
+        problem = self.problems["robot_decrease"].problem.clone()
+        battery = problem.fluent("battery_charge")
+        problem.set_initial_value(battery, Fraction(1, 100000))
+        w = PDDLWriter(problem)
+        pddl_txt = w.get_problem()
+        self.assertIsNone(re.search(r"\de[+-]?\d", pddl_txt))
+        self.assertIn("0.00001", pddl_txt)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            domain_filename = os.path.join(tempdir, "domain.pddl")
+            problem_filename = os.path.join(tempdir, "problem.pddl")
+            w.write_domain(domain_filename)
+            w.write_problem(problem_filename)
+
+            for reader in (
+                PDDLReader(force_ai_planning_reader=True),
+                PDDLReader(force_up_pddl_reader=True),
+            ):
+                parsed_problem = reader.parse_problem(domain_filename, problem_filename)
+                parsed_battery = parsed_problem.fluent("battery_charge")
+                self.assertEqual(
+                    parsed_problem.initial_value(parsed_battery()),
+                    Real(Fraction(1, 100000)),
+                )
 
     def test_ad_hoc_1(self):
         when = UserType("when")
