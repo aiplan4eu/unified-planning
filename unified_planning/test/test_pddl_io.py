@@ -837,6 +837,39 @@ class TestPddlIO(unittest_TestCase):
             self.assertNotIn("10/3", pddl_txt)
             self.assertIn("3.333333333", pddl_txt)
 
+    def test_strict_reader_decimal_precision(self):
+        # NumericValue.value from the `pddl` package is a binary float, so converting
+        # it with `Fraction(value)` bakes in IEEE-754 rounding error (`Fraction(0.1)`
+        # is not exactly 1/10). The strict ai-pddl-parser path must build the Fraction
+        # from the literal's string instead, exactly like ANMLReader does for ANML's
+        # decimal literals.
+        problem = self.problems["robot_decrease"].problem
+        w = PDDLWriter(problem)
+        domain_str = w.get_domain()
+
+        problem_str = """(define (problem robot_decrease-problem)
+ (:domain robot_decrease-domain)
+ (:init (= (battery_charge) 0.1))
+ (:goal (and))
+)
+"""
+        reader = PDDLReader(force_ai_planning_reader=True)
+        parsed_problem = reader.parse_problem_string(domain_str, problem_str)
+        parsed_battery = parsed_problem.fluent("battery_charge")
+        self.assertEqual(
+            parsed_problem.initial_value(parsed_battery()), Real(Fraction(1, 10))
+        )
+
+        problem_str_small = problem_str.replace("0.1", "0.00001")
+        parsed_problem_small = reader.parse_problem_string(
+            domain_str, problem_str_small
+        )
+        parsed_battery_small = parsed_problem_small.fluent("battery_charge")
+        self.assertEqual(
+            parsed_problem_small.initial_value(parsed_battery_small()),
+            Real(Fraction(1, 100000)),
+        )
+
     def test_ad_hoc_1(self):
         when = UserType("when")
         fl = Fluent("4ction")

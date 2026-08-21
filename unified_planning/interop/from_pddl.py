@@ -155,7 +155,12 @@ class _ExpressionConverter:
             ) = stack.pop()
 
             if isinstance(current_formula, NumericValue):
-                formula_value = Fraction(current_formula.value)
+                # NumericValue.value is a Python float; str() of a float is its
+                # shortest round-tripping decimal representation, so building the
+                # Fraction from that string (rather than from the float itself)
+                # avoids baking in IEEE-754 binary rounding error (e.g. Fraction(0.1)
+                # is not exactly 1/10, but Fraction(str(0.1)) is).
+                formula_value = Fraction(str(current_formula.value))
                 if formula_value.denominator == 1:
                     result_stack.append(em.Int(formula_value.numerator))
                 else:
