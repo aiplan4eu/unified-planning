@@ -150,7 +150,7 @@ class QuantifiersRemover(engines.engine.Engine, CompilerMixin):
         new_kind.unset_conditions_kind("UNIVERSAL_CONDITIONS")
         new_kind.unset_effects_kind("FORALL_EFFECTS")
         if problem_kind.has_existential_conditions():
-            new_kind.set_conditions("DISJUNCTIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(

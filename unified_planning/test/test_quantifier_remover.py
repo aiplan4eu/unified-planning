@@ -86,6 +86,36 @@ class TestQuantifiersRemover(unittest_TestCase):
             ) as pv:
                 self.assertTrue(pv.validate(problem, new_plan))
 
+    def test_resulting_problem_kind_with_existential_conditions(self):
+        problem = self.problems["basic_exists"].problem
+        self.assertTrue(problem.kind.has_existential_conditions())
+
+        new_kind = QuantifiersRemover.resulting_problem_kind(
+            problem.kind, CompilationKind.QUANTIFIERS_REMOVING
+        )
+        self.assertFalse(new_kind.has_existential_conditions())
+        self.assertFalse(new_kind.has_universal_conditions())
+        self.assertFalse(new_kind.has_forall_effects())
+        # Exists is expanded into a disjunction over the problem's objects
+        self.assertTrue(new_kind.has_disjunctive_conditions())
+
+        compiled = (
+            QuantifiersRemover()
+            .compile(problem, CompilationKind.QUANTIFIERS_REMOVING)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
+        self.assertTrue(compiled.kind <= new_kind)
+
+    def test_compilers_pipeline_with_existential_conditions(self):
+        problem = self.problems["basic_exists"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kinds=[CompilationKind.QUANTIFIERS_REMOVING],
+        ) as compiler:
+            compiled = compiler.compile(problem).problem
+        self.assertFalse(compiled.kind.has_existential_conditions())
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(simple_numeric_kind))
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind.union(simple_numeric_kind))
     def test_robot_locations_connected(self):
