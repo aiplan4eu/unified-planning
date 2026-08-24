@@ -436,6 +436,30 @@ class TestModel(unittest_TestCase):
         self.assertTrue(kind.has_disjunctive_conditions())
         self.assertTrue(kind.has_increase_effects())
 
+    def test_iff_condition_kind(self):
+        a = Fluent("a", BoolType())
+        b = Fluent("b", BoolType())
+
+        act = InstantaneousAction("act")
+        act.add_precondition(Iff(a, b))
+        act.add_effect(a, True)
+
+        precondition_problem = Problem("p1")
+        precondition_problem.add_fluent(a, default_initial_value=False)
+        precondition_problem.add_fluent(b, default_initial_value=False)
+        precondition_problem.add_action(act)
+
+        goal_problem = Problem("p2")
+        goal_problem.add_fluent(a, default_initial_value=False)
+        goal_problem.add_fluent(b, default_initial_value=False)
+        goal_problem.add_action(act)
+        goal_problem.add_goal(Iff(a, b))
+
+        for problem in (precondition_problem, goal_problem):
+            kind = problem.kind
+            self.assertTrue(kind.has_disjunctive_conditions())
+            self.assertFalse(kind.has_negative_conditions())
+
     def test_istantaneous_action(self):
         Location = UserType("Location")
         move = InstantaneousAction("move", l_from=Location, l_to=Location)
