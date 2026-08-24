@@ -27,6 +27,42 @@ class TestMADisjunctiveConditionsRemover(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
 
+    def test_resulting_kind_implies_is_negative(self):
+        # `Implies(a, b)` becomes `Or(Not(a), b)` in NNF, so the compiled problem has a
+        # `Not` precondition even though the input problem has no negation at all.
+        # `resulting_problem_kind` must claim `NEGATIVE_CONDITIONS` here.
+        problem = MultiAgentProblem("test")
+        a1 = Agent("a1", problem)
+        a = Fluent("a")
+        b = Fluent("b")
+        act = InstantaneousAction("act")
+        act.add_precondition(Implies(a, b))
+        act.add_effect(a, True)
+        a1.add_fluent(a, default_initial_value=False)
+        a1.add_fluent(b, default_initial_value=False)
+        a1.add_action(act)
+        problem.add_agent(a1)
+        problem.set_initial_value(Dot(a1, a), False)
+        problem.set_initial_value(Dot(a1, b), False)
+        problem.add_goal(Dot(a1, a))
+
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+        self.assertFalse(problem.kind.has_negative_conditions())
+
+        madcr = MADisjunctiveConditionsRemover()
+        resulting_kind = madcr.resulting_problem_kind(
+            problem.kind, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+        )
+        compiled = madcr.compile(
+            problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+        ).problem
+        assert isinstance(compiled, MultiAgentProblem)
+
+        self.assertTrue(compiled.kind.has_negative_conditions())
+        self.assertFalse(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(resulting_kind.has_negative_conditions())
+        self.assertTrue(compiled.kind <= resulting_kind)
+
     def test_ad_hoc_1(self):
         # mockup problem
         problem: MultiAgentProblem = MultiAgentProblem("simple_test")

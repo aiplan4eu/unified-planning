@@ -96,6 +96,42 @@ class TestDisjunctiveConditionsRemover(unittest_TestCase):
                     ).problem
                     assert isinstance(compiled_problem, Problem)
                     self.assertFalse(compiled_problem.kind.has_disjunctive_conditions())
+                    self.assertTrue(
+                        compiled_problem.kind <= dcr.resulting_problem_kind(p.kind)
+                    )
+
+    def test_resulting_kind_implies_is_negative(self):
+        # `Implies(a, b)` becomes `Or(Not(a), b)` in NNF, so the compiled problem has a
+        # `Not` precondition even though the input problem has no negation at all.
+        # `resulting_problem_kind` must claim `NEGATIVE_CONDITIONS` here.
+        a = Fluent("a")
+        b = Fluent("b")
+        act = InstantaneousAction("act")
+        act.add_precondition(Implies(a, b))
+        act.add_effect(a, True)
+        problem = Problem("test")
+        problem.add_fluent(a, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(a)
+
+        self.assertTrue(problem.kind.has_disjunctive_conditions())
+        self.assertFalse(problem.kind.has_negative_conditions())
+
+        dcr = DisjunctiveConditionsRemover()
+        resulting_kind = dcr.resulting_problem_kind(
+            problem.kind, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING
+        )
+        comp_res = dcr.compile(problem, CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        # the compiled problem really has a `Not` in it...
+        self.assertTrue(compiled_kind.has_negative_conditions())
+        # ...and the claimed resulting kind must not hide that.
+        self.assertFalse(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(resulting_kind.has_negative_conditions())
+        self.assertTrue(compiled_kind <= resulting_kind)
 
     def test_ad_hoc_1(self):
         # mockup problem
