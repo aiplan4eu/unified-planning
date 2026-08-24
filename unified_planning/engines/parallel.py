@@ -85,7 +85,9 @@ class Parallel(
         # The supported plan depends on its actual engines
         return True
 
-    def _run_parallel(self, fname, *args) -> List[Result]:
+    def _run_parallel(
+        self, fname, problem: "up.model.AbstractProblem", *args, **kwargs
+    ) -> List[Result]:
         signaling_queue: Queue = _mp_context.Queue()
         processes = []
         for idx, (engine_name, opts) in enumerate(self.engines):
@@ -102,7 +104,9 @@ class Parallel(
                     self.error_on_failed_checks,
                     signaling_queue,
                     fname,
-                    *args,
+                    problem,
+                    args,
+                    kwargs,
                 ),
             )
             processes.append(_p)
@@ -120,7 +124,7 @@ class Parallel(
             else:
                 assert isinstance(res, Result)
                 # If the planner is sure about the result (optimality of the result or impossibility of the problem or the problem does not need optimality) exit the loop
-                if res.is_definitive_result(*args):
+                if res.is_definitive_result(problem):
                     definitive_result_found = True
                     break
                 else:
@@ -145,8 +149,15 @@ class Parallel(
             warnings.warn(
                 "Parallel engines do not support the output stream system.", UserWarning
             )
+        if heuristic is not None:
+            warnings.warn(
+                "Parallel engines do not support heuristic functions; the heuristic will be ignored.",
+                UserWarning,
+            )
 
-        final_reports = self._run_parallel("solve", problem, timeout, None)
+        final_reports = self._run_parallel(
+            "solve", problem, heuristic=None, timeout=timeout, output_stream=None
+        )
 
         result_order: List[PlanGenerationResultStatus] = [
             PlanGenerationResultStatus.SOLVED_OPTIMALLY,  # List containing the results in the order we prefer them
@@ -215,14 +226,16 @@ def _run(
     error_on_failed_checks: bool,
     signaling_queue: Queue,
     fname: str,
-    *args,
+    problem: "up.model.AbstractProblem",
+    args: Tuple[Any, ...],
+    kwargs: Dict[str, Any],
 ):
     EngineClass = factory.engine(engine_name)
     with EngineClass(**options) as s:
         s.skip_checks = skip_checks
         s.error_on_failed_checks = error_on_failed_checks
         try:
-            local_res = getattr(s, fname)(*args)
+            local_res = getattr(s, fname)(problem, *args, **kwargs)
         except Exception as ex:
             signaling_queue.put((idx, ex))
             return
