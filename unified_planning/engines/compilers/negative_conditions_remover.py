@@ -249,8 +249,12 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_kind = problem_kind.clone()
         if new_kind.has_negative_conditions():
             new_kind.unset_conditions_kind("NEGATIVE_CONDITIONS")
-            if new_kind.has_equalities():
-                new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+            # Removing a negation rewrites the condition in NNF, which can turn a
+            # negated conjunction, equality or iff into a genuine disjunction, e.g.:
+            #   Not(And(a, b))     -> Or(not_a, not_b)
+            #   Not(Equals(x, y))  -> Or(GT(x, y), LT(x, y))
+            #   Not(Iff(a, b))     -> Or(And(a, b), And(not_a, not_b))
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -336,11 +340,8 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
 
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
-                new_problem.add_quality_metric(
-                    updated_minimize_action_costs(
-                        qm, new_to_old, new_problem.environment
-                    )
-                )
+                # Handled below, once new_to_old is populated by the actions loop.
+                continue
             elif qm.is_oversubscription():
                 assert isinstance(qm, Oversubscription)
                 new_problem.add_quality_metric(
@@ -464,6 +465,14 @@ class NegativeConditionsRemover(engines.engine.Engine, CompilerMixin):
                             e.forall,
                         ),
                     )
+
+        for qm in problem.quality_metrics:
+            if qm.is_minimize_action_costs():
+                new_problem.add_quality_metric(
+                    updated_minimize_action_costs(
+                        qm, new_to_old, new_problem.environment
+                    )
+                )
 
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name

@@ -29,6 +29,7 @@ from unified_planning.model.problem_kind import (
 )
 from unified_planning.engines.compilers import NegativeConditionsRemover
 from unified_planning.engines import CompilationKind
+from unified_planning.exceptions import UPExpressionDefinitionError
 
 
 class TestNegativeConditionsRemover(unittest_TestCase):
@@ -457,3 +458,99 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
         assert isinstance(comp_res.problem, Problem)
         self.assertEqual(expected_action, comp_res.problem.action("test_action"))
+
+    def test_resulting_kind_negated_conjunction_is_disjunctive(self):
+        # Negating a conjunction (`Not(And(a, b))`) turns into `Or(not_a, not_b)` in
+        # NNF, even though the input problem has no equalities at all.
+        # `resulting_problem_kind` must claim `DISJUNCTIVE_CONDITIONS` here.
+        a = Fluent("a")
+        b = Fluent("b")
+        goal_f = Fluent("goal_f")
+        act = InstantaneousAction("act")
+        act.add_precondition(Not(And(a, b)))
+        act.add_effect(goal_f, True)
+        problem = Problem("test")
+        problem.add_fluent(a, default_initial_value=True)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_fluent(goal_f, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(goal_f)
+
+        self.assertTrue(problem.kind.has_negative_conditions())
+        self.assertFalse(problem.kind.has_disjunctive_conditions())
+        self.assertFalse(problem.kind.has_equalities())
+
+        ncr = NegativeConditionsRemover()
+        resulting_kind = ncr.resulting_problem_kind(
+            problem.kind, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+        )
+        comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        # the compiled problem really has an Or in it...
+        self.assertTrue(compiled_kind.has_disjunctive_conditions())
+        # ...and the claimed resulting kind must not hide that.
+        self.assertFalse(resulting_kind.has_negative_conditions())
+        self.assertTrue(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(compiled_kind <= resulting_kind)
+
+    def test_action_costs_are_preserved(self):
+        a = Fluent("a")
+        goal_f = Fluent("goal_f")
+        act = InstantaneousAction("act")
+        act.add_precondition(Not(a))
+        act.add_effect(goal_f, True)
+        problem = Problem("test")
+        problem.add_fluent(a, default_initial_value=True)
+        problem.add_fluent(goal_f, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(goal_f)
+        problem.add_quality_metric(MinimizeActionCosts({act: 5}))
+
+        ncr = NegativeConditionsRemover()
+        comp_res = ncr.compile(problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        new_problem = comp_res.problem
+
+        self.assertEqual(len(new_problem.quality_metrics), 1)
+        new_metric = new_problem.quality_metrics[0]
+        assert isinstance(new_metric, MinimizeActionCosts)
+        new_action = new_problem.action("act")
+        self.assertEqual(new_metric.get_action_cost(new_action), Int(5))
+
+    def test_all_problem_kind(self):
+        # for every shared example problem this compiler supports, the claimed
+        # resulting kind must cover the actually compiled problem's kind.
+        ncr = NegativeConditionsRemover()
+        checked = 0
+        for example in self.problems.values():
+            problem = example.problem
+            if not isinstance(problem, Problem):
+                continue
+            kind = problem.kind
+            if not NegativeConditionsRemover.supports(kind):
+                continue
+            if not kind.has_negative_conditions():
+                continue
+            try:
+                comp_res = ncr.compile(
+                    problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+                )
+            except UPExpressionDefinitionError:
+                # This compiler cannot remove negations from quantified expressions
+                # or from trajectory constraints (Nnf treats Always(...) as a leaf).
+                continue
+            assert isinstance(comp_res.problem, Problem)
+            compiled_kind = comp_res.problem.kind
+            resulting_kind = ncr.resulting_problem_kind(
+                kind, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+            )
+            self.assertTrue(
+                compiled_kind <= resulting_kind,
+                msg=f"{problem.name}: compiled kind has features "
+                f"{sorted(set(compiled_kind.features) - set(resulting_kind.features))} "
+                "that resulting_problem_kind does not claim",
+            )
+            checked += 1
+        self.assertGreater(checked, 0)
