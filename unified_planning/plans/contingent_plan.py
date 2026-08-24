@@ -147,7 +147,7 @@ class ContingentPlan(plans.plan.Plan):
         self._root_node = root_node
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ContingentPlan) and self.environment == self.environment:
+        if isinstance(oth, ContingentPlan) and self.environment == oth.environment:
             return self.root_node == oth.root_node
         else:
             return False
