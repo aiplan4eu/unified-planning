@@ -14,6 +14,7 @@
 # limitations under the License
 
 import os
+import re
 import tempfile
 import pytest
 from typing import cast
@@ -36,7 +37,7 @@ from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
-from unified_planning.plans import SequentialPlan
+from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.model.problem_kind import simple_numeric_kind
 from unified_planning.model.types import _UserType
 from unified_planning.interop import (
@@ -836,6 +837,114 @@ class TestPddlIO(unittest_TestCase):
             pddl_txt = w.get_problem()
             self.assertNotIn("10/3", pddl_txt)
             self.assertIn("3.333333333", pddl_txt)
+
+    def test_strict_reader_decimal_precision(self):
+        # NumericValue.value from the `pddl` package is a binary float, so converting
+        # it with `Fraction(value)` bakes in IEEE-754 rounding error (`Fraction(0.1)`
+        # is not exactly 1/10). The strict ai-pddl-parser path must build the Fraction
+        # from the literal's string instead, exactly like ANMLReader does for ANML's
+        # decimal literals.
+        problem = self.problems["robot_decrease"].problem
+        w = PDDLWriter(problem)
+        domain_str = w.get_domain()
+
+        problem_str = """(define (problem robot_decrease-problem)
+ (:domain robot_decrease-domain)
+ (:init (= (battery_charge) 0.1))
+ (:goal (and))
+)
+"""
+        reader = PDDLReader(force_ai_planning_reader=True)
+        parsed_problem = reader.parse_problem_string(domain_str, problem_str)
+        parsed_battery = parsed_problem.fluent("battery_charge")
+        self.assertEqual(
+            parsed_problem.initial_value(parsed_battery()), Real(Fraction(1, 10))
+        )
+
+        problem_str_small = problem_str.replace("0.1", "0.00001")
+        parsed_problem_small = reader.parse_problem_string(
+            domain_str, problem_str_small
+        )
+        parsed_battery_small = parsed_problem_small.fluent("battery_charge")
+        self.assertEqual(
+            parsed_problem_small.initial_value(parsed_battery_small()),
+            Real(Fraction(1, 100000)),
+        )
+
+    def test_small_rationals(self):
+        # A real constant whose magnitude makes Python's str()/repr() switch to
+        # scientific notation (below 1e-4) must still be written as a plain decimal:
+        # PDDL's numeric-literal grammar has no exponent notation, so e.g. "1e-05" is
+        # not valid PDDL and the strict ai-pddl-parser rejects it outright.
+        problem = self.problems["robot_decrease"].problem.clone()
+        battery = problem.fluent("battery_charge")
+        problem.set_initial_value(battery, Fraction(1, 100000))
+        w = PDDLWriter(problem)
+        pddl_txt = w.get_problem()
+        self.assertIsNone(re.search(r"\de[+-]?\d", pddl_txt))
+        self.assertIn("0.00001", pddl_txt)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            domain_filename = os.path.join(tempdir, "domain.pddl")
+            problem_filename = os.path.join(tempdir, "problem.pddl")
+            w.write_domain(domain_filename)
+            w.write_problem(problem_filename)
+
+            for reader in (
+                PDDLReader(force_ai_planning_reader=True),
+                PDDLReader(force_up_pddl_reader=True),
+            ):
+                parsed_problem = reader.parse_problem(domain_filename, problem_filename)
+                parsed_battery = parsed_problem.fluent("battery_charge")
+                self.assertEqual(
+                    parsed_problem.initial_value(parsed_battery()),
+                    Real(Fraction(1, 100000)),
+                )
+
+    def test_time_triggered_plan_small_rationals(self):
+        # PDDLWriter._write_plan formatted TimeTriggeredPlan start times/durations
+        # with a raw float(...), bypassing convert_fraction entirely, so a small
+        # enough value (e.g. 1/100000) was written in scientific notation and
+        # UPPDDLReader's own plan-parsing regex (which only accepts plain decimals)
+        # could not read it back.
+        problem = self.problems["matchcellar"].problem
+        light_match = problem.action("light_match")
+        m1 = problem.object("m1")
+        w = PDDLWriter(problem)
+
+        plan = TimeTriggeredPlan(
+            [
+                (
+                    Fraction(1, 100000),
+                    up.plans.ActionInstance(light_match, (ObjectExp(m1),)),
+                    Fraction(1, 100000),
+                )
+            ]
+        )
+        plan_str = w.get_plan(plan)
+        self.assertIsNone(re.search(r"\de[+-]?\d", plan_str))
+        self.assertEqual(plan_str, "0.00001: (light_match m1)[0.00001]\n")
+        parsed_plan = UPPDDLReader().parse_plan_string(
+            problem, plan_str, w.get_item_named
+        )
+        self.assertEqual(parsed_plan, plan)
+
+        # Non-tiny values keep printing exactly as before.
+        plan_2 = TimeTriggeredPlan(
+            [
+                (
+                    Fraction(1, 2),
+                    up.plans.ActionInstance(light_match, (ObjectExp(m1),)),
+                    Fraction(3, 2),
+                )
+            ]
+        )
+        plan_str_2 = w.get_plan(plan_2)
+        self.assertEqual(plan_str_2, "0.5: (light_match m1)[1.5]\n")
+        parsed_plan_2 = UPPDDLReader().parse_plan_string(
+            problem, plan_str_2, w.get_item_named
+        )
+        self.assertEqual(parsed_plan_2, plan_2)
 
     def test_ad_hoc_1(self):
         when = UserType("when")
