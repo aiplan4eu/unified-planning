@@ -106,6 +106,29 @@ class TestModel(unittest_TestCase):
             self.assertNotEqual(problem_clone_2, problem)
             self.assertNotEqual(problem, problem_clone_2)
 
+    def test_clone_preserves_timed_effect_conflict_tracking(self):
+        x = Fluent("x", RealType())
+        y = Fluent("y", RealType())
+        problem = Problem("p")
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_fluent(y, default_initial_value=0)
+        t = GlobalStartTiming()
+        problem.add_increase_effect(t, x, 1)
+
+        # sanity: the original detects the conflict
+        with self.assertRaises(UPConflictingEffectsException):
+            problem.add_timed_effect(t, x, 2)
+
+        problem_clone = problem.clone()
+        self.assertEqual(problem_clone._fluents_inc_dec, problem._fluents_inc_dec)
+        # the clone must detect the very same conflict
+        with self.assertRaises(UPConflictingEffectsException):
+            problem_clone.add_timed_effect(t, x, 2)
+
+        # ... and the copy must be independent from the original
+        problem_clone.add_increase_effect(t, y, 1)
+        problem.add_timed_effect(t, y, 2)  # no conflict on the original
+
     def test_clone_action(self):
         Location = UserType("Location")
         with self.assertRaises(TypeError):

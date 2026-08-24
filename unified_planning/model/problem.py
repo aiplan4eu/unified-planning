@@ -277,6 +277,9 @@ class Problem(  # type: ignore[misc]
         new_p._fluents_assigned = {
             t: d.copy() for t, d in self._fluents_assigned.items()
         }
+        new_p._fluents_inc_dec = {
+            t: fs.copy() for t, fs in self._fluents_inc_dec.items()
+        }
 
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
