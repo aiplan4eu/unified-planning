@@ -28,7 +28,10 @@ from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines.compilers import ConditionalEffectsRemover
+from unified_planning.engines.compilers import (
+    ConditionalEffectsRemover,
+    StateInvariantsRemover,
+)
 from unified_planning.engines import CompilationKind
 
 
@@ -58,3 +61,29 @@ class TestStateInvariantsRemover(unittest_TestCase):
                 compiled_problem.goals[0],
                 compiled_problem.environment.expression_manager.FALSE(),
             )
+
+    def test_resulting_problem_kind_with_state_invariants(self):
+        problem = self.problems["robot_loader_weak_bridge"].problem
+        self.assertTrue(problem.kind.has_state_invariants())
+
+        new_kind = StateInvariantsRemover.resulting_problem_kind(
+            problem.kind, CompilationKind.STATE_INVARIANTS_REMOVING
+        )
+        self.assertFalse(new_kind.has_state_invariants())
+
+        compiled = (
+            StateInvariantsRemover()
+            .compile(problem, CompilationKind.STATE_INVARIANTS_REMOVING)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
+        self.assertTrue(compiled.kind <= new_kind)
+
+    def test_compilers_pipeline_with_state_invariants(self):
+        problem = self.problems["robot_loader_weak_bridge"].problem
+        with Compiler(
+            problem_kind=problem.kind,
+            compilation_kinds=[CompilationKind.STATE_INVARIANTS_REMOVING],
+        ) as compiler:
+            compiled = compiler.compile(problem).problem
+        self.assertFalse(compiled.kind.has_state_invariants())

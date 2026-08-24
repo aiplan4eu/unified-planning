@@ -119,7 +119,7 @@ class StateInvariantsRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
         if new_kind.has_state_invariants():
-            new_kind.unset_constraints("STATE_INVARIANTS")
+            new_kind.unset_constraints_kind("STATE_INVARIANTS")
         return new_kind
 
     def _compile(
