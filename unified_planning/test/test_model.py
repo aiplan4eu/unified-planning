@@ -26,6 +26,7 @@ from unified_planning.exceptions import (
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.multi_agent import Agent, MultiAgentProblem
 
 
 class TestModel(unittest_TestCase):
@@ -150,6 +151,35 @@ class TestModel(unittest_TestCase):
         b = InstantaneousAction("b")
         with self.assertRaises(UPProblemDefinitionError):
             b.add_effect(value(other), 9)
+
+    def test_effect_dot_target(self):
+        Location = UserType("Location")
+        l1 = Object("l1", Location)
+        at = Fluent("at", BoolType(), l=Location)
+        home = Fluent("home", Location)
+        counter = Fluent("counter", IntType())
+
+        ma = MultiAgentProblem("ma")
+        ma.add_object(l1)
+        ag = Agent("a1", ma)
+        ag.add_fluent(at, default_initial_value=False)
+        ag.add_fluent(home, default_initial_value=l1)
+        ag.add_fluent(counter, default_initial_value=0)
+        ma.add_agent(ag)
+
+        # a Dot target with no other fluents nested in its arguments is accepted...
+        c = InstantaneousAction("c")
+        c.add_effect(Dot(ag, at(l1)), True)
+        self.assertEqual(c.effects[0].fluent, Dot(ag, at(l1)))
+
+        d = InstantaneousAction("d")
+        d.add_increase_effect(Dot(ag, counter()), 1)
+        self.assertEqual(d.effects[0].fluent, Dot(ag, counter()))
+
+        # ...but a Dot target with another fluent nested in its arguments is still rejected.
+        e = InstantaneousAction("e")
+        with self.assertRaises(UPProblemDefinitionError):
+            e.add_effect(Dot(ag, at(home())), True)
 
     def test_interpreted_functions_in_numeric_assignments(self):
         i_type = IntType(0, 5)

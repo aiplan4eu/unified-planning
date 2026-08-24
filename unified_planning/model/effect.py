@@ -77,8 +77,11 @@ class Effect:
         forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         fve = fluent.environment.free_vars_extractor
+        # A multi-agent target is a Dot node wrapping the modified fluent expression, so the
+        # extractor yields that inner expression rather than the Dot node itself.
+        target_fluent_exp = fluent.arg(0) if fluent.is_dot() else fluent
         fluents_in_fluent = set(fve.get(fluent))
-        fluents_in_fluent.remove(fluent)
+        fluents_in_fluent.discard(target_fluent_exp)
         if fluents_in_fluent:
             raise UPProblemDefinitionError(
                 f"The fluent: {fluent} contains other fluents in his arguments: {fluents_in_fluent}"
