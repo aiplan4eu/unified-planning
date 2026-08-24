@@ -165,7 +165,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
         new_kind.unset_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
-        if new_kind.has("DURATION_INEQUALITIES"):
+        if new_kind.has_duration_inequalities():
             new_kind.unset_time("DURATION_INEQUALITIES")
             new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         new_kind.unset_time("INTERMEDIATE_CONDITIONS_AND_EFFECTS")
