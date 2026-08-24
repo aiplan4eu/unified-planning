@@ -291,7 +291,7 @@ class STNPlan(plans.plan.Plan):
                 for self_c in self_cl:
                     if not self_c in oth_cl:
                         return False
-            return False
+            return True
         else:
             return False
 

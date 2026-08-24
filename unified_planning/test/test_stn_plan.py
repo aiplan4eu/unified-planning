@@ -151,3 +151,71 @@ class TestSTNPlan(unittest_TestCase):
                 )
                 counter += 1
         self.assertEqual(counter, len(expected_new_constraints))
+
+    def test_equality(self):
+        action_1 = DurativeAction("1")
+        action_2 = DurativeAction("2")
+
+        ai_1 = ActionInstance(action_1)
+        ai_2 = ActionInstance(action_2)
+
+        ai_1_s = STNPlanNode(TimepointKind.START, ai_1)
+        ai_1_e = STNPlanNode(TimepointKind.END, ai_1)
+        ai_2_s = STNPlanNode(TimepointKind.START, ai_2)
+
+        constraints: List[
+            Tuple[STNPlanNode, Optional[int], Optional[int], STNPlanNode]
+        ] = [
+            (ai_1_s, 3, 3, ai_1_e),
+            (ai_1_e, None, 2, ai_2_s),
+        ]
+        constraints_cast = cast(
+            List[
+                Tuple[
+                    STNPlanNode,
+                    Optional[RealNumbers],
+                    Optional[RealNumbers],
+                    STNPlanNode,
+                ]
+            ],
+            constraints,
+        )
+
+        plan = STNPlan(constraints_cast)
+        same_content_plan = STNPlan(constraints_cast)
+
+        # plan compared to itself
+        self.assertEqual(plan, plan)
+
+        # plan compared to a different STNPlan built from the same constraints
+        self.assertEqual(plan, same_content_plan)
+        self.assertEqual(hash(plan), hash(same_content_plan))
+
+        # empty plans compared to each other (the reproduction from the bug report)
+        self.assertEqual(STNPlan([]), STNPlan([]))
+
+        # a different bound on the same nodes makes the plans different
+        different_bound_constraints = cast(
+            List[
+                Tuple[
+                    STNPlanNode,
+                    Optional[RealNumbers],
+                    Optional[RealNumbers],
+                    STNPlanNode,
+                ]
+            ],
+            [
+                (ai_1_s, 4, 4, ai_1_e),
+                (ai_1_e, None, 2, ai_2_s),
+            ],
+        )
+        different_bound_plan = STNPlan(different_bound_constraints)
+        self.assertNotEqual(plan, different_bound_plan)
+
+        # fewer constraints makes the plans different
+        fewer_constraints_plan = STNPlan(constraints_cast[:1])
+        self.assertNotEqual(plan, fewer_constraints_plan)
+
+        # comparison against a non-STNPlan is always False
+        self.assertNotEqual(plan, SequentialPlan([]))
+        self.assertNotEqual(plan, "not a plan")
