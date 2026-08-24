@@ -143,7 +143,7 @@ class PlanGenerationResult(Result):
     metrics: Optional[Dict[str, str]] = field(default=None)
     log_messages: Optional[List[LogMessage]] = field(default=None)
 
-    def __post__init(self):
+    def __post_init__(self):
         # Checks that plan and status are consistent
         if self.status in POSITIVE_OUTCOMES and self.plan is None:
             raise UPUsageError(
@@ -324,7 +324,7 @@ class CompilerResult(Result):
     plan_back_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
     plan_forward_conversion: Optional[Callable[[Plan], Plan]] = field(default=None)
 
-    def _post_init(self):
+    def __post_init__(self):
         # Check that compiled problem and map_back_action_instance or plan_back_conversion are consistent with each other
         if self.problem is None:
             if self.map_back_action_instance is not None:
