@@ -38,3 +38,63 @@ class TestTAMPProblem(unittest_TestCase):
         move = problem.action("move")
         self.assertEqual(1, len(move.motion_constraints))
         self.assertTrue(isinstance(move.motion_constraints[0], Waypoints))
+
+
+class TestMotionActivity(unittest_TestCase):
+    def test_repr_bare(self):
+        act = MotionActivity("act1", duration=2)
+        self.assertEqual(
+            repr(act),
+            "\n".join(
+                [
+                    "motion-activity {",
+                    "  act1 {",
+                    "      duration = [2, 2]",
+                    "    }",
+                    "  motion-constraints",
+                    "  motion-effects",
+                    "}",
+                ]
+            ),
+        )
+
+    def test_repr_with_constraints_and_effects(self):
+        Robot = MovableType("robot")
+        occupancy_map = OccupancyMap("map.yaml", SE2(0, 0, 0))
+        RobotConfig = ConfigurationType(
+            "robot_config", occupancy_map, ConfigurationKind.SE2
+        )
+        c1 = ConfigurationObject("c1", RobotConfig, SE2(0.0, 0.0, 0.0))
+        c2 = ConfigurationObject("c2", RobotConfig, SE2(1.0, 1.0, 0.0))
+        r1 = MovableObject(
+            "r1",
+            Robot,
+            footprint=[(-1.0, 0.5), (1.0, 0.5), (1.0, -0.5), (-1.0, -0.5)],
+            motion_model=MotionModels.REEDSSHEPP,
+            control_parameters={"turning_radius": 1.0},
+        )
+
+        act = MotionActivity("act1", duration=2)
+        constraint = Waypoints(r1, c1, [c2])
+        act.add_motion_constraint(constraint)
+        act.add_motion_effect(r1, c2)
+
+        r = repr(act)
+
+        self.assertEqual(
+            r,
+            "\n".join(
+                [
+                    "motion-activity {",
+                    "  act1 {",
+                    "      duration = [2, 2]",
+                    "    }",
+                    "  motion-constraints",
+                    f"      {str(constraint)}",
+                    "  motion-effects",
+                    f"      {str(r1)} := {str(c2)}",
+                    "}",
+                ]
+            ),
+        )
+        self.assertNotIn("\n\n", r)

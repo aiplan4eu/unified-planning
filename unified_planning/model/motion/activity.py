@@ -55,13 +55,13 @@ class MotionActivity(Activity, MotionConstraintsSetMixin):
 
     def __repr__(self) -> str:
         s = ["motion-activity {"]
-        s.append(super().__repr__().replace("/n", "\n  "))
+        s.append("  " + super().__repr__().replace("\n", "\n  "))
         s.append("  motion-constraints")
         for c in self._motion_constraints:
-            s.append(f"      {str(c)}\n")
+            s.append(f"      {str(c)}")
         s.append("  motion-effects")
-        for e in self._motion_effects:
-            s.append(f"      {str(e)}\n")
+        for movable, config in self._motion_effects.items():
+            s.append(f"      {str(movable)} := {str(config)}")
         s.append("}")
         return "\n".join(s)
 
