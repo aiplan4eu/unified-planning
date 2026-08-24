@@ -67,14 +67,6 @@ class MADisjunctiveConditionsRemover(DisjunctiveConditionsRemover):
     def supports(problem_kind):
         return problem_kind <= MADisjunctiveConditionsRemover.supported_kind()
 
-    @staticmethod
-    def resulting_problem_kind(
-        problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
-    ) -> ProblemKind:
-        new_kind = problem_kind.clone()
-        new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
-        return new_kind
-
     def _compile(
         self,
         problem: "up.model.AbstractProblem",

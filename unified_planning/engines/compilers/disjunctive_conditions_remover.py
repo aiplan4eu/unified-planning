@@ -139,7 +139,13 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         problem_kind: ProblemKind, compilation_kind: Optional[CompilationKind] = None
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
-        new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
+        if new_kind.has_disjunctive_conditions():
+            new_kind.unset_conditions_kind("DISJUNCTIVE_CONDITIONS")
+            # Removing a disjunction rewrites the condition in DNF (NNF first), which
+            # can turn an implication or an iff into a genuine negation, e.g.:
+            #   Implies(a, b) -> Or(Not(a), b)
+            #   Iff(a, b)     -> Or(And(a, b), And(Not(a), Not(b)))
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
         return new_kind
 
     def _compile(
