@@ -26,6 +26,9 @@ from unified_planning.test import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
+from unified_planning.engines.compilers.durative_actions_to_processes import (
+    DurativeActionToProcesses,
+)
 from unified_planning.engines.results import (
     ValidationResultStatus,
     PlanGenerationResultStatus,
@@ -641,6 +644,26 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         new_problem = res.problem
         events = len(problem.actions) * 2 + 2 + 1
         self.assertEqual(len(new_problem.events), events)
+
+    def test_resulting_problem_kind_with_duration_inequalities(self):
+        problem = self.problems["robot_with_variable_duration"].problem
+        self.assertTrue(problem.kind.has_duration_inequalities())
+
+        new_kind = DurativeActionToProcesses.resulting_problem_kind(
+            problem.kind, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES
+        )
+        self.assertFalse(new_kind.has_duration_inequalities())
+        # Duration inequalities are compiled into disjunctive events/conditions.
+        self.assertTrue(new_kind.has_disjunctive_conditions())
+
+        # Smoke test: actually compiling a problem with duration inequalities
+        # must not raise either.
+        compiled = (
+            DurativeActionToProcesses()
+            .compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
 
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_all(self):
