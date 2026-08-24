@@ -78,6 +78,22 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and (x)))", pddl_problem)
 
+    def test_iff_condition_writer(self):
+        a = Fluent("a", BoolType())
+        b = Fluent("b", BoolType())
+        act = InstantaneousAction("act")
+        act.add_precondition(Iff(a, b))
+        act.add_effect(a, True)
+
+        problem = Problem("iff_problem")
+        problem.add_fluent(a, default_initial_value=False)
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_action(act)
+
+        w = PDDLWriter(problem)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn("(:requirements :strips :disjunctive-preconditions)", pddl_domain)
+
     def test_basic_non_constant_boolean_assignment(self):
         problem = self.problems["basic"].problem.clone()
         x = problem.fluent("x")

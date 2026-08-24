@@ -371,7 +371,11 @@ class MultiAgentProblem(  # type: ignore[misc]
             self._kind.set_conditions_kind("EQUALITIES")
         if OperatorKind.NOT in ops:
             self._kind.set_conditions_kind("NEGATIVE_CONDITIONS")
-        if OperatorKind.OR in ops or OperatorKind.IMPLIES in ops:
+        if (
+            OperatorKind.OR in ops
+            or OperatorKind.IMPLIES in ops
+            or OperatorKind.IFF in ops
+        ):
             self._kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
         if OperatorKind.EXISTS in ops:
             self._kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")

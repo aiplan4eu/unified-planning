@@ -15,6 +15,7 @@
 
 import unified_planning as up
 from unified_planning.shortcuts import *
+from unified_planning.model.multi_agent import *
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples.multi_agent import get_example_problems
 
@@ -32,6 +33,25 @@ class TestProblem(unittest_TestCase):
         self.assertEqual(len(problem.agents[0].fluents), 1)
         self.assertEqual(len(problem.agents[0].actions), 1)
         self.assertEqual(len(problem.all_objects), 2)
+
+    def test_iff_condition_kind(self):
+        problem = MultiAgentProblem("ma-iff")
+
+        a = Fluent("a", BoolType())
+        b = Fluent("b", BoolType())
+
+        r = Agent("robot", problem)
+        r.add_fluent(a, default_initial_value=False)
+        r.add_fluent(b, default_initial_value=False)
+        act = InstantaneousAction("act")
+        act.add_precondition(Iff(a, b))
+        act.add_effect(a, True)
+        r.add_action(act)
+        problem.add_agent(r)
+
+        kind = problem.kind
+        self.assertTrue(kind.has_disjunctive_conditions())
+        self.assertFalse(kind.has_negative_conditions())
 
     def test_loader(self):
         problem = self.problems["ma-loader"].problem
