@@ -113,6 +113,11 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 
+# Keep the default guess-next-dev scheme: master builds must sort above the
+# last release. The fallback covers a tree with neither git nor a PKG-INFO.
+[tool.hatch.version.raw-options]
+fallback_version = "0.0.0"
+
 [tool.hatch.build.targets.wheel]
 packages = ["unified_planning", "up_test_cases"]
 

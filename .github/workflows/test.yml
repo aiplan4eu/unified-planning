@@ -67,6 +67,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # docs/conf.py reads the installed version; a shallow clone makes
+          # hatch-vcs report 0.0.1.dev1 and the docs render as version 0.0
+          fetch-depth: 0
 
       - name: Set up uv and just
         uses: ./.github/actions/setup
