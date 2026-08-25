@@ -126,7 +126,9 @@ class GrounderHelper:
             "up.model.fluent.Fluent", List[Tuple[FNode, ...]]
         ] = {}
         self._domain_items_cache: Dict[Type, List[FNode]] = {}
-        self._valid_params_cache: Dict[Tuple[FNode, int], Set[FNode]] = {}
+        self._valid_params_cache: Dict[
+            Tuple["up.model.fluent.Fluent", int], Set[FNode]
+        ] = {}
         env = problem.environment
         if prune_actions:
             self._simplifier = Simplifier(env, problem)
@@ -704,11 +706,14 @@ class GrounderHelper:
         return return_list
 
     def _bool_static_fluent_valid_parameters(self, sf: FNode, sp: int) -> Set[FNode]:
-        cache_key = (sf, sp)
+        # Keyed on (fluent, sp) rather than (sf, sp): the body below only ever depends on
+        # sf.fluent() and sp, never on sf's actual arguments, so keying on the whole atom
+        # missed cache hits across different atoms over the same fluent (and across actions).
+        fluent = sf.fluent()
+        cache_key = (fluent, sp)
         cached = self._valid_params_cache.get(cache_key)
         if cached is not None:
             return cached
-        fluent = sf.fluent()
         assert fluent in self._get_static_fluents()
         ret_val = {tup[sp] for tup in self._fluent_true_arg_tuples(fluent)}
         self._valid_params_cache[cache_key] = ret_val
