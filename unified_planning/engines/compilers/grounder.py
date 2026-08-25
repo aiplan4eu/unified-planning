@@ -18,6 +18,7 @@ import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
     Problem,
     ProblemKind,
@@ -272,16 +273,20 @@ class GrounderHelper:
         that correlates several of the action's parameters together and so ends up enumerating
         their full cross product.
 
-        Returns `None` if the join isn't applicable/safe for this action, including when the
-        join is disabled (`self._join_max_candidates <= 0`), the action type is unrecognized,
-        the parameter type is unbounded or unenumerable, the candidate count exceeds
-        `self._join_max_candidates`, or an unexpected exception occurs.
+        Returns `None` if the join isn't applicable/safe for this action. Every documented
+        bail-out stays silent: the join is disabled (`self._join_max_candidates <= 0`), the
+        action type is unrecognized (a plain `return None`, not an exception), the candidate
+        count exceeds `self._join_max_candidates`, or a parameter type is unbounded/
+        unenumerable (`domain_size`/`domain_item` raise `UPProblemDefinitionError` for those --
+        see `unified_planning/model/types.py`). Any other exception is treated as an internal
+        bug rather than an expected bail-out and is left to propagate to the caller, instead
+        of being swallowed into the same silent `None` as the documented bail-outs above.
         """
         if self._join_max_candidates <= 0:
             return None
         try:
             return self._compute_join_pruned_parameters_unsafe(action, type_list)
-        except Exception:
+        except UPProblemDefinitionError:
             return None
 
     def _compute_join_pruned_parameters_unsafe(
