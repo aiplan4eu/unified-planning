@@ -449,7 +449,6 @@ class GrounderHelper:
                 for (kind, payload), arg_value in zip(pattern, true_args):
                     if kind == "c":
                         if arg_value != payload:
-                            # TODO: can we enter here?
                             is_consistent = False
                             break
                     elif kind == "p":
@@ -467,7 +466,6 @@ class GrounderHelper:
                         # fluent (e.g. `sym(?x, ?x)`) must agree with itself at every
                         # occurrence, not just be individually well-typed at each one.
                         if col in binding and binding[col] != arg_value:
-                            # TODO: can we enter here?
                             is_consistent = False
                             break
                         binding[col] = arg_value
