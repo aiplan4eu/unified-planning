@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
 from typing import Any, TYPE_CHECKING
 
 from unified_planning.environment import Environment
@@ -22,3 +23,9 @@ if TYPE_CHECKING:
     AnyBaseClass = Any
 else:
     AnyBaseClass = object
+
+
+try:
+    __version__ = _pkg_version("unified-planning")
+except PackageNotFoundError:
+    __version__ = "0.0.0"

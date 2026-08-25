@@ -51,12 +51,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      # On master builds, stamp a unique dev version so the rolling `dev`
-      # pre-release wheels are distinguishable. Tag builds keep the real version.
-      - name: Stamp dev version (master builds only)
-        if: github.ref == 'refs/heads/master'
-        run: python3 ci/stamp_dev_version.py
-
       - name: Build sdist + wheel
         run: uv build
 
@@ -66,8 +60,10 @@ jobs:
           name: dist
           path: dist/
 
-  # Publish to PyPI only on a version tag (vX.Y.Z). Because the version is static,
-  # master pushes never publish to PyPI; a release happens when a tag is pushed.
+  # Publish to PyPI only on a version tag (vX.Y.Z). The version is derived from
+  # git (hatch-vcs), so master pushes build a distinct, monotonically increasing
+  # dev version on every commit, but they are only published to PyPI when a
+  # version tag is pushed.
   publish-pypi:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [build]
