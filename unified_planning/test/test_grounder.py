@@ -1210,6 +1210,30 @@ class TestGrounderJoinPruning(unittest_TestCase):
                 f'the join diverged from the per-parameter fallback on example problem "{name}"',
             )
 
+    def test_join_prunes_more_than_the_fallback_on_an_example_problem(self):
+        # The equivalence test above asserts the join and the fallback always produce the
+        # SAME final ground-action list -- by design, since every join-pruned candidate still
+        # goes through the exact feasibility check every fallback-pruned candidate does. That
+        # means it would pass identically even if the join silently did nothing at all, so it
+        # can't tell whether the join is actually pruning anything on any of this repo's
+        # example problems. This checks its actual advantage on
+        # "robot_package_delivery_joint_static_pruning": its `deliver` action's two static
+        # preconditions (`can_carry`, `pkg_at`) each jointly constrain a different pair of its
+        # three parameters -- exactly the shape independent per-parameter pruning can't see,
+        # so it still has to cross-product and reject every (robot, location, package) combo.
+        problem = self.problems["robot_package_delivery_joint_static_pruning"].problem
+        assert isinstance(problem, Problem)
+        deliver = problem.action("deliver")
+
+        joined = list(GrounderHelper(problem).get_possible_parameters(deliver))
+        fallback = list(
+            GrounderHelper(problem, join_max_candidates=0).get_possible_parameters(
+                deliver
+            )
+        )
+        self.assertEqual(len(joined), 3)
+        self.assertEqual(len(fallback), 18)
+
     def test_join_zero_parameter_action(self):
         problem = Problem("join_zero_param")
         done = Fluent("done")
