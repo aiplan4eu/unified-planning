@@ -249,14 +249,23 @@ class Problem(  # type: ignore[misc]
         return res
 
     def clone(self):
-        new_p = self._clone_without_actions_and_metrics()
+        new_p = Problem(self._name, self._env)
+        self._clone_to(new_p)
+        return new_p
+
+    def _clone_to(self, new_p: "Problem"):  # type: ignore[override]
+        """
+        Copies this `Problem`'s state onto `new_p`, which must already be a fresh instance of
+        `Problem` (or a subclass sharing the same fields). Used by `clone()` and by subclasses
+        (e.g. `HierarchicalProblem`, `ContingentProblem`) that add their own state around it.
+        """
+        self._clone_to_without_actions_and_metrics(new_p)
         new_p._actions = [a.clone() for a in self._actions]
         # last as it requires actions to be cloned already
         MetricsMixin._clone_to(self, new_p, new_actions=new_p)
-        return new_p
 
-    def _clone_without_actions_and_metrics(self) -> "Problem":
-        """Same as :func:`clone`, but leaves the clone with no actions (an empty action
+    def _clone_to_without_actions_and_metrics(self, new_p: "Problem") -> None:
+        """Same as :func:`_clone_to`, but leaves `new_p` with no actions (an empty action
         list) and no quality metrics, instead of deep-cloning the current ones. Several
         compilers in `engines/compilers/` call `clone()` and then immediately
         `clear_actions()`, discarding every cloned action right away -- cloning them first
@@ -266,7 +275,6 @@ class Problem(  # type: ignore[misc]
         using this method is expected to add its own actions and, if needed, its own quality
         metrics afterward.
         """
-        new_p = Problem(self._name, self._env)
         UserTypesSetMixin._clone_to(self, new_p)
         ObjectsSetMixin._clone_to(self, new_p)
         FluentsSetMixin._clone_to(self, new_p)
@@ -287,7 +295,6 @@ class Problem(  # type: ignore[misc]
         new_p._fluents_inc_dec = {
             t: fs.copy() for t, fs in self._fluents_inc_dec.items()
         }
-        return new_p
 
     def has_name(self, name: str) -> bool:
         """
