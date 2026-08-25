@@ -54,11 +54,14 @@ class GrounderHelper:
     with the same parameters will return the same object!
     """
 
+    DEFAULT_JOIN_MAX_CANDIDATES = 1_000_000
+
     def __init__(
         self,
         problem: Problem,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
         prune_actions: bool = True,
+        join_max_candidates: int = DEFAULT_JOIN_MAX_CANDIDATES,
     ):
         """
         Creates an instance of the GrounderHelper.
@@ -79,16 +82,22 @@ class GrounderHelper:
             action's parameters together (e.g. a lookup table relating them) is pruned down to the handful
             of parameter tuples actually consistent with it, rather than enumerating (and then rejecting)
             their full cross product. If the join isn't applicable/safe for a given action -- an unbounded
-            parameter type, a candidate count above an internal safety cap, or any unexpected condition --
+            parameter type, a candidate count above `join_max_candidates`, or any unexpected condition --
             that one action falls back to the weaker (but always sound) per-parameter-independent pruning:
             each parameter is narrowed, independently of the others, to the objects that appear at a
             matching argument position of some true static fluent in the action's precondition. If
             `False`, no pruning at all is done.
+        :param join_max_candidates: Safety valve for the join part of `prune_actions`: for one
+            action, once its running candidate count exceeds this, the join gives up and that
+            action falls back to the per-parameter-independent pruning instead. A value `<= 0`
+            disables the join outright (every action uses the fallback), which is mainly useful
+            to test the fallback path itself in isolation.
         """
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
         self._prune_actions = prune_actions
+        self._join_max_candidates = join_max_candidates
         if grounding_actions_map is not None:
             for action, params_list in grounding_actions_map.items():
                 for params in params_list:
@@ -253,11 +262,6 @@ class GrounderHelper:
                 res = iter(self._grounding_actions_map.get(action, []))
         return res
 
-    # Safety valve for the join: bail out to the per-parameter cross-product fallback for
-    # one action if its running candidate count exceeds this. The reference dataset this
-    # algorithm was validated against never got close to it (largest was ~52k).
-    _JOIN_MAX_CANDIDATES = 1_000_000
-
     def _compute_join_pruned_parameters(
         self, action: Action, type_list: List[Type]
     ) -> Optional[List[Tuple[FNode, ...]]]:
@@ -269,9 +273,12 @@ class GrounderHelper:
         their full cross product.
 
         Returns `None` if the join isn't applicable/safe for this action, including when the
-        action type is unrecognized, the parameter type is unbounded or unenumerable, the
-        candidate count exceeds _JOIN_MAX_CANDIDATES, or an unexpected exception occurs.
+        join is disabled (`self._join_max_candidates <= 0`), the action type is unrecognized,
+        the parameter type is unbounded or unenumerable, the candidate count exceeds
+        `self._join_max_candidates`, or an unexpected exception occurs.
         """
+        if self._join_max_candidates <= 0:
+            return None
         try:
             return self._compute_join_pruned_parameters_unsafe(action, type_list)
         except Exception:
@@ -335,8 +342,8 @@ class GrounderHelper:
                 (`{**left, **right}` for every pair) -- still correct, just not a filtering
                 join.
             - Early exits: if `bindings` became empty, stop early (nothing will ever match).
-              If it exceeds `_JOIN_MAX_CANDIDATES`, give up and return `None` (safety valve
-              back to per-parameter pruning for this action).
+              If it exceeds `self._join_max_candidates`, give up and return `None` (safety
+              valve back to per-parameter pruning for this action).
         4. Handle free (never-bound) columns: any parameter column no fluent constrained is
             a `free_column`; its full domain (`free_domains`) must be cross-producted in.
             Compute the prospective final size (`len(bindings) * free_size`) and bail to
@@ -500,7 +507,7 @@ class GrounderHelper:
                 # Zero rows survived: no combination can ever satisfy every fluent folded in
                 # so far, so no later fluent can matter either -- stop early.
                 break
-            if len(bindings) > self._JOIN_MAX_CANDIDATES:
+            if len(bindings) > self._join_max_candidates:
                 # Safety valve: give up on the join for this action and let the caller fall
                 # back to the (always bounded, if weaker) per-parameter pruning instead.
                 return None
@@ -518,7 +525,7 @@ class GrounderHelper:
         free_size = 1
         for domain in free_domains:
             free_size *= len(domain)
-        if len(bindings) * free_size > self._JOIN_MAX_CANDIDATES:
+        if len(bindings) * free_size > self._join_max_candidates:
             # Second safety check: even when the constrained part of `bindings` stayed
             # small, cross-joining in every free column could still blow the budget.
             return None
@@ -697,7 +704,8 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     the integration of external grounders inside the library. To see a practical example, checkout the :class:`~unified_planning.engines.compilers.TarskiGrounder` `_compile`
     implementation.
     The Grounder class can also optionally take a `prune_actions` flag to enable/disable the pruning of
-    actions exploiting the simplification of static fluents -- see
+    actions exploiting the simplification of static fluents, and a `join_max_candidates` safety-valve
+    threshold for that pruning's join -- see
     :func:`GrounderHelper.__init__ <unified_planning.engines.compilers.GrounderHelper>` for details.
 
     Interpreted functions are treated as ordinary sub-expressions: calls appearing in conditions, effect
@@ -713,11 +721,13 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         self,
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
         prune_actions: bool = True,
+        join_max_candidates: int = GrounderHelper.DEFAULT_JOIN_MAX_CANDIDATES,
     ):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         self._grounding_actions_map = grounding_actions_map
         self._prune_actions = prune_actions
+        self._join_max_candidates = join_max_candidates
 
     @property
     def name(self):
@@ -822,7 +832,10 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             "The given problem is not a class supported by the Grounder"
         )
         grounder_helper = GrounderHelper(
-            problem, self._grounding_actions_map, self._prune_actions
+            problem,
+            self._grounding_actions_map,
+            self._prune_actions,
+            self._join_max_candidates,
         )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
 

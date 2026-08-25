@@ -1055,16 +1055,15 @@ class TestGrounderJoinPruning(unittest_TestCase):
 
     @staticmethod
     def _ground_names(problem, force_fallback_only=False):
-        original_cap = GrounderHelper._JOIN_MAX_CANDIDATES
-        if force_fallback_only:
-            # A cap of 0 makes every join attempt bail out immediately, forcing every
-            # (non-zero-parameter) action through the per-parameter-independent fallback --
-            # used to check the join never changes output versus that fallback.
-            GrounderHelper._JOIN_MAX_CANDIDATES = 0
-        try:
-            result = Grounder().compile(problem, CompilationKind.GROUNDING)
-        finally:
-            GrounderHelper._JOIN_MAX_CANDIDATES = original_cap
+        # A cap of 0 disables the join outright, forcing every (non-zero-parameter) action
+        # through the per-parameter-independent fallback -- used to check the join never
+        # changes output versus that fallback.
+        join_max_candidates = (
+            0 if force_fallback_only else GrounderHelper.DEFAULT_JOIN_MAX_CANDIDATES
+        )
+        result = Grounder(join_max_candidates=join_max_candidates).compile(
+            problem, CompilationKind.GROUNDING
+        )
         grounded = result.problem
         assert isinstance(grounded, Problem)
         return [a.name for a in grounded.actions]
@@ -1107,6 +1106,42 @@ class TestGrounderJoinPruning(unittest_TestCase):
             set(result),
             {rel(items[0], items[1]).args, rel(items[2], items[3]).args},
         )
+
+    def test_join_max_candidates_zero_disables_the_join_even_on_zero_rows(self):
+        # `join_max_candidates <= 0` must disable the join outright (`None`, meaning "use the
+        # fallback"), even for an action whose first-folded static fluent alone empties
+        # `bindings` via the early `if not bindings: break` exit -- that path returns `[]`
+        # (a *legitimate* answer: the join proved there are zero valid candidates) without
+        # ever reaching the `len(bindings) > cap` check below it, so a cap of 0 does not, by
+        # itself, force that particular action through the check that's supposed to disable
+        # the join. Guarding on the cap before running the join at all (as `_compute_join_
+        # pruned_parameters` now does) is what makes disabling it airtight regardless of
+        # which exit path the join would otherwise have taken.
+        problem = Problem("join_disabled_zero_rows")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(3)]
+        rel = Fluent("rel", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type, y=item_type)
+        x = action.parameter("x")
+        y = action.parameter("y")
+        action.add_precondition(rel(x, y))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(rel, default_initial_value=False)  # rel is never true
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        problem.add_action(action)
+        type_list = [p.type for p in action.parameters]
+
+        # With the join enabled, it correctly proves zero candidates on its own.
+        enabled = GrounderHelper(problem)
+        self.assertEqual(enabled._compute_join_pruned_parameters(action, type_list), [])
+
+        # With the join disabled, that must read as "no answer from the join", not as the
+        # join's own (here coincidentally identical) empty-list answer.
+        disabled = GrounderHelper(problem, join_max_candidates=0)
+        self.assertIsNone(disabled._compute_join_pruned_parameters(action, type_list))
 
     def test_join_equivalent_to_fallback_pruning_on_example_problems(self):
         # The single most important check: for every example problem this repo already has
