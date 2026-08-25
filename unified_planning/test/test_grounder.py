@@ -1143,6 +1143,55 @@ class TestGrounderJoinPruning(unittest_TestCase):
         disabled = GrounderHelper(problem, join_max_candidates=0)
         self.assertIsNone(disabled._compute_join_pruned_parameters(action, type_list))
 
+    def test_join_cap_bails_out_of_a_large_intermediate_merge_soundly(self):
+        # Both merge shapes (the no-shared-column cross product and the hash join) used to
+        # be checked against `self._join_max_candidates` only after being fully built, so an
+        # intermediate merge result could balloon far past the cap before anything noticed --
+        # `p`/`q` below (each unconstrained on their own column) force exactly that: their
+        # cross product is domain_size**2 rows before `r` narrows it back down. This doesn't
+        # observe the peak-memory difference (that needs a profiler, not a unit test), but it
+        # does pin down that bailing out earlier -- from inside the merge instead of after --
+        # doesn't change the final, correct answer: grounding with a cap small enough to force
+        # that mid-merge bail-out must still match grounding with the default (large) cap.
+        problem = Problem("join_large_intermediate_merge")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(6)]
+        p = Fluent("p", BoolType(), a=item_type)
+        q = Fluent("q", BoolType(), a=item_type)
+        r = Fluent("r", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type, y=item_type, z=item_type)
+        x = action.parameter("x")
+        y = action.parameter("y")
+        action.add_precondition(p(x))
+        action.add_precondition(q(y))
+        action.add_precondition(r(x, y))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(p, default_initial_value=False)
+        problem.add_fluent(q, default_initial_value=False)
+        problem.add_fluent(r, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        for item in items:
+            problem.set_initial_value(p(item), True)
+            problem.set_initial_value(q(item), True)
+        # Only one (x, y) pair actually satisfies r, so the 6*6=36-row cross product of p and
+        # q (built before r ever narrows anything) is 6x larger than the join's final result.
+        problem.set_initial_value(r(items[0], items[0]), True)
+        problem.add_action(action)
+
+        default_names = self._ground_names(problem)
+        small_cap_result = Grounder(join_max_candidates=10).compile(
+            problem, CompilationKind.GROUNDING
+        )
+        small_cap_problem = small_cap_result.problem
+        assert isinstance(small_cap_problem, Problem)
+        small_cap_names = [a.name for a in small_cap_problem.actions]
+
+        self.assertEqual(small_cap_names, default_names)
+        self.assertEqual(len(default_names), len(items))  # r pins x=y=i0; z stays free
+
     def test_join_equivalent_to_fallback_pruning_on_example_problems(self):
         # The single most important check: for every example problem this repo already has
         # test fixtures for, the join and the per-parameter fallback must produce list-equal

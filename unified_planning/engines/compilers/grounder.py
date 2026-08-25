@@ -332,17 +332,24 @@ class GrounderHelper:
               doesn't match, if a parameter-column value falls outside that parameter's own
               domain (the hierarchical-typing guard), or if the fluent binds the same column
               twice inconsistently (handles `sym(?x, ?x)`-style repeated parameters within
-              one fluent).
+              one fluent). Bail out to `None` here if `rows` alone already exceeds
+              `self._join_max_candidates` -- a fluent with a `True` default over N objects
+              materializes N**arity rows on its own, before anything is merged.
             - Merge into `bindings`:
               - First fluent: `bindings` just becomes `rows`.
               - Later fluents: find `shared_columns` already bound vs. this fluent's
                 columns. If there's overlap, do an actual indexed hash-join on those shared
                 columns (`rows_by_shared_key`, built once, then probed once per existing
-                binding into `joined_rows`). If no overlap, it's a cross-product merge
-                (`{**left, **right}` for every pair) -- still correct, just not a filtering
-                join.
+                binding into `joined_rows`, bailing out to `None` as soon as `joined_rows`
+                itself exceeds the cap, rather than after the merge finishes). If no
+                overlap, it's a cross-product merge (`{**left, **right}` for every pair) --
+                still correct, just not a filtering join; its exact size
+                (`len(bindings) * len(rows)`) is known upfront, so it is cap-checked before
+                being built rather than after.
             - Early exits: if `bindings` became empty, stop early (nothing will ever match).
-              If it exceeds `self._join_max_candidates`, give up and return `None` (safety
+              If it still exceeds `self._join_max_candidates` after the merge (the two
+              per-merge checks above only bound the merge's own two shapes, so this is a
+              cheap backstop, not the primary guard), give up and return `None` (safety
               valve back to per-parameter pruning for this action).
         4. Handle free (never-bound) columns: any parameter column no fluent constrained is
             a `free_column`; its full domain (`free_domains`) must be cross-producted in.
@@ -467,6 +474,12 @@ class GrounderHelper:
                 if is_consistent:
                     rows.append(binding)
 
+            if len(rows) > self._join_max_candidates:
+                # Safety valve, checked before this fluent's rows are merged into anything:
+                # a fluent with a `True` default over N objects materializes this list as
+                # N**arity rows on its own, regardless of how small `bindings` still is.
+                return None
+
             if bindings is None:
                 # First fluent processed: nothing to join against yet, so its own rows become
                 # the running result outright.
@@ -493,11 +506,21 @@ class GrounderHelper:
                             merged = dict(left)
                             merged.update(right)
                             joined_rows.append(merged)
+                            if len(joined_rows) > self._join_max_candidates:
+                                # Safety valve, checked as the join result is accumulated
+                                # rather than after: a join of two large tables can blow the
+                                # cap well before either operand's own size would suggest.
+                                return None
                     bindings = joined_rows
                 else:
                     # No shared column: this fluent constrains entirely different
                     # parameters than anything folded in so far, so there is nothing to join
                     # on -- cross every existing binding with every one of this fluent's rows.
+                    if len(bindings) * len(rows) > self._join_max_candidates:
+                        # Safety valve, checked before the cross product is built rather
+                        # than after: with no shared column to filter on, its size is
+                        # exactly len(bindings) * len(rows), known upfront.
+                        return None
                     bindings = [
                         {**left, **right} for left in bindings for right in rows
                     ]
