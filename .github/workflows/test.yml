@@ -216,7 +216,7 @@ jobs:
 
       # up-enhsp and up-fmap both shell out to java.
       - name: Setup java for the ENHSP and FMAP engines
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: "microsoft"
           java-version: "17"
