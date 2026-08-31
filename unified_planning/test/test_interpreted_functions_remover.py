@@ -361,6 +361,121 @@ class TestInterpretedFunctionsRemover(unittest_TestCase):
 
         self.assertEqual(to_check_cut, test_cut)
 
+    def test_all_problem_kind(self):
+        # for every shared example problem this compiler supports, the claimed
+        # resulting kind must cover the actually compiled problem's kind.
+        ifr = InterpretedFunctionsRemover()
+        checked = 0
+        for example in self.problems.values():
+            problem = example.problem
+            if not isinstance(problem, Problem):
+                continue
+            kind = problem.kind
+            if not InterpretedFunctionsRemover.supports(kind):
+                continue
+            if not (
+                kind.has_interpreted_functions_in_conditions()
+                or kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+            ):
+                continue
+            comp_res = ifr.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            assert isinstance(comp_res.problem, Problem)
+            compiled_kind = comp_res.problem.kind
+            resulting_kind = InterpretedFunctionsRemover.resulting_problem_kind(
+                kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+            self.assertTrue(
+                compiled_kind <= resulting_kind,
+                msg=f"{problem.name}: compiled kind has features "
+                f"{sorted(set(compiled_kind.features) - set(resulting_kind.features))} "
+                "that resulting_problem_kind does not claim",
+            )
+            checked += 1
+        self.assertGreater(checked, 0)
+
+    def test_resulting_kind_unknown_goal_is_disjunctive(self):
+        # the compiled goal is rewritten to `Or(goal, <tracker fluent>)` to account for
+        # the case where the interpreted function's value stays unknown, so the compiled
+        # problem gains a disjunction that was not present in the input problem.
+        problem = self.problems["interpreted_functions_in_boolean_assignment"].problem
+        self.assertFalse(problem.kind.has_disjunctive_conditions())
+
+        ifr = InterpretedFunctionsRemover()
+        resulting_kind = InterpretedFunctionsRemover.resulting_problem_kind(
+            problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+        )
+        comp_res = ifr.compile(problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        self.assertTrue(compiled_kind.has_disjunctive_conditions())
+        self.assertTrue(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(compiled_kind <= resulting_kind)
+
+    def test_resulting_kind_unknown_duration_is_a_real_inequality(self):
+        # when the interpreted function used in a duration bound is not known, `_compile`
+        # falls back to the fixed real interval [1, 1000000], introducing a real-typed,
+        # unequal duration bound even though the input only has `INT_TYPE_DURATIONS`.
+        problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
+        self.assertFalse(problem.kind.has_real_type_durations())
+        self.assertFalse(problem.kind.has_duration_inequalities())
+
+        ifr = InterpretedFunctionsRemover()
+        resulting_kind = InterpretedFunctionsRemover.resulting_problem_kind(
+            problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+        )
+        comp_res = ifr.compile(problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        self.assertTrue(compiled_kind.has_real_type_durations())
+        self.assertTrue(compiled_kind.has_duration_inequalities())
+        self.assertTrue(resulting_kind.has_real_type_durations())
+        self.assertTrue(resulting_kind.has_duration_inequalities())
+        self.assertTrue(resulting_kind.has_int_type_durations())
+        self.assertTrue(compiled_kind <= resulting_kind)
+
+    def test_resulting_kind_with_known_values(self):
+        # when the compiler is given known interpreted-function values, the "known" branch
+        # of the compiled action introduces fresh helper fluents/objects/UserTypes and
+        # Equals/Implies/Not guards around them - none of which are visible from the input
+        # problem's kind alone.
+        problem = self.problems["IF_in_conditions_complex_1"].problem
+        if_obj = problem.action("f").preconditions[0].args[0].interpreted_function()
+        self.assertTrue(isinstance(if_obj, InterpretedFunction))
+        knowledge = {InterpretedFunctionExp(if_obj, [1]): 2}
+
+        self.assertFalse(problem.kind.has_equalities())
+        self.assertFalse(problem.kind.has_flat_typing())
+        self.assertFalse(problem.kind.has_negative_conditions())
+        self.assertFalse(problem.kind.has_disjunctive_conditions())
+
+        resulting_kind = InterpretedFunctionsRemover.resulting_problem_kind(
+            problem.kind, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+        )
+        with InterpretedFunctionsRemover(knowledge) as if_remover:
+            comp_res = if_remover.compile(
+                problem, CompilationKind.INTERPRETED_FUNCTIONS_REMOVING
+            )
+        assert isinstance(comp_res.problem, Problem)
+        compiled_kind = comp_res.problem.kind
+
+        self.assertTrue(compiled_kind.has_equalities())
+        self.assertTrue(compiled_kind.has_flat_typing())
+        self.assertTrue(compiled_kind.has_negative_conditions())
+        self.assertTrue(compiled_kind.has_disjunctive_conditions())
+
+        self.assertTrue(resulting_kind.has_equalities())
+        self.assertTrue(resulting_kind.has_flat_typing())
+        self.assertTrue(resulting_kind.has_negative_conditions())
+        self.assertTrue(resulting_kind.has_disjunctive_conditions())
+        self.assertTrue(compiled_kind <= resulting_kind)
+
 
 def contains_condition_helper(
     to_check: List[FNode], correct_args: List, expected_type: OperatorKind

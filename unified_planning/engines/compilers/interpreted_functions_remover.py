@@ -175,18 +175,98 @@ class InterpretedFunctionsRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         assert isinstance(problem_kind, ProblemKind)
         new_kind = problem_kind.clone()
-        if new_kind.has_interpreted_functions_in_conditions():
+
+        if_in_conditions = new_kind.has_interpreted_functions_in_conditions()
+        if_in_durations = new_kind.has_interpreted_functions_in_durations()
+        if_in_bool_assignments = (
+            new_kind.has_interpreted_functions_in_boolean_assignments()
+        )
+        if_in_numeric_assignments = (
+            new_kind.has_interpreted_functions_in_numeric_assignments()
+        )
+        if_in_object_assignments = (
+            new_kind.has_interpreted_functions_in_object_assignments()
+        )
+        # an interpreted function anywhere in the problem forces _compile to introduce
+        # a fresh helper fluent for its "known value" branch (see below); an interpreted
+        # function in an effect additionally forces a "is unknown" tracking fluent.
+        if_in_effects = (
+            if_in_bool_assignments
+            or if_in_numeric_assignments
+            or if_in_object_assignments
+        )
+        if_anywhere = if_in_conditions or if_in_durations or if_in_effects
+
+        if if_in_conditions:
             new_kind.unset_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
-        if new_kind.has_interpreted_functions_in_durations():
+            # the "known value" helper fluent (`_f_<ifun>`) is typed with the
+            # interpreted function's own return type, which the input kind does not
+            # record; over-approximate with every fluent type it could be.
+            new_kind.set_fluents_type("INT_FLUENTS")
+            new_kind.set_fluents_type("REAL_FLUENTS")
+            new_kind.set_fluents_type("OBJECT_FLUENTS")
+        if if_in_durations:
             new_kind.unset_expression_duration("INTERPRETED_FUNCTIONS_IN_DURATIONS")
             new_kind.set_expression_duration("INT_TYPE_DURATIONS")
-        if new_kind.has_interpreted_functions_in_boolean_assignments():
+            # when the value is not known, the duration bound falls back to the fixed
+            # real interval [1, 1000000], introducing a real, unequal duration bound
+            # regardless of what the original duration looked like.
+            new_kind.set_expression_duration("REAL_TYPE_DURATIONS")
+            new_kind.set_time("DURATION_INEQUALITIES")
+            # the "known value" helper fluent substituted into the duration is static.
+            new_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+            new_kind.set_fluents_type("INT_FLUENTS")
+            new_kind.set_fluents_type("REAL_FLUENTS")
+        if if_in_bool_assignments:
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
-        if new_kind.has_interpreted_functions_in_numeric_assignments():
+            new_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+        if if_in_numeric_assignments:
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
-        if new_kind.has_interpreted_functions_in_object_assignments():
+            new_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            new_kind.set_fluents_type("INT_FLUENTS")
+            new_kind.set_fluents_type("REAL_FLUENTS")
+        if if_in_object_assignments:
             new_kind.unset_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
+            new_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
             new_kind.set_fluents_type("OBJECT_FLUENTS")
+
+        if if_in_effects:
+            # every interpreted function used in an effect gets an "is unknown"
+            # tracking fluent, reset via `Effect(tracker, Or(<other trackers>))` - a
+            # boolean assignment that depends on other (possibly static) fluents.
+            new_kind.set_effects_kind("FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+            new_kind.set_effects_kind("STATIC_FLUENTS_IN_BOOLEAN_ASSIGNMENTS")
+            # a fluent whose only assignment came from an interpreted function's value
+            # is no longer assigned at all in the compiled problem (it becomes a plain
+            # tracked/static fluent instead), so any non-static assignment/duration
+            # feature could turn into its static counterpart.
+            if new_kind.has_fluents_in_numeric_assignments():
+                new_kind.set_effects_kind("STATIC_FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+            if new_kind.has_fluents_in_object_assignments():
+                new_kind.set_effects_kind("STATIC_FLUENTS_IN_OBJECT_ASSIGNMENTS")
+            if new_kind.has_fluents_in_durations():
+                new_kind.set_expression_duration("STATIC_FLUENTS_IN_DURATIONS")
+            if new_kind.has_fluents_in_actions_cost():
+                new_kind.set_actions_cost_kind("STATIC_FLUENTS_IN_ACTIONS_COST")
+
+        if if_anywhere:
+            # the compiled goal/conditions are rewritten to `Or(cond, <is-unknown
+            # trackers>)` to account for the interpreted function's value staying
+            # unknown, and the "known value" helper fluent is guarded by
+            # `Equals`/`Implies(..., Equals(...))` conditions and, on the unknown
+            # branch, a `Not(And(...))` condition - none of which need to have been
+            # present in the input problem.
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("EQUALITIES")
+            # the helper fluents are parameterized by a fresh `kNum_<ifun>` UserType.
+            new_kind.set_typing("FLAT_TYPING")
+            # a problem with any int/real fluent always has exactly one of
+            # SIMPLE_/GENERAL_NUMERIC_PLANNING, and this compilation can flip which
+            # one applies; claim both when either could end up in the compiled problem.
+            if new_kind.has_int_fluents() or new_kind.has_real_fluents():
+                new_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+                new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
 
         return new_kind
 
