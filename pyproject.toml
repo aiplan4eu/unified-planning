@@ -80,7 +80,7 @@ dev = [
     # generated against, asserted by `just check-protobuf-version`. 1.76.0 is the oldest
     # release with wheels for every supported interpreter, 3.14 included, so it keeps the
     # floor the generated code imposes on users as low as 3.14 support allows.
-    "grpcio==1.76.0",
+    "grpcio==1.83.1",
     "grpcio-tools==1.76.0",
     "grpc-stubs>=1.53.0.5",
     "pytest>=8.0",
