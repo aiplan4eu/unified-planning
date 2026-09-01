@@ -339,7 +339,11 @@ class GrounderHelper:
               doesn't match, if a parameter-column value falls outside that parameter's own
               domain (the hierarchical-typing guard), or if the fluent binds the same column
               twice inconsistently (handles `sym(?x, ?x)`-style repeated parameters within
-              one fluent). Bail out to `None` here if `rows` alone already exceeds
+              one fluent). A wildcard position is not projected into the binding, so two
+              true tuples differing only there collapse onto the same row: when the pattern
+              has one, rows are deduplicated as they are built, or the same parameter tuple
+              would be emitted more than once. Bail out to `None` here if `rows` alone
+              already exceeds
               `self._join_max_candidates` -- a fluent with a `True` default over N objects
               materializes N**arity rows on its own, before anything is merged.
             - Merge into `bindings`:
@@ -446,6 +450,17 @@ class GrounderHelper:
                 # the per-parameter fallback pruning already has).
                 continue
 
+            # A binding only records the parameter columns, so a wildcard position is
+            # projected away: two true tuples that differ only there produce the very same
+            # row. Left in, that row is duplicated through every later merge and the same
+            # parameter tuple is grounded twice, which `Problem.add_action` rejects as a
+            # duplicate action name. Deduplicate as the rows are built (so the cap below
+            # sees the real count too); with no wildcard the projection is injective and
+            # the bookkeeping is skipped.
+            has_wildcard = any(kind == "*" for kind, _ in pattern)
+            row_columns = sorted(fluent_columns)
+            seen_rows: Set[Tuple[FNode, ...]] = set()
+
             # Check every argument tuple this fluent is actually true for against the
             # pattern; each one that's consistent becomes one candidate binding *for this
             # fluent alone* (not yet folded together with any other fluent's bindings).
@@ -476,8 +491,14 @@ class GrounderHelper:
                             is_consistent = False
                             break
                         binding[col] = arg_value
-                if is_consistent:
-                    rows.append(binding)
+                if not is_consistent:
+                    continue
+                if has_wildcard:
+                    row_key = tuple(binding[c] for c in row_columns)
+                    if row_key in seen_rows:
+                        continue
+                    seen_rows.add(row_key)
+                rows.append(binding)
 
             if len(rows) > self._join_max_candidates:
                 # Safety valve, checked before this fluent's rows are merged into anything:

@@ -1354,6 +1354,33 @@ class TestGrounderJoinPruning(unittest_TestCase):
         fallback_names = self._ground_names(problem, force_fallback_only=True)
         self.assertEqual(joined_names, fallback_names)
 
+    def test_join_wildcard_argument_does_not_duplicate_ground_actions(self):
+        # A wildcard argument position isn't projected into a join binding, so two distinct
+        # true tuples that agree on every non-wildcard position collapse onto the very same
+        # binding. Left undeduplicated, that binding is emitted once per matching true tuple,
+        # so the same parameter tuple is grounded (and added to the problem) more than once --
+        # which `Problem.add_action` rejects as a duplicate action name. Here `static(x, x+0)`
+        # is true for both `(1, 1)` and `(1, 2)`, both consistent with `x=1`.
+        problem = Problem("join_wildcard_duplicate")
+        int_type = IntType(0, 3)
+        static = Fluent("static", BoolType(), a=int_type, b=int_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=int_type)
+        x = action.parameter("x")
+        action.add_precondition(static(x, x + 0))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(static, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.set_initial_value(static(1, 1), True)
+        problem.set_initial_value(static(1, 2), True)
+        problem.add_action(action)
+
+        joined_names = self._ground_names(problem)
+        fallback_names = self._ground_names(problem, force_fallback_only=True)
+        self.assertEqual(joined_names, ["act_1"])
+        self.assertEqual(joined_names, fallback_names)
+
     def test_join_empty_relation(self):
         # A static atom whose relation has no true tuples at all must prune to zero
         # groundings, matching the per-parameter fallback.
