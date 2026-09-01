@@ -1427,3 +1427,57 @@ class TestGrounderJoinPruning(unittest_TestCase):
         expected = sorted(self._ground_names(problem, force_fallback_only=True))
         actual = sorted(self._ground_names(problem))
         self.assertEqual(expected, actual)
+
+    def test_oversized_default_true_static_fluent_is_not_materialized(self):
+        # `join_max_candidates` only ever compares rows that have already been built, so a
+        # static fluent defaulting to True -- whose true tuples are every one of its N**arity
+        # groundings -- used to be materialized in full before the first cap check. The size
+        # is now derived from the argument domains up front, and an over-budget relation is
+        # skipped without enumerating anything; skipping a conjunct only weakens the pruning,
+        # so the set of ground actions must come out unchanged.
+        problem = Problem("oversized_default_true")
+        item_type = UserType("Item")
+        items = [Object(f"i{i}", item_type) for i in range(4)]
+        tbl = Fluent("tbl", BoolType(), a=item_type, b=item_type)
+        dummy = Fluent("dummy")
+        action = InstantaneousAction("act", x=item_type, y=item_type)
+        action.add_precondition(tbl(action.parameter("x"), action.parameter("y")))
+        action.add_effect(dummy, True)
+
+        problem.add_fluent(
+            tbl, default_initial_value=True
+        )  # static: nothing ever writes it
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        problem.add_action(action)
+        problem.set_initial_value(tbl(items[0], items[1]), False)
+        problem.set_initial_value(tbl(items[2], items[3]), False)
+
+        # 16 groundings: within the default budget, so the relation is materialized.
+        within_budget = GrounderHelper(problem)
+        self.assertIsNotNone(within_budget._fluent_true_arg_tuples(tbl))
+
+        # A budget below 16 must reject it from the argument domains alone, without ever
+        # building the tuple list -- `None` here, and the join then prunes nothing with it.
+        over_budget = GrounderHelper(problem, join_max_candidates=4)
+        self.assertIsNone(over_budget._fluent_true_arg_tuples(tbl))
+
+        # A cap of 0 means "disable the join" and keeps the default enumeration budget.
+        self.assertIsNotNone(
+            GrounderHelper(problem, join_max_candidates=0)._fluent_true_arg_tuples(tbl)
+        )
+
+        expected = sorted(self._ground_names(problem))
+        actual = sorted(
+            a.name
+            for a in cast(
+                Problem,
+                Grounder(join_max_candidates=4)
+                .compile(problem, CompilationKind.GROUNDING)
+                .problem,
+            ).actions
+        )
+        self.assertEqual(expected, actual)
+        self.assertEqual(
+            len(expected), 14
+        )  # 16 pairs minus the 2 explicitly false ones

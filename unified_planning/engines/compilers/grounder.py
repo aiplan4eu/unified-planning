@@ -123,11 +123,11 @@ class GrounderHelper:
         # to compute once instead of once per action / per (parameter, static-fluent) pair.
         self._static_fluents_cache: Optional[Set["up.model.fluent.Fluent"]] = None
         self._true_arg_tuples_cache: Dict[
-            "up.model.fluent.Fluent", List[Tuple[FNode, ...]]
+            "up.model.fluent.Fluent", Optional[List[Tuple[FNode, ...]]]
         ] = {}
         self._domain_items_cache: Dict[Type, List[FNode]] = {}
         self._valid_params_cache: Dict[
-            Tuple["up.model.fluent.Fluent", int], Set[FNode]
+            Tuple["up.model.fluent.Fluent", int], Optional[Set[FNode]]
         ] = {}
         env = problem.environment
         if prune_actions:
@@ -300,104 +300,27 @@ class GrounderHelper:
         per-parameter (independent) pruning. Returns `None` when it can't safely do this
         (unrecognized action, unbounded type, candidate blow-up, or any exception).
 
-        High-level shape: it's a classic database join -- each static fluent in
-        `static_fluents` is a "table" of rows (the argument tuples for which that fluent is
-        true), and the algorithm joins these tables together on the action-parameter columns
-        they share, incrementally narrowing a running result set (`bindings`). Any parameter
-        columns never touched by a joinable fluent are left free and cross-producted in at
-        the end.
+        It's a classic database join: each static fluent is a "table" of rows (the argument
+        tuples it is true for), and they are folded in one at a time, joining on the
+        action-parameter columns two fluents share and narrowing a running result set
+        (`bindings`, a partial column -> object map per surviving row). Parameter columns no
+        fluent ever constrains stay free and are cross-producted in at the end. Every step
+        is bounded by `self._join_max_candidates`, which sends the whole action back to the
+        per-parameter fallback rather than let an intermediate result blow up.
 
-        Step-by-step:
+        Example -- `deliver(?r: Robot, ?l: Location, ?p: Package)`, columns 0=r, 1=l, 2=p,
+        domains `Robot={r1,r2}`, `Location={l1,l2}`, `Package={p1,p2}`, static conditions
+        `robot_can_carry(?r,?p)` true for `(r1,p1), (r1,p2), (r2,p1)` and `package_at(?p,?l)`
+        true for `(p1,l1), (p2,l2)`. Per-parameter pruning shrinks nothing here, because each
+        of the six objects does appear in some true tuple, so all 8 combinations survive --
+        including `(r2, l2, p2)`, even though r2 never carries p2. The join folds in
+        `robot_can_carry` to `{0:r1,2:p1}, {0:r1,2:p2}, {0:r2,2:p1}`, then joins `package_at`
+        on their shared column 2, where `p1` only pairs with `l1` and `p2` only with `l2`,
+        leaving the 3 jointly-consistent tuples `(r1,l1,p1), (r1,l2,p2), (r2,l1,p1)`.
 
-        1. Trivial cases: get `action.parameters` into `params`; if `num_params` is 0,
-            return `[()]`. Fetch the action's eligible static fluents via
-            `_static_bool_fluents`; if `None` (action type not recognized), bail out.
-        2. Set up per-parameter domains:
-            - `param_domains`: each action parameter's candidate objects (via
-              `_get_domain_items`).
-            - `domain_sets`: same, as sets, for fast membership checks.
-            - `domain_position`: object -> index within its own domain, needed later for
-              canonical ordering.
-            - `param_expr_to_column`: maps each parameter's `ParameterExp` to its column
-              index -- this is how a fluent's argument is recognized as "this is action
-              parameter #i" versus a constant or a nested/object-fluent expression.
-        3. Fold loop over static fluents -- this is the core. State carried across
-            iterations:
-            - `bindings`: `None` until the first fluent folds in, then a list of partial
-              bindings (`Dict[column_index, FNode]`), one per surviving candidate row.
-            - `bound_columns`: which parameter columns have been constrained so far.
-
-            For each fluent:
-            - Classify each argument as `("p", col)` if it's an action parameter,
-              `("c", value)` if it's a constant, or `("*", None)` (wildcard) if it's anything
-              else (nested/object-fluent arg -- same blind spot `_purge_items_list`'s
-              per-parameter pruning has).
-            - Skip fluents that touch no parameter column -- nothing to join on.
-            - Materialize this fluent's rows: pull its true argument-tuples via
-              `_fluent_true_arg_tuples`, and for each tuple build a `binding` dict from
-              parameter-columns to values, rejecting the tuple if a constant position
-              doesn't match, if a parameter-column value falls outside that parameter's own
-              domain (the hierarchical-typing guard), or if the fluent binds the same column
-              twice inconsistently (handles `sym(?x, ?x)`-style repeated parameters within
-              one fluent). A wildcard position is not projected into the binding, so two
-              true tuples differing only there collapse onto the same row: when the pattern
-              has one, rows are deduplicated as they are built, or the same parameter tuple
-              would be emitted more than once. Bail out to `None` here if `rows` alone
-              already exceeds
-              `self._join_max_candidates` -- a fluent with a `True` default over N objects
-              materializes N**arity rows on its own, before anything is merged.
-            - Merge into `bindings`:
-              - First fluent: `bindings` just becomes `rows`.
-              - Later fluents: find `shared_columns` already bound vs. this fluent's
-                columns. If there's overlap, do an actual indexed hash-join on those shared
-                columns (`rows_by_shared_key`, built once, then probed once per existing
-                binding into `joined_rows`, bailing out to `None` as soon as `joined_rows`
-                itself exceeds the cap, rather than after the merge finishes). If no
-                overlap, it's a cross-product merge (`{**left, **right}` for every pair) --
-                still correct, just not a filtering join; its exact size
-                (`len(bindings) * len(rows)`) is known upfront, so it is cap-checked before
-                being built rather than after.
-            - Early exits: if `bindings` became empty, stop early (nothing will ever match).
-              If it still exceeds `self._join_max_candidates` after the merge (the two
-              per-merge checks above only bound the merge's own two shapes, so this is a
-              cheap backstop, not the primary guard), give up and return `None` (safety
-              valve back to per-parameter pruning for this action).
-        4. Handle free (never-bound) columns: any parameter column no fluent constrained is
-            a `free_column`; its full domain (`free_domains`) must be cross-producted in.
-            Compute the prospective final size (`len(bindings) * free_size`) and bail to
-            `None` if it would exceed the candidate cap.
-        5. Expand into full parameter tuples: for each surviving binding, cross the free
-            columns' domains in (via `product`) and assemble one full
-            `(param_0_value, ..., param_n_value)` tuple per combination into `tuples`. If
-            there are no free columns, just read the binding straight through.
-        6. Canonical sort: sort `tuples` by each parameter's index within its own domain
-            (`domain_position`) -- this matches the enumeration order
-            `itertools.product(*param_domains)` would produce, so the join doesn't silently
-            reorder/rename ground actions relative to the per-parameter fallback.
-        7. Return the final `tuples` list -- the exact, jointly-consistent set of parameter
-            tuples for this action.
-
-        Example: action `deliver(?r: Robot, ?l: Location, ?p: Package)` -- columns 0=r,
-        1=l, 2=p -- with domains `Robot={r1,r2}`, `Location={l1,l2}`, `Package={p1,p2}` (8
-        combinations, unpruned) and static conditions `robot_can_carry(?r,?p)` true for
-        `(r1,p1), (r1,p2), (r2,p1)`, and `package_at(?p,?l)` true for `(p1,l1), (p2,l2)`.
-        Per-parameter pruning can't shrink anything here: `r1`, `r2`, `l1`, `l2`, `p1`, `p2`
-        each appear in at least one true tuple, so all 8 combinations -- including invalid
-        ones like `(r2, l2, p2)`, since r2 never carries p2 -- would still be
-        cross-producted. The join instead folds in `robot_can_carry` first, producing
-        partial bindings `{0:r1,2:p1}, {0:r1,2:p2}, {0:r2,2:p1}`; then folds in
-        `package_at`, joining on their shared column 2 (`p`): `shared_columns = [2]`, and
-        `p1` only pairs with `l1`, `p2` only with `l2`, leaving
-        `bindings = [{0:r1,2:p1,1:l1}, {0:r1,2:p2,1:l2}, {0:r2,2:p1,1:l1}]`. Both columns 0
-        and 1 are already bound here, so there are no free columns left to cross in, and
-        step 5 just reads each binding straight through into
-        `tuples = [(r1,l1,p1), (r1,l2,p2), (r2,l1,p1)]` -- the 3 combinations that are
-        jointly consistent with both conditions.
-
-        The essential idea: rather than pruning each parameter's candidate list independently,
-        this builds up joint bindings fluent-by-fluent, joining on whatever columns two fluents
-        happen to share, and only falls back to a full cross product for the columns nothing
-        constrains.
+        The finished tuples are sorted back into `itertools.product(*param_domains)` order, so
+        an action the join doesn't improve on keeps exactly the ground-action naming and
+        ordering the fallback would have given it.
         """
         params = list(action.parameters)
         num_params = len(params)
@@ -450,6 +373,13 @@ class GrounderHelper:
                 # the per-parameter fallback pruning already has).
                 continue
 
+            true_arg_tuples = self._fluent_true_arg_tuples(static_fluent.fluent())
+            if true_arg_tuples is None:
+                # Over budget to enumerate. Skipping one conjunct only ever weakens the
+                # pruning, never makes it unsound, and it keeps the join's benefit for this
+                # action's other fluents -- bailing out to `None` would throw that away too.
+                continue
+
             # A binding only records the parameter columns, so a wildcard position is
             # projected away: two true tuples that differ only there produce the very same
             # row. Left in, that row is duplicated through every later merge and the same
@@ -465,7 +395,7 @@ class GrounderHelper:
             # pattern; each one that's consistent becomes one candidate binding *for this
             # fluent alone* (not yet folded together with any other fluent's bindings).
             rows: List[Dict[int, FNode]] = []
-            for true_args in self._fluent_true_arg_tuples(static_fluent.fluent()):
+            for true_args in true_arg_tuples:
                 binding: Dict[int, FNode] = {}
                 is_consistent = True
                 for (kind, payload), arg_value in zip(pattern, true_args):
@@ -658,34 +588,58 @@ class GrounderHelper:
 
     def _fluent_true_arg_tuples(
         self, fluent: "up.model.fluent.Fluent"
-    ) -> List[Tuple[FNode, ...]]:
-        """Returns the argument tuples for which the given static boolean fluent is true,
-        without materializing ``Problem.initial_values`` (which enumerates every grounding of
-        every fluent in the problem, and is documented as expensive to call). Reproduces the
+    ) -> Optional[List[Tuple[FNode, ...]]]:
+        """Returns the argument tuples for which the given static boolean fluent is true, or
+        `None` when building that list would cost more than `_join_max_candidates` rows -- in
+        which case the caller must prune nothing with this fluent rather than pay for it.
+
+        Avoids materializing ``Problem.initial_values`` (which enumerates every grounding of
+        every fluent in the problem, and is documented as expensive to call), reproducing the
         same true/false-default semantics ``_bool_static_fluent_valid_parameters`` needs:
-        - default True: every grounding is true except the explicitly-set non-True ones (the
-          only case that needs to enumerate all groundings, via ``get_all_fluent_exp``).
+        - default True: every grounding is true except the explicitly-set non-True ones. This
+          is the only case that has to enumerate all groundings (via ``get_all_fluent_exp``),
+          hence the only one that needs the budget check -- its size is the product of the
+          argument types' domain sizes, N**arity for N objects, which is cheap to compute up
+          front and is checked before anything is built. A type with no enumerable domain
+          (``domain_size`` raises) can't be materialized at all and counts as over budget.
         - default False, or no default at all: only the explicitly-set-True groundings are
-          true; both cases are answered by ``explicit_initial_values`` alone, since a grounding
-          with no explicit value and no default evaluates to `None` (absent), exactly like one
-          with an explicit or defaulted False value.
+          true; both cases are answered by ``explicit_initial_values`` alone (which the
+          problem already holds, so there is nothing to bound), since a grounding with no
+          explicit value and no default evaluates to `None` (absent), exactly like one with
+          an explicit or defaulted False value.
         """
-        cached = self._true_arg_tuples_cache.get(fluent)
-        if cached is not None:
-            return cached
+        if fluent in self._true_arg_tuples_cache:  # `None` is a real cached answer here
+            return self._true_arg_tuples_cache[fluent]
+        result: Optional[List[Tuple[FNode, ...]]]
         default_value = self._problem.fluents_defaults.get(fluent, None)
-        result: List[Tuple[FNode, ...]]
         if default_value is not None and default_value.is_true():
-            excluded = {
-                tuple(key.args)
-                for key, value in self._problem.explicit_initial_values.items()
-                if key.fluent() == fluent and not value.is_true()
-            }
-            result = [
-                tuple(exp.args)
-                for exp in up.model.fluent.get_all_fluent_exp(self._problem, fluent)
-                if tuple(exp.args) not in excluded
-            ]
+            budget = (
+                self._join_max_candidates
+                if self._join_max_candidates > 0
+                else self.DEFAULT_JOIN_MAX_CANDIDATES
+            )
+            result = []
+            size = 1
+            for param in fluent.signature:
+                try:
+                    size *= domain_size(self._problem, param.type)
+                except UPProblemDefinitionError:
+                    result = None
+                    break
+                if size > budget:
+                    result = None
+                    break
+            if result is not None:
+                excluded = {
+                    tuple(key.args)
+                    for key, value in self._problem.explicit_initial_values.items()
+                    if key.fluent() == fluent and not value.is_true()
+                }
+                result = [
+                    tuple(exp.args)
+                    for exp in up.model.fluent.get_all_fluent_exp(self._problem, fluent)
+                    if tuple(exp.args) not in excluded
+                ]
         else:
             result = [
                 tuple(key.args)
@@ -722,21 +676,31 @@ class GrounderHelper:
                         valid_obj = self._bool_static_fluent_valid_parameters(
                             static_fluent, i
                         )
-                        temp_list = [obj for obj in temp_list if obj in valid_obj]
+                        if valid_obj is not None:
+                            temp_list = [obj for obj in temp_list if obj in valid_obj]
             return_list.append(temp_list)
         return return_list
 
-    def _bool_static_fluent_valid_parameters(self, sf: FNode, sp: int) -> Set[FNode]:
+    def _bool_static_fluent_valid_parameters(
+        self, sf: FNode, sp: int
+    ) -> Optional[Set[FNode]]:
+        """The objects that may appear at argument position `sp` of the static boolean fluent
+        expression `sf`, or `None` when that cannot be answered within
+        `_fluent_true_arg_tuples`'s budget -- in which case the caller must prune nothing
+        for this position rather than enumerate the relation.
+        """
         # Keyed on (fluent, sp) rather than (sf, sp): the body below only ever depends on
         # sf.fluent() and sp, never on sf's actual arguments, so keying on the whole atom
         # missed cache hits across different atoms over the same fluent (and across actions).
         fluent = sf.fluent()
         cache_key = (fluent, sp)
-        cached = self._valid_params_cache.get(cache_key)
-        if cached is not None:
-            return cached
+        if cache_key in self._valid_params_cache:
+            return self._valid_params_cache[cache_key]
         assert fluent in self._get_static_fluents()
-        ret_val = {tup[sp] for tup in self._fluent_true_arg_tuples(fluent)}
+        true_arg_tuples = self._fluent_true_arg_tuples(fluent)
+        ret_val: Optional[Set[FNode]] = (
+            None if true_arg_tuples is None else {tup[sp] for tup in true_arg_tuples}
+        )
         self._valid_params_cache[cache_key] = ret_val
         return ret_val
 
