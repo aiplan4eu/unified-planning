@@ -219,6 +219,30 @@ class TestProblem(unittest_TestCase):
             tn.add_constraint(c)
             assert_temporal(tn)
 
+    def test_method_instances_do_not_share_a_decomposition(self):
+        # decomposition used to default to one shared Decomposition, so mutating one
+        # instance's subtasks leaked into every other default-constructed one.
+        from unified_planning.plans.hierarchical_plan import MethodInstance
+        from unified_planning.plans.plan import ActionInstance
+
+        top_task = Task("top-task")
+        m = up.model.htn.Method("m1")
+        m.set_task(top_task)
+
+        a = InstantaneousAction("a")
+
+        first = MethodInstance(m, ())
+        second = MethodInstance(m, ())
+
+        self.assertIsNot(first.decomposition, second.decomposition)
+        self.assertEqual(first.decomposition.subtasks, {})
+        self.assertEqual(second.decomposition.subtasks, {})
+
+        first.decomposition.subtasks["s1"] = ActionInstance(a)
+
+        self.assertEqual(list(first.decomposition.subtasks), ["s1"])
+        self.assertEqual(second.decomposition.subtasks, {})
+
     def test_hddl_parsing(self):
         """Tests that all HDDL benchmarks are successfully parsed."""
         hddl_dir = os.path.join(FILE_PATH, "hddl")

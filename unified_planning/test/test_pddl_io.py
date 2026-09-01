@@ -1221,6 +1221,74 @@ class TestPddlIO(unittest_TestCase):
             pddl_problem = self._normalized_pddl_str(writer.get_problem())
             self.assertIn(expected_goal, pddl_problem)
 
+    def test_total_cost_metric_with_no_actions(self):
+        # use_plan_length was never initialised, so this raised UnboundLocalError
+        domain = """(define (domain d)
+         (:requirements :strips :action-costs :fluents)
+         (:functions (total-cost))
+        )"""
+        problem_str = """(define (problem p)
+         (:domain d)
+         (:init (= (total-cost) 0))
+         (:goal (and))
+         (:metric minimize (total-cost))
+        )"""
+        problem = UPPDDLReader().parse_problem_string(domain, problem_str)
+        self.assertEqual(len(problem.quality_metrics), 1)
+        # with no action contributing a cost, total-cost and plan length coincide
+        self.assertIsInstance(problem.quality_metrics[0], MinimizeSequentialPlanLength)
+
+    def test_unit_action_costs_parse_as_plan_length(self):
+        # `cost.value != 1` compared an FNode to an int, so this metric was unreachable
+        domain_template = """(define (domain d)
+         (:requirements :strips :action-costs :fluents)
+         (:predicates (p))
+         (:functions (total-cost))
+         (:action a :parameters () :precondition (and)
+          :effect (and (p) (increase (total-cost) {cost})))
+        )"""
+        problem_str = """(define (problem p)
+         (:domain d)
+         (:init (= (total-cost) 0))
+         (:goal (and (p)))
+         (:metric minimize (total-cost))
+        )"""
+
+        unit = UPPDDLReader().parse_problem_string(
+            domain_template.format(cost="1"), problem_str
+        )
+        self.assertIsInstance(unit.quality_metrics[0], MinimizeSequentialPlanLength)
+        self.assertTrue(unit.kind.has_plan_length())
+
+        # any other cost keeps the action-costs metric
+        non_unit = UPPDDLReader().parse_problem_string(
+            domain_template.format(cost="3"), problem_str
+        )
+        self.assertIsInstance(
+            non_unit.quality_metrics[0],
+            unified_planning.model.metrics.MinimizeActionCosts,
+        )
+        self.assertTrue(non_unit.kind.has_actions_cost())
+
+    def test_plan_length_metric_pddl_round_trip(self):
+        # the writer emits unit increase effects, so reading back must give plan length again
+        p = Fluent("p")
+        a = InstantaneousAction("a")
+        a.add_effect(p, True)
+        problem = Problem("plan_length_round_trip")
+        problem.add_fluent(p, default_initial_value=False)
+        problem.add_action(a)
+        problem.add_goal(p)
+        problem.add_quality_metric(MinimizeSequentialPlanLength())
+
+        writer = PDDLWriter(problem)
+        # UPPDDLReader directly: PDDLReader would fall back to it anyway
+        parsed = UPPDDLReader().parse_problem_string(
+            writer.get_domain(), writer.get_problem()
+        )
+        self.assertEqual(len(parsed.quality_metrics), 1)
+        self.assertIsInstance(parsed.quality_metrics[0], MinimizeSequentialPlanLength)
+
     def test_grounding_tpp_metric(self):
         reader = UPPDDLReader()
 

@@ -563,6 +563,59 @@ class TestGrounder(unittest_TestCase):
         ga = cast(InstantaneousAction, grounded_problem.action("act"))
         self.assertIsNotNone(ga.simulated_effect)
 
+    def test_durative_action_keeps_one_simulated_effect_per_timing(self):
+        # the rebuilt effects used to close over the loop variable, so every timing ended
+        # up calling the last timing's function.
+        x = Fluent("x", IntType(0, 100))
+        y = Fluent("y", IntType(0, 100))
+        Loc = UserType("Loc")
+        action = DurativeAction("act", l=Loc)
+        action.set_fixed_duration(1)
+
+        def at_start(problem, state, actual_params):
+            return [Int(7)]
+
+        def at_end(problem, state, actual_params):
+            return [Int(9)]
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            action.set_simulated_effect(
+                StartTiming(), SimulatedEffect([FluentExp(x)], at_start)
+            )
+            action.set_simulated_effect(
+                EndTiming(), SimulatedEffect([FluentExp(y)], at_end)
+            )
+
+        problem = Problem("durative_two_simulated_effects")
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_fluent(y, default_initial_value=0)
+        problem.add_object(Object("o1", Loc))
+        problem.add_action(action)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(len(grounded_problem.actions), 1)
+        ga = cast(DurativeAction, grounded_problem.actions[0])
+        self.assertEqual(len(ga.simulated_effects), 2)
+
+        state = UPState({}, grounded_problem)
+        results = {
+            timing: [str(v) for v in se.function(grounded_problem, state, {})]
+            for timing, se in ga.simulated_effects.items()
+        }
+        self.assertEqual(results[StartTiming()], ["7"])
+        self.assertEqual(results[EndTiming()], ["9"])
+        # and each timing still updates its own fluent
+        self.assertEqual(
+            str(ga.simulated_effects[StartTiming()].fluents[0]), str(FluentExp(x))
+        )
+        self.assertEqual(
+            str(ga.simulated_effects[EndTiming()].fluents[0]), str(FluentExp(y))
+        )
+
     def test_zero_parameter_durative_action_effect_target_is_normalized(self):
         # durative-action variant of test_zero_parameter_action_effect_target_is_normalized:
         # the target must be normalized at its own timing, and the duration left untouched.
