@@ -27,6 +27,7 @@ from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.contingent import ContingentProblem
 from unified_planning.model.multi_agent import MultiAgentProblem, Agent
 from unified_planning.model.scheduling import SchedulingProblem
+from unified_planning.model.mixins import name_index
 
 
 class TestProblem(unittest_TestCase):
@@ -723,21 +724,34 @@ class TestProblem(unittest_TestCase):
         cloned = problem.clone()
         check(cloned)
 
-        # Renaming an action in place (list identity and length both unchanged) is a known,
-        # pre-existing gap, not introduced by the index: if the index was already built (by
-        # an earlier has_action/action call) before the rename, it keeps reporting the old
-        # name as present, since nothing about the list itself changed to trigger a rebuild.
-        # This matches test_pddl_io.py's test_renamings, which relies on exactly this: it
-        # renames an action after reading it via problem.action(...), and a subsequent
-        # add_object call must not treat the rename as a fresh collision. Documented here so
-        # a future change to this behavior is deliberate, not a silent regression.
+        # Renaming an action in place (list identity and length both unchanged) does not by
+        # itself trigger the index's usual identity/length staleness check -- it's tracked
+        # separately, via a global rename counter that `Transition.name`'s setter bumps and
+        # `NameIndex(track_renames=True)` compares itself against on every lookup (see
+        # unified_planning/model/mixins/name_index.py). Force the index to build *before* the
+        # rename, so this actually exercises the invalidation path rather than just a rebuild
+        # that would have picked up the new name anyway.
         renamed = problem.clone()
         target = renamed.actions[0]
         old_name = target.name
         self.assertTrue(renamed.has_action(old_name))  # force the index to build now
         target.name = "renamed_action"
-        self.assertTrue(renamed.has_action(old_name))  # stale: rename isn't tracked
-        self.assertFalse(renamed.has_action("renamed_action"))
+        self.assertFalse(renamed.has_action(old_name))
+        self.assertTrue(renamed.has_action("renamed_action"))
+        self.assertIs(renamed.action("renamed_action"), target)
+
+        # The in-library rename pattern (several compilers clone an action, rename it via
+        # `get_fresh_name`, *then* add it) must stay cheap: renaming an action that has never
+        # been indexed yet must not bump the shared rename counter, so it can't force a
+        # rebuild of some unrelated, already-built index.
+        epoch_before = name_index.current_rename_epoch()
+        fresh_action = a1.clone()
+        fresh_action.name = "not_indexed_yet"  # never indexed: must not bump the epoch
+        self.assertEqual(name_index.current_rename_epoch(), epoch_before)
+        other = problem.clone()
+        other.add_action(fresh_action)
+        self.assertTrue(other.has_action("not_indexed_yet"))
+        self.assertIs(other.action("not_indexed_yet"), fresh_action)
 
         # A name shared ACROSS categories (here, an action and a fluent) is legal when
         # error_used_name is disabled -- add_action's own duplicate guard always raises for
