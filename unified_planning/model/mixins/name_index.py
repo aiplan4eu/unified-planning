@@ -61,18 +61,25 @@ class NameIndex(Generic[T]):
     """A lazily-rebuilt ``name -> element`` index over a list of named elements.
 
     The index is guarded by an identity+length token against the list it was built from, so
-    it self-heals (at the cost of one O(n) rebuild) against every way the underlying list can
-    change without going through :func:`note_appended`: wholesale reassignment (every
-    ``clone()``/``_clone_to`` path in this library replaces the list outright) or in-place
-    removal (``list.remove(...)``, used to drop a fluent). Renaming an already-indexed element
-    in place (`Action.name` has a public setter) changes neither the list's identity nor its
-    length, so it needs its own guard: pass ``track_renames=True`` and every indexed element
-    is stamped (via its ``_note_indexed()``) so that its `name` setter can call
-    :func:`note_renamed`, which this index checks against on every lookup (see
-    :data:`_rename_epoch`). Only elements with a mutable ``name`` need this -- currently just
-    `Action`/`DurativeAction` via `Transition.name` -- so only `ActionsSetMixin` passes
-    ``track_renames=True``; `Fluent`/`Object`/the user-type index have no name setter and pay
-    nothing extra.
+    it self-heals (at the cost of one O(n) rebuild) when the list is reassigned wholesale
+    (every ``clone()``/``_clone_to``/``clear_*`` path in this library replaces the list
+    outright) or changes length.
+
+    That token is deliberately cheap, and cheap means it cannot see two kinds of change:
+
+    * **In-place removal.** ``list.remove(...)`` followed by an append restores the original
+      length on the same list object, so neither half of the token moves and the index keeps
+      answering with the removed element while missing the appended one. Every remover must
+      therefore call :func:`invalidate` -- which is why removing a fluent goes through
+      ``FluentsSetMixin._remove_fluent`` rather than touching ``_fluents`` directly.
+    * **Renaming an already-indexed element** (`Action.name` has a public setter) changes
+      neither the list's identity nor its length either, and gets its own guard: pass
+      ``track_renames=True`` and every indexed element is stamped (via its
+      ``_note_indexed()``) so that its `name` setter can call :func:`note_renamed`, which
+      this index checks against on every lookup (see :data:`_rename_epoch`). Only elements
+      with a mutable ``name`` need this -- currently just `Action`/`DurativeAction` via
+      `Transition.name` -- so only `ActionsSetMixin` passes ``track_renames=True``;
+      `Fluent`/`Object`/the user-type index have no name setter and pay nothing extra.
 
     Preserves the original linear scan's first-occurrence semantics: when
     ``Environment.error_used_name`` is disabled, two elements may share a name, and both
@@ -110,6 +117,14 @@ class NameIndex(Generic[T]):
                 "_epoch": -1,
             },
         )
+
+    def invalidate(self) -> None:
+        """Drops the index, forcing a full rebuild on the next lookup. Must be called after
+        any in-place change to the indexed list that leaves its identity and length intact --
+        see the class docstring."""
+        self._index = None
+        self._items = None
+        self._len = -1
 
     def _refresh(self, items: List[T]) -> None:
         stale_rename = self._track_renames and self._epoch != current_rename_epoch()

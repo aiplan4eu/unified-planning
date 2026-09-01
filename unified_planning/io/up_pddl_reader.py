@@ -2058,7 +2058,7 @@ class UPPDDLReader:
                         costs: Dict[up.model.Action, up.model.Expression] = {}
                         # cleared below unless every action costs exactly 1
                         use_plan_length = True
-                        problem._fluents.remove(self._totalcost.fluent())
+                        problem._remove_fluent(self._totalcost.fluent())
                         if self._totalcost in problem._initial_value:
                             problem._initial_value.pop(self._totalcost)
                         start_timing, end_timing = (

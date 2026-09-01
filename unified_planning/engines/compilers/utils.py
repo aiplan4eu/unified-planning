@@ -692,7 +692,7 @@ def remove_fluents(problem: Problem, fluents: Set[Fluent]) -> None:
     :param fluents: The `fluents` to remove; must all belong to the given `problem`.
     """
     for fluent in fluents:
-        problem._fluents.remove(fluent)
+        problem._remove_fluent(fluent)
         problem._fluents_defaults.pop(fluent, None)
     problem._initial_value = {
         fluent_exp: value

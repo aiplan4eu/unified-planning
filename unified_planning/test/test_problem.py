@@ -21,7 +21,7 @@ from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
 from unified_planning.test import unittest_TestCase, main, examples
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPTypeError
+from unified_planning.exceptions import UPTypeError, UPValueError
 from unified_planning.engines.compilers.utils import remove_fluents
 from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.contingent import ContingentProblem
@@ -772,6 +772,32 @@ class TestProblem(unittest_TestCase):
         self.assertTrue(dup_problem.has_fluent("dup"))
         self.assertIs(dup_problem.action("dup"), dup_action)
         self.assertIs(dup_problem.fluent("dup"), dup_fluent)
+
+    def test_name_index_removing_then_adding_a_fluent_keeps_lookups_consistent(self):
+        # The name index's staleness token is identity+length, which a remove followed by an
+        # append restores exactly: same list object, same length, so nothing looks stale even
+        # though both the removed and the added fluent are now wrong. FluentsSetMixin's
+        # _remove_fluent must invalidate the index explicitly.
+        problem = Problem("remove_then_add")
+        f1 = Fluent("f1")
+        f2 = Fluent("f2")
+        f3 = Fluent("f3")
+        problem.add_fluent(f1, default_initial_value=False)
+        problem.add_fluent(f2, default_initial_value=False)
+
+        self.assertTrue(problem.has_fluent("f1"))  # builds the index at length 2
+        problem._remove_fluent(f2)
+        problem._fluents.append(
+            f3
+        )  # bare append: no has_name call to refresh the index
+        problem._fluents_index.note_appended(problem._fluents)
+
+        self.assertEqual([f.name for f in problem.fluents], ["f1", "f3"])
+        self.assertFalse(problem.has_fluent("f2"))
+        self.assertTrue(problem.has_fluent("f3"))
+        self.assertIs(problem.fluent("f3"), f3)
+        with self.assertRaises(UPValueError):
+            problem.fluent("f2")
 
     def test_name_index_consistency_on_problem_subclasses(self):
         # Lighter smoke checks that the same index machinery is wired correctly through every

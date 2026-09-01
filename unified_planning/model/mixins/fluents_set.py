@@ -160,6 +160,18 @@ class FluentsSetMixin:
 
         return fluent
 
+    def _remove_fluent(self, fluent: "up.model.fluent.Fluent"):
+        """
+        Removes the given `fluent` from this set, keeping the by-name index consistent.
+
+        The only place allowed to remove from `self._fluents`: the index cannot detect a
+        removal that a later append restores the length of, so it must be invalidated
+        explicitly. Does *not* touch the fluent's default or initial values -- see
+        :func:`~unified_planning.engines.compilers.utils.remove_fluents` for that.
+        """
+        self._fluents.remove(fluent)
+        self._fluents_index.invalidate()
+
     def clear_fluents(self):
         """
         Removes all the Fluent from the current Problem, together with their default.
