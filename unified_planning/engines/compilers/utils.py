@@ -304,10 +304,11 @@ def create_action_with_given_subs(
             for f in old_se.fluents:
                 new_fluents.append(f.substitute(subs))
 
-            # _old_se bound as a default: the closure outlives the iteration, so capturing
-            # the loop variable would make every timing call the last one's function.
-            def durative_fun(_problem, _state, _, _old_se=old_se):
-                return _old_se.function(_problem, _state, c_subs)
+            # _inner_simulated_effect bound as a default: the closure outlives the
+            # iteration, so capturing the loop variable would make every timing call
+            # the last one's function.
+            def durative_fun(_problem, _state, _, _inner_simulated_effect=old_se):
+                return _inner_simulated_effect.function(_problem, _state, c_subs)
 
             # this rebuilds a simulated effect the user already defined (and got
             # warned about), so the deprecation warning is silenced here
