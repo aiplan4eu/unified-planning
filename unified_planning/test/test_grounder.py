@@ -38,6 +38,7 @@ from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.compilers.grounder import GrounderHelper
 from unified_planning.model.contingent import SensingAction
 from unified_planning.model.motion import InstantaneousMotionAction
+from unified_planning.environment import Environment
 
 
 class TestGrounder(unittest_TestCase):
@@ -1481,3 +1482,60 @@ class TestGrounderJoinPruning(unittest_TestCase):
         self.assertEqual(
             len(expected), 14
         )  # 16 pairs minus the 2 explicitly false ones
+
+    def test_true_arg_tuples_does_not_intern_new_expressions(self):
+        # `_fluent_true_arg_tuples`'s default-True branch used to enumerate a within-budget
+        # relation via `get_all_fluent_exp`, which calls `fluent(*args)` once per combination
+        # -- N**arity of them for a binary fluent over N objects -- interning a fresh `FNode`
+        # for each one into the `Environment`'s memo, which is unbounded and outlives the
+        # `GrounderHelper`. The budget check alone doesn't catch this: 30**2 = 900 tuples is
+        # nowhere near the default 1,000,000-row budget, so it was still fully enumerated the
+        # expensive way. Enumerating from the parameter types' own already-cached domain lists
+        # instead reuses existing `FNode`s and interns none of its own, so the
+        # interned-expression count stays O(N), not O(N**2), regardless of how many tuples the
+        # (still within-budget) enumeration itself produces.
+        #
+        # A private `Environment` keeps the interned-expression count meaningful: the global
+        # environment (used by every other test in this file) may already have this test's
+        # object names interned from unrelated fixtures, which would otherwise make the delta
+        # assertion depend on test execution order.
+        env = Environment()
+        item_type = env.type_manager.UserType("Item")
+        items = [Object(f"i{i}", item_type, env) for i in range(30)]
+        rel = Fluent(
+            "rel",
+            env.type_manager.BoolType(),
+            a=item_type,
+            b=item_type,
+            environment=env,
+        )
+        dummy = Fluent("dummy", env.type_manager.BoolType(), environment=env)
+        action = InstantaneousAction("act", x=item_type, y=item_type, _env=env)
+        x, y = action.parameter("x"), action.parameter("y")
+        action.add_precondition(rel(x, y))
+        action.add_effect(dummy, True)
+
+        problem = Problem("true_arg_tuples_no_intern", env)
+        problem.add_fluent(rel, default_initial_value=True)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_objects(items)
+        # An explicit override forces the default-True branch to actually enumerate (rather
+        # than trivially reporting the empty-relation/wildcard shortcuts elsewhere in this
+        # file), matching the reviewer's own "true everywhere except a few" example.
+        problem.set_initial_value(rel(items[0], items[0]), False)
+        problem.add_action(action)
+
+        em = env.expression_manager
+        before = len(em.expressions)
+        gh = GrounderHelper(problem)
+        result = gh._fluent_true_arg_tuples(rel)
+        after = len(em.expressions)
+
+        self.assertIsNotNone(result)
+        assert result is not None
+        self.assertEqual(len(result), len(items) ** 2 - 1)
+        # O(N), not O(N**2): only the domain items themselves ever get interned here (at most
+        # one per object; `set_initial_value` above already interned one of them, so the
+        # delta can be one less than `len(items)`), never one per (900-tuple) grounding.
+        self.assertLessEqual(after - before, len(items))
+        self.assertGreater(after - before, 0)

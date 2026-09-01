@@ -597,11 +597,20 @@ class GrounderHelper:
         every fluent in the problem, and is documented as expensive to call), reproducing the
         same true/false-default semantics ``_bool_static_fluent_valid_parameters`` needs:
         - default True: every grounding is true except the explicitly-set non-True ones. This
-          is the only case that has to enumerate all groundings (via ``get_all_fluent_exp``),
-          hence the only one that needs the budget check -- its size is the product of the
-          argument types' domain sizes, N**arity for N objects, which is cheap to compute up
-          front and is checked before anything is built. A type with no enumerable domain
-          (``domain_size`` raises) can't be materialized at all and counts as over budget.
+          is the only case that has to enumerate all groundings, hence the only one that needs
+          the budget check -- its size is the product of the argument types' domain sizes,
+          N**arity for N objects, which is cheap to compute up front and is checked before
+          anything is built. A type with no enumerable domain (``domain_size`` raises) can't
+          be materialized at all and counts as over budget. Within budget, the enumeration
+          itself is a product over each argument type's own cached domain-item list
+          (``_get_domain_items``) rather than ``get_all_fluent_exp``, which would call
+          ``fluent(*args)`` once per grounding and intern a fresh ``FNode`` for each into the
+          `Environment`'s own memo (unbounded, and it outlives this `GrounderHelper` --
+          usually forever, since most callers use the global environment) even though the
+          budget check already bounds how many groundings that could be. Only the iteration
+          order differs from ``get_all_fluent_exp``, which no caller observes: the join sorts
+          its output canonically, and `_bool_static_fluent_valid_parameters` folds the result
+          into a set.
         - default False, or no default at all: only the explicitly-set-True groundings are
           true; both cases are answered by ``explicit_initial_values`` alone (which the
           problem already holds, so there is nothing to bound), since a grounding with no
@@ -635,11 +644,8 @@ class GrounderHelper:
                     for key, value in self._problem.explicit_initial_values.items()
                     if key.fluent() == fluent and not value.is_true()
                 }
-                result = [
-                    tuple(exp.args)
-                    for exp in up.model.fluent.get_all_fluent_exp(self._problem, fluent)
-                    if tuple(exp.args) not in excluded
-                ]
+                domains = [self._get_domain_items(p.type) for p in fluent.signature]
+                result = [args for args in product(*domains) if args not in excluded]
         else:
             result = [
                 tuple(key.args)
