@@ -19,6 +19,12 @@ import tempfile
 import pytest
 from typing import cast
 import unified_planning
+from unified_planning.environment import Environment
+from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.metrics import (
+    MaximizeExpressionOnFinalState,
+    MinimizeExpressionOnFinalState,
+)
 from unified_planning.shortcuts import *
 from unified_planning.test import (
     unittest_TestCase,
@@ -1618,6 +1624,147 @@ class TestPddlIO(unittest_TestCase):
         with self.assertRaises(SyntaxError) as ctx:
             reader.parse_problem_string(domain, problem_str)
         self.assertIn("nonexistent_type", str(ctx.exception))
+
+    def test_ai_pddl_reader_custom_environment(self):
+        """The AI-PDDL fast path (`AIPDDLConverter`) must build every model object
+        (fluents, objects, actions/parameters, forall-effect variables, quality
+        metrics) in the `Environment` given to the `PDDLReader`, not the global one."""
+        domain = """
+(define (domain custom-env-d)
+    (:requirements :strips :typing :negative-preconditions :equality
+                   :existential-preconditions :universal-preconditions
+                   :conditional-effects :numeric-fluents :action-costs)
+    (:types loc item)
+    (:constants depot - loc)
+    (:predicates (at ?i - item ?l - loc) (clear ?l - loc))
+    (:functions (fuel ?l - loc) (total-cost))
+    (:action move
+        :parameters (?i - item ?from - loc ?to - loc)
+        :precondition (and
+            (at ?i ?from)
+            (not (= ?from ?to))
+            (exists (?j - item) (at ?j ?to))
+        )
+        :effect (and
+            (not (at ?i ?from))
+            (at ?i ?to)
+            (forall (?l - loc) (when (clear ?l) (at ?i ?l)))
+            (increase (fuel ?to) 1)
+            (increase (total-cost) 3)
+        )
+    )
+)
+"""
+        problem = """
+(define (problem custom-env-p) (:domain custom-env-d)
+    (:objects l1 - loc i1 - item)
+    (:init (at i1 l1) (clear l1) (clear depot)
+           (= (fuel l1) 0) (= (fuel depot) 0) (= (total-cost) 0))
+    (:goal (at i1 depot))
+    (:metric minimize (total-cost))
+)
+"""
+        env = Environment()
+        self.assertTrue(check_ai_pddl_requirements(extract_pddl_requirements(domain)))
+        up_problem = PDDLReader(
+            env, force_ai_planning_reader=True
+        ).parse_problem_string(domain, problem)
+
+        self.assertIs(up_problem.environment, env)
+        for fluent in up_problem.fluents:
+            self.assertIs(fluent.environment, env)
+        for obj in up_problem.all_objects:
+            self.assertIs(obj.environment, env)
+        for action in up_problem.actions:
+            self.assertIs(action.environment, env)
+            for param in action.parameters:
+                self.assertIs(param.environment, env)
+            assert isinstance(action, InstantaneousAction)
+            for effect in action.effects:
+                self.assertIs(effect.fluent.environment, env)
+                self.assertIs(effect.value.environment, env)
+                self.assertIs(effect.condition.environment, env)
+                for v in effect.forall:
+                    self.assertIs(v.environment, env)
+        for metric in up_problem.quality_metrics:
+            self.assertIs(metric.environment, env)
+
+        # parsing the same PDDL text into a second fresh environment must be
+        # semantics-preserving and environment-independent
+        up_problem_2 = PDDLReader(
+            Environment(), force_ai_planning_reader=True
+        ).parse_problem_string(domain, problem)
+        self.assertEqual(str(up_problem), str(up_problem_2))
+
+    def test_ai_pddl_reader_custom_environment_expression_metric(self):
+        """A `minimize`/`maximize` final-state-expression metric (as opposed to
+        the action-costs metric) must also be built in the given `Environment`."""
+        domain = """
+(define (domain custom-env-metric-d)
+    (:requirements :strips :typing :numeric-fluents)
+    (:types loc)
+    (:predicates (at ?l - loc))
+    (:functions (fuel))
+    (:action noop
+        :parameters (?l - loc)
+        :precondition (at ?l)
+        :effect (increase (fuel) 1)
+    )
+)
+"""
+        problem = """
+(define (problem custom-env-metric-p) (:domain custom-env-metric-d)
+    (:objects l1 - loc)
+    (:init (at l1) (= (fuel) 0))
+    (:goal (at l1))
+    (:metric minimize (fuel))
+)
+"""
+        env = Environment()
+        up_problem = PDDLReader(
+            env, force_ai_planning_reader=True
+        ).parse_problem_string(domain, problem)
+        self.assertEqual(len(up_problem.quality_metrics), 1)
+        metric = up_problem.quality_metrics[0]
+        assert isinstance(
+            metric, (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState)
+        )
+        self.assertIs(metric.environment, env)
+        self.assertIs(metric.expression.environment, env)
+
+    def test_ai_pddl_reader_custom_environment_parameter_named_environment(self):
+        """A predicate/action parameter literally named `?environment` must not
+        collide with the `environment=` keyword used internally to forward the
+        converter's Environment to `Fluent`/`InstantaneousAction`."""
+        domain = """
+(define (domain custom-env-name-d)
+    (:requirements :strips :typing)
+    (:types loc)
+    (:predicates (p ?environment - loc))
+    (:action a
+        :parameters (?environment - loc)
+        :precondition (p ?environment)
+        :effect (p ?environment)
+    )
+)
+"""
+        problem = """
+(define (problem custom-env-name-p) (:domain custom-env-name-d)
+    (:objects l1 - loc)
+    (:init (p l1))
+    (:goal (p l1))
+)
+"""
+        env = Environment()
+        up_problem = PDDLReader(
+            env, force_ai_planning_reader=True
+        ).parse_problem_string(domain, problem)
+        self.assertEqual(
+            [p.name for p in up_problem.fluent("p").signature], ["environment"]
+        )
+        self.assertEqual(
+            [p.name for p in up_problem.action("a").parameters], ["environment"]
+        )
 
 
 def _have_same_user_types_considering_renamings(

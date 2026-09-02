@@ -133,7 +133,9 @@ class _ExpressionConverter:
         key = (variable.name, assert_not_none_type(self._types[tt]))
         if key not in self._variables:
             self._variables[key] = UPVariable(
-                variable.name, assert_not_none_type(self._types[tt])
+                variable.name,
+                assert_not_none_type(self._types[tt]),
+                self._em.environment,
             )
         return self._variables[key]
 
@@ -430,12 +432,19 @@ class AIPDDLConverter:
         return assert_not_none_type(self._up_type(tt))
 
     def _variable_to_param(self, variable: Variable) -> Parameter:
-        return Parameter(variable.name, self._variable_type(variable))
+        return Parameter(
+            variable.name, self._variable_type(variable), self._environment
+        )
 
     def _convert_predicate_to_fluent(self, predicate: Predicate):
         assert self._up_problem is not None
         params = OrderedDict((v.name, self._variable_type(v)) for v in predicate.terms)
-        fluent = Fluent(predicate.name, self._tm.BoolType(), **params)
+        fluent = Fluent(
+            predicate.name,
+            self._tm.BoolType(),
+            _signature=params,
+            environment=self._environment,
+        )
         self._fluents[predicate.name] = fluent
         self._up_problem.add_fluent(fluent, default_initial_value=self._em.FALSE())
 
@@ -465,7 +474,12 @@ class AIPDDLConverter:
             self._action_costs = {}
             return
         params = OrderedDict((v.name, self._variable_type(v)) for v in function.terms)
-        f = Fluent(function.name, self._tm.RealType(), **params)
+        f = Fluent(
+            function.name,
+            self._tm.RealType(),
+            _signature=params,
+            environment=self._environment,
+        )
         self._fluents[function.name] = f
         self._up_problem.add_fluent(f, default_initial_value=self._em.Int(0))
 
@@ -479,9 +493,13 @@ class AIPDDLConverter:
         assert self._up_problem is not None
         if obj.type_tags is None:
             raise UPUnsupportedProblemTypeError(f"Object {obj.name} has no type tag")
-        obj = Object(obj.name, assert_not_none_type(self._up_type(obj.type_tag)))
-        self._objects[obj.name] = obj
-        self._up_problem.add_object(obj)
+        up_obj = Object(
+            obj.name,
+            assert_not_none_type(self._up_type(obj.type_tag)),
+            self._environment,
+        )
+        self._objects[up_obj.name] = up_obj
+        self._up_problem.add_object(up_obj)
 
     def _convert_constants(self):
         for obj in self._domain.constants:
@@ -646,7 +664,7 @@ class AIPDDLConverter:
                 new_quantifier_variables = current_quantifier_variables.copy()
                 for v in current_effect.variables:
                     new_quantifier_variables[v.name] = UPVariable(
-                        v.name, self._variable_type(v)
+                        v.name, self._variable_type(v), self._environment
                     )
                 stack.append(
                     (current_effect.effect, new_quantifier_variables, current_condition)
@@ -668,11 +686,13 @@ class AIPDDLConverter:
             (v.name, self._variable_type(v)) for v in action.parameters
         )
         action_parameters_expression = {
-            p_name: Parameter(p_name, p_type)
+            p_name: Parameter(p_name, p_type, self._environment)
             for p_name, p_type in action_parameters.items()
         }
 
-        up_action = InstantaneousAction(action.name, **action_parameters)
+        up_action = InstantaneousAction(
+            action.name, action_parameters, self._environment
+        )
 
         up_action.add_precondition(
             self._expression_converter.convert_expression(
@@ -745,7 +765,9 @@ class AIPDDLConverter:
                 for action_name, cost in self._action_costs.items():
                     action_costs[self._up_problem.action(action_name)] = cost
                 self._up_problem.add_quality_metric(
-                    MinimizeActionCosts(action_costs, self._em.Int(0))
+                    MinimizeActionCosts(
+                        action_costs, self._em.Int(0), self._environment
+                    )
                 )
         elif self._problem is not None:
             metric = self._problem.metric
@@ -757,9 +779,11 @@ class AIPDDLConverter:
                 if metric.optimization == Metric.MINIMIZE:
                     up_metric: Union[
                         MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState
-                    ] = MinimizeExpressionOnFinalState(expression)
+                    ] = MinimizeExpressionOnFinalState(expression, self._environment)
                 else:
-                    up_metric = MaximizeExpressionOnFinalState(expression)
+                    up_metric = MaximizeExpressionOnFinalState(
+                        expression, self._environment
+                    )
                 self._up_problem.add_quality_metric(up_metric)
 
     def convert(self) -> UPProblem:
