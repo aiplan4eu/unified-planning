@@ -1036,4 +1036,77 @@ def get_example_problems():
     )
     problems["robot_non_linear_continuous_1"] = robot_non_linear_continuous_1
 
+    # robot_package_delivery_joint_static_pruning
+    Robot = UserType("Robot")
+    Location = UserType("Location")
+    Package = UserType("Package")
+    can_carry = Fluent("can_carry", BoolType(), r=Robot, p=Package)
+    pkg_at = Fluent("pkg_at", BoolType(), p=Package, l=Location)
+    robot_at = Fluent("robot_at", BoolType(), r=Robot, l=Location)
+    delivered = Fluent("delivered", BoolType(), p=Package)
+    deliver = InstantaneousAction("deliver", r=Robot, l=Location, p=Package)
+    r = deliver.parameter("r")
+    l = deliver.parameter("l")
+    p = deliver.parameter("p")
+    # can_carry and pkg_at each jointly constrain two of deliver's three parameters --
+    # a static predicate independently narrowing r, l and p can't see that a robot able to
+    # carry a package is not necessarily the one standing where that package is, so pruning
+    # each parameter on its own still leaves every (r, l, p) combination to be cross-produced
+    # and only then rejected.
+    deliver.add_precondition(can_carry(r, p))
+    deliver.add_precondition(pkg_at(p, l))
+    deliver.add_precondition(robot_at(r, l))
+    deliver.add_precondition(Not(delivered(p)))
+    deliver.add_effect(delivered(p), True)
+    move = InstantaneousAction("move", r=Robot, l_from=Location, l_to=Location)
+    move.add_precondition(robot_at(move.parameter("r"), move.parameter("l_from")))
+    move.add_effect(robot_at(move.parameter("r"), move.parameter("l_from")), False)
+    move.add_effect(robot_at(move.parameter("r"), move.parameter("l_to")), True)
+    robots = [Object(f"r{i}", Robot) for i in range(2)]
+    locations = [Object(f"l{i}", Location) for i in range(3)]
+    packages = [Object(f"p{i}", Package) for i in range(3)]
+    problem = Problem("robot_package_delivery_joint_static_pruning")
+    problem.add_fluent(can_carry, default_initial_value=False)
+    problem.add_fluent(pkg_at, default_initial_value=False)
+    problem.add_fluent(robot_at, default_initial_value=False)
+    problem.add_fluent(delivered, default_initial_value=False)
+    problem.add_actions([deliver, move])
+    problem.add_objects(robots + locations + packages)
+    problem.set_initial_value(can_carry(robots[0], packages[0]), True)
+    problem.set_initial_value(can_carry(robots[0], packages[1]), True)
+    problem.set_initial_value(can_carry(robots[1], packages[2]), True)
+    problem.set_initial_value(pkg_at(packages[0], locations[0]), True)
+    problem.set_initial_value(pkg_at(packages[1], locations[1]), True)
+    problem.set_initial_value(pkg_at(packages[2], locations[2]), True)
+    problem.set_initial_value(robot_at(robots[0], locations[0]), True)
+    problem.set_initial_value(robot_at(robots[1], locations[0]), True)
+    problem.add_goal(delivered(packages[0]))
+    problem.add_goal(delivered(packages[2]))
+    plan = up.plans.SequentialPlan(
+        [
+            up.plans.ActionInstance(
+                deliver,
+                (ObjectExp(robots[0]), ObjectExp(locations[0]), ObjectExp(packages[0])),
+            ),
+            up.plans.ActionInstance(
+                move,
+                (
+                    ObjectExp(robots[1]),
+                    ObjectExp(locations[0]),
+                    ObjectExp(locations[2]),
+                ),
+            ),
+            up.plans.ActionInstance(
+                deliver,
+                (ObjectExp(robots[1]), ObjectExp(locations[2]), ObjectExp(packages[2])),
+            ),
+        ]
+    )
+    robot_package_delivery_joint_static_pruning = TestCase(
+        problem=problem, solvable=True, valid_plans=[plan]
+    )
+    problems["robot_package_delivery_joint_static_pruning"] = (
+        robot_package_delivery_joint_static_pruning
+    )
+
     return problems

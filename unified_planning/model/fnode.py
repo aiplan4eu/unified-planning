@@ -60,73 +60,11 @@ class FNode(object):
         return f"({op.join(str(arg) for arg in args)})"
 
     def __repr__(self) -> str:
-        repr_map = {
-            OperatorKind.BOOL_CONSTANT: lambda: (
-                "true" if self._content.payload else "false"
-            ),
-            OperatorKind.INT_CONSTANT: lambda: str(self._content.payload),
-            OperatorKind.REAL_CONSTANT: lambda: str(self._content.payload),
-            OperatorKind.FLUENT_EXP: lambda: (
-                self._content.payload.name
-                + self.get_nary_expression_string(", ", self.args)
-            ),
-            OperatorKind.INTERPRETED_FUNCTION_EXP: lambda: (
-                self._content.payload.name
-                + self.get_nary_expression_string(", ", self.args)
-            ),
-            OperatorKind.DOT: lambda: f"{self._content.payload}.{self.arg(0)}",
-            OperatorKind.PARAM_EXP: lambda: self._content.payload.name,
-            OperatorKind.VARIABLE_EXP: lambda: self._content.payload.name,
-            OperatorKind.OBJECT_EXP: lambda: self._content.payload.name,
-            OperatorKind.TIMING_EXP: lambda: str(self._content.payload),
-            OperatorKind.PRESENT_EXP: lambda: str(self._content.payload),
-            OperatorKind.AND: lambda: self.get_nary_expression_string(
-                " and ", self.args
-            ),
-            OperatorKind.OR: lambda: self.get_nary_expression_string(" or ", self.args),
-            OperatorKind.NOT: lambda: f"(not {self.arg(0)})",
-            OperatorKind.IMPLIES: lambda: self.get_nary_expression_string(
-                " implies ", self.args
-            ),
-            OperatorKind.IFF: lambda: self.get_nary_expression_string(
-                " iff ", self.args
-            ),
-            OperatorKind.EXISTS: lambda: (
-                f"Exists {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
-            ),
-            OperatorKind.FORALL: lambda: (
-                f"Forall {self.get_nary_expression_string(', ', self._content.payload)} {self.arg(0)}"
-            ),
-            OperatorKind.ALWAYS: lambda: f"Always({self.arg(0)})",
-            OperatorKind.SOMETIME: lambda: f"Sometime({self.arg(0)})",
-            OperatorKind.SOMETIME_BEFORE: lambda: (
-                f"Sometime-Before{self.get_nary_expression_string(', ', self.args)}"
-            ),
-            OperatorKind.SOMETIME_AFTER: lambda: (
-                f"Sometime-After{self.get_nary_expression_string(', ', self.args)}"
-            ),
-            OperatorKind.AT_MOST_ONCE: lambda: f"At-Most-Once({self.arg(0)})",
-            OperatorKind.PLUS: lambda: self.get_nary_expression_string(
-                " + ", self.args
-            ),
-            OperatorKind.MINUS: lambda: self.get_nary_expression_string(
-                " - ", self.args
-            ),
-            OperatorKind.TIMES: lambda: self.get_nary_expression_string(
-                " * ", self.args
-            ),
-            OperatorKind.DIV: lambda: self.get_nary_expression_string(" / ", self.args),
-            OperatorKind.LE: lambda: self.get_nary_expression_string(" <= ", self.args),
-            OperatorKind.LT: lambda: self.get_nary_expression_string(" < ", self.args),
-            OperatorKind.EQUALS: lambda: self.get_nary_expression_string(
-                " == ", self.args
-            ),
-        }
-
-        if self.node_type not in repr_map:
+        try:
+            repr_fn = _REPR_DISPATCH[self.node_type]
+        except KeyError:
             raise ValueError("Unknown FNode type found")
-
-        return repr_map[self.node_type]()
+        return repr_fn(self)
 
     @property
     def node_id(self) -> int:
@@ -493,3 +431,51 @@ class FNode(object):
 
     def Iff(self, right):
         return self._env.expression_manager.Iff(self, right)
+
+
+# Module-level __repr__ dispatch table: each function takes the FNode as its only
+# argument.
+_REPR_DISPATCH = {
+    OperatorKind.BOOL_CONSTANT: lambda n: "true" if n._content.payload else "false",
+    OperatorKind.INT_CONSTANT: lambda n: str(n._content.payload),
+    OperatorKind.REAL_CONSTANT: lambda n: str(n._content.payload),
+    OperatorKind.FLUENT_EXP: lambda n: (
+        n._content.payload.name + n.get_nary_expression_string(", ", n.args)
+    ),
+    OperatorKind.INTERPRETED_FUNCTION_EXP: lambda n: (
+        n._content.payload.name + n.get_nary_expression_string(", ", n.args)
+    ),
+    OperatorKind.DOT: lambda n: f"{n._content.payload}.{n.arg(0)}",
+    OperatorKind.PARAM_EXP: lambda n: n._content.payload.name,
+    OperatorKind.VARIABLE_EXP: lambda n: n._content.payload.name,
+    OperatorKind.OBJECT_EXP: lambda n: n._content.payload.name,
+    OperatorKind.TIMING_EXP: lambda n: str(n._content.payload),
+    OperatorKind.PRESENT_EXP: lambda n: str(n._content.payload),
+    OperatorKind.AND: lambda n: n.get_nary_expression_string(" and ", n.args),
+    OperatorKind.OR: lambda n: n.get_nary_expression_string(" or ", n.args),
+    OperatorKind.NOT: lambda n: f"(not {n.arg(0)})",
+    OperatorKind.IMPLIES: lambda n: n.get_nary_expression_string(" implies ", n.args),
+    OperatorKind.IFF: lambda n: n.get_nary_expression_string(" iff ", n.args),
+    OperatorKind.EXISTS: lambda n: (
+        f"Exists {n.get_nary_expression_string(', ', n._content.payload)} {n.arg(0)}"
+    ),
+    OperatorKind.FORALL: lambda n: (
+        f"Forall {n.get_nary_expression_string(', ', n._content.payload)} {n.arg(0)}"
+    ),
+    OperatorKind.ALWAYS: lambda n: f"Always({n.arg(0)})",
+    OperatorKind.SOMETIME: lambda n: f"Sometime({n.arg(0)})",
+    OperatorKind.SOMETIME_BEFORE: lambda n: (
+        f"Sometime-Before{n.get_nary_expression_string(', ', n.args)}"
+    ),
+    OperatorKind.SOMETIME_AFTER: lambda n: (
+        f"Sometime-After{n.get_nary_expression_string(', ', n.args)}"
+    ),
+    OperatorKind.AT_MOST_ONCE: lambda n: f"At-Most-Once({n.arg(0)})",
+    OperatorKind.PLUS: lambda n: n.get_nary_expression_string(" + ", n.args),
+    OperatorKind.MINUS: lambda n: n.get_nary_expression_string(" - ", n.args),
+    OperatorKind.TIMES: lambda n: n.get_nary_expression_string(" * ", n.args),
+    OperatorKind.DIV: lambda n: n.get_nary_expression_string(" / ", n.args),
+    OperatorKind.LE: lambda n: n.get_nary_expression_string(" <= ", n.args),
+    OperatorKind.LT: lambda n: n.get_nary_expression_string(" < ", n.args),
+    OperatorKind.EQUALS: lambda n: n.get_nary_expression_string(" == ", n.args),
+}

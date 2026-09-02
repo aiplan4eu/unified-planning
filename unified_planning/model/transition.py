@@ -44,6 +44,9 @@ class Transition(ABC):
     ):
         self._environment = get_environment(_env)
         self._name = _name
+        # Set (via `_note_indexed`) the first time some `NameIndex(track_renames=True)`
+        # indexes this transition -- see the `name` setter below.
+        self._is_indexed = False
         self._parameters: "OrderedDict[str, up.model.parameter.Parameter]" = (
             OrderedDict()
         )
@@ -107,6 +110,21 @@ class Transition(ABC):
     def name(self, new_name: str):
         """Sets the `Transition` `name`."""
         self._name = new_name
+        if self._is_indexed:
+            # Some `NameIndex(track_renames=True)` (currently only `ActionsSetMixin`'s) may
+            # be holding this transition under its old name -- tell it to rebuild rather than
+            # keep answering lookups with a mapping that now points at the wrong key.
+            # Imported lazily to avoid `model.transition` importing `model.mixins` (which
+            # imports several `model.*` submodules of its own) at module load time.
+            from unified_planning.model.mixins.name_index import note_renamed
+
+            note_renamed()
+
+    def _note_indexed(self) -> None:
+        """Called by a `NameIndex(track_renames=True)` the first time it indexes this
+        transition, so a later rename of its `name` (see the setter above) knows to
+        invalidate that index instead of leaving it silently stale."""
+        self._is_indexed = True
 
     @property
     def parameters(self) -> List["up.model.parameter.Parameter"]:
