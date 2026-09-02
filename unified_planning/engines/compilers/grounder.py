@@ -37,9 +37,44 @@ from unified_planning.engines.compilers.utils import (
     create_action_with_given_subs,
     split_all_ands,
 )
-from typing import Any, Dict, List, Optional, Set, Tuple, Iterator, cast
+from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
+
+
+class _AtomPattern(NamedTuple):
+    """How one static-fluent atom's argument positions map onto an action's parameters.
+
+    `param_positions` and `const_positions` list only the positions that constrain anything;
+    an argument that is neither a bare parameter nor a constant (a nested expression, an
+    object-fluent call) appears in neither and only sets `has_wildcard` -- the same blind spot
+    the per-parameter fallback pruning has.
+    """
+
+    param_positions: List[Tuple[int, int]]  # (argument index, action-parameter column)
+    const_positions: List[Tuple[int, FNode]]  # (argument index, value it must equal)
+    columns: Set[int]  # the action-parameter columns this atom constrains
+    has_wildcard: bool
+
+
+def _classify_atom(atom: FNode, param_expr_to_column: Dict[FNode, int]) -> _AtomPattern:
+    param_positions: List[Tuple[int, int]] = []
+    const_positions: List[Tuple[int, FNode]] = []
+    has_wildcard = False
+    for i, arg in enumerate(atom.args):
+        column = param_expr_to_column.get(arg)
+        if column is not None:
+            param_positions.append((i, column))
+        elif arg.is_constant():
+            const_positions.append((i, arg))
+        else:
+            has_wildcard = True
+    return _AtomPattern(
+        param_positions,
+        const_positions,
+        {column for _, column in param_positions},
+        has_wildcard,
+    )
 
 
 class GrounderHelper:
@@ -333,184 +368,55 @@ class GrounderHelper:
             return None
 
         em = self._problem.environment.expression_manager
-        # Every parameter's full type domain
         param_domains = [self._get_domain_items(t) for t in type_list]
         domain_sets = [set(d) for d in param_domains]
-        # Each object's position within its own type's domain -- used only at the very end,
-        # to sort the finished tuples back into the same order the caller's plain
-        # `itertools.product` over `param_domains` would have produced them in.
-        domain_position = [{obj: j for j, obj in enumerate(d)} for d in param_domains]
-        # Lets an atom argument that's a bare action parameter (as opposed to a constant or a
-        # nested expression) be recognized and traced back to its column index below.
         param_expr_to_column = {em.ParameterExp(p): i for i, p in enumerate(params)}
 
-        # `bindings` is the running join result: each element maps a column index to the
-        # object bound there by every static fluent folded in so far. `None` means "no fluent
-        # folded in yet", i.e. fully unconstrained -- distinct from "folded in one and it left
-        # zero rows", which ends the loop early via the `if not bindings: break` below.
-        bindings: Optional[List[Dict[int, FNode]]] = None
+        # The running join result: each element maps a column index to the object bound there
+        # by every atom folded in so far. The lone empty binding stands for "nothing
+        # constrained yet", and folds into the first atom's rows as the identity.
+        bindings: List[Dict[int, FNode]] = [{}]
         bound_columns: Set[int] = set()
 
-        # Fold in one static fluent at a time, narrowing `bindings` after each one.
         for static_fluent in static_fluents:
-            # Classify each argument of this one fluent: a bound action parameter (record its
-            # column), a literal constant, or -- falling through -- an unconstrained wildcard.
-            pattern: List[Tuple[str, Any]] = []
-            for arg in static_fluent.args:
-                if arg in param_expr_to_column:
-                    pattern.append(("p", param_expr_to_column[arg]))
-                elif arg.is_constant():
-                    pattern.append(("c", arg))
-                else:
-                    # nested/object-fluent argument: a wildcard, unconstrained -- same as
-                    # the per-parameter fallback pruning, which can't handle these either.
-                    pattern.append(("*", None))
-
-            fluent_columns: Set[int] = {i for kind, i in pattern if kind == "p"}
-            if not fluent_columns:
-                # Every argument was a constant/wildcard: this fluent doesn't mention any
-                # action parameter, so it has nothing to prune -- skip it (same blind spot
-                # the per-parameter fallback pruning already has).
+            pattern = _classify_atom(static_fluent, param_expr_to_column)
+            if not pattern.columns:
+                # Mentions no action parameter, so it can prune nothing.
                 continue
 
             true_arg_tuples = self._fluent_true_arg_tuples(static_fluent.fluent())
             if true_arg_tuples is None:
                 # Over budget to enumerate. Skipping one conjunct only ever weakens the
                 # pruning, never makes it unsound, and it keeps the join's benefit for this
-                # action's other fluents -- bailing out to `None` would throw that away too.
+                # action's other atoms -- bailing out to `None` would throw that away too.
                 continue
 
-            # A binding only records the parameter columns, so a wildcard position is
-            # projected away: two true tuples that differ only there produce the very same
-            # row. Left in, that row is duplicated through every later merge and the same
-            # parameter tuple is grounded twice, which `Problem.add_action` rejects as a
-            # duplicate action name. Deduplicate as the rows are built (so the cap below
-            # sees the real count too); with no wildcard the projection is injective and
-            # the bookkeeping is skipped.
-            has_wildcard = any(kind == "*" for kind, _ in pattern)
-            row_columns = sorted(fluent_columns)
-            seen_rows: Set[Tuple[FNode, ...]] = set()
-
-            # Check every argument tuple this fluent is actually true for against the
-            # pattern; each one that's consistent becomes one candidate binding *for this
-            # fluent alone* (not yet folded together with any other fluent's bindings).
-            rows: List[Dict[int, FNode]] = []
-            for true_args in true_arg_tuples:
-                binding: Dict[int, FNode] = {}
-                is_consistent = True
-                for (kind, payload), arg_value in zip(pattern, true_args):
-                    if kind == "c":
-                        if arg_value != payload:
-                            is_consistent = False
-                            break
-                    elif kind == "p":
-                        col: int = payload
-                        if arg_value not in domain_sets[col]:
-                            # Hierarchical-typing guard: an object matched via a static fluent's argument
-                            # position must be a member of the ACTION PARAMETER's own type domain, not just the
-                            # static fluent's declared parameter type -- the fluent's declared type may be a
-                            # supertype of the action parameter it's being matched against.
-                            # Omitting this intersection would bind an object that's ill-typed for the action
-                            # parameter.
-                            is_consistent = False
-                            break
-                        # The same parameter appearing at more than one position of this one
-                        # fluent (e.g. `sym(?x, ?x)`) must agree with itself at every
-                        # occurrence, not just be individually well-typed at each one.
-                        if col in binding and binding[col] != arg_value:
-                            is_consistent = False
-                            break
-                        binding[col] = arg_value
-                if not is_consistent:
-                    continue
-                if has_wildcard:
-                    row_key = tuple(binding[c] for c in row_columns)
-                    if row_key in seen_rows:
-                        continue
-                    seen_rows.add(row_key)
-                rows.append(binding)
-
-            if len(rows) > self._join_max_candidates:
-                # Safety valve, checked before this fluent's rows are merged into anything:
-                # a fluent with a `True` default over N objects materializes this list as
-                # N**arity rows on its own, regardless of how small `bindings` still is.
+            rows = self._atom_rows(pattern, true_arg_tuples, domain_sets)
+            if rows is None:
                 return None
-
-            if bindings is None:
-                # First fluent processed: nothing to join against yet, so its own rows become
-                # the running result outright.
-                bindings, bound_columns = rows, set(fluent_columns)
-            else:
-                # Columns already bound by an earlier fluent that this fluent constrains too
-                # -- the actual join key. Two fluents that don't share any column have no key
-                # to join on at all (handled in the `else` branch below).
-                shared_columns = sorted(bound_columns & fluent_columns)
-                if shared_columns:
-                    # A real hash join: index this fluent's rows by their shared-column
-                    # values once, then probe that index once per existing binding, instead
-                    # of comparing every (existing binding, new row) pair against each other.
-                    rows_by_shared_key: Dict[
-                        Tuple[FNode, ...], List[Dict[int, FNode]]
-                    ] = {}
-                    for row in rows:
-                        key = tuple(row[i] for i in shared_columns)
-                        rows_by_shared_key.setdefault(key, []).append(row)
-                    joined_rows = []
-                    for left in bindings:
-                        key = tuple(left[i] for i in shared_columns)
-                        for right in rows_by_shared_key.get(key, ()):
-                            merged = dict(left)
-                            merged.update(right)
-                            joined_rows.append(merged)
-                            if len(joined_rows) > self._join_max_candidates:
-                                # Safety valve, checked as the join result is accumulated
-                                # rather than after: a join of two large tables can blow the
-                                # cap well before either operand's own size would suggest.
-                                return None
-                    bindings = joined_rows
-                else:
-                    # No shared column: this fluent constrains entirely different
-                    # parameters than anything folded in so far, so there is nothing to join
-                    # on -- cross every existing binding with every one of this fluent's rows.
-                    if len(bindings) * len(rows) > self._join_max_candidates:
-                        # Safety valve, checked before the cross product is built rather
-                        # than after: with no shared column to filter on, its size is
-                        # exactly len(bindings) * len(rows), known upfront.
-                        return None
-                    bindings = [
-                        {**left, **right} for left in bindings for right in rows
-                    ]
-                bound_columns |= fluent_columns
-
+            merged = self._merge_bindings(
+                bindings, bound_columns, rows, pattern.columns
+            )
+            if merged is None:
+                return None
+            bindings = merged
+            bound_columns |= pattern.columns
             if not bindings:
-                # Zero rows survived: no combination can ever satisfy every fluent folded in
-                # so far, so no later fluent can matter either -- stop early.
+                # Nothing can satisfy every atom folded in so far, so no later one matters.
                 break
-            if len(bindings) > self._join_max_candidates:
-                # Safety valve: give up on the join for this action and let the caller fall
-                # back to the (always bounded, if weaker) per-parameter pruning instead.
-                return None
 
-        # Any parameter no static fluent ever constrained keeps its entire type domain --
-        # this reproduces the per-parameter fallback's own behavior exactly for a column
-        # that can't be pruned at all.
+        # A column no atom constrained keeps its whole domain, exactly as the per-parameter
+        # fallback leaves a column it cannot prune.
         free_columns = [i for i in range(num_params) if i not in bound_columns]
         free_domains = [param_domains[i] for i in free_columns]
-        if bindings is None:
-            # No fluent was ever eligible to fold in (e.g. every one hit the `continue`
-            # above): one empty binding, to be crossed with the full free-column domains
-            # below exactly like a plain, unpruned cross product would be.
-            bindings = [{}]
         free_size = 1
         for domain in free_domains:
             free_size *= len(domain)
         if len(bindings) * free_size > self._join_max_candidates:
-            # Second safety check: even when the constrained part of `bindings` stayed
-            # small, cross-joining in every free column could still blow the budget.
+            # Even a small constrained part can blow the budget once every free column is
+            # crossed in.
             return None
 
-        # Expand every surviving (possibly partial) binding with every combination of the
-        # still-free columns' domains, turning each into a full length-`num_params` tuple.
         tuples: List[Tuple[FNode, ...]] = []
         for binding in bindings:
             if free_columns:
@@ -521,17 +427,102 @@ class GrounderHelper:
             else:
                 tuples.append(tuple(binding[i] for i in range(num_params)))
 
-        # Canonical order -- must match itertools.product(*items_list)'s own enumeration
-        # order (lexicographic by each parameter's index within its own type's domain) so
-        # actions the join doesn't improve on stay order-identical to the fallback pruning:
-        # ground action naming/ordering must not silently change for a domain that doesn't
-        # even benefit from the join.
+        # Must match `itertools.product(*param_domains)`'s own order (lexicographic by each
+        # parameter's index within its own type's domain), so ground-action naming and
+        # ordering don't silently change for an action the join doesn't improve on.
+        domain_position = [{obj: j for j, obj in enumerate(d)} for d in param_domains]
         tuples.sort(
             key=lambda ground_tuple: tuple(
                 domain_position[i][ground_tuple[i]] for i in range(num_params)
             )
         )
         return tuples
+
+    def _atom_rows(
+        self,
+        pattern: _AtomPattern,
+        true_arg_tuples: List[Tuple[FNode, ...]],
+        domain_sets: List[Set[FNode]],
+    ) -> Optional[List[Dict[int, FNode]]]:
+        """One atom's contribution to the join: the distinct column -> object bindings its
+        true tuples allow, or `None` if there are more than `_join_max_candidates` of them.
+
+        A `True`-default fluent over N objects has N**arity true tuples, so this is checked
+        as the rows accumulate rather than after, and independently of how small `bindings`
+        still is.
+        """
+        rows: List[Dict[int, FNode]] = []
+        seen: Set[Tuple[FNode, ...]] = set()
+        row_columns = sorted(pattern.columns)
+        for true_args in true_arg_tuples:
+            if any(true_args[i] != wanted for i, wanted in pattern.const_positions):
+                continue
+            binding: Dict[int, FNode] = {}
+            for i, column in pattern.param_positions:
+                value = true_args[i]
+                # An object reached through this atom must belong to the ACTION PARAMETER's
+                # own domain, not merely to the fluent's declared parameter type, which may
+                # be a supertype of it; skipping this binds an ill-typed object.
+                if value not in domain_sets[column]:
+                    break
+                # A parameter at more than one position of the same atom (`sym(?x, ?x)`) has
+                # to agree with itself, not just be well-typed at each occurrence.
+                if binding.setdefault(column, value) != value:
+                    break
+            else:
+                if pattern.has_wildcard:
+                    # A wildcard position is never projected into the binding, so two true
+                    # tuples differing only there collapse onto one row. Left in, that row
+                    # survives every later merge and the same parameter tuple gets grounded
+                    # twice, which `Problem.add_action` rejects as a duplicate name. With no
+                    # wildcard the projection is injective and there is nothing to catch.
+                    key = tuple(binding[c] for c in row_columns)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                rows.append(binding)
+                if len(rows) > self._join_max_candidates:
+                    return None
+        return rows
+
+    def _merge_bindings(
+        self,
+        bindings: List[Dict[int, FNode]],
+        bound_columns: Set[int],
+        rows: List[Dict[int, FNode]],
+        atom_columns: Set[int],
+    ) -> Optional[List[Dict[int, FNode]]]:
+        """Folds one atom's `rows` into the running `bindings`, or `None` if the result would
+        exceed `_join_max_candidates`.
+
+        Joins on the columns both sides constrain; with no column in common there is no join
+        key and the two are crossed instead -- still correct, just not filtering.
+        """
+        shared_columns = sorted(bound_columns & atom_columns)
+        if not shared_columns:
+            # The size is exactly len(bindings) * len(rows), so check it before building.
+            if len(bindings) * len(rows) > self._join_max_candidates:
+                return None
+            return [{**left, **right} for left in bindings for right in rows]
+
+        # Index `rows` by their shared-column values once, then probe once per existing
+        # binding, instead of testing every (binding, row) pair.
+        rows_by_shared_key: Dict[Tuple[FNode, ...], List[Dict[int, FNode]]] = {}
+        for row in rows:
+            rows_by_shared_key.setdefault(
+                tuple(row[i] for i in shared_columns), []
+            ).append(row)
+        joined_rows: List[Dict[int, FNode]] = []
+        for left in bindings:
+            for right in rows_by_shared_key.get(
+                tuple(left[i] for i in shared_columns), ()
+            ):
+                joined_rows.append({**left, **right})
+                # Checked as the result accumulates: a join of two large tables can blow the
+                # budget well before either operand's own size would suggest.
+                if len(joined_rows) > self._join_max_candidates:
+                    return None
+        return joined_rows
 
     def _static_bool_fluents(self, action: Action) -> Optional[List[FNode]]:
         """Returns the top-level-AND positive boolean static-fluent expressions in `action`'s
