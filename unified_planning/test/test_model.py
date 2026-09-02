@@ -129,6 +129,86 @@ class TestModel(unittest_TestCase):
         problem_clone.add_increase_effect(t, y, 1)
         problem.add_timed_effect(t, y, 2)  # no conflict on the original
 
+    def test_clone_to_without_actions_and_metrics_preserves_everything_else(self):
+        Location = UserType("Location")
+        l1 = Object("l1", Location)
+        l2 = Object("l2", Location)
+        at_l2 = Fluent("at_l2")
+        cost = Fluent("cost", IntType())
+        move = InstantaneousAction("move")
+        move.add_precondition(Not(at_l2))
+        move.add_effect(at_l2, True)
+
+        problem = Problem("clone_without_actions")
+        problem.add_object(l1)
+        problem.add_object(l2)
+        problem.add_fluent(at_l2, default_initial_value=False)
+        problem.add_fluent(cost, default_initial_value=0)
+        problem.add_action(move)
+        problem.add_goal(at_l2)
+        problem.add_timed_goal(GlobalStartTiming(5), at_l2)
+        problem.add_timed_effect(GlobalStartTiming(3), cost, 10)
+        problem.add_trajectory_constraint(Sometime(at_l2))
+        problem.add_process(Process("idle"))
+        problem.add_event(Event("tick"))
+        problem.add_quality_metric(MinimizeActionCosts({move: 1}))
+        problem.epsilon = Fraction(1, 100)
+        problem.discrete_time = True
+        problem.self_overlapping = True
+
+        new_problem = Problem("clone_without_actions_target", problem.environment)
+        problem._clone_to_without_actions_and_metrics(new_problem)
+
+        # actions and quality metrics are intentionally dropped, not cloned
+        self.assertEqual(new_problem.actions, [])
+        self.assertEqual(new_problem.quality_metrics, [])
+
+        # everything else survives the clone
+        self.assertEqual(set(new_problem.user_types), set(problem.user_types))
+        self.assertEqual(set(new_problem.all_objects), set(problem.all_objects))
+        self.assertEqual(set(new_problem.fluents), set(problem.fluents))
+        self.assertEqual(new_problem.initial_values, problem.initial_values)
+        self.assertEqual(new_problem.goals, problem.goals)
+        self.assertEqual(new_problem.timed_goals, problem.timed_goals)
+        self.assertEqual(new_problem.timed_effects, problem.timed_effects)
+        self.assertEqual(
+            new_problem.trajectory_constraints, problem.trajectory_constraints
+        )
+        self.assertEqual(
+            {p.name for p in new_problem.processes},
+            {p.name for p in problem.processes},
+        )
+        self.assertEqual(
+            {e.name for e in new_problem.events}, {e.name for e in problem.events}
+        )
+        self.assertEqual(new_problem.epsilon, problem.epsilon)
+        self.assertEqual(new_problem.discrete_time, problem.discrete_time)
+        self.assertEqual(new_problem.self_overlapping, problem.self_overlapping)
+        self.assertEqual(new_problem._fluents_assigned, problem._fluents_assigned)
+
+        # the original problem is untouched
+        self.assertEqual(len(problem.actions), 1)
+        self.assertEqual(len(problem.quality_metrics), 1)
+
+    def test_clone_remaps_minimize_action_costs_to_the_cloned_actions(self):
+        done = Fluent("done")
+        move = InstantaneousAction("move")
+        move.add_effect(done, True)
+
+        problem = Problem("clone_metrics")
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(move)
+        problem.add_quality_metric(MinimizeActionCosts({move: 5}))
+
+        problem_clone = problem.clone()
+
+        cloned_move = problem_clone.action("move")
+        self.assertIsNot(cloned_move, move)
+        self.assertEqual(len(problem_clone.quality_metrics), 1)
+        metric = problem_clone.quality_metrics[0]
+        assert isinstance(metric, MinimizeActionCosts)
+        self.assertEqual(metric.get_action_cost(cloned_move), Int(5))
+
     def test_clone_action(self):
         Location = UserType("Location")
         with self.assertRaises(TypeError):

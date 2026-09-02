@@ -169,9 +169,18 @@ class DisjunctiveConditionsRemover(engines.engine.Engine, CompilerMixin):
         new_to_old: Dict[Action, Optional[Action]] = {}
         new_fluents: List["up.model.Fluent"] = []
 
-        new_problem = problem.clone()
+        if type(problem) is Problem:
+            # _clone_to_without_actions_and_metrics() skips deep-cloning every lifted action
+            # (and drops quality metrics). Restricted to the exact Problem class: Problem
+            # subclasses like HierarchicalProblem/ContingentProblem hand-roll their own clone()
+            # that _clone_to_without_actions_and_metrics() knows nothing about, and calling it
+            # on one of them would silently drop its subclass-only state.
+            new_problem = Problem(problem.name, problem.environment)
+            problem._clone_to_without_actions_and_metrics(new_problem)
+        else:
+            new_problem = problem.clone()
+            new_problem.clear_actions()
         new_problem.name = f"{self.name}_{problem.name}"
-        new_problem.clear_actions()
         new_problem.clear_goals()
         new_problem.clear_timed_goals()
         new_problem.clear_timed_effects()

@@ -172,7 +172,17 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
 
         new_to_old: Dict[Action, Optional[Action]] = {}
 
-        new_problem = problem.clone()
+        if type(problem) is Problem:
+            # _clone_to_without_actions_and_metrics() skips deep-cloning every lifted action
+            # (and drops quality metrics). Restricted to the exact Problem class: Problem
+            # subclasses like HierarchicalProblem/ContingentProblem hand-roll their own clone()
+            # that _clone_to_without_actions_and_metrics() knows nothing about, and calling it
+            # on one of them would silently drop its subclass-only state.
+            new_problem = Problem(problem.name, problem.environment)
+            problem._clone_to_without_actions_and_metrics(new_problem)
+        else:
+            new_problem = problem.clone()
+            new_problem.clear_actions()
         new_problem.name = f"{self.name}_{problem.name}"
         new_problem.clear_timed_effects()
         for t, el in problem.timed_effects.items():
@@ -190,7 +200,6 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                 else:
                     new_problem._add_effect_instance(t, e.clone())
 
-        new_problem.clear_actions()
         for ua in problem.unconditional_actions:
             new_uncond_action = ua.clone()
             new_problem.add_action(new_uncond_action)
