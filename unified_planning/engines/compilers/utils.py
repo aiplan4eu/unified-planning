@@ -17,43 +17,9 @@
 
 import warnings
 from fractions import Fraction
-import unified_planning as up
-from unified_planning.exceptions import (
-    UPConflictingEffectsException,
-    UPProblemDefinitionError,
-    UPUsageError,
-)
-from unified_planning.environment import Environment
-from unified_planning.model.contingent import SensingAction
-from unified_planning.model import (
-    FNode,
-    TimeInterval,
-    Action,
-    InstantaneousAction,
-    DurativeAction,
-    Problem,
-    Effect,
-    Expression,
-    Fluent,
-    BoolExpression,
-    NumericConstant,
-    SimulatedEffect,
-    Parameter,
-    DurationInterval,
-    TimePointInterval,
-    PlanQualityMetric,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    Oversubscription,
-    TemporalOversubscription,
-    AbstractProblem,
-)
-from unified_planning.plans import ActionInstance
 from typing import (
     Callable,
     Dict,
-    Iterable,
     List,
     Optional,
     OrderedDict,
@@ -63,6 +29,40 @@ from typing import (
     Union,
     cast,
 )
+
+import unified_planning as up
+from unified_planning.environment import Environment
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPProblemDefinitionError,
+    UPUsageError,
+)
+from unified_planning.model import (
+    AbstractProblem,
+    Action,
+    BoolExpression,
+    DurationInterval,
+    DurativeAction,
+    Effect,
+    Expression,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    NumericConstant,
+    Oversubscription,
+    Parameter,
+    PlanQualityMetric,
+    Problem,
+    SimulatedEffect,
+    TemporalOversubscription,
+    TimeInterval,
+    TimePointInterval,
+)
+from unified_planning.model.contingent import SensingAction
+from unified_planning.plans import ActionInstance
 
 
 def check_and_simplify_conditions(
@@ -95,8 +95,7 @@ def check_and_simplify_conditions(
                 )
         else:
             if cs.is_and():
-                for new_cond in cs.args:
-                    nac.append((i, new_cond))
+                nac.extend((i, new_cond) for new_cond in cs.args)
             else:
                 nac.append((i, cs))
     return (True, nac)
@@ -195,10 +194,9 @@ def create_effect_with_given_subs(
     new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
     if new_condition == em.FALSE():
         return None
-    else:
-        return Effect(
-            new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
-        )
+    return Effect(
+        new_fluent, new_value, new_condition, old_effect.kind, old_effect.forall
+    )
 
 
 def create_action_with_given_subs(
@@ -276,9 +274,7 @@ def create_action_with_given_subs(
                 except UPConflictingEffectsException:
                     return None
         if old_simulated_effect is not None:
-            new_fluents = []
-            for f in old_simulated_effect.fluents:
-                new_fluents.append(f.substitute(subs))
+            new_fluents = [f.substitute(subs) for f in old_simulated_effect.fluents]
 
             def fun(_problem, _state, _):
                 assert old_simulated_effect is not None
@@ -296,7 +292,7 @@ def create_action_with_given_subs(
             except UPConflictingEffectsException:
                 return None
         return new_action
-    elif isinstance(old_action, DurativeAction):
+    if isinstance(old_action, DurativeAction):
         naming_list = _naming_list(subs)
         new_durative_action = cast(DurativeAction, old_action.clone())
         new_durative_action.name = (
@@ -385,14 +381,13 @@ def create_action_with_given_subs(
         for interval, c in new_conditions:
             new_durative_action.add_condition(interval, c)
         return new_durative_action
-    else:
-        raise NotImplementedError
+    raise NotImplementedError
 
 
 def get_fresh_name(
     problem: AbstractProblem,
     original_name: str,
-    parameters_names: Sequence[str] = tuple(),
+    parameters_names: Sequence[str] = (),
     trailing_info: Optional[str] = None,
 ) -> str:
     """This method returns a fresh name for the problem, given a name and an iterable of names in input."""
@@ -404,20 +399,18 @@ def get_fresh_name(
     base_name = new_name
     count = 0
     while problem.has_name(new_name):
-        new_name = f"{base_name}_{str(count)}"
+        new_name = f"{base_name}_{count!s}"
         count += 1
     return new_name
 
 
 def get_fresh_parameter_name(action: Action, name: str):
     """This method returns a fresh name for a parameter in the action, given a name and the action"""
-    name_list: List[str] = []
-    for p in action.parameters:
-        name_list.append(p.name)
+    name_list: List[str] = [p.name for p in action.parameters]
     count = 0
     new_name = name
     while new_name in name_list:
-        new_name = f"{name}_{str(count)}"
+        new_name = f"{name}_{count!s}"
         count += 1
     return new_name
 
@@ -444,7 +437,7 @@ def replace_action(
     except KeyError:
         raise UPUsageError(
             "The Action of the given ActionInstance does not have a valid replacement."
-        )
+        ) from None
     if replaced_action is not None:
         return ActionInstance(
             replaced_action,
@@ -452,8 +445,7 @@ def replace_action(
             action_instance.agent,
             action_instance.motion_paths,
         )
-    else:
-        return None
+    return None
 
 
 def add_invariant_condition_apply_function_to_problem_expressions(
@@ -487,14 +479,17 @@ def add_invariant_condition_apply_function_to_problem_expressions(
         condition = em.TRUE()
     assert condition is not None
     if function is None:
-        function = lambda x: x
+
+        def function(x):
+            return x
+
     new_to_old: Dict[Action, Optional[Action]] = {}
 
     for constraint in original_problem.trajectory_constraints:
         new_problem.add_trajectory_constraint(function(constraint))
 
     for original_action in original_problem.actions:
-        params = OrderedDict(((p.name, p.type) for p in original_action.parameters))
+        params = OrderedDict((p.name, p.type) for p in original_action.parameters)
         if isinstance(original_action, InstantaneousAction):
             new_action: Union[InstantaneousAction, DurativeAction] = (
                 InstantaneousAction(original_action.name, params, env)
@@ -505,7 +500,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
             ).simplify()
             if new_cond.is_false():
                 continue
-            elif new_cond.is_and():
+            if new_cond.is_and():
                 for arg in new_cond.args:
                     new_action.add_precondition(arg)
             else:
@@ -529,7 +524,7 @@ def add_invariant_condition_apply_function_to_problem_expressions(
                 new_cond = em.And(*map(function, cond_list), condition).simplify()
                 if new_cond.is_false():
                     continue
-                elif new_cond.is_and():
+                if new_cond.is_and():
                     for arg in new_cond.args:
                         new_action.add_condition(interval, arg)
                 else:
@@ -640,7 +635,7 @@ def _apply_function_to_effect(
         function(effect.value),
         function(effect.condition),
         effect.kind,
-        tuple((exp.variable() for exp in auto_promote(effect.forall))),
+        tuple(exp.variable() for exp in auto_promote(effect.forall)),
     )
 
 
@@ -714,8 +709,7 @@ def split_all_ands(exp_list: List[FNode]) -> List[FNode]:
         temp_list = []
         for exp in start_list:
             if exp.is_and():
-                for sub_exp in exp.args:
-                    temp_list.append(sub_exp)
+                temp_list.extend(exp.args)
             else:
                 end_list.append(exp)
         start_list = temp_list

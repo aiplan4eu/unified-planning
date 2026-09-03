@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unified_planning as up
-from unified_planning.shortcuts import *
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
     bounded_types_kind,
@@ -23,9 +21,10 @@ from unified_planning.model.problem_kind import (
     simple_numeric_kind,
     simulated_effects_kind,
 )
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 
 
@@ -51,8 +50,7 @@ class TestSimulatedEffects(unittest_TestCase):
         def fun(problem, state, actual_params):
             if state.get_value(FluentExp(x)).is_false():
                 return [TRUE()]
-            else:
-                return [FALSE()]
+            return [FALSE()]
 
         a.set_simulated_effect(SimulatedEffect([FluentExp(x)], fun))
         problem = Problem("basic_with_simulated_effects")

@@ -13,19 +13,15 @@
 # limitations under the License.
 
 import os
-import unified_planning as up
-from unified_planning.model import ProblemKind
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines import (
-    PlanGenerationResult,
-    PlanGenerationResultStatus,
-    PDDLAnytimePlanner,
-)
-from unified_planning.engines.pddl_anytime_planner import Writer
-from unified_planning.environment import get_environment
-from unified_planning.io import PDDLWriter
 from typing import List, Optional
 
+import unified_planning as up
+from unified_planning.engines import (
+    PDDLAnytimePlanner,
+)
+from unified_planning.environment import get_environment
+from unified_planning.model import ProblemKind
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 
@@ -97,10 +93,9 @@ class ENHSP(PDDLAnytimePlanner):
     ) -> "up.engines.results.PlanGenerationResultStatus":
         if retval != 0:
             return up.engines.results.PlanGenerationResultStatus.INTERNAL_ERROR
-        elif plan is None:
+        if plan is None:
             return up.engines.results.PlanGenerationResultStatus.UNSOLVABLE_PROVEN
-        else:
-            return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
+        return up.engines.results.PlanGenerationResultStatus.SOLVED_OPTIMALLY
 
     def _starting_plan_str(self) -> str:
         return "Found Plan:"
@@ -120,9 +115,7 @@ class ENHSP(PDDLAnytimePlanner):
 
     @staticmethod
     def ensures(anytime_guarantee: up.engines.AnytimeGuarantee) -> bool:
-        if anytime_guarantee == up.engines.AnytimeGuarantee.INCREASING_QUALITY:
-            return True
-        return False
+        return anytime_guarantee == up.engines.AnytimeGuarantee.INCREASING_QUALITY
 
     @staticmethod
     def supported_kind() -> ProblemKind:

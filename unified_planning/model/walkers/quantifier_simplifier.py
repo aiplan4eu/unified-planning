@@ -14,14 +14,14 @@
 #
 
 
-from typing import Dict, List, Optional
 from itertools import product
+from typing import Dict, List, Optional
 
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.model.fnode import FNode
 from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.walkers.dag import DagWalker
 from unified_planning.model.walkers.simplifier import Simplifier
 
@@ -133,7 +133,9 @@ class QuantifierSimplifier(Simplifier):
         # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
-            subs: Dict["Expression", "Expression"] = dict(zip(vars, list(o)))
+            subs: Dict["Expression", "Expression"] = dict(
+                zip(vars, list(o), strict=True)
+            )
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if result.bool_constant_value():
@@ -158,7 +160,9 @@ class QuantifierSimplifier(Simplifier):
         # product([1,2], [3,4], [5,6], [7]) =
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         for o in product(*possible_objects):
-            subs: Dict["Expression", "Expression"] = dict(zip(vars, list(o)))
+            subs: Dict["Expression", "Expression"] = dict(
+                zip(vars, list(o), strict=True)
+            )
             result = self._deep_subs_simplify(args[0], subs)
             assert result.is_bool_constant()
             if not result.bool_constant_value():
@@ -173,10 +177,9 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Fluent {str(new_exp)} not found in {str(self._assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Fluent {new_exp!s} not found in {self._assignments!s}"
+        )
 
     def walk_variable_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         assert self._variable_assignments is not None
@@ -185,10 +188,9 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Variable {str(expression)} not found in {str(self._variable_assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Variable {expression!s} not found in {self._variable_assignments!s}"
+        )
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         assert self._assignments is not None
@@ -197,7 +199,6 @@ class QuantifierSimplifier(Simplifier):
             (res,) = self.manager.auto_promote(res)
             assert type(res) is FNode
             return res
-        else:
-            raise UPProblemDefinitionError(
-                f"Value of Parameter {str(expression)} not found in {str(self._assignments)}"
-            )
+        raise UPProblemDefinitionError(
+            f"Value of Parameter {expression!s} not found in {self._assignments!s}"
+        )

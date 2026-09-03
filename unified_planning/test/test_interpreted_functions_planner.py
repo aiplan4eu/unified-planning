@@ -169,5 +169,5 @@ class TestInterpretedFunctionsPlanner(unittest_TestCase):
         )
         valid_plan = testproblem.valid_plans[0].actions
         found_plan = result.plan.actions
-        for v, f in zip(valid_plan, found_plan):
+        for v, f in zip(valid_plan, found_plan, strict=True):
             self.assertEqual(v.action, f.action)

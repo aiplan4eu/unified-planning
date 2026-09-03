@@ -19,23 +19,24 @@ called without the need to specify an environment or a ExpressionManager.
 """
 
 import sys
+from fractions import Fraction
+from typing import IO, Any, Dict, Iterable, List, Optional, Sequence, Union
+
 import unified_planning as up
-import unified_planning.model.types
 import unified_planning.model.multi_agent
+import unified_planning.model.types
+from unified_planning.engines import (
+    AnytimeGuarantee,
+    CompilationKind,
+    Engine,
+    OperationMode,
+    OptimalityGuarantee,
+)
 from unified_planning.environment import get_environment
 from unified_planning.model import *
 from unified_planning.model.motion import *
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines import (
-    Engine,
-    CompilationKind,
-    OptimalityGuarantee,
-    OperationMode,
-    AnytimeGuarantee,
-)
 from unified_planning.plans import PlanKind
-from typing import IO, Any, Iterable, Union, Dict, Optional, Sequence, List
-from fractions import Fraction
 
 
 def And(*args: Union[BoolExpression, Iterable[BoolExpression]]) -> FNode:
@@ -167,7 +168,7 @@ def Forall(
 
 
 def FluentExp(
-    fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = tuple()
+    fluent: "unified_planning.model.Fluent", params: Sequence[Expression] = ()
 ) -> FNode:
     """
     | Creates an expression for the given ``fluent`` and ``parameters``.
@@ -183,7 +184,7 @@ def FluentExp(
 
 def InterpretedFunctionExp(
     interpreted_function: "unified_planning.model.InterpretedFunction",
-    params: Sequence[Expression] = tuple(),  # -------
+    params: Sequence[Expression] = (),  # -------
 ) -> FNode:
     """
     | Creates an expression for the given ``interpreted_function`` and ``parameters``.

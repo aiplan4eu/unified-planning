@@ -1,19 +1,17 @@
 from itertools import chain
-from unified_planning.shortcuts import *
+
 from unified_planning.model.problem_kind import (
     basic_temporal_kind,
-    temporal_kind,
-    classical_kind,
     int_duration_kind,
 )
 from unified_planning.plans import TimeTriggeredPlan
-from unified_planning.test.examples import get_example_problems
-from unified_planning.test import unittest_TestCase
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
     skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
 )
-
+from unified_planning.test.examples import get_example_problems
 
 up.shortcuts.get_environment().credits_stream = None
 
@@ -74,13 +72,13 @@ class TestTTPToSTN(unittest_TestCase):
         total_stn_nodes = set(
             chain(
                 stn_constraints.keys(),
-                map(lambda x: x[2], chain(*stn_constraints.values())),
+                (x[2] for x in chain(*stn_constraints.values())),
             )
         )
         self.assertEqual(len(total_stn_nodes), len(plan.timed_actions) * 2 + 2)
 
     def test_all_valid(self):
-        for name, tc in self.problems.items():
+        for tc in self.problems.values():
             for valid_plan in tc.valid_plans:
                 if valid_plan.kind == PlanKind.TIME_TRIGGERED_PLAN:
                     stn_plan = valid_plan.convert_to(PlanKind.STN_PLAN, tc.problem)
@@ -93,7 +91,7 @@ class TestTTPToSTN(unittest_TestCase):
                         ) as validator:
                             val_res = validator.validate(tc.problem, tt_plan)
                             self.assertTrue(val_res)
-                    except up.exceptions.UPNoSuitableEngineAvailableException as e:
+                    except up.exceptions.UPNoSuitableEngineAvailableException:
                         pass
 
     @skipIfNoPlanValidatorForProblemKind(sim_problem.kind)

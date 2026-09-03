@@ -15,19 +15,20 @@
 #
 """FNode are the building blocks of expressions."""
 
+import collections
+from fractions import Fraction
+from typing import Dict, List, Set, Union
+
 import unified_planning
 import unified_planning.model.fluent
 import unified_planning.model.interpreted_function
-import collections
 from unified_planning.environment import Environment
 from unified_planning.model.operators import OperatorKind
-from typing import Dict, List, Set, Union
-from fractions import Fraction
 
 FNodeContent = collections.namedtuple("FNodeContent", ["node_type", "args", "payload"])
 
 
-class FNode(object):
+class FNode:
     """
     The `FNode` class represents an `expression tree` in the `unified_planning` library.
 
@@ -38,7 +39,7 @@ class FNode(object):
     be instantiated or modified by the user.
     """
 
-    __slots__ = ["_content", "_node_id", "_env"]
+    __slots__ = ["_content", "_env", "_node_id"]
 
     def __init__(self, content: FNodeContent, node_id: int, environment: Environment):
         self._content = content
@@ -63,7 +64,7 @@ class FNode(object):
         try:
             repr_fn = _REPR_DISPATCH[self.node_type]
         except KeyError:
-            raise ValueError("Unknown FNode type found")
+            raise ValueError("Unknown FNode type found") from None
         return repr_fn(self)
 
     @property
@@ -221,11 +222,11 @@ class FNode(object):
 
     def is_true(self) -> bool:
         """Test whether the expression is the `True` Boolean constant."""
-        return self.is_bool_constant() and self.bool_constant_value() == True
+        return self.is_bool_constant() and self.bool_constant_value()
 
     def is_false(self) -> bool:
         """Test whether the expression is the `False` Boolean constant."""
-        return self.is_bool_constant() and self.bool_constant_value() == False
+        return self.is_bool_constant() and not self.bool_constant_value()
 
     def is_and(self) -> bool:
         """Test whether the node is the `And` operator."""

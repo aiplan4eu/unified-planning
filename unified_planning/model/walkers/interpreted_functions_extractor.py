@@ -14,10 +14,11 @@
 #
 
 from itertools import chain
+from typing import FrozenSet, Iterator, List
+
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import Iterator, List, FrozenSet
 
 
 class InterpretedFunctionsExtractor(walkers.dag.DagWalker):

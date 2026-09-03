@@ -14,21 +14,22 @@
 #
 
 
-import unified_planning as up
-from unified_planning.model import FNode
-from unified_planning.plans.plan import ActionInstance
-from unified_planning.plans.stn_plan import STNPlanNode
-from unified_planning.plans.contingent_plan import ContingentPlanNode
-import networkx as nx
 from typing import (
     Any,
+    Callable,
     Dict,
     Optional,
     Sequence,
     Tuple,
     Union,
-    Callable,
 )
+
+import networkx as nx
+
+from unified_planning.model import FNode
+from unified_planning.plans.contingent_plan import ContingentPlanNode
+from unified_planning.plans.plan import ActionInstance
+from unified_planning.plans.stn_plan import STNPlanNode
 
 # Defaults
 FIGSIZE = (13.0, 8.0)
@@ -76,7 +77,7 @@ def draw_base_graph(
         draw_networkx_kwargs = {}
 
     # drawing part
-    labels: Dict[Any, str] = dict(map(lambda x: (x, node_label(x)), graph.nodes))
+    labels: Dict[Any, str] = {x: node_label(x) for x in graph.nodes}
     if node_size is None:
         font_factor = font_size * font_size * 10.7
 
@@ -123,7 +124,7 @@ def _generate_positions(
     same position.
     """
     new_graph = nx.DiGraph()
-    id_to_node: Dict[Any, Any] = {i: node for i, node in enumerate(graph.nodes)}
+    id_to_node: Dict[Any, Any] = dict(enumerate(graph.nodes))
     node_to_id = {v: k for k, v in id_to_node.items()}
 
     for node, nbrdict in graph.adjacency():

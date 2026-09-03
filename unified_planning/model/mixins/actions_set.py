@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Iterator, List
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from unified_planning.model.mixins.name_index import NameIndex
-from typing import Iterator, List, Iterable
 
 
 class ActionsSetMixin:
@@ -145,8 +146,7 @@ class ActionsSetMixin:
                 action.name == a.name for a in self._actions
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._actions.append(action)
         self._actions_index.note_appended(self._actions)
         for param in action.parameters:

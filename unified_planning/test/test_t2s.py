@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from fractions import Fraction
+
+from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
+from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
+from unified_planning.engines.results import (
+    POSITIVE_OUTCOMES,
+    ValidationResultStatus,
+)
+from unified_planning.model.problem_kind import classical_kind
+from unified_planning.model.walkers import InterpretedFunctionsExtractor
+from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import classical_kind
-from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
-from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
-from unified_planning.engines.results import (
-    ValidationResultStatus,
-    POSITIVE_OUTCOMES,
-)
-from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
-from unified_planning.model.walkers import InterpretedFunctionsExtractor
-from unified_planning.io import PDDLWriter
-from fractions import Fraction
 
 
 def _get_interpreted_function(*expressions):

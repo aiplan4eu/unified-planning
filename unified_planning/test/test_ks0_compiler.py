@@ -17,6 +17,7 @@ import warnings
 from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers import Ks0Compiler
 from unified_planning.engines.results import CompilerResult, PlanGenerationResultStatus
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import UPState
@@ -25,15 +26,16 @@ from unified_planning.model.problem_kind import classical_kind
 from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
 )
-from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 from unified_planning.test.pddl.viplan_hh.viplan_hh_cases import (
     VIPLAN_HH_CASES,
-    parse_problem as parse_viplan_hh_problem,
     plan_from_action_names,
     state_specs_to_upstates,
+)
+from unified_planning.test.pddl.viplan_hh.viplan_hh_cases import (
+    parse_problem as parse_viplan_hh_problem,
 )
 
 
@@ -45,7 +47,7 @@ class TestKs0Compiler(unittest_TestCase):
     """
 
     # ==================================================================
-    # Helper builders – each returns (problem, possible_initial_states)
+    # Helper builders - each returns (problem, possible_initial_states)
     # ==================================================================
 
     def _build_problem_and_possible_states(
@@ -499,7 +501,7 @@ class TestKs0Compiler(unittest_TestCase):
         self.assertIn("at index 0", str(error.exception))
 
         compiler = Ks0Compiler(
-            possible_initial_states=possible_initial_states + (object(),)
+            possible_initial_states=(*possible_initial_states, object())  # type: ignore[arg-type]
         )
         with self.assertRaises(UPUsageError) as error:
             compiler.compile(problem, CompilationKind.CONFORMANT_TO_CLASSICAL)
@@ -535,7 +537,7 @@ class TestKs0Compiler(unittest_TestCase):
 
     def test_factory_instantiation_with_params(self):
         """The factory must build the compiler by name with `possible_initial_states`."""
-        problem, possible_initial_states = self._build_problem_and_possible_states()
+        _problem, possible_initial_states = self._build_problem_and_possible_states()
         with Compiler(
             name="up_ks0_compiler",
             params={"possible_initial_states": possible_initial_states},
@@ -992,7 +994,7 @@ class TestKs0Compiler(unittest_TestCase):
         for every tag."""
         _, res = self._compile_basic()
         compiled_unblock = res.problem.action("unblock")
-        # Unconditional add(reachable) → support + cancellation per tag × 3 tags = 6
+        # Unconditional add(reachable) -> support + cancellation per tag x 3 tags = 6
         self.assertEqual(len(compiled_unblock.effects), 6)
         effect_fluent_names = {e.fluent.fluent().name for e in compiled_unblock.effects}
         self.assertIn("K_reachable_empty", effect_fluent_names)
@@ -1416,7 +1418,7 @@ class TestKs0Compiler(unittest_TestCase):
                         subset_index=subset_index,
                         subset_size=len(subset),
                     ):
-                        state_specs = list(subset) + [case.true_state]
+                        state_specs = [*list(subset), case.true_state]
                         states = state_specs_to_upstates(problem, state_specs)
 
                         compiler = Ks0Compiler(possible_initial_states=states)

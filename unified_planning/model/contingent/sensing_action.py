@@ -15,10 +15,11 @@
 #
 
 
+from collections import OrderedDict
+from typing import Iterable, List, Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
-from typing import List, Optional, Iterable
-from collections import OrderedDict
 from unified_planning.model.action import InstantaneousAction
 
 
@@ -40,8 +41,7 @@ class SensingAction(InstantaneousAction):
             return super().__eq__(oth) and set(self._observed_fluents) == set(
                 oth._observed_fluents
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()
@@ -88,8 +88,7 @@ class SensingAction(InstantaneousAction):
         b = InstantaneousAction.__repr__(self)[0:-3]
         s = ["sensing-", b]
         s.append("    observations = [\n")
-        for e in self._observed_fluents:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self._observed_fluents)
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)

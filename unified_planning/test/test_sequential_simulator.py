@@ -13,18 +13,20 @@
 # limitations under the License.
 
 
-from typing import cast
 import warnings
-import unified_planning as up
-import pytest
 from itertools import product
-from unified_planning.shortcuts import *
-from unified_planning.engines import UPSequentialSimulator, SequentialSimulatorMixin
+from typing import cast
+
+import pytest
+
+import unified_planning as up
+from unified_planning.engines import SequentialSimulatorMixin, UPSequentialSimulator
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import State
 from unified_planning.plans import ActionInstance
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-from unified_planning.exceptions import UPUsageError
 
 
 class TestSimulator(unittest_TestCase):
@@ -142,7 +144,7 @@ class TestSimulator(unittest_TestCase):
         with self.assertRaises(UPUsageError) as e:
             UPSequentialSimulator(problem)
         self.assertIn("cannot establish whether", str(e.exception))
-        with SequentialSimulator(problem, name="sequential_simulator") as simulator:
+        with SequentialSimulator(problem, name="sequential_simulator"):
             pass
 
     def test_bounded_types(self):

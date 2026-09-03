@@ -21,6 +21,7 @@ such as the :func:`ExpressionManager <unified_planning.Environment.expression_ma
 
 import sys
 from typing import IO, Optional
+
 import unified_planning
 
 
@@ -35,10 +36,10 @@ class Environment:
     """
 
     def __init__(self):
-        import unified_planning.model
         import unified_planning.engines
-        import unified_planning.model.walkers
+        import unified_planning.model
         import unified_planning.model.type_manager
+        import unified_planning.model.walkers
 
         self._type_manager = unified_planning.model.type_manager.TypeManager()
         self._factory = unified_planning.engines.Factory(self)
@@ -167,5 +168,4 @@ def get_environment(environment: Optional[Environment] = None) -> Environment:
         if GLOBAL_ENVIRONMENT is None:
             GLOBAL_ENVIRONMENT = Environment()
         return GLOBAL_ENVIRONMENT
-    else:
-        return environment
+    return environment

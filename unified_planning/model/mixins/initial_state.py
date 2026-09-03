@@ -13,15 +13,15 @@
 # limitations under the License.
 #
 from collections import Counter
-from typing import Union, Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import unified_planning as up
 from unified_planning.exceptions import (
-    UPTypeError,
     UPExpressionDefinitionError,
+    UPTypeError,
 )
 from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.mixins import ObjectsSetMixin, FluentsSetMixin
+from unified_planning.model.mixins import FluentsSetMixin, ObjectsSetMixin
 from unified_planning.model.types import domain_size
 
 
@@ -85,10 +85,9 @@ class InitialStateMixin:
                 )
         if fluent_exp in self._initial_value:
             return self._initial_value[fluent_exp]
-        elif fluent_exp.fluent() in self._fluent_set.fluents_defaults:
+        if fluent_exp.fluent() in self._fluent_set.fluents_defaults:
             return self._fluent_set.fluents_defaults[fluent_exp.fluent()]
-        else:
-            return None
+        return None
 
     @property
     def initial_values(self) -> Dict["up.model.fnode.FNode", "up.model.fnode.FNode"]:
@@ -130,7 +129,7 @@ class InitialStateMixin:
             oth_value = oth_initial_values.get(fluent, None)
             if oth_value is None:
                 return False
-            elif value != oth_value:
+            if value != oth_value:
                 return False
         return True
 

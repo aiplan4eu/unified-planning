@@ -15,44 +15,45 @@
 #
 """This module defines the problem class."""
 
-from itertools import chain, product
-import networkx as nx
 from fractions import Fraction
-from typing import Any, Optional, List, Dict, Set, Tuple, Union, cast, Iterable
+from itertools import chain, product
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, Union, cast
 
+import networkx as nx
+
+import unified_planning as up
+from unified_planning.exceptions import (
+    UPNoSuitableEngineAvailableException,
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPUnsupportedProblemTypeError,
+    UPUsageError,
+)
+from unified_planning.model import Fluent
+from unified_planning.model.abstract_problem import AbstractProblem
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import EffectKind
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.metrics import (
     MaximizeExpressionOnFinalState,
     MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    Oversubscription,
+    TemporalOversubscription,
 )
-from unified_planning.model.metrics import MinimizeExpressionOnFinalState
-import unified_planning as up
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import EffectKind
-from unified_planning.model import Fluent
-from unified_planning.model.abstract_problem import AbstractProblem
-from unified_planning.model.metrics import Oversubscription, TemporalOversubscription
 from unified_planning.model.mixins import (
     ActionsSetMixin,
-    NaturalTransitionsSetMixin,
-    TimeModelMixin,
     FluentsSetMixin,
-    ObjectsSetMixin,
-    UserTypesSetMixin,
     InitialStateMixin,
     MetricsMixin,
+    NaturalTransitionsSetMixin,
+    ObjectsSetMixin,
+    TimeModelMixin,
+    UserTypesSetMixin,
 )
-from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.types import _IntType
-from unified_planning.exceptions import (
-    UPProblemDefinitionError,
-    UPTypeError,
-    UPUsageError,
-    UPNoSuitableEngineAvailableException,
-    UPUnsupportedProblemTypeError,
-)
-
 from unified_planning.model.walkers.any import AnyGetter
 
 
@@ -78,7 +79,9 @@ class Problem(
         name: Optional[str] = None,
         environment: Optional["up.environment.Environment"] = None,
         *,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         AbstractProblem.__init__(self, name, environment)
         UserTypesSetMixin.__init__(self, self.environment, self.has_name)
@@ -106,8 +109,8 @@ class Problem(
         self._timed_goals: Dict[
             "up.model.timing.TimeInterval", List["up.model.fnode.FNode"]
         ] = {}
-        self._trajectory_constraints: List["up.model.fnode.FNode"] = list()
-        self._goals: List["up.model.fnode.FNode"] = list()
+        self._trajectory_constraints: List["up.model.fnode.FNode"] = []
+        self._goals: List["up.model.fnode.FNode"] = []
         self._fluents_assigned: Dict[
             "up.model.timing.Timing",
             Dict["up.model.fnode.FNode", "up.model.fnode.FNode"],
@@ -118,13 +121,16 @@ class Problem(
 
     def __repr__(self) -> str:
         s = []
-        custom_str = lambda x: f"  {str(x)}\n"
+
+        def custom_str(x):
+            return f"  {x!s}\n"
+
         if self.name is not None:
-            s.append(f"problem name = {str(self.name)}\n\n")
+            s.append(f"problem name = {self.name!s}\n\n")
         if self._epsilon is not None:
             s.append(f"epsilon separation = {self._epsilon}\n\n")
         if len(self.user_types) > 0:
-            s.append(f"types = {str(list(self.user_types))}\n\n")
+            s.append(f"types = {list(self.user_types)!s}\n\n")
         s.append("fluents = [\n")
         s.extend(map(custom_str, self.fluents))
         s.append("]\n\n")
@@ -141,32 +147,31 @@ class Problem(
             s.append("]\n\n")
         if len(self.user_types) > 0:
             s.append("objects = [\n")
-            for ty in self.user_types:
-                s.append(f"  {str(ty)}: {str(list(self.objects(ty)))}\n")
+            s.extend(
+                f"  {ty!s}: {list(self.objects(ty))!s}\n" for ty in self.user_types
+            )
             s.append("]\n\n")
         s.append("initial fluents default = [\n")
         for f in self._fluents:
             if f in self._fluents_defaults:
                 v = self._fluents_defaults[f]
-                s.append(f"  {str(f)} := {str(v)}\n")
+                s.append(f"  {f!s} := {v!s}\n")
         s.append("]\n\n")
         s.append("initial values = [\n")
         for k, v in self.explicit_initial_values.items():
-            s.append(f"  {str(k)} := {str(v)}\n")
+            s.append(f"  {k!s} := {v!s}\n")
         s.append("]\n\n")
         if len(self.timed_effects) > 0:
             s.append("timed effects = [\n")
             for t, el in self.timed_effects.items():
-                s.append(f"  {str(t)} :\n")
-                for e in el:
-                    s.append(f"    {str(e)}\n")
+                s.append(f"  {t!s} :\n")
+                s.extend(f"    {e!s}\n" for e in el)
             s.append("]\n\n")
         if len(self.timed_goals) > 0:
             s.append("timed goals = [\n")
             for i, gl in self.timed_goals.items():
-                s.append(f"  {str(i)} :\n")
-                for g in gl:
-                    s.append(f"    {str(g)}\n")
+                s.append(f"  {i!s} :\n")
+                s.extend(f"    {g!s}\n" for g in gl)
             s.append("]\n\n")
         s.append("goals = [\n")
         s.extend(map(custom_str, self.goals))
@@ -211,7 +216,7 @@ class Problem(
             oth_tel = oth._timed_effects.get(t, None)
             if oth_tel is None:
                 return False
-            elif set(tel) != set(oth_tel):
+            if set(tel) != set(oth_tel):
                 return False
         if len(self._timed_goals) != len(oth._timed_goals):
             return False
@@ -219,7 +224,7 @@ class Problem(
             oth_tgl = oth._timed_goals.get(i, None)
             if oth_tgl is None:
                 return False
-            elif set(tgl) != set(oth_tgl):
+            if set(tgl) != set(oth_tgl):
                 return False
         return True
 
@@ -286,7 +291,7 @@ class Problem(
         new_p._timed_effects = {
             t: [e.clone() for e in el] for t, el in self._timed_effects.items()
         }
-        new_p._timed_goals = {i: [g for g in gl] for i, gl in self._timed_goals.items()}
+        new_p._timed_goals = {i: list(gl) for i, gl in self._timed_goals.items()}
         new_p._goals = self._goals[:]
         new_p._trajectory_constraints = self._trajectory_constraints[:]
         new_p._fluents_assigned = {
@@ -363,11 +368,14 @@ class Problem(
         fluents_in_durations: Set["up.model.fluent.Fluent"] = set()
         fluents_in_action_costs: Set["up.model.fluent.Fluent"] = set()
         fve = self._env.free_vars_extractor
+
         # function that takes an FNode and removes all the fluents contained in the given FNode
         # from the unused_fluents  set.
-        remove_used_fluents = lambda *exps: unused_fluents.difference_update(
-            (f.fluent() for e in exps for f in fve.get(e))
-        )
+        def remove_used_fluents(*exps):
+            return unused_fluents.difference_update(
+                f.fluent() for e in exps for f in fve.get(e)
+            )
+
         for a in self._actions:
             if isinstance(a, up.model.action.InstantaneousAction):
                 remove_used_fluents(*a.preconditions)
@@ -430,7 +438,7 @@ class Problem(
             elif isinstance(qm, up.model.metrics.Oversubscription):
                 remove_used_fluents(*qm.goals.keys())
             elif isinstance(qm, up.model.metrics.TemporalOversubscription):
-                for _, g in qm.goals.keys():
+                for _, g in qm.goals:
                     remove_used_fluents(g)
             elif isinstance(qm, up.model.metrics.MinimizeActionCosts):
                 costs = list(qm.costs.values())
@@ -515,7 +523,7 @@ class Problem(
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `timed effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -530,7 +538,7 @@ class Problem(
         """
         if timing.is_from_end():
             raise UPProblemDefinitionError(
-                f"Timing used in timed effect cannot be EndTiming."
+                "Timing used in timed effect cannot be EndTiming."
             )
         (
             fluent_exp,
@@ -553,7 +561,7 @@ class Problem(
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given `timed increase effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -595,7 +603,7 @@ class Problem(
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         Adds the given timed decrease effect to the problem; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -728,9 +736,7 @@ class Problem(
             if tc.is_always():
                 state_invariants.append(tc.arg(0))
             elif tc.is_and():
-                for a in tc.args:
-                    if a.is_always():
-                        state_invariants.append(a.arg(0))
+                state_invariants.extend(a.arg(0) for a in tc.args if a.is_always())
             elif tc.is_forall() and tc.arg(0).is_always():
                 state_invariants.append(em.Forall(tc.arg(0).arg(0), *tc.variables()))
         return state_invariants
@@ -816,10 +822,10 @@ class Problem(
                     for of in action.observed_fluents:
                         domain_constants.update(extractor.get(of))
             elif isinstance(action, DurativeAction):
-                for _, cnds in action.conditions.items():
+                for cnds in action.conditions.values():
                     for c in cnds:
                         domain_constants.update(extractor.get(c))
-                for _, effs in action.effects.items():
+                for effs in action.effects.values():
                     for e in effs:
                         domain_constants.update(extractor.get(e.fluent))
                         domain_constants.update(extractor.get(e.value))
@@ -855,10 +861,10 @@ class Problem(
             ):
                 domain_constants.update(extractor.get(qm.expression))
             elif isinstance(qm, Oversubscription):
-                for g in qm.goals.keys():
+                for g in qm.goals:
                     domain_constants.update(extractor.get(g))
             elif isinstance(qm, TemporalOversubscription):
-                for _, g in qm.goals.keys():
+                for _, g in qm.goals:
                     domain_constants.update(extractor.get(g))
             elif isinstance(qm, MinimizeActionCosts):
                 for c in qm.costs.values():
@@ -1243,9 +1249,11 @@ class _KindFactory:
             self.update_action_parameter(param)
         if isinstance(action, up.model.contingent.SensingAction):
             self.kind.set_problem_class("CONTINGENT")
-        if isinstance(action, up.model.mixins.MotionConstraintsSetMixin):
-            if len(action.motion_constraints) > 0:
-                self.kind.set_problem_class("TAMP")
+        if (
+            isinstance(action, up.model.mixins.MotionConstraintsSetMixin)
+            and len(action.motion_constraints) > 0
+        ):
+            self.kind.set_problem_class("TAMP")
         if isinstance(action, up.model.action.InstantaneousAction):
             for c in action.preconditions:
                 self.update_problem_kind_expression(c)
@@ -1270,7 +1278,7 @@ class _KindFactory:
             self.kind.set_time("CONTINUOUS_TIME")
             continuous_fluents = set()
             fluents_in_rhs = set()
-            for eff_time in action.continuous_effects.keys():
+            for eff_time in action.continuous_effects:
                 for e in action.continuous_effects[eff_time]:
                     if e.kind == EffectKind.CONTINUOUS_INCREASE:
                         self.kind.set_effects_kind("INCREASE_CONTINUOUS_EFFECTS")
@@ -1412,10 +1420,10 @@ class _KindFactory:
             elif metric.is_temporal_oversubscription():
                 assert isinstance(metric, up.model.TemporalOversubscription)
                 self.kind.set_quality_metrics("TEMPORAL_OVERSUBSCRIPTION")
-                oversub_goals = map(lambda x: x[1], metric.goals.keys())
+                oversub_goals = (x[1] for x in metric.goals)
                 oversub_gains = metric.goals.values()
             else:
-                assert False, "Unknown quality metric"
+                raise AssertionError("Unknown quality metric")
             for goal in oversub_goals:
                 self.update_problem_kind_expression(goal)
             for oversub_gain in oversub_gains:
@@ -1467,7 +1475,7 @@ def generate_causal_graph(
         (up.model.htn.HierarchicalProblem, up.model.contingent.ContingentProblem),
     ):
         raise NotImplementedError
-    assert type(problem) == Problem, "Error not handled."
+    assert type(problem) is Problem, "Error not handled."
 
     if not problem.actions:
         raise UPUsageError("Can't create the causal graph of a Problem without actions")
@@ -1495,7 +1503,7 @@ def generate_causal_graph(
             raise UPUsageError(
                 "To plot the causal graph of a problem, the problem must be grounded or a grounder capable of handling the given problem must be installed.\n"
                 + str(ex)
-            )
+            ) from ex
 
     # Populate 2 maps:
     #  one from a fluent to all the actions reading that fluent
@@ -1569,7 +1577,7 @@ def generate_causal_graph(
                         graph.add_edge(left_node, right_node)
                     actions.add(
                         up.plans.ActionInstance(
-                            *actions_mapping.get(ln_action, (ln_action, tuple()))
+                            *actions_mapping.get(ln_action, (ln_action, ()))
                         )
                     )
     return graph, edge_actions_map

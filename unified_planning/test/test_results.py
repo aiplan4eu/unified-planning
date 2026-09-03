@@ -13,15 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unified_planning.exceptions import UPUsageError
 from unified_planning.engines.results import (
+    CompilerResult,
     PlanGenerationResult,
     PlanGenerationResultStatus,
-    CompilerResult,
 )
+from unified_planning.exceptions import UPUsageError
 from unified_planning.model import Problem
 from unified_planning.plans import SequentialPlan
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import main, unittest_TestCase
 
 A_PLAN = SequentialPlan([])
 

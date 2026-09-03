@@ -14,9 +14,9 @@
 
 
 import unified_planning as up
-from unified_planning.shortcuts import *
 from unified_planning.model.multi_agent import *
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples.multi_agent import get_example_problems
 
 
@@ -168,5 +168,5 @@ class TestProblem(unittest_TestCase):
 
         cloned_problem = problem.clone()
         cloned_plan = cloned_problem.normalize_plan(plan)
-        for a, ca in zip(plan.actions, cloned_plan.actions):
+        for a, ca in zip(plan.actions, cloned_plan.actions, strict=True):
             self.assertTrue(a.is_semantically_equivalent(ca))

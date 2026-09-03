@@ -13,16 +13,16 @@
 # limitations under the License.
 
 
-from unified_planning.environment import Environment
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
 from unified_planning.engines.results import (
     PlanGenerationResult,
     PlanGenerationResultStatus,
 )
+from unified_planning.environment import Environment
 from unified_planning.model import Fluent, InstantaneousAction, Problem, ProblemKind
 from unified_planning.plans import SequentialPlan
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import main, unittest_TestCase
 
 
 class ArgRecordingEngine(Engine, OneshotPlannerMixin):

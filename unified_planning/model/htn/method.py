@@ -19,15 +19,15 @@ and a list of subtasks.
 """
 
 from collections import OrderedDict
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUnboundedVariablesError, UPValueError
+from unified_planning.model.expression import Expression
+from unified_planning.model.htn.task import Task
 from unified_planning.model.htn.task_network import AbstractTaskNetwork
 from unified_planning.model.parameter import Parameter
-from unified_planning.model.htn.task import Task
-from unified_planning.model.expression import Expression
 
 
 class ParameterizedTask:
@@ -73,7 +73,7 @@ class Method(AbstractTaskNetwork):
         _env: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
     ):
-        super(Method, self).__init__(_env)
+        super().__init__(_env)
         self._task: Optional[ParameterizedTask] = None
         self._name = _name
         self._parameters: "OrderedDict[str, Parameter]" = OrderedDict()
@@ -108,18 +108,15 @@ class Method(AbstractTaskNetwork):
         s.append(f"  task = {self._task}\n")
         if len(self.preconditions) > 0:
             s.append("  preconditions = [\n")
-            for c in self.preconditions:
-                s.append(f"    {str(c)}\n")
+            s.extend(f"    {c!s}\n" for c in self.preconditions)
             s.append("  ]\n")
         if len(self.constraints) > 0:
             s.append("  constraints = [\n")
-            for c in self.constraints:
-                s.append(f"    {str(c)}\n")
+            s.extend(f"    {c!s}\n" for c in self.constraints)
             s.append("  ]\n")
         if len(self.subtasks) > 0:
             s.append("  subtasks = [\n")
-            for st in self.subtasks:
-                s.append(f"      {str(st)}\n")
+            s.extend(f"      {st!s}\n" for st in self.subtasks)
             s.append("  ]\n")
         s.append("}")
         return "".join(s)
@@ -261,7 +258,7 @@ class Method(AbstractTaskNetwork):
         free_vars = self._env.free_vars_oracle.get_free_variables(precondition_exp)
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
-                f"The precondition {str(precondition_exp)} has unbounded variables:\n{str(free_vars)}"
+                f"The precondition {precondition_exp!s} has unbounded variables:\n{free_vars!s}"
             )
         if precondition_exp not in self._preconditions:
             self._preconditions.append(precondition_exp)

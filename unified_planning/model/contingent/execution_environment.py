@@ -14,11 +14,12 @@
 # limitations under the License.
 #
 
-from collections import OrderedDict
 import random
+from collections import OrderedDict
+from typing import Dict, Optional
+
 import unified_planning as up
 from unified_planning.exceptions import UPUsageError
-from typing import Dict, Optional
 
 
 class ExecutionEnvironment:
@@ -125,7 +126,7 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         self, problem: "up.model.contingent.contingent_problem.ContingentProblem"
     ):
         # import pysmt here to avoid making it a hard dependency for the whole contingent module
-        from pysmt.shortcuts import Not, And, Symbol, Or, ExactlyOne
+        from pysmt.shortcuts import And, ExactlyOne, Not, Or, Symbol
 
         fnode_to_symbol = {}
         symbol_to_fnode = {}
@@ -190,7 +191,7 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
         self._state = new_state
         res = {}
         subs: Dict["up.model.Expression", "up.model.Expression"] = dict(
-            zip(action.action.parameters, action.actual_parameters)
+            zip(action.action.parameters, action.actual_parameters, strict=True)
         )
         if isinstance(action.action, up.model.contingent.sensing_action.SensingAction):
             for f in action.action.observed_fluents:
@@ -209,8 +210,8 @@ class SimulatedExecutionEnvironment(ExecutionEnvironment):
 
 def all_smt(formula, keys):
     # import pysmt here to avoid making it a hard dependency for the whole contingent module
-    from pysmt.shortcuts import Solver, Not, And, EqualsOrIff
     from pysmt.oracles import get_logic
+    from pysmt.shortcuts import And, EqualsOrIff, Not, Solver
 
     target_logic = get_logic(formula)
     with Solver(logic=target_logic) as solver:

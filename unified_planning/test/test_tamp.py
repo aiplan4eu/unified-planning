@@ -90,9 +90,9 @@ class TestMotionActivity(unittest_TestCase):
                     "      duration = [2, 2]",
                     "    }",
                     "  motion-constraints",
-                    f"      {str(constraint)}",
+                    f"      {constraint!s}",
                     "  motion-effects",
-                    f"      {str(r1)} := {str(c2)}",
+                    f"      {r1!s} := {c2!s}",
                     "}",
                 ]
             ),

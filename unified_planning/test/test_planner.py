@@ -13,25 +13,30 @@
 # limitations under the License.
 
 
-from typing import Callable
 import warnings
+from typing import Callable
+
 import unified_planning as up
-from unified_planning.shortcuts import *
+from unified_planning.engines import PlanGenerationResultStatus
+from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
+from unified_planning.engines.results import POSITIVE_OUTCOMES
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model.metrics import MinimizeSequentialPlanLength
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     classical_kind,
     general_numeric_kind,
-    quality_metrics_kind,
     oversubscription_kind,
+    quality_metrics_kind,
 )
-from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
-from unified_planning.test import skipIfNoOneshotPlannerForProblemKind
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    main,
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import PlanGenerationResultStatus
-from unified_planning.engines.results import POSITIVE_OUTCOMES
-from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model.metrics import MinimizeSequentialPlanLength
 
 
 class TestPlanner(unittest_TestCase):
@@ -129,7 +134,6 @@ class TestPlanner(unittest_TestCase):
                 return 0 if v else 1
 
             final_report = planner.solve(problem, heuristic=h)
-            plan = final_report.plan
             self.assertEqual(
                 final_report.status, PlanGenerationResultStatus.SOLVED_SATISFICING
             )

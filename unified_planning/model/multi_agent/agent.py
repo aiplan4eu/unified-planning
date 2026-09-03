@@ -14,14 +14,15 @@
 #
 """This module defines an agent class."""
 
+from typing import Iterable, List, Optional, Union
+
 import unified_planning as up
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins import (
     ActionsSetMixin,
     FluentsSetMixin,
 )
-from typing import Optional, List, Union, Iterable
-from unified_planning.model.expression import ConstantExpression
-from unified_planning.exceptions import UPUsageError
 
 
 class Agent(
@@ -50,8 +51,8 @@ class Agent(
         self._env = ma_problem.environment
         self._name: str = name
         self._public_fluents: List["up.model.fluent.Fluent"] = []
-        self._private_goals: List["up.model.fnode.FNode"] = list()
-        self._public_goals: List["up.model.fnode.FNode"] = list()
+        self._private_goals: List["up.model.fnode.FNode"] = []
+        self._public_goals: List["up.model.fnode.FNode"] = []
         self._ma_problem_has_name_not_in_agents = ma_problem.has_name_not_in_agents
 
     def __getstate__(self):
@@ -201,9 +202,11 @@ class Agent(
 
         goal_list = self._private_goals if is_private_goal else self._public_goals
 
-        if goal_exp != self._env.expression_manager.TRUE():
-            if goal_exp not in goal_list:
-                goal_list.append(goal_exp)
+        if (
+            goal_exp != self._env.expression_manager.TRUE()
+            and goal_exp not in goal_list
+        ):
+            goal_list.append(goal_exp)
 
         return goal_exp
 
@@ -252,26 +255,21 @@ class Agent(
 
     def __repr__(self) -> str:
         s = []
-        s.append(f"Agent name = {str(self._name)}\n\n")
+        s.append(f"Agent name = {self._name!s}\n\n")
         s.append("private fluents = [\n")
-        for f in self.private_fluents:
-            s.append(f" {str(f)}\n")
+        s.extend(f" {f!s}\n" for f in self.private_fluents)
         s.append("]\n\n")
         s.append("public fluents = [\n")
-        for f in self._public_fluents:
-            s.append(f" {str(f)}\n")
+        s.extend(f" {f!s}\n" for f in self._public_fluents)
         s.append("]\n\n")
         s.append("actions = [\n")
-        for a in self._actions:
-            s.append(f" {str(a)}\n")
+        s.extend(f" {a!s}\n" for a in self._actions)
         s.append("]\n\n")
         s.append("private goals = [\n")
-        for g in self.private_goals:
-            s.append(f" {str(g)}\n")
+        s.extend(f" {g!s}\n" for g in self.private_goals)
         s.append("]\n\n")
         s.append("public goals = [\n")
-        for g in self._public_goals:
-            s.append(f" {str(g)}\n")
+        s.extend(f" {g!s}\n" for g in self._public_goals)
         s.append("]\n\n")
         return "".join(s)
 
@@ -288,9 +286,7 @@ class Agent(
             return False
         if set(self._private_goals) != set(oth._private_goals):
             return False
-        if set(self._public_goals) != set(oth._public_goals):
-            return False
-        return True
+        return set(self._public_goals) == set(oth._public_goals)
 
     def __hash__(self) -> int:
         res = hash(self._name)

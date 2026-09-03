@@ -14,7 +14,7 @@
 
 
 from itertools import product
-from typing import cast
+
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -1046,7 +1046,7 @@ def get_example_problems():
     delivered = Fluent("delivered", BoolType(), p=Package)
     deliver = InstantaneousAction("deliver", r=Robot, l=Location, p=Package)
     r = deliver.parameter("r")
-    l = deliver.parameter("l")
+    loc = deliver.parameter("l")
     p = deliver.parameter("p")
     # can_carry and pkg_at each jointly constrain two of deliver's three parameters --
     # a static predicate independently narrowing r, l and p can't see that a robot able to
@@ -1054,8 +1054,8 @@ def get_example_problems():
     # each parameter on its own still leaves every (r, l, p) combination to be cross-produced
     # and only then rejected.
     deliver.add_precondition(can_carry(r, p))
-    deliver.add_precondition(pkg_at(p, l))
-    deliver.add_precondition(robot_at(r, l))
+    deliver.add_precondition(pkg_at(p, loc))
+    deliver.add_precondition(robot_at(r, loc))
     deliver.add_precondition(Not(delivered(p)))
     deliver.add_effect(delivered(p), True)
     move = InstantaneousAction("move", r=Robot, l_from=Location, l_to=Location)

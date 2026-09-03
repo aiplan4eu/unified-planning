@@ -1,8 +1,8 @@
-import sys
+import importlib
 import pathlib
 import pkgutil
-import importlib
 import subprocess
+import sys
 
 exit_code = 0
 

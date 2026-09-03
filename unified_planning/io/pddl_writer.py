@@ -14,41 +14,40 @@
 #
 
 
-import sys
 import re
-
+import sys
+from functools import reduce
+from io import StringIO
+from typing import IO, Callable, Dict, List, Optional, Set, Union, cast
 from warnings import warn
 
 import unified_planning as up
 import unified_planning.model.walkers as walkers
+from unified_planning.exceptions import (
+    UPException,
+    UPProblemDefinitionError,
+    UPTypeError,
+)
 from unified_planning.io.utils import decimal_literal
 from unified_planning.model import (
-    InstantaneousAction,
     DurativeAction,
+    Effect,
     Fluent,
+    InstantaneousAction,
+    Object,
     Parameter,
     Problem,
-    Object,
-    Effect,
     Timing,
 )
-from unified_planning.exceptions import (
-    UPTypeError,
-    UPProblemDefinitionError,
-    UPException,
-)
-from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.contingent import ContingentProblem, SensingAction
+from unified_planning.model.htn import HierarchicalProblem
 from unified_planning.model.types import _UserType
 from unified_planning.plans import (
+    ActionInstance,
+    Plan,
     SequentialPlan,
     TimeTriggeredPlan,
-    Plan,
-    ActionInstance,
 )
-from typing import Callable, Dict, IO, List, Optional, Set, Union, cast
-from io import StringIO
-from functools import reduce
 
 GENERAL_PDDL_KEYWORDS = {
     "define",
@@ -340,10 +339,8 @@ class PDDLWriter:
         if len(self.problem.trajectory_constraints) > 0:
             self.pddl_keywords |= PDDL3_KEYWORDS
         if any(
-            map(
-                lambda action: isinstance(action, up.model.action.DurativeAction),
-                self.problem.actions,
-            )
+            isinstance(action, up.model.action.DurativeAction)
+            for action in self.problem.actions
         ):
             self.pddl_keywords |= TEMPORAL_PDDL_KEYWORDS
         if isinstance(self.problem, ContingentProblem):
@@ -439,10 +436,8 @@ class PDDLWriter:
 
         if self.problem_kind.has_hierarchical_typing():
             user_types_hierarchy = self.problem.user_types_hierarchy
-            out.write(f" (:types\n")
-            stack: List["up.model.Type"] = (
-                user_types_hierarchy[None] if None in user_types_hierarchy else []
-            )
+            out.write(" (:types\n")
+            stack: List["up.model.Type"] = user_types_hierarchy.get(None, [])
             out.write(
                 f"    {' '.join(self._get_mangled_name(t) for t in stack)} - object\n"
             )
@@ -542,7 +537,7 @@ class PDDLWriter:
         if isinstance(self.problem, HierarchicalProblem):
             for task in self.problem.tasks:
                 out.write(f" (:task {self._get_mangled_name(task)}")
-                out.write(f"\n  :parameters (")
+                out.write("\n  :parameters (")
                 for ap in task.parameters:
                     if ap.type.is_user_type():
                         out.write(
@@ -554,7 +549,7 @@ class PDDLWriter:
 
             for m in self.problem.methods:
                 out.write(f" (:method {self._get_mangled_name(m)}")
-                out.write(f"\n  :parameters (")
+                out.write("\n  :parameters (")
                 for ap in m.parameters:
                     if ap.type.is_user_type():
                         out.write(
@@ -581,7 +576,7 @@ class PDDLWriter:
                                 precond_str.append(converter.convert(p))
                     out.write(f"\n  :precondition (and {' '.join(precond_str)})")
                 elif len(m.preconditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :precondition ()")
+                    out.write("\n  :precondition ()")
                 self._write_task_network(m, out, converter)
                 out.write(")\n")
 
@@ -590,7 +585,7 @@ class PDDLWriter:
                 if any(p.simplify().is_false() for p in a.preconditions):
                     continue
                 out.write(f" (:action {self._get_mangled_name(a)}")
-                out.write(f"\n  :parameters (")
+                out.write("\n  :parameters (")
                 self._write_parameters(out, a)
                 out.write(")")
                 self._write_untimed_preconditions(a, converter, out)
@@ -598,7 +593,8 @@ class PDDLWriter:
                     obs = a.observed_fluents
                     if len(obs) == 0:
                         warn(
-                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe."
+                            f"SensingAction '{a.name}' has no observed fluents; skipping :observe.",
+                            stacklevel=2,
                         )
                     elif len(obs) == 1:
                         out.write(f"\n  :observe {converter.convert(obs[0])}")
@@ -613,7 +609,7 @@ class PDDLWriter:
                 ):
                     continue
                 out.write(f" (:durative-action {self._get_mangled_name(a)}")
-                out.write(f"\n  :parameters (")
+                out.write("\n  :parameters (")
                 for ap in a.parameters:
                     if ap.type.is_user_type():
                         out.write(
@@ -622,25 +618,25 @@ class PDDLWriter:
                     else:
                         raise UPTypeError("PDDL supports only user type parameters")
                 out.write(")")
-                l, r = a.duration.lower, a.duration.upper
-                if l == r:
-                    out.write(f"\n  :duration (= ?duration {converter.convert(l)})")
+                low, upp = a.duration.lower, a.duration.upper
+                if low == upp:
+                    out.write(f"\n  :duration (= ?duration {converter.convert(low)})")
                 else:
-                    out.write(f"\n  :duration (and ")
+                    out.write("\n  :duration (and ")
                     if a.duration.is_left_open():
-                        out.write(f"(> ?duration {converter.convert(l)})")
+                        out.write(f"(> ?duration {converter.convert(low)})")
                     else:
-                        out.write(f"(>= ?duration {converter.convert(l)})")
+                        out.write(f"(>= ?duration {converter.convert(low)})")
                     if a.duration.is_right_open():
-                        out.write(f"(< ?duration {converter.convert(r)})")
+                        out.write(f"(< ?duration {converter.convert(upp)})")
                     else:
-                        out.write(f"(<= ?duration {converter.convert(r)})")
+                        out.write(f"(<= ?duration {converter.convert(upp)})")
                     out.write(")")
                 if len(a.conditions) > 0:
-                    out.write(f"\n  :condition (and ")
+                    out.write("\n  :condition (and ")
                     for interval, cl in a.conditions.items():
                         for c in (cond.simplify() for cond in cl):
-                            out.write(f"\n                 ")
+                            out.write("\n                 ")
                             if c.is_true():
                                 continue
                             if interval.lower == interval.upper:
@@ -654,15 +650,15 @@ class PDDLWriter:
                                 out.write(f"(over all {converter.convert(c)})")
                                 if not interval.is_right_open():
                                     out.write(f"(at end {converter.convert(c)})")
-                    out.write(f"\n             )")
+                    out.write("\n             )")
                 elif len(a.conditions) == 0 and self.empty_preconditions:
-                    out.write(f"\n  :condition (and )")
+                    out.write("\n  :condition (and )")
                 if (len(a.effects) + len(a.continuous_effects)) > 0 or a in costs:
-                    out.write(f"\n  :effect (and")
+                    out.write("\n  :effect (and")
                     if len(a.effects) > 0:
                         for t, el in a.effects.items():
                             for e in el:
-                                out.write(f"\n             ")
+                                out.write("\n             ")
                                 _write_effect(
                                     e,
                                     t,
@@ -672,13 +668,13 @@ class PDDLWriter:
                                     self._get_mangled_name,
                                 )
                     if a in costs:
-                        out.write(f"\n             ")
+                        out.write("\n             ")
                         out.write(
                             f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
                         )
                     for interval, el in a.continuous_effects.items():
                         for ce in el:
-                            out.write(f"\n")
+                            out.write("\n")
                             if (
                                 interval.lower.is_from_start()
                                 and interval.upper.is_from_end()
@@ -695,7 +691,7 @@ class PDDLWriter:
                                 raise UPException(
                                     "PDDL only supports intervals from start to end for continuous effects"
                                 )
-                    out.write(f"\n          )")
+                    out.write("\n          )")
                 out.write("\n )\n")
 
             else:
@@ -704,7 +700,7 @@ class PDDLWriter:
             if any(p.simplify().is_false() for p in proc.preconditions):
                 continue
             out.write(f" (:process {self._get_mangled_name(proc)}")
-            out.write(f"\n  :parameters (")
+            out.write("\n  :parameters (")
             self._write_parameters(out, proc)
             out.write(")")
             self._write_untimed_preconditions(proc, converter, out)
@@ -722,7 +718,7 @@ class PDDLWriter:
             if any(p.simplify().is_false() for p in eve.preconditions):
                 continue
             out.write(f" (:event {self._get_mangled_name(eve)}")
-            out.write(f"\n  :parameters (")
+            out.write("\n  :parameters (")
             self._write_parameters(out, eve)
             out.write(")")
             self._write_untimed_preconditions(eve, converter, out)
@@ -741,7 +737,7 @@ class PDDLWriter:
         if len(self.problem.user_types) > 0:
             out.write(" (:objects")
             for t in self.problem.user_types:
-                constants_of_this_type = set(o for o in domain_objects if o.type == t)
+                constants_of_this_type = {o for o in domain_objects if o.type == t}
                 objects = [
                     o
                     for o in self.problem.all_objects
@@ -762,19 +758,19 @@ class PDDLWriter:
         out.write(" (:init")
         for f, v in self.problem.initial_values.items():
             if v.is_true():
-                out.write(f"\n             ")
+                out.write("\n             ")
                 out.write(f" {converter.convert(f)}")
             elif v.is_false():
                 pass
             else:
-                out.write(f"\n             ")
+                out.write("\n             ")
                 out.write(f" (= {converter.convert(f)} {converter.convert(v)})")
         if self.problem.kind.has_actions_cost() or self.problem.kind.has_plan_length():
-            out.write(f"\n             ")
+            out.write("\n             ")
             out.write(" (= (total-cost) 0)")
         for tm, le in self.problem.timed_effects.items():
             for e in le:
-                out.write(f"\n             ")
+                out.write("\n             ")
                 out.write(f" (at {converter.convert_fraction(tm.delay)}")
                 _write_effect(
                     e,
@@ -784,24 +780,24 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-                out.write(f")")
+                out.write(")")
         if isinstance(self.problem, ContingentProblem):
             for c in self.problem.or_constraints:
                 # Detect constraints produced by add_unknown_initial_constraint:
                 # they have the canonical form [NOT(f), f] and must be emitted as
                 # (unknown f) so the reader can reconstruct them faithfully.
                 if len(c) == 2 and c[0].is_not() and c[0].args[0] == c[1]:
-                    out.write(f"\n             ")
+                    out.write("\n             ")
                     out.write(f" (unknown {converter.convert(c[1])})")
                 else:
                     or_str = " ".join(converter.convert(f) for f in c)
-                    out.write(f"\n             ")
+                    out.write("\n             ")
                     out.write(f" (or {or_str})")
             for c in self.problem.oneof_constraints:
                 oneof_str = " ".join(converter.convert(f) for f in c)
-                out.write(f"\n             ")
+                out.write("\n             ")
                 out.write(f" (oneof {oneof_str})")
-        out.write(f"\n )\n")
+        out.write("\n )\n")
         goals_str: List[str] = []
         for g in (c.simplify() for c in self.problem.goals):
             if g.is_and():
@@ -833,9 +829,9 @@ class PDDLWriter:
                 metric.is_minimize_action_costs()
                 or metric.is_minimize_sequential_plan_length()
             ):
-                out.write(f"minimize (total-cost)")
+                out.write("minimize (total-cost)")
             elif metric.is_minimize_makespan():
-                out.write(f"minimize (total-time)")
+                out.write("minimize (total-time)")
             else:
                 raise NotImplementedError
             out.write(")\n")
@@ -849,7 +845,7 @@ class PDDLWriter:
         def _format_action_instance(action_instance: ActionInstance) -> str:
             param_str = ""
             if action_instance.actual_parameters:
-                param_str = f" {' '.join((self._get_mangled_name(p.object()) for p in action_instance.actual_parameters))}"
+                param_str = f" {' '.join(self._get_mangled_name(p.object()) for p in action_instance.actual_parameters)}"
             return f"({self._get_mangled_name(action_instance.action)}{param_str})"
 
         if isinstance(plan, SequentialPlan):
@@ -977,7 +973,9 @@ class PDDLWriter:
         try:
             return self.nto_renamings[name]
         except KeyError:
-            raise UPException(f"The name {name} does not correspond to any item.")
+            raise UPException(
+                f"The name {name} does not correspond to any item."
+            ) from None
 
     def get_pddl_name(
         self,
@@ -995,7 +993,7 @@ class PDDLWriter:
         except KeyError:
             raise UPException(
                 f"The item {item} does not correspond to any item renamed."
-            )
+            ) from None
 
     def _write_task_network(
         self,
@@ -1007,7 +1005,7 @@ class PDDLWriter:
             return f"({t.identifier} ({self._get_mangled_name(t.task)} {' '.join(map(converter.convert, t.parameters))}))"
 
         if isinstance(tn, up.model.htn.TaskNetwork) and len(tn.variables) > 0:
-            out.write(f"\n  :parameters (")
+            out.write("\n  :parameters (")
             for ap in tn.variables:
                 if ap.type.is_user_type():
                     out.write(
@@ -1060,7 +1058,7 @@ class PDDLWriter:
                         precond_str.append(converter.convert(p))
             out.write(f"\n  :precondition (and {' '.join(precond_str)})")
         elif len(item.preconditions) == 0 and self.empty_preconditions:
-            out.write(f"\n  :precondition ()")
+            out.write("\n  :precondition ()")
 
     def _write_untimed_effects(self, item, converter, out, costs):
         if len(item.effects) > 0:
@@ -1098,7 +1096,7 @@ def _get_pddl_name(
         name in pddl_keywords
     ):  # If the name is in the keywords, apply an underscore at the end until it is not a keyword anymore.
         name = f"{name}_"
-    if isinstance(item, up.model.Parameter) or isinstance(item, up.model.Variable):
+    if isinstance(item, (up.model.Parameter, up.model.Variable)):
         name = f"?{name}"
     return name
 
@@ -1128,10 +1126,7 @@ def _write_effect(
     forall_str = ""
     if effect.is_forall():
         mid_str = " ".join(
-            (
-                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
-                for v in effect.forall
-            )
+            f"{get_mangled_name(v)} - {get_mangled_name(v.type)}" for v in effect.forall
         )
         forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
@@ -1144,20 +1139,20 @@ def _write_effect(
                 out.write(" (when ")
                 if timing is not None:
                     if timing.is_from_start():
-                        out.write(f" (at start")
+                        out.write(" (at start")
                     else:
-                        out.write(f" (at end")
+                        out.write(" (at end")
                 elif effect.is_continuous_increase() or effect.is_continuous_decrease():
-                    out.write(f" (at start")
+                    out.write(" (at start")
                 out.write(f"{converter.convert(positive_cond)}")
                 if timing is not None:
                     out.write(")")
                 out.write(f" {converter.convert(effect.fluent)})")
             if timing is not None:
                 if timing.is_from_start():
-                    out.write(f" (at start")
+                    out.write(" (at start")
                 else:
-                    out.write(f" (at end")
+                    out.write(" (at end")
             if positive_cond.is_true():
                 out.write(f" {converter.convert(effect.fluent)}")
             if timing is not None:
@@ -1171,20 +1166,20 @@ def _write_effect(
                 out.write(" (when")
                 if timing is not None:
                     if timing.is_from_start():
-                        out.write(f" (at start")
+                        out.write(" (at start")
                     else:
-                        out.write(f" (at end")
+                        out.write(" (at end")
                 elif effect.is_continuous_increase() or effect.is_continuous_decrease():
-                    out.write(f" (at start")
+                    out.write(" (at start")
                 out.write(f" {converter.convert(negative_cond)}")
                 if timing is not None:
                     out.write(")")
                 out.write(f" (not {converter.convert(effect.fluent)}))")
             if timing is not None:
                 if timing.is_from_start():
-                    out.write(f" (at start")
+                    out.write(" (at start")
                 else:
-                    out.write(f" (at end")
+                    out.write(" (at end")
             if negative_cond.is_true():
                 out.write(f" {converter.convert(effect.fluent)}")
             if timing is not None:
@@ -1197,22 +1192,22 @@ def _write_effect(
         return
     out.write(forall_str)
     if not simplified_cond.is_true():
-        out.write(f" (when")
+        out.write(" (when")
         if timing is not None:
             if timing.is_from_start():
-                out.write(f" (at start")
+                out.write(" (at start")
             else:
-                out.write(f" (at end")
+                out.write(" (at end")
         elif effect.is_continuous_increase() or effect.is_continuous_decrease():
-            out.write(f" (at start")
+            out.write(" (at start")
         out.write(f" {converter.convert(effect.condition)}")
         if timing is not None:
             out.write(")")
     if timing is not None:
         if timing.is_from_start():
-            out.write(f" (at start")
+            out.write(" (at start")
         else:
-            out.write(f" (at end")
+            out.write(" (at end")
     simplified_value = effect.value.simplify()
     fluent = converter.convert(effect.fluent)
     if simplified_value.is_true():

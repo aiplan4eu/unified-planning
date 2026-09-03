@@ -13,15 +13,14 @@
 # limitations under the License
 
 import os
-from typing import cast
 import warnings
-import unified_planning
+from typing import cast
+
+from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.model.contingent import ContingentProblem, SensingAction
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.io import PDDLReader, PDDLWriter
+from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 CONTINGENT_PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "contingent_pddl")
@@ -46,7 +45,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(problem is not None)
         self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 10)
-        sensing_actions = [sa for sa in problem.sensing_actions]
+        sensing_actions = list(problem.sensing_actions)
         self.assertEqual(len(sensing_actions), 3)
         self.assertEqual(len(problem.actions), 12)
 
@@ -70,7 +69,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(problem is not None)
         self.assertTrue(isinstance(problem, up.model.contingent.ContingentProblem))
         self.assertEqual(len(problem.fluents), 8)
-        sensing_actions = [sa for sa in problem.sensing_actions]
+        sensing_actions = list(problem.sensing_actions)
         self.assertEqual(len(sensing_actions), 2)
         self.assertEqual(len(problem.actions), 5)
 

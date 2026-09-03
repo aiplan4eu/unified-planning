@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from unified_planning.shortcuts import *
-from unified_planning.model.scheduling import *
-from unified_planning.model.scheduling import SchedulingProblem, Activity
 from typing import List, Tuple
+
+from unified_planning.model.scheduling import *
+from unified_planning.model.scheduling import Activity, SchedulingProblem
+from unified_planning.shortcuts import *
 
 # Text representation
 MINI_FSP = """2   2   1
@@ -78,7 +79,7 @@ def parse_instance(instance: str):
         for t in range(num_tasks):
             machines = job[i]
             i += 1
-            for m in range(machines):
+            for _m in range(machines):
                 machine, processing_time = job[i : i + 2]
 
                 tasks[t].append((processing_time, machine - 1))
@@ -97,7 +98,7 @@ def create_scheduling_problem(
     """
     jobs, num_machines = parse_instance(instance)
 
-    problem = SchedulingProblem(f"sched:flexible-jobshop")
+    problem = SchedulingProblem("sched:flexible-jobshop")
     machine_objects = []
     if resource_encoding:
         # create one resource per machine

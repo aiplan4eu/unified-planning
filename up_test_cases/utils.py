@@ -1,15 +1,13 @@
 import argparse
 import importlib
-import pkgutil
 import os
+import pkgutil
 from abc import ABC, abstractmethod
 from glob import glob
-from typing import Iterable, List, Dict, Optional
+from typing import Dict, Iterable, List, Optional
 
-import unified_planning
 from unified_planning.io import PDDLReader
 from unified_planning.test import TestCase
-
 
 # Define the default timeout for anytime and oneshot
 DEFAULT_TIMEOUT = 3.0
@@ -25,16 +23,19 @@ def _get_test_cases(package_name: str) -> Dict[str, TestCase]:
 
         try:
             module = importlib.import_module(current_package_name)
-        except:
-            print(current_package_name)
-            assert False
+        except Exception as e:
+            # chained, so the original traceback survives: this used to swallow it and
+            # raise a contentless AssertionError instead
+            raise ImportError(
+                f"Could not import test case package {current_package_name}"
+            ) from e
 
         to_expand = False
         if current_package_name != package_name:
             try:
                 to_add = module.get_test_cases()
                 if not isinstance(to_add, dict):
-                    assert False, (
+                    raise AssertionError(
                         f"Error in {current_package_name} that returned {type(to_add)} instead of dict"
                     )
             except AttributeError:
@@ -62,7 +63,7 @@ def _get_pddl_test_cases(
     *,
     domain_filter: str = "domain",
     filter: Optional[Iterable[str]] = None,
-    block: Iterable[str] = tuple(),
+    block: Iterable[str] = (),
 ) -> Dict[str, TestCase]:
     pddl_files = glob(os.path.join(pddl_files_path, "*.pddl"))
     plan_files = glob(os.path.join(pddl_files_path, "*.plan"))
@@ -148,8 +149,7 @@ class Ok(ResultSet):
     def __str__(self):
         if self.msg == "":
             return ""
-        else:
-            return f"{bcolors.OKGREEN}OK({self.msg}){bcolors.ENDC} "
+        return f"{bcolors.OKGREEN}OK({self.msg}){bcolors.ENDC} "
 
 
 class Warn(ResultSet):
@@ -268,7 +268,7 @@ def get_report_parser() -> argparse.ArgumentParser:
         "--deliverable",
         action="store_true",
         dest="deliverable",
-        help=f"Adds information needed in the evaluation report",
+        help="Adds information needed in the evaluation report",
     )
 
     return parser

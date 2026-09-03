@@ -14,25 +14,20 @@
 #
 
 
+from collections import OrderedDict
+from typing import Dict, List, Optional, Set, Union
+
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment
 from unified_planning.exceptions import (
     UPTypeError,
-    UPUnboundedVariablesError,
-    UPProblemDefinitionError,
     UPUsageError,
 )
-from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Set, Union, Optional, Iterable
-from collections import OrderedDict
-
 from unified_planning.model.transition import (
-    UntimedEffectMixin,
     PreconditionMixin,
     Transition,
+    UntimedEffectMixin,
 )
-
 
 """
 Below we have natural transitions. These are not controlled by the agent. Natural transitions can be of two kinds:
@@ -72,12 +67,10 @@ class Process(NaturalTransition):
         self._print_parameters(s)
         s.append(" {\n")
         s.append("    preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
+        s.extend(f"      {c!s}\n" for c in self.preconditions)
         s.append("    ]\n")
         s.append("    effects = [\n")
-        for e in self.effects:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self.effects)
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -94,8 +87,7 @@ class Process(NaturalTransition):
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -171,7 +163,7 @@ class Process(NaturalTransition):
                 value_exp,
                 condition_exp,
                 kind=e_kind,
-                forall=tuple(),
+                forall=(),
             )
         )
 
@@ -230,8 +222,7 @@ class Event(UntimedEffectMixin, NaturalTransition):
                 and set(self._preconditions) == set(oth._preconditions)
                 and set(self._effects) == set(oth._effects)
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -260,12 +251,10 @@ class Event(UntimedEffectMixin, NaturalTransition):
         self._print_parameters(s)
         s.append(" {\n")
         s.append("    preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
+        s.extend(f"      {c!s}\n" for c in self.preconditions)
         s.append("    ]\n")
         s.append("    effects = [\n")
-        for e in self.effects:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self.effects)
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)

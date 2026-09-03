@@ -14,15 +14,16 @@
 #
 """This module defines the quantifiers remover class."""
 
-import unified_planning.model.walkers as walkers
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
-from unified_planning.model.fnode import FNode
-from unified_planning.model.operators import OperatorKind
-from unified_planning.model.object import Object
-from unified_planning.model.mixins import ObjectsSetMixin
-from unified_planning.model.expression import Expression
-from typing import List, Dict
 from itertools import product
+from typing import Dict, List
+
+import unified_planning.model.walkers as walkers
+from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
+from unified_planning.model.mixins import ObjectsSetMixin
+from unified_planning.model.object import Object
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 
 
 class ExpressionQuantifiersRemover(IdentityDagWalker):
@@ -72,7 +73,7 @@ class ExpressionQuantifiersRemover(IdentityDagWalker):
         # (1,3,5,7) (1,3,6,7) (1,4,5,7) (1,4,6,7) (2,3,5,7) (2,3,6,7) (2,4,5,7) (2,4,6,7)
         subs_results = []
         for o in product(*possible_objects):
-            subs: Dict[Expression, Expression] = dict(zip(vars, list(o)))
+            subs: Dict[Expression, Expression] = dict(zip(vars, list(o), strict=True))
             subs_results.append(args[0].substitute(subs))
         return subs_results
 

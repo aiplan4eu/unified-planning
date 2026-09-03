@@ -14,6 +14,7 @@
 
 
 from typing import OrderedDict
+
 import unified_planning as up
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
@@ -207,10 +208,7 @@ def get_example_problems():
         return out_val
 
     def if_is_there_enough_pizza(in_val):
-        if in_val >= Fraction(1, 8):
-            return True
-        else:
-            return False
+        return in_val >= Fraction(1, 8)
 
     signature_if_both = OrderedDict()
     signature_if_both["i_one"] = RealType()
@@ -385,7 +383,7 @@ def get_example_problems():
     instant_action_i_f_condition = InstantaneousAction("instant_action_i_f_condition")
     increase_val = InstantaneousAction("increase_val")
     increase_val.add_effect(itwo, Plus(itwo, 2))
-    instant_action_i_f_condition.add_precondition((funx(ione, itwo)))
+    instant_action_i_f_condition.add_precondition(funx(ione, itwo))
     instant_action_i_f_condition.add_effect(end_goal, True)
     problem.add_fluent(end_goal)
     problem.add_fluent(ione)

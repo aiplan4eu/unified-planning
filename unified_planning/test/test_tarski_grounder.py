@@ -13,22 +13,20 @@
 # limitations under the License.
 
 
-import unified_planning
-
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    skipIfNoOneshotPlannerForProblemKind,
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfEngineNotAvailable,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import CompilationKind
 from unified_planning.model.problem_kind import (
     basic_classical_kind,
     full_classical_kind,
     hierarchical_kind,
 )
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfEngineNotAvailable,
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestTarskiGrounder(unittest_TestCase):

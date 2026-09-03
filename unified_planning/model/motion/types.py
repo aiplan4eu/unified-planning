@@ -13,11 +13,12 @@
 # limitations under the License.
 #
 
-from typing import Optional, Union
 from dataclasses import dataclass
-from unified_planning.model.motion.objects import SE2, SE3, ConfigurationKind
-from unified_planning.model.types import _UserType, Type
+from typing import Optional, Union
+
 from unified_planning.exceptions import UPTypeError
+from unified_planning.model.motion.objects import SE2, SE3, ConfigurationKind
+from unified_planning.model.types import Type, _UserType
 
 
 class _MovableType(_UserType):

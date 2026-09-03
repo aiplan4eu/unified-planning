@@ -16,42 +16,42 @@
 """This module defines the conditional effects remover class."""
 
 import warnings
+from functools import partial
 from itertools import product
+from typing import Dict, Iterator, List, Optional, OrderedDict, Set, Tuple, Union, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    Fluent,
-    Parameter,
-    BoolExpression,
-    NumericConstant,
     Action,
-    InstantaneousAction,
+    BoolExpression,
+    DurationInterval,
     DurativeAction,
     Effect,
-    SimulatedEffect,
-    FNode,
+    Expression,
     ExpressionManager,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MaximizeExpressionOnFinalState,
     MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
+    NumericConstant,
     Oversubscription,
+    Parameter,
+    Problem,
+    ProblemKind,
+    SimulatedEffect,
     TemporalOversubscription,
-    Object,
-    Expression,
-    DurationInterval,
     UPState,
 )
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.walkers import UsertypeFluentsWalker
-from unified_planning.model.types import _UserType
-from unified_planning.engines.compilers.utils import replace_action
 from unified_planning.model.fluent import get_all_fluent_exp
-from typing import Iterator, Dict, List, OrderedDict, Set, Tuple, Optional, Union, cast
-from functools import partial
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.types import _UserType
+from unified_planning.model.walkers import UsertypeFluentsWalker
 
 
 class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
@@ -206,7 +206,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         utf_remover = UsertypeFluentsWalker(fluents_map, used_names, env)
 
         for old_action in problem.actions:
-            params = OrderedDict(((p.name, p.type) for p in old_action.parameters))
+            params = OrderedDict((p.name, p.type) for p in old_action.parameters)
             if isinstance(old_action, InstantaneousAction):
                 new_action: Union[InstantaneousAction, DurativeAction] = (
                     InstantaneousAction(old_action.name, _parameters=params, _env=env)
@@ -347,7 +347,7 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
 
         for f, v in problem.initial_values.items():
             (
-                new_fluent_exp,
+                _new_fluent_exp,
                 fluent_var,
                 free_vars,
                 last_fluent,
@@ -513,7 +513,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         # the Effect and proceed with the next iteration
         for objects in product(*(problem.objects(v.type) for v in vars_list)):
             assert len(objects) == len(vars_list)
-            subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
+            subs: Dict[Expression, Expression] = dict(
+                zip(vars_list, objects, strict=True)
+            )
             resulting_effect_fluent = new_fluent.substitute(subs).simplify()
             resulting_effect_value = new_value.substitute(subs).simplify()
             # Check if the type is boolean and not a constant, make it a conditional

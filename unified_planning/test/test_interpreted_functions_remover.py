@@ -13,14 +13,15 @@
 # limitations under the License.
 
 
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase
-from unified_planning.test.examples import get_example_problems
+from collections import OrderedDict
+
+from unified_planning.engines import CompilationKind
 from unified_planning.engines.compilers.interpreted_functions_remover import (
     InterpretedFunctionsRemover,
 )
-from unified_planning.engines import CompilationKind
-from collections import OrderedDict
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestInterpretedFunctionsRemover(unittest_TestCase):

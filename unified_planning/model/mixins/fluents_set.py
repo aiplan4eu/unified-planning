@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 
+from typing import Dict, Iterable, List, Optional, Set, Union
 from warnings import warn
+
 import unified_planning as up
+from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
 from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.mixins.name_index import NameIndex
-from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Optional, List, Dict, Union, Iterable, Set
 
 
 class FluentsSetMixin:
@@ -35,7 +36,9 @@ class FluentsSetMixin:
         environment,
         add_user_type_method,
         has_name_method,
-        initial_defaults: Dict["up.model.types.Type", "ConstantExpression"] = {},
+        initial_defaults: Optional[
+            Dict["up.model.types.Type", "ConstantExpression"]
+        ] = None,
     ):
         self._env = environment
         self._add_user_type_method = add_user_type_method
@@ -46,7 +49,7 @@ class FluentsSetMixin:
             "up.model.fluent.Fluent", "up.model.fnode.FNode"
         ] = {}
         self._initial_defaults: Dict["up.model.types.Type", "up.model.fnode.FNode"] = {}
-        for k, v in initial_defaults.items():
+        for k, v in (initial_defaults or {}).items():
             (v_exp,) = self.environment.expression_manager.auto_promote(v)
             self._initial_defaults[k] = v_exp
         # The field initial default optionally associates a type to a default value. When a new fluent is
@@ -141,11 +144,10 @@ class FluentsSetMixin:
                 fluent.name == f.name for f in self._fluents
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._fluents.append(fluent)
         self._fluents_index.note_appended(self._fluents)
-        if not default_initial_value is None:
+        if default_initial_value is not None:
             (v_exp,) = self.environment.expression_manager.auto_promote(
                 default_initial_value
             )
@@ -195,9 +197,7 @@ class FluentsSetMixin:
         # ignores default values as they may have no impact on the initial state
         if not isinstance(oth, FluentsSetMixin):
             return False
-        if set(self._fluents) != set(oth._fluents):
-            return False
-        return True
+        return set(self._fluents) == set(oth._fluents)
 
     def __hash__(self):
         return sum(map(hash, self._fluents))

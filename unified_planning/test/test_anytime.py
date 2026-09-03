@@ -13,15 +13,15 @@
 # limitations under the License.
 
 import os
-from unified_planning.shortcuts import *
+
 from unified_planning.engines.results import PlanGenerationResultStatus
 from unified_planning.io import PDDLReader
 from unified_planning.model.metrics import MinimizeSequentialPlanLength
+from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfEngineNotAvailable,
+    unittest_TestCase,
 )
-
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")

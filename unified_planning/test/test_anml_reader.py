@@ -14,15 +14,15 @@
 # limitations under the License.
 
 
+import os
 import tempfile
 from typing import cast
-from unified_planning.shortcuts import *
-from unified_planning.model import DurativeAction
-from unified_planning.test import unittest_TestCase
-from unified_planning.io import ANMLReader, ANMLWriter
-from unified_planning.test.examples import get_example_problems
-import os
 
+from unified_planning.io import ANMLReader, ANMLWriter
+from unified_planning.model import DurativeAction
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 ANML_FILES_PATH = os.path.join(FILE_PATH, "anml")
@@ -61,7 +61,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -168,7 +168,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -198,7 +198,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -234,7 +234,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -266,7 +266,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -300,13 +300,14 @@ class TestANMLReader(unittest_TestCase):
             ),
             p,
         )
-        l = Variable("l", Location, problem.environment)
-        l2 = Variable("l2", Location, problem.environment)
+        loc = Variable("l", Location, problem.environment)
+        loc2 = Variable("l2", Location, problem.environment)
         goal_test = em.Forall(
             em.And(
-                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+                visited(loc),
+                em.Forall(em.Or(em.Not(precedes(loc2, loc)), visited(loc2)), loc2),
             ),
-            l,
+            loc,
         )
         self.assertEqual(
             visit.duration,
@@ -324,7 +325,7 @@ class TestANMLReader(unittest_TestCase):
         for g in problem.goals:
             self.assertEqual(g, goal_test)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -359,7 +360,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -370,7 +371,6 @@ class TestANMLReader(unittest_TestCase):
 
         problem_filename = os.path.join(ANML_FILES_PATH, "hydrone.anml")
         problem = reader.parse_problem(problem_filename)
-        em = problem.environment.expression_manager
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 5)
@@ -399,7 +399,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -450,7 +450,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -490,25 +490,25 @@ class TestANMLReader(unittest_TestCase):
         for interval, cond_list in mend_fuse.conditions.items():
             if interval == self.start_interval:
                 self.assertEqual(len(cond_list), 2)
-            elif interval == OpenTimeInterval(self.start_timing, self.end_timing):
-                self.assertEqual(len(cond_list), 1)
-            elif interval == TimePointInterval(start_plus_one):
+            elif interval == OpenTimeInterval(
+                self.start_timing, self.end_timing
+            ) or interval == TimePointInterval(start_plus_one):
                 self.assertEqual(len(cond_list), 1)
             elif interval == LeftOpenTimeInterval(start_plus_one, self.end_timing):
                 self.assertEqual(len(cond_list), 2)
             else:
                 self.assertTrue(False)
         for timing, effect_list in mend_fuse.effects.items():
-            if timing == self.start_timing:
-                self.assertEqual(len(effect_list), 2)
-            elif timing == start_plus_one:
-                self.assertEqual(len(effect_list), 2)
-            elif timing == self.end_timing:
+            if (
+                timing == self.start_timing
+                or timing == start_plus_one
+                or timing == self.end_timing
+            ):
                 self.assertEqual(len(effect_list), 2)
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -562,9 +562,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
         for timing, effect_list in recipe.effects.items():
-            if timing == self.start_timing:
-                self.assertEqual(len(effect_list), 1)
-            elif timing == self.end_timing:
+            if timing == self.start_timing or timing == self.end_timing:
                 self.assertEqual(len(effect_list), 1)
             else:
                 self.assertTrue(False)
@@ -634,7 +632,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -666,7 +664,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -705,7 +703,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -744,7 +742,7 @@ class TestANMLReader(unittest_TestCase):
             else:
                 self.assertTrue(False)
 
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(problem_str, problem_filename)
@@ -784,7 +782,9 @@ class TestANMLReader(unittest_TestCase):
                 parsed_problem = reader.parse_problem(problem_filename)
             self.assertEqual(len(problem.user_types), len(parsed_problem.user_types))
             self.assertEqual(len(problem.actions), len(parsed_problem.actions))
-            for act, parsed_act in zip(problem.actions, parsed_problem.actions):
+            for act, parsed_act in zip(
+                problem.actions, parsed_problem.actions, strict=True
+            ):
                 if isinstance(act, InstantaneousAction):
                     instant_conditions = act.preconditions
                     instant_effects = act.effects
@@ -795,7 +795,9 @@ class TestANMLReader(unittest_TestCase):
                         )
                     if instant_effects != parsed_act.effects:
                         self.assertEqual(len(instant_effects), len(parsed_act.effects))
-                        for e, pe in zip(instant_effects, parsed_act.effects):
+                        for e, pe in zip(
+                            instant_effects, parsed_act.effects, strict=True
+                        ):
                             self.assertTrue(e.is_conditional() == pe.is_conditional())
                             self.assertTrue(e.is_forall() == pe.is_forall())
                 else:
@@ -811,7 +813,7 @@ class TestANMLReader(unittest_TestCase):
                         for t, el in effects.items():
                             parsed_el = parsed_act.effects[t]
                             self.assertEqual(len(el), len(parsed_el))
-                            for eff, parsed_eff in zip(el, parsed_el):
+                            for eff, parsed_eff in zip(el, parsed_el, strict=True):
                                 self.assertTrue(
                                     eff.is_conditional() == parsed_eff.is_conditional()
                                 )

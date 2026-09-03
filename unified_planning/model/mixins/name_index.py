@@ -86,7 +86,7 @@ class NameIndex(Generic[T]):
     ``contains``/``get`` must agree with what a scan of the list in order would have found.
     """
 
-    __slots__ = ("_key", "_index", "_items", "_len", "_track_renames", "_epoch")
+    __slots__ = ("_epoch", "_index", "_items", "_key", "_len", "_track_renames")
 
     def __init__(
         self, key: Callable[[T], str] = name_of, track_renames: bool = False

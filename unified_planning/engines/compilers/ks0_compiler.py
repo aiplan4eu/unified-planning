@@ -32,8 +32,8 @@ from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPStateMissingFluentError, UPUsageError
 from unified_planning.model import (
     ExpressionManager,
-    FNode,
     Fluent,
+    FNode,
     InstantaneousAction,
     Problem,
     ProblemKind,
@@ -347,7 +347,7 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
         for assignment in partial_assignments:
             for free_values in product((False, True), repeat=len(free_atoms)):
                 candidate = dict(assignment)
-                candidate.update(zip(free_atoms, free_values))
+                candidate.update(zip(free_atoms, free_values, strict=True))
                 if all(
                     any(
                         Ks0Compiler._literal_holds(candidate, literal)
@@ -561,8 +561,9 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
     ) -> Tuple[Problem, Dict[up.model.Action, Optional[up.model.Action]]]:
         environment = problem.environment
         expression_manager = environment.expression_manager
-        tags = ("empty",) + tuple(
-            f"s{index}" for index, _ in enumerate(possible_initial_states)
+        tags = (
+            "empty",
+            *(f"s{index}" for index, _ in enumerate(possible_initial_states)),
         )
 
         base_name = original_problem_name or problem.name or "problem"
@@ -858,16 +859,15 @@ class Ks0Compiler(engines.engine.Engine, CompilerMixin):
             fluent_exp: expression_manager.Not(fluent_exp)
             for fluent_exp in prepared_problem.ground_fluent_expressions
         }
-        complete_state_literals = []
-        for state in possible_initial_states:
-            complete_state_literals.append(
-                frozenset(
-                    fluent_exp
-                    if state.get_value(fluent_exp).bool_constant_value()
-                    else negated_literals[fluent_exp]
-                    for fluent_exp in prepared_problem.ground_fluent_expressions
-                )
+        complete_state_literals = [
+            frozenset(
+                fluent_exp
+                if state.get_value(fluent_exp).bool_constant_value()
+                else negated_literals[fluent_exp]
+                for fluent_exp in prepared_problem.ground_fluent_expressions
             )
+            for state in possible_initial_states
+        ]
 
         relevance = cls._get_relevance_relation(prepared_problem, expression_manager)
         relevant_sources_by_target = {

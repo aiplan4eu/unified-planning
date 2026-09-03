@@ -13,12 +13,13 @@
 # limitations under the License.
 #
 
+from typing import Iterable, Iterator, List, Optional, Union, cast
 from warnings import warn
+
 import unified_planning as up
-from unified_planning.model.types import _UserType
-from unified_planning.model.mixins.name_index import NameIndex
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Union, Optional, cast, Iterable
+from unified_planning.model.mixins.name_index import NameIndex
+from unified_planning.model.types import _UserType
 
 
 class ObjectsSetMixin:
@@ -79,8 +80,7 @@ class ObjectsSetMixin:
                 obj.name == o.name for o in self._objects
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._objects.append(obj)
         self._objects_index.note_appended(self._objects)
         if obj.type.is_user_type():

@@ -14,7 +14,7 @@
 #
 
 
-from typing import Optional, Dict, List, Set, Union, Iterable
+from typing import Dict, Iterable, List, Optional, Set, Union
 
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
@@ -54,7 +54,7 @@ class TimedCondsEffs:
                 oth_cl = oth._conditions.get(i, None)
                 if oth_cl is None:
                     return False
-                elif set(cl) != set(oth_cl):
+                if set(cl) != set(oth_cl):
                     return False
             if len(self._effects) != len(oth._effects):
                 return False
@@ -62,17 +62,16 @@ class TimedCondsEffs:
                 oth_el = oth._effects.get(t, None)
                 if oth_el is None:
                     return False
-                elif set(el) != set(oth_el):
+                if set(el) != set(oth_el):
                     return False
             for t, se in self._simulated_effects.items():
                 oth_se = oth._simulated_effects.get(t, None)
                 if oth_se is None:
                     return False
-                elif se != oth_se:
+                if se != oth_se:
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = 0
@@ -97,7 +96,7 @@ class TimedCondsEffs:
         """Transfers deep copies of all `self` attributes into `other`"""
         other._conditions = {t: cl[:] for t, cl in self._conditions.items()}
         other._effects = {t: [e.clone() for e in el] for t, el in self._effects.items()}
-        other._simulated_effects = {t: se for t, se in self._simulated_effects.items()}
+        other._simulated_effects = dict(self._simulated_effects.items())
         other._fluents_assigned = {
             t: d.copy() for t, d in self._fluents_assigned.items()
         }
@@ -172,7 +171,7 @@ class TimedCondsEffs:
 
     def is_conditional(self) -> bool:
         """Returns `True` if the `action` has `conditional effects`, `False` otherwise."""
-        return any(e.is_conditional() for l in self._effects.values() for e in l)
+        return any(e.is_conditional() for el in self._effects.values() for e in el)
 
     def add_condition(
         self,
@@ -218,7 +217,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given assignment to the `action's effects`.
@@ -257,7 +256,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given `increment` to the `action's effects`.
@@ -304,7 +303,7 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = (),
     ):
         """
         At the given time, adds the given `decrement` to the `action's effects`.

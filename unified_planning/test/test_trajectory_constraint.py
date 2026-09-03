@@ -14,13 +14,13 @@
 
 
 from collections import OrderedDict
+
 import unified_planning
-from unified_planning.test.examples import get_example_problems
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.engines.compilers.trajectory_constraints_remover import (
     TrajectoryConstraintsRemover,
 )
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
 
 
 class TestTrajectoryConstraint(unittest_TestCase):
@@ -53,7 +53,7 @@ class TestTrajectoryConstraint(unittest_TestCase):
 
         NLOC = 5
         locations = [
-            unified_planning.model.Object("l%s" % i, Location) for i in range(NLOC)
+            unified_planning.model.Object(f"l{i}", Location) for i in range(NLOC)
         ]
         problem.add_objects(locations)
         problem.set_initial_value(robot_at(locations[0]), True)

@@ -16,24 +16,21 @@
 This module defines the `Action` class and some of his extensions.
 """
 
+from collections import OrderedDict
+from typing import Dict, List, Optional, Union
+
 import unified_planning as up
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment
 from unified_planning.exceptions import (
-    UPTypeError,
-    UPUnboundedVariablesError,
     UPProblemDefinitionError,
+    UPTypeError,
     UPUsageError,
 )
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Set, Union, Optional, Iterable
-from collections import OrderedDict
-
-from unified_planning.model.timing import EndTiming, StartTiming
 from unified_planning.model.transition import (
-    UntimedEffectMixin,
     PreconditionMixin,
     Transition,
+    UntimedEffectMixin,
 )
 
 
@@ -83,12 +80,10 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
             s.append(")")
         s.append(" {\n")
         s.append("    preconditions = [\n")
-        for c in self.preconditions:
-            s.append(f"      {str(c)}\n")
+        s.extend(f"      {c!s}\n" for c in self.preconditions)
         s.append("    ]\n")
         s.append("    effects = [\n")
-        for e in self.effects:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self.effects)
         s.append("    ]\n")
         if self._simulated_effect is not None:
             s.append(f"    simulated effect = {self._simulated_effect}\n")
@@ -108,8 +103,7 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
                 and set(self._effects) == set(oth._effects)
                 and self._simulated_effect == oth._simulated_effect
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._name)
@@ -182,26 +176,23 @@ class DurativeAction(Action, TimedCondsEffs):
         if not first:
             s.append(")")
         s.append(" {\n")
-        s.append(f"    duration = {str(self._duration)}\n")
+        s.append(f"    duration = {self._duration!s}\n")
         s.append("    conditions = [\n")
         for i, cl in self.conditions.items():
-            s.append(f"      {str(i)}:\n")
-            for c in cl:
-                s.append(f"        {str(c)}\n")
+            s.append(f"      {i!s}:\n")
+            s.extend(f"        {c!s}\n" for c in cl)
         s.append("    ]\n")
         s.append("    effects = [\n")
         for t, el in self.effects.items():
-            s.append(f"      {str(t)}:\n")
-            for e in el:
-                s.append(f"        {str(e)}:\n")
+            s.append(f"      {t!s}:\n")
+            s.extend(f"        {e!s}:\n" for e in el)
         for t, el in self.continuous_effects.items():
-            s.append(f"      {str(t)}:\n")
-            for e in el:
-                s.append(f"        {str(e)}:\n")
+            s.append(f"      {t!s}:\n")
+            s.extend(f"        {e!s}:\n" for e in el)
         s.append("    ]\n")
         s.append("    simulated effects = [\n")
         for t, se in self.simulated_effects.items():
-            s.append(f"      {str(t)}: {se}\n")
+            s.append(f"      {t!s}: {se}\n")
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -224,7 +215,7 @@ class DurativeAction(Action, TimedCondsEffs):
             oth_el = oth._continuous_effects.get(t, None)
             if oth_el is None:
                 return False
-            elif set(el) != set(oth_el):
+            if set(el) != set(oth_el):
                 return False
         return True
 
@@ -419,7 +410,7 @@ class DurativeAction(Action, TimedCondsEffs):
                 rhs_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.CONTINUOUS_INCREASE,
-                forall=tuple(),
+                forall=(),
             ),
         )
 
@@ -459,7 +450,7 @@ class DurativeAction(Action, TimedCondsEffs):
                 rhs_exp,
                 condition_exp,
                 kind=up.model.effect.EffectKind.CONTINUOUS_DECREASE,
-                forall=tuple(),
+                forall=(),
             ),
         )
 

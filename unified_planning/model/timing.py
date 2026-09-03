@@ -14,17 +14,18 @@
 #
 
 
-from unified_planning.environment import Environment
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import (
-    NumericConstant,
-    uniform_numeric_constant,
-    TimeExpression,
-)
 from abc import ABC
 from enum import Enum, auto
 from fractions import Fraction
-from typing import Union, Optional
+from typing import Optional, Union
+
+from unified_planning.environment import Environment
+from unified_planning.model.expression import (
+    NumericConstant,
+    TimeExpression,
+    uniform_numeric_constant,
+)
+from unified_planning.model.fnode import FNode
 
 
 class TimepointKind(Enum):
@@ -83,14 +84,12 @@ class Timepoint:
             qualifier = "end"
         if self._container is None:
             return qualifier
-        else:
-            return f"{qualifier}({self._container})"
+        return f"{qualifier}({self._container})"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timepoint):
             return self._kind == oth._kind and self._container == oth._container
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._kind) + hash(self._container)
@@ -128,16 +127,14 @@ class Timing:
     def __repr__(self):
         if self._delay == 0:
             return f"{self._timepoint}"
-        elif self._delay < 0:
+        if self._delay < 0:
             return f"{self._timepoint} - {-self._delay}"
-        else:
-            return f"{self._timepoint} + {self._delay}"
+        return f"{self._timepoint} + {self._delay}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Timing):
             return self._delay == oth._delay and self._timepoint == oth._timepoint
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._delay) ^ hash(self._timepoint)
@@ -182,17 +179,12 @@ class Timing:
     @staticmethod
     def from_time(time: TimeExpression) -> "Timing":
         """Converts any supported time expression into its canonical Timing representation."""
-        if (
-            isinstance(time, int)
-            or isinstance(time, float)
-            or isinstance(time, Fraction)
-        ):
+        if isinstance(time, (int, float, Fraction)):
             return GlobalStartTiming() + time
-        elif isinstance(time, Timepoint):
+        if isinstance(time, Timepoint):
             return Timing(timepoint=time, delay=0)
-        else:
-            assert isinstance(time, Timing)
-            return time
+        assert isinstance(time, Timing)
+        return time
 
 
 def StartTiming(delay: NumericConstant = 0, container: Optional[str] = None) -> Timing:
@@ -275,15 +267,9 @@ class Interval:
         )
 
     def __repr__(self) -> str:
-        if self.is_left_open():
-            left_bound = "("
-        else:
-            left_bound = "["
-        if self.is_right_open():
-            right_bound = ")"
-        else:
-            right_bound = "]"
-        return f"{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}"
+        left_bound = "(" if self.is_left_open() else "["
+        right_bound = ")" if self.is_right_open() else "]"
+        return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, Interval):
@@ -293,8 +279,7 @@ class Interval:
                 and self._is_left_open == oth._is_left_open
                 and self._is_right_open == oth._is_right_open
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._lower) + hash(self._upper)
@@ -353,8 +338,7 @@ class DurationInterval(Duration, Interval):
                 and self._is_left_open == oth._is_left_open
                 and self._is_right_open == oth._is_right_open
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash((self._lower, self.upper, self._is_left_open, self._is_right_open))
@@ -432,18 +416,11 @@ class TimeInterval:
         self._is_right_open = is_right_open
 
     def __repr__(self) -> str:
-        if self.is_left_open():
-            left_bound = "("
-        else:
-            left_bound = "["
-        if self.is_right_open():
-            right_bound = ")"
-        else:
-            right_bound = "]"
+        left_bound = "(" if self.is_left_open() else "["
+        right_bound = ")" if self.is_right_open() else "]"
         if self.lower == self.upper:
-            return f"{left_bound}{str(self.lower)}{right_bound}"
-        else:
-            return f"{left_bound}{str(self.lower)}, {str(self.upper)}{right_bound}"
+            return f"{left_bound}{self.lower!s}{right_bound}"
+        return f"{left_bound}{self.lower!s}, {self.upper!s}{right_bound}"
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, TimeInterval):
@@ -453,8 +430,7 @@ class TimeInterval:
                 and self._is_left_open == oth._is_left_open
                 and self._is_right_open == oth._is_right_open
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = hash(self._lower) + hash(self._upper)

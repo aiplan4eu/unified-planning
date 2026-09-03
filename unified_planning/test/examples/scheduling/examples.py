@@ -14,9 +14,9 @@
 #
 
 import unified_planning.plans
+from unified_planning.model.scheduling import *
 from unified_planning.plans import Schedule
 from unified_planning.shortcuts import *
-from unified_planning.model.scheduling import *
 from unified_planning.test import TestCase
 
 

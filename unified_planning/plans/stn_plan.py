@@ -14,16 +14,10 @@
 #
 
 
-from itertools import chain, product
-from numbers import Real
-import unified_planning as up
-import unified_planning.plans as plans
-from unified_planning.environment import Environment
-from unified_planning.exceptions import UPUsageError
-from unified_planning.model import DeltaSimpleTemporalNetwork, TimepointKind
-from unified_planning.plans.plan import ActionInstance
-from fractions import Fraction
 from dataclasses import dataclass
+from fractions import Fraction
+from itertools import product
+from numbers import Real
 from typing import (
     Callable,
     Dict,
@@ -35,6 +29,13 @@ from typing import (
     Union,
     cast,
 )
+
+import unified_planning as up
+import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import DeltaSimpleTemporalNetwork, TimepointKind
+from unified_planning.plans.plan import ActionInstance
 
 
 @dataclass(unsafe_hash=True, frozen=True)
@@ -58,7 +59,7 @@ class STNPlanNode:
             and self.action_instance is not None
         ):
             raise UPUsageError(
-                f"A global kind represents Start/End of the plan;",
+                "A global kind represents Start/End of the plan;",
                 "the ActionInstance is not accepted.",
             )
         if (
@@ -66,7 +67,7 @@ class STNPlanNode:
             and self.action_instance is None
         ):
             raise UPUsageError(
-                f"kind represents Start/End of an ActionInstance",
+                "kind represents Start/End of an ActionInstance",
                 "but the ActionInstance is not given.",
             )
 
@@ -174,11 +175,11 @@ class STNPlan(plans.plan.Plan):
             self._stn: DeltaSimpleTemporalNetwork[Fraction] = _stn
             return
         elif isinstance(constraints, Dict):
-            for k_node, l in constraints.items():
+            for k_node, node_constraints in constraints.items():
                 if k_node.environment is not None:
                     env = k_node.environment
                 else:
-                    for _, _, v_node in l:
+                    for _, _, v_node in node_constraints:
                         if v_node.environment is not None:
                             env = v_node.environment
                             break
@@ -191,7 +192,7 @@ class STNPlan(plans.plan.Plan):
                 if a_node.environment is not None:
                     env = a_node.environment
                     break
-                elif b_node.environment is not None:
+                if b_node.environment is not None:
                     env = b_node.environment
                     break
             plans.plan.Plan.__init__(self, plans.plan.PlanKind.STN_PLAN, env)
@@ -246,11 +247,16 @@ class STNPlan(plans.plan.Plan):
 
     def __str__(self) -> str:
         # give an ID, starting from 0, to every STNPlanNode in the Plan
-        swap_couple = lambda x: (x[1], x[0])
+        def swap_couple(x):
+            return (x[1], x[0])
+
         id: Dict[STNPlanNode, int] = dict(
             map(swap_couple, enumerate(self._stn.distances.keys()))
         )
-        convert_action_id = lambda action_id: f"    {action_id[1]}) {action_id[0]}"
+
+        def convert_action_id(action_id):
+            return f"    {action_id[1]}) {action_id[0]}"
+
         ret = ["STNPlan:", "  Actions:"]
         ret.extend(map(convert_action_id, id.items()))
         ret.append("  Constraints:")
@@ -289,11 +295,10 @@ class STNPlan(plans.plan.Plan):
                 if oth_cl is None or len(oth_cl) != len(self_cl):
                     return False
                 for self_c in self_cl:
-                    if not self_c in oth_cl:
+                    if self_c not in oth_cl:
                         return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count = 0
@@ -309,8 +314,7 @@ class STNPlan(plans.plan.Plan):
                 and item.is_semantically_equivalent(n.action_instance)
                 for n in self._stn.distances
             )
-        else:
-            return False
+        return False
 
     def get_constraints(
         self,
@@ -330,8 +334,8 @@ class STNPlan(plans.plan.Plan):
         """
         upper_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
         lower_bounds: Dict[Tuple[STNPlanNode, STNPlanNode], Fraction] = {}
-        for b_node, l in self._stn.get_constraints().items():
-            for upper_bound, a_node in l:
+        for b_node, bounds in self._stn.get_constraints().items():
+            for upper_bound, a_node in bounds:
                 if upper_bound > 0:
                     # Sets the upper bound for b-a; b-a is represented as the
                     # Tuple[smaller_node, bigger_node], so it is (a, b).
@@ -354,7 +358,7 @@ class STNPlan(plans.plan.Plan):
         for (left_node, right_node), upper_bound in upper_bounds.items():
             key = (left_node, right_node)
             seen_couples.add(key)
-            lower_bound = lower_bounds.get(key, None)
+            lower_bound = lower_bounds.get(key)
             cl = constraints.setdefault(left_node, [])
             cl.append((lower_bound, upper_bound, right_node))
         for (left_node, right_node), lower_bound in lower_bounds.items():
@@ -439,9 +443,9 @@ class STNPlan(plans.plan.Plan):
 
         new_stn: DeltaSimpleTemporalNetwork = DeltaSimpleTemporalNetwork()
         for r_node, constraints in new_constraints.items():
-            if not r_node in nodes_to_remove:
+            if r_node not in nodes_to_remove:
                 for bound, l_node in constraints:
-                    if not l_node in nodes_to_remove:
+                    if l_node not in nodes_to_remove:
                         new_stn.add(r_node, l_node, bound)
 
         return STNPlan(constraints={}, environment=self._environment, _stn=new_stn)
@@ -463,10 +467,9 @@ class STNPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
+        if plan_kind == plans.plan.PlanKind.TIME_TRIGGERED_PLAN:
             return self._convert_to_time_triggered(problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def is_consistent(self) -> bool:
         """
@@ -482,7 +485,7 @@ class STNPlan(plans.plan.Plan):
         action_instance_map: Dict[
             ActionInstance, Tuple[Optional[Fraction], Optional[Fraction]]
         ] = {}
-        for node, time in map(lambda x: (x[0], -x[1]), self._stn.distances.items()):
+        for node, time in ((x[0], -x[1]) for x in self._stn.distances.items()):
             assert time >= 0
             if time == 0:
                 time = Fraction(0)

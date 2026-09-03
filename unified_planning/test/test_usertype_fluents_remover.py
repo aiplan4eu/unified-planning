@@ -15,19 +15,19 @@
 
 from itertools import product
 from typing import cast
-import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.model.problem_kind import full_classical_kind
-from unified_planning.test import unittest_TestCase, main
-from unified_planning.test import (
-    skipIfNoPlanValidatorForProblemKind,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.test.examples import get_example_problems
+
 from unified_planning.engines import CompilationKind, ValidationResultStatus
 from unified_planning.model.fluent import get_all_fluent_exp
+from unified_planning.model.problem_kind import full_classical_kind
 from unified_planning.model.types import domain_item, domain_size
 from unified_planning.model.walkers import QuantifierSimplifier
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfNoOneshotPlannerForProblemKind,
+    skipIfNoPlanValidatorForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 
 class TestUsertypeFLuentsRemover(unittest_TestCase):
@@ -286,6 +286,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
         for condition, compiled_condition in zip(
             cast(InstantaneousAction, problem.action("a")).preconditions,
             cast(InstantaneousAction, compiled_problem.action("a")).preconditions,
+            strict=True,
         ):
             all_fluent_exp = [
                 f
@@ -302,7 +303,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
             for values in product(*gen):
                 assert len(all_fluent_exp) == len(values)
                 original_assignments: Dict[Expression, Expression] = dict(
-                    zip(all_fluent_exp, values)
+                    zip(all_fluent_exp, values, strict=True)
                 )
                 compiled_assignments: Dict[Expression, Expression] = {}
                 for fluent, val in original_assignments.items():

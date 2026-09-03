@@ -43,7 +43,8 @@ def decimal_literal(frac: Fraction, precision: int, printer: str) -> str:
         dec = frac.numerator / Decimal(frac.denominator, ctx)
         if Fraction(dec) != frac:
             warn(
-                f"The {printer} printer cannot exactly represent the real constant '{frac}'"
+                f"The {printer} printer cannot exactly represent the real constant '{frac}'",
+                stacklevel=2,
             )
         res = format(dec, "f")  # never scientific notation
     return res if "." in res else f"{res}.0"  # some grammars require a fractional part

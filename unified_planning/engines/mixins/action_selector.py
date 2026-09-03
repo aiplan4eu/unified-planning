@@ -14,9 +14,10 @@
 # limitations under the License.
 #
 
-import unified_planning as up
 from typing import Dict
 from warnings import warn
+
+import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
 
@@ -39,8 +40,7 @@ class ActionSelectorMixin:
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
 
     @staticmethod
     def is_action_selector() -> bool:

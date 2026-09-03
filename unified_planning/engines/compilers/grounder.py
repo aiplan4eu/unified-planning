@@ -14,32 +14,33 @@
 # limitations under the License.
 #
 
+from functools import partial
+from itertools import product
+from typing import Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import (
+    create_action_with_given_subs,
+    lift_action_instance,
+    split_all_ands,
+)
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
     Action,
-    Type,
     Expression,
     FNode,
     MinimizeActionCosts,
     Parameter,
+    Problem,
+    ProblemKind,
+    Type,
 )
-from unified_planning.model.types import domain_size, domain_item
-from unified_planning.model.walkers import Simplifier
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.compilers.utils import (
-    lift_action_instance,
-    create_action_with_given_subs,
-    split_all_ands,
-)
-from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Iterator, cast
-from itertools import product
-from functools import partial
+from unified_planning.model.types import domain_item, domain_size
+from unified_planning.model.walkers import Simplifier
 
 
 class _AtomPattern(NamedTuple):
@@ -175,7 +176,7 @@ class GrounderHelper:
         return self._simplifier
 
     def ground_action(
-        self, action: Action, parameters: Tuple[FNode, ...] = tuple()
+        self, action: Action, parameters: Tuple[FNode, ...] = ()
     ) -> Optional[Action]:
         """
         Grounds the given action with the given parameters.
@@ -200,27 +201,26 @@ class GrounderHelper:
         if value != 0:  # The action is already created
             assert isinstance(value, Action) or value is None
             return value
-        else:
-            # if the action does not have parameters, it does not need to be grounded.
-            if len(action.parameters) == 0:
-                if (
-                    self._grounding_actions_map is None
-                    or self._grounding_actions_map.get(action, None) is not None
-                ):
-                    new_action = create_action_with_given_subs(
-                        self._problem, action, self._simplifier, {}
-                    )
-                else:
-                    new_action = None
-            else:
-                subs: Dict[Expression, Expression] = dict(
-                    zip(action.parameters, list(parameters))
-                )
+        # if the action does not have parameters, it does not need to be grounded.
+        if len(action.parameters) == 0:
+            if (
+                self._grounding_actions_map is None
+                or self._grounding_actions_map.get(action, None) is not None
+            ):
                 new_action = create_action_with_given_subs(
-                    self._problem, action, self._simplifier, subs
+                    self._problem, action, self._simplifier, {}
                 )
-            self._grounded_actions[key] = new_action
-            return new_action
+            else:
+                new_action = None
+        else:
+            subs: Dict[Expression, Expression] = dict(
+                zip(action.parameters, list(parameters), strict=True)
+            )
+            new_action = create_action_with_given_subs(
+                self._problem, action, self._simplifier, subs
+            )
+        self._grounded_actions[key] = new_action
+        return new_action
 
     def get_grounded_actions(
         self,
@@ -258,7 +258,7 @@ class GrounderHelper:
                 self._grounding_actions_map is None
                 or self._grounding_actions_map.get(action, None) is not None
             ):
-                res: Iterator[Tuple[FNode, ...]] = iter([tuple()])
+                res: Iterator[Tuple[FNode, ...]] = iter([()])
             else:
                 res = iter([])
         else:
@@ -284,9 +284,12 @@ class GrounderHelper:
                 items_list: List[List[FNode]] = [
                     self._get_domain_items(t) for t in type_list
                 ]
-                if self._prune_actions and (
-                    isinstance(action, up.model.action.InstantaneousAction)
-                    or isinstance(action, up.model.action.DurativeAction)
+                if self._prune_actions and isinstance(
+                    action,
+                    (
+                        up.model.action.InstantaneousAction,
+                        up.model.action.DurativeAction,
+                    ),
                 ):
                     bool_conditions = self._static_bool_fluents(action) or []
                     items_list = self._purge_items_list(
@@ -360,7 +363,7 @@ class GrounderHelper:
         params = list(action.parameters)
         num_params = len(params)
         if num_params == 0:
-            return [tuple()]
+            return [()]
         static_fluents = self._static_bool_fluents(action)
         if static_fluents is None:
             # Not an InstantaneousAction/DurativeAction -- an action type this file doesn't
@@ -422,7 +425,7 @@ class GrounderHelper:
             if free_columns:
                 for combo in product(*free_domains):
                     full_binding = dict(binding)
-                    full_binding.update(zip(free_columns, combo))
+                    full_binding.update(zip(free_columns, combo, strict=True))
                     tuples.append(tuple(full_binding[i] for i in range(num_params)))
             else:
                 tuples.append(tuple(binding[i] for i in range(num_params)))
@@ -542,7 +545,7 @@ class GrounderHelper:
             conds = list(action.preconditions)
         elif isinstance(action, up.model.action.DurativeAction):
             conds = []
-            for _, cl in action.conditions.items():
+            for cl in action.conditions.values():
                 conds.extend(cl)
         else:
             return None
@@ -664,7 +667,7 @@ class GrounderHelper:
         # sound, and using all of them is strictly stronger pruning than using only one.
         em = self._problem.environment.expression_manager
         return_list = []
-        for param, object_list in zip(params, items_list):
+        for param, object_list in zip(params, items_list, strict=True):
             temp_list = list(object_list)
             param_exp = em.ParameterExp(param)
             for static_fluent in conds:
@@ -912,7 +915,7 @@ def ground_minimize_action_costs_metric(
     for new_action, (old_action, params) in trace_back_map.items():
         subs = cast(
             Dict[Expression, Expression],
-            dict(zip(old_action.parameters, params)),
+            dict(zip(old_action.parameters, params, strict=True)),
         )
         old_cost = metric.get_action_cost(old_action)
         if old_cost is not None:

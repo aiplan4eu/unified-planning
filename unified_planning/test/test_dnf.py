@@ -13,11 +13,10 @@
 # limitations under the License.
 
 
-import unified_planning
-from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.environment import get_environment
 from unified_planning.model.walkers import Dnf, Nnf, Substituter
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
 
 
 class TestDnf(unittest_TestCase):

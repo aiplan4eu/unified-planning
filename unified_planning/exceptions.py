@@ -18,8 +18,6 @@
 class UPException(Exception):
     """Base class for all custom exceptions of the unified_planning (UP) library."""
 
-    pass
-
 
 class UPProblemDefinitionError(UPException):
     pass

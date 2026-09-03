@@ -14,15 +14,15 @@
 #
 
 
-import unified_planning.model.walkers as walkers
+from typing import Dict, List, Optional
 
 import unified_planning.environment
-from unified_planning.model.walkers.identitydag import IdentityDagWalker
+import unified_planning.model.walkers as walkers
+from unified_planning.exceptions import UPTypeError
+from unified_planning.model.expression import Expression
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from unified_planning.model.expression import Expression
-from unified_planning.exceptions import UPTypeError
-from typing import List, Dict
+from unified_planning.model.walkers.identitydag import IdentityDagWalker
 
 
 class Substituter(IdentityDagWalker):
@@ -45,16 +45,17 @@ class Substituter(IdentityDagWalker):
             # 1. We create a new substitution in which we remove the
             #    bound variables from the substitution map
             substitutions: Dict[FNode, FNode] = kwargs["subs"]
-            new_subs: Dict[Expression, Expression] = {}
-            for k, v in substitutions.items():
-                # If at least one bound variable is in the cone of k,
-                # we do not consider this substitution in the body of
-                # the quantifier.
+            # If at least one bound variable is in the cone of k,
+            # we do not consider this substitution in the body of
+            # the quantifier.
+            new_subs: Dict[Expression, Expression] = {
+                k: v
+                for k, v in substitutions.items()
                 if all(
                     m not in expression.variables()
                     for m in self.environment.free_vars_oracle.get_free_variables(k)
-                ):
-                    new_subs[k] = v
+                )
+            }
 
             # 2. We apply the substitution on the quantifier body with
             #    the new 'reduced' map
@@ -73,7 +74,9 @@ class Substituter(IdentityDagWalker):
             IdentityDagWalker._push_with_children_to_stack(self, expression, **kwargs)
 
     def substitute(
-        self, expression: FNode, substitutions: Dict[Expression, Expression] = {}
+        self,
+        expression: FNode,
+        substitutions: Optional[Dict[Expression, Expression]] = None,
     ) -> FNode:
         """
         Performs substitution into the given expression.
@@ -105,7 +108,7 @@ class Substituter(IdentityDagWalker):
         substitute(f, subs) = c
         """
 
-        if len(substitutions) == 0:
+        if not substitutions:
             return expression
         new_substitutions: Dict[FNode, FNode] = {}
         for k, v in substitutions.items():
@@ -114,7 +117,7 @@ class Substituter(IdentityDagWalker):
                 new_substitutions[new_k] = new_v
             else:
                 raise UPTypeError(
-                    f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}"
+                    f"The expression type of {k!s} is not compatible with the given substitution {v!s}"
                 )
         return self.walk(expression, subs=new_substitutions)
 
@@ -123,11 +126,10 @@ class Substituter(IdentityDagWalker):
         self,
         expression: FNode,
         args: List[FNode],
-        subs: Dict[FNode, FNode] = {},
+        subs: Optional[Dict[FNode, FNode]] = None,
         **kwargs,
     ) -> FNode:
-        res = subs.get(expression, None)
+        res = subs.get(expression) if subs else None
         if res is not None:
             return res
-        else:
-            return IdentityDagWalker.super(self, expression, args, **kwargs)
+        return IdentityDagWalker.super(self, expression, args, **kwargs)
