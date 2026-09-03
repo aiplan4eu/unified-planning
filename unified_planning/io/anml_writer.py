@@ -554,4 +554,4 @@ def _get_anml_name(
         names_mapping[item] = (
             new_name  # Once a fresh valid name is found, update the map.
         )
-    return cast(str, new_name)
+    return new_name
