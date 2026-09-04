@@ -767,5 +767,117 @@ class TestWithSubstituter(unittest_TestCase):
         self.assertEqual(r5, t)
 
 
+class TestPerAtomStaticFluentFolding(unittest_TestCase):
+    """`Simplifier(env, problem, fold_static_fluent_exps=True)` folds a ground fluent atom to
+    its initial value not only when the whole fluent schema is static
+    (`problem.get_static_fluents()`), but also when this specific atom is simply never the
+    target of any effect in the problem -- even though other groundings of the same fluent are
+    written elsewhere.
+    """
+
+    def setUp(self):
+        unittest_TestCase.setUp(self)
+        object_type = UserType("Object")
+        self.boat_type = UserType("Boat", father=object_type)
+        self.place_type = UserType("Place", father=object_type)
+        self.pos = Fluent("pos", IntType(), o=object_type)
+        self.boat = Object("b0", self.boat_type)
+        self.waypoint = Object("p0", self.place_type)
+
+        move = InstantaneousAction("move", b=self.boat_type)
+        b = move.parameter("b")
+        move.add_effect(self.pos(b), 5)
+        self.move = move
+
+    def _problem(self) -> "Problem":
+        problem = Problem("hierarchical_typing")
+        problem.add_fluent(self.pos, default_initial_value=0)
+        problem.add_object(self.boat)
+        problem.add_object(self.waypoint)
+        problem.set_initial_value(self.pos(self.waypoint), 7)
+        problem.add_action(self.move)
+        return problem
+
+    def test_unwritten_ground_atom_is_folded_when_opted_in(self):
+        problem = self._problem()
+        s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+        # pos(p0) is never an effect target of any action -- only pos(b) is, through the
+        # Boat-typed parameter -- so it is a de-facto constant even though pos is not
+        # schema-static (problem.get_static_fluents() == set()).
+        self.assertEqual(problem.get_static_fluents(), set())
+        self.assertEqual(s.simplify(GT(self.pos(self.waypoint), 5)), Bool(True))
+
+    def test_written_ground_atom_is_not_folded(self):
+        problem = self._problem()
+        s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+        # pos(b0) IS an effect target (through move's parameter b), so it must stay symbolic.
+        e = GT(self.pos(self.boat), 5)
+        self.assertEqual(s.simplify(e), e)
+
+    def test_default_simplifier_does_not_fold_per_atom_static_fluents(self):
+        problem = self._problem()
+        # Without opting in, behavior must be unchanged: pos(p0) stays symbolic even though it
+        # is never written.
+        s = Simplifier(problem.environment, problem)
+        e = GT(self.pos(self.waypoint), 5)
+        self.assertEqual(s.simplify(e), e)
+
+    def test_constant_argument_effect_target_keeps_that_atom_symbolic(self):
+        # x(o0) is written directly (a constant-argument effect target), so it must stay
+        # symbolic; x(o1), which no effect ever targets, must still fold.
+        item_type = UserType("Item")
+        o0 = Object("o0", item_type)
+        o1 = Object("o1", item_type)
+        x = Fluent("x", IntType(), o=item_type)
+        act = InstantaneousAction("act")
+        act.add_effect(x(o0), 1)
+
+        problem = Problem("constant_target")
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_objects([o0, o1])
+        problem.set_initial_value(x(o1), 42)
+        problem.add_action(act)
+
+        s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+        self.assertEqual(s.simplify(GT(x(o0), 0)), GT(x(o0), Int(0)))
+        self.assertEqual(s.simplify(GT(x(o1), 0)), Bool(True))
+
+    def test_forall_effect_excludes_its_whole_variable_type_from_folding(self):
+        # b(l: Base) is only ever written by a forall effect quantified over the Sub subtype,
+        # so any Sub-typed argument stays symbolic (the effect might target it for some
+        # grounding), while a Base-only (non-Sub) object still folds.
+        base_type = UserType("Base")
+        sub_type = UserType("Sub", father=base_type)
+        b = Fluent("b", BoolType(), l=base_type)
+        base_obj = Object("base_obj", base_type)
+        sub_obj = Object("sub_obj", sub_type)
+
+        act = InstantaneousAction("act")
+        v = Variable("v", sub_type)
+        act.add_effect(b(v), True, forall=[v])
+
+        problem = Problem("forall_target")
+        problem.add_fluent(b, default_initial_value=False)
+        problem.add_objects([base_obj, sub_obj])
+        problem.add_action(act)
+
+        s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+        self.assertEqual(s.simplify(b(sub_obj)), b(sub_obj))
+        self.assertEqual(s.simplify(b(base_obj)), Bool(False))
+
+    def test_unwritten_atom_with_no_initial_value_stays_symbolic(self):
+        # pos(p0) is never written, but its initial value was also never set (and pos has no
+        # default): folding must not invent a value for it.
+        problem = Problem("no_initial_value")
+        problem.add_fluent(self.pos)
+        problem.add_object(self.boat)
+        problem.add_object(self.waypoint)
+        problem.add_action(self.move)
+
+        s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+        e = GT(self.pos(self.waypoint), 5)
+        self.assertEqual(s.simplify(e), e)
+
+
 if __name__ == "__main__":
     main()

@@ -16,7 +16,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import List, Optional, FrozenSet, Union, cast
+from typing import Dict, Iterable, List, Optional, FrozenSet, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPUnreachableCodeError
@@ -24,6 +24,130 @@ import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.types import _UserType
 import unified_planning.model.operators as op
+
+
+# One argument-position pattern of a recorded effect target, as classified by
+# `_EffectTargetIndex._arg_spec`: `("const", fnode)` matches only that one constant argument,
+# `("type", type)` matches any argument whose type is compatible with `type` (an action parameter
+# or a forall-bound variable's type), and `("wild", None)` matches anything (a nested expression
+# or object-fluent call the index can't otherwise classify).
+_ArgSpec = Tuple[str, object]
+
+
+class _EffectTargetIndex:
+    """Over-approximates, for one :class:`~unified_planning.model.Problem`, which ground atoms of
+    which fluents its actions/events/processes/timed-effects can ever write.
+
+    :func:`~unified_planning.model.Problem.get_static_fluents` only answers at *schema*
+    granularity: a fluent is static only if `no` grounding of it is ever written. That misses the
+    common case of a fluent whose schema is written for some argument tuples but never others --
+    e.g. a `pos(?o: Object)` fluent that is only ever assigned through an action parameter typed
+    `Boat`, so `pos(some_fixed_waypoint)` never changes even though `pos` itself is not static.
+    `may_write` answers that per-atom question instead, by recording one *pattern* per effect
+    target (one spec per argument position, see `_ArgSpec`) and checking a candidate ground atom
+    against every recorded pattern of the same fluent.
+
+    Argument positions are checked independently of each other, so a correlation between two
+    parameters of the same effect (e.g. an effect that only ever fires when two of an action's
+    parameters happen to be equal) is invisible to this index -- which only ever makes `may_write`
+    return `True` more often than strictly necessary, the safe direction: every atom that really
+    is written is matched by its own pattern, so it is never mistakenly folded to a constant.
+
+    Important NOTE: same contract as `Simplifier` itself -- the `Problem` given at construction
+    time must not be modified afterwards, or this index's answers (and its cache) become stale.
+    """
+
+    def __init__(self, problem: "up.model.problem.Problem"):
+        self._patterns: Dict["up.model.fluent.Fluent", List[Tuple[_ArgSpec, ...]]] = {}
+        self._may_write_cache: Dict[FNode, bool] = {}
+        for a in problem.actions:
+            self._scan_action(a)
+        for ev in problem.events:
+            self._scan_effects(ev.effects)
+            self._scan_simulated_effects(ev.simulated_effect)
+        for pro in problem.processes:
+            self._scan_effects(pro.effects)
+        for effs in problem.timed_effects.values():
+            self._scan_effects(effs)
+
+    def _scan_action(self, a: "up.model.action.Action"):
+        if isinstance(a, up.model.action.InstantaneousAction):
+            self._scan_effects(a.effects)
+            self._scan_simulated_effects(a.simulated_effect)
+        elif isinstance(a, up.model.action.DurativeAction):
+            for effs in a.effects.values():
+                self._scan_effects(effs)
+            for effs in a.continuous_effects.values():
+                self._scan_effects(effs)
+            for se in a.simulated_effects.values():
+                self._scan_simulated_effects(se)
+        else:
+            raise NotImplementedError(
+                f"_EffectTargetIndex does not know how to scan the effects of {type(a)}"
+            )
+
+    def _scan_effects(self, effects: Iterable["up.model.effect.Effect"]):
+        for e in effects:
+            self._record_target(e.fluent)
+
+    def _scan_simulated_effects(self, se: Optional["up.model.effect.SimulatedEffect"]):
+        if se is None:
+            return
+        # SimulatedEffect.fluents entries are, by construction, plain fluent expressions whose
+        # arguments are constants or action-parameter expressions only (never a nested
+        # expression, a Dot, or a forall-bound variable -- a simulated effect can't be
+        # forall-quantified), so they fit the same per-position classification as a regular
+        # effect target and need no separate handling.
+        for f in se.fluents:
+            self._record_target(f)
+
+    def _record_target(self, target: FNode):
+        if target.is_dot():
+            # Multi-agent effect target: unwrap the `Dot` to the underlying fluent expression --
+            # see UntimedEffectMixin.add_effect, which accepts `fluent_exp.is_dot()`.
+            target = target.arg(0)
+        fluent = target.fluent()
+        pattern = tuple(self._arg_spec(arg) for arg in target.args)
+        self._patterns.setdefault(fluent, []).append(pattern)
+
+    @staticmethod
+    def _arg_spec(arg: FNode) -> _ArgSpec:
+        if arg.is_constant():
+            return ("const", arg)
+        if arg.is_parameter_exp():
+            return ("type", arg.parameter().type)
+        if arg.is_variable_exp():
+            return ("type", arg.variable().type)
+        return ("wild", None)
+
+    def may_write(self, fluent_exp: FNode) -> bool:
+        """`True` if some recorded effect target might, for some grounding, write exactly
+        `fluent_exp` -- `fluent_exp` must have only constant arguments."""
+        cached = self._may_write_cache.get(fluent_exp)
+        if cached is not None:
+            return cached
+        patterns = self._patterns.get(fluent_exp.fluent())
+        result = False
+        if patterns:
+            args = fluent_exp.args
+            for pattern in patterns:
+                if all(
+                    self._arg_matches(spec, arg) for spec, arg in zip(pattern, args)
+                ):
+                    result = True
+                    break
+        self._may_write_cache[fluent_exp] = result
+        return result
+
+    @staticmethod
+    def _arg_matches(spec: _ArgSpec, arg: FNode) -> bool:
+        kind, payload = spec
+        if kind == "wild":
+            return True
+        if kind == "const":
+            return arg == payload
+        assert kind == "type"
+        return cast("up.model.types.Type", payload).is_compatible(arg.type)
 
 
 class Simplifier(walkers.dag.DagWalker):
@@ -37,7 +161,24 @@ class Simplifier(walkers.dag.DagWalker):
         self,
         environment: "unified_planning.environment.Environment",
         problem: Optional["unified_planning.model.problem.Problem"] = None,
+        fold_static_fluent_exps: bool = False,
     ):
+        """
+        :param environment: The `Environment` this `Simplifier` operates in.
+        :param problem: If given, static fluents (`problem.get_static_fluents()`) are folded to
+            their initial value.
+        :param fold_static_fluent_exps: If `True`, also fold a ground fluent atom that is not
+            static at the *schema* level (`problem.get_static_fluents()` doesn't include its
+            fluent, because some other grounding of it IS written somewhere) but that this exact
+            atom is nonetheless never the target of any effect in `problem` -- see
+            `_EffectTargetIndex`. Requires `problem` to be a plain
+            :class:`~unified_planning.model.Problem` (or a subclass that adds no extra effect
+            source, e.g. `HierarchicalProblem`/`ContingentProblem`); ignored (folding stays off)
+            for a `problem` of any other type, such as `SchedulingProblem`/`MultiAgentProblem`,
+            which don't expose the effect surface `_EffectTargetIndex` scans. Defaults to `False`
+            so existing callers (and `problem.kind`, which is computed through its own
+            `Simplifier`) are unaffected.
+        """
         walkers.dag.DagWalker.__init__(self)
         self.environment = environment
         self.manager = environment.expression_manager
@@ -46,6 +187,9 @@ class Simplifier(walkers.dag.DagWalker):
         else:
             self.static_fluents = set()
         self.problem: Optional["unified_planning.model.problem.Problem"] = problem
+        self._effect_target_index: Optional[_EffectTargetIndex] = None
+        if fold_static_fluent_exps and isinstance(problem, up.model.problem.Problem):
+            self._effect_target_index = _EffectTargetIndex(problem)
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
         if isinstance(value, int):
@@ -319,18 +463,26 @@ class Simplifier(walkers.dag.DagWalker):
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
         new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
-        if expression.fluent() not in self.static_fluents:
+        fluent_is_static = expression.fluent() in self.static_fluents
+        if not fluent_is_static and self._effect_target_index is None:
+            # No schema-level staticness and per-atom folding isn't enabled
             return new_exp
-        else:
-            assert self.problem is not None
-            for a in args:
-                if not a.is_constant():
-                    return new_exp
-            static_value = self.problem.initial_value(new_exp)
-            if static_value is not None:
-                return static_value
-            else:  # value is static but is not defined in the initial state
+        for a in args:
+            if not a.is_constant():
                 return new_exp
+        if not fluent_is_static:
+            # Not static at the schema level (some grounding of this fluent IS written
+            # somewhere), but this specific ground atom is never among the effect targets the
+            # index recorded -- fold it exactly like a schema-static one, below.
+            assert self._effect_target_index is not None
+            if self._effect_target_index.may_write(new_exp):
+                return new_exp
+        assert self.problem is not None
+        static_value = self.problem.initial_value(new_exp)
+        if static_value is not None:
+            return static_value
+        else:  # value is static but is not defined in the initial state
+            return new_exp
 
     def walk_interpreted_function_exp(
         self, expression: FNode, args: List[FNode]

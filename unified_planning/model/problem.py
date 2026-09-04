@@ -406,6 +406,13 @@ class Problem(  # type: ignore[misc]
             for e in ev.effects:
                 remove_used_fluents(e.fluent, e.value, e.condition)
                 static_fluents.discard(e.fluent.fluent())
+            if ev.simulated_effect is not None:
+                # Same reasoning as the InstantaneousAction case above: a simulated effect can
+                # read (and assign) anything, so no fluent it targets can be considered static or
+                # unused.
+                unused_fluents.clear()
+                for f in ev.simulated_effect.fluents:
+                    static_fluents.discard(f.fluent())
         for pro in self._processes:
             for e in pro.effects:
                 remove_used_fluents(e.fluent, e.value, e.condition)
