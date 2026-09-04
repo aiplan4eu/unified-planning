@@ -1115,6 +1115,425 @@ class TestGrounder(unittest_TestCase):
         ga = cast(InstantaneousAction, grounded_problem.action("check_waypoint"))
         self.assertEqual(ga.preconditions, [Equals(pos(waypoint), 5)])
 
+    def _static_pos_problem(self, name: str):
+        # A fluent pos(o: Place) that is never the target of any effect anywhere -- schema-static
+        # -- plus a dummy action so the problem has something to ground. Shared setup for the
+        # goal/timed-goal/trajectory-constraint folding tests below.
+        place_type = UserType("Place")
+        pos = Fluent("pos", IntType(), o=place_type)
+        waypoint = Object("waypoint", place_type)
+        dummy = Fluent("dummy")
+        act = InstantaneousAction("act")
+        act.add_effect(dummy, True)
+
+        problem = Problem(name)
+        problem.add_fluent(pos, default_initial_value=0)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_object(waypoint)
+        problem.set_initial_value(pos(waypoint), 5)
+        problem.add_action(act)
+        return problem, pos, waypoint
+
+    def test_static_fluent_referenced_only_in_goal_folds_and_is_removed(self):
+        problem, pos, waypoint = self._static_pos_problem("static_in_goal")
+        problem.add_goal(GT(pos(waypoint), 3))  # 5 > 3: always true
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # folds to True, which Problem.add_goal silently drops
+        self.assertEqual(grounded_problem.goals, [])
+        self.assertFalse(grounded_problem.has_fluent("pos"))
+
+    def test_static_fluent_referenced_only_in_timed_goal_folds_and_is_removed(self):
+        problem, pos, waypoint = self._static_pos_problem("static_in_timed_goal")
+        problem.add_timed_goal(GlobalStartTiming(1), GT(pos(waypoint), 3))
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        for goal_list in grounded_problem.timed_goals.values():
+            self.assertEqual(goal_list, [])
+        self.assertFalse(grounded_problem.has_fluent("pos"))
+
+    def test_static_fluent_referenced_only_in_trajectory_constraint_folds_and_is_removed(
+        self,
+    ):
+        problem, pos, waypoint = self._static_pos_problem(
+            "static_in_trajectory_constraint"
+        )
+        problem.add_trajectory_constraint(Sometime(GT(pos(waypoint), 3)))
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # Sometime(True) folds to True, which is vacuously satisfied and dropped.
+        self.assertEqual(grounded_problem.trajectory_constraints, [])
+        self.assertFalse(grounded_problem.has_fluent("pos"))
+
+    def test_trajectory_constraint_folding_to_false_becomes_a_false_goal(self):
+        problem, pos, waypoint = self._static_pos_problem("trajectory_constraint_false")
+        # pos(waypoint) == 5, so this never holds.
+        problem.add_trajectory_constraint(Always(GT(pos(waypoint), 10)))
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # add_trajectory_constraint has no way to represent "always fails" (its shape assertion
+        # rejects a bare Bool constant) -- it must be redirected to a goal instead of crashing.
+        self.assertEqual(grounded_problem.trajectory_constraints, [])
+        self.assertIn(Bool(False), grounded_problem.goals)
+
+    def test_goal_conjunct_folding_leaves_the_dynamic_conjunct_untouched(self):
+        place_type = UserType("Place")
+        pos = Fluent("pos", IntType(), o=place_type)
+        waypoint = Object("waypoint", place_type)
+        moved = Fluent("moved")
+        act = InstantaneousAction("act")
+        act.add_effect(moved, True)
+
+        problem = Problem("mixed_goal_conjuncts")
+        problem.add_fluent(pos, default_initial_value=0)
+        problem.add_fluent(moved, default_initial_value=False)
+        problem.add_object(waypoint)
+        problem.set_initial_value(pos(waypoint), 5)
+        problem.add_action(act)
+        problem.add_goal(And(GT(pos(waypoint), 3), moved))
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(grounded_problem.goals, [moved()])
+        self.assertFalse(grounded_problem.has_fluent("pos"))
+
+    def test_static_fluent_referenced_only_via_non_foldable_action_cost_default_is_not_removed(
+        self,
+    ):
+        # pos is schema-static, but the metric's default cost expression reads it through a
+        # DYNAMIC object fluent's value (pos(cursor())) -- since cursor() can't be resolved to a
+        # constant at grounding time, pos(cursor()) can't be folded either, so pos genuinely stays
+        # referenced. Problem._get_static_and_unused_fluents() never scans a MinimizeActionCosts
+        # cost/default into unused_fluents at all (a documented blind spot), so without the
+        # fluents_in_action_costs exemption this fluent would be wrongly removed.
+        place_type = UserType("Place")
+        p1 = Object("p1", place_type)
+        p2 = Object("p2", place_type)
+        cursor = Fluent("cursor", place_type)
+        pos = Fluent("pos", IntType(), o=place_type)
+
+        act = InstantaneousAction("act")
+        act.add_effect(cursor, p2)
+
+        problem = Problem("non_foldable_cost_default")
+        problem.add_fluent(cursor, default_initial_value=p1)
+        problem.add_fluent(pos, default_initial_value=0)
+        problem.add_object(p1)
+        problem.add_object(p2)
+        problem.set_initial_value(pos(p1), 3)
+        problem.set_initial_value(pos(p2), 4)
+        problem.add_action(act)
+        problem.add_quality_metric(MinimizeActionCosts({act: 1}, default=pos(cursor())))
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertTrue(grounded_problem.has_fluent("pos"))
+        metric = grounded_problem.quality_metrics[0]
+        assert isinstance(metric, MinimizeActionCosts)
+        # the default itself is preserved (fixing ground_minimize_action_costs_metric's previous
+        # silent drop), and stays symbolic since it can't be folded.
+        self.assertEqual(metric.default, pos(cursor()))
+
+    def test_static_fluent_referenced_only_via_non_foldable_duration_bound_is_not_removed(
+        self,
+    ):
+        # Same shape as the action-cost-default case above, but for a DurativeAction's fixed
+        # duration: Problem._get_static_and_unused_fluents() never scans duration expressions
+        # into unused_fluents either, so pos here needs the same fluents_in_durations exemption.
+        place_type = UserType("Place")
+        p1 = Object("p1", place_type)
+        p2 = Object("p2", place_type)
+        cursor = Fluent("cursor", place_type)
+        pos = Fluent("pos", IntType(1, 10), o=place_type)
+
+        set_cursor = InstantaneousAction("set_cursor")
+        set_cursor.add_effect(cursor, p2)
+
+        dur_act = DurativeAction("dur_act")
+        dur_act.set_fixed_duration(pos(cursor()))
+
+        problem = Problem("non_foldable_duration")
+        problem.add_fluent(cursor, default_initial_value=p1)
+        problem.add_fluent(pos, default_initial_value=1)
+        problem.add_object(p1)
+        problem.add_object(p2)
+        problem.set_initial_value(pos(p1), 3)
+        problem.set_initial_value(pos(p2), 4)
+        problem.add_action(set_cursor)
+        problem.add_action(dur_act)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertTrue(grounded_problem.has_fluent("pos"))
+        ga = cast(DurativeAction, grounded_problem.action("dur_act"))
+        self.assertEqual(ga.duration.lower, pos(cursor()))
+
+    def test_remove_static_fluents_false_only_folds_and_never_removes(self):
+        problem, pos, waypoint = self._static_pos_problem(
+            "remove_static_fluents_disabled"
+        )
+        problem.add_goal(GT(pos(waypoint), 3))
+
+        grounded_problem = (
+            Grounder(remove_static_fluents=False)
+            .compile(problem, CompilationKind.GROUNDING)
+            .problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # the goal still folds (Part 1 folding is unconditional)...
+        self.assertEqual(grounded_problem.goals, [])
+        # ...but the now-unreferenced fluent stays declared, exactly as before this feature.
+        self.assertTrue(grounded_problem.has_fluent("pos"))
+        self.assertIn(pos(waypoint), grounded_problem.initial_values)
+
+    def test_cascade_two_actions_pruning_one_reveals_the_other_is_dead(self):
+        # `enabled` is schema-static (never written), initially False, so `set_flag`'s own
+        # precondition folds to False in the FIRST pass and it's pruned. Only a fixed point
+        # discovers what happens next: `flag` (only ever written by set_flag) now has zero
+        # writers left in the grounded problem, so it becomes static too (default False), which
+        # folds `use_flag`'s precondition to False in a SECOND round -- a single pass never runs.
+        enabled = Fluent("enabled")
+        flag = Fluent("flag")
+        dummy = Fluent("dummy")
+
+        set_flag = InstantaneousAction("set_flag")
+        set_flag.add_precondition(enabled)
+        set_flag.add_effect(flag, True)
+
+        use_flag = InstantaneousAction("use_flag")
+        use_flag.add_precondition(flag)
+        use_flag.add_effect(dummy, True)
+
+        problem = Problem("cascade")
+        problem.add_fluent(enabled, default_initial_value=False)
+        problem.add_fluent(flag, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_action(set_flag)
+        problem.add_action(use_flag)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(grounded_problem.actions, [])
+        # every fluent in the cascade is now static and unreferenced -- removed too.
+        self.assertEqual(grounded_problem.fluents, [])
+
+    def test_chain_of_three_actions_cascades_through_multiple_rounds(self):
+        # `base` folds C's own precondition directly; C is `mid`'s only writer, B's precondition
+        # reads `mid`, B is `top`'s only writer, and A's precondition reads `top` -- dropping C
+        # must cascade through B and then to A, over more than one refinement round.
+        base = Fluent("base")
+        mid = Fluent("mid")
+        top = Fluent("top")
+        dummy = Fluent("dummy")
+
+        act_c = InstantaneousAction("act_c")
+        act_c.add_precondition(base)
+        act_c.add_effect(mid, True)
+
+        act_b = InstantaneousAction("act_b")
+        act_b.add_precondition(mid)
+        act_b.add_effect(top, True)
+
+        act_a = InstantaneousAction("act_a")
+        act_a.add_precondition(top)
+        act_a.add_effect(dummy, True)
+
+        problem = Problem("chain_of_three")
+        problem.add_fluent(base, default_initial_value=False)
+        problem.add_fluent(mid, default_initial_value=False)
+        problem.add_fluent(top, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_action(act_c)
+        problem.add_action(act_b)
+        problem.add_action(act_a)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(grounded_problem.actions, [])
+
+    def test_long_chain_converges_without_looping_forever(self):
+        # A 5-action chain where only the first action's precondition is directly
+        # static-foldable; every later action can only be pruned once the entire chain ahead of
+        # it has already cascaded. A non-terminating (or non-converging) refinement loop would
+        # hang this test rather than fail it cleanly.
+        base = Fluent("base")
+        chain = [Fluent(f"f{i}") for i in range(5)]
+        actions = []
+        first = InstantaneousAction("act0")
+        first.add_precondition(base)
+        first.add_effect(chain[0], True)
+        actions.append(first)
+        for i in range(1, 5):
+            a = InstantaneousAction(f"act{i}")
+            a.add_precondition(chain[i - 1])
+            a.add_effect(chain[i], True)
+            actions.append(a)
+
+        problem = Problem("long_chain")
+        problem.add_fluent(base, default_initial_value=False)
+        for f in chain:
+            problem.add_fluent(f, default_initial_value=False)
+        for a in actions:
+            problem.add_action(a)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual(grounded_problem.actions, [])
+
+    def test_conditional_effect_only_cascade_via_dropped_effect_not_whole_action(self):
+        # `gate` is schema-static, initially False. act_writer's OWN precondition is trivially
+        # satisfiable (it survives), but its conditional effect on `f` is gated by `gate`, which
+        # folds to False -- so only that ONE effect gets dropped, not the whole action. If that
+        # was `f`'s only writer, `f` becomes static too, and act_reader's precondition on `f`
+        # must fold/prune accordingly. This is the "fluent loses a writer without its owning
+        # action being dropped" case the design relies on `_written_fluents`'s before/after diff
+        # (rather than only reacting to whole-action drops) to catch.
+        gate = Fluent("gate")
+        f = Fluent("f")
+        dummy = Fluent("dummy")
+
+        act_writer = InstantaneousAction("act_writer")
+        act_writer.add_effect(f, True, condition=gate)
+        act_writer.add_effect(dummy, True)
+
+        act_reader = InstantaneousAction("act_reader")
+        act_reader.add_precondition(f)
+        act_reader.add_effect(dummy, False)
+
+        problem = Problem("conditional_effect_cascade")
+        problem.add_fluent(gate, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_action(act_writer)
+        problem.add_action(act_reader)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertTrue(grounded_problem.has_action("act_writer"))
+        self.assertFalse(grounded_problem.has_action("act_reader"))
+        ga = cast(InstantaneousAction, grounded_problem.action("act_writer"))
+        # the gated effect on f is gone; the unconditional effect on dummy survives.
+        self.assertEqual(len(ga.effects), 1)
+        self.assertEqual(ga.effects[0].fluent, FluentExp(dummy))
+
+    def test_per_atom_cascade_from_dropping_one_of_two_writers(self):
+        # f(o1) is written only by act_x, f(o2) only by act_y -- independently. act_x's own
+        # precondition (`gate`, static) folds to False and it's dropped, so f(o1) now has zero
+        # writers left, even though `f` as a WHOLE stays schema-dynamic (act_y still writes
+        # f(o2)). act_reader's precondition on f(o1) specifically must still fold/prune: a
+        # trigger signal based only on whole-fluent staticness flips (rather than "did this
+        # action's own written-fluent set shrink at all") would miss this.
+        place_type = UserType("Place")
+        o1 = Object("o1", place_type)
+        o2 = Object("o2", place_type)
+        gate = Fluent("gate")
+        f = Fluent("f", BoolType(), o=place_type)
+        dummy = Fluent("dummy")
+
+        act_x = InstantaneousAction("act_x")
+        act_x.add_precondition(gate)
+        act_x.add_effect(f(o1), True)
+
+        act_y = InstantaneousAction("act_y")
+        act_y.add_effect(f(o2), True)
+
+        act_reader = InstantaneousAction("act_reader")
+        act_reader.add_precondition(f(o1))
+        act_reader.add_effect(dummy, True)
+
+        problem = Problem("per_atom_cascade")
+        problem.add_fluent(gate, default_initial_value=False)
+        problem.add_fluent(f, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_object(o1)
+        problem.add_object(o2)
+        problem.add_action(act_x)
+        problem.add_action(act_y)
+        problem.add_action(act_reader)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertFalse(grounded_problem.has_action("act_x"))
+        self.assertTrue(grounded_problem.has_action("act_y"))
+        self.assertFalse(grounded_problem.has_action("act_reader"))
+        # f stays schema-dynamic overall: act_y still writes f(o2).
+        self.assertNotIn(f, grounded_problem.get_static_fluents())
+
+    def test_unrelated_actions_survive_a_cascade_elsewhere_unchanged(self):
+        # A genuine cascade (as above) alongside completely independent actions that don't
+        # read/write any of the cascade's fluents -- they must survive the worklist untouched,
+        # with their original content intact.
+        enabled = Fluent("enabled")
+        flag = Fluent("flag")
+        dummy = Fluent("dummy")
+        other = Fluent("other", IntType())
+
+        set_flag = InstantaneousAction("set_flag")
+        set_flag.add_precondition(enabled)
+        set_flag.add_effect(flag, True)
+
+        use_flag = InstantaneousAction("use_flag")
+        use_flag.add_precondition(flag)
+        use_flag.add_effect(dummy, True)
+
+        unrelated_precondition = GE(other, 0)
+        unrelated_1 = InstantaneousAction("unrelated_1")
+        unrelated_1.add_precondition(unrelated_precondition)
+        unrelated_1.add_increase_effect(other, 1)
+
+        unrelated_2 = InstantaneousAction("unrelated_2")
+        unrelated_2.add_increase_effect(other, 2)
+
+        problem = Problem("cascade_plus_unrelated")
+        problem.add_fluent(enabled, default_initial_value=False)
+        problem.add_fluent(flag, default_initial_value=False)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_fluent(other, default_initial_value=0)
+        problem.add_action(set_flag)
+        problem.add_action(use_flag)
+        problem.add_action(unrelated_1)
+        problem.add_action(unrelated_2)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        self.assertFalse(grounded_problem.has_action("set_flag"))
+        self.assertFalse(grounded_problem.has_action("use_flag"))
+        ga1 = cast(InstantaneousAction, grounded_problem.action("unrelated_1"))
+        ga2 = cast(InstantaneousAction, grounded_problem.action("unrelated_2"))
+        self.assertEqual(ga1.preconditions, [unrelated_precondition])
+        self.assertEqual(len(ga1.effects), 1)
+        self.assertEqual(len(ga2.effects), 1)
+
 
 class TestGrounderJoinPruning(unittest_TestCase):
     """Tests for the grounder's join-based static-fluent pruning

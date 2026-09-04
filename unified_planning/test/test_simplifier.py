@@ -17,6 +17,7 @@ import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.walkers import Simplifier, Substituter
+from unified_planning.model.walkers.simplifier import _EffectTargetIndex
 from unified_planning.environment import get_environment
 from fractions import Fraction
 from typing import List
@@ -877,6 +878,103 @@ class TestPerAtomStaticFluentFolding(unittest_TestCase):
         s = Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
         e = GT(self.pos(self.waypoint), 5)
         self.assertEqual(s.simplify(e), e)
+
+
+class TestEffectTargetIndexIncremental(unittest_TestCase):
+    """`_EffectTargetIndex.forget`/`learn` let a caller (the `Grounder`'s fixed-point refinement
+    loop) incrementally keep one index up to date as actions are dropped/replaced, instead of
+    rebuilding it -- an `O(problem size)` scan -- every time something changes. `Simplifier`'s
+    `effect_target_index` parameter lets a caller hand it such an index directly, deriving
+    `static_fluents` from it instead of a second, independent `problem.get_static_fluents()` scan.
+    """
+
+    def setUp(self):
+        unittest_TestCase.setUp(self)
+        place_type = UserType("Place")
+        self.pos = Fluent("pos", IntType(), o=place_type)
+        self.p1 = Object("p1", place_type)
+        self.p2 = Object("p2", place_type)
+        self.act1 = InstantaneousAction("act1")
+        self.act1.add_effect(self.pos(self.p1), 1)
+        self.act2 = InstantaneousAction("act2")
+        self.act2.add_effect(self.pos(self.p2), 2)
+
+        problem = Problem("two_writers")
+        problem.add_fluent(self.pos, default_initial_value=0)
+        problem.add_object(self.p1)
+        problem.add_object(self.p2)
+        problem.add_action(self.act1)
+        problem.add_action(self.act2)
+        self.problem = problem
+
+    def test_forget_unrecorded_owner_is_a_no_op(self):
+        index = _EffectTargetIndex(self.problem)
+        before = index.write_count(self.pos)
+        self.assertEqual(index.forget(InstantaneousAction("never_scanned")), set())
+        self.assertEqual(index.write_count(self.pos), before)
+
+    def test_forget_then_learn_same_targets_round_trips(self):
+        index = _EffectTargetIndex(self.problem)
+        self.assertEqual(index.write_count(self.pos), 2)
+        self.assertTrue(index.may_write(self.pos(self.p1)))
+
+        touched = index.forget(self.act1)
+        self.assertEqual(touched, {self.pos})
+        self.assertEqual(index.write_count(self.pos), 1)
+        self.assertFalse(index.may_write(self.pos(self.p1)))
+        self.assertTrue(index.may_write(self.pos(self.p2)))  # act2 untouched
+
+        learned = index.learn(self.act1, (e.fluent for e in self.act1.effects))
+        self.assertEqual(learned, {self.pos})
+        self.assertEqual(index.write_count(self.pos), 2)
+        self.assertTrue(index.may_write(self.pos(self.p1)))
+
+    def test_forget_one_of_two_writers_leaves_the_other_intact(self):
+        index = _EffectTargetIndex(self.problem)
+        index.forget(self.act1)
+        self.assertEqual(index.write_count(self.pos), 1)
+        self.assertFalse(index.may_write(self.pos(self.p1)))
+        self.assertTrue(index.may_write(self.pos(self.p2)))
+
+    def test_simplifier_derives_static_fluents_from_a_given_index_not_the_problem(self):
+        index = _EffectTargetIndex(self.problem)
+        index.forget(self.act1)
+        index.forget(self.act2)
+        # write_count(pos) is now 0 in the index, even though self.problem's own actions (never
+        # touched) still target it -- problem.get_static_fluents() would disagree.
+        self.assertNotIn(self.pos, self.problem.get_static_fluents())
+
+        s = Simplifier(
+            self.problem.environment, self.problem, effect_target_index=index
+        )
+        self.assertIn(self.pos, s.static_fluents)
+
+    def test_may_write_cache_is_invalidated_by_forget_and_learn(self):
+        index = _EffectTargetIndex(self.problem)
+        s1 = Simplifier(
+            self.problem.environment,
+            self.problem,
+            fold_static_fluent_exps=True,
+            effect_target_index=index,
+        )
+        e = GT(self.pos(self.p1), 5)
+        # pos(p1) is still written (by act1): stays symbolic, and this also populates
+        # index._may_write_cache for pos(p1).
+        self.assertEqual(s1.simplify(e), e)
+
+        index.forget(self.act1)  # p1's only writer is gone
+        # A fresh Simplifier wrapping the SAME index must see the update, not a stale cached
+        # answer from before the forget() call -- this is exactly what forget()'s cache clear is
+        # for (reusing s1 itself is deliberately not supported, see Simplifier's own docstring).
+        s2 = Simplifier(
+            self.problem.environment,
+            self.problem,
+            fold_static_fluent_exps=True,
+            effect_target_index=index,
+        )
+        self.assertEqual(
+            s2.simplify(e), Bool(False)
+        )  # pos(p1) == 0 (default), 0 > 5 is False
 
 
 if __name__ == "__main__":

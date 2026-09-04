@@ -577,6 +577,8 @@ class TestProblem(unittest_TestCase):
         problem.add_fluent(is_at, default_initial_value=False)
         problem.add_fluent(distance, default_initial_value=100)
         problem.add_fluent(total_distance, default_initial_value=0)
+        problem.add_object(l1)
+        problem.add_object(l2)
         problem.set_initial_value(distance(l1, l2), 5)
         problem.add_action(move)
         problem.add_goal(distance(l1, l2) < 6)
