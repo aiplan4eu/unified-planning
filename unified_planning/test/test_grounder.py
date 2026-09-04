@@ -1035,6 +1035,86 @@ class TestGrounder(unittest_TestCase):
                 ) as pv:
                     self.assertTrue(pv.validate(problem, plan))
 
+    def test_per_atom_static_fluent_precondition_is_folded_and_prunes_actions(self):
+        # pos(o: Object) is written only through the Boat-typed parameter of "move", so
+        # pos(waypoint) -- never targeted by any effect -- is a de-facto constant for the
+        # whole problem even though pos itself is not schema-static
+        # (Problem.get_static_fluents() would still keep it fully symbolic). Folding it
+        # collapses "check_waypoint"'s precondition to False, so that action must be dropped
+        # entirely by the default (fold_static_fluent_exps=True) grounder.
+        object_type = UserType("Object")
+        boat_type = UserType("Boat", father=object_type)
+        place_type = UserType("Place", father=object_type)
+        pos = Fluent("pos", IntType(), o=object_type)
+        boat = Object("boat", boat_type)
+        waypoint = Object("waypoint", place_type)
+
+        move = InstantaneousAction("move", b=boat_type, v=IntType(0, 10))
+        b, v = move.parameter("b"), move.parameter("v")
+        move.add_effect(pos(b), v)
+
+        check_waypoint = InstantaneousAction("check_waypoint")
+        check_waypoint.add_precondition(Equals(pos(waypoint), 5))
+        dummy = Fluent("dummy")
+        check_waypoint.add_effect(dummy, True)
+
+        problem = Problem("per_atom_static_precondition")
+        problem.add_fluent(pos, default_initial_value=0)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_object(boat)
+        problem.add_object(waypoint)
+        problem.set_initial_value(pos(waypoint), 7)
+        problem.add_action(move)
+        problem.add_action(check_waypoint)
+
+        grounded_problem = (
+            Grounder().compile(problem, CompilationKind.GROUNDING).problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        # pos(waypoint) == 7, not 5: the precondition folds to False and the action is
+        # dropped, leaving only move's own groundings.
+        self.assertFalse(grounded_problem.has_action("check_waypoint"))
+        for a in grounded_problem.actions:
+            self.assertTrue(a.name.startswith("move"))
+
+    def test_fold_static_fluent_exps_false_matches_pre_folding_behavior(self):
+        # Same problem as above, but with fold_static_fluent_exps=False: pos(waypoint) must
+        # stay a symbolic fluent reference in the grounded precondition, exactly as the
+        # grounder behaved before this per-atom folding existed.
+        object_type = UserType("Object")
+        boat_type = UserType("Boat", father=object_type)
+        place_type = UserType("Place", father=object_type)
+        pos = Fluent("pos", IntType(), o=object_type)
+        boat = Object("boat", boat_type)
+        waypoint = Object("waypoint", place_type)
+
+        move = InstantaneousAction("move", b=boat_type, v=IntType(0, 10))
+        b, v = move.parameter("b"), move.parameter("v")
+        move.add_effect(pos(b), v)
+
+        check_waypoint = InstantaneousAction("check_waypoint")
+        check_waypoint.add_precondition(Equals(pos(waypoint), 5))
+        dummy = Fluent("dummy")
+        check_waypoint.add_effect(dummy, True)
+
+        problem = Problem("per_atom_static_precondition_no_fold")
+        problem.add_fluent(pos, default_initial_value=0)
+        problem.add_fluent(dummy, default_initial_value=False)
+        problem.add_object(boat)
+        problem.add_object(waypoint)
+        problem.set_initial_value(pos(waypoint), 7)
+        problem.add_action(move)
+        problem.add_action(check_waypoint)
+
+        grounded_problem = (
+            Grounder(fold_static_fluent_exps=False)
+            .compile(problem, CompilationKind.GROUNDING)
+            .problem
+        )
+        assert isinstance(grounded_problem, Problem)
+        ga = cast(InstantaneousAction, grounded_problem.action("check_waypoint"))
+        self.assertEqual(ga.preconditions, [Equals(pos(waypoint), 5)])
+
 
 class TestGrounderJoinPruning(unittest_TestCase):
     """Tests for the grounder's join-based static-fluent pruning
