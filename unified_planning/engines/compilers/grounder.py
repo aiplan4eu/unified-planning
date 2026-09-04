@@ -31,15 +31,18 @@ from unified_planning.model import (
 )
 from unified_planning.model.types import domain_size, domain_item
 from unified_planning.model.walkers import Simplifier
+from unified_planning.model.walkers.simplifier import _EffectTargetIndex
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
     create_action_with_given_subs,
     split_all_ands,
+    remove_fluents,
 )
 from typing import Dict, List, NamedTuple, Optional, Set, Tuple, Iterator, cast
 from itertools import product
 from functools import partial
+import collections
 
 
 class _AtomPattern(NamedTuple):
@@ -736,6 +739,14 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     value during grounding -- see
     :func:`GrounderHelper.__init__ <unified_planning.engines.compilers.GrounderHelper>` for details.
 
+    Grounding also folds every goal, timed goal, and trajectory constraint through the same
+    `Simplifier` (whenever `prune_actions` is `True`), and, when the `remove_static_fluents` flag
+    (`True` by default) is also set, removes from the grounded `Problem` any fluent that is
+    :func:`schema-static <unified_planning.model.Problem.get_static_fluents>` -- never the target
+    of any effect anywhere -- and, after that folding, unreferenced anywhere else in the grounded
+    problem (preconditions, effects, durations, action costs, goals, timed goals, trajectory
+    constraints).
+
     Interpreted functions are treated as ordinary sub-expressions: calls appearing in conditions, effect
     values and duration bounds have their arguments rewritten by the parameter substitution, exactly like
     any other fluent-based expression. Once an interpreted function call's arguments are all constant, the
@@ -751,6 +762,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         prune_actions: bool = True,
         join_max_candidates: int = GrounderHelper.DEFAULT_JOIN_MAX_CANDIDATES,
         fold_static_fluent_exps: bool = True,
+        remove_static_fluents: bool = True,
     ):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
@@ -758,6 +770,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         self._prune_actions = prune_actions
         self._join_max_candidates = join_max_candidates
         self._fold_static_fluent_exps = fold_static_fluent_exps
+        self._remove_static_fluents = remove_static_fluents
 
     @property
     def name(self):
@@ -892,22 +905,213 @@ class Grounder(engines.engine.Engine, CompilerMixin):
                 new_problem.add_action(new_action)
                 trace_back_map[new_action] = (old_action, list(parameters))
 
+        # Round-0 grounding above only ever folds a reference against the LIFTED problem's own
+        # static-fluent knowledge (grounder_helper.simplifier.static_fluents). That's not a fixed
+        # point: pruning one action can make a fluent newly static (every action that used to
+        # write it is now gone from new_problem), which can in turn make another action's
+        # precondition foldably infeasible, pruning it too -- a cascade a single pass never
+        # catches. Refine new_problem's own (already-grounded) actions -- and trace_back_map, kept
+        # in lockstep -- to a fixed point before anything downstream (metrics, goals, fluent
+        # removal) reads static-fluent knowledge, so all of it benefits from the fullest picture.
+        simplifier = grounder_helper.simplifier
+        if self._prune_actions:
+            simplifier = _refine_actions_to_fixed_point(
+                new_problem, trace_back_map, self._fold_static_fluent_exps
+            )
+
         new_problem.clear_quality_metrics()
         for qm in problem.quality_metrics:
             if qm.is_minimize_action_costs():
                 assert isinstance(qm, MinimizeActionCosts)
                 new_metric = ground_minimize_action_costs_metric(
-                    qm, trace_back_map, grounder_helper.simplifier
+                    qm, trace_back_map, simplifier
                 )
                 new_problem.add_quality_metric(new_metric)
             else:
                 new_problem.add_quality_metric(qm)
+
+        _fold_goal_like_fields(problem, new_problem, simplifier)
+        if self._remove_static_fluents:
+            # simplifier.static_fluents is the FIXED POINT's own view of which fluents of
+            # new_problem are static: a fluent it considers static provably has zero effects among
+            # the actions that survive to the final grounded problem -- which is exactly the
+            # correct, complete notion of "static in the grounded problem" (see
+            # _refine_actions_to_fixed_point's docstring and the design notes for this feature).
+            # This is a deliberate change from an earlier, more conservative version of this code,
+            # which only trusted the LIFTED problem's own static-fluent set: a fluent that becomes
+            # static purely because every action that could write it is gone from new_problem --
+            # for any reason, including an action schema grounding to zero instances -- is
+            # genuinely, correctly static now, not a false positive to guard against.
+            _remove_fully_static_fluents(new_problem, simplifier.static_fluents)
 
         return CompilerResult(
             new_problem,
             partial(lift_action_instance, map=trace_back_map),
             self.name,
         )
+
+
+def _trigger_fluents(
+    env: "up.environment.Environment", a: Action
+) -> Set["up.model.fluent.Fluent"]:
+    """The fluents whose value can affect whether `a` survives further folding: everything its
+    own feasibility check reads (preconditions/conditions, and -- for a `DurativeAction` -- its
+    duration bounds). Not its effects' *values* -- those don't gate whether `a` applies, only what
+    it does once applied."""
+    fve = env.free_vars_extractor
+    if isinstance(a, up.model.action.InstantaneousAction):
+        exprs: List[FNode] = list(a.preconditions)
+    else:
+        assert isinstance(a, up.model.action.DurativeAction)
+        exprs = [c for cl in a.conditions.values() for c in cl]
+        exprs = exprs + [a.duration.lower, a.duration.upper]
+    return {f.fluent() for e in exprs for f in fve.get(e)}
+
+
+def _written_fluents(a: Action) -> Set["up.model.fluent.Fluent"]:
+    """The fluents `a` currently targets with an effect, of any kind (assignment/increase/
+    decrease, continuous, simulated)."""
+    if isinstance(a, up.model.action.InstantaneousAction):
+        written = {e.fluent.fluent() for e in a.effects}
+        if a.simulated_effect is not None:
+            written.update(f.fluent() for f in a.simulated_effect.fluents)
+        return written
+    assert isinstance(a, up.model.action.DurativeAction)
+    written = {e.fluent.fluent() for el in a.effects.values() for e in el}
+    written.update(
+        e.fluent.fluent() for el in a.continuous_effects.values() for e in el
+    )
+    for se in a.simulated_effects.values():
+        written.update(f.fluent() for f in se.fluents)
+    return written
+
+
+def _effect_targets(a: Action) -> Iterator[FNode]:
+    """The raw effect-target `FNode`s of `a` -- what `_EffectTargetIndex.learn` expects (the
+    effects' own `.fluent` expressions and simulated effects' `.fluents`, not yet reduced to bare
+    `Fluent`s the way `_written_fluents` reduces them)."""
+    if isinstance(a, up.model.action.InstantaneousAction):
+        for e in a.effects:
+            yield e.fluent
+        if a.simulated_effect is not None:
+            yield from a.simulated_effect.fluents
+        return
+    assert isinstance(a, up.model.action.DurativeAction)
+    for el in a.effects.values():
+        for e in el:
+            yield e.fluent
+    for el in a.continuous_effects.values():
+        for e in el:
+            yield e.fluent
+    for se in a.simulated_effects.values():
+        yield from se.fluents
+
+
+def _refine_actions_to_fixed_point(
+    new_problem: Problem,
+    trace_back_map: Dict[Action, Tuple[Action, List[FNode]]],
+    fold_static_fluent_exps: bool,
+) -> Simplifier:
+    """
+    Repeatedly re-simplifies and re-prunes `new_problem`'s own (already-grounded, zero-parameter)
+    actions to a fixed point: dropping one action -- or narrowing which fluents it still writes,
+    because one of its conditional effects got dropped -- can, in a later step, reveal that
+    another fluent has become fully static too (every action that used to write it is gone), which
+    can unlock folding/pruning of some OTHER action that reads it, cascading further. A single
+    pass over `new_problem`'s freshly-grounded actions (using only the *lifted* problem's own
+    static-fluent knowledge) never discovers this; this function keeps going until nothing more
+    changes.
+
+    Modifies `new_problem`'s actions and `trace_back_map` (kept in lockstep) in place, and returns
+    the `Simplifier` reflecting the fixed point's own knowledge -- callers doing any further
+    static-fluent-aware work on `new_problem` (folding metrics/goals, deciding what's now fully
+    unreferenced and removable) should use *this* `Simplifier`, not the one round-0 grounding used,
+    to get the benefit of everything this loop discovered.
+
+    Implemented as an incremental worklist rather than a "rebuild everything, every round" loop:
+    the expensive part of any of this is not re-simplifying one action, it's *scanning the whole
+    problem* to know which fluents are static (`_EffectTargetIndex`, an `O(total effects)` scan) --
+    rebuilding that scan once per round, even if only re-verifying a handful of affected actions
+    each time, would still cost `O(rounds x total effects)` overall. Instead, one `_EffectTargetIndex`
+    is built ONCE and kept incrementally up to date (`forget`/`learn`, each `O(that one action's
+    own effect count)`) as actions are dropped or narrowed, and every `Simplifier` built around it
+    (`make_simplifier`, below) becomes cheap -- no scanning, just wiring a reference -- which is
+    what makes a true one-action-at-a-time worklist (rather than a batch-per-round one) both safe
+    (see `Simplifier`'s own `effect_target_index` parameter docstring for why *reusing* one mutable
+    `Simplifier` across rounds would be unsafe instead) and worthwhile.
+    """
+    env = new_problem.environment
+    # Always built, regardless of fold_static_fluent_exps: this is what makes every
+    # make_simplifier() call's static_fluents correct without re-scanning new_problem.actions,
+    # which -- unlike a naive rebuild-per-round approach -- is deliberately NOT kept in sync
+    # during the loop (see `current`, below); a Simplifier(new_problem) without an index would
+    # otherwise silently answer get_static_fluents() from the stale, pre-loop action list on every
+    # single step. fold_static_fluent_exps only controls whether make_simplifier() also *uses*
+    # this index for per-atom folding -- its existence, and its role driving static_fluents, does
+    # not depend on it.
+    index = _EffectTargetIndex(new_problem)
+
+    # Local working copy, keyed by name (stable across refolds -- create_action_with_given_subs
+    # keeps an action's name when substituting with an empty dict, utils.py's own docstring):
+    # avoids touching new_problem.actions, an O(n)-membership/O(n)-rebuild list, on every single
+    # worklist step. Synced back to new_problem once, after the worklist drains.
+    current: Dict[str, Action] = {a.name: a for a in new_problem.actions}
+    trigger_index: Dict["up.model.fluent.Fluent", Set[str]] = {}
+    for a in current.values():
+        for f in _trigger_fluents(env, a):
+            trigger_index.setdefault(f, set()).add(a.name)
+
+    def make_simplifier() -> Simplifier:
+        return Simplifier(
+            env,
+            new_problem,
+            fold_static_fluent_exps=fold_static_fluent_exps,
+            effect_target_index=index,
+        )
+
+    worklist: "collections.deque[str]" = collections.deque(current.keys())
+    queued: Set[str] = set(worklist)
+    while worklist:
+        name = worklist.popleft()
+        queued.discard(name)
+        old_action = current[name]
+        simplifier = (
+            make_simplifier()
+        )  # cheap: wraps the current index, fresh memoization
+        refolded = create_action_with_given_subs(
+            new_problem, old_action, simplifier, {}
+        )
+        old_entry = trace_back_map.pop(old_action)
+        old_written = _written_fluents(old_action)
+        index.forget(old_action)
+        for f in _trigger_fluents(env, old_action):
+            trigger_index.get(f, set()).discard(name)
+
+        if refolded is None:
+            del current[name]
+            changed_fluents = old_written
+        else:
+            current[name] = refolded
+            trace_back_map[refolded] = old_entry
+            index.learn(refolded, _effect_targets(refolded))
+            for f in _trigger_fluents(env, refolded):
+                trigger_index.setdefault(f, set()).add(name)
+            changed_fluents = old_written - _written_fluents(refolded)
+
+        for f in changed_fluents:
+            for dep_name in trigger_index.get(f, ()):
+                if dep_name != name and dep_name not in queued:
+                    worklist.append(dep_name)
+                    queued.add(dep_name)
+
+    new_problem.clear_actions()
+    for a in current.values():
+        new_problem.add_action(a)
+    # A Simplifier's static_fluents is a snapshot taken at construction time (Simplifier.__init__
+    # copies it out of the index then, it doesn't track the index live) -- so the simplifier from
+    # the worklist's last iteration would still be missing that very iteration's own forget/learn
+    # update. Build one more, now that index reflects every update, to get an accurate final view.
+    return make_simplifier()
 
 
 def ground_minimize_action_costs_metric(
@@ -935,4 +1139,118 @@ def ground_minimize_action_costs_metric(
         old_cost = metric.get_action_cost(old_action)
         if old_cost is not None:
             new_costs[new_action] = simplifier.simplify(old_cost.substitute(subs))
-    return MinimizeActionCosts(new_costs)
+    # metric.default isn't action-parameterized (unlike a per-action cost, it never gets
+    # substituted with grounding parameters), so it only needs folding, not substitution;
+    # every compiler-owned helper that remaps a MinimizeActionCosts metric carries this over
+    # (utils.updated_minimize_action_costs, durative_actions_to_processes,
+    # undefined_initial_numeric_remover, ProblemKindMixin's own metric clone) -- this one was the
+    # odd one out, silently dropping it instead.
+    new_default = (
+        simplifier.simplify(metric.default) if metric.default is not None else None
+    )
+    return MinimizeActionCosts(new_costs, new_default)
+
+
+def _fold_goal_like_fields(
+    problem: Problem, new_problem: Problem, simplifier: Simplifier
+) -> None:
+    """
+    Re-simplifies `new_problem`'s goals, timed goals, and trajectory constraints -- copied
+    verbatim from `problem` by `Problem._clone_to_without_actions_and_metrics`/`clone`, and
+    otherwise never touched by grounding -- through `simplifier` (the same one already used for
+    every grounded action's preconditions/effects/durations/costs), so a static-fluent reference
+    that only appears in one of these fields gets folded too, instead of surviving grounding
+    completely unfolded.
+
+    :param problem: The original (lifted) `Problem`, whose goal-like fields are the source to
+        re-simplify from.
+    :param new_problem: The grounded `Problem` under construction; its own goal-like fields are
+        replaced in place.
+    :param simplifier: The (typically problem-aware, static-fluent-folding) `Simplifier` to fold
+        every field through.
+    """
+    em = problem.environment.expression_manager
+
+    new_problem.clear_goals()
+    for g in problem.goals:
+        # Problem.add_goal already drops a folded-True result on its own (only appending when
+        # goal_exp != TRUE()) and keeps a folded-False result as-is, correctly preserving
+        # unsatisfiability -- nothing extra to do here.
+        new_problem.add_goal(simplifier.simplify(g))
+
+    new_problem.clear_timed_goals()
+    for interval, goal_list in problem.timed_goals.items():
+        for g in goal_list:
+            sg = simplifier.simplify(g)
+            # Unlike add_goal, add_timed_goal only dedups identical entries -- it does not drop
+            # a trivially-true goal on its own, so do it here to match add_goal's behavior.
+            if not sg.is_true():
+                new_problem.add_timed_goal(interval, sg)
+
+    new_problem.clear_trajectory_constraints()
+    for c in problem.trajectory_constraints:
+        sc = simplifier.simplify(c)
+        if sc.is_true():
+            # Vacuously satisfied -- drop, mirrors add_goal's own TRUE handling.
+            continue
+        if sc.is_false():
+            # add_trajectory_constraint's own shape assertion (problem.py) only accepts one of
+            # the 5 trajectory-constraint operators, or an And/Forall wrapping only those -- it
+            # has no way to represent "this constraint can never be satisfied". A goal does.
+            new_problem.add_goal(em.FALSE())
+            continue
+        if sc.is_and():
+            # add_trajectory_constraint stores an And(...) as one entry; re-split it back into
+            # individual constraints, matching how the original was most likely built one
+            # add_trajectory_constraint call at a time.
+            for arg in sc.args:
+                new_problem.add_trajectory_constraint(arg)
+        else:
+            new_problem.add_trajectory_constraint(sc)
+
+
+def _remove_fully_static_fluents(
+    new_problem: Problem, static_fluents: Set["up.model.fluent.Fluent"]
+) -> None:
+    """
+    Removes from `new_problem` every fluent in `static_fluents` that is, after
+    `_fold_goal_like_fields` and every action's own folding, unreferenced anywhere in
+    `new_problem`.
+
+    Must run after every other field of `new_problem` that a fluent reference could hide in has
+    already been folded (grounded actions' preconditions/effects/durations/costs, and goals/timed
+    goals/trajectory constraints via `_fold_goal_like_fields`) -- otherwise a fluent that is
+    genuinely still referenced somewhere not-yet-folded could be wrongly identified as unused.
+
+    :param new_problem: The grounded `Problem`, modified in place.
+    :param static_fluents: The fluents eligible for removal -- must be `new_problem`'s own
+        *fixed-point* notion of staticness (`_refine_actions_to_fixed_point`'s returned
+        `Simplifier.static_fluents`), not a one-shot `new_problem.get_static_fluents()` call taken
+        mid-refinement: dropping one action can, in a later round, reveal that another fluent has
+        also become fully static (see `_refine_actions_to_fixed_point`) -- only once the loop has
+        actually converged is a fluent it calls static guaranteed to stay that way, i.e. to
+        provably have zero effects among the actions that survive to the final grounded problem.
+    """
+    if not static_fluents:
+        return
+    (
+        _,
+        unused_fluents,
+        fluents_in_durations,
+        fluents_in_action_costs,
+    ) = new_problem._get_static_and_unused_fluents()
+    # fluents_in_durations/fluents_in_action_costs are Problem._get_static_and_unused_fluents's
+    # own documented, intentional carve-outs: a fluent referenced ONLY in a DurativeAction's
+    # duration bound, or ONLY in a MinimizeActionCosts cost/default, is unconditionally counted as
+    # "unused" regardless of whether that reference is still symbolic (see its docstring). Both
+    # locations are already run through the same folding Simplifier by
+    # create_action_with_given_subs/ground_minimize_action_costs_metric, so a genuinely-foldable
+    # static fluent's references there are already constants and won't appear in either set at
+    # all -- this subtraction only matters as a safety net for the rarer case of a static fluent
+    # nested inside a non-constant argument (e.g. f(dynamic_object_fluent())) that never got
+    # folded, where it must correctly block removal instead of being silently dropped.
+    prunable = (
+        static_fluents & unused_fluents - fluents_in_durations - fluents_in_action_costs
+    )
+    if prunable:
+        remove_fluents(new_problem, prunable)

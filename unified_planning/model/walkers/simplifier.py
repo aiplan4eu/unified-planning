@@ -16,7 +16,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import Dict, Iterable, List, Optional, FrozenSet, Tuple, Union, cast
+from typing import Dict, Iterable, List, Optional, FrozenSet, Set, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPUnreachableCodeError
@@ -53,44 +53,66 @@ class _EffectTargetIndex:
     return `True` more often than strictly necessary, the safe direction: every atom that really
     is written is matched by its own pattern, so it is never mistakenly folded to a constant.
 
+    Every recorded pattern is tagged with an `owner` -- the `Action`/`Event`/`Process` (or, for a
+    timed effect, the `Effect` itself) it was scanned from -- so `forget`/`learn` can incrementally
+    un-record/re-record exactly one owner's contribution in `O(that owner's own effect count)`,
+    instead of rebuilding the whole index from a fresh scan of the `Problem` in `O(problem size)`.
+    A `Grounder` refining an already-grounded problem to a fixed point (see
+    `unified_planning.engines.compilers.grounder._refine_actions_to_fixed_point`) uses this to
+    keep one index up to date across many action replacements/drops, at the cost of exactly the
+    actions that actually change -- events/processes/timed-effects are never touched by that loop,
+    so their entries never need `forget`/`learn` (any hashable owner key works for them; they're
+    only ever consulted, never removed).
+
     Important NOTE: same contract as `Simplifier` itself -- the `Problem` given at construction
-    time must not be modified afterwards, or this index's answers (and its cache) become stale.
+    time must not be modified directly (bypassing `forget`/`learn`) afterwards, or this index's
+    answers (and its cache) become stale.
     """
 
     def __init__(self, problem: "up.model.problem.Problem"):
-        self._patterns: Dict["up.model.fluent.Fluent", List[Tuple[_ArgSpec, ...]]] = {}
+        self._patterns: Dict[
+            "up.model.fluent.Fluent", Dict[object, List[Tuple[_ArgSpec, ...]]]
+        ] = {}
+        self._owners_fluents: Dict[object, Set["up.model.fluent.Fluent"]] = {}
         self._may_write_cache: Dict[FNode, bool] = {}
         for a in problem.actions:
             self._scan_action(a)
         for ev in problem.events:
-            self._scan_effects(ev.effects)
-            self._scan_simulated_effects(ev.simulated_effect)
+            self._scan_effects(ev, ev.effects)
+            self._scan_simulated_effects(ev, ev.simulated_effect)
         for pro in problem.processes:
-            self._scan_effects(pro.effects)
+            self._scan_effects(pro, pro.effects)
         for effs in problem.timed_effects.values():
-            self._scan_effects(effs)
+            for e in effs:
+                # No natural per-timed-effect "owner" object exists (unlike an Action/Event/
+                # Process) -- the Effect itself is a fine, unique, hashable key: the grounder
+                # never calls forget/learn on it (timed effects aren't touched by action
+                # refinement), so nothing depends on it being anything more than stable.
+                self._record_target(e, e.fluent)
 
     def _scan_action(self, a: "up.model.action.Action"):
         if isinstance(a, up.model.action.InstantaneousAction):
-            self._scan_effects(a.effects)
-            self._scan_simulated_effects(a.simulated_effect)
+            self._scan_effects(a, a.effects)
+            self._scan_simulated_effects(a, a.simulated_effect)
         elif isinstance(a, up.model.action.DurativeAction):
             for effs in a.effects.values():
-                self._scan_effects(effs)
+                self._scan_effects(a, effs)
             for effs in a.continuous_effects.values():
-                self._scan_effects(effs)
+                self._scan_effects(a, effs)
             for se in a.simulated_effects.values():
-                self._scan_simulated_effects(se)
+                self._scan_simulated_effects(a, se)
         else:
             raise NotImplementedError(
                 f"_EffectTargetIndex does not know how to scan the effects of {type(a)}"
             )
 
-    def _scan_effects(self, effects: Iterable["up.model.effect.Effect"]):
+    def _scan_effects(self, owner: object, effects: Iterable["up.model.effect.Effect"]):
         for e in effects:
-            self._record_target(e.fluent)
+            self._record_target(owner, e.fluent)
 
-    def _scan_simulated_effects(self, se: Optional["up.model.effect.SimulatedEffect"]):
+    def _scan_simulated_effects(
+        self, owner: object, se: Optional["up.model.effect.SimulatedEffect"]
+    ):
         if se is None:
             return
         # SimulatedEffect.fluents entries are, by construction, plain fluent expressions whose
@@ -99,16 +121,18 @@ class _EffectTargetIndex:
         # forall-quantified), so they fit the same per-position classification as a regular
         # effect target and need no separate handling.
         for f in se.fluents:
-            self._record_target(f)
+            self._record_target(owner, f)
 
-    def _record_target(self, target: FNode):
+    def _record_target(self, owner: object, target: FNode) -> "up.model.fluent.Fluent":
         if target.is_dot():
             # Multi-agent effect target: unwrap the `Dot` to the underlying fluent expression --
             # see UntimedEffectMixin.add_effect, which accepts `fluent_exp.is_dot()`.
             target = target.arg(0)
         fluent = target.fluent()
         pattern = tuple(self._arg_spec(arg) for arg in target.args)
-        self._patterns.setdefault(fluent, []).append(pattern)
+        self._patterns.setdefault(fluent, {}).setdefault(owner, []).append(pattern)
+        self._owners_fluents.setdefault(owner, set()).add(fluent)
+        return fluent
 
     @staticmethod
     def _arg_spec(arg: FNode) -> _ArgSpec:
@@ -126,16 +150,19 @@ class _EffectTargetIndex:
         cached = self._may_write_cache.get(fluent_exp)
         if cached is not None:
             return cached
-        patterns = self._patterns.get(fluent_exp.fluent())
+        owners_patterns = self._patterns.get(fluent_exp.fluent())
         result = False
-        if patterns:
+        if owners_patterns:
             args = fluent_exp.args
-            for pattern in patterns:
-                if all(
-                    self._arg_matches(spec, arg) for spec, arg in zip(pattern, args)
-                ):
-                    result = True
+            for patterns in owners_patterns.values():
+                if result:
                     break
+                for pattern in patterns:
+                    if all(
+                        self._arg_matches(spec, arg) for spec, arg in zip(pattern, args)
+                    ):
+                        result = True
+                        break
         self._may_write_cache[fluent_exp] = result
         return result
 
@@ -148,6 +175,48 @@ class _EffectTargetIndex:
             return arg == payload
         assert kind == "type"
         return cast("up.model.types.Type", payload).is_compatible(arg.type)
+
+    def write_count(self, fluent: "up.model.fluent.Fluent") -> int:
+        """The number of distinct owners currently recorded as (possibly) writing `fluent` -- `0`
+        means `fluent` is schema-static given everything this index has recorded so far."""
+        return len(self._patterns.get(fluent, {}))
+
+    def forget(self, owner: object) -> Set["up.model.fluent.Fluent"]:
+        """Un-records every pattern `owner` contributed (e.g. because the action it came from was
+        dropped, or is about to be replaced by a refolded version with different effects).
+
+        :return: The fluents `owner` touched -- whether or not their pattern set became empty as a
+            result. A *narrower* surviving pattern set (another owner still writes the fluent, so
+            `write_count` didn't reach zero) can still newly unlock folding of one specific ground
+            atom of that fluent (`may_write`), so callers must not assume only a `write_count` drop
+            to zero matters.
+        """
+        fluents = self._owners_fluents.pop(owner, None)
+        if not fluents:
+            return set()
+        for f in fluents:
+            owners = self._patterns.get(f)
+            if owners is not None:
+                owners.pop(owner, None)
+                if not owners:
+                    del self._patterns[f]
+        self._may_write_cache.clear()
+        return fluents
+
+    def learn(
+        self, owner: object, targets: Iterable[FNode]
+    ) -> Set["up.model.fluent.Fluent"]:
+        """Records `owner`'s current effect targets. Intended to be called right after `forget`,
+        with whichever (possibly narrower, possibly empty) set of effects `owner` currently has --
+        calling it without a preceding `forget` would duplicate `owner`'s previously-recorded
+        patterns rather than replace them.
+
+        :return: The fluents touched by `targets`.
+        """
+        touched = {self._record_target(owner, target) for target in targets}
+        if touched:
+            self._may_write_cache.clear()
+        return touched
 
 
 class Simplifier(walkers.dag.DagWalker):
@@ -162,11 +231,13 @@ class Simplifier(walkers.dag.DagWalker):
         environment: "unified_planning.environment.Environment",
         problem: Optional["unified_planning.model.problem.Problem"] = None,
         fold_static_fluent_exps: bool = False,
+        effect_target_index: Optional[_EffectTargetIndex] = None,
     ):
         """
         :param environment: The `Environment` this `Simplifier` operates in.
-        :param problem: If given, static fluents (`problem.get_static_fluents()`) are folded to
-            their initial value.
+        :param problem: If given, static fluents (`problem.get_static_fluents()`, or
+            `effect_target_index`'s own view of staticness when that is given -- see below) are
+            folded to their initial value.
         :param fold_static_fluent_exps: If `True`, also fold a ground fluent atom that is not
             static at the *schema* level (`problem.get_static_fluents()` doesn't include its
             fluent, because some other grounding of it IS written somewhere) but that this exact
@@ -178,16 +249,37 @@ class Simplifier(walkers.dag.DagWalker):
             which don't expose the effect surface `_EffectTargetIndex` scans. Defaults to `False`
             so existing callers (and `problem.kind`, which is computed through its own
             `Simplifier`) are unaffected.
+        :param effect_target_index: An already-built `_EffectTargetIndex` to use instead of
+            scanning `problem` again -- for a caller that already maintains one incrementally
+            (see `unified_planning.engines.compilers.grounder._refine_actions_to_fixed_point`,
+            which builds many cheap, short-lived `Simplifier`s around one long-lived index rather
+            than re-scanning the whole problem on every one of them). When given, `static_fluents`
+            is *derived from the index* (`write_count(f) == 0`) instead of a separate
+            `problem.get_static_fluents()` call -- regardless of `fold_static_fluent_exps`, which
+            only controls whether the index is *also* consulted for per-atom folding
+            (`self._effect_target_index`, below). Requires `problem` to be given too (for
+            `problem.fluents` and `problem.initial_value`).
         """
         walkers.dag.DagWalker.__init__(self)
         self.environment = environment
         self.manager = environment.expression_manager
+        self.problem: Optional["unified_planning.model.problem.Problem"] = problem
+        if effect_target_index is not None:
+            assert problem is not None, (
+                "effect_target_index requires problem to be given too"
+            )
+            self.static_fluents = {
+                f for f in problem.fluents if effect_target_index.write_count(f) == 0
+            }
+            self._effect_target_index: Optional[_EffectTargetIndex] = (
+                effect_target_index if fold_static_fluent_exps else None
+            )
+            return
         if problem is not None:
             self.static_fluents = problem.get_static_fluents()
         else:
             self.static_fluents = set()
-        self.problem: Optional["unified_planning.model.problem.Problem"] = problem
-        self._effect_target_index: Optional[_EffectTargetIndex] = None
+        self._effect_target_index = None
         if fold_static_fluent_exps and isinstance(problem, up.model.problem.Problem):
             self._effect_target_index = _EffectTargetIndex(problem)
 
