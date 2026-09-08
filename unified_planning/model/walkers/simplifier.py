@@ -16,7 +16,7 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import List, Optional, FrozenSet, Union, cast
+from typing import List, Optional, FrozenSet, Set, Union, cast
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPUnreachableCodeError
@@ -37,11 +37,23 @@ class Simplifier(walkers.dag.DagWalker):
         self,
         environment: "unified_planning.environment.Environment",
         problem: Optional["unified_planning.model.problem.Problem"] = None,
+        static_fluents: Optional[Set["up.model.fluent.Fluent"]] = None,
     ):
+        """
+        :param static_fluents: Optional pre-computed result of ``problem.get_static_fluents()``
+            (only meaningful together with `problem`). ``get_static_fluents()`` is a full
+            rescan of every action/effect/condition/metric in the problem; a caller that has
+            already computed it for its own purposes (e.g. the grounder, which needs it to
+            find eligible static-fluent atoms to join/prune on) can pass it here to avoid
+            paying for that rescan a second time. When omitted, behaves exactly as before:
+            computed from `problem` if given, empty otherwise.
+        """
         walkers.dag.DagWalker.__init__(self)
         self.environment = environment
         self.manager = environment.expression_manager
-        if problem is not None:
+        if static_fluents is not None:
+            self.static_fluents = static_fluents
+        elif problem is not None:
             self.static_fluents = problem.get_static_fluents()
         else:
             self.static_fluents = set()
@@ -77,11 +89,11 @@ class Simplifier(walkers.dag.DagWalker):
                 return self.manager.FALSE()
             if a.is_and():
                 for s in a.args:
-                    if self.walk_not(self.manager.Not(s), [s]) in new_args:
+                    if self.walk_not(s, [s]) in new_args:
                         return self.manager.FALSE()
                     new_args[s] = True
             else:
-                if self.walk_not(self.manager.Not(a), [a]) in new_args:
+                if self.walk_not(a, [a]) in new_args:
                     return self.manager.FALSE()
                 new_args[a] = True
 
@@ -104,11 +116,11 @@ class Simplifier(walkers.dag.DagWalker):
                 return self.manager.TRUE()
             if a.is_or():
                 for s in a.args:
-                    if self.walk_not(self.manager.Not(s), [s]) in new_args:
+                    if self.walk_not(s, [s]) in new_args:
                         return self.manager.TRUE()
                     new_args[s] = True
             else:
-                if self.walk_not(self.manager.Not(a), [a]) in new_args:
+                if self.walk_not(a, [a]) in new_args:
                     return self.manager.TRUE()
                 new_args[a] = True
 
@@ -318,8 +330,18 @@ class Simplifier(walkers.dag.DagWalker):
         return self.manager.LT(sl, sr)
 
     def walk_fluent_exp(self, expression: FNode, args: List[FNode]) -> FNode:
-        new_exp = self.manager.FluentExp(expression.fluent(), tuple(args))
-        if expression.fluent() not in self.static_fluents:
+        fluent = expression.fluent()
+        if all(a is orig for a, orig in zip(args, expression.args)):
+            # Every argument simplified to the exact same FNode it already was (the common
+            # case once arguments are ground: a constant argument simplifies to itself), so
+            # `expression` already *is* the FluentExp `manager.FluentExp(fluent, tuple(args))`
+            # would rebuild -- skip the rebuild, which would otherwise pay a namedtuple
+            # allocation, a structural hash over `args`, and a dict lookup into the expression
+            # manager's interning table just to hand back an object we already have.
+            new_exp = expression
+        else:
+            new_exp = self.manager.FluentExp(fluent, tuple(args))
+        if fluent not in self.static_fluents:
             return new_exp
         else:
             assert self.problem is not None

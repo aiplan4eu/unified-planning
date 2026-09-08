@@ -156,17 +156,26 @@ class GrounderHelper:
         # documented as immutable for the lifetime of this class (grounding relies on it, same
         # as Simplifier's own "problem must not be modified" contract below), so these are safe
         # to compute once instead of once per action / per (parameter, static-fluent) pair.
-        self._static_fluents_cache: Optional[Set["up.model.fluent.Fluent"]] = None
+        self._static_fluents: Optional[Set["up.model.fluent.Fluent"]] = None
         self._true_arg_tuples_cache: Dict[
             "up.model.fluent.Fluent", Optional[List[Tuple[FNode, ...]]]
         ] = {}
+        self._explicit_initial_value_buckets_cache: Optional[
+            Tuple[
+                Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]],
+                Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]],
+            ]
+        ] = None
         self._domain_items_cache: Dict[Type, List[FNode]] = {}
         self._valid_params_cache: Dict[
             Tuple["up.model.fluent.Fluent", int], Optional[Set[FNode]]
         ] = {}
         env = problem.environment
         if prune_actions:
-            self._simplifier = Simplifier(env, problem)
+            self._static_fluents = problem.get_static_fluents()
+            self._simplifier = Simplifier(
+                env, problem, static_fluents=self._static_fluents
+            )
         else:
             self._simplifier = env.simplifier
 
@@ -560,9 +569,9 @@ class GrounderHelper:
         every action/effect/condition/metric in the problem on every call, but the set cannot
         change across a single grounding (the problem must not be modified after this class is
         constructed, same assumption `Simplifier` already makes)."""
-        if self._static_fluents_cache is None:
-            self._static_fluents_cache = self._problem.get_static_fluents()
-        return self._static_fluents_cache
+        if self._static_fluents is None:
+            self._static_fluents = self._problem.get_static_fluents()
+        return self._static_fluents
 
     def _get_domain_items(self, type: Type) -> List[FNode]:
         """Cached version of ``[domain_item(problem, type, j) for j in range(domain_size(...))]``:
@@ -576,6 +585,33 @@ class GrounderHelper:
             ]
             self._domain_items_cache[type] = cached
         return cached
+
+    def _explicit_initial_value_buckets(
+        self,
+    ) -> Tuple[
+        Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]],
+        Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]],
+    ]:
+        """One-pass split of ``self._problem.explicit_initial_values`` into two
+        ``fluent -> [argument tuples]`` maps: one for the entries whose value ``is_true()``,
+        one for the rest. `_fluent_true_arg_tuples` used to answer "which argument tuples of
+        *this* fluent are explicitly true/non-true" by rescanning the *entire*
+        `explicit_initial_values` dict from scratch for every distinct static fluent it was
+        asked about -- O(number of static fluents x number of explicit initial values). Since
+        `_fluent_true_arg_tuples` itself already caches its final answer per fluent (so this
+        bucketing only ever runs once per `GrounderHelper`, not once per call), replacing that
+        with one O(number of explicit initial values) pass up front turns the whole thing into
+        O(explicit initial values), independent of how many static fluents ask about it."""
+        if self._explicit_initial_value_buckets_cache is None:
+            true_bucket: Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]] = {}
+            non_true_bucket: Dict[
+                "up.model.fluent.Fluent", List[Tuple[FNode, ...]]
+            ] = {}
+            for key, value in self._problem.explicit_initial_values.items():
+                bucket = true_bucket if value.is_true() else non_true_bucket
+                bucket.setdefault(key.fluent(), []).append(tuple(key.args))
+            self._explicit_initial_value_buckets_cache = (true_bucket, non_true_bucket)
+        return self._explicit_initial_value_buckets_cache
 
     def _fluent_true_arg_tuples(
         self, fluent: "up.model.fluent.Fluent"
@@ -630,19 +666,13 @@ class GrounderHelper:
                     result = None
                     break
             if result is not None:
-                excluded = {
-                    tuple(key.args)
-                    for key, value in self._problem.explicit_initial_values.items()
-                    if key.fluent() == fluent and not value.is_true()
-                }
+                _, non_true_bucket = self._explicit_initial_value_buckets()
+                excluded = set(non_true_bucket.get(fluent, ()))
                 domains = [self._get_domain_items(p.type) for p in fluent.signature]
                 result = [args for args in product(*domains) if args not in excluded]
         else:
-            result = [
-                tuple(key.args)
-                for key, value in self._problem.explicit_initial_values.items()
-                if key.fluent() == fluent and value.is_true()
-            ]
+            true_bucket, _ = self._explicit_initial_value_buckets()
+            result = list(true_bucket.get(fluent, ()))
         self._true_arg_tuples_cache[fluent] = result
         return result
 

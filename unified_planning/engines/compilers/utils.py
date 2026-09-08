@@ -153,12 +153,13 @@ def _naming_list(subs: Dict[Expression, Expression]) -> List[str]:
 
 def _substitute_and_simplify_preconditions(
     preconditions: List[FNode],
-    subs: Dict[Expression, Expression],
+    promoted_subs: Dict[FNode, FNode],
     simplifier,
     em,
+    substituter,
 ) -> Optional[List[FNode]]:
-    """Substitutes `subs` into `preconditions` and simplifies their conjunction, returning
-    the resulting precondition list, or `None` if the conjunction simplifies to a
+    """Substitutes `promoted_subs` into `preconditions` and simplifies their conjunction,
+    returning the resulting precondition list, or `None` if the conjunction simplifies to a
     contradiction (the grounding is infeasible).
 
     Used by `create_action_with_given_subs` to test feasibility *before* cloning the action,
@@ -166,10 +167,16 @@ def _substitute_and_simplify_preconditions(
     candidate that gets rejected here anyway -- and, on the accepted path, to compute the
     action's final preconditions directly instead of substituting them once (raw) and then
     simplifying them a second time via `check_and_simplify_preconditions`.
+
+    `promoted_subs` must already be an already-promoted `Dict[FNode, FNode]` (see
+    `Substituter.promote_substitutions`), and this must run inside the caller's
+    `substituter.same_subs_batch()` scope -- see `create_action_with_given_subs`.
     """
     if not preconditions:
         return []
-    substituted = [p.substitute(subs) for p in preconditions]
+    substituted = [
+        substituter.substitute_promoted(p, promoted_subs) for p in preconditions
+    ]
     ps = simplifier.simplify(em.And(substituted))
     if ps.is_bool_constant():
         return [] if ps.bool_constant_value() else None
@@ -182,17 +189,25 @@ def create_effect_with_given_subs(
     problem: Problem,
     old_effect: Effect,
     simplifier,
-    subs: Dict[Expression, Expression],
+    promoted_subs: Dict[FNode, FNode],
+    substituter,
 ) -> Optional[Effect]:
+    """`promoted_subs` must already be an already-promoted `Dict[FNode, FNode]` (see
+    `Substituter.promote_substitutions`), and this must run inside the caller's
+    `substituter.same_subs_batch()` scope -- see `create_action_with_given_subs`."""
     em = problem.environment.expression_manager
-    new_fluent = old_effect.fluent.substitute(subs)
+    new_fluent = substituter.substitute_promoted(old_effect.fluent, promoted_subs)
     if new_fluent.is_fluent_exp():
         new_fluent = em.FluentExp(
             new_fluent.fluent(),
             tuple(simplifier.simplify(a) for a in new_fluent.args),
         )
-    new_value = simplifier.simplify(old_effect.value.substitute(subs))
-    new_condition = simplifier.simplify(old_effect.condition.substitute(subs))
+    new_value = simplifier.simplify(
+        substituter.substitute_promoted(old_effect.value, promoted_subs)
+    )
+    new_condition = simplifier.simplify(
+        substituter.substitute_promoted(old_effect.condition, promoted_subs)
+    )
     if new_condition == em.FALSE():
         return None
     else:
@@ -232,161 +247,189 @@ def create_action_with_given_subs(
     """
     em = problem.environment.expression_manager
     c_subs = cast(Dict[Parameter, FNode], subs)
-    if isinstance(old_action, InstantaneousAction):
-        new_preconditions = _substitute_and_simplify_preconditions(
-            old_action.preconditions, subs, simplifier, em
-        )
-        if new_preconditions is None:
-            return None
-        naming_list = _naming_list(subs)
-        new_action: InstantaneousAction
-        if type(old_action) is InstantaneousAction:
-            # Cloned without effects: they would only be immediately discarded and rebuilt
-            # below from old_action's (not new_action's) effects, so cloning them first via
-            # the generic clone() would be pure waste -- see _clone_without_effects's docstring.
-            new_action = old_action._clone_without_effects()
-        else:
-            # Any InstantaneousAction *subclass* (SensingAction, InstantaneousMotionAction,
-            # or any future one) falls back to a full clone() + clear_effects() instead.
-            new_action = cast(InstantaneousAction, old_action.clone())
-            new_action.clear_effects()
-        new_action.name = (
-            old_action.name
-            if not subs
-            else get_fresh_name(problem, old_action.name, naming_list)
-        )
-        new_action._parameters = OrderedDict()
-        if isinstance(new_action, SensingAction):
-            # observed_fluents is SensingAction-only, so create_effect_with_given_subs
-            # (which only knows about preconditions/effects) can't substitute it; do it here.
-            new_action._observed_fluents = [
-                f.substitute(subs) for f in new_action.observed_fluents
-            ]
-        new_action._set_preconditions(new_preconditions)
-
-        old_effects = old_action.effects
-        old_simulated_effect = old_action.simulated_effect
-        for e in old_effects:
-            new_effect = create_effect_with_given_subs(problem, e, simplifier, subs)
-            if new_effect is not None:
-                # We try to add the new effect, but a compiler might generate conflicting effects,
-                # so the action is just considered invalid
-                try:
-                    new_action._add_effect_instance(new_effect)
-                except UPConflictingEffectsException:
-                    return None
-        if old_simulated_effect is not None:
-            new_fluents = []
-            for f in old_simulated_effect.fluents:
-                new_fluents.append(f.substitute(subs))
-
-            def fun(_problem, _state, _):
-                assert old_simulated_effect is not None
-                return old_simulated_effect.function(_problem, _state, c_subs)
-
-            # this rebuilds a simulated effect the user already defined (and got
-            # warned about), so the deprecation warning is silenced here
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                new_simulated_effect = SimulatedEffect(new_fluents, fun)
-            # We try to add the new simulated effect, but a compiler might generate conflicting effects,
-            # so the action is just considered invalid
-            try:
-                new_action.set_simulated_effect(new_simulated_effect)
-            except UPConflictingEffectsException:
+    substituter = problem.environment.substituter
+    # Promote `subs` to a Dict[FNode, FNode] once per candidate instead of once per
+    # substitute() call: a candidate substitutes the same `subs` mapping into every
+    # precondition/condition and every effect's fluent-args/value/condition (an
+    # InstantaneousAction with N effects makes 1 + 3N such calls), and re-running
+    # auto_promote()+is_compatible() over the whole mapping that many times was pure
+    # redundant work (profiling: ~30% of grounding time on rainbowttles-sat was inside
+    # auto_promote alone). `same_subs_batch()` similarly lets the substituter's DAG
+    # memoization survive across all of this candidate's substitute calls instead of being
+    # thrown away after each one -- both are safe only because `subs` never changes within
+    # one call to this function. See Substituter.promote_substitutions/same_subs_batch.
+    promoted_subs = substituter.promote_substitutions(subs)
+    with substituter.same_subs_batch():
+        if isinstance(old_action, InstantaneousAction):
+            new_preconditions = _substitute_and_simplify_preconditions(
+                old_action.preconditions, promoted_subs, simplifier, em, substituter
+            )
+            if new_preconditions is None:
                 return None
-        return new_action
-    elif isinstance(old_action, DurativeAction):
-        naming_list = _naming_list(subs)
-        new_durative_action = cast(DurativeAction, old_action.clone())
-        new_durative_action.name = (
-            old_action.name
-            if not subs
-            else get_fresh_name(problem, old_action.name, naming_list)
-        )
-        new_durative_action._parameters = OrderedDict()
-        old_duration = new_durative_action.duration
-        new_duration = DurationInterval(
-            simplifier.simplify(old_duration.lower.substitute(subs)),
-            simplifier.simplify(old_duration.upper.substitute(subs)),
-            old_duration.is_left_open(),
-            old_duration.is_right_open(),
-        )
-        try:
-            new_durative_action.set_duration_constraint(new_duration)
-        except UPProblemDefinitionError:
-            # the simplified interval is empty, so this grounding can never be applied
-            return None
+            naming_list = _naming_list(subs)
+            new_action: InstantaneousAction
+            if type(old_action) is InstantaneousAction:
+                # Cloned without effects: they would only be immediately discarded and rebuilt
+                # below from old_action's (not new_action's) effects, so cloning them first via
+                # the generic clone() would be pure waste -- see _clone_without_effects's docstring.
+                new_action = old_action._clone_without_effects()
+            else:
+                # Any InstantaneousAction *subclass* (SensingAction, InstantaneousMotionAction,
+                # or any future one) falls back to a full clone() + clear_effects() instead.
+                new_action = cast(InstantaneousAction, old_action.clone())
+                new_action.clear_effects()
+            new_action.name = (
+                old_action.name
+                if not subs
+                else get_fresh_name(problem, old_action.name, naming_list)
+            )
+            new_action._parameters = OrderedDict()
+            if isinstance(new_action, SensingAction):
+                # observed_fluents is SensingAction-only, so create_effect_with_given_subs
+                # (which only knows about preconditions/effects) can't substitute it; do it here.
+                new_action._observed_fluents = [
+                    substituter.substitute_promoted(f, promoted_subs)
+                    for f in new_action.observed_fluents
+                ]
+            new_action._set_preconditions(new_preconditions)
 
-        old_conditions = {
-            i: list(cl) for i, cl in new_durative_action.conditions.items()
-        }
-        new_durative_action.clear_conditions()
-        for i, cl in old_conditions.items():
-            for c in cl:
-                new_durative_action.add_condition(i, c.substitute(subs))
-
-        old_effects_by_timing = {
-            t: list(el) for t, el in new_durative_action.effects.items()
-        }
-        old_simulated_effects = dict(new_durative_action.simulated_effects)
-        old_continuous_effects = {
-            i: list(el) for i, el in new_durative_action.continuous_effects.items()
-        }
-        new_durative_action.clear_effects()
-        new_durative_action.clear_continuous_effects()
-        for t, effects_list in old_effects_by_timing.items():
-            for e in effects_list:
-                new_effect = create_effect_with_given_subs(problem, e, simplifier, subs)
+            old_effects = old_action.effects
+            old_simulated_effect = old_action.simulated_effect
+            for e in old_effects:
+                new_effect = create_effect_with_given_subs(
+                    problem, e, simplifier, promoted_subs, substituter
+                )
                 if new_effect is not None:
                     # We try to add the new effect, but a compiler might generate conflicting effects,
                     # so the action is just considered invalid
                     try:
-                        new_durative_action._add_effect_instance(t, new_effect)
+                        new_action._add_effect_instance(new_effect)
                     except UPConflictingEffectsException:
                         return None
-        for i, ce_list in old_continuous_effects.items():
-            for ce in ce_list:
-                new_continuous_effect = create_effect_with_given_subs(
-                    problem, ce, simplifier, subs
-                )
-                if new_continuous_effect is not None:
-                    new_durative_action._add_continuous_effect_instance(
-                        i, new_continuous_effect
+            if old_simulated_effect is not None:
+                new_fluents = []
+                for f in old_simulated_effect.fluents:
+                    new_fluents.append(
+                        substituter.substitute_promoted(f, promoted_subs)
                     )
-        for t, old_se in old_simulated_effects.items():
-            new_fluents = []
-            for f in old_se.fluents:
-                new_fluents.append(f.substitute(subs))
 
-            # _inner_simulated_effect bound as a default: the closure outlives the
-            # iteration, so capturing the loop variable would make every timing call
-            # the last one's function.
-            def durative_fun(_problem, _state, _, _inner_simulated_effect=old_se):
-                return _inner_simulated_effect.function(_problem, _state, c_subs)
+                def fun(_problem, _state, _):
+                    assert old_simulated_effect is not None
+                    return old_simulated_effect.function(_problem, _state, c_subs)
 
-            # this rebuilds a simulated effect the user already defined (and got
-            # warned about), so the deprecation warning is silenced here
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", DeprecationWarning)
-                new_simulated_effect = SimulatedEffect(new_fluents, durative_fun)
-            # We try to add the new simulated effect, but a compiler might generate conflicting effects,
-            # so the action is just considered invalid
+                # this rebuilds a simulated effect the user already defined (and got
+                # warned about), so the deprecation warning is silenced here
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", DeprecationWarning)
+                    new_simulated_effect = SimulatedEffect(new_fluents, fun)
+                # We try to add the new simulated effect, but a compiler might generate conflicting effects,
+                # so the action is just considered invalid
+                try:
+                    new_action.set_simulated_effect(new_simulated_effect)
+                except UPConflictingEffectsException:
+                    return None
+            return new_action
+        elif isinstance(old_action, DurativeAction):
+            naming_list = _naming_list(subs)
+            new_durative_action = cast(DurativeAction, old_action.clone())
+            new_durative_action.name = (
+                old_action.name
+                if not subs
+                else get_fresh_name(problem, old_action.name, naming_list)
+            )
+            new_durative_action._parameters = OrderedDict()
+            old_duration = new_durative_action.duration
+            new_duration = DurationInterval(
+                simplifier.simplify(
+                    substituter.substitute_promoted(old_duration.lower, promoted_subs)
+                ),
+                simplifier.simplify(
+                    substituter.substitute_promoted(old_duration.upper, promoted_subs)
+                ),
+                old_duration.is_left_open(),
+                old_duration.is_right_open(),
+            )
             try:
-                new_durative_action.set_simulated_effect(t, new_simulated_effect)
-            except UPConflictingEffectsException:
+                new_durative_action.set_duration_constraint(new_duration)
+            except UPProblemDefinitionError:
+                # the simplified interval is empty, so this grounding can never be applied
                 return None
-        is_feasible, new_conditions = check_and_simplify_conditions(
-            problem, new_durative_action, simplifier
-        )
-        if not is_feasible:
-            return None
-        new_durative_action.clear_conditions()
-        for interval, c in new_conditions:
-            new_durative_action.add_condition(interval, c)
-        return new_durative_action
-    else:
-        raise NotImplementedError
+
+            old_conditions = {
+                i: list(cl) for i, cl in new_durative_action.conditions.items()
+            }
+            new_durative_action.clear_conditions()
+            for i, cl in old_conditions.items():
+                for c in cl:
+                    new_durative_action.add_condition(
+                        i, substituter.substitute_promoted(c, promoted_subs)
+                    )
+
+            old_effects_by_timing = {
+                t: list(el) for t, el in new_durative_action.effects.items()
+            }
+            old_simulated_effects = dict(new_durative_action.simulated_effects)
+            old_continuous_effects = {
+                i: list(el) for i, el in new_durative_action.continuous_effects.items()
+            }
+            new_durative_action.clear_effects()
+            new_durative_action.clear_continuous_effects()
+            for t, effects_list in old_effects_by_timing.items():
+                for e in effects_list:
+                    new_effect = create_effect_with_given_subs(
+                        problem, e, simplifier, promoted_subs, substituter
+                    )
+                    if new_effect is not None:
+                        # We try to add the new effect, but a compiler might generate conflicting effects,
+                        # so the action is just considered invalid
+                        try:
+                            new_durative_action._add_effect_instance(t, new_effect)
+                        except UPConflictingEffectsException:
+                            return None
+            for i, ce_list in old_continuous_effects.items():
+                for ce in ce_list:
+                    new_continuous_effect = create_effect_with_given_subs(
+                        problem, ce, simplifier, promoted_subs, substituter
+                    )
+                    if new_continuous_effect is not None:
+                        new_durative_action._add_continuous_effect_instance(
+                            i, new_continuous_effect
+                        )
+            for t, old_se in old_simulated_effects.items():
+                new_fluents = []
+                for f in old_se.fluents:
+                    new_fluents.append(
+                        substituter.substitute_promoted(f, promoted_subs)
+                    )
+
+                # _inner_simulated_effect bound as a default: the closure outlives the
+                # iteration, so capturing the loop variable would make every timing call
+                # the last one's function.
+                def durative_fun(_problem, _state, _, _inner_simulated_effect=old_se):
+                    return _inner_simulated_effect.function(_problem, _state, c_subs)
+
+                # this rebuilds a simulated effect the user already defined (and got
+                # warned about), so the deprecation warning is silenced here
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", DeprecationWarning)
+                    new_simulated_effect = SimulatedEffect(new_fluents, durative_fun)
+                # We try to add the new simulated effect, but a compiler might generate conflicting effects,
+                # so the action is just considered invalid
+                try:
+                    new_durative_action.set_simulated_effect(t, new_simulated_effect)
+                except UPConflictingEffectsException:
+                    return None
+            is_feasible, new_conditions = check_and_simplify_conditions(
+                problem, new_durative_action, simplifier
+            )
+            if not is_feasible:
+                return None
+            new_durative_action.clear_conditions()
+            for interval, c in new_conditions:
+                new_durative_action.add_condition(interval, c)
+            return new_durative_action
+        else:
+            raise NotImplementedError
 
 
 def get_fresh_name(
