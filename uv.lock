@@ -3131,15 +3131,15 @@ wheels = [
 
 [[package]]
 name = "pddl"
-version = "0.4.8"
+version = "0.4.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
     { name = "lark" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/1a/3d91e9130d688ef6e30bb8e9c342ba360fd652ac8226a0bb9f827c340ad2/pddl-0.4.8.tar.gz", hash = "sha256:802950eb0b860895493a01a1f813b60edacb13e16649ea756fd7d8aa612fa079", size = 1298955, upload-time = "2026-06-25T03:36:30.631Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/a9/24db6550f477e064c359c5b1b273e2490bced8b8a9f22ecb1ac25a2a0618/pddl-0.4.10.tar.gz", hash = "sha256:26854a719cff3c2176e80eeee67205c3f6fc1085c6d33f2e08fd7f1f6d70ceb4", size = 1299698, upload-time = "2026-09-03T02:06:53.457Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/00/33/475ff456fe129b0237ff13f0d0b226e1c2151f208f6ab0ae7d721591cbd1/pddl-0.4.8-py2.py3-none-any.whl", hash = "sha256:ee8362d2fe25a8cd9a82307bd157748b2d45aec9d9d06d9af94cb01d49b47a58", size = 54098, upload-time = "2026-06-25T03:36:29.451Z" },
+    { url = "https://files.pythonhosted.org/packages/85/41/0fd2cddb96a1319c393ad5762fc029b717a3cdefa4f89f079eeaf7421fdb/pddl-0.4.10-py2.py3-none-any.whl", hash = "sha256:603546b4cf0ee6e9b97ed70d12e8ecd92dc8b94e5e1e0168af7e213e2a62f982", size = 54123, upload-time = "2026-09-03T02:06:52.487Z" },
 ]
 
 [[package]]
