@@ -173,11 +173,16 @@ class Simplifier(walkers.dag.DagWalker):
             atom is nonetheless never the target of any effect in `problem` -- see
             `_EffectTargetIndex`. Requires `problem` to be a plain
             :class:`~unified_planning.model.Problem` (or a subclass that adds no extra effect
-            source, e.g. `HierarchicalProblem`/`ContingentProblem`); ignored (folding stays off)
-            for a `problem` of any other type, such as `SchedulingProblem`/`MultiAgentProblem`,
-            which don't expose the effect surface `_EffectTargetIndex` scans. Defaults to `False`
-            so existing callers (and `problem.kind`, which is computed through its own
-            `Simplifier`) are unaffected.
+            source and whose `initial_value()` is authoritative for every atom, e.g.
+            `HierarchicalProblem`); ignored (folding stays off) for a `problem` of any other
+            type. This excludes `SchedulingProblem`/`MultiAgentProblem`, which don't expose the
+            effect surface `_EffectTargetIndex` scans, and `ContingentProblem`, whose hidden
+            fluents (added via `add_unknown_initial_constraint`/`add_oneof_initial_constraint`/
+            `add_or_initial_constraint`) are never-written atoms with a deliberately
+            undetermined initial value -- `initial_value()` would still return their declared
+            default for them, silently resolving the uncertainty the problem is about. Defaults
+            to `False` so existing callers (and `problem.kind`, which is computed through its
+            own `Simplifier`) are unaffected.
         """
         walkers.dag.DagWalker.__init__(self)
         self.environment = environment
@@ -188,7 +193,11 @@ class Simplifier(walkers.dag.DagWalker):
             self.static_fluents = set()
         self.problem: Optional["unified_planning.model.problem.Problem"] = problem
         self._effect_target_index: Optional[_EffectTargetIndex] = None
-        if fold_static_fluent_exps and isinstance(problem, up.model.problem.Problem):
+        if (
+            fold_static_fluent_exps
+            and isinstance(problem, up.model.problem.Problem)
+            and not isinstance(problem, up.model.contingent.ContingentProblem)
+        ):
             self._effect_target_index = _EffectTargetIndex(problem)
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
