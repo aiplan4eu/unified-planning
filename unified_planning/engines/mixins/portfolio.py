@@ -14,9 +14,10 @@
 #
 
 from abc import ABC, abstractmethod
-from warnings import warn
-import unified_planning as up
 from typing import Any, Dict, List, Optional, Tuple
+from warnings import warn
+
+import unified_planning as up
 
 
 class PortfolioSelectorMixin(ABC):
@@ -70,10 +71,9 @@ class PortfolioSelectorMixin(ABC):
             msg = f"{self.name} cannot solve this kind of problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         if not problem_kind.has_quality_metrics() and self.optimality_metric_required:
-            msg = f"The problem has no quality metrics but the planners are required to be optimal!"
+            msg = "The problem has no quality metrics but the planners are required to be optimal!"
             raise up.exceptions.UPUsageError(msg)
         if max_planners is not None and max_planners <= 0:
             raise up.exceptions.UPUsageError(

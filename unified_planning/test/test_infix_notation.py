@@ -14,10 +14,10 @@
 # limitations under the License.
 #
 
-import unified_planning
+from typing import List, OrderedDict, Tuple
+
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
-from typing import List, OrderedDict, Tuple
 
 
 class TestInfixNotation(unittest_TestCase):
@@ -66,7 +66,9 @@ class TestInfixNotation(unittest_TestCase):
         self._test_helper_function(i_1, r_1, i_2, r_2, b_1, b_2, b_3)
 
     def test_infix_with_interpreted_functions(self):
-        placeholder = lambda *args: None
+        def placeholder(*args):
+            return None
+
         signature_empty: OrderedDict = OrderedDict()
         i_1 = InterpretedFunction("i_1", IntType(), signature_empty, placeholder)
         r_1 = InterpretedFunction("r_1", RealType(), signature_empty, placeholder)
@@ -113,7 +115,9 @@ class TestInfixNotation(unittest_TestCase):
             (Div(2, i_2), 2 // i_2),
             (GT(i_1, i_2), i_1 > i_2),
             (GE(i_1, 1), i_1 >= 1),
-            (LT(2, i_2), 2 < i_2),
+            # literal on the left on purpose, like the `2 - i_2` rows above: it goes
+            # through int.__lt__ returning NotImplemented, not straight to FNode.__gt__
+            (LT(2, i_2), 2 < i_2),  # noqa: SIM300
             (LE(i_1, i_2), i_1 <= i_2),
             (Plus(0, i_1), +i_1),
             (Minus(0, i_1), -i_1),

@@ -57,17 +57,14 @@ class MAEnvironment(
     def __repr__(self) -> str:
         s = []
         s.append("fluents = [\n")
-        for f in self._fluents:
-            s.append(f" {str(f)}\n")
+        s.extend(f" {f!s}\n" for f in self._fluents)
         s.append("]\n\n")
         return "".join(s)
 
     def __eq__(self, oth: object) -> bool:
         if not (isinstance(oth, MAEnvironment)) or self._env != oth._env:
             return False
-        if set(self._fluents) != set(oth._fluents):
-            return False
-        return True
+        return set(self._fluents) == set(oth._fluents)
 
     def __hash__(self) -> int:
         res = 0

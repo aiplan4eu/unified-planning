@@ -15,12 +15,8 @@
 import os
 
 import unified_planning as up
-from unified_planning.model.htn import TaskNetwork, Task
-from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
-from unified_planning.test import unittest_TestCase, main, examples
-from unified_planning.test.examples import get_example_problems
-
+from unified_planning.test import unittest_TestCase
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 

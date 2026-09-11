@@ -16,12 +16,13 @@
 
 
 from typing import Dict, Iterable, List, Optional, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.environment
-import unified_planning.model.walkers as walkers
 import unified_planning.model.operators as op
-from unified_planning.model.fnode import FNode
+import unified_planning.model.walkers as walkers
 from unified_planning.model.fluent import Fluent
+from unified_planning.model.fnode import FNode
 from unified_planning.model.types import _UserType
 
 
@@ -373,20 +374,19 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         if not l_vars and not r_vars:
             assert not l_fluents and not r_fluents
             return (self.manager.Equals(l_exp, r_exp), None, set(), None, set())
-        else:
-            return (
-                self.manager.Exists(
-                    self.manager.And(
-                        self.manager.Equals(l_exp, r_exp), *l_fluents, *r_fluents
-                    ),
-                    *l_vars,
-                    *r_vars,
+        return (
+            self.manager.Exists(
+                self.manager.And(
+                    self.manager.Equals(l_exp, r_exp), *l_fluents, *r_fluents
                 ),
-                None,
-                set(),
-                None,
-                set(),
-            )
+                *l_vars,
+                *r_vars,
+            ),
+            None,
+            set(),
+            None,
+            set(),
+        )
 
     def walk_le(
         self,
@@ -418,20 +418,17 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
         if not l_vars and not r_vars:
             assert not l_fluents and not r_fluents
             return (self.manager.LE(l_exp, r_exp), None, set(), None, set())
-        else:
-            return (
-                self.manager.Exists(
-                    self.manager.And(
-                        self.manager.LE(l_exp, r_exp), *l_fluents, *r_fluents
-                    ),
-                    *l_vars,
-                    *r_vars,
-                ),
-                None,
-                set(),
-                None,
-                set(),
-            )
+        return (
+            self.manager.Exists(
+                self.manager.And(self.manager.LE(l_exp, r_exp), *l_fluents, *r_fluents),
+                *l_vars,
+                *r_vars,
+            ),
+            None,
+            set(),
+            None,
+            set(),
+        )
 
     def walk_lt(
         self,
@@ -462,20 +459,17 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
 
         if not l_vars and not r_vars:
             return (self.manager.LT(l_exp, r_exp), None, set(), None, set())
-        else:
-            return (
-                self.manager.Exists(
-                    self.manager.And(
-                        self.manager.LT(l_exp, r_exp), *l_fluents, *r_fluents
-                    ),
-                    *l_vars,
-                    *r_vars,
-                ),
-                None,
-                set(),
-                None,
-                set(),
-            )
+        return (
+            self.manager.Exists(
+                self.manager.And(self.manager.LT(l_exp, r_exp), *l_fluents, *r_fluents),
+                *l_vars,
+                *r_vars,
+            ),
+            None,
+            set(),
+            None,
+            set(),
+        )
 
     def walk_fluent_exp(
         self,
@@ -513,14 +507,13 @@ class UsertypeFluentsWalker(walkers.dag.DagWalker):
                 self.manager.FluentExp(new_fluent, exp_args),
                 fluents,
             )
-        else:
-            return (
-                self.manager.FluentExp(expression.fluent(), exp_args),
-                None,
-                variables,
-                None,
-                fluents,
-            )
+        return (
+            self.manager.FluentExp(expression.fluent(), exp_args),
+            None,
+            variables,
+            None,
+            fluents,
+        )
 
     def walk_plus(
         self,

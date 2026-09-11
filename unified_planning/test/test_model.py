@@ -14,19 +14,20 @@
 
 
 from collections import OrderedDict
+
 import unified_planning
-from unified_planning.shortcuts import *
 from unified_planning.exceptions import (
-    UPUsageError,
-    UPTypeError,
     UPConflictingEffectsException,
-    UPProblemDefinitionError,
     UPExpressionDefinitionError,
+    UPProblemDefinitionError,
+    UPTypeError,
+    UPUsageError,
 )
-from unified_planning.test.examples import get_example_problems
-from unified_planning.test import unittest_TestCase, main
 from unified_planning.model.action import InstantaneousAction
 from unified_planning.model.multi_agent import Agent, MultiAgentProblem
+from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 
 class TestModel(unittest_TestCase):
@@ -73,7 +74,7 @@ class TestModel(unittest_TestCase):
             problem_clone_1 = problem.clone()
             problem_clone_2 = problem.clone()
             for action_1, action_2 in zip(
-                problem_clone_1.actions, problem_clone_2.actions
+                problem_clone_1.actions, problem_clone_2.actions, strict=True
             ):
                 if isinstance(action_2, InstantaneousAction):
                     action_2._effects = []
@@ -85,11 +86,7 @@ class TestModel(unittest_TestCase):
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = {}
                     action_1_clone._continuous_effects = {}
-                elif isinstance(action_2, Process):
-                    action_2._effects = []
-                    action_1_clone = action_1.clone()
-                    action_1_clone._effects = []
-                elif isinstance(action_2, Event):
+                elif isinstance(action_2, (Process, Event)):
                     action_2._effects = []
                     action_1_clone = action_1.clone()
                     action_1_clone._effects = []
@@ -212,7 +209,7 @@ class TestModel(unittest_TestCase):
     def test_clone_action(self):
         Location = UserType("Location")
         with self.assertRaises(TypeError):
-            a = Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
+            Action("move", l_from=Location, l_to=Location)  # type: ignore[abstract]
 
     def test_clone_effect(self):
         x = FluentExp(Fluent("x"))
@@ -846,7 +843,7 @@ class TestModel(unittest_TestCase):
             )
         self.assertEqual(
             str(type_error.exception),
-            f"Increase continuous effects can be created only on real type!",
+            "Increase continuous effects can be created only on real type!",
         )
 
         # test add_decrease_continuous_effect exception
@@ -856,7 +853,7 @@ class TestModel(unittest_TestCase):
             )
         self.assertEqual(
             str(type_error.exception),
-            f"Decrease continuous effects can be created only on real type!",
+            "Decrease continuous effects can be created only on real type!",
         )
 
     def test_problem(self):
@@ -874,11 +871,11 @@ class TestModel(unittest_TestCase):
         )
         problem.add_action(DurativeAction("move"))
         problem.add_action(InstantaneousAction("stop_moving"))
-        stop_moving_list = [a for a in problem.instantaneous_actions]
+        stop_moving_list = list(problem.instantaneous_actions)
         self.assertEqual(len(stop_moving_list), 1)
         stop_moving = stop_moving_list[0]
         self.assertEqual(stop_moving.name, "stop_moving")
-        move_list = [a for a in problem.durative_actions]
+        move_list = list(problem.durative_actions)
         self.assertEqual(len(move_list), 1)
         move = move_list[0]
         self.assertEqual(move.name, "move")

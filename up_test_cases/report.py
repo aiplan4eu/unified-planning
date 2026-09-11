@@ -1,44 +1,38 @@
 import importlib
 import sys
 import time
+import warnings
 from functools import partial
 from itertools import chain
 from typing import List, Tuple
-import warnings
 
 from unified_planning.engines import (
     CompilerResult,
-    PlanGenerationResultStatus,
-    ValidationResultStatus,
     PlanGenerationResult,
+    PlanGenerationResultStatus,
     ValidationResult,
+    ValidationResultStatus,
 )
 from unified_planning.engines.mixins import (
-    CompilerMixin,
     AnytimePlannerMixin,
-    PlanValidatorMixin,
+    CompilerMixin,
     OneshotPlannerMixin,
     PlanRepairerMixin,
 )
-
-from unified_planning.plans import Plan
-
-from unified_planning.shortcuts import *
 from unified_planning.environment import get_environment
-from unified_planning.exceptions import UPNoSuitableEngineAvailableException
+from unified_planning.plans import Plan
+from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
-
-from utils import (
-    Ok,
+from utils import (  # type: ignore[import-not-found]
     Err,
+    Ok,
     ResultSet,
-    Warn,
-    bcolors,
     Void,
-    get_report_parser,
+    Warn,
     _get_test_cases,
-)  # type: ignore
-
+    bcolors,
+    get_report_parser,
+)
 
 get_environment().credits_stream = None  # silence credits
 factory = get_environment().factory
@@ -95,24 +89,22 @@ def report_runtime(
         overhead_percentage = None
     if deliverable:
         if total_time > 1 and overhead_percentage is not None:
-            overhead_str = "{:.0%}".format(overhead_percentage)
+            overhead_str = f"{overhead_percentage:.0%}"
             overhead = (
                 Ok(overhead_str)
                 if overhead_percentage < max_overhead
                 else Warn(overhead_str)
             )
-            runtime_report = "{:.3f}s {}".format(total_time, overhead).ljust(30)
+            runtime_report = f"{total_time:.3f}s {overhead}".ljust(30)
         elif total_time < 1:
             runtime_report = "{:.3f}s {}".format(total_time, Ok("<1s")).ljust(30)
         else:
-            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+            runtime_report = f"{total_time:.3f}s".ljust(30)
     else:
         if internal_time_str is not None:
-            runtime_report = "{:.3f}s ({:.3f}s)".format(
-                total_time, internal_time
-            ).ljust(30)
+            runtime_report = f"{total_time:.3f}s ({internal_time:.3f}s)".ljust(30)
         else:
-            runtime_report = "{:.3f}s".format(total_time).ljust(30)
+            runtime_report = f"{total_time:.3f}s".ljust(30)
     return runtime_report
 
 
@@ -125,8 +117,7 @@ def validate_plan(
             check = validator.validate(problem, plan)
             if check.status is ValidationResultStatus.VALID:
                 return Ok("Valid"), check.metric_evaluations
-            else:
-                return Err("Invalid plan generated"), None
+            return Err("Invalid plan generated"), None
     except unified_planning.exceptions.UPNoSuitableEngineAvailableException:
         return Warn("No validator for problem"), None
     except Exception as e:
@@ -137,8 +128,7 @@ def verify(cond: bool, error_tag: str, ok_tag: str = "") -> ResultSet:
     """Returns an Error if the condition passed in parameter does not hold."""
     if cond:
         return Ok(ok_tag)
-    else:
-        return Err(error_tag)
+    return Err(error_tag)
 
 
 def check_result(
@@ -152,7 +142,7 @@ def check_result(
             return Err("Solved unsolvable problem")
         # if the planner guarantees optimality, this should be reflected in
         # the result status
-        metrics: Iterable[Any] = getattr(test.problem, "quality_metrics", tuple())
+        metrics: Iterable[Any] = getattr(test.problem, "quality_metrics", ())
         if not metrics:
             output += verify(
                 result.status
@@ -235,12 +225,14 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
     if not planners:
         return Warn("No engine to solve compiled problem")
     plan = None
-    for planner in map(lambda n: OneshotPlanner(name=n), planners):
+    for planner in (OneshotPlanner(name=n) for n in planners):
         assert isinstance(planner, OneshotPlannerMixin)
         try:
             res = planner.solve(compiled_problem)
-        except:
-            pass
+        except Exception:
+            # `res` stays unbound, so falling through would read the previous
+            # planner's result - or raise UnboundLocalError on the first engine
+            continue
         if test.solvable and res.plan is not None:
             plan = res.plan
             break
@@ -248,7 +240,7 @@ def check_grounding_result(test: TestCase, result: CompilerResult) -> ResultSet:
             return Ok("Compiled problem unsolvable")
     if plan is None and test.solvable:
         return Warn("No engine to solve compiled problem")
-    elif plan is None:
+    if plan is None:
         return Warn("No engine to prove compiled problem is unsolvable")
 
     assert test.solvable and plan is not None
@@ -308,7 +300,7 @@ def report_oneshot(
                         assert len(metrics_evaluation) == 1, (
                             "Can't support more than 1 metric in the problem"
                         )
-                        value = tuple(metrics_evaluation.values())[0]
+                        value = next(iter(metrics_evaluation.values()))
                         expected_value = test_case.optimum
                         if expected_value is not None:
                             outcome += verify(
@@ -382,7 +374,7 @@ def report_plan_repair(
                         result = planner.repair(pb, plan)
                         total_execution_time = time.time() - start
                         status = str(result.status.name).ljust(25)
-                        outcome, metrics_evaluation = check_result(
+                        outcome, _metrics_evaluation = check_result(
                             test_case, result, planner
                         )
                         if not outcome.ok():
@@ -488,10 +480,8 @@ def report_anytime(
                     assert isinstance(planner, AnytimePlannerMixin), (
                         "Error in Anytime selection"
                     )
-                    results = []
                     start = time.time()
-                    for result in planner.get_solutions(pb, timeout=timeout):
-                        results.append(result)
+                    results = list(planner.get_solutions(pb, timeout=timeout))
                     total_execution_time = time.time() - start
                     for result in results:
                         status = str(result.status.name).ljust(25)
@@ -664,11 +654,11 @@ def report_grounding(
                         pb, compilation_kind=CompilationKind.GROUNDING
                     )
                     end = time.time()
-                    status = str("COMPILED").ljust(25)
+                    status = "COMPILED".ljust(25)
                     outcome = check_grounding_result(test_case, result)
                     if not outcome.ok():
                         errors.append((engine_id, name))
-                    runtime = "{:.3f}s".format(end - start).ljust(15)
+                    runtime = f"{end - start:.3f}s".ljust(15)
                     print(status, "    ", runtime, outcome)
 
                 except Exception as e:

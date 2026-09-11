@@ -17,42 +17,7 @@
 
 from enum import Enum, auto
 from fractions import Fraction
-from itertools import product
-from warnings import warn
-import unified_planning as up
-from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
-from unified_planning.engines.engine import Engine
-from unified_planning.engines.mixins.sequential_simulator import (
-    SequentialSimulatorMixin,
-)
-from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.exceptions import (
-    UPUsageError,
-    UPConflictingEffectsException,
-    UPInvalidActionError,
-    UPUnreachableCodeError,
-    UPProblemDefinitionError,
-    UPStateMissingFluentError,
-)
-from unified_planning.model import (
-    Action,
-    Fluent,
-    FNode,
-    ExpressionManager,
-    UPState,
-    Problem,
-    MinimizeActionCosts,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-    Oversubscription,
-    Expression,
-    Variable,
-)
-from unified_planning.model.types import _RealType
-from unified_planning.model.walkers import StateEvaluator, ExpressionQuantifiersRemover
 from typing import (
-    Callable,
     Dict,
     Iterator,
     List,
@@ -63,6 +28,38 @@ from typing import (
     Union,
     cast,
 )
+from warnings import warn
+
+import unified_planning as up
+from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
+from unified_planning.engines.engine import Engine
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
+from unified_planning.exceptions import (
+    UPConflictingEffectsException,
+    UPInvalidActionError,
+    UPProblemDefinitionError,
+    UPStateMissingFluentError,
+    UPUnreachableCodeError,
+    UPUsageError,
+)
+from unified_planning.model import (
+    Action,
+    ExpressionManager,
+    Fluent,
+    FNode,
+    MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
+    MinimizeExpressionOnFinalState,
+    Oversubscription,
+    Problem,
+    UPState,
+)
+from unified_planning.model.fluent import get_all_fluent_exp
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.types import _RealType
+from unified_planning.model.walkers import ExpressionQuantifiersRemover, StateEvaluator
 
 
 class InapplicabilityReasons(Enum):
@@ -104,8 +101,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             msg = f"The Grounder used in the {type(self).__name__} does not support the given problem"
             if self.error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         assert isinstance(self._problem, up.model.Problem)
         # prune_actions=False: a fluent that never appears as an effect target is
         # "static" and would otherwise be folded into its declared initial value,
@@ -152,9 +148,9 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                     self._fluent_exps_in_state_invariants.add(f_e)
                     self._state_invariants.append(em.LE(f_e, upper_bound))
 
-        self._fluents_in_state_invariants: Set[Fluent] = set(
-            (fe.fluent() for fe in self._fluent_exps_in_state_invariants)
-        )
+        self._fluents_in_state_invariants: Set[Fluent] = {
+            fe.fluent() for fe in self._fluent_exps_in_state_invariants
+        }
 
     def _ground_action(
         self, action: "up.model.Action", params: Tuple["up.model.FNode", ...]
@@ -305,6 +301,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             for f, v in zip(
                 grounded_action.simulated_effect.fluents,
                 grounded_action.simulated_effect.function(self._problem, state, {}),
+                strict=True,
             ):
                 updated_values[f] = v
                 assigned_fluent.add(f)
@@ -364,7 +361,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         :raises UPStateMissingFluentError: If an expression involves a fluent with an
             undefined value in the state.
         """
-        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
+
+        def evaluate(exp: FNode) -> FNode:
+            return self._se.evaluate(exp, state)
+
         if evaluated_fluent is not None:
             fluent = evaluated_fluent
         else:
@@ -376,7 +376,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         if evaluated_condition:
             new_value = evaluate(effect.value)
             if effect.is_assignment():
-                old_value = updated_values.get(fluent, None)
+                old_value = updated_values.get(fluent)
                 if (
                     old_value is not None
                     and new_value.constant_value() != old_value.constant_value()
@@ -386,43 +386,38 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                             f"The fluent {fluent} is modified by 2 different assignments in the same action."
                         )
                     # solve with add-after-delete logic
-                    elif not old_value.bool_constant_value():
+                    if not old_value.bool_constant_value():
                         return fluent, new_value
-                    else:
-                        return None, None
-                elif old_value is not None and fluent not in assigned_fluent:
+                    return None, None
+                if old_value is not None and fluent not in assigned_fluent:
                     raise UPConflictingEffectsException(
                         f"The fluent {fluent} is modified by 1 assignments and an increase/decrease in the same action."
                     )
-                else:
-                    assigned_fluent.add(fluent)
-                    return fluent, new_value
-            else:
-                if fluent in assigned_fluent:
-                    raise UPConflictingEffectsException(
-                        f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same action."
-                    )
-                # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
-                # otherwise we take it's evaluation in the state as it's value.
-                f_eval = updated_values.get(fluent, evaluate(fluent))
-                if effect.is_increase():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() + new_value.constant_value()
-                        )[0],
-                    )
-                elif effect.is_decrease():
-                    return (
-                        fluent,
-                        em.auto_promote(
-                            f_eval.constant_value() - new_value.constant_value()
-                        )[0],
-                    )
-                else:
-                    raise NotImplementedError
-        else:
-            return None, None
+                assigned_fluent.add(fluent)
+                return fluent, new_value
+            if fluent in assigned_fluent:
+                raise UPConflictingEffectsException(
+                    f"The fluent {fluent} is modified by an assignment and an increase/decrease in the same action."
+                )
+            # If the fluent is in updated_values, we take his modified value, (which was modified by another increase or decrease)
+            # otherwise we take it's evaluation in the state as it's value.
+            f_eval = updated_values.get(fluent, evaluate(fluent))
+            if effect.is_increase():
+                return (
+                    fluent,
+                    em.auto_promote(
+                        f_eval.constant_value() + new_value.constant_value()
+                    )[0],
+                )
+            if effect.is_decrease():
+                return (
+                    fluent,
+                    em.auto_promote(
+                        f_eval.constant_value() - new_value.constant_value()
+                    )[0],
+                )
+            raise NotImplementedError
+        return None, None
 
     def _get_applicable_actions(
         self, state: "up.model.State"
@@ -477,7 +472,10 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
             raise UPInvalidActionError(
                 "The given action grounded with the given parameters does not create a valid action."
             )
-        evaluate: Callable[[FNode], FNode] = lambda exp: self._se.evaluate(exp, state)
+
+        def evaluate(exp: FNode) -> FNode:
+            return self._se.evaluate(exp, state)
+
         reason: Optional[InapplicabilityReasons] = None
         unsatisfied_conditions = []
         for c in g_action.preconditions:
@@ -502,6 +500,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 for f, v in zip(
                     sim_eff.fluents,
                     sim_eff.function(self._problem, state, {}),
+                    strict=True,
                 ):
                     updated_values[f] = v
                     assigned_fluent.add(f)
@@ -537,7 +536,7 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                         cast(up.model.mixins.ObjectsSetMixin, self._problem)
                     ):
                         ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
-                        values = updated_values.get(ev_fluent, None)
+                        values = updated_values.get(ev_fluent)
                         if values is not None:
                             try:
                                 fluent, value = self._evaluate_effect(
@@ -562,23 +561,25 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
                 ):
                     if e.fluent.fluent() in self._fluents_in_state_invariants:
                         ev_fluent = e.fluent.fluent()(*(map(evaluate, e.fluent.args)))
-                        if ev_fluent in self._fluent_exps_in_state_invariants:
-                            if ev_fluent not in updated_values:
-                                try:
-                                    fluent, value = self._evaluate_effect(
-                                        e,
-                                        state,
-                                        updated_values,
-                                        assigned_fluent,
-                                        em,
-                                        evaluated_fluent=ev_fluent,
-                                    )
-                                    assert fluent is not None and value is not None
-                                    updated_values[fluent] = value
-                                except UPConflictingEffectsException:
-                                    raise UPUnreachableCodeError(
-                                        "Conflicting effects should be caught above"
-                                    )
+                        if (
+                            ev_fluent in self._fluent_exps_in_state_invariants
+                            and ev_fluent not in updated_values
+                        ):
+                            try:
+                                fluent, value = self._evaluate_effect(
+                                    e,
+                                    state,
+                                    updated_values,
+                                    assigned_fluent,
+                                    em,
+                                    evaluated_fluent=ev_fluent,
+                                )
+                                assert fluent is not None and value is not None
+                                updated_values[fluent] = value
+                            except UPConflictingEffectsException:
+                                raise UPUnreachableCodeError(
+                                    "Conflicting effects should be caught above"
+                                ) from None
 
             if not isinstance(state, up.model.UPState):
                 raise UPUsageError(
@@ -688,15 +689,20 @@ class UPSequentialSimulator(Engine, SequentialSimulatorMixin):
         return problem_kind <= UPSequentialSimulator.supported_kind()
 
     def get_interpreted_functions_values(self):
-        if_values = {}
         simplifier = self._problem.environment.simplifier
-        for key, value in simplifier.memoization.items():
-            if key.is_interpreted_function_exp() and value.is_constant():
-                if_values[key] = value
+        if_values = {
+            key: value
+            for key, value in simplifier.memoization.items()
+            if key.is_interpreted_function_exp() and value.is_constant()
+        }
         simplifier = self._grounder.simplifier
-        for key, value in simplifier.memoization.items():
-            if key.is_interpreted_function_exp() and value.is_constant():
-                if_values[key] = value
+        if_values.update(
+            {
+                key: value
+                for key, value in simplifier.memoization.items()
+                if key.is_interpreted_function_exp() and value.is_constant()
+            }
+        )
         if_values.update(self._se.if_values)
         return if_values
 
@@ -739,12 +745,14 @@ def evaluate_quality_metric(
             raise UPUsageError(
                 "The parameters length is different than the action's parameters length."
             )
-        action_cost = action_cost.substitute(dict(zip(action.parameters, parameters)))
+        action_cost = action_cost.substitute(
+            dict(zip(action.parameters, parameters, strict=True))
+        )
         assert isinstance(action_cost, up.model.FNode)
         return se.evaluate(action_cost, state).constant_value() + metric_value
-    elif quality_metric.is_minimize_sequential_plan_length():
+    if quality_metric.is_minimize_sequential_plan_length():
         return metric_value + 1
-    elif (
+    if (
         quality_metric.is_minimize_expression_on_final_state()
         or quality_metric.is_maximize_expression_on_final_state()
     ):
@@ -753,17 +761,16 @@ def evaluate_quality_metric(
             (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
         )
         return se.evaluate(quality_metric.expression, next_state).constant_value()
-    elif quality_metric.is_oversubscription():
+    if quality_metric.is_oversubscription():
         assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, next_state).bool_constant_value():
                 total_gain += gain
         return total_gain
-    else:
-        raise NotImplementedError(
-            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
-        )
+    raise NotImplementedError(
+        f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+    )
 
 
 def evaluate_quality_metric_in_initial_state(
@@ -787,9 +794,9 @@ def evaluate_quality_metric_in_initial_state(
     initial_state = simulator.get_initial_state()
     if quality_metric.is_minimize_action_costs():
         return 0
-    elif quality_metric.is_minimize_sequential_plan_length():
+    if quality_metric.is_minimize_sequential_plan_length():
         return 0
-    elif (
+    if (
         quality_metric.is_minimize_expression_on_final_state()
         or quality_metric.is_maximize_expression_on_final_state()
     ):
@@ -798,14 +805,13 @@ def evaluate_quality_metric_in_initial_state(
             (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
         )
         return se.evaluate(quality_metric.expression, initial_state).constant_value()
-    elif quality_metric.is_oversubscription():
+    if quality_metric.is_oversubscription():
         assert isinstance(quality_metric, Oversubscription)
         total_gain: Union[Fraction, int] = 0
         for goal, gain in quality_metric.goals.items():
             if se.evaluate(goal, initial_state).bool_constant_value():
                 total_gain += gain
         return total_gain
-    else:
-        raise NotImplementedError(
-            f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
-        )
+    raise NotImplementedError(
+        f"QualityMetric {quality_metric} not supported by the UPSequentialSimulator."
+    )

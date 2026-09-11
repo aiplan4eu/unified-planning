@@ -1,9 +1,8 @@
 from fractions import Fraction
 
-from unified_planning.test import unittest_TestCase
-
 from unified_planning.model.contingent import ContingentProblem
 from unified_planning.shortcuts import *
+from unified_planning.test import unittest_TestCase
 
 
 class TestContingentProblem(unittest_TestCase):

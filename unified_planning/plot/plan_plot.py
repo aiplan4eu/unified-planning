@@ -14,49 +14,15 @@
 #
 
 
-import unified_planning as up
-from unified_planning.engines.sequential_simulator import (
-    UPSequentialSimulator,
-    evaluate_quality_metric_in_initial_state,
-    evaluate_quality_metric,
-)
-from unified_planning.model import (
-    FNode,
-    Problem,
-    State,
-    PlanQualityMetric,
-    Expression,
-)
-from unified_planning.model.walkers import StateEvaluator
-from unified_planning.plans.plan import ActionInstance, Plan
-from unified_planning.plans.sequential_plan import SequentialPlan
-from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.plans.contingent_plan import (
-    ContingentPlan,
-    ContingentPlanNode,
-    visit_tree,
-)
-from unified_planning.plans.partial_order_plan import PartialOrderPlan
-from unified_planning.plot.utils import (
-    FIGSIZE,
-    FIGSIZE_SCALE_FACTOR,
-    ARROWSIZE,
-    NODE_COLOR,
-    EDGE_COLOR,
-    FONT_SIZE,
-    FONT_COLOR,
-    EDGE_FONT_SIZE,
-    EDGE_FONT_COLOR,
-    draw_base_graph,
-)
-
 import datetime
+import random
+import tempfile
 from fractions import Fraction
 from functools import partial
-import networkx as nx
 from typing import (
     Any,
+    Callable,
+    ClassVar,
     Dict,
     Iterable,
     List,
@@ -65,11 +31,46 @@ from typing import (
     Set,
     Tuple,
     Union,
-    Callable,
+)
+
+import networkx as nx
+
+from unified_planning.engines.sequential_simulator import (
+    UPSequentialSimulator,
+    evaluate_quality_metric,
+    evaluate_quality_metric_in_initial_state,
+)
+from unified_planning.model import (
+    Expression,
+    FNode,
+    PlanQualityMetric,
+    Problem,
+    State,
 )
 from unified_planning.model.multi_agent.agent import Agent
-import tempfile
-import random
+from unified_planning.model.walkers import StateEvaluator
+from unified_planning.plans.contingent_plan import (
+    ContingentPlan,
+    ContingentPlanNode,
+    visit_tree,
+)
+from unified_planning.plans.partial_order_plan import PartialOrderPlan
+from unified_planning.plans.plan import ActionInstance, Plan
+from unified_planning.plans.sequential_plan import SequentialPlan
+from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
+from unified_planning.plot.utils import (
+    ARROWSIZE,
+    EDGE_COLOR,
+    EDGE_FONT_COLOR,
+    EDGE_FONT_SIZE,
+    FIGSIZE,
+    FIGSIZE_SCALE_FACTOR,
+    FONT_COLOR,
+    FONT_SIZE,
+    NODE_COLOR,
+    draw_base_graph,
+)
 
 
 def plot_plan(
@@ -94,7 +95,7 @@ def plot_plan(
         ContingentPlan: plot_contingent_plan,
         PartialOrderPlan: plot_partial_order_plan,
     }
-    plot_plan_function = functions_map.get(type(plan), None)
+    plot_plan_function = functions_map.get(type(plan))
     if plot_plan_function is None:
         raise NotImplementedError(
             f"{type(plan).__name__} is not supported in the plot_plan function"
@@ -269,8 +270,10 @@ def plot_time_triggered_plan(
         else:
             end = start + instantaneous_actions_length
         start, end = float(start), float(end)
-        start_date = datetime.datetime.fromtimestamp(start)
-        end_date = datetime.datetime.fromtimestamp(end)
+        # tz-aware so the rendered epoch does not depend on the runner's timezone;
+        # these are plan-relative second counts and the tick labels are overridden below
+        start_date = datetime.datetime.fromtimestamp(start, tz=datetime.timezone.utc)
+        end_date = datetime.datetime.fromtimestamp(end, tz=datetime.timezone.utc)
         tick_vals.add(start_date)
         tick_vals.add(end_date)
         x_ticks.setdefault(start_date, str(start))
@@ -297,17 +300,17 @@ def plot_time_triggered_plan(
     x_tick_vals_list = list(tick_vals)
     y_tick_vals_list = list(y_remapping.keys())
     plan_plot.update_layout(
-        xaxis=dict(
-            tickmode="array",
-            tickvals=x_tick_vals_list,
-            ticktext=list(map(x_ticks.get, x_tick_vals_list)),
-            title_text="Time",
-        ),
-        yaxis=dict(
-            tickmode="array",
-            tickvals=y_tick_vals_list,
-            ticktext=list(map(y_remapping.get, y_tick_vals_list)),
-        ),
+        xaxis={
+            "tickmode": "array",
+            "tickvals": x_tick_vals_list,
+            "ticktext": list(map(x_ticks.get, x_tick_vals_list)),
+            "title_text": "Time",
+        },
+        yaxis={
+            "tickmode": "array",
+            "tickvals": y_tick_vals_list,
+            "ticktext": list(map(y_remapping.get, y_tick_vals_list)),
+        },
     )
 
     if filename is not None:
@@ -493,7 +496,10 @@ def plot_contingent_plan(
     else:
         edge_label_function = generate_edge_label
     if generate_node_label is None:
-        generate_node_label = lambda x: str(x.action_instance)
+
+        def generate_node_label(x):
+            return str(x.action_instance)
+
     if draw_networkx_edge_labels_kwargs is None:
         draw_networkx_edge_labels_kwargs = {}
     edge_labels: Dict[Tuple[ContingentPlanNode, ContingentPlanNode], str] = {}
@@ -610,7 +616,7 @@ def _generate_contingent_edge_label(fluents: Dict[FNode, FNode]) -> str:
     if not fluents:
         return ""
     fluents_str: str = "\n".join(
-        map(lambda x: str(_assignment_as_condition(x)), fluents.items())
+        str(_assignment_as_condition(x)) for x in fluents.items()
     )
     return f"if {fluents_str}"
 
@@ -640,10 +646,9 @@ def _assignment_as_condition(key_value: Tuple[FNode, FNode]) -> FNode:
     ft = fluent.type
     if ft.is_bool_type() and value.is_true():
         return fluent
-    elif ft.is_bool_type() and value.is_false():
+    if ft.is_bool_type() and value.is_false():
         return em.Not(fluent)
-    else:
-        return em.Equals(fluent, value)
+    return em.Equals(fluent, value)
 
 
 def _plot_expressions(
@@ -702,7 +707,7 @@ def _plot_expressions(
     x_labels: List[str] = [label_str]
     data_frame_element: Dict[str, Any] = {"Action name": label_str}
     expressions_str = list(map(str, numeric_expressions))
-    for exp, exp_str in zip(numeric_expressions, expressions_str):
+    for exp, exp_str in zip(numeric_expressions, expressions_str, strict=True):
         assert current_state is not None
         data_frame_element[exp_str] = get_numeric_value_from_state(exp, current_state)
     for metric, value in metric_values.items():
@@ -728,18 +733,16 @@ def _plot_expressions(
             parameters=action_instance.actual_parameters,
             next_state=current_state,
         )
-        metric_values = dict(
-            map(
-                lambda x: (x[0], eqm(quality_metric=x[0], metric_value=x[1])),
-                metric_values.items(),
-            )
-        )
+        metric_values = {
+            qm: eqm(quality_metric=qm, metric_value=value)
+            for qm, value in metric_values.items()
+        }
 
         # Populate the data_frame
         label_str = str(action_instance)
         x_labels.append(label_str)
         data_frame_element = {"Action name": label_str}
-        for exp, exp_str in zip(numeric_expressions, expressions_str):
+        for exp, exp_str in zip(numeric_expressions, expressions_str, strict=True):
             data_frame_element[exp_str] = get_numeric_value_from_state(
                 exp, current_state
             )
@@ -772,8 +775,7 @@ def _plot_expressions(
                 y=list(map(partial(get_bool_value_from_state, exp), state_sequence)),
                 line_shape="hv",
                 name=str(exp),
-                hovertemplate="variable=%s<br>Action name=%%{x}<br>value=%%{y}<extra></extra>"
-                % exp,
+                hovertemplate=f"variable={exp}<br>Action name=%{{x}}<br>value=%{{y}}<extra></extra>",
             )
 
     if filename is not None:
@@ -784,7 +786,7 @@ def _plot_expressions(
 
 
 class GraphvizGenerator:
-    available_colors = [
+    available_colors: ClassVar[List[str]] = [
         "firebrick2",
         "gold2",
         "cornflowerblue",
@@ -807,7 +809,7 @@ class GraphvizGenerator:
             cls.random_color_counter += 1
         else:
             # If available_colors run out, generate a random color
-            color = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+            color = f"#{random.randint(0, 0xFFFFFF):06x}"
         return color
 
     @classmethod
@@ -821,7 +823,7 @@ class GraphvizGenerator:
         :param adjacency_list: The adjacency list representing the partial order plan.
         :return: The Graphviz representation as a string.
         """
-        for action_instance, _ in adjacency_list.items():
+        for action_instance in adjacency_list:
             if action_instance.agent is not None:
                 return cls._create_graphviz_output_with_agents(adjacency_list)
         return cls._create_graphviz_output_simple(adjacency_list)
@@ -836,7 +838,7 @@ class GraphvizGenerator:
         graphviz_out += "digraph {\n"
 
         # Iteration of the adjacency_list to identify agents
-        for start, end_list in adjacency_list.items():
+        for start in adjacency_list:
             agent_name = start.agent
             if agent_name not in agent_colors:
                 # Get a new color for the agent

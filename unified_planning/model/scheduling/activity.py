@@ -15,18 +15,17 @@
 
 from typing import Optional, Union
 
-from unified_planning.model.expression import NumericExpression
-
-from unified_planning.model.fnode import FNode
-from unified_planning.environment import get_environment, Environment
+import unified_planning as up
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.model import (
-    Timepoint,
-    TimepointKind,
     Fluent,
     Presence,
+    Timepoint,
+    TimepointKind,
 )
-import unified_planning as up
+from unified_planning.model.expression import NumericExpression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.scheduling.chronicle import Chronicle, Constraint
 
 

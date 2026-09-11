@@ -16,43 +16,42 @@
 import os
 import re
 import tempfile
-import pytest
 from typing import cast
+
+import pytest
+from pddl import parse_domain, parse_problem
+
 import unified_planning
 from unified_planning.environment import Environment
-from unified_planning.model.action import InstantaneousAction
-from unified_planning.model.metrics import (
-    MaximizeExpressionOnFinalState,
-    MinimizeExpressionOnFinalState,
-)
-from unified_planning.shortcuts import *
-from unified_planning.test import (
-    unittest_TestCase,
-    main,
-    skipIfNoOneshotPlannerForProblemKind,
-)
-from unified_planning.io import (
-    PDDLWriter,
-    UPPDDLReader,
-    PDDLReader,
-    extract_pddl_requirements,
-)
-from unified_planning.test.examples import get_example_problems
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPUnsupportedProblemTypeError,
 )
-from unified_planning.model.metrics import MinimizeSequentialPlanLength
-from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
-from unified_planning.model.problem_kind import simple_numeric_kind
-from unified_planning.model.types import _UserType
 from unified_planning.interop import (
     check_ai_pddl_requirements,
     convert_problem_from_ai_pddl,
 )
-
-from pddl import parse_domain, parse_problem
-
+from unified_planning.io import (
+    PDDLReader,
+    PDDLWriter,
+    UPPDDLReader,
+    extract_pddl_requirements,
+)
+from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.metrics import (
+    MaximizeExpressionOnFinalState,
+    MinimizeExpressionOnFinalState,
+    MinimizeSequentialPlanLength,
+)
+from unified_planning.model.problem_kind import simple_numeric_kind
+from unified_planning.model.types import _UserType
+from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
+from unified_planning.shortcuts import *
+from unified_planning.test import (
+    skipIfNoOneshotPlannerForProblemKind,
+    unittest_TestCase,
+)
+from unified_planning.test.examples import get_example_problems
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))
 PDDL_DOMAINS_PATH = os.path.join(FILE_PATH, "pddl")
@@ -109,7 +108,7 @@ class TestPddlIO(unittest_TestCase):
         a.add_effect(x, y)
 
         w = PDDLWriter(problem)
-        with self.assertRaises(UPProblemDefinitionError) as e:
+        with self.assertRaises(UPProblemDefinitionError):
             _ = w.get_domain()
 
         w = PDDLWriter(problem, rewrite_bool_assignments=True)
@@ -458,9 +457,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(problem.actions), 5)
         self.assertEqual(len(list(problem.objects(problem.user_type("object")))), 13)
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -478,9 +477,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(problem.actions), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("counter")))), 4)
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -499,9 +498,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("boat")))), 2)
         self.assertEqual(len(list(problem.objects(problem.user_type("person")))), 2)
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -516,8 +515,8 @@ class TestPddlIO(unittest_TestCase):
 
         self.assertIsNotNone(problem)
         self.assertEqual(len(problem.fluents), 8)
-        n_proc = len(list([el for el in problem.processes if isinstance(el, Process)]))
-        n_eve = len(list([el for el in problem.events if isinstance(el, Event)]))
+        n_proc = len([el for el in problem.processes if isinstance(el, Process)])
+        n_eve = len([el for el in problem.events if isinstance(el, Event)])
         self.assertEqual(n_proc, 3)
         self.assertEqual(n_eve, 1)
         found_drag_ahead = False
@@ -549,9 +548,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(list(problem.objects(problem.user_type("match")))), 3)
         self.assertEqual(len(list(problem.objects(problem.user_type("fuse")))), 3)
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -576,9 +575,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(len(problem.quality_metrics), 1)
         self.assertTrue(problem.quality_metrics[0].is_minimize_action_costs())
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -619,9 +618,9 @@ class TestPddlIO(unittest_TestCase):
         problem = reader.parse_problem(domain_filename, problem_filename)
         self._test_htn_transport_reader(problem)
 
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
@@ -660,7 +659,7 @@ class TestPddlIO(unittest_TestCase):
                 w.write_domain(domain_filename)
                 w.write_problem(problem_filename)
 
-                with open(domain_filename, "r") as domain_file:
+                with open(domain_filename) as domain_file:
                     domain_str = domain_file.read()
 
                 general_reader = PDDLReader(disable_warnings=True)
@@ -724,7 +723,7 @@ class TestPddlIO(unittest_TestCase):
                         self.assertEqual(a, w.get_item_named(parsed_a.name))
 
                         for param, parsed_param in zip(
-                            a.parameters, parsed_a.parameters
+                            a.parameters, parsed_a.parameters, strict=True
                         ):
                             self.assertEqual(
                                 param.type,
@@ -813,7 +812,10 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:init (is_at l1))", pddl_problem)
         self.assertIn("(:goal (and (is_at l2))))", pddl_problem)
 
-        expected_domain = """(define (domain basic_with_object_constant-domain)
+        # kept, underscore-prefixed, because nothing asserts against it any more: the
+        # checks above are assertIn on fragments. Restoring an exact-output assertion
+        # is a test-coverage question, not a lint one.
+        _expected_domain = """(define (domain basic_with_object_constant-domain)
  (:requirements :strips :typing :negative-preconditions)
  (:types location)
  (:constants
@@ -830,7 +832,7 @@ class TestPddlIO(unittest_TestCase):
   :effect (and (not (is_at ?l_from)) (is_at l1)))
 )
 """
-        expected_problem = """(define (problem basic_with_object_constant-problem)
+        _expected_problem = """(define (problem basic_with_object_constant-problem)
  (:domain basic_with_object_constant-domain)
  (:objects
    l2 - location
@@ -852,7 +854,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("2.5", pddl_txt)
 
         # Check imperfect conversion
-        with pytest.warns(UserWarning, match="cannot exactly represent") as warns:
+        with pytest.warns(UserWarning, match="cannot exactly represent"):
             battery = problem.fluent("battery_charge")
             problem.set_initial_value(battery, Fraction(10, 3))
             w = PDDLWriter(problem)
@@ -1002,7 +1004,10 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:objects obj_1_0 - when_)", pddl_problem)
         self.assertIn("(:init)", pddl_problem)
         self.assertIn("(:goal (and)))", pddl_problem)
-        expected_domain = """(define (domain ad_hoc-domain)
+        # kept, underscore-prefixed, because nothing asserts against it any more: the
+        # checks above are assertIn on fragments. Restoring an exact-output assertion
+        # is a test-coverage question, not a lint one.
+        _expected_domain = """(define (domain ad_hoc-domain)
  (:requirements :strips :typing :equality :conditional-effects)
  (:types when_)
  (:constants
@@ -1014,7 +1019,7 @@ class TestPddlIO(unittest_TestCase):
   :effect (and (when (= ?and_ obj_1) (f_4ction))))
 )
 """
-        expected_problem = """(define (problem ad_hoc-problem)
+        _expected_problem = """(define (problem ad_hoc-problem)
  (:domain ad_hoc-domain)
  (:objects
    obj_1_0 - when_
@@ -1109,13 +1114,14 @@ class TestPddlIO(unittest_TestCase):
             ),
             p,
         )
-        l = Variable("l_0", location, problem.environment)
-        l2 = Variable("l2", location, problem.environment)
+        loc = Variable("l_0", location, problem.environment)
+        loc2 = Variable("l2", location, problem.environment)
         goal_test = em.Forall(
             em.And(
-                visited(l), em.Forall(em.Or(em.Not(precedes(l2, l)), visited(l2)), l2)
+                visited(loc),
+                em.Forall(em.Or(em.Not(precedes(loc2, loc)), visited(loc2)), loc2),
             ),
-            l,
+            loc,
         )
         self.assertEqual(
             visit.duration,
@@ -1184,11 +1190,11 @@ class TestPddlIO(unittest_TestCase):
                 domain.clone()
             )  # Clone the parsed domain, then populate it and solve
             for j in range(i + 1):
-                object_j = Object(f"c{str(j)}", counter_type)
+                object_j = Object(f"c{j!s}", counter_type)
                 problem.add_object(object_j)
                 problem.set_initial_value(value_fluent(object_j), 0)
                 if j > 0:
-                    previous_object = problem.object(f"c{str(j - 1)}")
+                    previous_object = problem.object(f"c{j - 1!s}")
                     problem.add_goal(
                         LE(
                             Plus(value_fluent(previous_object), 1),
@@ -1217,7 +1223,9 @@ class TestPddlIO(unittest_TestCase):
         assert len(goals) == len(expected_goals), (
             "goals and expected_goals must have the same length"
         )
-        for i, (goal, expected_goal) in enumerate(zip(goals, expected_goals)):
+        for i, (goal, expected_goal) in enumerate(
+            zip(goals, expected_goals, strict=True)
+        ):
             problem = Problem(f"test_{i}")
             problem.add_fluent(x, default_initial_value=False)
             problem.add_fluent(y, default_initial_value=False)
@@ -1447,9 +1455,9 @@ class TestPddlIO(unittest_TestCase):
         self.assertTrue(connected.type.is_bool_type())
 
         # Verify string-based parsing produces the same result
-        with open(domain_filename, "r", encoding="utf-8") as file:
+        with open(domain_filename, encoding="utf-8") as file:
             domain_str = file.read()
-        with open(problem_filename, "r", encoding="utf-8") as file:
+        with open(problem_filename, encoding="utf-8") as file:
             problem_str = file.read()
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)

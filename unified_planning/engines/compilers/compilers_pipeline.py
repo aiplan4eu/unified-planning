@@ -13,15 +13,15 @@
 # limitations under the License.
 #
 
+from functools import partial
+from typing import Callable, List, Optional
+
 import unified_planning as up
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plans import ActionInstance
-from typing import List, Callable, Optional
-from functools import partial
-from warnings import warn
 
 
 class CompilersPipeline(engines.engine.Engine, CompilerMixin):
@@ -116,6 +116,5 @@ def map_back_action_instance(
         temp_action = f(action)
         if temp_action is None:
             return None
-        else:
-            action = temp_action
+        action = temp_action
     return action

@@ -14,62 +14,59 @@
 # limitations under the License.
 #
 
-from dataclasses import dataclass
-from fractions import Fraction
 import heapq
+import warnings
+from fractions import Fraction
 from typing import (
-    Any,
     Dict,
     Generator,
     List,
     Optional,
-    OrderedDict,
-    Set,
     Tuple,
     Union,
     cast,
 )
-import warnings
+
 import unified_planning as up
-import unified_planning.environment
 import unified_planning.engines as engines
 import unified_planning.engines.mixins as mixins
-from unified_planning.model.action import DurativeAction, InstantaneousAction
-from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
-from unified_planning.model.fnode import FNode
-from unified_planning.model.metrics import PlanQualityMetric, MinimizeActionCosts
-from unified_planning.model.state import UPState
-from unified_planning.model.timing import TimeInterval, TimepointKind, Timing
-from unified_planning.model import (
-    AbstractProblem,
-    Problem,
-    ProblemKind,
-    State,
-    MinimizeExpressionOnFinalState,
-    MaximizeExpressionOnFinalState,
-)
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+import unified_planning.environment
 from unified_planning.engines.results import (
+    FailedValidationReason,
+    LogLevel,
+    LogMessage,
     ValidationResult,
     ValidationResultStatus,
-    LogMessage,
-    LogLevel,
-    FailedValidationReason,
 )
 from unified_planning.engines.sequential_simulator import (
     InapplicabilityReasons,
     UPSequentialSimulator,
     evaluate_quality_metric,
 )
-from unified_planning.model.walkers.state_evaluator import StateEvaluator
-from unified_planning.plans import SequentialPlan, PlanKind
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
+    UPInvalidActionError,
+    UPProblemDefinitionError,
     UPStateMissingFluentError,
     UPUsageError,
-    UPProblemDefinitionError,
-    UPInvalidActionError,
 )
+from unified_planning.model import (
+    AbstractProblem,
+    MaximizeExpressionOnFinalState,
+    MinimizeExpressionOnFinalState,
+    Problem,
+    ProblemKind,
+    State,
+)
+from unified_planning.model.action import DurativeAction, InstantaneousAction
+from unified_planning.model.effect import Effect, EffectKind, SimulatedEffect
+from unified_planning.model.fnode import FNode
+from unified_planning.model.metrics import MinimizeActionCosts, PlanQualityMetric
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.state import UPState
+from unified_planning.model.timing import TimeInterval, Timing
+from unified_planning.model.walkers.state_evaluator import StateEvaluator
+from unified_planning.plans import PlanKind, SequentialPlan
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 
@@ -87,9 +84,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
         engines.engine.Engine.__init__(self)
         mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
-            unified_planning.environment.get_environment(
-                options.get("environment", None)
-            )
+            unified_planning.environment.get_environment(options.get("environment"))
         )
 
     @property
@@ -150,8 +145,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
             )
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warnings.warn(cast(str, msg))
+            warnings.warn(cast(str, msg), stacklevel=2)
         if metric is not None:
             metric_value: Union[int, Fraction] = 0
 
@@ -176,14 +170,14 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
 
         msg = None
         trace: List[State] = [simulator.get_initial_state()]
-        for i, ai in zip(range(1, len(plan.actions) + 1), plan.actions):
+        for i, ai in enumerate(plan.actions, start=1):
             try:
                 unsat_conds, reason = simulator.get_unsatisfied_conditions(
                     trace[-1], ai
                 )
                 if unsat_conds:
                     assert reason == InapplicabilityReasons.VIOLATES_CONDITIONS
-                    msg = f"Preconditions {unsat_conds} of {str(i)}-th action instance {str(ai)} are not satisfied."
+                    msg = f"Preconditions {unsat_conds} of {i!s}-th action instance {ai!s} are not satisfied."
                     return invalid_result(
                         msg,
                         trace,
@@ -208,13 +202,15 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     )
                 trace.append(next_state)
             except UPUsageError as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates a UsageError: {str(e)}"
+                msg = f"{i!s}-th action instance {ai!s} creates a UsageError: {e!s}"
             except UPInvalidActionError as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates an Invalid Action: {str(e)}"
+                msg = (
+                    f"{i!s}-th action instance {ai!s} creates an Invalid Action: {e!s}"
+                )
             except UPConflictingEffectsException as e:
-                msg = f"{str(i)}-th action instance {str(ai)} creates Conflicting Effects: {str(e)}"
+                msg = f"{i!s}-th action instance {ai!s} creates Conflicting Effects: {e!s}"
             except UPStateMissingFluentError:
-                msg = f"{str(i)}-th action instance {str(ai)} involves fluents with undefined values"
+                msg = f"{i!s}-th action instance {ai!s} involves fluents with undefined values"
 
             if msg is not None:
                 return invalid_result(
@@ -252,8 +248,7 @@ class SequentialPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixin):
                     trace=trace,
                     calculated_interpreted_functions=simulator.get_interpreted_functions_values(),
                 )
-            else:
-                msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
+            msg = f"Goals {unsatisfied_goals} are not satisfied by the plan."
         except UPStateMissingFluentError:
             msg = "Goals or quality metric involve fluents with undefined values in the final state."
 
@@ -279,9 +274,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         engines.engine.Engine.__init__(self)
         mixins.PlanValidatorMixin.__init__(self)
         self._env: "unified_planning.environment.Environment" = (
-            unified_planning.environment.get_environment(
-                options.get("environment", None)
-            )
+            unified_planning.environment.get_environment(options.get("environment"))
         )
 
     @property
@@ -390,9 +383,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 values = sim_eff.function(
                     problem,
                     state,
-                    dict(zip(ai.action.parameters, ai.actual_parameters)),
+                    dict(zip(ai.action.parameters, ai.actual_parameters, strict=True)),
                 )
-                for f, v in zip(fluents, values):
+                for f, v in zip(fluents, values, strict=True):
                     if f in updates:
                         if f.type.is_bool_type() and assigned[f] == ai:
                             # Handle "delete before add" semantics
@@ -486,7 +479,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     ) -> Optional[Fraction]:
         if timing.is_from_start():
             return action_start + timing.delay
-        elif timing.is_global():
+        if timing.is_global():
             return None
         assert action_duration is not None
         return action_start + action_duration + timing.delay
@@ -508,10 +501,9 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
     def _ground_expression(self, formula: FNode, ai: Optional[ActionInstance]) -> FNode:
         if ai is None:
             return formula
-        else:
-            return formula.substitute(
-                dict(zip(ai.action.parameters, ai.actual_parameters))
-            )
+        return formula.substitute(
+            dict(zip(ai.action.parameters, ai.actual_parameters, strict=True))
+        )
 
     def _validate(
         self, problem: "AbstractProblem", plan: "unified_planning.plans.Plan"
@@ -555,7 +547,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         ] = []
 
         plan_duration: Fraction = (
-            max(x[0] + (x[2] if x[2] else 0) for x in start_actions)
+            max(x[0] + (x[2] or 0) for x in start_actions)
             if start_actions
             else Fraction(0)
         )
@@ -752,7 +744,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         # Check (durative) conditions
         for (start, end, is_open), _, c, opt_ai in durative_conditions:
-            for t, state in self._states_in_interval(
+            for _t, state in self._states_in_interval(
                 trace=trace, start=start, end=end, open_interval=is_open
             ):
                 try:
@@ -775,21 +767,18 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             trace={k: v for k, v in trace.items() if k <= end},
                             calculated_interpreted_functions=se.if_values,
                         )
-                    else:
-                        return ValidationResult(
-                            status=ValidationResultStatus.INVALID,
-                            engine_name=self.name,
-                            log_messages=None,
-                            metric_evaluations=None,
-                            reason=FailedValidationReason.UNSATISFIED_GOALS,
-                            inapplicable_action=None,
-                            trace={
-                                k: v
-                                for k, v in trace.items()
-                                if end is None or k <= end
-                            },
-                            calculated_interpreted_functions=se.if_values,
-                        )
+                    return ValidationResult(
+                        status=ValidationResultStatus.INVALID,
+                        engine_name=self.name,
+                        log_messages=None,
+                        metric_evaluations=None,
+                        reason=FailedValidationReason.UNSATISFIED_GOALS,
+                        inapplicable_action=None,
+                        trace={
+                            k: v for k, v in trace.items() if end is None or k <= end
+                        },
+                        calculated_interpreted_functions=se.if_values,
+                    )
 
         for g in problem.goals:
             try:
@@ -956,7 +945,7 @@ def _extract_action_costs(
                 "The parameters length is different than the action's parameters length."
             )
         action_cost_exp = action_cost_exp.substitute(
-            dict(zip(action.parameters, parameters))
+            dict(zip(action.parameters, parameters, strict=True))
         )
         assert isinstance(action_cost_exp, up.model.FNode)
 

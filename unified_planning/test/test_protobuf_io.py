@@ -16,15 +16,16 @@
 
 import dataclasses
 from typing import Callable, List, Union
+
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
 from unified_planning.test import (
-    unittest_TestCase,
     skipIfEngineNotAvailable,
     skipIfModuleNotInstalled,
+    unittest_TestCase,
 )
 from unified_planning.test.examples import get_example_problems
 
@@ -34,8 +35,12 @@ class TestProtobufIO(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
-        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_reader import (  # type: ignore[attr-defined]
+            ProtobufReader,
+        )
+        from unified_planning.grpc.proto_writer import (  # type: ignore[attr-defined]
+            ProtobufWriter,
+        )
 
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
@@ -133,9 +138,10 @@ class TestProtobufIO(unittest_TestCase):
         problem_pb = self.pb_writer.convert(problem)
         problem_up = self.pb_reader.convert(problem_pb)
 
-        pb_features = set(
-            [up_pb2.Feature.Name(feature) for feature in problem_pb.features]  # type: ignore[attr-defined]
-        )
+        pb_features = {
+            up_pb2.Feature.Name(feature)  # type: ignore[attr-defined]
+            for feature in problem_pb.features
+        }
         self.assertEqual(set(problem.kind.features), pb_features)
         self.assertEqual(problem, problem_up)
 
@@ -345,6 +351,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing, symbol in zip(
             [StartTiming(), EndTiming(), GlobalStartTiming(), GlobalEndTiming()],
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+            strict=True,
         ):
             t_pb = build(timing)
             check(t_pb, fun_app_kind, tpe=time_type, length=1)
@@ -362,6 +369,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing_builder, symbol in zip(
             timing_builders,
             [start_symbol, end_symbol, global_start_symbol, global_end_symbol],
+            strict=True,
         ):
             for delay in delays:
                 t_pb = build(timing_builder() + delay)
@@ -380,6 +388,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing, symbol in zip(
             [StartTiming(container=act.name), EndTiming(container=act.name)],
             [start_symbol, end_symbol],
+            strict=True,
         ):
             t_pb = build(timing)
             check(t_pb, fun_app_kind, tpe=time_type, length=2)
@@ -396,6 +405,7 @@ class TestProtobufIO(unittest_TestCase):
         for timing_builder, symbol in zip(
             contained_timing_builders,
             [start_symbol, end_symbol],
+            strict=True,
         ):
             for delay in delays:
                 t_pb = build(timing_builder(container=act.name) + delay)
@@ -415,8 +425,12 @@ class TestProtobufProblems(unittest_TestCase):
     def setUp(self):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
-        from unified_planning.grpc.proto_reader import ProtobufReader  # type: ignore[attr-defined]
-        from unified_planning.grpc.proto_writer import ProtobufWriter  # type: ignore[attr-defined]
+        from unified_planning.grpc.proto_reader import (  # type: ignore[attr-defined]
+            ProtobufReader,
+        )
+        from unified_planning.grpc.proto_writer import (  # type: ignore[attr-defined]
+            ProtobufWriter,
+        )
 
         self.pb_writer = ProtobufWriter()
         self.pb_reader = ProtobufReader()
@@ -460,7 +474,7 @@ class TestProtobufProblems(unittest_TestCase):
                 )
 
     def test_all_plans(self):
-        for name, example in self.problems.items():
+        for example in self.problems.values():
             problem = example.problem
             plans = example.valid_plans
             plan = plans[0] if plans else None

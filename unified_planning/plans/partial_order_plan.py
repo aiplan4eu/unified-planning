@@ -14,14 +14,16 @@
 #
 
 
+from typing import Callable, Dict, Iterator, List, Optional
+
 import networkx as nx
+
 import unified_planning as up
 import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.plans.plan import ActionInstance
 from unified_planning.plans.sequential_plan import SequentialPlan
-from typing import Callable, Dict, Iterator, List, Optional
 
 
 class PartialOrderPlan(plans.plan.Plan):
@@ -52,7 +54,7 @@ class PartialOrderPlan(plans.plan.Plan):
         # If we don't have a specific environment, use the environment of the first action
         else:
             assert len(adjacency_list) > 0
-            for ai in adjacency_list.keys():
+            for ai in adjacency_list:
                 plans.plan.Plan.__init__(
                     self, plans.plan.PlanKind.PARTIAL_ORDER_PLAN, ai.action.environment
                 )
@@ -85,17 +87,22 @@ class PartialOrderPlan(plans.plan.Plan):
             )
 
     def __repr__(self) -> str:
-        return f"PartialOrderPlan({repr(self.get_adjacency_list)})"
+        return f"PartialOrderPlan({self.get_adjacency_list!r})"
 
     def __str__(self) -> str:
         ret = ["PartialOrderPlan:", "  actions:"]
 
         # give an ID, starting from 0, to every ActionInstance in the Plan
-        swap_couple = lambda x: (x[1], x[0])
+        def swap_couple(x):
+            return (x[1], x[0])
+
         id: Dict[ActionInstance, int] = dict(
             map(swap_couple, enumerate(nx.topological_sort(self._graph)))
         )
-        convert_action_id = lambda action_id: f"    {action_id[1]}) {action_id[0]}"
+
+        def convert_action_id(action_id):
+            return f"    {action_id[1]}) {action_id[0]}"
+
         ret.extend(map(convert_action_id, id.items()))
 
         ret.append("  constraints:")
@@ -104,7 +111,10 @@ class PartialOrderPlan(plans.plan.Plan):
         def convert_action_adjlist(action_adjlist):
             action = action_adjlist[0]
             adj_list = action_adjlist[1]
-            get_id_as_str = lambda ai: str(id[ai])
+
+            def get_id_as_str(ai):
+                return str(id[ai])
+
             adj_list_str = " ,".join(map(get_id_as_str, adj_list))
             return f"    {id[action]} < {adj_list_str}"
 
@@ -124,8 +134,7 @@ class PartialOrderPlan(plans.plan.Plan):
                 oth._graph,
                 node_match=_semantically_equivalent_action_instances,
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(nx.weisfeiler_lehman_graph_hash(self._graph))
@@ -133,8 +142,7 @@ class PartialOrderPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, ActionInstance):
             return any(item.is_semantically_equivalent(a) for a in self._graph.nodes)
-        else:
-            return False
+        return False
 
     @property
     def get_adjacency_list(
@@ -174,18 +182,18 @@ class PartialOrderPlan(plans.plan.Plan):
         # Populate the new adjacency list with the replaced action instances
 
         for ai in self._graph.nodes:
-            replaced_ai = original_to_replaced_ai.get(ai, None)
+            replaced_ai = original_to_replaced_ai.get(ai)
             if replaced_ai is not None:
                 replaced_ai = original_to_replaced_ai[ai]
                 replaced_neighbors = []
                 for successor in self._graph.neighbors(ai):
-                    replaced_successor = original_to_replaced_ai.get(successor, None)
+                    replaced_successor = original_to_replaced_ai.get(successor)
                     if replaced_successor is not None:
                         replaced_neighbors.append(replaced_successor)
                 new_adj_list[replaced_ai] = replaced_neighbors
 
         new_env = self._environment
-        for ai in new_adj_list.keys():
+        for ai in new_adj_list:
             new_env = ai.action.environment
             break
         return up.plans.PartialOrderPlan(new_adj_list, new_env)
@@ -211,12 +219,11 @@ class PartialOrderPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.SEQUENTIAL_PLAN:
+        if plan_kind == plans.plan.PlanKind.SEQUENTIAL_PLAN:
             return SequentialPlan(
                 list(nx.topological_sort(self._graph)), self._environment
             )
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def all_sequential_plans(self) -> Iterator[SequentialPlan]:
         """Returns all possible `SequentialPlans` that respects the ordering constraints given by this `PartialOrderPlan`."""
@@ -236,8 +243,8 @@ class PartialOrderPlan(plans.plan.Plan):
             retval = self._graph.neighbors(action_instance)
         except nx.NetworkXError:
             raise UPUsageError(
-                f"The action instance {str(action_instance)} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
-            )
+                f"The action instance {action_instance!s} does not belong to this Partial Order Plan. \n Note that 2 Action Instances are equals if and only if they are the exact same object."
+            ) from None
         return retval
 
 

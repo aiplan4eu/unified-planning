@@ -13,13 +13,13 @@
 # limitations under the License.
 #
 
-from typing import Callable, Optional, List, Union, Dict
+from typing import Callable, Dict, List, Optional, Union
 
-from unified_planning.model.expression import ConstantExpression
 from unified_planning.environment import Environment
-from unified_planning.model import AbstractProblem, Parameter, Timepoint, FNode
+from unified_planning.model import AbstractProblem, FNode, Parameter, Timepoint
+from unified_planning.model.expression import ConstantExpression
 from unified_planning.model.scheduling import Activity
-from unified_planning.plans.plan import Plan, PlanKind, ActionInstance
+from unified_planning.plans.plan import ActionInstance, Plan, PlanKind
 
 Variable = Union[Parameter, Timepoint]
 Value = ConstantExpression
@@ -82,7 +82,7 @@ class Schedule(Plan):
             s.append(a.name)
             if len(a.parameters) > 0:
 
-                def fmt(p):
+                def fmt(p, a=a):
                     prefix = a.name + "."
                     assert p.name.startswith(prefix)
                     return f"{p.name[len(prefix) :]}={self.get(p)}"
@@ -94,8 +94,8 @@ class Schedule(Plan):
         return "".join(s)
 
     def __hash__(self):
-        h = sum(map(lambda a: hash(a.name), self.activities))
-        h += sum(map(lambda kv: hash(kv[0]) + hash(kv[1]), self.assignment.items()))
+        h = sum(hash(a.name) for a in self.activities)
+        h += sum(hash(kv[0]) + hash(kv[1]) for kv in self.assignment.items())
         return h
 
     def __eq__(self, other):
@@ -124,5 +124,4 @@ class Schedule(Plan):
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         if plan_kind == PlanKind.SCHEDULE:
             return self
-        else:
-            raise ValueError(f"Schedule cannot be converted to {plan_kind.name}")
+        raise ValueError(f"Schedule cannot be converted to {plan_kind.name}")

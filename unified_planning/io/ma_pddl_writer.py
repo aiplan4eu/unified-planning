@@ -15,18 +15,15 @@
 
 import os as osy
 import sys
+from io import StringIO
+from typing import Dict, List, Optional, Set, Union, cast
 
 import unified_planning as up
-from unified_planning.model import DurativeAction, Fluent, Object
-from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.exceptions import (
-    UPTypeError,
-    UPProblemDefinitionError,
     UPException,
+    UPProblemDefinitionError,
+    UPTypeError,
 )
-from unified_planning.model.types import _UserType
-from typing import Dict, List, Optional, Set, Union, cast
-from io import StringIO
 from unified_planning.io.pddl_writer import (
     GENERAL_PDDL_KEYWORDS,
     PDDL3_KEYWORDS,
@@ -34,9 +31,12 @@ from unified_planning.io.pddl_writer import (
     ConverterToPDDLString,
     MangleFunction,
     WithName,
-    _write_effect,
     _get_pddl_name,
+    _write_effect,
 )
+from unified_planning.model import DurativeAction, Fluent
+from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
+from unified_planning.model.types import _UserType
 
 MA_PDDL_KEYWORDS = GENERAL_PDDL_KEYWORDS.union(TEMPORAL_PDDL_KEYWORDS).union(
     PDDL3_KEYWORDS
@@ -84,8 +84,7 @@ class ConverterToMAPDDLString(ConverterToPDDLString):
 
         if self._agent is not None and fluent in self._agent.fluents:
             return f"(a_{self.get_mangled_name(fluent)}{agent_name}  ?{self._agent.name}{' ' if len(args) > 0 else ''}{' '.join(args)})"
-        else:
-            return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
+        return f"({self.get_mangled_name(fluent)}{' ' if len(args) > 0 else ''}{' '.join(args)})"
 
 
 class MAPDDLWriter:
@@ -192,10 +191,8 @@ class MAPDDLWriter:
 
             if self.problem_kind.has_hierarchical_typing():
                 user_types_hierarchy = self.problem.user_types_hierarchy
-                out.write(f" (:types\n")
-                stack: List["up.model.Type"] = (
-                    user_types_hierarchy[None] if None in user_types_hierarchy else []
-                )
+                out.write(" (:types\n")
+                stack: List["up.model.Type"] = user_types_hierarchy.get(None, [])
                 out.write(
                     f"    {' '.join(self._get_mangled_name(t) for t in stack)}{' ' if len(self.problem.agents) > 0 else ''}ag - object\n"
                 )
@@ -300,9 +297,6 @@ class MAPDDLWriter:
             for g in self.problem.goals:
                 if g.is_dot():
                     f = g.args[0].fluent()
-                    agent = g.agent()
-                    # args = g.args
-                    # objects = g.args[0].args
                     if f not in ag.fluents and f not in self.all_public_fluents:
                         if f.type.is_bool_type():
                             params = []
@@ -343,7 +337,7 @@ class MAPDDLWriter:
 
             nl = "\n  "
             out.write(
-                f" (:predicates\n "
+                " (:predicates\n "
                 if len(predicates_environment) > 0
                 or len(predicates_agents) > 0
                 or len(predicates_agent_goal) > 0
@@ -379,7 +373,7 @@ class MAPDDLWriter:
                     else ""
                 )
             out.write(
-                f")\n"
+                ")\n"
                 if len(predicates_environment) > 0
                 or len(predicates_agents) > 0
                 or len(predicates_agent_goal) > 0
@@ -388,7 +382,7 @@ class MAPDDLWriter:
             )
 
             out.write(
-                f" (:functions\n"
+                " (:functions\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
@@ -416,7 +410,7 @@ class MAPDDLWriter:
                 else ""
             )
             out.write(
-                f" )\n"
+                " )\n"
                 if len(functions_environment) > 0
                 or len(functions_agent) > 0
                 or len(functions_agent_goal) > 0
@@ -441,7 +435,7 @@ class MAPDDLWriter:
                         if self.unfactored:
                             out.write(f"\n  :agent ?{ag.name} - {ag.name + '_type'}")
 
-                        out.write(f"\n  :parameters (")
+                        out.write("\n  :parameters (")
 
                         if not self.unfactored:
                             out.write(
@@ -458,10 +452,10 @@ class MAPDDLWriter:
                                 )
                         out.write(")")
                         if len(a.preconditions) > 0:
-                            out.write(f"\n  :precondition (and \n")
+                            out.write("\n  :precondition (and \n")
                             for p in a.preconditions:
                                 out.write(f"   {converter.convert(p)}\n")
-                            out.write(f"  )")
+                            out.write("  )")
 
                         if len(a.effects) > 0:
                             out.write("\n  :effect (and\n")
@@ -483,7 +477,7 @@ class MAPDDLWriter:
                         out.write(")\n")
                     elif isinstance(a, DurativeAction):
                         out.write(f" (:durative-action {self._get_mangled_name(a)}")
-                        out.write(f"\n  :parameters (")
+                        out.write("\n  :parameters (")
                         for ap in a.parameters:
                             if ap.type.is_user_type():
                                 out.write(
@@ -494,24 +488,24 @@ class MAPDDLWriter:
                                     "MA-PDDL supports only user type parameters"
                                 )
                         out.write(")")
-                        l, r = a.duration.lower, a.duration.upper
-                        if l == r:
+                        low, upp = a.duration.lower, a.duration.upper
+                        if low == upp:
                             out.write(
-                                f"\n  :duration (= ?duration {converter.convert(l)})"
+                                f"\n  :duration (= ?duration {converter.convert(low)})"
                             )
                         else:
-                            out.write(f"\n  :duration (and ")
+                            out.write("\n  :duration (and ")
                             if a.duration.is_left_open():
-                                out.write(f"(> ?duration {converter.convert(l)})")
+                                out.write(f"(> ?duration {converter.convert(low)})")
                             else:
-                                out.write(f"(>= ?duration {converter.convert(l)})")
+                                out.write(f"(>= ?duration {converter.convert(low)})")
                             if a.duration.is_right_open():
-                                out.write(f"(< ?duration {converter.convert(r)})")
+                                out.write(f"(< ?duration {converter.convert(upp)})")
                             else:
-                                out.write(f"(<= ?duration {converter.convert(r)})")
+                                out.write(f"(<= ?duration {converter.convert(upp)})")
                             out.write(")")
                         if len(a.conditions) > 0:
-                            out.write(f"\n  :condition (and ")
+                            out.write("\n  :condition (and ")
                             for interval, cl in a.conditions.items():
                                 for c in cl:
                                     if interval.lower == interval.upper:
@@ -595,9 +589,7 @@ class MAPDDLWriter:
             if len(self.problem.user_types) + len(self.problem.agents) > 0:
                 out.write(" (:objects")
                 for t in self.problem.user_types:
-                    constants_of_this_type = set(
-                        o for o in domain_objects if o.type == t
-                    )
+                    constants_of_this_type = {o for o in domain_objects if o.type == t}
 
                     objects = [
                         o
@@ -611,12 +603,12 @@ class MAPDDLWriter:
 
                 # If agents are not defined as "constant" in the domain, they are defined in the problem
                 for agent in self.problem.agents:
-                    if agent not in self.domain_objects_agents.keys():
+                    if agent not in self.domain_objects_agents:
                         out.write(
                             f"\n   {self._get_mangled_name(agent)} - {self._get_mangled_name(agent) + '_type'}"
                         )
                     else:
-                        out.write(f"")
+                        out.write("")
 
                 out.write("\n )\n")
 
@@ -629,21 +621,13 @@ class MAPDDLWriter:
                 if v.is_true():
                     if f.is_dot():
                         fluent = f.args[0].fluent()
-                        args = f.args
                         if not self.unfactored:
-                            if (
-                                fluent in self.all_public_fluents
-                                or fluent in ag.fluents
-                                and f.agent() == ag.name
-                            ):
-                                out.write(f"\n  {converter.convert(f)}")
-                            elif (
-                                f.agent() != ag.name
-                                and fluent in self.all_public_fluents
+                            if fluent in self.all_public_fluents or (
+                                fluent in ag.fluents and f.agent() == ag.name
                             ):
                                 out.write(f"\n  {converter.convert(f)}")
                             else:
-                                out.write(f"")
+                                out.write("")
                         else:
                             out.write(f"\n  {converter.convert(f)}")
                     else:
@@ -652,21 +636,13 @@ class MAPDDLWriter:
                     if self.explicit_false_initial_states:
                         if f.is_dot():
                             fluent = f.args[0].fluent()
-                            args = f.args
                             if not self.unfactored:
-                                if (
-                                    fluent in self.all_public_fluents
-                                    or fluent in ag.fluents
-                                    and f.agent() == ag.name
-                                ):
-                                    out.write(f"\n  (not {converter.convert(f)})")
-                                elif (
-                                    f.agent() != ag.name
-                                    and fluent in self.all_public_fluents
+                                if fluent in self.all_public_fluents or (
+                                    fluent in ag.fluents and f.agent() == ag.name
                                 ):
                                     out.write(f"\n  (not {converter.convert(f)})")
                                 else:
-                                    out.write(f"")
+                                    out.write("")
                             else:
                                 out.write(f"\n  (not {converter.convert(f)})")
                         else:
@@ -676,12 +652,12 @@ class MAPDDLWriter:
                 else:
                     out.write(f"\n  (= {converter.convert(f)} {converter.convert(v)})")
             if self.problem.kind.has_actions_cost():
-                out.write(f" (= (total-cost) 0)")
+                out.write(" (= (total-cost) 0)")
             out.write(")\n")
-            out.write(f" (:goal (and")
+            out.write(" (:goal (and")
             for p in self.problem.goals:
                 out.write(f" {converter.convert(p)}")
-            out.write(f"))")
+            out.write("))")
             out.write("\n)")
             ag_problems[self._get_mangled_name(ag)] = out.getvalue()
             out.close()
@@ -730,10 +706,7 @@ class MAPDDLWriter:
         ag_domains = self._write_domain()
         osy.makedirs(directory_name, exist_ok=True)
         for ag, domain in ag_domains.items():
-            if not self.unfactored:
-                name_domain = ag + "_"
-            else:
-                name_domain = ""
+            name_domain = "" if self.unfactored else ag + "_"
             path_ma_pddl = osy.path.join(directory_name, name_domain + "domain.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(domain)
@@ -743,10 +716,7 @@ class MAPDDLWriter:
         ag_problems = self._write_problem()
         osy.makedirs(directory_name, exist_ok=True)
         for ag, problem in ag_problems.items():
-            if not self.unfactored:
-                name_problem = ag + "_"
-            else:
-                name_problem = ""
+            name_problem = "" if self.unfactored else ag + "_"
             path_ma_pddl = osy.path.join(directory_name, name_problem + "problem.pddl")
             with open(path_ma_pddl, "w") as f:
                 f.write(problem)
@@ -851,7 +821,9 @@ class MAPDDLWriter:
         try:
             return self.nto_renamings[name]
         except KeyError:
-            raise UPException(f"The name {name} does not correspond to any item.")
+            raise UPException(
+                f"The name {name} does not correspond to any item."
+            ) from None
 
     def get_ma_pddl_name(
         self,
@@ -876,7 +848,7 @@ class MAPDDLWriter:
         except KeyError:
             raise UPException(
                 f"The item {item} does not correspond to any item renamed."
-            )
+            ) from None
 
     def _all_public_fluents(
         self,

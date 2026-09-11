@@ -14,24 +14,23 @@
 #
 
 
-from io import StringIO
-import unified_planning as up
-from unified_planning.shortcuts import *
-from unified_planning.engines import PlanGenerationResultStatus
-from unified_planning.test import unittest_TestCase, main, skipIfEngineNotAvailable
-from unified_planning.test.examples import get_example_problems
-
 import os
 import tempfile
+from io import StringIO
 from queue import Empty, Queue
 from typing import List, Optional
 from unittest.mock import MagicMock, patch
 
+import unified_planning as up
+from unified_planning.engines import PlanGenerationResultStatus
 from unified_planning.engines.pddl_anytime_planner import PDDLAnytimePlanner, Writer
 from unified_planning.engines.pddl_planner import PDDLPlanner
 from unified_planning.engines.results import LogMessage
 from unified_planning.io import PDDLWriter
 from unified_planning.model import ProblemKind
+from unified_planning.shortcuts import *
+from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
+from unified_planning.test.examples import get_example_problems
 
 VERYSMALL_TIMEOUT = 0.0001
 
@@ -88,7 +87,7 @@ class _StubAnytimePlanner(PDDLAnytimePlanner):
         return "end-of-plan"
 
     def _parse_plan_line(self, plan_line: str) -> str:
-        return "(%s)" % plan_line.split("(")[0].strip()
+        return "({})".format(plan_line.split("(")[0].strip())
 
 
 class _StubOneshotPlanner(PDDLPlanner):
@@ -422,7 +421,8 @@ class TestPDDLPlanner(unittest_TestCase):
         q: Queue = Queue()
         writer_a = Writer(None, q, planner, problem_a)
 
-        setattr(
+        # setattr, not a plain assignment: B010's fix is a mypy method-assign error
+        setattr(  # noqa: B010
             planner,
             "_get_cmd",
             lambda domain_filename, problem_filename, plan_filename: ["true"],
@@ -454,7 +454,7 @@ class TestPDDLPlanner(unittest_TestCase):
         captured_cwd: List = []
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(
@@ -478,7 +478,7 @@ class TestPDDLPlanner(unittest_TestCase):
         captured_cwd: List = []
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(
@@ -514,10 +514,10 @@ class TestPDDLPlanner(unittest_TestCase):
             )
             return original_get_cmd(domain_filename, _problem, _plan)
 
-        setattr(planner, "_get_cmd", intercepting_get_cmd)
+        setattr(planner, "_get_cmd", intercepting_get_cmd)  # noqa: B010
 
         def mock_popen(_cmd, *_args, **kwargs):
-            captured_cwd.append(kwargs.get("cwd", None))
+            captured_cwd.append(kwargs.get("cwd"))
             return _make_mock_process()
 
         with patch(

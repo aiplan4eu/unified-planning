@@ -16,10 +16,11 @@
 
 
 from typing import Dict, List, Optional
+
 import unified_planning as up
-from unified_planning.model.fnode import FNode
-from unified_planning.model.expression import Expression
 from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
 from unified_planning.model.walkers.quantifier_simplifier import QuantifierSimplifier
 
 
@@ -35,7 +36,7 @@ class StateEvaluator(QuantifierSimplifier):
         self,
         expression: "FNode",
         state: "up.model.state.State",
-        _variable_assignments: Dict["Expression", "Expression"] = {},
+        _variable_assignments: Optional[Dict["Expression", "Expression"]] = None,
     ) -> FNode:
         """
         Evaluates the given expression in the given `State`.
@@ -52,7 +53,7 @@ class StateEvaluator(QuantifierSimplifier):
         assert self._assignments is None
         assert self._variable_assignments is None
         self._variable_assignments: Optional[Dict["Expression", "Expression"]] = (
-            _variable_assignments
+            _variable_assignments or {}
         )
         self._state = state
         r = self.walk(expression)
@@ -84,7 +85,7 @@ class StateEvaluator(QuantifierSimplifier):
 
     def walk_param_exp(self, expression: "FNode", args: List["FNode"]) -> "FNode":
         raise UPProblemDefinitionError(
-            f"The StateEvaluator.evaluate should only be called on grounded expressions."
+            "The StateEvaluator.evaluate should only be called on grounded expressions."
         )
 
     def iter_walk(self, expression: FNode, **kwargs):

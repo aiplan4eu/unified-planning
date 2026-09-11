@@ -15,7 +15,7 @@
 
 from abc import ABC
 from dataclasses import dataclass
-from typing import Tuple, List
+from typing import List, Tuple
 
 from unified_planning.model.motion.objects import SE2, SE3
 

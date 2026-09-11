@@ -14,12 +14,12 @@
 #
 
 
-from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 from unified_planning.model.multi_agent.agent import Agent
 from unified_planning.model.multi_agent.ma_environment import MAEnvironment
+from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 
 __all__ = [
-    "MultiAgentProblem",
     "Agent",
     "MAEnvironment",
+    "MultiAgentProblem",
 ]

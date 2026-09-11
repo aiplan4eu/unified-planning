@@ -1,4 +1,5 @@
 import os
+
 from unified_planning.shortcuts import *
 from unified_planning.test import TestCase
 

@@ -15,14 +15,15 @@
 #
 """This module defines the PlanGenerationResult class."""
 
-from fractions import Fraction
-import unified_planning as up
-from unified_planning.exceptions import UPUsageError, UPValueError
-from unified_planning.model import AbstractProblem, Problem, PlanQualityMetric
-from unified_planning.plans import ActionInstance, TimeTriggeredPlan, Plan
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Callable, Dict, Optional, List, Union, cast
+from fractions import Fraction
+from typing import Callable, Dict, List, Optional, Union, cast
+
+import unified_planning as up
+from unified_planning.exceptions import UPUsageError, UPValueError
+from unified_planning.model import AbstractProblem, PlanQualityMetric, Problem
+from unified_planning.plans import ActionInstance, Plan, TimeTriggeredPlan
 
 
 class ValidationResultStatus(Enum):
@@ -40,10 +41,7 @@ class ValidationResultStatus(Enum):
     )  # The planner can't tell if the plan is valid or invalid for the given problem
 
     def __bool__(self):
-        if self == ValidationResultStatus.VALID:
-            return True
-        else:
-            return False
+        return self == ValidationResultStatus.VALID
 
 
 class FailedValidationReason(Enum):
@@ -147,11 +145,11 @@ class PlanGenerationResult(Result):
         # Checks that plan and status are consistent
         if self.status in POSITIVE_OUTCOMES and self.plan is None:
             raise UPUsageError(
-                f"The Result status is {str(self.status)} but no plan is set."
+                f"The Result status is {self.status!s} but no plan is set."
             )
-        elif self.status in NEGATIVE_OUTCOMES and self.plan is not None:
+        if self.status in NEGATIVE_OUTCOMES and self.plan is not None:
             raise UPUsageError(
-                f"The Result status is {str(self.status)} but the plan is {str(self.plan)}.\nWith this status the plan must be None."
+                f"The Result status is {self.status!s} but the plan is {self.plan!s}.\nWith this status the plan must be None."
             )
         return self
 
@@ -208,11 +206,11 @@ def correct_plan_generation_result(
             engine_epsilon = Fraction(engine_epsilon)
         except ValueError as e:
             raise UPValueError(
-                f"Given engine_epsilon is not convertible to Fraction: {str(e)}."
-            )
+                f"Given engine_epsilon is not convertible to Fraction: {e!s}."
+            ) from e
     if engine_epsilon == problem.epsilon:
         return result
-    elif engine_epsilon is None or (
+    if engine_epsilon is None or (
         problem.epsilon is not None and engine_epsilon < problem.epsilon
     ):
         # if engine_epsilon is not specified or it's smaller than the problem's
@@ -248,7 +246,7 @@ def correct_plan_generation_result(
                 result.metrics,
                 result.log_messages,
             )
-        elif result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
+        if result.status == PlanGenerationResultStatus.SOLVED_OPTIMALLY:
             return PlanGenerationResult(
                 PlanGenerationResultStatus.SOLVED_SATISFICING,
                 None,
@@ -294,7 +292,7 @@ class ValidationResult(Result):
             f"engine: {self.engine_name}",
         ]
         if self.metric_evaluations is not None:
-            ret.append(f"metrics: ")
+            ret.append("metrics: ")
             for metric, value in self.metric_evaluations.items():
                 ret.append(f"    {metric}: {value}")
         if self.reason is not None:
@@ -339,7 +337,7 @@ class CompilerResult(Result):
             self.map_back_action_instance is None and self.plan_back_conversion is None
         ):
             raise UPUsageError(
-                f"The compiled Problem is not None but both map_back_action_instance and plan_back_conversion are None."
+                "The compiled Problem is not None but both map_back_action_instance and plan_back_conversion are None."
             )
 
         if self.map_back_action_instance is not None:

@@ -87,7 +87,8 @@ dev = [
     "pytest-cov>=5.0",
     # Exact so that type errors appear on code change, not on tool drift.
     "mypy==2.3.1",
-    "ruff>=0.6.0",
+    # Exact, like mypy: `lint.ignore` names rule codes and ruff hard-errors on an unknown one.
+    "ruff==0.16.5",
     "pre-commit>=3.5",
 ]
 docs = [
@@ -137,13 +138,97 @@ line-length = 88
 target-version = "py310"
 # generated protobuf code and docs (notebooks/snippets with IPython magics) are excluded
 extend-exclude = ["unified_planning/grpc/generated", "docs"]
+# "up_test_cases" is what makes report.py's `from utils import ...` sort as first-party.
+src = [".", "up_test_cases"]
 
-# ruff is used purely as the formatter here — the drop-in replacement for black.
-# Linting is intentionally disabled: enabling unused-import/import-sorting autofixes
-# rewrites re-export modules (e.g. unified_planning/interop/tarski.py) and changes the
-# public API. Adopting lint rules is left to a dedicated follow-up PR.
+# Rules are adopted family by family, each with the fixes it requires. Deliberately never
+# selected: E501 (the formatter owns line width), COM (the formatter's job, and ruff warns
+# COM812 conflicts with it), D (the docstrings are Sphinx/reST prose, not PEP 257), ANN (mypy
+# owns annotation coverage), ARG (the walker and mixin signatures are protocol-driven), and TC
+# (it would move `import unified_planning as up` into TYPE_CHECKING and break the runtime uses).
 [tool.ruff.lint]
-select = []
+select = [
+    "E4",    # pycodestyle: import placement
+    "E7",    # pycodestyle: statement-level errors
+    "E9",    # pycodestyle: syntax and IO errors
+    "W",     # pycodestyle warnings
+    "DTZ",   # flake8-datetimez
+    "EXE",   # flake8-executable
+    "ASYNC", # flake8-async
+    "LOG",   # flake8-logging
+    "T10",   # flake8-debugger
+    "TID",   # flake8-tidy-imports
+    "YTT",   # flake8-2020: sys.version comparisons
+    "I",     # isort
+    "F",     # pyflakes
+    "RET",   # flake8-return
+    "C4",    # flake8-comprehensions
+    "SIM",   # flake8-simplify
+    "PERF",  # perflint
+    "B",     # flake8-bugbear
+    "PIE",   # flake8-pie
+    "FURB",  # refurb
+    "ISC",   # flake8-implicit-str-concat
+    "RUF",   # ruff-specific
+    "UP",    # pyupgrade
+    "PGH",   # pygrep-hooks
+]
+ignore = [
+    # A named intermediate before `return` is often the only thing saying what the value is.
+    "RET504", # unnecessary-assign
+    # Per-item handling that cannot be hoisted, and a `try` that does not raise is free since 3.11.
+    "PERF203", # try-except-in-loop
+    # Abstract by contract, with shared concrete behaviour and nothing to mark @abstractmethod.
+    # Dropping ABC would change the metaclass of public base classes that downstream engines subclass.
+    "B024", # abstract-base-class-without-abstract-method
+    # A PEP 585/604/695 annotation migration rather than lint adoption, so it lands in its own
+    # PR; deleting this block is the end state. A future ruff may add a rule this list misses.
+    "UP006", # non-pep585-annotation          Dict -> dict
+    "UP007", # non-pep604-annotation-union    Union[a, b] -> a | b
+    "UP035", # deprecated-import              typing.Dict -> collections.abc
+    "UP037", # quoted-annotation
+    "UP045", # non-pep604-annotation-optional Optional[a] -> a | None
+    "UP046", # non-pep695-generic-class
+    "UP047", # non-pep695-generic-function
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Re-export façades: that is the job of these files, and downstream engine packages import
+# names straight out of them. `__all__` is not used instead - adding the missing names to
+# model/__init__.py's would change what `from unified_planning.shortcuts import *` yields.
+"**/__init__.py" = ["F401"]
+# shortcuts.py is the star-export surface itself. B008 rides along because ProblemKind arrives
+# through that same star import, so extend-immutable-calls cannot resolve the name here.
+"unified_planning/shortcuts.py" = ["F403", "F405", "B008"]
+# The CLI and the protobuf writer consume that surface deliberately.
+"unified_planning/cmd/up.py" = ["F403", "F405"]
+# PGH003 here is TEMPORARY: both gRPC converters still carry a whole-file `# type: ignore`
+# (see #786). The follow-up that narrows it must delete both entries, since nothing else flags
+# a stale per-file-ignore.
+"unified_planning/grpc/proto_writer.py" = ["F403", "F405", "PGH003"]
+"unified_planning/grpc/proto_reader.py" = ["PGH003"]
+# Scoped to these two trees rather than globally, so a *new* star import in library code is an error.
+"unified_planning/test/**" = ["F403", "F405"]
+"up_test_cases/**" = ["F403", "F405"]
+# Import order in these four modules is load-bearing: each re-exports names that a sibling
+# submodule pulls back out of the partially-initialised package, so sorting them raises
+# ImportError or AttributeError at import time. No isort setting avoids it.
+"unified_planning/model/__init__.py" = ["I001"]
+"unified_planning/model/mixins/__init__.py" = ["I001"]
+"unified_planning/model/walkers/__init__.py" = ["I001"]
+"unified_planning/plans/__init__.py" = ["I001"]
+# One pattern: write_action is defined and called inside the same `for ag in ...agents`
+# iteration, so no closure outlives its loop. Threading `out`/`costs` through as parameters is
+# a real refactor of a writer that has no unit tests - see the follow-up issue.
+"unified_planning/io/ma_pddl_writer.py" = ["B023"]
+
+[tool.ruff.lint.flake8-bugbear]
+# `typing.cast` is the identity at runtime, and the `ProblemKind()` defaults in factory.py are
+# only ever read, so the shared default cannot be mutated across calls.
+extend-immutable-calls = ["typing.cast", "unified_planning.model.ProblemKind"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.format]
 

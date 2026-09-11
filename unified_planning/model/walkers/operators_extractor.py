@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import List, Set
+
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from typing import List, Set
 
 
 class OperatorsExtractor(walkers.dag.DagWalker):
@@ -38,4 +39,4 @@ class OperatorsExtractor(walkers.dag.DagWalker):
     def walk_all_types(
         self, expression: FNode, args: List[Set[OperatorKind]]
     ) -> Set[OperatorKind]:
-        return set(x for y in args for x in y) | {expression.node_type}
+        return {x for y in args for x in y} | {expression.node_type}

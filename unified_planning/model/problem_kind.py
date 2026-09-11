@@ -14,18 +14,17 @@
 # limitations under the License.
 #
 
-from functools import lru_cache, partialmethod, total_ordering
+from functools import cache, partialmethod, total_ordering
 from itertools import chain
 from typing import Dict, Iterable, List, Optional, Set
 from warnings import warn
-import unified_planning as up
 
+import unified_planning as up
 from unified_planning.model.problem_kind_versioning import (
     FEATURES_VERSIONS,
-    equalize_versions,
     LATEST_PROBLEM_KIND_VERSION,
+    equalize_versions,
 )
-
 
 # TODO: This features map needs to be extended with all the problem characterizations.
 FEATURES = {
@@ -147,7 +146,7 @@ FEATURES = {
 all_features = set(chain(*FEATURES.values()))
 
 
-@lru_cache(maxsize=None)
+@cache
 def get_valid_features(version: int) -> Set[str]:
     """
     Returns the set of features that are present and not deprecated in the
@@ -188,15 +187,19 @@ class ProblemKindMeta(type):
             return len(self._features.intersection(features)) > 0
 
         obj = type.__new__(cls, name, bases, dct)
-        for m, l in FEATURES.items():
-            setattr(obj, "set_" + m.lower(), partialmethod(_set, possible_features=l))
+        for m, group in FEATURES.items():
             setattr(
-                obj, "unset_" + m.lower(), partialmethod(_unset, possible_features=l)
+                obj, "set_" + m.lower(), partialmethod(_set, possible_features=group)
+            )
+            setattr(
+                obj,
+                "unset_" + m.lower(),
+                partialmethod(_unset, possible_features=group),
             )
             # given a group { X = [ Y, Z ], ...}, consider that it `has_x` if one of the features {X,Y,Z} is present
             # This is necessary, because, at least for scheduling, the name of the group is also a standalone feature
-            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=l + [m]))
-            for f in l:
+            setattr(obj, "has_" + m.lower(), partialmethod(_has, features=[*group, m]))
+            for f in group:
                 setattr(obj, "has_" + f.lower(), partialmethod(_has, features=[f]))
         return obj
 
@@ -237,7 +240,7 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         for k, fl in FEATURES.items():
             for feature in self._features:
                 if feature in fl:
-                    feature_list = features_mapped.get(k, None)
+                    feature_list = features_mapped.get(k)
                     if feature_list is None:
                         features_mapped[k] = [feature]
                     else:
@@ -246,18 +249,17 @@ class ProblemKind(up.AnyBaseClass, metaclass=ProblemKindMeta):
         return "\n".join(result_str)
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, ProblemKind):
-            if (
-                self._version is None
-                or oth._version is None
-                or self._version == oth._version
-            ):
-                if self.version != oth.version:
-                    return False
-                valid_features = get_valid_features(self.version)
-                self_feat = self._features.intersection(valid_features)
-                oth_feat = oth._features.intersection(valid_features)
-                return self_feat == oth_feat
+        if isinstance(oth, ProblemKind) and (
+            self._version is None
+            or oth._version is None
+            or self._version == oth._version
+        ):
+            if self.version != oth.version:
+                return False
+            valid_features = get_valid_features(self.version)
+            self_feat = self._features.intersection(valid_features)
+            oth_feat = oth._features.intersection(valid_features)
+            return self_feat == oth_feat
         return False
 
     def __hash__(self) -> int:

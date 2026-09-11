@@ -14,26 +14,25 @@
 #
 from abc import ABC
 from collections import OrderedDict
-from typing import List, Union, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import unified_planning.model.walkers
-from unified_planning.environment import get_environment, Environment
+from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPUnboundedVariablesError
-from unified_planning.model.htn.ordering import (
-    TemporalConstraints,
-    ordering,
-    PartialOrder,
-    TotalOrder,
-)
-from unified_planning.model.timing import Timing
-from unified_planning.model.parameter import Parameter
-from unified_planning.model.fnode import FNode
-from unified_planning.model.types import Type
-from unified_planning.model.expression import Expression
-from unified_planning.model.operators import OperatorKind
 from unified_planning.model.action import Action
-from unified_planning.model.htn.task import Task, Subtask
-from unified_planning.model.timing import Timepoint
+from unified_planning.model.expression import Expression
+from unified_planning.model.fnode import FNode
+from unified_planning.model.htn.ordering import (
+    PartialOrder,
+    TemporalConstraints,
+    TotalOrder,
+    ordering,
+)
+from unified_planning.model.htn.task import Subtask, Task
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.parameter import Parameter
+from unified_planning.model.timing import Timepoint, Timing
+from unified_planning.model.types import Type
 from unified_planning.model.walkers import OperatorsExtractor
 
 
@@ -67,7 +66,7 @@ class AbstractTaskNetwork(ABC):
             subtask = task
         else:
             subtask = Subtask(task, *args, ident=ident)
-        assert all([subtask.identifier != prev.identifier for prev in self.subtasks])
+        assert all(subtask.identifier != prev.identifier for prev in self.subtasks)
         self._subtasks.append(subtask)
         return subtask
 
@@ -95,7 +94,7 @@ class AbstractTaskNetwork(ABC):
     def _ordering(self) -> TemporalConstraints:
         """Analyses the temporal constraints and classifies them into TO, PO or Temporal"""
         return ordering(
-            list(t.identifier for t in self.subtasks), self.temporal_constraints()
+            [t.identifier for t in self.subtasks], self.temporal_constraints()
         )
 
     def partial_order(self) -> Optional[List[Tuple[str, str]]]:
@@ -107,8 +106,7 @@ class AbstractTaskNetwork(ABC):
         order = self._ordering()
         if isinstance(order, PartialOrder):
             return order.precedences
-        else:
-            return None
+        return None
 
     def total_order(self) -> Optional[List[str]]:
         """If the temporal constraints define a total order, returns the ordered list of task identifiers.
@@ -117,8 +115,7 @@ class AbstractTaskNetwork(ABC):
         order = self._ordering()
         if isinstance(order, TotalOrder):
             return order.order
-        else:
-            return None
+        return None
 
     def add_constraint(self, constraint: Expression):
         (constraint,) = self._env.expression_manager.auto_promote(constraint)
@@ -130,7 +127,7 @@ class AbstractTaskNetwork(ABC):
         free_vars = self._env.free_vars_oracle.get_free_variables(constraint)
         if len(free_vars) != 0:
             raise UPUnboundedVariablesError(
-                f"The constraint {str(constraint)} has unbounded variables:\n{str(free_vars)}"
+                f"The constraint {constraint!s} has unbounded variables:\n{free_vars!s}"
             )
         if (
             constraint != self._env.expression_manager.TRUE()
@@ -174,17 +171,14 @@ class TaskNetwork(AbstractTaskNetwork):
         s = ["task network {\n"]
         if len(self._variables) > 0:
             s.append("  variables = [\n")
-            for v in self.variables:
-                s.append(f"    {v}\n")
+            s.extend(f"    {v}\n" for v in self.variables)
             s.append("  ]\n")
         s.append("  subtasks = [\n")
-        for t in self.subtasks:
-            s.append(f"    {t}\n")
+        s.extend(f"    {t}\n" for t in self.subtasks)
         s.append("  ]\n")
         if len(self._constraints) > 0:
             s.append("  constraints = [\n")
-            for c in self.constraints:
-                s.append(f"    {c}\n")
+            s.extend(f"    {c}\n" for c in self.constraints)
             s.append("  ]\n")
         s.append("}")
         return "".join(s)

@@ -18,8 +18,9 @@ An Object is represented by a name and by its type.
 """
 
 from typing import Optional
-from unified_planning.environment import Environment, get_environment
+
 import unified_planning.model.types
+from unified_planning.environment import Environment, get_environment
 
 
 class Object:
@@ -57,8 +58,7 @@ class Object:
                 and self._typename == oth._typename
                 and self._env == oth._env
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         return hash(self._name) + hash(self._typename)

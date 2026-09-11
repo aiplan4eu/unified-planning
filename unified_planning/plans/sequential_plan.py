@@ -14,14 +14,16 @@
 #
 
 
+from typing import Callable, Dict, List, Optional, Set
+
 import networkx as nx
+
 import unified_planning as up
-import unified_planning.plans as plans
 import unified_planning.model.walkers as walkers
+import unified_planning.plans as plans
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
-from unified_planning.model import FNode, InstantaneousAction, Expression
-from typing import Callable, Dict, Optional, Set, List
+from unified_planning.model import Expression, FNode, InstantaneousAction
 
 
 class SequentialPlan(plans.plan.Plan):
@@ -52,7 +54,10 @@ class SequentialPlan(plans.plan.Plan):
 
     def __str__(self) -> str:
         ret = ["SequentialPlan:"]
-        convert_ai = lambda ai: f"    {ai}"
+
+        def convert_ai(ai):
+            return f"    {ai}"
+
         ret.extend(map(convert_ai, self._actions))
         return "\n".join(ret)
 
@@ -61,12 +66,11 @@ class SequentialPlan(plans.plan.Plan):
 
     def __eq__(self, oth: object) -> bool:
         if isinstance(oth, SequentialPlan) and len(self._actions) == len(oth._actions):
-            for ai, oth_ai in zip(self._actions, oth._actions):
+            for ai, oth_ai in zip(self._actions, oth._actions, strict=True):
                 if not ai.is_semantically_equivalent(oth_ai):
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -77,8 +81,7 @@ class SequentialPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, plans.plan.ActionInstance):
             return any(item.is_semantically_equivalent(a) for a in self._actions)
-        else:
-            return False
+        return False
 
     @property
     def actions(self) -> List["plans.plan.ActionInstance"]:
@@ -164,7 +167,11 @@ class SequentialPlan(plans.plan.Plan):
                     )
 
             assignments: Dict[Expression, Expression] = dict(
-                zip(inst_action.parameters, action_instance.actual_parameters)
+                zip(
+                    inst_action.parameters,
+                    action_instance.actual_parameters,
+                    strict=True,
+                )
             )
             for lifted_fluent in lifted_required_fluents:
                 assert lifted_fluent.is_fluent_exp()
@@ -184,7 +191,7 @@ class SequentialPlan(plans.plan.Plan):
             for required_fluent in required_fluents:
                 action_instance_list = all_required.setdefault(required_fluent, [])
                 action_instance_list.append(action_instance)
-                required_fluent_last_modifier = last_modifier.get(required_fluent, None)
+                required_fluent_last_modifier = last_modifier.get(required_fluent)
                 if required_fluent_last_modifier is not None:
                     assert (
                         required_fluent_last_modifier != action_instance
@@ -230,8 +237,7 @@ class SequentialPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.PARTIAL_ORDER_PLAN:
+        if plan_kind == plans.plan.PlanKind.PARTIAL_ORDER_PLAN:
             assert isinstance(problem, up.model.mixins.ObjectsSetMixin)
             return self._to_partial_order_plan(problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")

@@ -14,15 +14,16 @@
 #
 
 
+from collections import OrderedDict
+from typing import Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
-from unified_planning.model.action import InstantaneousAction, DurativeAction
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.mixins.motion_constraints_set import (
     MotionConstraintsSetMixin,
 )
 from unified_planning.model.mixins.timed_conds_effs import TimedCondsEffs
-from typing import Optional
-from collections import OrderedDict
 
 
 class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):
@@ -44,8 +45,7 @@ class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):
                 super().__eq__(oth)
                 and self._motion_constraints_set == oth._motion_constraints_set
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()
@@ -57,8 +57,7 @@ class InstantaneousMotionAction(InstantaneousAction, MotionConstraintsSetMixin):
         b = InstantaneousAction.__repr__(self)[0:-3]
         s = ["motion-", b]
         s.append("    motion constraints = [\n")
-        for e in self._motion_constraints:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self._motion_constraints)
         s.append("    ]\n")
         s.append("  }")
         return "".join(s)
@@ -99,8 +98,7 @@ class DurativeMotionAction(DurativeAction, MotionConstraintsSetMixin):
                 super().__eq__(oth)
                 and self._motion_constraints_set == oth._motion_constraints_set
             )
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         res = super().__hash__()
@@ -113,8 +111,7 @@ class DurativeMotionAction(DurativeAction, MotionConstraintsSetMixin):
         s = ["motion-", b]
 
         s.append("    motion constraints = [\n")
-        for e in self._motion_constraints:
-            s.append(f"      {str(e)}\n")
+        s.extend(f"      {e!s}\n" for e in self._motion_constraints)
         s.append("    ]\n")
         s.append("  }\n")
         return "".join(s)

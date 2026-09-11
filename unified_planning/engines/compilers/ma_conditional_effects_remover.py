@@ -14,26 +14,24 @@
 #
 """This module defines the multi-agent conditional effects remover class."""
 
+from functools import partial
+from typing import Dict, Optional
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.compilers.utils import replace_action
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import (
-    ProblemKind,
-)
-from functools import partial
 from unified_planning.engines.compilers.conditional_effects_remover import (
     ConditionalEffectsRemover,
 )
-from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
-
-from unified_planning.model import ProblemKind, Action
 from unified_planning.engines.compilers.utils import (
     replace_action,
 )
-
-from typing import Dict, Optional
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.model import (
+    Action,
+    ProblemKind,
+)
+from unified_planning.model.multi_agent.ma_problem import MultiAgentProblem
 
 
 class MAConditionalEffectsRemover(ConditionalEffectsRemover):

@@ -14,14 +14,15 @@
 #
 
 
+from typing import Dict, Optional
+
 import unified_planning as up
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPTypeError
-from unified_planning.model.scheduling.activity import Activity
 from unified_planning.model.mixins.motion_constraints_set import (
     MotionConstraintsSetMixin,
 )
-from typing import Optional, Dict
+from unified_planning.model.scheduling.activity import Activity
 
 
 class MotionActivity(Activity, MotionConstraintsSetMixin):
@@ -57,11 +58,10 @@ class MotionActivity(Activity, MotionConstraintsSetMixin):
         s = ["motion-activity {"]
         s.append("  " + super().__repr__().replace("\n", "\n  "))
         s.append("  motion-constraints")
-        for c in self._motion_constraints:
-            s.append(f"      {str(c)}")
+        s.extend(f"      {c!s}" for c in self._motion_constraints)
         s.append("  motion-effects")
         for movable, config in self._motion_effects.items():
-            s.append(f"      {str(movable)} := {str(config)}")
+            s.append(f"      {movable!s} := {config!s}")
         s.append("}")
         return "\n".join(s)
 

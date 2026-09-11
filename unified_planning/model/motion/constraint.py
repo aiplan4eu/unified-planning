@@ -14,11 +14,12 @@
 #
 
 
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Union
+
 import unified_planning as up
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
-from abc import ABC, abstractmethod
-from typing import Optional, List, Dict, Union
 
 
 class MotionConstraint(ABC):
@@ -107,9 +108,7 @@ class Waypoints(MotionConstraint):
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
-        if set(self._waypoints) != set(oth._waypoints):
-            return False
-        return True
+        return set(self._waypoints) == set(oth._waypoints)
 
     def __hash__(self) -> int:
         res = hash(self._movable)
@@ -234,9 +233,7 @@ class ActivityWaypoints(MotionConstraint):
             return False
         if self._movable != oth._movable or self._starting != oth._starting:
             return False
-        if set(self._waypoints) != set(oth._waypoints):
-            return False
-        return True
+        return set(self._waypoints) == set(oth._waypoints)
 
     def __hash__(self) -> int:
         res = hash(self._movable)

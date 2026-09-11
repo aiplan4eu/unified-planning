@@ -13,11 +13,12 @@
 # limitations under the License.
 
 
+import os
+
+from unified_planning.io import ANMLReader, ANMLWriter, PDDLReader
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
-from unified_planning.io import ANMLReader, ANMLWriter, PDDLReader
-import os
 
 
 class TestANMLWriter(unittest_TestCase):

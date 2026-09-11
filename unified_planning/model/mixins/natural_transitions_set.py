@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
+from typing import Iterable, List
 from warnings import warn
+
 import unified_planning as up
 from unified_planning.exceptions import UPProblemDefinitionError, UPValueError
-from typing import Iterator, List, Iterable, Union
 
 
 class NaturalTransitionsSetMixin:
@@ -104,10 +105,7 @@ class NaturalTransitionsSetMixin:
         :param name: The `name` of the target `process`.
         :return: `True` if the `problem` has an `process` with the given `name`, `False` otherwise.
         """
-        for a in self._processes:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._processes)
 
     def has_event(self, name: str) -> bool:
         """
@@ -117,10 +115,7 @@ class NaturalTransitionsSetMixin:
         :param name: The `name` of the target `event`.
         :return: `True` if the `problem` has an `event` with the given `name`, `False` otherwise.
         """
-        for a in self._events:
-            if a.name == name:
-                return True
-        return False
+        return any(a.name == name for a in self._events)
 
     def add_process(self, process: "up.model.natural_transition.Process"):
         """
@@ -137,8 +132,7 @@ class NaturalTransitionsSetMixin:
                 process.name == a.name for a in self._processes
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._processes.append(process)
         for param in process.parameters:
             if param.type.is_user_type():
@@ -159,8 +153,7 @@ class NaturalTransitionsSetMixin:
                 event.name == a.name for a in self._events
             ):
                 raise UPProblemDefinitionError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         self._events.append(event)
         for param in event.parameters:
             if param.type.is_user_type():

@@ -15,35 +15,40 @@
 #
 
 
-import importlib
-import sys
-import os
-import inspect
 import configparser
+import contextlib
+import importlib
+import inspect
+import os
+import sys
+from pathlib import PurePath
+from typing import IO, Any, Dict, List, Optional, Sequence, Tuple, Type, Union
+
 import unified_planning as up
+from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
+from unified_planning.engines.engine import OperationMode
+from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
+from unified_planning.engines.mixins.anytime_planner import (
+    AnytimeGuarantee,
+    AnytimePlannerMixin,
+)
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.mixins.oneshot_planner import (
+    OneshotPlannerMixin,
+    OptimalityGuarantee,
+)
+from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
+from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
+from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
+from unified_planning.engines.mixins.replanner import ReplannerMixin
+from unified_planning.engines.mixins.sequential_simulator import (
+    SequentialSimulatorMixin,
+)
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import ProblemKind
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.plans import PlanKind
-from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
-from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
-from unified_planning.engines.mixins.anytime_planner import AnytimePlannerMixin
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.mixins.oneshot_planner import OneshotPlannerMixin
-from unified_planning.engines.mixins.plan_validator import PlanValidatorMixin
-from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
-from unified_planning.engines.mixins.replanner import ReplannerMixin
-from unified_planning.engines.mixins.plan_repairer import PlanRepairerMixin
-from unified_planning.engines.mixins.sequential_simulator import (
-    SequentialSimulatorMixin,
-)
-from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
-from unified_planning.engines.engine import OperationMode
-from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
-from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence
-from pathlib import PurePath
-
 
 DEFAULT_ENGINES = {
     "fast-downward": ("up_fast_downward", "FastDownwardPDDLPlanner"),
@@ -209,8 +214,8 @@ DEFAULT_META_ENGINES_PREFERENCE_LIST = [
 def format_table(header: List[str], rows: List[List[str]]) -> str:
     row_template = "|"
     for i in range(len(header)):
-        l = max(len(r[i]) for r in [header] + rows)
-        row_template += f" {{:<{str(l)}}} |"
+        width = max(len(r[i]) for r in [header, *rows])
+        row_template += f" {{:<{width!s}}} |"
     header_str = row_template.format(*header)
     row_len = len(header_str)
     rows_str = [f"{'-' * row_len}", f"{header_str}", f"{'=' * row_len}"]
@@ -248,10 +253,9 @@ class Factory:
         self._meta_engines_info: List[Tuple[str, str, str]] = []
         self._credit_disclaimer_printed = False
         for name, (module_name, class_name) in DEFAULT_ENGINES.items():
-            try:
+            # an engine whose package is not installed is simply not registered
+            with contextlib.suppress(ImportError):
                 self._add_engine(name, module_name, class_name)
-            except ImportError:
-                pass
         engines = dict(self._engines)
         for name, (module_name, class_name) in DEFAULT_META_ENGINES.items():
             try:
@@ -266,7 +270,7 @@ class Factory:
             if name in self._engines:
                 self._preference_list.append(name)
         for name in DEFAULT_META_ENGINES_PREFERENCE_LIST:
-            for e in self._engines.keys():
+            for e in self._engines:
                 if e.startswith(f"{name}["):
                     self._preference_list.append(e)
         self.configure_from_file()
@@ -400,12 +404,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definition of '%s' engine" % name
+                f"Missing 'module_name' value in definition of '{name}' engine"
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definition of '%s' engine" % name
+                f"Missing 'class_name' value in definition of '{name}' engine"
             )
 
             self.add_engine(name, module_name, class_name)
@@ -419,12 +423,12 @@ class Factory:
 
             module_name = config.get(s, "module_name")
             assert module_name is not None, (
-                "Missing 'module_name' value in definition of '%s' meta-engine" % name
+                f"Missing 'module_name' value in definition of '{name}' meta-engine"
             )
 
             class_name = config.get(s, "class_name")
             assert class_name is not None, (
-                "Missing 'class_name' value in definition of '%s' meta-engine" % name
+                f"Missing 'class_name' value in definition of '{name}' meta-engine"
             )
 
             self.add_meta_engine(name, module_name, class_name)
@@ -544,8 +548,7 @@ class Factory:
         if name is not None:
             if name in self._engines:
                 return self._engines[name]
-            else:
-                raise up.exceptions.UPNoRequestedEngineAvailableException
+            raise up.exceptions.UPNoRequestedEngineAvailableException
         problem_features = list(problem_kind.features)
         planners_features = []
         # Make sure that optimality guarantees and compilation kind are mutually exclusive
@@ -563,7 +566,7 @@ class Factory:
                 anytime_guarantee,
             ):
                 return EngineClass
-            elif getattr(EngineClass, "is_" + operation_mode.value)():
+            if getattr(EngineClass, "is_" + operation_mode.value)():
                 # The EngineClass satisfies the given OperationMode but does not
                 # satisfy some other features; add it to the error report features if
                 # no NoSuitableEngineAvailable are found.
@@ -588,7 +591,7 @@ class Factory:
                 starting_line = f"No available engine supports all the problem features with anytime_guarantee: {anytime_guarantee.name}:"
             else:
                 starting_line = "No available engine supports all the problem features:"
-            header = ["Engine"] + problem_features
+            header = ["Engine", *problem_features]
             if optimality_guarantee is not None:
                 header.append(optimality_guarantee.name)
             elif anytime_guarantee is not None:
@@ -639,7 +642,7 @@ class Factory:
             if not self._credit_disclaimer_printed:
                 self._credit_disclaimer_printed = True
                 w.write(
-                    f"\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
+                    "\033[1mNOTE: To disable printing of planning engine credits, add this line to your code: `up.shortcuts.get_environment().credits_stream = None`\n"
                 )
             w.write("  *** Credits ***\n")
             w.write(
@@ -677,14 +680,14 @@ class Factory:
             assert isinstance(params, List) and len(names) == len(params)
             engines = []
             all_credits = []
-            for name, param in zip(names, params):
+            for name, param in zip(names, params, strict=True):
                 EngineClass = self._get_engine_class(operation_mode, name)
                 all_credits.append(EngineClass.get_credits(**param))
                 engines.append((name, param))
             self._print_credits(all_credits)
             p_engine = up.engines.parallel.Parallel(self, engines)
             return p_engine
-        elif operation_mode == OperationMode.COMPILER and compilation_kinds is not None:
+        if operation_mode == OperationMode.COMPILER and compilation_kinds is not None:
             assert name is None
             assert names is not None or problem_kind is not None
             if names is None:
@@ -694,7 +697,9 @@ class Factory:
             assert isinstance(params, List) and len(names) == len(params)
             compilers: List["up.engines.engine.Engine"] = []
             all_credits = []
-            for name, param, compilation_kind in zip(names, params, compilation_kinds):
+            for name, param, compilation_kind in zip(
+                names, params, compilation_kinds, strict=True
+            ):
                 EngineClass = self._get_engine_class(
                     operation_mode,
                     name,
@@ -711,80 +716,75 @@ class Factory:
                 compilers.append(compiler)
             self._print_credits(all_credits)
             return CompilersPipeline(compilers)
-        else:
-            assert names is None
-            error_failed_checks = name is None
-            if params is None:
-                params = {}
-            assert isinstance(params, Dict)
-            EngineClass = self._get_engine_class(
-                operation_mode,
-                name,
-                problem_kind,
-                optimality_guarantee,
-                compilation_kind,
-                plan_kind,
-                anytime_guarantee,
+        assert names is None
+        error_failed_checks = name is None
+        if params is None:
+            params = {}
+        assert isinstance(params, Dict)
+        EngineClass = self._get_engine_class(
+            operation_mode,
+            name,
+            problem_kind,
+            optimality_guarantee,
+            compilation_kind,
+            plan_kind,
+            anytime_guarantee,
+        )
+        credits = EngineClass.get_credits(**params)
+        self._print_credits([credits])
+        if operation_mode == OperationMode.REPLANNER:
+            assert problem is not None
+            if (
+                problem.kind.has_quality_metrics()
+                and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
+            ):
+                msg = "The problem has no quality metrics but the engine is required to be optimal!"
+                raise up.exceptions.UPUsageError(msg)
+            res = EngineClass(
+                problem=problem,
+                error_on_failed_checks=error_failed_checks,
+                **params,
             )
-            credits = EngineClass.get_credits(**params)
-            self._print_credits([credits])
-            if operation_mode == OperationMode.REPLANNER:
-                assert problem is not None
-                if (
-                    problem.kind.has_quality_metrics()
-                    and optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY
-                ):
-                    msg = f"The problem has no quality metrics but the engine is required to be optimal!"
-                    raise up.exceptions.UPUsageError(msg)
-                res = EngineClass(
-                    problem=problem,
-                    error_on_failed_checks=error_failed_checks,
-                    **params,
-                )
-                assert isinstance(res, ReplannerMixin)
-            elif (
-                operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
-                or operation_mode == OperationMode.ACTION_SELECTOR
+            assert isinstance(res, ReplannerMixin)
+        elif (
+            operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
+            or operation_mode == OperationMode.ACTION_SELECTOR
+        ):
+            assert problem is not None
+            res = EngineClass(
+                problem=problem,
+                error_on_failed_checks=error_failed_checks,
+                **params,
+            )
+            assert isinstance(res, (SequentialSimulatorMixin, ActionSelectorMixin))
+        elif operation_mode == OperationMode.COMPILER:
+            res = EngineClass(**params)
+            assert isinstance(res, CompilerMixin)
+            if compilation_kind is not None:
+                res.default = compilation_kind
+        elif (
+            operation_mode == OperationMode.ONESHOT_PLANNER
+            or operation_mode == OperationMode.PLAN_REPAIRER
+            or operation_mode == OperationMode.PORTFOLIO_SELECTOR
+        ):
+            res = EngineClass(**params)
+            assert isinstance(
+                res, (OneshotPlannerMixin, PortfolioSelectorMixin, PlanRepairerMixin)
+            )
+            if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
+                res.optimality_metric_required = True
+        elif operation_mode == OperationMode.ANYTIME_PLANNER:
+            res = EngineClass(**params)
+            assert isinstance(res, AnytimePlannerMixin)
+            if (
+                anytime_guarantee == AnytimeGuarantee.INCREASING_QUALITY
+                or anytime_guarantee == AnytimeGuarantee.OPTIMAL_PLANS
             ):
-                assert problem is not None
-                res = EngineClass(
-                    problem=problem,
-                    error_on_failed_checks=error_failed_checks,
-                    **params,
-                )
-                assert isinstance(res, SequentialSimulatorMixin) or isinstance(
-                    res, ActionSelectorMixin
-                )
-            elif operation_mode == OperationMode.COMPILER:
-                res = EngineClass(**params)
-                assert isinstance(res, CompilerMixin)
-                if compilation_kind is not None:
-                    res.default = compilation_kind
-            elif (
-                operation_mode == OperationMode.ONESHOT_PLANNER
-                or operation_mode == OperationMode.PLAN_REPAIRER
-                or operation_mode == OperationMode.PORTFOLIO_SELECTOR
-            ):
-                res = EngineClass(**params)
-                assert (
-                    isinstance(res, OneshotPlannerMixin)
-                    or isinstance(res, PortfolioSelectorMixin)
-                    or isinstance(res, PlanRepairerMixin)
-                )
-                if optimality_guarantee == OptimalityGuarantee.SOLVED_OPTIMALLY:
-                    res.optimality_metric_required = True
-            elif operation_mode == OperationMode.ANYTIME_PLANNER:
-                res = EngineClass(**params)
-                assert isinstance(res, AnytimePlannerMixin)
-                if (
-                    anytime_guarantee == AnytimeGuarantee.INCREASING_QUALITY
-                    or anytime_guarantee == AnytimeGuarantee.OPTIMAL_PLANS
-                ):
-                    res.optimality_metric_required = True
-            else:
-                res = EngineClass(**params)
-            res.error_on_failed_checks = error_failed_checks
-            return res
+                res.optimality_metric_required = True
+        else:
+            res = EngineClass(**params)
+        res.error_on_failed_checks = error_failed_checks
+        return res
 
     @property
     def environment(self) -> "Environment":
@@ -816,7 +816,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.ONESHOT_PLANNER,
             name,
@@ -858,7 +858,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.ANYTIME_PLANNER,
             name,
@@ -931,7 +931,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
-                )
+                ) from None
         kinds: Optional[List[CompilationKind]] = None
         if compilation_kinds is not None:
             kinds = []
@@ -940,7 +940,9 @@ class Factory:
                     try:
                         kinds.append(CompilationKind[kind.upper()])
                     except KeyError:
-                        raise UPUsageError(f"{kind} is not a valid CompilationKind.")
+                        raise UPUsageError(
+                            f"{kind} is not a valid CompilationKind."
+                        ) from None
                 else:
                     assert isinstance(kind, CompilationKind), "Typing not respected"
                     kinds.append(kind)
@@ -1000,7 +1002,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.REPLANNER,
             name,
@@ -1032,14 +1034,14 @@ class Factory:
             try:
                 plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
-                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.") from None
         if isinstance(optimality_guarantee, str):
             try:
                 optimality_guarantee = OptimalityGuarantee[optimality_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.PLAN_REPAIRER,
             name=name,
@@ -1096,7 +1098,7 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         return self._get_engine(
             OperationMode.PORTFOLIO_SELECTOR,
             name=name,
@@ -1134,7 +1136,9 @@ class Factory:
             try:
                 operation_mode = OperationMode[operation_mode.upper()]
             except KeyError:
-                raise UPUsageError(f"{operation_mode} is not a valid OperationMode.")
+                raise UPUsageError(
+                    f"{operation_mode} is not a valid OperationMode."
+                ) from None
         for engine_name, Engine in self._engines.items():
             if (
                 operation_mode is not None
@@ -1156,7 +1160,7 @@ class Factory:
             stream.write("\n")
             if show_supported_kind:
                 stream.write(
-                    f"\nThis engine supports the following features:\n{str(Engine.supported_kind())}\n"
+                    f"\nThis engine supports the following features:\n{Engine.supported_kind()!s}\n"
                 )
             stream.write("\n")
 
@@ -1196,26 +1200,26 @@ class Factory:
             except KeyError:
                 raise UPUsageError(
                     f"{optimality_guarantee} is not a valid OptimalityGuarantee."
-                )
+                ) from None
         if isinstance(anytime_guarantee, str):
             try:
                 anytime_guarantee = AnytimeGuarantee[anytime_guarantee.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{anytime_guarantee} is not a valid AnytimeGuarantee."
-                )
+                ) from None
         if isinstance(compilation_kind, str):
             try:
                 compilation_kind = CompilationKind[compilation_kind.upper()]
             except KeyError:
                 raise UPUsageError(
                     f"{compilation_kind} is not a valid CompilationKind."
-                )
+                ) from None
         if isinstance(plan_kind, str):
             try:
                 plan_kind = PlanKind[plan_kind.upper()]
             except KeyError:
-                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.")
+                raise UPUsageError(f"{plan_kind} is not a valid PlanKind.") from None
         names: List[str] = []
         for name in self._preference_list:
             EngineClass = self._engines[name]

@@ -14,14 +14,13 @@
 # limitations under the License.
 #
 
-import unified_planning as up
-from unified_planning.model import ProblemKind
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from typing import Optional
 from warnings import warn
 
-from unified_planning.model.fnode import FNode
+import unified_planning as up
+from unified_planning.model import ProblemKind
 
 
 class CompilationKind(Enum):
@@ -85,19 +84,17 @@ class CompilerMixin(ABC):
         if compilation_kind is None:
             compilation_kind = self._default
         if compilation_kind is None:
-            raise up.exceptions.UPUsageError(f"Compilation kind needs to be specified!")
+            raise up.exceptions.UPUsageError("Compilation kind needs to be specified!")
         if not self.skip_checks and not self.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} can handle this problem!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         if not self.supports_compilation(compilation_kind):
             msg = f"{self.name} cannot handle this kind of compilation!"
             if self.error_on_failed_checks:
                 raise up.exceptions.UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
         return self._compile(problem, compilation_kind)
 
     @property

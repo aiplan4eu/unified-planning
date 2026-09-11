@@ -13,20 +13,17 @@
 # limitations under the License.
 #
 
+from fractions import Fraction
+from typing import IO, Optional, Type, Union
 from warnings import warn
+
 import unified_planning as up
 import unified_planning.engines.mixins as mixins
-from unified_planning.model import ProblemKind
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.meta_engine import MetaEngine
-from unified_planning.engines.results import (
-    PlanGenerationResultStatus,
-    PlanGenerationResult,
-)
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.exceptions import UPUsageError
-from typing import Type, IO, Callable, Optional, Union, List, Tuple
-from fractions import Fraction
+from unified_planning.model import ProblemKind
 
 
 class Replanner(MetaEngine, mixins.ReplannerMixin):
@@ -114,7 +111,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
         self._problem.clear_goals()
         removed = False
         for g in goals:
-            if not g is goal_exp:
+            if g is not goal_exp:
                 self._problem.add_goal(g)
             else:
                 removed = True
@@ -122,8 +119,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
             msg = f"goal to remove: {goal_exp} not found inside the problem goals: {goals}"
             if self._error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)
 
     def _add_action(self, action: "up.model.action.Action"):
         assert isinstance(self._problem, up.model.Problem)
@@ -140,8 +136,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
             else:
                 removed = True
         if not self._skip_checks and not removed:
-            msg = f"action to remove: {name} not found inside the problem actions: {list(map(lambda a: a.name, actions))}"
+            msg = f"action to remove: {name} not found inside the problem actions: {[a.name for a in actions]}"
             if self._error_on_failed_checks:
                 raise UPUsageError(msg)
-            else:
-                warn(msg)
+            warn(msg, stacklevel=2)

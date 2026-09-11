@@ -15,27 +15,42 @@
 
 from collections import defaultdict
 from fractions import Fraction
+from functools import partial
 from itertools import chain
+from typing import (
+    Dict,
+    Iterator,
+    List,
+    Optional,
+    OrderedDict,
+    Tuple,
+    Union,
+    cast,
+)
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+)
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError, UPValueError
 from unified_planning.model import (
     Action,
-    Problem,
-    ProblemKind,
-    Fluent,
-    InstantaneousAction,
     DurativeAction,
-    Process,
     Event,
-    Timing,
-    TimeInterval,
     Expression,
     ExpressionManager,
+    Fluent,
+    InstantaneousAction,
     MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+    Process,
+    TimeInterval,
+    Timing,
     Type,
 )
 from unified_planning.model.expression import (
@@ -43,29 +58,15 @@ from unified_planning.model.expression import (
     NumericConstant,
     uniform_numeric_constant,
 )
+from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.fnode import FNode
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.fluent import get_all_fluent_exp
-from unified_planning.model.type_manager import TypeManager
-from unified_planning.model.walkers import Simplifier
-from unified_planning.engines.compilers.utils import (
-    get_fresh_name,
-)
-from typing import (
-    Dict,
-    Iterator,
-    Optional,
-    OrderedDict,
-    Tuple,
-    List,
-    Union,
-    cast,
-)
-from functools import partial
 from unified_planning.model.timing import (
     DurationInterval,
     EndTiming,
 )
+from unified_planning.model.type_manager import TypeManager
+from unified_planning.model.walkers import Simplifier
 from unified_planning.plans import ActionInstance, TimeTriggeredPlan
 
 
@@ -364,7 +365,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             time_process.add_precondition(alive)
             time_process.add_increase_continuous_effect(global_clock, 1)
             new_problem.add_process(time_process)
-            max_t = max(t.delay for t in problem.timed_effects.keys())
+            max_t = max(t.delay for t in problem.timed_effects)
         for i, (t, effects) in enumerate(problem.timed_effects.items()):
             te_done = Fluent(f"timed_effects_done_{i}", tm.BoolType(), environment=env)
             new_problem.add_fluent(te_done, default_initial_value=mgr.FALSE())
@@ -446,7 +447,7 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
         tm: TypeManager = env.type_manager
         mgr: ExpressionManager = env.expression_manager
         fve = env.free_vars_extractor
-        params = OrderedDict(((p.name, p.type) for p in action.parameters))
+        params = OrderedDict((p.name, p.type) for p in action.parameters)
 
         add_new_fluent = partial(
             _add_new_fluent, new_problem=new_problem, action=action, params=params
@@ -1017,7 +1018,7 @@ def _convert_action_costs(
         cost = qm.get_action_cost(original_action)
         if cost is not None:
             new_costs[compiled_action] = cost
-    for compiled_action in first_end_actions.keys():
+    for compiled_action in first_end_actions:
         new_costs[compiled_action] = 0
     return MinimizeActionCosts(new_costs, qm.default, qm.environment)
 
@@ -1056,7 +1057,7 @@ def _back_plan_to_plan(
                 # to revert a plan you need to simulate it and know the value of the duration in the state where the action is started
                 assert len(original_action.parameters) == len(parameters)
                 subs: Dict[Expression, Expression] = dict(
-                    zip(original_action.parameters, parameters)
+                    zip(original_action.parameters, parameters, strict=True)
                 )
                 duration_lower = simplifier.simplify(
                     original_action.duration.lower.substitute(subs)

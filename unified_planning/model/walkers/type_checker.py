@@ -15,16 +15,17 @@
 #
 
 
+import math
 from fractions import Fraction
-import unified_planning.model.types
+from typing import List, Optional, cast
+
 import unified_planning.environment
+import unified_planning.model.types
 import unified_planning.model.walkers as walkers
-from unified_planning.model.types import BOOL, TIME, _UserType
+from unified_planning.exceptions import UPTypeError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
-from unified_planning.exceptions import UPTypeError
-from typing import List, Optional, cast
-import math
+from unified_planning.model.types import BOOL, TIME, _UserType
 
 
 class TypeChecker(walkers.dag.DagWalker):
@@ -43,9 +44,7 @@ class TypeChecker(walkers.dag.DagWalker):
         """
         res = self.walk(expression)
         if res is None:
-            raise UPTypeError(
-                "The expression '%s' is not well-formed" % str(expression)
-            )
+            raise UPTypeError(f"The expression '{expression!s}' is not well-formed")
         return res
 
     @walkers.handles(
@@ -74,7 +73,7 @@ class TypeChecker(walkers.dag.DagWalker):
         f = expression.fluent()
         if len(args) != len(f.signature):
             return None
-        for param, arg in zip(f.signature, args):
+        for param, arg in zip(f.signature, args, strict=True):
             if not param.type.is_compatible(arg):
                 return None
         return f.type
@@ -86,7 +85,7 @@ class TypeChecker(walkers.dag.DagWalker):
         f = expression.interpreted_function()
         if len(args) != len(f.signature):
             return None
-        for param, arg in zip(f.signature, args):
+        for param, arg in zip(f.signature, args, strict=True):
             if not param.type.is_compatible(arg):
                 return None
         return f.return_type
@@ -142,8 +141,7 @@ class TypeChecker(walkers.dag.DagWalker):
             or args[0] != args[1]
         ):
             return None
-        else:
-            return args[0]
+        return args[0]
 
     def walk_sometime_after(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -160,8 +158,7 @@ class TypeChecker(walkers.dag.DagWalker):
             or args[0] != args[1]
         ):
             return None
-        else:
-            return args[0]
+        return args[0]
 
     def walk_variable_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
@@ -253,10 +250,9 @@ class TypeChecker(walkers.dag.DagWalker):
             assert lower is None or isinstance(lower, Fraction)  # type: ignore[unreachable]
             assert upper is None or isinstance(upper, Fraction)  # type: ignore[unreachable]
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            assert lower is None or isinstance(lower, int)
-            assert upper is None or isinstance(upper, int)
-            return self.environment.type_manager.IntType(lower, upper)
+        assert lower is None or isinstance(lower, int)
+        assert upper is None or isinstance(upper, int)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_minus(self, expression, args):
         assert len(args) == 2
@@ -289,10 +285,9 @@ class TypeChecker(walkers.dag.DagWalker):
             lower = cast(Optional[Fraction], lower)
             upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            lower = cast(Optional[int], lower)
-            upper = cast(Optional[int], upper)
-            return self.environment.type_manager.IntType(lower, upper)
+        lower = cast(Optional[int], lower)
+        upper = cast(Optional[int], upper)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_times(self, expression, args):
         has_real = False
@@ -304,16 +299,16 @@ class TypeChecker(walkers.dag.DagWalker):
             if x.is_real_type():
                 has_real = True
         for x in args:
-            l = -float("inf") if x.lower_bound is None else x.lower_bound
-            u = float("inf") if x.upper_bound is None else x.upper_bound
+            low = -float("inf") if x.lower_bound is None else x.lower_bound
+            upp = float("inf") if x.upper_bound is None else x.upper_bound
             if lower is None:
-                lower = l
-                upper = u
+                lower = low
+                upper = upp
             else:
                 assert upper is not None
                 # both bounds must be computed from the same products: assigning
                 # lower first and reusing it for upper overestimates the latter.
-                products = (lower * l, lower * u, upper * l, upper * u)
+                products = (lower * low, lower * upp, upper * low, upper * upp)
                 lower = min(products)
                 upper = max(products)
         if lower == -float("inf") or (
@@ -328,10 +323,9 @@ class TypeChecker(walkers.dag.DagWalker):
             lower = cast(Optional[Fraction], lower)
             upper = cast(Optional[Fraction], upper)
             return self.environment.type_manager.RealType(lower, upper)
-        else:
-            lower = cast(Optional[int], lower)
-            upper = cast(Optional[int], upper)
-            return self.environment.type_manager.IntType(lower, upper)
+        lower = cast(Optional[int], lower)
+        upper = cast(Optional[int], upper)
+        return self.environment.type_manager.IntType(lower, upper)
 
     def walk_div(self, expression, args):
         assert len(args) == 2
@@ -383,14 +377,14 @@ class TypeChecker(walkers.dag.DagWalker):
 
         if t.is_bool_type():
             raise UPTypeError(
-                "The expression '%s' is not well-formed."
+                f"The expression '{expression!s}' is not well-formed."
                 "Equality operator is not supported for Boolean"
-                " terms. Use Iff instead." % str(expression)
+                " terms. Use Iff instead."
             )
         for x in args:
             if x is None:
                 return None
-            elif (
+            if (
                 t.is_user_type()
                 and t != x
                 and not t.is_compatible(x)

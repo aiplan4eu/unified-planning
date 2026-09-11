@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
-from typing import Any, TYPE_CHECKING
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
+from typing import TYPE_CHECKING, Any
 
 from unified_planning.environment import Environment
-
 
 if TYPE_CHECKING:
     # can't actually subclass Any at runtime

@@ -1,7 +1,7 @@
 import unified_planning
-from unified_planning.plans import SequentialPlan, ActionInstance
+from unified_planning.model.htn import HierarchicalProblem, Method, Task
+from unified_planning.plans import ActionInstance, SequentialPlan
 from unified_planning.shortcuts import *
-from unified_planning.model.htn import Task, Method, HierarchicalProblem
 from unified_planning.test import TestCase
 
 Location = UserType("Location")
@@ -34,7 +34,9 @@ def add_method(pb, name, task, *subtasks):
 
 def set_costs(pb, *costs):
     cost_map: Dict[Action, Expression] = {}
-    for action, cost in zip(actions, costs):
+    # strict=False: `actions` is a fixed pool of 10 and each caller passes costs for
+    # only the first few, so the truncation is what assigns them
+    for action, cost in zip(actions, costs, strict=False):
         cost_map[action] = Int(cost)
     pb.add_quality_metric(up.model.metrics.MinimizeActionCosts(cost_map))
 

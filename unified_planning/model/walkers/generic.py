@@ -11,15 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import partial
 
-import sys
-
-if sys.version_info >= (3, 3):
-    from collections.abc import Iterable
-else:
-    from collections import Iterable
-
+from collections.abc import Iterable
 
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
@@ -28,10 +21,10 @@ from unified_planning.model.operators import OperatorKind
 # NodeType to Function Name
 def nt_to_fun(o: OperatorKind) -> str:
     """Returns the name of the walk function for the given nodetype."""
-    return "walk_%s" % (str(o).replace("OperatorKind.", "")).lower()
+    return "walk_" + str(o).replace("OperatorKind.", "").lower()
 
 
-class handles(object):
+class handles:
     """
     Decorator for walker functions.
     Use it by specifying the nodetypes that need to be handled by the
@@ -62,13 +55,13 @@ class MetaNodeTypeHandler(type):
 
     def __new__(cls, name, bases, dct):
         obj = type.__new__(cls, name, bases, dct)
-        for k, v in dct.items():
+        for v in dct.values():
             if hasattr(v, "nodetypes"):
                 obj.set_handler(v, *v.nodetypes)  # type: ignore[attr-defined]
         return obj
 
 
-class Walker(object, metaclass=MetaNodeTypeHandler):
+class Walker(metaclass=MetaNodeTypeHandler):
     """Base Abstract Walker class.
     Do not subclass directly, use DagWalker or TreeWalker, instead.
     """

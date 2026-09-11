@@ -14,17 +14,18 @@
 
 
 import warnings
-from unittest.mock import Mock, patch
 from typing import Dict, List
+from unittest.mock import Mock, patch
+
 import unified_planning as up
 import unified_planning.shortcuts as shortcuts
-from unified_planning.environment import Environment
 from unified_planning.engines import OperationMode, UPSequentialSimulator
 from unified_planning.engines.engine import Engine
 from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
+from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import Fluent, InstantaneousAction, Problem, ProblemKind
-from unified_planning.test import unittest_TestCase, main
+from unified_planning.test import main, unittest_TestCase
 
 
 class DummyActionSelector(Engine, ActionSelectorMixin):

@@ -14,44 +14,45 @@
 #
 """This module defines the timed to sequential problem converter class."""
 
+from fractions import Fraction
+from functools import partial
+from typing import Dict, List, Optional, OrderedDict, Set, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
+from unified_planning.engines.compilers.utils import remove_fluents
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
 from unified_planning.engines.results import CompilerResult
+from unified_planning.engines.sequential_simulator import UPSequentialSimulator
+from unified_planning.exceptions import (
+    UPUnreachableCodeError,
+    UPUnsupportedProblemTypeError,
+    UPUsageError,
+)
 from unified_planning.model import (
-    Problem,
-    ProblemKind,
-    InstantaneousAction,
-    DurativeAction,
     Action,
+    DurativeAction,
     Effect,
-    State,
-    UPState,
     ExpressionManager,
     Fluent,
     FNode,
+    InstantaneousAction,
     MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+    State,
+    UPState,
 )
-from unified_planning.model.timing import StartTiming, EndTiming, Interval
+from unified_planning.model.problem_kind import FEATURES
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from typing import Dict, Optional, List, Set, Tuple, OrderedDict, cast
-from fractions import Fraction
-from functools import partial
-from unified_planning.exceptions import (
-    UPUnsupportedProblemTypeError,
-    UPUsageError,
-    UPUnreachableCodeError,
-)
+from unified_planning.model.timing import EndTiming, Interval, StartTiming
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
 from unified_planning.model.walkers.simplifier import Simplifier
 from unified_planning.plans import (
+    ActionInstance,
     SequentialPlan,
     TimeTriggeredPlan,
-    ActionInstance,
 )
-from unified_planning.model.problem_kind import FEATURES
-from unified_planning.engines.compilers.utils import remove_fluents
-from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 
 
 def plan_back_conversion_callable(
@@ -63,10 +64,7 @@ def plan_back_conversion_callable(
 ) -> TimeTriggeredPlan:
     if not isinstance(sp, SequentialPlan):
         raise UPUsageError("Plan to map back is not sequential")
-    if problem.epsilon is not None:
-        min_time_step = problem.epsilon
-    else:
-        min_time_step = Fraction(1, 100)
+    min_time_step = problem.epsilon if problem.epsilon is not None else Fraction(1, 100)
     simulator = UPSequentialSimulator(new_problem)
     simplifier = Simplifier(problem.environment)
     fve = FreeVarsExtractor()
@@ -108,12 +106,13 @@ def plan_back_conversion_callable(
                 if tinterval.lower.is_constant():
                     dtime = Fraction(tinterval.lower.constant_value())
                 else:
-                    par_sub_dict: Dict = {}
-                    for paramname, paramvalue in zip(
-                        action_for_mapback.parameters,
-                        action_instance.actual_parameters,
-                    ):
-                        par_sub_dict[paramname] = paramvalue
+                    par_sub_dict: Dict = dict(
+                        zip(
+                            action_for_mapback.parameters,
+                            action_instance.actual_parameters,
+                            strict=True,
+                        )
+                    )
                     tlower_with_pars = tinterval.lower.substitute(par_sub_dict)
                     flu_subs_dict: Dict = {}
                     for flu_obj in fve.get(tlower_with_pars):
@@ -277,12 +276,12 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         for timepoint, oel in action.effects.items():
             if timepoint == StartTiming():
                 for oe in oel:
-                    if oe.fluent not in old_start_effects.keys():
+                    if oe.fluent not in old_start_effects:
                         old_start_effects[oe.fluent] = []
                     old_start_effects[oe.fluent].append(oe)
             elif timepoint == EndTiming():
                 for oe in oel:
-                    if oe.fluent not in old_end_effects.keys():
+                    if oe.fluent not in old_end_effects:
                         old_end_effects[oe.fluent] = []
                     old_end_effects[oe.fluent].append(oe)
             else:
@@ -311,7 +310,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             start_effects_subs[osef] = osef
             for ose in osel:
                 assert isinstance(ose, Effect)
-                if not ose.condition == em.TRUE():
+                if ose.condition != em.TRUE():
                     dangerous_fluent = ose.fluent
                     for tinterval, ocl in action.conditions.items():
                         if tinterval.upper == EndTiming():
@@ -419,7 +418,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 for oee in oeel:
                     assert isinstance(oee, Effect)
                     new_value: Optional[FNode] = None
-                    if not oee.condition == em.TRUE():
+                    if oee.condition != em.TRUE():
                         new_cond = problem.environment.simplifier.simplify(
                             oee.condition.substitute(start_effects_subs)
                         )
@@ -460,7 +459,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             for osef, osel in old_start_effects.items():
                 for ose in osel:
                     assert isinstance(ose, Effect)
-                    if osef not in old_end_effects.keys():
+                    if osef not in old_end_effects:
                         if ose.is_assignment():
                             new_action.add_effect(osef, ose.value, ose.condition)
                         elif ose.is_increase():

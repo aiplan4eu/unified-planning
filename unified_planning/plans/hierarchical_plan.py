@@ -14,18 +14,15 @@
 #
 
 from dataclasses import dataclass, field
-from typing import Union, Dict, Optional, Tuple, List, OrderedDict, Callable
-
-from unified_planning.model.abstract_problem import AbstractProblem
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from unified_planning.exceptions import UPUsageError
+from unified_planning.model.abstract_problem import AbstractProblem
 from unified_planning.model.fnode import FNode
-from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
-from unified_planning.plans.sequential_plan import SequentialPlan
-from unified_planning.plans.plan import Plan, PlanKind
 from unified_planning.model.htn import Method
-from unified_planning.plans.plan import ActionInstance
-
+from unified_planning.plans.plan import ActionInstance, Plan, PlanKind
+from unified_planning.plans.sequential_plan import SequentialPlan
+from unified_planning.plans.time_triggered_plan import TimeTriggeredPlan
 
 FlatPlan = Union[SequentialPlan, TimeTriggeredPlan]
 
@@ -100,9 +97,8 @@ class Decomposition:
                         "Cannot remove an action from a hierarchical plan"
                     )
                 return rep
-            else:
-                assert isinstance(instance, MethodInstance)
-                return instance._replace_action_instances(replace_function)
+            assert isinstance(instance, MethodInstance)
+            return instance._replace_action_instances(replace_function)
 
         return Decomposition(
             {task: replace(dec) for task, dec in self.subtasks.items()}
@@ -211,12 +207,11 @@ class HierarchicalPlan(Plan):
     def convert_to(self, plan_kind: PlanKind, problem: AbstractProblem) -> "Plan":
         if plan_kind == PlanKind.HIERARCHICAL_PLAN:
             return self
-        elif plan_kind in [PlanKind.SEQUENTIAL_PLAN, PlanKind.TIME_TRIGGERED_PLAN]:
+        if plan_kind in [PlanKind.SEQUENTIAL_PLAN, PlanKind.TIME_TRIGGERED_PLAN]:
             # NOTE: we cannot rely on automatic conversion to PARTIAL_ORDER_PLAN or STN_PLAN
             #       because, the hierarchy induces constraints on action orders that would not be accounted for
             #       by translators only aware of the flat structure
             return self._flat_plan.convert_to(plan_kind, problem)
-        else:
-            raise NotImplementedError(
-                f"Unavailable conversion from hierarchical plan to {plan_kind.name}"
-            )
+        raise NotImplementedError(
+            f"Unavailable conversion from hierarchical plan to {plan_kind.name}"
+        )

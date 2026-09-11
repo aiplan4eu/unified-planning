@@ -14,6 +14,7 @@
 #
 
 from typing import Iterable, List, Set
+
 import unified_planning as up
 
 
@@ -23,7 +24,7 @@ class MotionConstraintsSetMixin:
     """
 
     def __init__(self):
-        self._motion_constraints: List["up.model.motion.MotionConstraint"] = list()
+        self._motion_constraints: List["up.model.motion.MotionConstraint"] = []
         self._motion_constraints_set: Set["up.model.motion.MotionConstraint"] = set()
 
     def add_motion_constraints(

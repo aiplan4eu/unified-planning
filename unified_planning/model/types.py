@@ -14,11 +14,12 @@
 #
 """This module defines all the types."""
 
-import unified_planning
-from typing import Iterator, Optional, cast
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 from abc import ABC
 from fractions import Fraction
+from typing import Iterator, Optional, cast
+
+import unified_planning
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 
 
 class Type(ABC):
@@ -171,7 +172,7 @@ class _IntType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound is None) or (not self.upper_bound is None):
+        if (self.lower_bound is not None) or (self.upper_bound is not None):
             b.append("[")
             b.append("-inf" if self.lower_bound is None else str(self.lower_bound))
             b.append(", ")
@@ -213,7 +214,7 @@ class _RealType(Type):
 
     def __repr__(self) -> str:
         b = []
-        if (not self.lower_bound is None) or (not self.upper_bound is None):
+        if (self.lower_bound is not None) or (self.upper_bound is not None):
             b.append("[")
             b.append("-inf" if self.lower_bound is None else str(self.lower_bound))
             b.append(", ")
@@ -261,17 +262,16 @@ def domain_size(
     """
     if typename.is_bool_type():
         return 2
-    elif typename.is_user_type():
+    if typename.is_user_type():
         return len(list(objects_set.objects(typename)))
-    elif typename.is_int_type():
+    if typename.is_int_type():
         typename = cast(_IntType, typename)
         lb = typename.lower_bound
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
         return ub - lb + 1
-    else:
-        raise UPProblemDefinitionError("Parameter not groundable!")
+    raise UPProblemDefinitionError("Parameter not groundable!")
 
 
 def domain_item(
@@ -289,19 +289,18 @@ def domain_item(
     """
     if typename.is_bool_type():
         return objects_set.environment.expression_manager.Bool(idx == 0)
-    elif typename.is_user_type():
+    if typename.is_user_type():
         return objects_set.environment.expression_manager.ObjectExp(
             list(objects_set.objects(typename))[idx]
         )
-    elif typename.is_int_type():
+    if typename.is_int_type():
         typename = cast(_IntType, typename)
         lb = typename.lower_bound
         ub = typename.upper_bound
         if lb is None or ub is None:
             raise UPProblemDefinitionError("Parameter not groundable!")
         return objects_set.environment.expression_manager.Int(lb + idx)
-    else:
-        raise UPProblemDefinitionError("Parameter not groundable!")
+    raise UPProblemDefinitionError("Parameter not groundable!")
 
 
 def is_compatible_type(
@@ -327,13 +326,10 @@ def is_compatible_type(
         or (t_left.is_real_type() and t_right.is_int_type())
     ):
         return False
-    assert isinstance(t_left, _IntType) or isinstance(t_left, _RealType)
-    assert isinstance(t_right, _IntType) or isinstance(t_right, _RealType)
+    assert isinstance(t_left, (_IntType, _RealType))
+    assert isinstance(t_right, (_IntType, _RealType))
     left_lower = -float("inf") if t_left.lower_bound is None else t_left.lower_bound
     left_upper = float("inf") if t_left.upper_bound is None else t_left.upper_bound
     right_lower = -float("inf") if t_right.lower_bound is None else t_right.lower_bound
     right_upper = float("inf") if t_right.upper_bound is None else t_right.upper_bound
-    if right_upper < left_lower or right_lower > left_upper:
-        return False
-    else:
-        return True
+    return not (right_upper < left_lower or right_lower > left_upper)

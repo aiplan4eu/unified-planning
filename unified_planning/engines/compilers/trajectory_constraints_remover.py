@@ -14,23 +14,30 @@
 #
 """This module defines the trajectory constraints remover class."""
 
+from functools import partial
+from typing import Dict, List, Optional, Tuple, cast
+
 import unified_planning as up
 import unified_planning.engines as engines
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
-from unified_planning.engines.results import CompilerResult
-from unified_planning.model import InstantaneousAction, Action, FNode, Fluent
-from unified_planning.model.walkers import ExpressionQuantifiersRemover
-from unified_planning.model import Problem, ProblemKind, MinimizeActionCosts
-from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.model.expression import Expression
-from functools import partial
 from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
-from typing import List, Dict, Tuple, Optional, cast
-
+from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
+from unified_planning.engines.results import CompilerResult
+from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.model import (
+    Action,
+    Fluent,
+    FNode,
+    InstantaneousAction,
+    MinimizeActionCosts,
+    Problem,
+    ProblemKind,
+)
+from unified_planning.model.expression import Expression
+from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
+from unified_planning.model.walkers import ExpressionQuantifiersRemover
 
 NUM = "num"
 CONSTRAINTS = "constraints"
@@ -150,12 +157,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = grounded_problem.clone()
         assert isinstance(new_problem, Problem)
         new_problem.name = f"{self.name}_{problem.name}"
-        # `I` is substituted into every trajectory constraint below (`_evaluate_constraint`,
+        # `init` is substituted into every trajectory constraint below (`_evaluate_constraint`,
         # `_get_monitoring_atoms`), once per constraint; normalizing it once here instead of
         # letting `FNode.substitute` re-normalize (auto_promote + type-check) the whole
         # initial-value map on every one of those calls avoids doing that rebuild once per
         # constraint -- see `Substituter.substitute_normalized`.
-        I = env.substituter.normalize_substitutions(
+        init = env.substituter.normalize_substitutions(
             cast(Dict[Expression, Expression], new_problem.initial_values)
         )
         C = []
@@ -168,8 +175,8 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         # create a list that contains trajectory_constraints
         # trajectory_constraints can contain quantifiers and need to be remove
         relevancy_dict = self._build_relevancy_dict(env, C)
-        A_prime: List["up.model.InstantaneousAction"] = list()
-        I_prime, F_prime = self._get_monitoring_atoms(env, C, I)
+        A_prime: List["up.model.InstantaneousAction"] = []
+        I_prime, F_prime = self._get_monitoring_atoms(env, C, init)
         G_prime = env.expression_manager.And(
             [self._monitoring_atom_dict[c] for c in self._get_landmark_constraints(C)]
         )
@@ -218,9 +225,12 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     raise Exception(
                         f"ERROR This compiler cannot handle this constraint = {c}"
                     )
-                if c.is_always() or c.is_at_most_once() or c.is_sometime_before():
-                    if to_add and not precondition.is_true():
-                        a.add_precondition(precondition)
+                if (
+                    (c.is_always() or c.is_at_most_once() or c.is_sometime_before())
+                    and to_add
+                    and not precondition.is_true()
+                ):
+                    a.add_precondition(precondition)
             for eff in effects_to_add:
                 a._add_effect_instance(eff)
             if env.expression_manager.FALSE() not in a.preconditions:
@@ -275,7 +285,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_sometime_compilation(self, env, phi, m_atom, a, E):
         R = (self._regression(env, phi, a)).simplify()
-        if R != phi:
+        if phi != R:
             self._add_cond_eff(env, E, R, m_atom)
 
     def _manage_sb_compilation(self, env, phi, psi, m_atom, a, E):
@@ -294,25 +304,23 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
 
     def _manage_amo_compilation(self, env, phi, m_atom, a, E):
         R = (self._regression(env, phi, a)).simplify()
-        if R == phi:
+        if phi == R:
             return None, False
-        else:
-            rho = (
-                env.expression_manager.Or(
-                    env.expression_manager.Not(R),
-                    env.expression_manager.Not(m_atom),
-                    phi,
-                )
-            ).simplify()
-            self._add_cond_eff(env, E, R, m_atom)
-            return rho, True
+        rho = (
+            env.expression_manager.Or(
+                env.expression_manager.Not(R),
+                env.expression_manager.Not(m_atom),
+                phi,
+            )
+        ).simplify()
+        self._add_cond_eff(env, E, R, m_atom)
+        return rho, True
 
     def _manage_always_compilation(self, env, phi, a):
         R = (self._regression(env, phi, a)).simplify()
-        if R == phi:
+        if phi == R:
             return None, False
-        else:
-            return R, True
+        return R, True
 
     # in the list E are added new effects based on the type of constraint
     def _add_cond_eff(self, env, E, cond, eff):
@@ -349,7 +357,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         subs = env.substituter.substitute_normalized
         if constr.is_sometime():
             return HOLD, subs(constr.args[0], init_values).simplify()
-        elif constr.is_sometime_after():
+        if constr.is_sometime_after():
             return (
                 HOLD,
                 env.expression_manager.Or(
@@ -357,34 +365,33 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                     env.expression_manager.Not(subs(constr.args[0], init_values)),
                 ).simplify(),
             )
-        elif constr.is_sometime_before():
+        if constr.is_sometime_before():
             return (
                 SEEN_PSI,
                 subs(constr.args[1], init_values).simplify(),
             )
-        elif constr.is_at_most_once():
+        if constr.is_at_most_once():
             return (
                 SEEN_PHI,
                 subs(constr.args[0], init_values).simplify(),
             )
-        elif constr.is_bool_constant():
+        if constr.is_bool_constant():
             return None, constr
-        else:
-            return None, subs(constr.args[0], init_values).simplify()
+        return None, subs(constr.args[0], init_values).simplify()
 
-    def _get_monitoring_atoms(self, env, C, I):
+    def _get_monitoring_atoms(self, env, C, init):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
         initial_state_prime = []
         subs = env.substituter.substitute_normalized
         for constr in C:
             if constr.is_always():
-                if subs(constr.args[0], I).simplify().is_false():
+                if subs(constr.args[0], init).simplify().is_false():
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
             else:
-                type, init_state_value = self._evaluate_constraint(env, constr, I)
+                type, init_state_value = self._evaluate_constraint(env, constr, init)
                 fluent = up.model.Fluent(
                     f"{type}{SEPARATOR}{monitoring_atoms_counter}",
                     env.type_manager.BoolType(),
@@ -394,11 +401,13 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 self._monitoring_atom_dict[constr] = monitoring_atom
                 if init_state_value.is_true():
                     initial_state_prime.append(monitoring_atom)
-                if constr.is_sometime_before():
-                    if subs(constr.args[0], I).simplify().is_true():
-                        raise UPProblemDefinitionError(
-                            "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
-                        )
+                if (
+                    constr.is_sometime_before()
+                    and subs(constr.args[0], init).simplify().is_true()
+                ):
+                    raise UPProblemDefinitionError(
+                        "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
+                    )
                 monitoring_atoms_counter += 1
         return initial_state_prime, monitoring_atoms
 
@@ -441,19 +450,16 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
     def _regression(self, env, phi, action):
         if phi.is_false() or phi.is_true():
             return phi
-        elif phi.is_fluent_exp():
+        if phi.is_fluent_exp():
             return self._gamma_substitution(env, phi, action)
-        elif phi.is_or():
+        if phi.is_or():
             return env.expression_manager.Or(
                 self._regression(env, component, action) for component in phi.args
             )
-        elif phi.is_and():
+        if phi.is_and():
             return env.expression_manager.And(
                 self._regression(env, component, action) for component in phi.args
             )
-        elif phi.is_not():
+        if phi.is_not():
             return env.expression_manager.Not(self._regression(env, phi.arg(0), action))
-        else:
-            raise up.exceptions.UPUsageError(
-                "This compiler cannot handle this expression"
-            )
+        raise up.exceptions.UPUsageError("This compiler cannot handle this expression")

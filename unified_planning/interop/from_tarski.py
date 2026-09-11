@@ -13,25 +13,37 @@
 # limitations under the License.
 
 
-import unified_planning
 import itertools
-import tarski.fstrips
-from fractions import Fraction
-from unified_planning.exceptions import UPProblemDefinitionError
-from unified_planning.environment import Environment
 from collections import OrderedDict
-from typing import Optional, Union, Dict, cast
+from fractions import Fraction
+from typing import Dict, Optional, Union, cast
+
+import tarski.fstrips
+from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect
 from tarski.syntax import Interval
-from tarski.syntax.formulas import Formula, is_and, is_or, is_neg, is_atom
 from tarski.syntax.formulas import (
-    Tautology,
     Contradiction,
+    Formula,
     QuantifiedFormula,
     Quantifier,
+    Tautology,
+    is_and,
+    is_atom,
+    is_neg,
+    is_or,
 )
-from tarski.syntax.terms import Term, CompoundTerm, BuiltinPredicateSymbol
-from tarski.syntax.terms import Constant, Variable, BuiltinFunctionSymbol
-from tarski.fstrips.fstrips import AddEffect, DelEffect, FunctionalEffect
+from tarski.syntax.terms import (
+    BuiltinFunctionSymbol,
+    BuiltinPredicateSymbol,
+    CompoundTerm,
+    Constant,
+    Term,
+    Variable,
+)
+
+import unified_planning
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPProblemDefinitionError
 
 
 def convert_tarski_formula(
@@ -52,7 +64,7 @@ def convert_tarski_formula(
             for f in formula.subformulas
         ]
         return em.And(*children)
-    elif is_or(formula):
+    if is_or(formula):
         children = [
             convert_tarski_formula(
                 environment, fluents, objects, action_parameters, types, f
@@ -60,7 +72,7 @@ def convert_tarski_formula(
             for f in formula.subformulas
         ]
         return em.Or(*children)
-    elif is_neg(formula):
+    if is_neg(formula):
         assert len(formula.subformulas) == 1
         return em.Not(
             convert_tarski_formula(
@@ -72,91 +84,84 @@ def convert_tarski_formula(
                 formula.subformulas[0],
             )
         )
-    elif is_atom(formula) or isinstance(formula, CompoundTerm):
+    if is_atom(formula) or isinstance(formula, CompoundTerm):
         children = [
             convert_tarski_formula(
                 environment, fluents, objects, action_parameters, types, f
             )
             for f in formula.subterms
         ]
-        if is_atom(formula):
-            symbol = formula.predicate.symbol
-        else:
-            symbol = formula.symbol.name
+        symbol = formula.predicate.symbol if is_atom(formula) else formula.symbol.name
         if symbol == BuiltinPredicateSymbol.EQ:
             assert len(children) == 2
             return em.Equals(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.NE:
+        if symbol == BuiltinPredicateSymbol.NE:
             assert len(children) == 2
             return em.Not(em.Equals(children[0], children[1]))
-        elif symbol == BuiltinPredicateSymbol.LT:
+        if symbol == BuiltinPredicateSymbol.LT:
             assert len(children) == 2
             return em.LT(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.LE:
+        if symbol == BuiltinPredicateSymbol.LE:
             assert len(children) == 2
             return em.LE(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.GT:
+        if symbol == BuiltinPredicateSymbol.GT:
             assert len(children) == 2
             return em.GT(children[0], children[1])
-        elif symbol == BuiltinPredicateSymbol.GE:
+        if symbol == BuiltinPredicateSymbol.GE:
             assert len(children) == 2
             return em.GE(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.ADD:
+        if symbol == BuiltinFunctionSymbol.ADD:
             assert len(children) == 2
             return em.Plus(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.SUB:
+        if symbol == BuiltinFunctionSymbol.SUB:
             assert len(children) == 2
             return em.Minus(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.MUL:
+        if symbol == BuiltinFunctionSymbol.MUL:
             assert len(children) == 2
             return em.Times(children[0], children[1])
-        elif symbol == BuiltinFunctionSymbol.DIV:
+        if symbol == BuiltinFunctionSymbol.DIV:
             assert len(children) == 2
             return em.Div(children[0], children[1])
-        elif symbol in fluents:
+        if symbol in fluents:
             return fluents[symbol](*children)
-        else:
-            raise UPProblemDefinitionError(symbol + " not supported!")
-    elif isinstance(formula, Constant):
+        raise UPProblemDefinitionError(symbol + " not supported!")
+    if isinstance(formula, Constant):
         if formula.sort.name == "number":
             return em.Real(Fraction(float(formula.name)))
-        elif isinstance(formula.sort, tarski.syntax.Interval):
+        if isinstance(formula.sort, tarski.syntax.Interval):
             if formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Integer
             ) or formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Natural
             ):
                 return em.Int(int(formula.name))
-            elif formula.sort.language.is_subtype(
+            if formula.sort.language.is_subtype(
                 formula.sort, formula.sort.language.Real
             ):
                 return em.Real(Fraction(float(formula.name)))
-            else:
-                raise NotImplementedError
-        elif formula.name in objects:
+            raise NotImplementedError
+        if formula.name in objects:
             return em.ObjectExp(objects[formula.name])
-        else:
-            raise UPProblemDefinitionError(formula + " not supported!")
-    elif isinstance(formula, Variable):
+        raise UPProblemDefinitionError(formula + " not supported!")
+    if isinstance(formula, Variable):
         if formula.symbol in action_parameters:
             return em.ParameterExp(action_parameters[formula.symbol])
-        else:
-            return em.VariableExp(
-                unified_planning.model.Variable(
-                    formula.symbol,
-                    cast(
-                        unified_planning.model.Type,
-                        _convert_type_and_update_dict(
-                            formula.sort,
-                            types,
-                            environment.type_manager,
-                            formula.sort.language,
-                        ),
+        return em.VariableExp(
+            unified_planning.model.Variable(
+                formula.symbol,
+                cast(
+                    unified_planning.model.Type,
+                    _convert_type_and_update_dict(
+                        formula.sort,
+                        types,
+                        environment.type_manager,
+                        formula.sort.language,
                     ),
-                    environment,
-                )
+                ),
+                environment,
             )
-    elif isinstance(formula, QuantifiedFormula):
+        )
+    if isinstance(formula, QuantifiedFormula):
         expression = convert_tarski_formula(
             environment, fluents, objects, action_parameters, types, formula.formula
         )
@@ -175,16 +180,14 @@ def convert_tarski_formula(
         ]
         if formula.quantifier == Quantifier.Exists:
             return em.Exists(expression, *variables)
-        elif formula.quantifier == Quantifier.Forall:
+        if formula.quantifier == Quantifier.Forall:
             return em.Forall(expression, *variables)
-        else:
-            raise NotImplementedError
-    elif isinstance(formula, Tautology):
+        raise NotImplementedError
+    if isinstance(formula, Tautology):
         return em.TRUE()
-    elif isinstance(formula, Contradiction):
+    if isinstance(formula, Contradiction):
         return em.FALSE()
-    else:
-        raise UPProblemDefinitionError(str(formula) + " not supported!")
+    raise UPProblemDefinitionError(str(formula) + " not supported!")
 
 
 def _check_if_tarski_problem_uses_object_type(
@@ -290,7 +293,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.sort):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i + 1)}"] = type
+            signature[f"p{i + 1!s}"] = type
         fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
         fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
@@ -301,7 +304,7 @@ def convert_problem_from_tarski(
         for i, t in enumerate(p.domain):
             type = types[str(t.name)]
             assert type is not None
-            signature[f"p{str(i + 1)}"] = type
+            signature[f"p{i + 1!s}"] = type
         func_sort = p.sort[-1]
         if isinstance(func_sort, Interval):
             if func_sort.encode == lang.Real.encode:
@@ -366,7 +369,7 @@ def convert_problem_from_tarski(
             parameters[p.symbol] = type
         action = unified_planning.model.InstantaneousAction(a_name, parameters)
         action_parameters = {}
-        for p in parameters.keys():
+        for p in parameters:
             action_parameters[p] = action.parameter(p)
         f = convert_tarski_formula(
             environment, fluents, objects, action_parameters, types, a.precondition
@@ -401,7 +404,7 @@ def convert_problem_from_tarski(
     # Set initial values
     initial_values = {}
     for fluent in fluents.values():
-        l = [problem.objects(p.type) for p in fluent.signature]
+        param_objects = [problem.objects(p.type) for p in fluent.signature]
         if fluent.type.is_bool_type():
             default_value = em.FALSE()
         elif fluent.type.is_real_type():
@@ -410,10 +413,10 @@ def convert_problem_from_tarski(
             default_value = em.Int(0)
         elif fluent.type.is_user_type():
             continue
-        if len(l) == 0:
+        if len(param_objects) == 0:
             initial_values[em.FluentExp(fluent)] = default_value
         else:
-            for args in itertools.product(*l):
+            for args in itertools.product(*param_objects):
                 initial_values[fluent(*args)] = default_value
     for i in tarski_problem.init.as_atoms():
         if isinstance(i, tuple):

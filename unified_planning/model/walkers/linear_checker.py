@@ -14,13 +14,14 @@
 #
 
 
+from typing import List, Optional, Set, Tuple
+
 import unified_planning as up
 import unified_planning.model.walkers as walkers
-from unified_planning.environment import Environment, get_environment
-from unified_planning.model.walkers.dag import DagWalker
+from unified_planning.environment import get_environment
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.types import _IntType, _RealType
-from typing import List, Optional, Set, Tuple
+from unified_planning.model.walkers.dag import DagWalker
 
 
 class LinearChecker(DagWalker):
@@ -121,7 +122,7 @@ class LinearChecker(DagWalker):
                 negative_fluents |= snf
             else:
                 t = tc.get_type(expression.arg(i))
-                assert isinstance(t, _IntType) or isinstance(t, _RealType)
+                assert isinstance(t, (_IntType, _RealType))
                 if t.lower_bound is None or t.upper_bound is None:
                     positivity_unknown = True
                 elif t.lower_bound > 0:
@@ -135,10 +136,9 @@ class LinearChecker(DagWalker):
         if positivity_unknown:
             fluents = positive_fluents | negative_fluents
             return (is_linear, fluents, fluents)
-        elif positivity:
+        if positivity:
             return (is_linear, positive_fluents, negative_fluents)
-        else:
-            return (is_linear, negative_fluents, positive_fluents)
+        return (is_linear, negative_fluents, positive_fluents)
 
     def walk_div(
         self,
@@ -182,8 +182,7 @@ class LinearChecker(DagWalker):
 
         if positivity:
             return (is_linear, positive_fluents, negative_fluents)
-        else:
-            return (is_linear, negative_fluents, positive_fluents)
+        return (is_linear, negative_fluents, positive_fluents)
 
     def walk_minus(
         self,
@@ -208,8 +207,7 @@ class LinearChecker(DagWalker):
         positive_fluents |= snf
         if not is_linear:
             return (is_linear, set(), set())
-        else:
-            return (is_linear, positive_fluents, negative_fluents)
+        return (is_linear, positive_fluents, negative_fluents)
 
     def walk_fluent_exp(
         self,
@@ -219,6 +217,6 @@ class LinearChecker(DagWalker):
         ],
     ) -> Tuple[bool, Set["up.model.fnode.FNode"], Set["up.model.fnode.FNode"]]:
         is_linear = True
-        for b, spf, snf in args:
+        for b, _spf, _snf in args:
             is_linear = is_linear and b
         return (is_linear, {expression}, set())

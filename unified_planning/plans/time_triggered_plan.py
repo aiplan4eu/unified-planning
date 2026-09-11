@@ -14,36 +14,35 @@
 #
 
 
-from functools import partial
+from fractions import Fraction
 from itertools import chain
-import unified_planning as up
-import unified_planning.plans as plans
-from unified_planning.model import (
-    InstantaneousAction,
-    Timing,
-    DurativeAction,
-    Problem,
-    FNode,
-    TimepointKind,
-    Effect,
-    TimeInterval,
-    Timepoint,
-    SimulatedEffect,
-)
-from unified_planning.environment import Environment
-from unified_planning.exceptions import UPUsageError
 from typing import (
     Callable,
     Dict,
     Iterator,
+    List,
     Optional,
     OrderedDict,
     Set,
     Tuple,
-    List,
-    Union,
 )
-from fractions import Fraction
+
+import unified_planning as up
+import unified_planning.plans as plans
+from unified_planning.environment import Environment
+from unified_planning.exceptions import UPUsageError
+from unified_planning.model import (
+    DurativeAction,
+    Effect,
+    FNode,
+    InstantaneousAction,
+    Problem,
+    SimulatedEffect,
+    TimeInterval,
+    Timepoint,
+    TimepointKind,
+    Timing,
+)
 
 
 class TimeTriggeredPlan(plans.plan.Plan):
@@ -93,8 +92,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
             start, ai, dur = start_ai_dur
             if dur is None:
                 return f"    {float(start)}: {ai}"
-            else:
-                return f"    {float(start)}: {ai} [{float(dur)}]"
+            return f"    {float(start)}: {ai} [{float(dur)}]"
 
         ret = ["TimeTriggeredPlan:"]
         ret.extend(map(convert_ai, sorted(self._actions, key=lambda x: x[0])))
@@ -104,7 +102,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         if isinstance(oth, TimeTriggeredPlan) and len(self._actions) == len(
             oth._actions
         ):
-            for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(self._actions, oth._actions):
+            for (s, ai, d), (oth_s, oth_ai, oth_d) in zip(
+                self._actions, oth._actions, strict=True
+            ):
                 if (
                     s != oth_s
                     or ai.action != oth_ai.action
@@ -113,8 +113,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
                 ):
                     return False
             return True
-        else:
-            return False
+        return False
 
     def __hash__(self) -> int:
         count: int = 0
@@ -127,8 +126,7 @@ class TimeTriggeredPlan(plans.plan.Plan):
     def __contains__(self, item: object) -> bool:
         if isinstance(item, plans.plan.ActionInstance):
             return any(item.is_semantically_equivalent(a) for _, a, _ in self._actions)
-        else:
-            return False
+        return False
 
     @property
     def timed_actions(
@@ -184,10 +182,9 @@ class TimeTriggeredPlan(plans.plan.Plan):
         """
         if plan_kind == self._kind:
             return self
-        elif plan_kind == plans.plan.PlanKind.STN_PLAN:
+        if plan_kind == plans.plan.PlanKind.STN_PLAN:
             return _convert_to_stn(self, problem)
-        else:
-            raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
+        raise UPUsageError(f"{type(self)} can't be converted to {plan_kind}.")
 
     def extract_epsilon(self, problem: Problem) -> Optional[Fraction]:
         """
@@ -199,10 +196,10 @@ class TimeTriggeredPlan(plans.plan.Plan):
             returned if the plan does not have at least 2 events.
         """
         times: Set[Fraction] = {Fraction(0)}
-        for i in problem.timed_goals.keys():
+        for i in problem.timed_goals:
             times.add(Fraction(i.lower.delay))
             times.add(Fraction(i.upper.delay))
-        for t in problem.timed_effects.keys():
+        for t in problem.timed_effects:
             times.add(Fraction(t.delay))
         for start, ai, duration in self._actions:
             times.add(start)
@@ -241,8 +238,7 @@ def _absolute_time(
     """
     if relative_time.is_from_start():
         return start + relative_time.delay
-    else:
-        return start + duration + relative_time.delay
+    return start + duration + relative_time.delay
 
 
 def _convert_to_stn(
@@ -253,7 +249,7 @@ def _convert_to_stn(
     # removing the temporal dimension, creating a SequentialPlan, then de-ordering the
     # SequentialPlan creating a PartialOrderPlan and re-adding the temporal dimension,
     # getting an STNPlan in the end.
-    from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
+    from unified_planning.plans.stn_plan import STNPlan, STNPlanNode
 
     assert isinstance(problem, Problem), "This algorithm works only for Problem"
 
@@ -352,7 +348,7 @@ def _convert_to_stn(
         ai_to_start_node[ai] = start_node
 
     simultaneous_events: List[Set["plans.plan.ActionInstance"]] = [
-        set(l) for l in events.values() if len(l) > 1
+        set(el) for el in events.values() if len(el) > 1
     ]
 
     sorted_events = sorted(events.items(), key=lambda acts: acts[0])
@@ -475,10 +471,12 @@ def _extract_action_timings(
     """
     timings: Set[Fraction] = set()
 
-    absolute_time = lambda timing: _absolute_time(timing, start, duration)
+    def absolute_time(timing):
+        return _absolute_time(timing, start, duration)
+
     timings.update(map(absolute_time, chain(action.effects, action.simulated_effects)))
 
-    for interval in action.conditions.keys():
+    for interval in action.conditions:
         lower_increment: Fraction = epsilon if interval.is_left_open() else Fraction(0)
         upper_increment: Fraction = (
             -epsilon if interval.is_right_open() else Fraction(0)
@@ -503,7 +501,7 @@ def _extract_instantenous_actions(
     ):
         inst_action = InstantaneousAction(
             f"{action.name}_{i}",
-            _parameters=OrderedDict(((p.name, p.type) for p in action.parameters)),
+            _parameters=OrderedDict((p.name, p.type) for p in action.parameters),
         )
         for cond in _get_timepoint_conditions(action, timing, start, duration):
             inst_action.add_precondition(cond)
