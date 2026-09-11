@@ -407,6 +407,7 @@ class Problem(  # type: ignore[misc]
                 remove_used_fluents(e.fluent, e.value, e.condition)
                 static_fluents.discard(e.fluent.fluent())
         for pro in self._processes:
+            remove_used_fluents(*pro.preconditions)
             for e in pro.effects:
                 remove_used_fluents(e.fluent, e.value, e.condition)
                 static_fluents.discard(e.fluent.fluent())
