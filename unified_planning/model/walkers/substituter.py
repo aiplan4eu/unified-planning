@@ -107,6 +107,24 @@ class Substituter(IdentityDagWalker):
 
         if len(substitutions) == 0:
             return expression
+        return self.walk(expression, subs=self.normalize_substitutions(substitutions))
+
+    def normalize_substitutions(
+        self, substitutions: Dict[Expression, Expression] = {}
+    ) -> Dict[FNode, FNode]:
+        """
+        Auto-promotes and type-checks every entry of the given substitutions map, returning the
+        `FNode -> FNode` dictionary that :func:`substitute` would build internally on every call.
+
+        Factored out of :func:`substitute` so a caller that calls :func:`substitute_normalized`
+        (or :func:`walk` directly, with ``subs=...``) in a loop with the same substitutions can
+        build this dictionary once instead of paying the `auto_promote`/type-check pass again for
+        every expression -- see :func:`substitute_normalized`.
+
+        :param substitutions: The map containing the substitutions, every time a key is found,
+            it is substituted with it's value.
+        :return: The equivalent `FNode -> FNode` substitutions map.
+        """
         new_substitutions: Dict[FNode, FNode] = {}
         for k, v in substitutions.items():
             new_k, new_v = self.manager.auto_promote(k, v)
@@ -116,7 +134,30 @@ class Substituter(IdentityDagWalker):
                 raise UPTypeError(
                     f"The expression type of {str(k)} is not compatible with the given substitution {str(v)}"
                 )
-        return self.walk(expression, subs=new_substitutions)
+        return new_substitutions
+
+    def substitute_normalized(
+        self, expression: FNode, substitutions: Dict[FNode, FNode]
+    ) -> FNode:
+        """
+        Same as :func:`substitute`, but skips the `auto_promote`/type-check rebuild of
+        ``substitutions`` on every call: ``substitutions`` must already be an `FNode -> FNode`
+        dictionary produced by :func:`normalize_substitutions` (or an equivalent one, built by
+        hand from `FNode`s only).
+
+        Intended for a caller that substitutes the same (typically large) map into many
+        expressions in a loop -- e.g. one problem's whole
+        :func:`initial_values <unified_planning.model.mixins.InitialStateMixin.initial_values>`
+        substituted into many separate constraints -- where :func:`substitute` would otherwise
+        redo that rebuild once per expression.
+
+        :param expression: The target expression for the substitution.
+        :param substitutions: The already-normalized map containing the substitutions.
+        :return: The expression where every key expression is substituted with it's value.
+        """
+        if len(substitutions) == 0:
+            return expression
+        return self.walk(expression, subs=substitutions)
 
     @walkers.handles(OperatorKind)
     def walk_replace_or_identity(

@@ -29,7 +29,7 @@ from unified_planning.engines.compilers.grounder import Grounder
 from unified_planning.engines.compilers.utils import (
     lift_action_instance,
 )
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, cast
 
 
 NUM = "num"
@@ -150,7 +150,14 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         new_problem = grounded_problem.clone()
         assert isinstance(new_problem, Problem)
         new_problem.name = f"{self.name}_{problem.name}"
-        I = new_problem.initial_values
+        # `I` is substituted into every trajectory constraint below (`_evaluate_constraint`,
+        # `_get_monitoring_atoms`), once per constraint; normalizing it once here instead of
+        # letting `FNode.substitute` re-normalize (auto_promote + type-check) the whole
+        # initial-value map on every one of those calls avoids doing that rebuild once per
+        # constraint -- see `Substituter.substitute_normalized`.
+        I = env.substituter.normalize_substitutions(
+            cast(Dict[Expression, Expression], new_problem.initial_values)
+        )
         C = []
         for c in new_problem.trajectory_constraints:
             new_c = expression_quantifier_remover.remove_quantifiers(c, new_problem)
@@ -337,38 +344,42 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
         return relevant_constrains
 
     def _evaluate_constraint(self, env, constr, init_values):
+        # `init_values` is already normalized (see `_compile`); substitute_normalized skips the
+        # per-call auto_promote/type-check rebuild `.substitute()` would otherwise redo here.
+        subs = env.substituter.substitute_normalized
         if constr.is_sometime():
-            return HOLD, constr.args[0].substitute(init_values).simplify()
+            return HOLD, subs(constr.args[0], init_values).simplify()
         elif constr.is_sometime_after():
             return (
                 HOLD,
                 env.expression_manager.Or(
-                    constr.args[1].substitute(init_values),
-                    env.expression_manager.Not(constr.args[0].substitute(init_values)),
+                    subs(constr.args[1], init_values),
+                    env.expression_manager.Not(subs(constr.args[0], init_values)),
                 ).simplify(),
             )
         elif constr.is_sometime_before():
             return (
                 SEEN_PSI,
-                constr.args[1].substitute(init_values).simplify(),
+                subs(constr.args[1], init_values).simplify(),
             )
         elif constr.is_at_most_once():
             return (
                 SEEN_PHI,
-                constr.args[0].substitute(init_values).simplify(),
+                subs(constr.args[0], init_values).simplify(),
             )
         elif constr.is_bool_constant():
             return None, constr
         else:
-            return None, constr.args[0].substitute(init_values).simplify()
+            return None, subs(constr.args[0], init_values).simplify()
 
     def _get_monitoring_atoms(self, env, C, I):
         monitoring_atoms = []
         monitoring_atoms_counter = 0
         initial_state_prime = []
+        subs = env.substituter.substitute_normalized
         for constr in C:
             if constr.is_always():
-                if constr.args[0].substitute(I).simplify().is_false():
+                if subs(constr.args[0], I).simplify().is_false():
                     raise UPProblemDefinitionError(
                         "PROBLEM NOT SOLVABLE: an always is violated in the initial state"
                     )
@@ -384,7 +395,7 @@ class TrajectoryConstraintsRemover(engines.engine.Engine, CompilerMixin):
                 if init_state_value.is_true():
                     initial_state_prime.append(monitoring_atom)
                 if constr.is_sometime_before():
-                    if constr.args[0].substitute(I).simplify().is_true():
+                    if subs(constr.args[0], I).simplify().is_true():
                         raise UPProblemDefinitionError(
                             "PROBLEM NOT SOLVABLE: a sometime-before is violated in the initial state"
                         )

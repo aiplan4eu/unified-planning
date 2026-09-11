@@ -98,6 +98,7 @@ class GrounderHelper:
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
         prune_actions: bool = True,
         join_max_candidates: int = DEFAULT_JOIN_MAX_CANDIDATES,
+        fold_static_fluent_exps: bool = True,
     ):
         """
         Creates an instance of the GrounderHelper.
@@ -128,12 +129,22 @@ class GrounderHelper:
             action falls back to the per-parameter-independent pruning instead. A value `<= 0`
             disables the join outright (every action uses the fallback), which is mainly useful
             to test the fallback path itself in isolation.
+        :param fold_static_fluent_exps: If `True` (the default) and `prune_actions` is also `True`,
+            the `Simplifier` this class runs every substituted precondition/condition/effect
+            value/duration bound/action cost through additionally folds a ground fluent atom to
+            its initial value whenever *that specific atom* -- not just its whole fluent schema,
+            as `problem.get_static_fluents()` alone would -- is never the target of any effect in
+            the problem (see `unified_planning.model.walkers.Simplifier`'s
+            `fold_static_fluent_exps` parameter). Has no effect when `prune_actions` is `False`,
+            since that path uses the problem-less, static-fluent-unaware `environment.simplifier`
+            instead.
         """
         assert isinstance(problem, Problem)
         self._problem = problem
         self._grounding_actions_map = grounding_actions_map
         self._prune_actions = prune_actions
         self._join_max_candidates = join_max_candidates
+        self._fold_static_fluent_exps = fold_static_fluent_exps
         if grounding_actions_map is not None:
             for action, params_list in grounding_actions_map.items():
                 for params in params_list:
@@ -166,7 +177,9 @@ class GrounderHelper:
         ] = {}
         env = problem.environment
         if prune_actions:
-            self._simplifier = Simplifier(env, problem)
+            self._simplifier = Simplifier(
+                env, problem, fold_static_fluent_exps=fold_static_fluent_exps
+            )
         else:
             self._simplifier = env.simplifier
 
@@ -717,8 +730,10 @@ class Grounder(engines.engine.Engine, CompilerMixin):
     the integration of external grounders inside the library. To see a practical example, checkout the :class:`~unified_planning.engines.compilers.TarskiGrounder` `_compile`
     implementation.
     The Grounder class can also optionally take a `prune_actions` flag to enable/disable the pruning of
-    actions exploiting the simplification of static fluents, and a `join_max_candidates` safety-valve
-    threshold for that pruning's join -- see
+    actions exploiting the simplification of static fluents, a `join_max_candidates` safety-valve
+    threshold for that pruning's join, and a `fold_static_fluent_exps` flag to enable/disable
+    folding a per-ground-atom (rather than whole-fluent-schema) static fluent atom to its initial
+    value during grounding -- see
     :func:`GrounderHelper.__init__ <unified_planning.engines.compilers.GrounderHelper>` for details.
 
     Interpreted functions are treated as ordinary sub-expressions: calls appearing in conditions, effect
@@ -735,12 +750,14 @@ class Grounder(engines.engine.Engine, CompilerMixin):
         grounding_actions_map: Optional[Dict[Action, List[Tuple[FNode, ...]]]] = None,
         prune_actions: bool = True,
         join_max_candidates: int = GrounderHelper.DEFAULT_JOIN_MAX_CANDIDATES,
+        fold_static_fluent_exps: bool = True,
     ):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(self, CompilationKind.GROUNDING)
         self._grounding_actions_map = grounding_actions_map
         self._prune_actions = prune_actions
         self._join_max_candidates = join_max_candidates
+        self._fold_static_fluent_exps = fold_static_fluent_exps
 
     @property
     def name(self):
@@ -849,6 +866,7 @@ class Grounder(engines.engine.Engine, CompilerMixin):
             self._grounding_actions_map,
             self._prune_actions,
             self._join_max_candidates,
+            self._fold_static_fluent_exps,
         )
         trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
 
