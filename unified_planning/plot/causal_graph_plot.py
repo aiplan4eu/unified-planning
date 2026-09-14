@@ -113,7 +113,7 @@ def plot_causal_graph(
         maintained in any way and it might be removed or modified at any moment.
     """
     # param "sanitization"
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     if generate_edge_label is None:
         edge_label_function: Callable[[Action, Sequence[FNode]], str] = (

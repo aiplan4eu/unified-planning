@@ -154,11 +154,35 @@ addopts = "--doctest-modules --ignore=unified_planning/grpc --ignore=unified_pla
 [tool.mypy]
 check_untyped_defs = true
 files = ["unified_planning"]
+# An ignore that no longer suppresses anything is a false statement about the code.
+warn_unused_ignores = true
+no_implicit_optional = true
+# Same argument as warn_unused_ignores, for a cast mypy can prove is a no-op.
+warn_redundant_casts = true
+# `x == y` between types that cannot overlap is always False at runtime, i.e. always a bug.
+strict_equality = true
+# Code mypy proves unreachable is also code mypy never checks. Version- and platform-gated
+# blocks are exempt by mypy itself, so this does not fire on the `sys.platform` branches.
+warn_unreachable = true
+# A new suppression has to name what it suppresses; a whole-file `# type: ignore` is exempt.
+enable_error_code = ["ignore-without-code"]
 
 [[tool.mypy.overrides]]
 module = ["unified_planning.grpc.generated.*"]
 ignore_errors = true
 
+# Third-party packages that ship no type information and have no stubs installed. The `plot`
+# extra is covered here rather than by per-import ignores, so that warn_unused_ignores answers
+# the same whether or not the extra is installed.
 [[tool.mypy.overrides]]
-module = ["tarski.*", "tamerlite.*", "networkx.*", "pyparsing.*", "pysmt.*", "pddl.*"]
+module = [
+    "graphviz.*",
+    "matplotlib.*",
+    "networkx.*",
+    "pddl.*",
+    "plotly.*",
+    "pysmt.*",
+    "tamerlite.*",
+    "tarski.*",
+]
 ignore_missing_imports = true

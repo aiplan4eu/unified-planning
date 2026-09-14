@@ -506,14 +506,14 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
                     tm.RealType(),
                     mgr.Int(0),
                 )
-                start_action.add_effect(cast(FNode, action_duration_exp), 0)
+                start_action.add_effect(action_duration_exp, 0)
 
                 first_end_triggered = add_new_fluent(
                     "first_end_triggered",
                     tm.BoolType(),
                     mgr.FALSE(),
                 )
-                start_action.add_effect(cast(FNode, first_end_triggered), False)
+                start_action.add_effect(first_end_triggered, False)
 
             first_end_action = InstantaneousAction(
                 get_fresh_name(new_problem, action.name, trailing_info="first_end"),

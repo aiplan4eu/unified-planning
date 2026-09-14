@@ -41,10 +41,16 @@ class SequentialSimulatorMixin(ABC):
         """
         self._problem = problem
         self_class = type(self)
-        assert issubclass(self_class, up.engines.engine.Engine), (
+        # mypy cannot build the ad-hoc intersection these asserts narrow to, although it does
+        # accept the concrete `class C(SequentialSimulatorMixin, Engine)` in either base
+        # order, so the reported incompatibility is not a real one. Note what the ignores
+        # cost: mypy stops checking the remainder of this constructor either way - they
+        # silence the report, they do not restore the coverage. The asserts cannot simply be
+        # dropped, because the narrowing is what makes Engine's members reachable below.
+        assert issubclass(self_class, up.engines.engine.Engine), (  # type: ignore[unreachable]
             "SequentialSimulatorMixin does not implement the up.engines.Engine class"
         )
-        assert isinstance(self, up.engines.engine.Engine)
+        assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]
         self._error_on_failed_checks: bool = error_on_failed_checks
         if not self.skip_checks and not self_class.supports(problem.kind):
             msg = f"We cannot establish whether {self.name} is able to handle this problem!"
@@ -72,7 +78,7 @@ class SequentialSimulatorMixin(ABC):
         if isinstance(action_or_action_instance, up.plans.ActionInstance):
             if parameters is not None:
                 method_name = inspect.stack()[1].function
-                assert isinstance(self, up.engines.engine.Engine)
+                assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]
                 raise UPUsageError(
                     f"{self.name}.{method_name} method does not accept an ActionInstance and also the parameters."
                 )
@@ -91,7 +97,7 @@ class SequentialSimulatorMixin(ABC):
             not ap.type.is_compatible(p.type) for p, ap in zip(params, act.parameters)
         ):
             method_name = inspect.stack()[1].function
-            assert isinstance(self, up.engines.engine.Engine)
+            assert isinstance(self, up.engines.engine.Engine)  # type: ignore[unreachable]
             raise UPUsageError(
                 f"The parameters given to the {self.name}.{method_name} method are ",
                 "not compatible with the given action's parameters.",

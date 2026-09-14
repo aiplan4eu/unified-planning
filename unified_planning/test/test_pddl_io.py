@@ -51,7 +51,7 @@ from unified_planning.interop import (
     convert_problem_from_ai_pddl,
 )
 
-from pddl import parse_domain, parse_problem  # type: ignore
+from pddl import parse_domain, parse_problem
 
 
 FILE_PATH = os.path.dirname(os.path.abspath(__file__))

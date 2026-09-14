@@ -17,7 +17,7 @@
 from collections import OrderedDict
 from fractions import Fraction
 import re
-from typing import Dict, Union, Callable, List, cast, Tuple
+from typing import Dict, Union, Callable, List, Tuple
 import typing
 import unified_planning as up
 import unified_planning.model.htn as htn
@@ -642,7 +642,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
             elif op == "assign":
                 eff = (
                     self._parse_exp(
@@ -656,7 +656,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
             elif op == "increase":
                 if "#t" in exp:
                     if not (
@@ -777,7 +777,7 @@ class UPPDDLReader:
                     act.add_increase_effect(
                         *eff if timing is None else (timing, *eff),
                         forall=tuple(forall_variables.values()),
-                    )  # type: ignore
+                    )  # type: ignore[misc, operator]
             elif op == "decrease":
                 if "#t" in exp:
                     if not (
@@ -903,7 +903,7 @@ class UPPDDLReader:
                     act.add_decrease_effect(
                         *eff if timing is None else (timing, *eff),
                         forall=tuple(forall_variables.values()),
-                    )  # type: ignore
+                    )  # type: ignore[misc, operator]
             elif op == "forall":
                 assert isinstance(exp, CustomParseResults)
                 if forall_variables:
@@ -931,7 +931,7 @@ class UPPDDLReader:
                 act.add_effect(
                     *eff if timing is None else (timing, *eff),
                     forall=tuple(forall_variables.values()),
-                )  # type: ignore
+                )  # type: ignore[misc, operator]
 
     def _add_condition(
         self,
@@ -1527,7 +1527,7 @@ class UPPDDLReader:
             f = up.model.Fluent(n, fluent_type, params, self._env)
             if n == "total-cost":
                 has_actions_cost = True
-                self._totalcost = cast(up.model.FNode, self._em.FluentExp(f))
+                self._totalcost = self._em.FluentExp(f)
             problem.add_fluent(f)
 
         for g in domain_res.get("constants", []):
