@@ -20,10 +20,12 @@ import pytest
 from typing import cast
 import unified_planning
 from unified_planning.environment import Environment
-from unified_planning.model.action import InstantaneousAction
+from unified_planning.model.action import DurativeAction, InstantaneousAction
 from unified_planning.model.metrics import (
     MaximizeExpressionOnFinalState,
+    MinimizeActionCosts,
     MinimizeExpressionOnFinalState,
+    MinimizeMakespan,
 )
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -626,6 +628,34 @@ class TestPddlIO(unittest_TestCase):
 
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self._test_htn_transport_reader(problem_2)
+
+    def test_htn_transport_reader_custom_environment(self):
+        """`UPPDDLReader` must build the HTN `Task`/`Method`/`Subtask` objects
+        it parses from HDDL in the `Environment` given to it, not the
+        process-global one."""
+        domain_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "htn-transport", "domain.hddl"
+        )
+        problem_filename = os.path.join(
+            PDDL_DOMAINS_PATH, "htn-transport", "problem.hddl"
+        )
+        env = Environment()
+        problem = UPPDDLReader(env).parse_problem(domain_filename, problem_filename)
+        self._test_htn_transport_reader(problem)
+
+        assert isinstance(problem, unified_planning.model.htn.HierarchicalProblem)
+        for task in problem.tasks:
+            for param in task.parameters:
+                self.assertIs(param.environment, env)
+        for method in problem.methods:
+            for param in method.parameters:
+                self.assertIs(param.environment, env)
+            for subtask in method.subtasks:
+                for p in subtask.parameters:
+                    self.assertIs(p.environment, env)
+        for subtask in problem.task_network.subtasks:
+            for p in subtask.parameters:
+                self.assertIs(p.environment, env)
 
     def test_examples_io(self):
         for example in self.problems.values():
@@ -1765,6 +1795,232 @@ class TestPddlIO(unittest_TestCase):
         self.assertEqual(
             [p.name for p in up_problem.action("a").parameters], ["environment"]
         )
+
+    def test_up_pddl_reader_custom_environment(self):
+        """`UPPDDLReader` must build every model object (fluents, objects,
+        actions/parameters, forall-effect variables) in the `Environment` given
+        to it, not the process-global one."""
+        domain = """
+(define (domain custom-env-d)
+    (:requirements :strips :typing :negative-preconditions :equality
+                   :existential-preconditions :universal-preconditions
+                   :conditional-effects)
+    (:types loc item)
+    (:constants depot - loc)
+    (:predicates (at ?i - item ?l - loc) (clear ?l - loc))
+    (:action move
+        :parameters (?i - item ?from - loc ?to - loc)
+        :precondition (and
+            (at ?i ?from)
+            (not (= ?from ?to))
+            (exists (?j - item) (at ?j ?to))
+        )
+        :effect (and
+            (not (at ?i ?from))
+            (at ?i ?to)
+            (forall (?l - loc) (when (clear ?l) (at ?i ?l)))
+        )
+    )
+)
+"""
+        problem = """
+(define (problem custom-env-p) (:domain custom-env-d)
+    (:objects l1 - loc i1 - item)
+    (:init (at i1 l1) (clear l1) (clear depot))
+    (:goal (at i1 depot))
+)
+"""
+        env = Environment()
+        up_problem = UPPDDLReader(env).parse_problem_string(domain, problem)
+
+        self.assertIs(up_problem.environment, env)
+        for fluent in up_problem.fluents:
+            self.assertIs(fluent.environment, env)
+        for obj in up_problem.all_objects:
+            self.assertIs(obj.environment, env)
+        for action in up_problem.actions:
+            self.assertIs(action.environment, env)
+            for param in action.parameters:
+                self.assertIs(param.environment, env)
+            assert isinstance(action, InstantaneousAction)
+            for effect in action.effects:
+                self.assertIs(effect.fluent.environment, env)
+                self.assertIs(effect.value.environment, env)
+                self.assertIs(effect.condition.environment, env)
+                for v in effect.forall:
+                    self.assertIs(v.environment, env)
+        for goal in up_problem.goals:
+            self.assertIs(goal.environment, env)
+
+        # parsing the same PDDL text into a second fresh environment must be
+        # semantics-preserving and environment-independent
+        up_problem_2 = UPPDDLReader(Environment()).parse_problem_string(domain, problem)
+        self.assertEqual(str(up_problem), str(up_problem_2))
+
+    def test_up_pddl_reader_custom_environment_durative(self):
+        """A `forall` inside a durative action's timed effect must also build
+        its `Variable` in the `Environment` given to `UPPDDLReader`."""
+        domain = """
+(define (domain custom-env-durative-d)
+    (:requirements :strips :typing :durative-actions :conditional-effects
+                   :universal-preconditions)
+    (:types loc)
+    (:predicates (clear ?l - loc) (visited ?l - loc) (ok))
+    (:durative-action a
+        :parameters ()
+        :duration (= ?duration 2)
+        :condition (at start (ok))
+        :effect (forall (?l - loc) (when (at start (clear ?l)) (at start (visited ?l))))
+    )
+)
+"""
+        problem = """
+(define (problem custom-env-durative-p) (:domain custom-env-durative-d)
+    (:objects l1 - loc)
+    (:init (ok) (clear l1))
+    (:goal (visited l1))
+)
+"""
+        env = Environment()
+        up_problem = UPPDDLReader(env).parse_problem_string(domain, problem)
+
+        self.assertIs(up_problem.environment, env)
+        for action in up_problem.actions:
+            self.assertIs(action.environment, env)
+            assert isinstance(action, DurativeAction)
+            for effect_list in action.effects.values():
+                for effect in effect_list:
+                    self.assertIs(effect.fluent.environment, env)
+                    self.assertIs(effect.value.environment, env)
+                    self.assertIs(effect.condition.environment, env)
+                    for v in effect.forall:
+                        self.assertIs(v.environment, env)
+        for goal in up_problem.goals:
+            self.assertIs(goal.environment, env)
+
+        up_problem_2 = UPPDDLReader(Environment()).parse_problem_string(domain, problem)
+        self.assertEqual(str(up_problem), str(up_problem_2))
+
+    def test_up_pddl_reader_custom_environment_metrics(self):
+        """Every quality-metric constructor `UPPDDLReader` can build must use
+        the `Environment` given to it, not the process-global one."""
+        instantaneous_domain = """
+(define (domain custom-env-metric-d)
+    (:requirements :strips :typing :action-costs)
+    (:types loc)
+    (:predicates (at ?l - loc))
+    (:functions (total-cost))
+    (:action move
+        :parameters (?from - loc ?to - loc)
+        :precondition (at ?from)
+        :effect (and (not (at ?from)) (at ?to) (increase (total-cost) %(cost)s))
+    )
+)
+"""
+        instantaneous_problem = """
+(define (problem custom-env-metric-p) (:domain custom-env-metric-d)
+    (:objects l1 l2 - loc)
+    (:init (at l1) (= (total-cost) 0))
+    (:goal (at l2))
+    (:metric minimize (total-cost))
+)
+"""
+        durative_domain = """
+(define (domain custom-env-makespan-d)
+    (:requirements :strips :typing :durative-actions)
+    (:types loc)
+    (:predicates (at ?l - loc))
+    (:durative-action move
+        :parameters (?from - loc ?to - loc)
+        :duration (= ?duration 2)
+        :condition (at start (at ?from))
+        :effect (and (at start (not (at ?from))) (at end (at ?to)))
+    )
+)
+"""
+        durative_problem = """
+(define (problem custom-env-makespan-p) (:domain custom-env-makespan-d)
+    (:objects l1 l2 - loc)
+    (:init (at l1))
+    (:goal (at l2))
+    (:metric minimize (total-time))
+)
+"""
+        expression_domain = """
+(define (domain custom-env-expr-d)
+    (:requirements :strips :typing :numeric-fluents)
+    (:types loc)
+    (:predicates (at ?l - loc))
+    (:functions (fuel))
+    (:action move
+        :parameters (?from - loc ?to - loc)
+        :precondition (at ?from)
+        :effect (and (not (at ?from)) (at ?to) (increase (fuel) 1))
+    )
+)
+"""
+        expression_problem = """
+(define (problem custom-env-expr-p) (:domain custom-env-expr-d)
+    (:objects l1 l2 - loc)
+    (:init (at l1) (= (fuel) 0))
+    (:goal (at l2))
+    (:metric %(direction)s (fuel))
+)
+"""
+        cases = [
+            (
+                "unit_cost_plan_length",
+                instantaneous_domain % {"cost": "1"},
+                instantaneous_problem,
+                MinimizeSequentialPlanLength,
+            ),
+            (
+                "non_unit_cost_action_costs",
+                instantaneous_domain % {"cost": "5"},
+                instantaneous_problem,
+                MinimizeActionCosts,
+            ),
+            (
+                "total_time_makespan",
+                durative_domain,
+                durative_problem,
+                MinimizeMakespan,
+            ),
+            (
+                "minimize_expression",
+                expression_domain,
+                expression_problem % {"direction": "minimize"},
+                MinimizeExpressionOnFinalState,
+            ),
+            (
+                "maximize_expression",
+                expression_domain,
+                expression_problem % {"direction": "maximize"},
+                MaximizeExpressionOnFinalState,
+            ),
+        ]
+        for name, domain_str, problem_str, expected_type in cases:
+            with self.subTest(name):
+                env = Environment()
+                up_problem = UPPDDLReader(env).parse_problem_string(
+                    domain_str, problem_str
+                )
+                self.assertEqual(len(up_problem.quality_metrics), 1)
+                metric = up_problem.quality_metrics[0]
+                self.assertIsInstance(metric, expected_type)
+                self.assertIs(metric.environment, env)
+                if isinstance(
+                    metric,
+                    (MinimizeExpressionOnFinalState, MaximizeExpressionOnFinalState),
+                ):
+                    self.assertIs(metric.expression.environment, env)
+
+                # parsing into a second fresh environment must be
+                # semantics-preserving and environment-independent
+                up_problem_2 = UPPDDLReader(Environment()).parse_problem_string(
+                    domain_str, problem_str
+                )
+                self.assertEqual(str(up_problem), str(up_problem_2))
 
 
 def _have_same_user_types_considering_renamings(

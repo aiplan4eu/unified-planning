@@ -17,7 +17,8 @@ import tempfile
 from fractions import Fraction
 
 import unified_planning as up
-from unified_planning.io import PDDLReader, PDDLWriter
+from unified_planning.environment import Environment
+from unified_planning.io import PDDLReader, PDDLWriter, UPPDDLReader
 from unified_planning.model.htn import HierarchicalProblem, Method, TaskNetwork, Task
 from unified_planning.model.htn.ordering import PartialOrder, TotalOrder
 from unified_planning.shortcuts import *
@@ -296,3 +297,49 @@ class TestProblem(unittest_TestCase):
                 reader = PDDLReader(disable_warnings=True)
                 parsed_problem = reader.parse_problem(domain_filename, problem_filename)
                 self.assertEqual(parsed_problem.kind, problem.kind)
+
+    def test_hddl_parsing_custom_environment(self):
+        """`UPPDDLReader` must build every HTN model object (tasks, methods,
+        subtasks/parameters) in the `Environment` given to it, not the
+        process-global one, on a couple of representative HDDL benchmarks."""
+        hddl_dir = os.path.join(FILE_PATH, "hddl")
+        for name in ("2020-to-Blocksworld-GTOHP", "2020-po-Rover"):
+            domain_filename = os.path.join(hddl_dir, name, "domain.hddl")
+            problem_filename = os.path.join(hddl_dir, name, "instance.1.pb.hddl")
+            env = Environment()
+            problem = UPPDDLReader(env).parse_problem(domain_filename, problem_filename)
+
+            assert isinstance(problem, HierarchicalProblem)
+            self.assertIs(problem.environment, env)
+            # Task/Method have no public `.environment`; their `Parameter`s do,
+            # and each Parameter is built from the Task's/Method's own `_env`
+            # (which defaults to the global environment if not forwarded), so
+            # this still catches a missing forward at Task/Method construction.
+            for task in problem.tasks:
+                for param in task.parameters:
+                    self.assertIs(param.environment, env)
+            for method in problem.methods:
+                for param in method.parameters:
+                    self.assertIs(param.environment, env)
+                for subtask in method.subtasks:
+                    for p in subtask.parameters:
+                        self.assertIs(p.environment, env)
+            for subtask in problem.task_network.subtasks:
+                for p in subtask.parameters:
+                    self.assertIs(p.environment, env)
+
+            # parsing must still succeed the same way (well-formed
+            # HierarchicalProblem, same task/method/subtask counts) with the
+            # default environment. (Not compared via str(...): auto-generated
+            # subtask identifiers come from a process-global counter, so two
+            # parses are not expected to produce identical identifiers.)
+            default_problem = UPPDDLReader().parse_problem(
+                domain_filename, problem_filename
+            )
+            assert isinstance(default_problem, HierarchicalProblem)
+            self.assertEqual(len(problem.tasks), len(default_problem.tasks))
+            self.assertEqual(len(problem.methods), len(default_problem.methods))
+            self.assertEqual(
+                len(problem.task_network.subtasks),
+                len(default_problem.task_network.subtasks),
+            )
