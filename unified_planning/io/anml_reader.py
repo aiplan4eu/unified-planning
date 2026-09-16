@@ -446,7 +446,9 @@ class ANMLReader:
         else:
             initial_default = None
         return (
-            up.model.Fluent(fluent_name, fluent_type, _signature=params),
+            up.model.Fluent(
+                fluent_name, fluent_type, _signature=params, environment=self._env
+            ),
             initial_default,
         )
 
@@ -457,7 +459,7 @@ class ANMLReader:
         up_objects: List["up.model.Object"] = []
         for name in objects_res["names"]:
             assert isinstance(name, str), "parsing error"
-            up_objects.append(up.model.Object(name, objects_type))
+            up_objects.append(up.model.Object(name, objects_type, self._env))
         return up_objects
 
     def _parse_action(
@@ -470,9 +472,11 @@ class ANMLReader:
             Union[up.model.InstantaneousAction, up.model.DurativeAction]
         ] = None
         if '"InstantaneousAction"' in list(action_res["annotations"]):
-            action = up.model.InstantaneousAction(name, _parameters=params)
+            action = up.model.InstantaneousAction(
+                name, _parameters=params, _env=self._env
+            )
         else:
-            action = up.model.DurativeAction(name, _parameters=params)
+            action = up.model.DurativeAction(name, _parameters=params, _env=self._env)
         assert action is not None
         action_parameters: Dict[str, "up.model.Parameter"] = {
             n: action.parameter(n) for n in params
@@ -824,7 +828,7 @@ class ANMLReader:
         if effect_exp[0] == TK_FORALL:  # Forall assignment
             variables = dict(
                 (
-                    (n, Variable(n, t))
+                    (n, Variable(n, t, self._env))
                     for n, t in self._parse_parameters_def(
                         effect_exp["quantifier_variables"], types_map
                     ).items()
@@ -1023,7 +1027,9 @@ class ANMLReader:
                             f"{exp} <- {expression}, {type(exp)}"
                         )
                         name_type = self._parse_parameters_def(exp[1], types_map)
-                        new_vars = {n: Variable(n, t) for n, t in name_type.items()}
+                        new_vars = {
+                            n: Variable(n, t, self._env) for n, t in name_type.items()
+                        }
                         stack.append((exp, True, new_vars))
                         all_vars = vars.copy()
                         all_vars.update(new_vars)

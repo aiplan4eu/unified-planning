@@ -17,7 +17,8 @@
 import tempfile
 from typing import cast
 from unified_planning.shortcuts import *
-from unified_planning.model import DurativeAction
+from unified_planning.environment import Environment
+from unified_planning.model import DurativeAction, InstantaneousAction
 from unified_planning.test import unittest_TestCase
 from unified_planning.io import ANMLReader, ANMLWriter
 from unified_planning.test.examples import get_example_problems
@@ -850,3 +851,100 @@ class TestANMLReader(unittest_TestCase):
                 problem_filename, problem.name
             )
         self.assertEqual(problem, reparsed_problem)
+
+    def test_reader_custom_environment(self):
+        # ANMLReader must build every model object (fluents, objects, actions,
+        # parameters, forall/quantifier variables) in the Environment given to
+        # it, not the process-global one.
+        anml = """
+        type Location;
+
+        fluent boolean visited(Location l);
+        fluent boolean at(Location l);
+        fluent integer[0, 100] fuel;
+
+        action move(Location from, Location to) {
+            duration := 2;
+            [start] at(from);
+            [end] { at(to) := true; visited(to) := true; };
+        };
+
+        action refuel() ::("InstantaneousAction") {
+            [start] fuel < 100;
+            [start] fuel := fuel + 1;
+        };
+
+        instance Location l1, l2;
+
+        [start] forall(Location l) { visited(l) := false; };
+
+        [start] at(l1) := true;
+        [start] fuel := 0;
+
+        [end] forall(Location l) { visited(l); };
+        """
+        env = Environment()
+        problem = ANMLReader(env).parse_problem_string(
+            anml, "test_reader_custom_environment"
+        )
+
+        self.assertIs(problem.environment, env)
+        for fluent in problem.fluents:
+            self.assertIs(fluent.environment, env)
+        for obj in problem.all_objects:
+            self.assertIs(obj.environment, env)
+        for action in problem.actions:
+            self.assertIs(action.environment, env)
+            for param in action.parameters:
+                self.assertIs(param.environment, env)
+            if isinstance(action, InstantaneousAction):
+                for effect in action.effects:
+                    self.assertIs(effect.fluent.environment, env)
+                    self.assertIs(effect.value.environment, env)
+                    self.assertIs(effect.condition.environment, env)
+                    for v in effect.forall:
+                        self.assertIs(v.environment, env)
+            else:
+                assert isinstance(action, DurativeAction)
+                for effect_list in action.effects.values():
+                    for effect in effect_list:
+                        self.assertIs(effect.fluent.environment, env)
+                        self.assertIs(effect.value.environment, env)
+                        self.assertIs(effect.condition.environment, env)
+                        for v in effect.forall:
+                            self.assertIs(v.environment, env)
+        for timing, effect_list in problem.timed_effects.items():
+            for effect in effect_list:
+                self.assertIs(effect.fluent.environment, env)
+                self.assertIs(effect.value.environment, env)
+                self.assertIs(effect.condition.environment, env)
+                for v in effect.forall:
+                    self.assertIs(v.environment, env)
+        for goal in problem.goals:
+            self.assertIs(goal.environment, env)
+        for interval, goal_list in problem.timed_goals.items():
+            for goal in goal_list:
+                self.assertIs(goal.environment, env)
+
+        # parsing the same ANML text into a second fresh environment must be
+        # semantics-preserving and environment-independent
+        problem_2 = ANMLReader(Environment()).parse_problem_string(
+            anml, "test_reader_custom_environment"
+        )
+        self.assertEqual(str(problem), str(problem_2))
+
+    def test_reader_custom_environment_fixture_files(self):
+        # Regression test for the fixture files that were confirmed to crash
+        # (AssertionError) when parsed into a fresh, non-default Environment.
+        for filename in (
+            "basic.anml",
+            "forall.anml",
+            "hierarchical_blocks_world.anml",
+        ):
+            problem_filename = os.path.join(ANML_FILES_PATH, filename)
+            env = Environment()
+            problem = ANMLReader(env).parse_problem(problem_filename)
+            self.assertIs(problem.environment, env)
+
+            default_problem = ANMLReader().parse_problem(problem_filename)
+            self.assertEqual(str(problem), str(default_problem))
