@@ -918,7 +918,7 @@ class UPPDDLReader:
                 for g in vars_res["params"]:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
-                        forall_variables[o] = up.model.Variable(o, t)
+                        forall_variables[o] = up.model.Variable(o, t, self._env)
                 to_add.append((exp[2], cond, forall_variables))
             else:
                 eff = (
@@ -1167,7 +1167,7 @@ class UPPDDLReader:
                 for g in vars_res["params"]:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
-                        forall_variables[o] = up.model.Variable(o, t)
+                        forall_variables[o] = up.model.Variable(o, t, self._env)
                 to_add.append((eff[2], forall_variables))
             else:
                 start_line, start_col = (
@@ -1230,7 +1230,7 @@ class UPPDDLReader:
                 self._parse_exp(problem, method, types_map, {}, e[i], complete_str)
                 for i in range(1, len(e))
             ]
-            return htn.Subtask(task, *parameters)
+            return htn.Subtask(task, *parameters, _env=self._env)
         elif len(e) == 2 and e[0].value != "and":
             # check the form "(task_id (task param1 param2...))"
             task_id = e[0].value
@@ -1240,7 +1240,9 @@ class UPPDDLReader:
             if subtask is not None:
                 # the second element of the list is a valid subtask,
                 # return the subtask, with the given identifier
-                return htn.Subtask(subtask.task, *subtask.parameters, ident=task_id)
+                return htn.Subtask(
+                    subtask.task, *subtask.parameters, ident=task_id, _env=self._env
+                )
             else:
                 return None
         else:
@@ -1571,7 +1573,7 @@ class UPPDDLReader:
                     )
                 for p in g.value[0]:
                     task_params[p] = t
-            task = htn.Task(name, task_params)
+            task = htn.Task(name, task_params, self._env)
             problem.add_task(task)
         for a in domain_res.get("processes", []):
             n = a["name"]
@@ -1741,7 +1743,7 @@ class UPPDDLReader:
                 for p in g.value[0]:
                     method_params[p] = t
 
-            method = htn.Method(name, method_params)
+            method = htn.Method(name, method_params, self._env)
             achieved_task = CustomParseResults(m["task"][0])
             pnames = []
             for i in range(1, len(achieved_task)):
@@ -2045,7 +2047,9 @@ class UPPDDLReader:
                     and len(metric) == 1
                     and metric[0].value == "total-time"
                 ):
-                    problem.add_quality_metric(up.model.metrics.MinimizeMakespan())
+                    problem.add_quality_metric(
+                        up.model.metrics.MinimizeMakespan(self._env)
+                    )
                 else:
                     metric_exp = self._parse_exp(
                         problem, None, types_map, {}, metric, problem_str
@@ -2104,25 +2108,25 @@ class UPPDDLReader:
                                     use_plan_length = False
                         if use_plan_length:
                             problem.add_quality_metric(
-                                up.model.metrics.MinimizeSequentialPlanLength()
+                                up.model.metrics.MinimizeSequentialPlanLength(self._env)
                             )
                         else:
                             problem.add_quality_metric(
                                 up.model.metrics.MinimizeActionCosts(
-                                    costs, self._em.Int(0)
+                                    costs, self._em.Int(0), self._env
                                 )
                             )
                     else:
                         if optimization == "minimize":
                             problem.add_quality_metric(
                                 up.model.metrics.MinimizeExpressionOnFinalState(
-                                    metric_exp
+                                    metric_exp, self._env
                                 )
                             )
                         elif optimization == "maximize":
                             problem.add_quality_metric(
                                 up.model.metrics.MaximizeExpressionOnFinalState(
-                                    metric_exp
+                                    metric_exp, self._env
                                 )
                             )
         return problem
