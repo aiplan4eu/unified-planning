@@ -477,7 +477,8 @@ class MAPDDLWriter:
 
                             if a in costs:
                                 if not (
-                                    costs[a].is_constant()
+                                    costs[a] is not None
+                                    and costs[a].is_constant()
                                     and costs[a].constant_value() == 0
                                 ):
                                     out.write(
@@ -552,7 +553,8 @@ class MAPDDLWriter:
                                     )
                             if a in costs:
                                 if not (
-                                    costs[a].is_constant()
+                                    costs[a] is not None
+                                    and costs[a].is_constant()
                                     and costs[a].constant_value() == 0
                                 ):
                                     out.write(

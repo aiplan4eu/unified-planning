@@ -672,12 +672,15 @@ class PDDLWriter:
                                     self._get_mangled_name,
                                 )
                     if a in costs:
+                        _cost = costs[a]
                         if not (
-                            costs[a].is_constant() and costs[a].constant_value() == 0
+                            _cost is not None
+                            and _cost.is_constant()
+                            and _cost.constant_value() == 0
                         ):
                             out.write(f"\n             ")
                             out.write(
-                                f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
+                                f" (at end (increase (total-cost) {converter.convert(_cost)}))"
                             )
                     for interval, el in a.continuous_effects.items():
                         for ce in el:
