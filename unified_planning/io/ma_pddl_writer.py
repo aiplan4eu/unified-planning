@@ -476,9 +476,13 @@ class MAPDDLWriter:
                                 )
 
                             if a in costs:
-                                out.write(
-                                    f"   (increase (total-cost) {converter.convert(costs[a])})"
-                                )
+                                if not (
+                                    costs[a].is_constant()
+                                    and costs[a].constant_value() == 0
+                                ):
+                                    out.write(
+                                        f"   (increase (total-cost) {converter.convert(costs[a])})"
+                                    )
                             out.write(")")
                         out.write(")\n")
                     elif isinstance(a, DurativeAction):
@@ -547,9 +551,13 @@ class MAPDDLWriter:
                                         self._get_mangled_name,
                                     )
                             if a in costs:
-                                out.write(
-                                    f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
-                                )
+                                if not (
+                                    costs[a].is_constant()
+                                    and costs[a].constant_value() == 0
+                                ):
+                                    out.write(
+                                        f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
+                                    )
                             out.write(")")
                         out.write(")\n")
                     else:

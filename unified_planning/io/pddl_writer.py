@@ -672,10 +672,13 @@ class PDDLWriter:
                                     self._get_mangled_name,
                                 )
                     if a in costs:
-                        out.write(f"\n             ")
-                        out.write(
-                            f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
-                        )
+                        if not (
+                            costs[a].is_constant() and costs[a].constant_value() == 0
+                        ):
+                            out.write(f"\n             ")
+                            out.write(
+                                f" (at end (increase (total-cost) {converter.convert(costs[a])}))"
+                            )
                     for interval, el in a.continuous_effects.items():
                         for ce in el:
                             out.write(f"\n")
@@ -1076,7 +1079,12 @@ class PDDLWriter:
                 )
 
             if item in costs:
-                out.write(f" (increase (total-cost) {converter.convert(costs[item])})")
+                if not (
+                    costs[item].is_constant() and costs[item].constant_value() == 0
+                ):
+                    out.write(
+                        f" (increase (total-cost) {converter.convert(costs[item])})"
+                    )
             out.write(")")
 
 
