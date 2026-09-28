@@ -247,8 +247,11 @@ class TypeChecker(walkers.dag.DagWalker):
         if upper == float("inf"):
             upper = None
         if has_real:
-            assert lower is None or isinstance(lower, Fraction)
-            assert upper is None or isinstance(upper, Fraction)
+            # lower/upper hold float("inf") as an in-band sentinel before being reset to
+            # None above, so mypy sees float here and rules out Fraction. The asserts are
+            # real runtime guards; the sentinel is what should change. See #NNN.
+            assert lower is None or isinstance(lower, Fraction)  # type: ignore[unreachable]
+            assert upper is None or isinstance(upper, Fraction)  # type: ignore[unreachable]
             return self.environment.type_manager.RealType(lower, upper)
         else:
             assert lower is None or isinstance(lower, int)
@@ -370,7 +373,9 @@ class TypeChecker(walkers.dag.DagWalker):
         return BOOL
 
     def walk_equals(
-        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+        self,
+        expression: FNode,
+        args: List[Optional["unified_planning.model.types.Type"]],
     ) -> Optional["unified_planning.model.types.Type"]:
         t = args[0]
         if t is None:

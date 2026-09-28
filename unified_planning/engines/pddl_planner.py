@@ -250,7 +250,7 @@ def run_command(
         # If we do not have an output stream to write to, we simply call
         # a subprocess and retrieve the final output and error with communicate
         kwargs = (
-            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
+            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore[attr-defined]
             if sys.platform == "win32"
             else {"start_new_session": True}
         )
@@ -320,7 +320,7 @@ async def run_command_asyncio(
     """
     start = time.time()
     kwargs = (
-        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore
+        {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}  # type: ignore[attr-defined]
         if sys.platform == "win32"
         else {"start_new_session": True}
     )

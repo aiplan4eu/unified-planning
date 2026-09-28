@@ -35,7 +35,7 @@ class InterpretedFunction:
         self,
         name: str,
         return_type: "up.model.types.Type",
-        _signature: OrderedDict[str, "up.model.types.Type"],
+        _signature: Optional[OrderedDict[str, "up.model.types.Type"]],
         function: Callable,
         environment: Optional[Environment] = None,
         **kwargs: "up.model.types.Type",
