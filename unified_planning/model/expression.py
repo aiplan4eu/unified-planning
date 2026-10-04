@@ -36,6 +36,7 @@ BoolExpression = Union[
     "up.model.fluent.Fluent",
     "up.model.parameter.Parameter",
     "up.model.variable.Variable",
+    "up.model.int_variable.IntVariable",
     "up.model.presence.Presence",
     "up.model.interpreted_function.InterpretedFunction",
     bool,
@@ -151,6 +152,11 @@ class ExpressionManager(object):
                     "Variable has a different environment of the expression manager"
                 )
                 res.append(self.VariableExp(e))
+            elif isinstance(e, up.model.int_variable.IntVariable):
+                assert e.environment == self.environment, (
+                    "IntVariable has a different environment of the expression manager"
+                )
+                res.append(self.IntVariableExp(e))
             elif isinstance(e, up.model.object.Object):
                 assert e.environment == self.environment, (
                     "Object has a different environment of the expression manager"
@@ -194,13 +200,20 @@ class ExpressionManager(object):
                 "up.model.object.Object",
                 "up.model.parameter.Parameter",
                 "up.model.variable.Variable",
+                "up.model.int_variable.IntVariable",
                 "up.model.timing.Timing",
                 "up.model.presence.Presence",
                 str,
                 bool,
                 int,
                 Fraction,
-                Tuple["up.model.variable.Variable", ...],
+                Tuple[
+                    Union[
+                        "up.model.variable.Variable",
+                        "up.model.int_variable.IntVariable",
+                    ],
+                    ...,
+                ],
             ]
         ] = None,
     ) -> "up.model.fnode.FNode":
@@ -357,14 +370,18 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
 
     def Exists(
-        self, expression: BoolExpression, *vars: "up.model.variable.Variable"
+        self,
+        expression: BoolExpression,
+        *vars: Union[
+            "unified_planning.model.Variable", "unified_planning.model.IntVariable"
+        ],
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
             ``Exists (var[0]... var[n]) | expression``
 
         Restriction: expression must be of ``boolean type`` and
-        vars must be of ``Variable`` type
+        vars must be of ``Variable`` or ``IntVariable`` type
 
         :param expression: The main expression of the ``existential``. The expression should contain
             the given ``variables``.
@@ -377,20 +394,29 @@ class ExpressionManager(object):
                 f"Exists of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed."
             )
         for v in vars:
-            if not isinstance(v, up.model.variable.Variable):
-                raise UPTypeError("Expecting 'up.Variable', got %s", type(v))
+            if not (
+                isinstance(v, up.model.variable.Variable)
+                or isinstance(v, unified_planning.model.int_variable.IntVariable)
+            ):
+                raise UPTypeError(
+                    "Expecting 'up.Variable' or 'up.IntVariable, got %s", type(v)
+                )
         return self.create_node(
             node_type=OperatorKind.EXISTS, args=expressions, payload=vars
         )
 
     def Forall(
-        self, expression: BoolExpression, *vars: "up.model.variable.Variable"
+        self,
+        expression: BoolExpression,
+        *vars: Union[
+            "unified_planning.model.Variable", "unified_planning.model.IntVariable"
+        ],
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             ``Forall (var[0]... var[n]) | expression``
 
         Restriction: expression must be of ``boolean type`` and
-        vars must be of ``Variable`` type
+        vars must be of ``Variable`` or ``IntVariable`` type
 
         :param expression: The main expression of the ``universal`` quantifier. The expression should contain
             the given ``variables``.
@@ -403,8 +429,13 @@ class ExpressionManager(object):
                 f"Forall of expression: {str(expression)} must be created with at least one variable, otherwise it is not needed."
             )
         for v in vars:
-            if not isinstance(v, up.model.variable.Variable):
-                raise UPTypeError("Expecting 'up.Variable', got %s", type(v))
+            if not (
+                isinstance(v, up.model.variable.Variable)
+                or isinstance(v, unified_planning.model.int_variable.IntVariable)
+            ):
+                raise UPTypeError(
+                    "Expecting 'up.Variable' or 'up.IntVariable, got %s", type(v)
+                )
         return self.create_node(
             node_type=OperatorKind.FORALL, args=expressions, payload=vars
         )
@@ -575,6 +606,20 @@ class ExpressionManager(object):
         assert var.environment == self.environment
         return self.create_node(
             node_type=OperatorKind.VARIABLE_EXP, args=tuple(), payload=var
+        )
+
+    def IntVariableExp(
+        self, var: "up.model.int_variable.IntVariable"
+    ) -> "up.model.fnode.FNode":
+        """
+        Returns an expression for the given ``IntVariable``.
+
+        :param var: The ``IntVariable`` that must be promoted to ``FNode``.
+        :return: The ``FNode`` containing the given ``variable`` as his payload.
+        """
+        assert var.environment == self.environment
+        return self.create_node(
+            node_type=OperatorKind.INT_VARIABLE_EXP, args=tuple(), payload=var
         )
 
     def ObjectExp(self, obj: "up.model.object.Object") -> "up.model.fnode.FNode":

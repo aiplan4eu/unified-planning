@@ -170,6 +170,13 @@ class TypeChecker(walkers.dag.DagWalker):
         assert len(args) == 0
         return expression.variable().type
 
+    def walk_int_variable_exp(
+        self, expression: FNode, args: List["unified_planning.model.types.Type"]
+    ) -> "unified_planning.model.types.Type":
+        assert expression is not None
+        assert len(args) == 0
+        return expression.int_variable().type
+
     def walk_object_exp(
         self, expression: FNode, args: List["unified_planning.model.types.Type"]
     ) -> "unified_planning.model.types.Type":

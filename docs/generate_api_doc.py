@@ -14,6 +14,7 @@ model.Problem
 model.InstantaneousAction
 model.DurativeAction
 model.Parameter
+model.IntVariable
 model.State
 model.UPState
 model.contingent.ExecutionEnvironment

@@ -26,6 +26,9 @@ from unified_planning.engines.compilers.state_invariants_remover import (
 )
 from unified_planning.engines.compilers.grounder import Grounder, GrounderHelper
 from unified_planning.engines.compilers.quantifiers_remover import QuantifiersRemover
+from unified_planning.engines.compilers.int_parameters_and_variables_remover import (
+    IntParametersAndVariablesRemover,
+)
 from unified_planning.engines.compilers.negative_conditions_remover import (
     NegativeConditionsRemover,
 )
