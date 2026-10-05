@@ -13,68 +13,93 @@
 # limitations under the License.
 #
 """
-This module defines the Variable class.
-A Variable has a name and a type.
+This module defines the IntVariable class.
+A IntVariable has a name and a type.
 """
 
-from typing import TYPE_CHECKING, List, Optional, FrozenSet, Union
+from typing import List, Optional, Union, cast
+
 from unified_planning.environment import Environment, get_environment
+from unified_planning.model import Parameter
 from unified_planning.model.fnode import FNode
-from unified_planning.model.operators import OperatorKind
+from unified_planning.model.types import _IntType
 import unified_planning
-import unified_planning.model.walkers as walkers
-import unified_planning.model.operators as op
 
 
-if TYPE_CHECKING:
-    from unified_planning.model.int_variable import IntVariable
+class IntVariable:
+    """Represents an integer variable for quantified expressions and effects.
 
+    The range includes both ``initial`` and ``last``. Bounds may depend on integer constants,
+    integer action parameters or on integer variables in scope.
 
-class Variable:
-    """Represents a variable; a `Variable` has a name and a type."""
+    Use the variable with ``Forall``, ``Exists``, or the ``forall`` argument of an effect.
+    For example, ``IntVariable("i", 1, 3)`` ranges over 1, 2 and 3.
+    """
 
     def __init__(
         self,
         name: str,
-        typename: "unified_planning.model.types.Type",
+        initial: Union[int, Parameter, FNode],
+        last: Union[int, Parameter, FNode],
         environment: Optional[Environment] = None,
     ):
         self._name = name
-        self._typename = typename
+        self._initial = initial
+        self._last = last
         self._env = get_environment(environment)
-        assert self._env.type_manager.has_type(typename), (
-            "type of variable does not belong to the same environment of the variable"
-        )
+        low: Optional[int]
+        high: Optional[int]
+        if isinstance(initial, int):
+            low = initial
+        else:
+            low = cast(_IntType, initial.type).lower_bound
+        if isinstance(last, int):
+            high = last
+        else:
+            high = cast(_IntType, last.type).upper_bound
+        self._type_int = self._env.type_manager.IntType(low, high)
 
     def __repr__(self) -> str:
-        return f"{str(self.type)} {self.name}"
+        return f"integer[{str(self.initial)}, {str(self.last)}] {self.name}"
 
     def __eq__(self, oth: object) -> bool:
-        if isinstance(oth, Variable):
+        if isinstance(oth, IntVariable):
             return (
                 self._name == oth._name
-                and self._typename == oth._typename
+                and self._initial == oth._initial
+                and self._last == oth._last
+                and self._type_int == oth._type_int
                 and self._env == oth._env
             )
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._name) + hash(self._typename)
+        return hash(self._name) + hash(self._type_int)
 
     @property
     def name(self) -> str:
-        """Returns the `Variable` name."""
+        """Returns the `IntVariable` name."""
         return self._name
 
     @property
+    def initial(self) -> FNode:
+        """Returns the inclusive lower bound as an expression."""
+        return self._env.expression_manager.auto_promote(self._initial)[0]
+
+    @property
+    def last(self) -> FNode:
+        """Returns the inclusive upper bound as an expression."""
+        return self._env.expression_manager.auto_promote(self._last)[0]
+
+    @property
     def type(self) -> "unified_planning.model.types.Type":
-        """Returns the `Variable` `Type`."""
-        return self._typename
+        """Returns the `IntVariable` `Type`."""
+        return self._type_int
 
     @property
     def environment(self) -> "Environment":
-        """Return the `Variable` `Environment`."""
+        """Return the `IntVariable` `Environment`."""
         return self._env
 
     #
@@ -173,67 +198,3 @@ class Variable:
 
     def Iff(self, right):
         return self._env.expression_manager.Iff(self, right)
-
-
-class FreeVarsOracle(walkers.DagWalker):
-    # We have only few categories for this walker.
-    #
-    # - Quantifiers need to exclude bounded variables
-    # - Other operators need to return the union of all their sons
-    # - Constants have no impact
-
-    def get_free_variables(
-        self, expression: FNode
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
-        """Returns the FrozenSet of Symbols appearing free in the expression."""
-        return self.walk(expression)
-
-    @walkers.handles(OperatorKind.VARIABLE_EXP)
-    def walk_variable_exp(
-        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
-    ) -> FrozenSet[Variable]:
-        # pylint: disable=unused-argument
-        return frozenset((expression.variable(),))
-
-    @walkers.handles(OperatorKind.INT_VARIABLE_EXP)
-    def walk_int_variable_exp(
-        self, expression: FNode, args: List[FrozenSet["IntVariable"]], **kwargs
-    ) -> FrozenSet["IntVariable"]:
-        return frozenset((expression.int_variable(),))
-
-    @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
-    def walk_quantifier(
-        self,
-        expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
-        **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
-        # pylint: disable=unused-argument
-        return args[0].difference(expression.variables())
-
-    @walkers.handles(op.CONSTANTS)
-    def walk_constant(
-        self,
-        expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
-        **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
-        # pylint: disable=unused-argument
-        return frozenset()
-
-    @walkers.handles(
-        set(OperatorKind)
-        - {
-            OperatorKind.VARIABLE_EXP,
-            OperatorKind.INT_VARIABLE_EXP,
-            OperatorKind.EXISTS,
-            OperatorKind.FORALL,
-        }
-    )
-    def walk_all(
-        self,
-        expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
-        **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
-        return frozenset(v for s in args for v in s)

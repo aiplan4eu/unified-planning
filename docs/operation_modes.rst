@@ -125,43 +125,45 @@ Compiler
 
 The “Compiler” OM defines a transformation of an `AbstractProblem` into another one. This model-to-model transformation can serve different purposes depending on the type of compilation being implemented. At the time of writing, the UP implements the following `CompilationKinds`.
 
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| CompilationKind                 | Description                                                                                                                                                           |
-+=================================+=======================================================================================================================================================================+
-| GROUNDING                       | Transforms a Problem into an equivalent one where every action does not have any finite-domain parameter.                                                             |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| CONDITIONAL_EFFECTS_REMOVING    | Rewrites a problem into an equivalent one where all effects of all actions are non-conditional.                                                                       |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DISJUNCTIVE_CONDITIONS_REMOVING | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions are pure conjunctions of literals.                                 |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| NEGATIVE_CONDITIONS_REMOVING    | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions do not use the negation operator.                                  |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| QUANTIFIERS_REMOVING            | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions do not use universal nor existential quantification over objects.  |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| TRAJECTORY_CONSTRAINTS_REMOVING | Rewrites a problem into an equivalent one with no trajectory constraints.                                                                                             |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| USERTYPE_FLUENTS_REMOVING       | Rewrites a problem into an equivalent one where no fluent has user-defined type.                                                                                      |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| BOUNDED_TYPES_REMOVING          | Rewrites a problem into an equivalent one where all numeric types are unbounded and the bounds constraints are preserved only by actions and effects (pre)conditions. |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_SINGLE_AGENT_PROJECTION      | Takes a multi-agent planning problem and one of the agents in the problem, and creates the single-agent planning problem that agent is facing alone.                  |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_CENTRALIZATION               | Takes a multi-agent planning problem and creates a single-agent planning problem in which the planners controls all agents in a centralized manner.                   |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_SL_ROBUSTNESS_VERIFICATION   | Takes a multi-agent planning problem and creates a single-agent planning problem such that the resulting problem is unsolvable iff the original problem is robust.    |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| MA_SL_SOCIAL_LAW                | Applies a social law to a multi-agent planning problem.                                                                                                               |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| SA_MA_CONVERSION                | Takes a single-agent planning problem and a specification of which object types constitute agents, and tries to create a corresponding multi-agnet planning problem.  |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| STATE_INVARIANTS_REMOVING       | Rewrites a problem into an equivalent one with no state invariants.                                                                                                   |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| TIMED_TO_SEQUENTIAL             | Rewrites a problem that contains durative actions into another problem with only instantaneous actions. The compiled problem has less solutions than the original one.|
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| DURATIVE_ACTIONS_TO_PROCESSES   | Rewrites a problem that contains durative actions into an equivalent one with no durative actions, but with processes and events.                                     |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| CONFORMANT_TO_CLASSICAL         | Rewrites a conformant problem with initial-state uncertainty into an equivalent classical planning problem with no uncertainty.                                       |
-+---------------------------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CompilationKind                       | Description                                                                                                                                                            |
++=======================================+========================================================================================================================================================================+
+| GROUNDING                             | Transforms a Problem into an equivalent one where every action does not have any finite-domain parameter.                                                              |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CONDITIONAL_EFFECTS_REMOVING          | Rewrites a problem into an equivalent one where all effects of all actions are non-conditional.                                                                        |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| DISJUNCTIVE_CONDITIONS_REMOVING       | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions are pure conjunctions of literals.                                  |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| NEGATIVE_CONDITIONS_REMOVING          | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions do not use the negation operator.                                   |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| QUANTIFIERS_REMOVING                  | Rewrites a problem into an equivalent one where all actions (pre)conditions and effects conditions do not use universal nor existential quantification over objects.   |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| INT_PARAMETERS_AND_VARIABLES_REMOVING | Instantiates bounded integer action parameters and expands integer variables in quantified expressions and effects.                                                    |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| TRAJECTORY_CONSTRAINTS_REMOVING       | Rewrites a problem into an equivalent one with no trajectory constraints.                                                                                              |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| USERTYPE_FLUENTS_REMOVING             | Rewrites a problem into an equivalent one where no fluent has user-defined type.                                                                                       |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| BOUNDED_TYPES_REMOVING                | Rewrites a problem into an equivalent one where all numeric types are unbounded and the bounds constraints are preserved only by actions and effects (pre)conditions.  |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_SINGLE_AGENT_PROJECTION            | Takes a multi-agent planning problem and one of the agents in the problem, and creates the single-agent planning problem that agent is facing alone.                   |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_CENTRALIZATION                     | Takes a multi-agent planning problem and creates a single-agent planning problem in which the planners controls all agents in a centralized manner.                    |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_SL_ROBUSTNESS_VERIFICATION         | Takes a multi-agent planning problem and creates a single-agent planning problem such that the resulting problem is unsolvable iff the original problem is robust.     |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| MA_SL_SOCIAL_LAW                      | Applies a social law to a multi-agent planning problem.                                                                                                                |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| SA_MA_CONVERSION                      | Takes a single-agent planning problem and a specification of which object types constitute agents, and tries to create a corresponding multi-agnet planning problem.   |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| STATE_INVARIANTS_REMOVING             | Rewrites a problem into an equivalent one with no state invariants.                                                                                                    |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| TIMED_TO_SEQUENTIAL                   | Rewrites a problem that contains durative actions into another problem with only instantaneous actions. The compiled problem has less solutions than the original one. |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| DURATIVE_ACTIONS_TO_PROCESSES         | Rewrites a problem that contains durative actions into an equivalent one with no durative actions, but with processes and events.                                      |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| CONFORMANT_TO_CLASSICAL               | Rewrites a conformant problem with initial-state uncertainty into an equivalent classical planning problem with no uncertainty.                                        |
++---------------------------------------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
 Also the ``Compiler`` OM can be used either by specifying a certain engine by name or by letting the UP to pick a suitable implementation; in addition, the user has to specify the ``compilation_kind`` to indicate which kind of transformation is needed.
