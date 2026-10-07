@@ -998,6 +998,25 @@ class TestPddlIO(unittest_TestCase):
         )
         self.assertEqual(parsed_plan_2, plan_2)
 
+    def test_domain_constants_default_action_cost(self):
+        T = UserType("T")
+        t1, t2 = Object("t1", T), Object("t2", T)
+        fuel = Fluent("fuel", IntType(), t=T)
+        a = InstantaneousAction("a", t=T)
+        a.add_increase_effect(fuel(a.parameter("t")), 1)
+        problem = Problem("default_cost")
+        problem.add_objects([t1, t2])
+        problem.add_fluent(fuel, default_initial_value=0)
+        problem.add_action(a)
+        problem.add_quality_metric(MinimizeActionCosts({}, default=fuel(t1)))
+
+        w = PDDLWriter(problem)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn("(:constants t1 - t)", pddl_domain)
+        self.assertIn("(increase (total-cost) (fuel t1))", pddl_domain)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
+        self.assertIn("(:objects t2 - t)", pddl_problem)
+
     def test_ad_hoc_1(self):
         when = UserType("when")
         fl = Fluent("4ction")
