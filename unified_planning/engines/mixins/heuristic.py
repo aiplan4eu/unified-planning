@@ -14,7 +14,7 @@
 #
 
 from abc import ABC, abstractmethod
-from enum import Enum, auto
+from enum import Flag, auto
 from fractions import Fraction
 from typing import Optional, Union
 from warnings import warn
@@ -23,9 +23,10 @@ import unified_planning as up
 from unified_planning.exceptions import UPUsageError
 
 
-class HeuristicGuarantee(Enum):
+class HeuristicGuarantee(Flag):
     """
     Properties that a ``Heuristic`` engine can guarantee on the values it returns.
+    Members can be combined with ``|``, e.g. ``GOAL_AWARE | SAFE``.
 
     *   | ``ADMISSIBLE``: the value never overestimates the optimal remaining cost.
     *   | ``CONSISTENT``: ``h(s) <= c(s, a) + h(s')`` for every transition from ``s`` to ``s'``.
@@ -78,14 +79,19 @@ class HeuristicMixin(ABC):
     @staticmethod
     def satisfies(heuristic_guarantee: HeuristicGuarantee) -> bool:
         """
+        Implementations should test containment (``heuristic_guarantee in ...``), not
+        equality, so that a combination such as ``GOAL_AWARE | SAFE`` is accepted when
+        every one of its members is satisfied.
         An engine that also implements other mixins defining ``satisfies`` (e.g.
         ``OneshotPlannerMixin``) must override it and dispatch on the argument type.
 
-        :param heuristic_guarantee: The ``heuristic_guarantee`` that must be satisfied.
-        :return: ``True`` if the ``HeuristicMixin`` implementation satisfies the given
-            ``heuristic_guarantee``, ``False`` otherwise.
+        :param heuristic_guarantee: The ``heuristic_guarantee`` that must be satisfied,
+            possibly a combination of members.
+        :return: ``True`` if the ``HeuristicMixin`` implementation satisfies all the
+            given guarantees, ``False`` otherwise.
         """
-        return False
+        # By default only the empty requirement HeuristicGuarantee(0) is satisfied.
+        return heuristic_guarantee in HeuristicGuarantee(0)
 
     def value(self, state: "up.model.State") -> Optional[Union[int, Fraction]]:
         """

@@ -120,6 +120,8 @@ Each engine declares the properties of its values through the static method ``sa
 | SAFE       | ``None`` is returned only on states from which no goal state is reachable.   |
 +------------+------------------------------------------------------------------------------+
 
+Guarantees are independent and can be combined with ``|``: ``h.satisfies(HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)`` is ``True`` only if the engine satisfies both. Engines should therefore implement ``satisfies`` as a containment test, e.g. ``return heuristic_guarantee in (HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)``. Automatic engine selection does not take guarantees into account yet.
+
 The ``up_goal_counting`` engine is ``GOAL_AWARE`` and ``SAFE``. It is not ``ADMISSIBLE``, because a single action can achieve several goals.
 Custom engines implement ``HeuristicMixin`` and provide ``_value(state)``. Since ``OneshotPlannerMixin``, ``ReplannerMixin`` and ``PlanRepairerMixin`` also define a static ``satisfies`` method, an engine implementing one of them together with ``HeuristicMixin`` must override ``satisfies`` and dispatch on the type of its argument.
 

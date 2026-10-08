@@ -56,8 +56,7 @@ class GoalCountingHeuristic(Engine, HeuristicMixin):
     @staticmethod
     def satisfies(heuristic_guarantee: HeuristicGuarantee) -> bool:
         return heuristic_guarantee in (
-            HeuristicGuarantee.GOAL_AWARE,
-            HeuristicGuarantee.SAFE,
+            HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE
         )
 
     @staticmethod

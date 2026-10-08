@@ -19,6 +19,7 @@ from typing import Callable, Optional, Union
 from unified_planning.engines import (
     GoalCountingHeuristic,
     HeuristicGuarantee,
+    HeuristicMixin,
     OperationMode,
     UPSequentialSimulator,
 )
@@ -84,6 +85,18 @@ class TestHeuristic(unittest_TestCase):
         self.assertTrue(GoalCountingHeuristic.satisfies(HeuristicGuarantee.SAFE))
         self.assertFalse(GoalCountingHeuristic.satisfies(HeuristicGuarantee.ADMISSIBLE))
         self.assertFalse(GoalCountingHeuristic.satisfies(HeuristicGuarantee.CONSISTENT))
+        self.assertTrue(
+            GoalCountingHeuristic.satisfies(
+                HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE
+            )
+        )
+        self.assertFalse(
+            GoalCountingHeuristic.satisfies(
+                HeuristicGuarantee.SAFE | HeuristicGuarantee.ADMISSIBLE
+            )
+        )
+        self.assertTrue(HeuristicMixin.satisfies(HeuristicGuarantee(0)))
+        self.assertFalse(HeuristicMixin.satisfies(HeuristicGuarantee.SAFE))
 
 
 if __name__ == "__main__":
