@@ -51,6 +51,10 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
+from unified_planning.engines.mixins.heuristic import (
+    HeuristicMixin,
+    HeuristicGuarantee,
+)
 
 __all__ = [
     "Factory",
@@ -79,6 +83,8 @@ __all__ = [
     "PortfolioSelectorMixin",
     "OperationMode",
     "AnytimeGuarantee",
+    "HeuristicMixin",
+    "HeuristicGuarantee",
     "MetaEngine",
     "OversubscriptionPlanner",
     "InterpretedFunctionsPlanner",

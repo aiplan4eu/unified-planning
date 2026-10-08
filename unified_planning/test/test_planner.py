@@ -13,7 +13,8 @@
 # limitations under the License.
 
 
-from typing import Callable
+from fractions import Fraction
+from typing import Callable, Union
 import warnings
 import unified_planning as up
 from unified_planning.shortcuts import *
@@ -350,7 +351,7 @@ class TestPlanner(unittest_TestCase):
                 self,
                 problem: "up.model.AbstractProblem",
                 heuristic: Optional[
-                    Callable[["up.model.state.State"], Optional[float]]
+                    Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
                 ] = None,
                 timeout: Optional[float] = None,
                 output_stream: Optional[IO[str]] = None,
