@@ -44,6 +44,7 @@ from unified_planning.engines.sequential_simulator import (
     evaluate_quality_metric,
     evaluate_quality_metric_in_initial_state,
 )
+from unified_planning.engines.goal_counting_heuristic import GoalCountingHeuristic
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
@@ -65,6 +66,7 @@ __all__ = [
     "SequentialPlanValidator",
     "SequentialSimulatorMixin",
     "UPSequentialSimulator",
+    "GoalCountingHeuristic",
     "Event",
     "InstantaneousEvent",
     "Engine",

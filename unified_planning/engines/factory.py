@@ -76,6 +76,10 @@ DEFAULT_ENGINES = {
         "unified_planning.engines.sequential_simulator",
         "UPSequentialSimulator",
     ),
+    "up_goal_counting": (
+        "unified_planning.engines.goal_counting_heuristic",
+        "GoalCountingHeuristic",
+    ),
     "up_bounded_types_remover": (
         "unified_planning.engines.compilers.bounded_types_remover",
         "BoundedTypesRemover",
@@ -198,6 +202,7 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "up_durative_actions_to_processes",
     "up_undefined_initial_numeric_remover",
     "up_timed_to_sequential",
+    "up_goal_counting",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = [
