@@ -17,6 +17,7 @@
 from abc import abstractmethod
 import os
 from queue import Queue
+from fractions import Fraction
 from typing import IO, Callable, Iterator, Optional, List, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.engines as engines
@@ -107,7 +108,9 @@ class PDDLAnytimePlanner(engines.pddl_planner.PDDLPlanner, mixins.AnytimePlanner
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[Union[Tuple[IO[str], IO[str]], IO[str]]] = None,
         anytime: bool = False,

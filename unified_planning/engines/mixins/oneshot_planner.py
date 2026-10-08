@@ -17,7 +17,8 @@ from warnings import warn
 import unified_planning as up
 from abc import ABC, abstractmethod
 from enum import Enum, auto
-from typing import IO, Optional, Callable
+from fractions import Fraction
+from typing import IO, Optional, Callable, Union
 
 
 class _SolveWithParamsNotImplementedError(Exception):
@@ -51,7 +52,9 @@ class OneshotPlannerMixin(ABC):
     def solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
         warm_start_plan: Optional["up.plans.Plan"] = None,
@@ -99,7 +102,9 @@ class OneshotPlannerMixin(ABC):
     def _solve_with_params(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
         warm_start_plan: Optional["up.plans.Plan"] = None,
@@ -112,7 +117,9 @@ class OneshotPlannerMixin(ABC):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
+        heuristic: Optional[
+            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
+        ] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":
