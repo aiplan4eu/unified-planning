@@ -47,7 +47,7 @@ In parallel of the engine-specific parameters, it is also possible to provide pe
 As for the engine-specific parameters, if the planner does not support the specified parameter (``memory_limit`` in this example), it will be ignored.
 Classical (optional) per-solve parameters are:
 
-- ``heuristic``: is a function that given a state returns its heuristic value or ``None`` if the state is a dead-end;
+- ``heuristic``: is a function that given a state returns its heuristic value (an ``int``, ``float`` or ``Fraction``) or ``None`` if the state is a dead-end; the ``value`` method of a `Heuristic` engine (see below) can be passed directly;
 - ``timeout``: is the time in seconds that the planner has at max to solve the problem;
 - ``output_stream``: is a stream of strings where the planner writes his output (and also errors) while it is solving the problem;
 - ``warm_start_plan``: is a plan that the planner can use to warm start the search;
@@ -79,6 +79,49 @@ This OM defines an interactive simulator for exploring the planning space of a g
     :lines: 51-66
 
 Each method of the `SequentialSimulator` is stateless, meaning that it is not required to simulate a sequence of states in order, but it is possible to “jump” among different states of the same problem.
+
+Heuristic
+---------
+
+This OM exposes the heuristic value of a state. Given a problem at construction time, the engine offers a ``value(state)`` method that estimates the remaining cost to reach the goals of the problem from ``state``, measured with the quality metric of the problem, or as the number of actions if the problem has no quality metric. A value of ``None`` means that the heuristic detected that no goal state is reachable from ``state`` (a dead end).
+
+The state has the format used by the `SequentialSimulator`: the engine reads it only through ``state.get_value``, so states produced by any simulator can be evaluated. For performance, ``value`` does not validate its input, because it is meant to be called inside search loops.
+
+The API is exposed through both the engine factory and shortcuts:
+
+* ``Factory.Heuristic(problem, name=None, params=None)``
+* ``shortcuts.Heuristic(problem, name=None, params=None)``
+
+If no ``name`` is given, an engine supporting ``problem.kind`` is selected automatically. The library includes ``up_goal_counting``, a pure-Python engine that returns the number of top-level goal conjuncts that are false in the state. An engine implementing several heuristics (e.g. hff and hadd) selects one through its ``params``, for example ``Heuristic(problem, name="some-engine", params={"heuristic": "hff"})``.
+
+.. literalinclude:: ./code_snippets/heuristic.py
+    :caption: Evaluating the successors of the initial state with the goal-counting heuristic
+    :start-after: # [heuristic-start]
+    :end-before: # [heuristic-end]
+
+A heuristic engine can be plugged into a planner that accepts the ``heuristic`` per-solve parameter:
+
+.. code-block:: python
+
+    with Heuristic(problem) as h, OneshotPlanner(name="some-planner") as planner:
+        result = planner.solve(problem, heuristic=h.value)
+
+Each engine declares the properties of its values through the static method ``satisfies(heuristic_guarantee)``, taking a ``HeuristicGuarantee``:
+
++------------+------------------------------------------------------------------------------+
+| Value      | Meaning                                                                      |
++============+==============================================================================+
+| ADMISSIBLE | The value never overestimates the optimal remaining cost.                    |
++------------+------------------------------------------------------------------------------+
+| CONSISTENT | ``h(s) <= c(s, a) + h(s')`` for every transition from ``s`` to ``s'``.       |
++------------+------------------------------------------------------------------------------+
+| GOAL_AWARE | The value is ``0`` on every goal state.                                      |
++------------+------------------------------------------------------------------------------+
+| SAFE       | ``None`` is returned only on states from which no goal state is reachable.   |
++------------+------------------------------------------------------------------------------+
+
+The ``up_goal_counting`` engine is ``GOAL_AWARE`` and ``SAFE``. It is not ``ADMISSIBLE``, because a single action can achieve several goals.
+Custom engines implement ``HeuristicMixin`` and provide ``_value(state)``. Since ``OneshotPlannerMixin``, ``ReplannerMixin`` and ``PlanRepairerMixin`` also define a static ``satisfies`` method, an engine implementing one of them together with ``HeuristicMixin`` must override ``satisfies`` and dispatch on the type of its argument.
 
 ActionSelector
 --------------
