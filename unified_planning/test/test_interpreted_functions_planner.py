@@ -16,6 +16,7 @@
 from unified_planning.shortcuts import *
 from unified_planning.test import skipIfEngineNotAvailable, unittest_TestCase
 from unified_planning.test.examples import get_example_problems
+from unittest.mock import patch
 
 
 class TestInterpretedFunctionsPlanner(unittest_TestCase):
@@ -171,3 +172,29 @@ class TestInterpretedFunctionsPlanner(unittest_TestCase):
         found_plan = result.plan.actions
         for v, f in zip(valid_plan, found_plan):
             self.assertEqual(v.action, f.action)
+
+    @skipIfEngineNotAvailable("opt-pddl-planner")
+    def test_interpreted_functions_planner_metaengine_timeout(self):
+        class StepperClock:
+            def __init__(self):
+                self.now = 0.0
+
+            def time(self):
+                self.now += 10000
+                return self.now
+
+        problem = self.problems["if_reals_condition_effect_pizza"].problem
+        clock = "unified_planning.engines.interpreted_functions_planner.time"
+
+        with OneshotPlanner(
+            name="interpreted_functions_planning[opt-pddl-planner]"
+        ) as planner:
+            planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
+            with patch(clock, StepperClock()):
+                result = planner.solve(problem, timeout=35000)
+            self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
+            with patch(clock, StepperClock()):
+                result = planner.solve(problem, timeout=25000)
+            self.assertEqual(
+                result.status, up.engines.results.PlanGenerationResultStatus.TIMEOUT
+            )

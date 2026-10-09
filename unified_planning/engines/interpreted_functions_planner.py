@@ -139,20 +139,23 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     ) -> "PlanGenerationResult":
         assert isinstance(problem, up.model.Problem)
         assert isinstance(self.engine, mixins.OneshotPlannerMixin)
-        start = time.time()
+        deadline = None if timeout is None else time.time() + timeout
         knowledge: Dict[up.model.InterpretedFunction, up.model.FNode] = {}
         if self._skip_checks:
             self.engine._skip_checks = True
         while True:
-            if timeout is not None:
-                timeout -= time.time() - start
-                if timeout <= 0:
+            remaining = None
+            if deadline is not None:
+                remaining = deadline - time.time()
+                if remaining <= 0:
                     return PlanGenerationResult(
                         PlanGenerationResultStatus.TIMEOUT, None, self.name
                     )
             with InterpretedFunctionsRemover(knowledge) as if_remover:
                 comp_res = if_remover.compile(problem)
-            res = self.engine.solve(comp_res.problem, heuristic, timeout, output_stream)
+            res = self.engine.solve(
+                comp_res.problem, heuristic, remaining, output_stream
+            )
             if res.status in up.engines.results.POSITIVE_OUTCOMES:
                 assert res.plan is not None
                 if output_stream is not None:
