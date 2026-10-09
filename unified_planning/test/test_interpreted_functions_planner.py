@@ -95,7 +95,7 @@ class TestInterpretedFunctionsPlanner(unittest_TestCase):
             name="interpreted_functions_planning[opt-pddl-planner]"
         ) as planner:
             planner.skip_checks = True  # enhsp does not like bounded fluents but it does not make any difference here
-            result = planner.solve(problem)
+            result = planner.solve(problem, timeout=10)
         self.assertTrue(result.status in up.engines.results.POSITIVE_OUTCOMES)
         self.assertEqual(
             len(result.plan.actions), len(testproblem.valid_plans[0].actions)
