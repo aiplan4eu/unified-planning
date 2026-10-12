@@ -844,6 +844,20 @@ class TestProblem(unittest_TestCase):
         self.assertIs(sp.fluent("f"), f)
         self.assertIs(sp.object("o1"), o)
 
+    def test_domain_constants_default_action_cost(self):
+        T = UserType("T")
+        t1, t2 = Object("t1", T), Object("t2", T)
+        fuel = Fluent("fuel", IntType(), t=T)
+        a = InstantaneousAction("a", t=T)
+        a.add_increase_effect(fuel(a.parameter("t")), 1)
+        problem = Problem("domain_constants_default_action_cost")
+        problem.add_objects([t1, t2])
+        problem.add_fluent(fuel, default_initial_value=0)
+        problem.add_action(a)
+        problem.add_quality_metric(MinimizeActionCosts({}, default=fuel(t1)))
+
+        self.assertEqual(problem.domain_constants, {t1})
+
     def test_interpreted_functions_complex(self):
         problem = self.problems["go_home_with_rain_and_interpreted_functions"].problem
         self.assertTrue(problem.kind.has_interpreted_functions_in_durations())
