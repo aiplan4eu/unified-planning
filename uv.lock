@@ -975,6 +975,15 @@ wheels = [
 ]
 
 [[package]]
+name = "fast-downward-translate"
+version = "26.6.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/90/ed44c0beca93cc1cebe2800bf732e273c9f4ca5c25992739b8b61b7389c3/fast_downward_translate-26.6.0.tar.gz", hash = "sha256:197cdd154189867c278bb6cadcd6c78db677f3a5e5303a7584bd86c5a160deae", size = 86864, upload-time = "2026-09-10T10:20:55.51Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/68/7cdeb618823a0b074cce2466bc52b09dd136927495022459160b03f49a74/fast_downward_translate-26.6.0-py3-none-any.whl", hash = "sha256:8c29536b0ffdbf253ef70d0419c2a94b01f30062929b6452461fcc4ecba51832", size = 100038, upload-time = "2026-09-10T10:20:54.085Z" },
+]
+
+[[package]]
 name = "fastjsonschema"
 version = "2.21.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4820,8 +4829,8 @@ requires-dist = [
     { name = "up-aries", marker = "extra == 'engines'", specifier = ">=0.4.0" },
     { name = "up-enhsp", marker = "extra == 'engines'", specifier = "~=0.1.0" },
     { name = "up-enhsp", marker = "extra == 'enhsp'", specifier = "~=0.1.0" },
-    { name = "up-fast-downward", marker = "extra == 'engines'", specifier = "~=0.5.2" },
-    { name = "up-fast-downward", marker = "extra == 'fast-downward'", specifier = "~=0.5.2" },
+    { name = "up-fast-downward", marker = "extra == 'engines'", specifier = "~=1.0" },
+    { name = "up-fast-downward", marker = "extra == 'fast-downward'", specifier = "~=1.0" },
     { name = "up-fmap", marker = "extra == 'engines'", specifier = "~=0.0.13" },
     { name = "up-fmap", marker = "extra == 'fmap'", specifier = "~=0.0.13" },
     { name = "up-lpg", marker = "extra == 'engines'", specifier = "~=0.1.2" },
@@ -4883,16 +4892,16 @@ wheels = [
 
 [[package]]
 name = "up-fast-downward"
-version = "0.5.2"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "setuptools" },
+    { name = "fast-downward-translate" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f4/3f/06bd477e74544e1bf39a631fbf013f7498260e516281d092eaa532b63260/up_fast_downward-0.5.2-py3-none-macosx_11_0_arm64.whl", hash = "sha256:09050451394a19dbc71ae599f6d99f9f3abdb9fe49a1d27e949935b87b685e69", size = 1584359, upload-time = "2025-08-05T16:36:54.029Z" },
-    { url = "https://files.pythonhosted.org/packages/19/28/dd19a6993b88017de23a807ffd9500db1459e13a13285842ff50d3d701f0/up_fast_downward-0.5.2-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:99e669221ac77ca6b23a18e18ebc3f86c2509dfd483b6e35cc36b610775c3810", size = 1690464, upload-time = "2025-08-05T16:36:56.44Z" },
-    { url = "https://files.pythonhosted.org/packages/a1/cf/47ef90a5b310a195b19971f3eb03d3aa8a5dd7c949924d1f6cd526a0fe7c/up_fast_downward-0.5.2-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:0655ea3bbeef8e98cba0ec6e96dd8f51329180b3a2c9e3d3a4e065b5266c1efb", size = 50935499, upload-time = "2025-08-05T16:36:58.694Z" },
-    { url = "https://files.pythonhosted.org/packages/a7/7d/aae7c61bb92257d6c2a8a82e98ca3bf5bd3ad6f0a93f4024a00529a598b3/up_fast_downward-0.5.2-py3-none-win_amd64.whl", hash = "sha256:12ef5427277dc2c8718c9746d891a2d87b5e6abd042184c5dd2244b64db935f4", size = 1129281, upload-time = "2025-08-05T16:37:01.942Z" },
+    { url = "https://files.pythonhosted.org/packages/68/c5/877cbf8d3550d35006bd94df0eaff51da5eb7237350684f0312bcab270b4/up_fast_downward-1.0.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:077eebb9493ab7ecaa8d464506bc5072c14c5997deb32b7e868712266f88c2ca", size = 1691501, upload-time = "2026-10-09T13:38:16.519Z" },
+    { url = "https://files.pythonhosted.org/packages/91/60/e4b1b3d57690f093be8ca95e2d88134bd65a6c4b86d70b137030ccf3b582/up_fast_downward-1.0.0-py3-none-macosx_11_0_x86_64.whl", hash = "sha256:8af5bfb84ee6c31db68280847c73473d5bc689f5ff6c8ca6f6c250aef050732b", size = 1625569, upload-time = "2026-10-09T13:38:18.15Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/10/3862696a13b76998cee78e7cca1ec84b301fcc759c2ce4c16986054020eb/up_fast_downward-1.0.0-py3-none-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:7cbbb99f05646a9510369af10690e5e607820e0640303fed0a169436da727879", size = 60933961, upload-time = "2026-10-09T13:38:20.768Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/9b/60fe1c369503d40de18277ac02a15d886920c94590b72e3a4c22e57d364a/up_fast_downward-1.0.0-py3-none-win_amd64.whl", hash = "sha256:4be9d5a985a05d6bf634bcce13113d4024aa4a7ab513b58a91bdc5baa2f5130c", size = 1162349, upload-time = "2026-10-09T13:38:23.273Z" },
 ]
 
 [[package]]
