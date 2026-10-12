@@ -16,6 +16,7 @@
 import unified_planning as up
 
 from unified_planning.shortcuts import *
+from unified_planning.environment import Environment
 from unified_planning.test import (
     unittest_TestCase,
     skipIfNoOneshotPlannerForProblemKind,
@@ -77,6 +78,37 @@ class TestTarskiConverter(unittest_TestCase):
             self.assertTrue(pv.validate(new_problem, new_plan))
 
     @skipIfEngineNotAvailable("tarski_grounder")
+    def test_non_default_environment(self):
+        problems_to_test = [
+            "basic",
+            "basic_forall",
+            "robot",
+            "robot_int_battery",
+            "robot_loader_adv",
+            "robot_locations_connected",
+        ]
+        # import here so if tarski is not installed the test does not fail
+        from unified_planning.interop.tarski import (
+            convert_problem_from_tarski,
+            convert_problem_to_tarski,
+        )
+
+        for n in problems_to_test:
+            example = self.problems[n]
+            problem, plan = example.problem, example.valid_plans[0]
+            tarski_problem = convert_problem_to_tarski(problem)
+            env = Environment()
+            new_problem = convert_problem_from_tarski(env, tarski_problem)
+            self.assertIs(new_problem.environment, env)
+            for f in new_problem.fluents:
+                self.assertIs(f.environment, env)
+            for a in new_problem.actions:
+                self.assertIs(a.environment, env)
+            new_plan = _switch_plan(plan, new_problem)
+            pv = SequentialPlanValidator(environment=env)
+            self.assertTrue(pv.validate(new_problem, new_plan))
+
+    @skipIfEngineNotAvailable("tarski_grounder")
     @skipIfNoOneshotPlannerForProblemKind(hierarchical_kind)
     def test_plan_hierarchical_blocks_world_object_as_root(self):
         # import here so if tarski is not installed the test does not fail
@@ -117,8 +149,12 @@ def _switch_plan(original_plan, new_problem):
     # This function switches a plan to be a plan of the given problem
     new_plan_action_instances = []
     for ai in original_plan.actions:
+        new_parameters = [
+            new_problem.object(p.object().name) if p.is_object_exp() else p
+            for p in ai.actual_parameters
+        ]
         new_plan_action_instances.append(
-            ActionInstance(new_problem.action(ai.action.name), ai.actual_parameters)
+            ActionInstance(new_problem.action(ai.action.name), new_parameters)
         )
     new_plan = SequentialPlan(new_plan_action_instances)
     return new_plan
