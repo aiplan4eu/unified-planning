@@ -13,8 +13,7 @@
 # limitations under the License.
 #
 
-from fractions import Fraction
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 from unified_planning.engines import (
     GoalCountingHeuristic,
@@ -54,7 +53,7 @@ class TestHeuristic(unittest_TestCase):
         plan = test_case.valid_plans[0]
         with SequentialSimulator(problem) as sim, Heuristic(problem) as h:
             # Type-level check that value fits the heuristic argument of solve.
-            _: Callable[[State], Optional[Union[float, Fraction]]] = h.value
+            _: Callable[[State], Optional[float]] = h.value
             state = sim.get_initial_state()
             values = [h.value(state)]
             for ai in plan.actions:

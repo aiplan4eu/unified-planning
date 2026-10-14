@@ -15,8 +15,7 @@
 
 from abc import ABC, abstractmethod
 from enum import Flag, auto
-from fractions import Fraction
-from typing import Optional, Union
+from typing import Optional
 from warnings import warn
 
 import unified_planning as up
@@ -93,7 +92,7 @@ class HeuristicMixin(ABC):
         # By default only the empty requirement HeuristicGuarantee(0) is satisfied.
         return heuristic_guarantee in HeuristicGuarantee(0)
 
-    def value(self, state: "up.model.State") -> Optional[Union[int, Fraction]]:
+    def value(self, state: "up.model.State") -> Optional[float]:
         """
         Returns the heuristic value of the given `state`, or `None` if the
         heuristic detects that no goal state is reachable from it.
@@ -107,6 +106,6 @@ class HeuristicMixin(ABC):
         return self._value(state)
 
     @abstractmethod
-    def _value(self, state: "up.model.State") -> Optional[Union[int, Fraction]]:
+    def _value(self, state: "up.model.State") -> Optional[float]:
         """Method called by the HeuristicMixin.value method."""
         raise NotImplementedError

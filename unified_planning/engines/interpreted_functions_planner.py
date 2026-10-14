@@ -35,7 +35,6 @@ from unified_planning.engines.results import (
     ValidationResultStatus,
 )
 from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
-from fractions import Fraction
 from typing import Dict, OrderedDict, Type, IO, Optional, Union, Callable
 
 
@@ -134,9 +133,7 @@ class InterpretedFunctionsPlanner(MetaEngine, mixins.OneshotPlannerMixin):
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "PlanGenerationResult":

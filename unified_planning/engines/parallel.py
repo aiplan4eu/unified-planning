@@ -28,8 +28,7 @@ from unified_planning.engines.results import (
     ValidationResult,
     PlanGenerationResult,
 )
-from fractions import Fraction
-from typing import IO, Any, Dict, List, Optional, Tuple, Callable, Union, cast
+from typing import IO, Any, Dict, List, Optional, Tuple, Callable, cast
 from multiprocessing import Queue, get_all_start_methods, get_context
 
 
@@ -139,9 +138,7 @@ class Parallel(
     def _solve(
         self,
         problem: "up.model.AbstractProblem",
-        heuristic: Optional[
-            Callable[["up.model.state.State"], Optional[Union[float, Fraction]]]
-        ] = None,
+        heuristic: Optional[Callable[["up.model.state.State"], Optional[float]]] = None,
         timeout: Optional[float] = None,
         output_stream: Optional[IO[str]] = None,
     ) -> "up.engines.results.PlanGenerationResult":

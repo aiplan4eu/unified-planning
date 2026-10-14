@@ -47,7 +47,7 @@ In parallel of the engine-specific parameters, it is also possible to provide pe
 As for the engine-specific parameters, if the planner does not support the specified parameter (``memory_limit`` in this example), it will be ignored.
 Classical (optional) per-solve parameters are:
 
-- ``heuristic``: is a function that given a state returns its heuristic value (an ``int``, ``float`` or ``Fraction``) or ``None`` if the state is a dead-end; the ``value`` method of a `Heuristic` engine (see below) can be passed directly;
+- ``heuristic``: is a function that given a state returns its heuristic value or ``None`` if the state is a dead-end; the ``value`` method of a `Heuristic` engine (see below) can be passed directly;
 - ``timeout``: is the time in seconds that the planner has at max to solve the problem;
 - ``output_stream``: is a stream of strings where the planner writes his output (and also errors) while it is solving the problem;
 - ``warm_start_plan``: is a plan that the planner can use to warm start the search;

@@ -13,8 +13,7 @@
 # limitations under the License.
 #
 
-from fractions import Fraction
-from typing import List, Optional, Union
+from typing import List, Optional
 
 import unified_planning as up
 from unified_planning.engines.engine import Engine
@@ -109,7 +108,7 @@ class GoalCountingHeuristic(Engine, HeuristicMixin):
     def supports(problem_kind: ProblemKind) -> bool:
         return problem_kind <= GoalCountingHeuristic.supported_kind()
 
-    def _value(self, state: "up.model.State") -> Optional[Union[int, Fraction]]:
+    def _value(self, state: "up.model.State") -> Optional[float]:
         return sum(
             1
             for g in self._goals
