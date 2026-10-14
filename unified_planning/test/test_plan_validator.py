@@ -427,6 +427,18 @@ class TestProblem(unittest_TestCase):
         validation_result = ttv.validate(problem, plan)
         self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
 
+    def test_empty_left_open_interval_is_vacuous(self):
+        # (2, 2] contains no time point, so its condition never has to hold
+        done = Fluent("done")
+        problem = Problem("empty_left_open_timed_goal")
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_timed_goal(
+            LeftOpenTimeInterval(GlobalStartTiming(2), GlobalStartTiming(2)), done
+        )
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        validation_result = ttv.validate(problem, up.plans.TimeTriggeredPlan([]))
+        self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
 
