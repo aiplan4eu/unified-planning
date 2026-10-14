@@ -76,13 +76,11 @@ class HeuristicMixin(ABC):
         return True
 
     @staticmethod
-    def satisfies(heuristic_guarantee: HeuristicGuarantee) -> bool:
+    def guarantees(heuristic_guarantee: HeuristicGuarantee) -> bool:
         """
         Implementations should test containment (``heuristic_guarantee in ...``), not
         equality, so that a combination such as ``GOAL_AWARE | SAFE`` is accepted when
         every one of its members is satisfied.
-        An engine that also implements other mixins defining ``satisfies`` (e.g.
-        ``OneshotPlannerMixin``) must override it and dispatch on the argument type.
 
         :param heuristic_guarantee: The ``heuristic_guarantee`` that must be satisfied,
             possibly a combination of members.

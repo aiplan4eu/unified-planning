@@ -106,7 +106,7 @@ A heuristic engine can be plugged into a planner that accepts the ``heuristic`` 
     with Heuristic(problem) as h, OneshotPlanner(name="some-planner") as planner:
         result = planner.solve(problem, heuristic=h.value)
 
-Each engine declares the properties of its values through the static method ``satisfies(heuristic_guarantee)``, taking a ``HeuristicGuarantee``:
+Each engine declares the properties of its values through the static method ``guarantees(heuristic_guarantee)``, taking a ``HeuristicGuarantee``:
 
 +------------+------------------------------------------------------------------------------+
 | Value      | Meaning                                                                      |
@@ -120,10 +120,10 @@ Each engine declares the properties of its values through the static method ``sa
 | SAFE       | ``None`` is returned only on states from which no goal state is reachable.   |
 +------------+------------------------------------------------------------------------------+
 
-Guarantees are independent and can be combined with ``|``: ``h.satisfies(HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)`` is ``True`` only if the engine satisfies both. Engines should therefore implement ``satisfies`` as a containment test, e.g. ``return heuristic_guarantee in (HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)``. Automatic engine selection does not take guarantees into account yet.
+Guarantees are independent and can be combined with ``|``: ``h.guarantees(HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)`` is ``True`` only if the engine satisfies both. Engines should therefore implement ``guarantees`` as a containment test, e.g. ``return heuristic_guarantee in (HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE)``. Automatic engine selection does not take guarantees into account yet.
 
 The ``up_goal_counting`` engine is ``GOAL_AWARE`` and ``SAFE``. It is not ``ADMISSIBLE``, because a single action can achieve several goals.
-Custom engines implement ``HeuristicMixin`` and provide ``_value(state)``. Since ``OneshotPlannerMixin``, ``ReplannerMixin`` and ``PlanRepairerMixin`` also define a static ``satisfies`` method, an engine implementing one of them together with ``HeuristicMixin`` must override ``satisfies`` and dispatch on the type of its argument.
+Custom engines implement ``HeuristicMixin`` and provide ``_value(state)``.
 
 ActionSelector
 --------------

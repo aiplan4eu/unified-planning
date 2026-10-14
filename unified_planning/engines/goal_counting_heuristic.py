@@ -53,7 +53,7 @@ class GoalCountingHeuristic(Engine, HeuristicMixin):
         return "up_goal_counting"
 
     @staticmethod
-    def satisfies(heuristic_guarantee: HeuristicGuarantee) -> bool:
+    def guarantees(heuristic_guarantee: HeuristicGuarantee) -> bool:
         return heuristic_guarantee in (
             HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE
         )

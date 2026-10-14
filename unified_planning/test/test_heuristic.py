@@ -80,22 +80,26 @@ class TestHeuristic(unittest_TestCase):
             Heuristic(problem)
 
     def test_guarantees(self):
-        self.assertTrue(GoalCountingHeuristic.satisfies(HeuristicGuarantee.GOAL_AWARE))
-        self.assertTrue(GoalCountingHeuristic.satisfies(HeuristicGuarantee.SAFE))
-        self.assertFalse(GoalCountingHeuristic.satisfies(HeuristicGuarantee.ADMISSIBLE))
-        self.assertFalse(GoalCountingHeuristic.satisfies(HeuristicGuarantee.CONSISTENT))
+        self.assertTrue(GoalCountingHeuristic.guarantees(HeuristicGuarantee.GOAL_AWARE))
+        self.assertTrue(GoalCountingHeuristic.guarantees(HeuristicGuarantee.SAFE))
+        self.assertFalse(
+            GoalCountingHeuristic.guarantees(HeuristicGuarantee.ADMISSIBLE)
+        )
+        self.assertFalse(
+            GoalCountingHeuristic.guarantees(HeuristicGuarantee.CONSISTENT)
+        )
         self.assertTrue(
-            GoalCountingHeuristic.satisfies(
+            GoalCountingHeuristic.guarantees(
                 HeuristicGuarantee.GOAL_AWARE | HeuristicGuarantee.SAFE
             )
         )
         self.assertFalse(
-            GoalCountingHeuristic.satisfies(
+            GoalCountingHeuristic.guarantees(
                 HeuristicGuarantee.SAFE | HeuristicGuarantee.ADMISSIBLE
             )
         )
-        self.assertTrue(HeuristicMixin.satisfies(HeuristicGuarantee(0)))
-        self.assertFalse(HeuristicMixin.satisfies(HeuristicGuarantee.SAFE))
+        self.assertTrue(HeuristicMixin.guarantees(HeuristicGuarantee(0)))
+        self.assertFalse(HeuristicMixin.guarantees(HeuristicGuarantee.SAFE))
 
 
 if __name__ == "__main__":
