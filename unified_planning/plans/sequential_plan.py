@@ -21,7 +21,7 @@ import unified_planning.model.walkers as walkers
 from unified_planning.environment import Environment
 from unified_planning.exceptions import UPUsageError
 from unified_planning.model import FNode, InstantaneousAction, Expression
-from typing import Callable, Dict, Optional, Set, List, cast
+from typing import Callable, Dict, Optional, Set, List
 
 
 class SequentialPlan(plans.plan.Plan):
@@ -139,7 +139,7 @@ class SequentialPlan(plans.plan.Plan):
         for action_instance in self.actions:
             graph.add_node(action_instance)
             assert isinstance(action_instance.action, InstantaneousAction)
-            inst_action = cast(InstantaneousAction, action_instance.action)
+            inst_action = action_instance.action
 
             # required_fluents contains all the grounded fluents that this action_instance "reads"
             required_fluents: Set[FNode] = set()

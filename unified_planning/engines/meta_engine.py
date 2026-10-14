@@ -25,21 +25,21 @@ from typing import Type
 class MetaEngineMeta(EngineMeta):
     def __getitem__(self, engine_class: Type[Engine]):
         assert issubclass(self, MetaEngine)
-        if not self.is_compatible_engine(engine_class):  # type: ignore
+        if not self.is_compatible_engine(engine_class):
             raise UPUsageError(
                 f"{engine_class.name} is not compatible with the meta engine {self.name}"
-            )  # type: ignore
+            )
 
-        class MetaEngineImpl(self):  # type: ignore
+        class MetaEngineImpl(self):  # type: ignore[misc, valid-type]
             _engine_class = engine_class
 
             @staticmethod
             def supported_kind() -> ProblemKind:
-                return self._supported_kind(engine_class)  # type: ignore
+                return self._supported_kind(engine_class)  # type: ignore[attr-defined]
 
             @staticmethod
             def supports(problem_kind: ProblemKind) -> bool:
-                return self._supports(problem_kind, engine_class)  # type: ignore
+                return self._supports(problem_kind, engine_class)  # type: ignore[attr-defined]
 
         return MetaEngineImpl
 
@@ -55,7 +55,7 @@ class MetaEngine(Engine, metaclass=MetaEngineMeta):
 
     def __init__(self, *args, **kwargs):
         Engine.__init__(self)
-        self._engine = self._engine_class(*args, **kwargs)  # type: ignore
+        self._engine = self._engine_class(*args, **kwargs)  # type: ignore[attr-defined]
 
     @property
     def engine(self) -> Engine:

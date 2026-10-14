@@ -53,7 +53,7 @@ class Replanner(MetaEngine, mixins.ReplannerMixin):
 
     @staticmethod
     def is_compatible_engine(engine: Type[Engine]) -> bool:
-        return engine.is_oneshot_planner() and engine.supports(  # type: ignore
+        return engine.is_oneshot_planner() and engine.supports(  # type: ignore[attr-defined]
             ProblemKind({"ACTION_BASED"})
         )
 

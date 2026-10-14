@@ -65,7 +65,7 @@ def draw_base_graph(
     draw_networkx_kwargs: Optional[Dict[str, Any]] = None,
     prog: str = "dot",
 ):
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     # input "sanitization"
     if generate_node_label is None:

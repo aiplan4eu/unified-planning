@@ -207,7 +207,7 @@ def get_test_cases():
 
     prefix = "test:"
     res = {}
-    for name, tc in examples.get_example_problems().items():  # type: ignore [attr-defined]
+    for name, tc in examples.get_example_problems().items():
         res[f"{prefix}{name}"] = tc
 
     return res

@@ -37,8 +37,8 @@ from pddl.logic.base import (
     Imply,
     ForallCondition,
     ExistsCondition,
-)  # type: ignore
-from pddl.logic.effects import When, Forall, Effect  # type: ignore
+)
+from pddl.logic.effects import When, Forall, Effect
 from pddl.logic.functions import (
     NumericFunction,
     BinaryFunction,
@@ -56,16 +56,16 @@ from pddl.logic.functions import (
     Times,
     Divide,
     Metric,
-)  # type: ignore
+)
 from pddl.logic.predicates import (
     DerivedPredicate,
     EqualTo as EqualToPredicate,
     Predicate,
-)  # type: ignore
-from pddl.logic.terms import Constant, Variable, Term  # type: ignore
-from pddl.core import Domain, Problem  # type: ignore
-from pddl.action import Action  # type: ignore
-from pddl.custom_types import name  # type: ignore
+)
+from pddl.logic.terms import Constant, Variable, Term
+from pddl.core import Domain, Problem
+from pddl.action import Action
+from pddl.custom_types import name
 
 from unified_planning.model import (
     Fluent,

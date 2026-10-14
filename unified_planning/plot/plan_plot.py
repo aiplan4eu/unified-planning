@@ -168,7 +168,7 @@ def plot_sequential_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     if expression_or_expressions is None and metric_or_metrics is None:
         # plot sequential_plan as graph
@@ -250,7 +250,7 @@ def plot_time_triggered_plan(
         pixels wide and 1500 pixels high.
     """
 
-    import plotly.express as px  # type: ignore[import]
+    import plotly.express as px
 
     if figsize is None:
         figsize = FIGSIZE
@@ -376,7 +376,7 @@ def plot_stn_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     # param "sanitization"
     if generate_edge_label is None:
@@ -483,7 +483,7 @@ def plot_contingent_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     # param "sanitization"
     if generate_edge_label is None:
@@ -585,7 +585,7 @@ def plot_partial_order_plan(
         method; use carefully. NOTE: This parameters is not guaranteed to be
         maintained in any way and it might be removed or modified at any moment.
     """
-    import matplotlib.pyplot as plt  # type: ignore[import]
+    import matplotlib.pyplot as plt
 
     fig, _, _ = draw_base_graph(
         plan._graph,
@@ -656,7 +656,7 @@ def _plot_expressions(
     filename: Optional[str] = None,
     figsize: Optional[Tuple[float, float]] = None,
 ):
-    import plotly.express as px  # type: ignore[import]
+    import plotly.express as px
 
     if figsize is None:
         figsize = FIGSIZE
@@ -889,7 +889,7 @@ class GraphvizGenerator:
 
 
 def show_partial_order_plan(plan: "PartialOrderPlan", filename: Optional[str] = None):
-    import graphviz  # type: ignore[import]
+    import graphviz
 
     graphviz_out = GraphvizGenerator.create_graphviz_output(plan.get_adjacency_list)
     graph = graphviz.Source(graphviz_out)

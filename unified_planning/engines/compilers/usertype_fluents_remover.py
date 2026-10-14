@@ -513,7 +513,6 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         # the Effect and proceed with the next iteration
         for objects in product(*(problem.objects(v.type) for v in vars_list)):
             assert len(objects) == len(vars_list)
-            objects = cast(Tuple[Object, ...], objects)
             subs: Dict[Expression, Expression] = dict(zip(vars_list, objects))
             resulting_effect_fluent = new_fluent.substitute(subs).simplify()
             resulting_effect_value = new_value.substitute(subs).simplify()
