@@ -38,6 +38,7 @@ class OperationMode(Enum):
     REPLANNER = "replanner"
     PLAN_REPAIRER = "plan_repairer"
     ACTION_SELECTOR = "action_selector"
+    HEURISTIC = "heuristic"
 
 
 class EngineMeta(ABCMeta):

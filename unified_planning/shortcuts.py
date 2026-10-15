@@ -772,6 +772,26 @@ def ActionSelector(
     )
 
 
+def Heuristic(
+    problem: "up.model.AbstractProblem",
+    *,
+    name: Optional[str] = None,
+    params: Optional[Dict[str, Any]] = None,
+) -> "up.engines.engine.Engine":
+    """
+    Returns a Heuristic. There are two ways to call this method:
+
+    *   | using ``problem_kind`` through the problem field.
+        | e.g. ``Heuristic(problem)``
+    *   | using ``name`` (the name of a specific heuristic engine) and eventually some ``params``
+        | (engine dependent options, e.g. which heuristic to compute).
+        | e.g. ``Heuristic(problem, name='up_goal_counting')``
+    """
+    return get_environment().factory.Heuristic(
+        problem=problem, name=name, params=params
+    )
+
+
 def PortfolioSelector(
     *,
     name: Optional[str] = None,

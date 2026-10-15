@@ -44,6 +44,7 @@ from unified_planning.engines.sequential_simulator import (
     evaluate_quality_metric,
     evaluate_quality_metric_in_initial_state,
 )
+from unified_planning.engines.goal_counting_heuristic import GoalCountingHeuristic
 from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
@@ -51,6 +52,10 @@ from unified_planning.engines.mixins.oneshot_planner import OptimalityGuarantee
 from unified_planning.engines.mixins.anytime_planner import AnytimeGuarantee
 from unified_planning.engines.mixins.compiler import CompilationKind
 from unified_planning.engines.mixins.portfolio import PortfolioSelectorMixin
+from unified_planning.engines.mixins.heuristic import (
+    HeuristicMixin,
+    HeuristicGuarantee,
+)
 
 __all__ = [
     "Factory",
@@ -61,6 +66,7 @@ __all__ = [
     "SequentialPlanValidator",
     "SequentialSimulatorMixin",
     "UPSequentialSimulator",
+    "GoalCountingHeuristic",
     "Event",
     "InstantaneousEvent",
     "Engine",
@@ -79,6 +85,8 @@ __all__ = [
     "PortfolioSelectorMixin",
     "OperationMode",
     "AnytimeGuarantee",
+    "HeuristicMixin",
+    "HeuristicGuarantee",
     "MetaEngine",
     "OversubscriptionPlanner",
     "InterpretedFunctionsPlanner",
