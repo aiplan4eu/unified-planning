@@ -468,7 +468,12 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
 
         if not open_interval:
             yield before_time, trace[before_time]
-        if equal_time != before_time and equal_time != end:
+        # trace[equal_time] is the state in force just after start; a closed interval
+        # already checked it above unless something happens exactly at start, while a
+        # left-open interval must always check it (unless the interval is empty)
+        if (open_interval or equal_time != before_time) and (
+            end is None or start < end
+        ):
             yield equal_time, trace[equal_time]
         for x in inside_indexes:
             yield x, trace[x]

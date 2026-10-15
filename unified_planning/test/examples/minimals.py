@@ -634,6 +634,61 @@ def get_example_problems():
         ],
     )
 
+    # timed goal over a left-open interval: the open lower bound excludes 2, but the
+    # state holding from 2 up to the first event inside the interval must be checked
+    done = Fluent("done")
+    finish = InstantaneousAction("finish")
+    finish.add_effect(done, True)
+    problem = Problem("left_open_timed_goal")
+    problem.add_fluent(done, default_initial_value=False)
+    problem.add_action(finish)
+    problem.add_timed_goal(
+        LeftOpenTimeInterval(GlobalStartTiming(2), GlobalStartTiming(3)), done
+    )
+    problems["left_open_timed_goal"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan([(Fraction(1), finish(), None)]),
+            up.plans.TimeTriggeredPlan([(Fraction(2), finish(), None)]),
+        ],
+        invalid_plans=[
+            up.plans.TimeTriggeredPlan([]),
+            up.plans.TimeTriggeredPlan([(Fraction(5, 2), finish(), None)]),
+        ],
+    )
+
+    # durative action condition over a left-open interval (start + 2, end - 1]
+    done = Fluent("done")
+    worked = Fluent("worked")
+    finish = InstantaneousAction("finish")
+    finish.add_effect(done, True)
+    work = DurativeAction("work")
+    work.set_fixed_duration(5)
+    work.add_condition(LeftOpenTimeInterval(StartTiming(2), EndTiming() - 1), done)
+    work.add_effect(EndTiming(), worked, True)
+    problem = Problem("left_open_durative_condition")
+    problem.add_fluent(done, default_initial_value=False)
+    problem.add_fluent(worked, default_initial_value=False)
+    problem.add_action(finish)
+    problem.add_action(work)
+    problem.add_goal(worked)
+    problems["left_open_durative_condition"] = TestCase(
+        problem=problem,
+        solvable=True,
+        valid_plans=[
+            up.plans.TimeTriggeredPlan(
+                [(Fraction(0), finish(), None), (Fraction(1), work(), Fraction(5))]
+            ),
+        ],
+        invalid_plans=[
+            up.plans.TimeTriggeredPlan([(Fraction(0), work(), Fraction(5))]),
+            up.plans.TimeTriggeredPlan(
+                [(Fraction(0), work(), Fraction(5)), (Fraction(5, 2), finish(), None)]
+            ),
+        ],
+    )
+
     # continuous effect in durative
     continous_changing_fluent = Fluent("continous_changing_fluent", RealType())
 
