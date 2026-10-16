@@ -16,6 +16,7 @@
 import os
 import re
 import tempfile
+import time
 import pytest
 from typing import cast
 import unified_planning
@@ -1673,6 +1674,18 @@ class TestPddlIO(unittest_TestCase):
         with self.assertRaises(SyntaxError) as ctx:
             reader.parse_problem_string(domain, problem_str)
         self.assertIn("nonexistent_type", str(ctx.exception))
+
+    def test_up_pddl_reader_large_problem_time_ceiling(self):
+        # Loose ceiling (about 15x the current time) against regressions such as global packrat.
+        with open(os.path.join(PDDL_DOMAINS_PATH, "depot", "domain.pddl")) as f:
+            domain = f.read()
+        n = 2000
+        objects = " ".join(f"o{i}" for i in range(n))
+        init = " ".join(f"(at o{i} o{(i * 7) % n}) (clear o{i})" for i in range(n))
+        problem = f"(define (problem p) (:domain depot) (:objects {objects}) (:init {init}) (:goal (clear o1)))"
+        start = time.perf_counter()
+        UPPDDLReader().parse_problem_string(domain, problem)
+        self.assertLess(time.perf_counter() - start, 1.0)
 
     def test_ai_pddl_cached_parser_does_not_leak_constants(self):
         # The cached AI-planning parser must not remember constants of a previous domain.
