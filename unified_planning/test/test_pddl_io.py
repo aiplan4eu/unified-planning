@@ -1674,6 +1674,16 @@ class TestPddlIO(unittest_TestCase):
             reader.parse_problem_string(domain, problem_str)
         self.assertIn("nonexistent_type", str(ctx.exception))
 
+    def test_ai_pddl_cached_parser_does_not_leak_constants(self):
+        # The cached AI-planning parser must not remember constants of a previous domain.
+        from unified_planning.io.pddl_reader import _ai_parse
+
+        header = "(define (domain d) (:requirements :strips :typing) (:types t)"
+        body = "(:predicates (p ?x - t)) (:action a :parameters () :precondition (p c) :effect (not (p c))))"
+        _ai_parse(f"{header} (:constants c - t) {body}", is_domain=True)
+        with self.assertRaises(Exception):
+            _ai_parse(f"{header} {body}", is_domain=True)
+
     def test_ai_pddl_reader_custom_environment(self):
         """The AI-PDDL fast path (`AIPDDLConverter`) must build every model object
         (fluents, objects, actions/parameters, forall-effect variables, quality
