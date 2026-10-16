@@ -21,7 +21,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "pyparsing>=3.0.0",
+    "lark>=1.1.5",
     "networkx>=3.0",
     "ConfigSpace>=1.2.2",
     "pddl>=0.4.8",
@@ -160,5 +160,5 @@ module = ["unified_planning.grpc.generated.*"]
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = ["tarski.*", "tamerlite.*", "networkx.*", "pyparsing.*", "pysmt.*", "pddl.*"]
+module = ["tarski.*", "tamerlite.*", "networkx.*", "pysmt.*", "pddl.*"]
 ignore_missing_imports = true
