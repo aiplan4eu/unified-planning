@@ -84,6 +84,8 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                 action.add_precondition(quantifier(self.marked(i), i))
                 action.add_effect(self.marked(i), True, forall=(i,))
                 result = self.compile_action(action)
+                self.assertTrue(self.problem.kind.has_int_variables_in_conditions())
+                self.assertTrue(self.problem.kind.has_int_variables_in_effects())
                 actions = self.integer_instances(result)
                 self.assertEqual(
                     set(actions),
@@ -100,7 +102,8 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                     )
                     self.assertEqual({e.fluent for e in compiled.effects}, set(marks))
                     self.assertTrue(all(not e.forall for e in compiled.effects))
-                self.assertFalse(result.problem.kind.has_int_variables())
+                self.assertFalse(result.problem.kind.has_int_variables_in_conditions())
+                self.assertFalse(result.problem.kind.has_int_variables_in_effects())
 
     def test_nested_ranges_and_variable_scope(self):
         i = IntVariable("i", 1, 2)
@@ -143,7 +146,8 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
             with self.subTest(quantifier=quantifier.__name__):
                 p.clear_goals()
                 p.add_goal(quantifier(marked(site, i), site, i).simplify())
-                self.assertTrue(p.kind.has_int_variables())
+                self.assertTrue(p.kind.has_int_variables_in_conditions())
+                self.assertFalse(p.kind.has_int_variables_in_effects())
                 compiled = self.compiler.compile(p).problem
                 assert isinstance(compiled, Problem)
                 self.assertEqual(
@@ -151,7 +155,8 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                     [quantifier(combine(marked(site, 1), marked(site, 2)), site)],
                 )
                 self.assertIs(compiled.environment, env)
-                self.assertFalse(compiled.kind.has_int_variables())
+                self.assertFalse(compiled.kind.has_int_variables_in_conditions())
+                self.assertFalse(compiled.kind.has_int_variables_in_effects())
 
     def test_empty_object_domains(self):
         robot_type = UserType("robot")

@@ -64,12 +64,54 @@ class TestIntVariable(unittest_TestCase):
                     action.add_effect(done, True)
                 p.add_action(action)
                 p.add_goal(done)
+                self.assertEqual(
+                    p.kind.has_int_variables_in_conditions(), context != "effect"
+                )
+                self.assertEqual(
+                    p.kind.has_int_variables_in_effects(), context == "effect"
+                )
                 with self.assertRaisesRegex(UPTypeError, "Compile integer variables"):
                     PDDLWriter(p).get_domain()
                 compiled = IntParametersAndVariablesRemover().compile(p).problem
                 assert isinstance(compiled, Problem)
+                self.assertFalse(compiled.kind.has_int_variables_in_conditions())
+                self.assertFalse(compiled.kind.has_int_variables_in_effects())
                 self.assertIn("(:action finish", PDDLWriter(compiled).get_domain())
                 self.assertIn("(:goal", PDDLWriter(compiled).get_problem())
+
+    def test_problem_kind_distinguishes_integer_quantifiers(self):
+        for variable in (
+            self.i,
+            Variable("i", IntType(0, 2)),
+            Variable("i", IntType()),
+            Variable("i", RealType()),
+        ):
+            for context in ("forall", "exists", "effect", "effect_condition", "both"):
+                with self.subTest(variable=variable, context=context):
+                    p = Problem("quantifier_kind")
+                    done = Fluent("done")
+                    p.add_fluent(done, default_initial_value=False)
+                    action = InstantaneousAction("finish")
+                    body = GE(variable, 1)
+                    if context in ("effect", "both"):
+                        action.add_effect(done, True, body, forall=(variable,))
+                    elif context == "effect_condition":
+                        action.add_effect(done, True, Exists(body, variable))
+                    else:
+                        action.add_effect(done, True)
+                    if context in ("forall", "exists", "both"):
+                        quantifier = Exists if context == "exists" else Forall
+                        p.add_goal(quantifier(body, variable))
+                    p.add_action(action)
+                    is_integer = variable.type.is_int_type()
+                    self.assertEqual(
+                        p.kind.has_int_variables_in_conditions(),
+                        is_integer and context != "effect",
+                    )
+                    self.assertEqual(
+                        p.kind.has_int_variables_in_effects(),
+                        is_integer and context in ("effect", "both"),
+                    )
 
     def test_substitution_respects_integer_quantifiers(self):
         for quantifier in (Forall, Exists):

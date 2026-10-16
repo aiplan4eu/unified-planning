@@ -112,8 +112,8 @@ Problem Kinds
      - UNIVERSAL_CONDITIONS
      - The problem has at least a condition using the “forall” quantifier over problem objects.
    * -
-     - INT_VARIABLES
-     - The problem uses integer variables with explicit ranges in quantified expressions or effects.
+     - INT_VARIABLES_IN_CONDITIONS
+     - At least one quantified expression uses a variable of integer type.
    * -
      - INTERPRETED_FUNCTIONS_IN_CONDITIONS
      - The problem has at least a condition whose expression contains an interpreted function.
@@ -123,6 +123,9 @@ Problem Kinds
    * -
      - FORALL_EFFECTS
      - At least one effect uses the “forall” quantifier over problem objects.
+   * -
+     - INT_VARIABLES_IN_EFFECTS
+     - At least one effect uses the “forall” quantifier with a variable of integer type.
    * -
      - INCREASE_EFFECTS
      - At least one effect uses the numeric increment operator.

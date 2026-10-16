@@ -122,7 +122,8 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         supported_kind.set_conditions_kind("EQUALITIES")
         supported_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         supported_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
-        supported_kind.set_conditions_kind("INT_VARIABLES")
+        supported_kind.set_conditions_kind("INT_VARIABLES_IN_CONDITIONS")
+        supported_kind.set_effects_kind("INT_VARIABLES_IN_EFFECTS")
         supported_kind.set_effects_kind("CONDITIONAL_EFFECTS")
         supported_kind.set_effects_kind("INCREASE_EFFECTS")
         supported_kind.set_effects_kind("DECREASE_EFFECTS")
@@ -176,9 +177,10 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
     ) -> ProblemKind:
         new_kind = problem_kind.clone()
         new_kind.unset_parameters("BOUNDED_INT_ACTION_PARAMETERS")
-        new_kind.unset_conditions_kind("INT_VARIABLES")
+        new_kind.unset_conditions_kind("INT_VARIABLES_IN_CONDITIONS")
+        new_kind.unset_effects_kind("INT_VARIABLES_IN_EFFECTS")
         if (
-            problem_kind.has_int_variables()
+            problem_kind.has_int_variables_in_conditions()
             and problem_kind.has_existential_conditions()
         ):
             new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
