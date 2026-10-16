@@ -15,6 +15,7 @@
 
 
 import tempfile
+import time
 from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
@@ -949,9 +950,14 @@ class TestANMLReader(unittest_TestCase):
             default_problem = ANMLReader().parse_problem(problem_filename)
             self.assertEqual(str(problem), str(default_problem))
 
-    def test_packrat_scoped_to_anml_parsing(self):
-        # Global packrat makes the PDDL grammar about 2.5x slower.
-        from pyparsing import ParserElement
-
-        ANMLReader().parse_problem(os.path.join(ANML_FILES_PATH, "basic.anml"))
-        self.assertFalse(ParserElement._packratEnabled)
+    def test_large_problem_time_ceiling(self):
+        # Loose ceiling (about 5x the current time) against regressions in the lark grammar.
+        n = 1000
+        text = "type Loc;\nfluent boolean at(Loc l);\nfluent integer cnt(Loc l);\n"
+        text += "".join(f"instance Loc l{i};\n" for i in range(n))
+        text += "".join(
+            f"[start] at(l{i}) := true;\n[start] cnt(l{i}) := {i};\n" for i in range(n)
+        )
+        start = time.perf_counter()
+        ANMLReader().parse_problem_string(text)
+        self.assertLess(time.perf_counter() - start, 1.0)
