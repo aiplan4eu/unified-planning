@@ -74,7 +74,9 @@ class Effect:
         value: "up.model.fnode.FNode",
         condition: "up.model.fnode.FNode",
         kind: EffectKind = EffectKind.ASSIGN,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ] = tuple(),
     ):
         fve = fluent.environment.free_vars_extractor
         # A multi-agent target is a Dot node wrapping the modified fluent expression, so the
@@ -97,21 +99,26 @@ class Effect:
         self._condition = condition
         self._kind = kind
         fvo = fluent.environment.free_vars_oracle
-        free_vars: Set["up.model.variable.Variable"] = set(
-            fvo.get_free_variables(fluent)
-        )
+        free_vars: Set[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ] = set(fvo.get_free_variables(fluent))
         free_vars.update(fvo.get_free_variables(value))
         free_vars.update(fvo.get_free_variables(condition))
 
-        def free_vars_without_duplicates() -> Iterator["up.model.variable.Variable"]:
+        def free_vars_without_duplicates() -> Iterator[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ]:
             # store seen variables to avoid duplicates
-            seen: Set["up.model.variable.Variable"] = set()
+            seen: Set[
+                Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+            ] = set()
             for v in forall:
                 if v in free_vars and v not in seen:
                     seen.add(v)
-                    assert isinstance(v, up.model.variable.Variable), (
-                        "Typing not respected"
-                    )
+                    assert isinstance(
+                        v,
+                        (up.model.variable.Variable, up.model.int_variable.IntVariable),
+                    ), "Typing not respected"
                     yield v
             unbounded_vars = free_vars.difference(seen)
             if unbounded_vars:
@@ -119,9 +126,10 @@ class Effect:
                     f"Some variables in the effect are unbounded: {unbounded_vars}"
                 )
 
-        self._forall: Tuple["up.model.variable.Variable", ...] = tuple(
-            free_vars_without_duplicates()
-        )
+        self._forall: Tuple[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"],
+            ...,
+        ] = tuple(free_vars_without_duplicates())
         assert (
             fluent.environment == value.environment
             and value.environment == condition.environment
@@ -226,7 +234,11 @@ class Effect:
         return self._kind
 
     @property
-    def forall(self) -> Tuple["up.model.variable.Variable", ...]:
+    def forall(
+        self,
+    ) -> Tuple[
+        Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"], ...
+    ]:
         """Returns the `Variables` that are universally quantified in this `Effect`."""
         return self._forall
 

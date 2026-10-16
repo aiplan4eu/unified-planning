@@ -112,6 +112,9 @@ Problem Kinds
      - UNIVERSAL_CONDITIONS
      - The problem has at least a condition using the “forall” quantifier over problem objects.
    * -
+     - INT_VARIABLES
+     - The problem uses integer variables with explicit ranges in quantified expressions or effects.
+   * -
      - INTERPRETED_FUNCTIONS_IN_CONDITIONS
      - The problem has at least a condition whose expression contains an interpreted function.
    * - EFFECTS_KIND

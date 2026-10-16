@@ -221,6 +221,12 @@ class ConverterToPDDLString(walkers.DagWalker):
         assert len(args) == 0
         return f"{self.get_mangled_name(expression.variable())}"
 
+    def walk_int_variable_exp(self, expression, args):
+        raise UPTypeError(
+            "PDDL does not support IntVariable. Compile integer variables with "
+            "INT_PARAMETERS_AND_VARIABLES_REMOVING before writing PDDL."
+        )
+
     def walk_and(self, expression, args):
         assert len(args) > 1
         return f"(and {' '.join(args)})"
@@ -1135,12 +1141,15 @@ def _write_effect(
         )
     forall_str = ""
     if effect.is_forall():
-        mid_str = " ".join(
-            (
-                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
-                for v in effect.forall
-            )
-        )
+        variables = []
+        for v in effect.forall:
+            if not isinstance(v, up.model.Variable):
+                raise UPTypeError(
+                    "PDDL does not support IntVariable. Compile integer variables with "
+                    "INT_PARAMETERS_AND_VARIABLES_REMOVING before writing PDDL."
+                )
+            variables.append(f"{get_mangled_name(v)} - {get_mangled_name(v.type)}")
+        mid_str = " ".join(variables)
         forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
     if non_const_bool_ass:

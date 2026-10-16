@@ -218,7 +218,9 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ] = tuple(),
     ):
         """
         At the given time, adds the given assignment to the `action's effects`.
@@ -257,7 +259,9 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ] = tuple(),
     ):
         """
         At the given time, adds the given `increment` to the `action's effects`.
@@ -304,7 +308,9 @@ class TimedCondsEffs:
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable["up.model.variable.Variable"] = tuple(),
+        forall: Iterable[
+            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
+        ] = tuple(),
     ):
         """
         At the given time, adds the given `decrement` to the `action's effects`.
