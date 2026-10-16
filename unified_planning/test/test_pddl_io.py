@@ -16,6 +16,7 @@
 import os
 import re
 import tempfile
+import time
 import pytest
 from typing import cast
 import unified_planning
@@ -29,6 +30,7 @@ from unified_planning.model.metrics import (
 )
 from unified_planning.shortcuts import *
 from unified_planning.test import (
+    coverage_paused,
     unittest_TestCase,
     main,
     skipIfNoOneshotPlannerForProblemKind,
@@ -1673,6 +1675,30 @@ class TestPddlIO(unittest_TestCase):
         with self.assertRaises(SyntaxError) as ctx:
             reader.parse_problem_string(domain, problem_str)
         self.assertIn("nonexistent_type", str(ctx.exception))
+
+    def test_up_pddl_reader_large_problem_time_ceiling(self):
+        # Loose ceiling (about 15x the current time) against regressions such as global packrat.
+        with open(os.path.join(PDDL_DOMAINS_PATH, "depot", "domain.pddl")) as f:
+            domain = f.read()
+        n = 2000
+        objects = " ".join(f"o{i}" for i in range(n))
+        init = " ".join(f"(at o{i} o{(i * 7) % n}) (clear o{i})" for i in range(n))
+        problem = f"(define (problem p) (:domain depot) (:objects {objects}) (:init {init}) (:goal (clear o1)))"
+        with coverage_paused():
+            start = time.perf_counter()
+            UPPDDLReader().parse_problem_string(domain, problem)
+            elapsed = time.perf_counter() - start
+        self.assertLess(elapsed, 1.0)
+
+    def test_ai_pddl_cached_parser_does_not_leak_constants(self):
+        # The cached AI-planning parser must not remember constants of a previous domain.
+        from unified_planning.io.pddl_reader import _ai_parse
+
+        header = "(define (domain d) (:requirements :strips :typing) (:types t)"
+        body = "(:predicates (p ?x - t)) (:action a :parameters () :precondition (p c) :effect (not (p c))))"
+        _ai_parse(f"{header} (:constants c - t) {body}", is_domain=True)
+        with self.assertRaises(Exception):
+            _ai_parse(f"{header} {body}", is_domain=True)
 
     def test_ai_pddl_reader_custom_environment(self):
         """The AI-PDDL fast path (`AIPDDLConverter`) must build every model object
