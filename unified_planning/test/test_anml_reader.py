@@ -20,7 +20,7 @@ from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
 from unified_planning.model import DurativeAction, InstantaneousAction
-from unified_planning.test import unittest_TestCase
+from unified_planning.test import coverage_paused, unittest_TestCase
 from unified_planning.io import ANMLReader, ANMLWriter
 from unified_planning.test.examples import get_example_problems
 import os
@@ -958,6 +958,9 @@ class TestANMLReader(unittest_TestCase):
         text += "".join(
             f"[start] at(l{i}) := true;\n[start] cnt(l{i}) := {i};\n" for i in range(n)
         )
-        start = time.perf_counter()
-        ANMLReader().parse_problem_string(text)
-        self.assertLess(time.perf_counter() - start, 1.0)
+        ANMLReader().parse_problem_string("type Loc;")  # builds the lark tables
+        with coverage_paused():
+            start = time.perf_counter()
+            ANMLReader().parse_problem_string(text)
+            elapsed = time.perf_counter() - start
+        self.assertLess(elapsed, 1.0)
