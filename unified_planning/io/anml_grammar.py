@@ -21,8 +21,20 @@ from pyparsing import Keyword, Word, alphanums, alphas, nums, ZeroOrMore, OneOrM
 from pyparsing import Optional, Suppress, Group, Combine, Forward, Literal
 from pyparsing import MatchFirst, ParseResults, ParserElement
 from pyparsing import infix_notation, rest_of_line, one_of, OpAssoc
+from contextlib import contextmanager
 
-ParserElement.enable_packrat()
+
+@contextmanager
+def packrat():
+    """Enables pyparsing packrat only while parsing ANML; it is process-wide and slows down PDDL."""
+    # ponytail: toggles a pyparsing global, not thread-safe; goes away with the lark port
+    was_enabled = ParserElement._packratEnabled
+    ParserElement.enable_packrat()
+    try:
+        yield
+    finally:
+        if not was_enabled:
+            ParserElement.disable_memoization()
 
 
 # ANMl keywords definition as tokens
