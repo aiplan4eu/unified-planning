@@ -104,6 +104,17 @@ class Effect:
         ] = set(fvo.get_free_variables(fluent))
         free_vars.update(fvo.get_free_variables(value))
         free_vars.update(fvo.get_free_variables(condition))
+        forall = tuple(forall)
+        for variable in forall:
+            if isinstance(variable, up.model.variable.Variable) and (
+                variable.lower_bound is not None or variable.upper_bound is not None
+            ):
+                # An empty range suppresses the effect even if the variable is
+                # absent from its target, value and condition.
+                free_vars.add(variable)
+                for bound in (variable.lower_bound, variable.upper_bound):
+                    if bound is not None:
+                        free_vars.update(fvo.get_free_variables(bound))
 
         def free_vars_without_duplicates() -> Iterator[
             Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]

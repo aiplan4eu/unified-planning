@@ -19,6 +19,7 @@ from unified_planning.exceptions import (
     UPTypeError,
 )
 from unified_planning.io import PDDLWriter
+from unified_planning.environment import Environment
 from unified_planning.plans import ActionInstance
 from unified_planning.engines.compilers import IntParametersAndVariablesRemover
 from unified_planning.test import unittest_TestCase
@@ -30,6 +31,100 @@ class TestIntVariable(unittest_TestCase):
         self.i = IntVariable("i", 0, 2)
         self.marked = Fluent("marked", index=IntType(0, 2))
         self.oracle = self.i.environment.free_vars_oracle
+
+    def test_variable_optional_bounds(self):
+        env = Environment()
+        em, tm = env.expression_manager, env.type_manager
+        n = Parameter("n", tm.IntType(0, 5), env)
+        i = Variable("i", tm.IntType(0, 10), env, lower_bound=1, upper_bound=n)
+        self.assertEqual(i.lower_bound, em.Int(1))
+        self.assertEqual(i.upper_bound, em.ParameterExp(n))
+        self.assertEqual(i.type, tm.IntType(0, 10))
+        self.assertIs(i.environment, env)
+        self.assertIsNone(Variable("j", tm.IntType(), env).lower_bound)
+        self.assertIsNone(Variable("j", tm.IntType(), env).upper_bound)
+        self.assertEqual(
+            Variable("j", tm.IntType(), env, upper_bound=i + 1).upper_bound,
+            em.Plus(i, 1),
+        )
+
+    def test_variable_bounds_identity(self):
+        first = Variable("i", IntType(), lower_bound=0, upper_bound=2)
+        same = Variable("i", IntType(), lower_bound=Int(0), upper_bound=Int(2))
+        other = Variable("i", IntType(), lower_bound=0, upper_bound=3)
+        self.assertEqual(first, same)
+        self.assertEqual(hash(first), hash(same))
+        self.assertNotEqual(first, other)
+        self.assertEqual(len({first, same, other}), 2)
+        self.assertIs(Forall(Bool(True), first), Forall(Bool(True), same))
+        self.assertIsNot(Forall(Bool(True), first), Forall(Bool(True), other))
+
+    def test_invalid_variable_bounds(self):
+        for typename in (BoolType(), RealType(), UserType("location")):
+            with self.subTest(typename=typename):
+                with self.assertRaisesRegex(UPTypeError, "only supported for integer"):
+                    Variable("i", typename, lower_bound=0)
+        for bound in (True, Real(Fraction(1, 2))):
+            for side in ("lower_bound", "upper_bound"):
+                with self.subTest(bound=bound, side=side):
+                    with self.assertRaisesRegex(UPTypeError, "integer expressions"):
+                        Variable(
+                            "i",
+                            IntType(),
+                            lower_bound=bound if side == "lower_bound" else None,
+                            upper_bound=bound if side == "upper_bound" else None,
+                        )
+        env = Environment()
+        with self.assertRaises(AssertionError):
+            Variable("i", IntType(), upper_bound=env.expression_manager.Int(2))
+
+    def test_variable_bound_dependencies(self):
+        i = Variable("i", IntType(0, 2))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i)
+        k = Variable("k", IntType(), lower_bound=j, upper_bound=2)
+        self.assertEqual(self.oracle.get_free_variables(self.marked(k)), {i, j, k})
+        for quantifier in (Forall, Exists):
+            for body in (self.marked(j), Bool(True)):
+                with self.subTest(quantifier=quantifier.__name__, body=body):
+                    inner = quantifier(body, j)
+                    self.assertEqual(self.oracle.get_free_variables(inner), {i})
+                    self.assertEqual(
+                        self.oracle.get_free_variables(quantifier(inner, i)), set()
+                    )
+                    for variables in ((i, j), (j, i)):
+                        self.assertEqual(
+                            self.oracle.get_free_variables(
+                                quantifier(body, *variables)
+                            ),
+                            set(),
+                        )
+                    with self.assertRaises(UPUnboundedVariablesError):
+                        InstantaneousAction("mark").add_precondition(inner)
+
+    def test_effect_variable_bound_dependencies(self):
+        i = Variable("i", IntType(0, 2))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i)
+        for target, value, condition in (
+            (self.marked(j), True, True),
+            (self.marked(0), self.marked(j), True),
+            (self.marked(0), True, self.marked(j)),
+            (self.marked(0), True, True),
+        ):
+            with self.subTest(target=target, value=value, condition=condition):
+                with self.assertRaises(UPUnboundedVariablesError):
+                    InstantaneousAction("mark").add_effect(
+                        target, value, condition, forall=(j,)
+                    )
+                for variables in ((i, j), (j, i)):
+                    action = InstantaneousAction("mark")
+                    action.add_effect(
+                        target, value, condition, forall=iter((*variables, j))
+                    )
+                    self.assertEqual(action.effects[0].forall, variables)
+        empty = Variable("empty", IntType(), lower_bound=1, upper_bound=0)
+        action = InstantaneousAction("mark")
+        action.add_effect(self.marked(0), True, forall=(empty,))
+        self.assertEqual(action.effects[0].forall, (empty,))
 
     def test_free_variables_and_scope(self):
         location = UserType("location")
