@@ -209,13 +209,52 @@ class TestIntVariable(unittest_TestCase):
                     )
 
     def test_substitution_respects_integer_quantifiers(self):
+        action = InstantaneousAction("mark", n=IntType(0, 2))
+        n = action.parameter("n")
+        i = Variable("i", IntType(), lower_bound=0, upper_bound=n)
+        grounded = Variable("i", IntType(), lower_bound=0, upper_bound=2)
         for quantifier in (Forall, Exists):
             with self.subTest(quantifier=quantifier.__name__):
-                bound = quantifier(self.marked(self.i), self.i)
-                expression = And(self.marked(self.i), bound)
+                bound = quantifier(self.marked(i), i)
+                expression = And(self.marked(i), bound)
                 self.assertEqual(
-                    expression.substitute({self.i: 1}), And(self.marked(1), bound)
+                    expression.substitute({i: 1}), And(self.marked(1), bound)
                 )
+                self.assertEqual(
+                    bound.substitute({n: 2, i: 1}),
+                    quantifier(self.marked(grounded), grounded),
+                )
+                self.assertEqual(
+                    quantifier(Bool(True), i).substitute({n: 2}),
+                    quantifier(Bool(True), grounded),
+                )
+                self.assertEqual(i.upper_bound, ParameterExp(n))
+
+    def test_substitution_in_dependent_bounds(self):
+        env = Environment()
+        em, tm = env.expression_manager, env.type_manager
+        n = Parameter("n", tm.IntType(0, 2), env)
+        i = Variable("i", tm.IntType(), env, upper_bound=n)
+        j = Variable("j", tm.IntType(), env, lower_bound=i)
+        grounded_i = Variable("i", tm.IntType(), env, upper_bound=2)
+        grounded_j = Variable("j", tm.IntType(), env, lower_bound=grounded_i)
+        body, grounded_body = em.LE(j, i), em.LE(grounded_j, grounded_i)
+        for quantifier in (em.Exists, em.Forall):
+            with self.subTest(quantifier=quantifier.__name__):
+                self.assertEqual(
+                    quantifier(quantifier(body, j), i).substitute({n: 2}),
+                    quantifier(quantifier(grounded_body, grounded_j), grounded_i),
+                )
+                self.assertEqual(
+                    quantifier(body, j, i).substitute({n: 2}),
+                    quantifier(grounded_body, grounded_j, grounded_i),
+                )
+        self.assertEqual(body.substitute({n: 2}), grounded_body)
+        # Replacements are simultaneous; their values are not substituted again.
+        self.assertEqual(em.VariableExp(i).substitute({i: j, n: 2}), em.VariableExp(j))
+        self.assertTrue(
+            em.Forall(body, i, j).substitute({em.Forall(body, i, j): True}).is_true()
+        )
 
     def test_unused_integer_variables_are_removed(self):
         body = self.marked(0)
