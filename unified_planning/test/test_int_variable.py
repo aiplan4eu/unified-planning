@@ -250,27 +250,51 @@ class TestIntVariable(unittest_TestCase):
                     quantifier(grounded_body, grounded_j, grounded_i),
                 )
         self.assertEqual(body.substitute({n: 2}), grounded_body)
-        # Replacements are simultaneous; their values are not substituted again.
+        # Replacements are simultaneous; their values are not substituted again
         self.assertEqual(em.VariableExp(i).substitute({i: j, n: 2}), em.VariableExp(j))
         self.assertTrue(
             em.Forall(body, i, j).substitute({em.Forall(body, i, j): True}).is_true()
         )
 
-    def test_unused_integer_variables_are_removed(self):
-        body = self.marked(0)
-        for last in (0, 2):
-            i = IntVariable("i", 1, last)
-            for quantifier in (Forall, Exists):
-                with self.subTest(last=last, quantifier=quantifier.__name__):
-                    self.assertEqual(quantifier(body, i).simplify(), body)
-                    self.assertEqual(
-                        quantifier(self.marked(self.i), i, self.i).simplify(),
-                        quantifier(self.marked(self.i), self.i),
-                    )
+    def test_empty_integer_domains_are_preserved(self):
+        for i in (
+            Variable("i", IntType(), lower_bound=Plus(1, 1), upper_bound=1),
+            Variable("i", IntType(1, 2), upper_bound=0),
+            Variable("i", IntType(1, 2), lower_bound=3),
+            Variable("i", IntType(1, 0)),
+        ):
+            for body in (Bool(True), Bool(False), self.marked(0)):
+                with self.subTest(variable=i, body=body):
+                    self.assertTrue(Forall(body, i).simplify().is_true())
+                    self.assertTrue(Exists(body, i).simplify().is_false())
+        n = Parameter("n", IntType(0, 2))
+        i = Variable("i", IntType(), lower_bound=1, upper_bound=n)
+        for quantifier in (Forall, Exists):
+            expression = quantifier(self.marked(0), i)
+            self.assertEqual(expression.simplify(), expression)
+            self.assertEqual(
+                expression.simplify().substitute({n: 0}).simplify(),
+                Bool(quantifier is Forall),
+            )
 
-        # The inner range depends on an outer variable absent from the body.
-        j = IntVariable("j", 1, self.i + 0)
-        self.assertEqual(Forall(Exists(body, j), self.i).simplify(), body)
+    def test_simplification_of_dependent_bounds(self):
+        i = Variable("i", IntType(), lower_bound=0, upper_bound=Plus(1, 1))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i + 0)
+        simple_i = Variable("i", IntType(), lower_bound=0, upper_bound=2)
+        simple_j = Variable("j", IntType(), lower_bound=0, upper_bound=simple_i)
+        for body, simple_body in (
+            (self.marked(j), self.marked(simple_j)),
+            (Bool(True), Bool(True)),
+        ):
+            with self.subTest(body=body):
+                expected = Forall(Exists(simple_body, simple_j), simple_i)
+                actual = Forall(Exists(body, j), i).simplify()
+                self.assertEqual(actual, expected)
+                self.assertEqual(self.oracle.get_free_variables(actual), set())
+                self.assertEqual(actual.simplify(), actual)
+        # Equality alone does not establish that its value belongs to the domain
+        expression = Exists(And(self.marked(0), Equals(simple_i, 3)), simple_i)
+        self.assertEqual(expression.simplify(), expression)
 
     def test_effect_variables_and_unbound_uses(self):
         action = InstantaneousAction("mark")
@@ -282,7 +306,7 @@ class TestIntVariable(unittest_TestCase):
         action.add_effect(self.marked(self.i), True, forall=(self.i, self.i))
         self.assertEqual(action.effects[0].forall, (self.i,))
 
-        # Unused variables are removed, including empty and dependent ranges.
+        # Unused variables are removed, including empty and dependent ranges
         empty = IntVariable("empty", 1, 0)
         action = InstantaneousAction("mark")
         action.add_effect(self.marked(0), True, forall=(empty, empty, j))
@@ -405,7 +429,7 @@ class TestIntVariable(unittest_TestCase):
         ):
             compiler.compile(p)
 
-        # Exercise cycle detection without mutating the variables' identities.
+        # Exercise cycle detection without mutating the variables identities
         ranges = {self.i: (Int(0), j + 0), j: (Int(0), self.i + 0)}
         with self.assertRaisesRegex(UPProblemDefinitionError, "Circular dependencies"):
             list(compiler._get_int_var_instantiations(p, p, ranges, {}, ()))

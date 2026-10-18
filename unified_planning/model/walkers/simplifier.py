@@ -16,13 +16,13 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import Dict, Iterable, List, Optional, FrozenSet, Tuple, Union, cast
+from typing import Dict, Iterable, List, Optional, Tuple, Union, cast
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPUnreachableCodeError
 import unified_planning.model.walkers as walkers
 from unified_planning.model.fnode import FNode
-from unified_planning.model.types import _UserType
+from unified_planning.model.types import _IntType, _UserType
 import unified_planning.model.operators as op
 
 
@@ -218,6 +218,63 @@ class Simplifier(walkers.dag.DagWalker):
         """
         return self.walk(expression)
 
+    def _get_children(self, expression: FNode):
+        if expression.is_variable_exp():
+            variable = expression.variable()
+            return tuple(
+                bound
+                for bound in (variable.lower_bound, variable.upper_bound)
+                if bound is not None
+            )
+        if expression.is_exists() or expression.is_forall():
+            return list(expression.args) + [
+                self.manager.auto_promote(variable)[0]
+                for variable in expression.variables()
+            ]
+        return expression.args
+
+    def _get_quantifier_variables(
+        self, args: List[FNode]
+    ) -> Tuple[Union["up.model.Variable", "up.model.IntVariable"], ...]:
+        free_vars = self.environment.free_vars_oracle.get_free_variables(args[0])
+        for arg in args[1:]:
+            if arg.is_variable_exp() and arg.type.is_int_type():
+                # Keep integer domains even if the body no longer uses the
+                # variable, together with dependencies needed by their bounds.
+                free_vars |= self.environment.free_vars_oracle.get_free_variables(arg)
+        variables = (
+            arg.variable() if arg.is_variable_exp() else arg.int_variable()
+            for arg in args[1:]
+        )
+        return tuple(variable for variable in variables if variable in free_vars)
+
+    def _has_empty_integer_domain(
+        self, variables: Iterable[Union["up.model.Variable", "up.model.IntVariable"]]
+    ) -> bool:
+        for variable in variables:
+            if (
+                not isinstance(variable, up.model.Variable)
+                or not variable.type.is_int_type()
+            ):
+                continue
+            typename = cast(_IntType, variable.type)
+            lower, upper = typename.lower_bound, typename.upper_bound
+            if (
+                variable.lower_bound is not None
+                and variable.lower_bound.is_int_constant()
+            ):
+                bound = variable.lower_bound.int_constant_value()
+                lower = bound if lower is None else max(lower, bound)
+            if (
+                variable.upper_bound is not None
+                and variable.upper_bound.is_int_constant()
+            ):
+                bound = variable.upper_bound.int_constant_value()
+                upper = bound if upper is None else min(upper, bound)
+            if lower is not None and upper is not None and lower > upper:
+                return True
+        return False
+
     def walk_and(self, expression: FNode, args: List[FNode]) -> FNode:
         if len(args) == 2 and args[0] == args[1]:
             return args[0]
@@ -332,11 +389,15 @@ class Simplifier(walkers.dag.DagWalker):
             return self.manager.Implies(sl, sr)
 
     def walk_exists(self, expression: FNode, args: List[FNode]) -> FNode:
-        assert len(args) == 1
-        free_vars: FrozenSet[Union["up.model.Variable", "up.model.IntVariable"]] = (
-            self.environment.free_vars_oracle.get_free_variables(args[0])
-        )
-        vars = set(var for var in expression.variables() if var in free_vars)
+        variables = self._get_quantifier_variables(args)
+        if self._has_empty_integer_domain(variables):
+            return self.manager.FALSE()
+        # Eliminating an integer variable through equality must also preserve  its domain and any bounds that depend on it
+        if any(
+            isinstance(v, up.model.Variable) and v.type.is_int_type() for v in variables
+        ):
+            return self.manager.Exists(args[0], *variables)
+        vars = set(variables)
         # Here we check if the arg is in the form:
         # phi(l_i) and l_i == x with phi and x general formulae and l_i a variable
         # bounded to this Exists.
@@ -378,11 +439,9 @@ class Simplifier(walkers.dag.DagWalker):
             return new_arg
 
     def walk_forall(self, expression: FNode, args: List[FNode]) -> FNode:
-        assert len(args) == 1
-        free_vars: FrozenSet[Union["up.model.Variable", "up.model.IntVariable"]] = (
-            self.environment.free_vars_oracle.get_free_variables(args[0])
-        )
-        vars = tuple(var for var in expression.variables() if var in free_vars)
+        vars = self._get_quantifier_variables(args)
+        if self._has_empty_integer_domain(vars):
+            return self.manager.TRUE()
         if len(vars) == 0:
             return args[0]
         return self.manager.Forall(args[0], *vars)
@@ -620,10 +679,26 @@ class Simplifier(walkers.dag.DagWalker):
             return self.manager.Div(left, right)
         return self._number_to_fnode(value)
 
+    def walk_variable_exp(self, expression: FNode, args: List[FNode]) -> FNode:
+        variable = expression.variable()
+        bounds = iter(args)
+        lower = next(bounds) if variable.lower_bound is not None else None
+        upper = next(bounds) if variable.upper_bound is not None else None
+        if lower == variable.lower_bound and upper == variable.upper_bound:
+            return expression
+        return self.manager.VariableExp(
+            up.model.Variable(
+                variable.name,
+                variable.type,
+                variable.environment,
+                lower_bound=lower,
+                upper_bound=upper,
+            )
+        )
+
     @walkers.handles(op.CONSTANTS)
     @walkers.handles(
         op.OperatorKind.PARAM_EXP,
-        op.OperatorKind.VARIABLE_EXP,
         op.OperatorKind.INT_VARIABLE_EXP,
         op.OperatorKind.OBJECT_EXP,
         op.OperatorKind.TIMING_EXP,
