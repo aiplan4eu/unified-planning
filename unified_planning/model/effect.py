@@ -106,8 +106,9 @@ class Effect:
         free_vars.update(fvo.get_free_variables(condition))
         forall = tuple(forall)
         for variable in forall:
-            if isinstance(variable, up.model.variable.Variable) and (
-                variable.lower_bound is not None or variable.upper_bound is not None
+            if (
+                isinstance(variable, up.model.variable.Variable)
+                and variable.type.is_int_type()
             ):
                 # An empty range suppresses the effect even if the variable is
                 # absent from its target, value and condition.

@@ -28,7 +28,7 @@ from unified_planning.test import unittest_TestCase
 class TestIntVariable(unittest_TestCase):
     def setUp(self):
         super().setUp()
-        self.i = IntVariable("i", 0, 2)
+        self.i = Variable("i", IntType(0, 2))
         self.marked = Fluent("marked", index=IntType(0, 2))
         self.oracle = self.i.environment.free_vars_oracle
 
@@ -302,19 +302,25 @@ class TestIntVariable(unittest_TestCase):
             action.add_precondition(self.marked(self.i))
         with self.assertRaises(UPUnboundedVariablesError):
             action.add_effect(self.marked(self.i), True)
-        j = IntVariable("j", 0, self.i + 0)
         action.add_effect(self.marked(self.i), True, forall=(self.i, self.i))
         self.assertEqual(action.effects[0].forall, (self.i,))
 
-        # Unused variables are removed, including empty and dependent ranges
-        empty = IntVariable("empty", 1, 0)
+        # An empty domain must be retained even when the body does not use it.
+        empty = Variable("empty", IntType(1, 0))
         action = InstantaneousAction("mark")
-        action.add_effect(self.marked(0), True, forall=(empty, empty, j))
-        self.assertEqual(action.effects[0].forall, ())
+        action.add_effect(self.marked(0), True, forall=(empty, empty))
+        self.assertEqual(action.effects[0].forall, (empty,))
+        p = Problem("empty_effect")
+        p.add_fluent(self.marked, default_initial_value=False)
+        p.add_action(action)
+        compiled = IntParametersAndVariablesRemover().compile(p).problem
+        assert isinstance(compiled, Problem)
+        assert isinstance(compiled.actions[0], InstantaneousAction)
+        self.assertEqual(compiled.actions[0].effects, [])
 
     def test_dependent_variables_in_same_quantifier(self):
         pair = Fluent("pair", x=IntType(0, 2), y=IntType(0, 2))
-        j = IntVariable("j", 1, self.i + 0)
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=self.i + 0)
         expected = [pair(1, 1), pair(2, 1), pair(2, 2)]
         compiler = IntParametersAndVariablesRemover()
         for quantifier, combine in ((Forall, And), (Exists, Or)):
@@ -332,7 +338,7 @@ class TestIntVariable(unittest_TestCase):
                     assert isinstance(nested, Problem)
                     self.assertEqual(nested.goals, compiled.goals)
 
-        k = IntVariable("k", 1, j + 0)
+        k = Variable("k", IntType(), lower_bound=1, upper_bound=j + 0)
         triple = Fluent("triple", x=IntType(0, 2), y=IntType(0, 2), z=IntType(0, 2))
         p = Problem("three_dependent_variables")
         p.add_fluent(triple, default_initial_value=False)
@@ -352,8 +358,8 @@ class TestIntVariable(unittest_TestCase):
                 p.add_fluent(pair, default_initial_value=False)
                 action = action_type("mark", n=IntType(0, 2))
                 n = action.parameter("n")
-                i = IntVariable("i", 1, n)
-                j = IntVariable("j", i + 0, n)
+                i = Variable("i", IntType(), lower_bound=1, upper_bound=n)
+                j = Variable("j", IntType(), lower_bound=i + 0, upper_bound=n)
                 if isinstance(action, DurativeAction):
                     action.set_fixed_duration(1)
                     action.add_effect(StartTiming(), pair(i, j), True, forall=(j, i))
@@ -385,8 +391,8 @@ class TestIntVariable(unittest_TestCase):
                     self.assertTrue(all(not e.forall for e in effects))
 
     def test_empty_dependent_quantifier(self):
-        i = IntVariable("i", 0, 0)
-        j = IntVariable("j", 1, i + 0)
+        i = Variable("i", IntType(0, 0))
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=i + 0)
         pair = Fluent("pair", x=IntType(0, 2), y=IntType(0, 2))
         for quantifier in (Forall, Exists):
             with self.subTest(quantifier=quantifier.__name__):
@@ -401,12 +407,17 @@ class TestIntVariable(unittest_TestCase):
 
     def test_unbound_and_circular_range_dependencies(self):
         compiler = IntParametersAndVariablesRemover()
-        j = IntVariable("j", 1, self.i + 0)
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=self.i + 0)
         p = Problem("unbound_range")
         p.add_fluent(self.marked, default_initial_value=False)
         for quantifier in (Forall, Exists):
+            p.clear_goals()
+            p.add_goal(quantifier(self.marked(j), j))
+            with self.assertRaisesRegex(
+                UPProblemDefinitionError, "not been instantiated: i"
+            ):
+                compiler.compile(p)
             goals = (
-                quantifier(self.marked(j), j),
                 quantifier(self.marked(j), j, self.i),
                 quantifier(quantifier(self.marked(j), j), self.i),
             )
@@ -415,21 +426,28 @@ class TestIntVariable(unittest_TestCase):
                     with self.subTest(goal=goal, simplify=simplify):
                         p.clear_goals()
                         p.add_goal(goal.simplify() if simplify else goal)
-                        with self.assertRaisesRegex(
-                            UPProblemDefinitionError, "not been instantiated: i"
-                        ):
-                            compiler.compile(p)
+                        compiled = compiler.compile(p).problem
+                        assert isinstance(compiled, Problem)
+                        combine = And if quantifier is Forall else Or
+                        self.assertEqual(
+                            compiled.goals, [combine(self.marked(1), self.marked(2))]
+                        )
         p.clear_goals()
         action = InstantaneousAction("mark")
         action.add_effect(self.marked(j), True, forall=(j, self.i))
-        self.assertEqual(action.effects[0].forall, (j,))
+        self.assertEqual(action.effects[0].forall, (j, self.i))
         p.add_action(action)
-        with self.assertRaisesRegex(
-            UPProblemDefinitionError, "not been instantiated: i"
-        ):
-            compiler.compile(p)
+        compiled = compiler.compile(p).problem
+        assert isinstance(compiled, Problem)
+        assert isinstance(compiled.actions[0], InstantaneousAction)
+        self.assertEqual(
+            {effect.fluent for effect in compiled.actions[0].effects},
+            {self.marked(1), self.marked(2)},
+        )
 
         # Exercise cycle detection without mutating the variables identities
-        ranges = {self.i: (Int(0), j + 0), j: (Int(0), self.i + 0)}
+        _, ranges = compiler._split_variables((self.i, j))
+        ranges[self.i] = (Int(0), j + 0)
+        ranges[j] = (Int(0), self.i + 0)
         with self.assertRaisesRegex(UPProblemDefinitionError, "Circular dependencies"):
             list(compiler._get_int_var_instantiations(p, p, ranges, {}, ()))

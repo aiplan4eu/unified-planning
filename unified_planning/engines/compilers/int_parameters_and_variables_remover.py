@@ -55,6 +55,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Set,
     Tuple,
     OrderedDict,
     Union,
@@ -74,11 +75,12 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
     action with ``n: IntType(1, 3)`` and precondition ``n < 2`` produces only the
     instance with ``n = 1``; the other candidates have false preconditions.
 
-    After substituting action parameters, ``IntVariable`` ranges are expanded
+    After substituting action parameters, integer variable ranges are expanded
     into conjunctions for ``Forall``, disjunctions for ``Exists``, and individual
     effects for universal effects. Both endpoints are included. Dependencies
     between integer variables determine their expansion order, and all bounds
-    must become integer constants. Object variables remain quantified.
+    must become integer constants. Variable bounds restrict the range of the
+    integer type. Object variables remain quantified.
 
     Supports instantaneous and durative actions; continuous effects are not
     supported. Integer-valued fluents and integer fluent parameters are not
@@ -194,13 +196,20 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
     # ==================== INT VARIABLE TRANSFORMATION ====================
     def _split_variables(
         self, variables: Iterable[Union[Variable, IntVariable]]
-    ) -> Tuple[Tuple[Variable, ...], Dict[IntVariable, Tuple[FNode, FNode]]]:
+    ) -> Tuple[
+        Tuple[Variable, ...],
+        Dict[Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]],
+    ]:
         """Separate regular variables from int variables."""
         regular_vars = []
-        int_vars = {}
+        int_vars: Dict[
+            Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]
+        ] = {}
         for var in variables:
             if isinstance(var, IntVariable):
                 int_vars[var] = (var.initial, var.last)
+            elif var.type.is_int_type():
+                int_vars[var] = (var.lower_bound, var.upper_bound)
             else:
                 regular_vars.append(var)
         return tuple(regular_vars), int_vars
@@ -213,45 +222,56 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         quantified int variables get concrete integer bounds.
         """
         updated = {}
-        for variable, (initial, last) in int_vars.items():
-            new_initial = self._transform_expression(
-                old_problem, new_problem, initial, int_params, instantiation
-            )
-            new_last = self._transform_expression(
-                old_problem, new_problem, last, int_params, instantiation
-            )
-            if (
-                new_initial is None
-                or not new_initial.is_int_constant()
-                or new_last is None
-                or not new_last.is_int_constant()
-            ):
-                raise UPProblemDefinitionError(
-                    f"The bounds of integer variable {variable.name} must become "
-                    "integer constants after instantiating the enclosing parameters "
-                    "and variables."
+        for variable, bounds in int_vars.items():
+            typename = cast(_IntType, variable.type)
+            lower, upper = typename.lower_bound, typename.upper_bound
+            evaluated: List[Optional[int]] = []
+            for bound in bounds:
+                if bound is None:
+                    evaluated.append(None)
+                    continue
+                transformed = self._transform_expression(
+                    old_problem, new_problem, bound, int_params, instantiation
                 )
-            updated[variable] = (
-                new_initial.constant_value(),
-                new_last.constant_value(),
-            )
+                if transformed is None or not transformed.is_int_constant():
+                    raise UPProblemDefinitionError(
+                        f"The bounds of integer variable {variable.name} must become "
+                        "integer constants after instantiating the enclosing parameters "
+                        "and variables."
+                    )
+                evaluated.append(transformed.int_constant_value())
+            initial, last = evaluated
+            if initial is not None:
+                lower = initial if lower is None else max(lower, initial)
+            if last is not None:
+                upper = last if upper is None else min(upper, last)
+            if lower is None or upper is None:
+                raise UPProblemDefinitionError(
+                    f"IPAVR requires finite bounds for integer variable {variable.name}"
+                )
+            updated[variable] = (lower, upper)
         return updated
 
     def _get_int_var_instantiations(
         self,
         old_problem: Problem,
         new_problem: Problem,
-        int_vars: Dict[IntVariable, Tuple[FNode, FNode]],
-        int_params: Dict[Union[Parameter, IntVariable], int],
+        int_vars: Dict[
+            Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]
+        ],
+        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
-    ) -> Iterator[Tuple[Dict[Union[Parameter, IntVariable], int], Tuple[int, ...]]]:
+    ) -> Iterator[
+        Tuple[Dict[Union[Parameter, Variable, IntVariable], int], Tuple[int, ...]]
+    ]:
         """Evaluate dependent ranges after instantiating their dependencies."""
         oracle = old_problem.environment.free_vars_oracle
         dependencies = {}
         for variable, bounds in int_vars.items():
-            free_vars = oracle.get_free_variables(
-                bounds[0]
-            ) | oracle.get_free_variables(bounds[1])
+            free_vars: Set[Union[Variable, IntVariable]] = set()
+            for bound in bounds:
+                if bound is not None:
+                    free_vars.update(oracle.get_free_variables(bound))
             unbound = free_vars.difference(int_vars, int_params)
             if unbound:
                 names = ", ".join(sorted(v.name for v in unbound))
@@ -307,7 +327,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Dict[Union[Parameter, IntVariable], int],
+        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
     ) -> Optional[FNode]:
         """
@@ -315,23 +335,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         Replaces int variables with concrete instantiation, then expands the quantifier into a
         conjunction/disjunction over valid value ranges.
         """
-        em = old_problem.environment.expression_manager
-        body_variables = old_problem.environment.free_vars_oracle.get_free_variables(
-            node.arg(0)
-        )
-        # Match simplification: do not retain integer variables only used in bounds.
-        variables = tuple(
-            variable
-            for variable in node.variables()
-            if not isinstance(variable, IntVariable) or variable in body_variables
-        )
-        if not variables:
-            return self._transform_expression(
-                old_problem, new_problem, node.arg(0), int_params, instantiation
-            )
-        if variables != tuple(node.variables()):
-            node = em.create_node(node.node_type, tuple(node.args), variables)
-        regular_vars, int_vars = self._split_variables(variables)
+        regular_vars, int_vars = self._split_variables(node.variables())
         if any(
             variable.type.is_user_type() and not any(old_problem.objects(variable.type))
             for variable in regular_vars
@@ -429,7 +433,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Dict[Union[Parameter, IntVariable], int],
+        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
     ) -> Union[FNode, None]:
         """Generic recursive transformation. Arithmetic that becomes undefined after substitution
@@ -460,7 +464,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Optional[Dict[Union[Parameter, IntVariable], int]] = None,
+        int_params: Optional[Dict[Union[Parameter, Variable, IntVariable], int]] = None,
         instantiation: Optional[Tuple[int, ...]] = None,
     ) -> Union[FNode, None]:
         """
@@ -473,11 +477,13 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         if instantiation is None:
             instantiation = ()
         # Base cases
-        if node.is_constant() or node.is_variable_exp() or node.is_timing_exp():
+        if node.is_constant() or node.is_timing_exp():
             return node
 
-        if node.is_int_variable_exp():
-            variable = node.int_variable()
+        if node.is_variable_exp() or node.is_int_variable_exp():
+            variable = (
+                node.variable() if node.is_variable_exp() else node.int_variable()
+            )
             if variable in int_params:
                 var_index = int_params[variable]
                 return old_problem.environment.expression_manager.Int(
@@ -598,7 +604,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         effect: Effect,
-        int_param_map: Dict[Union[Parameter, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
     ) -> Iterator[Tuple[Optional[Effect], FNode]]:
         """
@@ -662,7 +668,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         new_problem: Problem,
         old_action: Action,
         new_action: Action,
-        int_param_map: Dict[Union[Parameter, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
     ) -> bool:
         """
@@ -717,7 +723,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         new_problem: Problem,
         action: Action,
         regular_params: OrderedDict,
-        int_param_map: Dict[Union[Parameter, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
         instantiation: Tuple[int, ...],
     ) -> Union[Action, None]:
         """
@@ -828,7 +834,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         """
         # Separate regular and integer parameters
         regular_params = OrderedDict()
-        int_param_map: Dict[Union[Parameter, IntVariable], int] = {}
+        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int] = {}
         int_param_ranges: Dict[Parameter, Tuple[int, int]] = {}
 
         for param in action.parameters:

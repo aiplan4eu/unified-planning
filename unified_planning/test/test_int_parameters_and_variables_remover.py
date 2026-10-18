@@ -80,7 +80,9 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         for quantifier, combine in [(Forall, And), (Exists, Or)]:
             with self.subTest(quantifier=quantifier.__name__):
                 action = InstantaneousAction("mark", n=IntType(0, 2))
-                i = IntVariable("i", 1, action.parameter("n"))
+                i = Variable(
+                    "i", IntType(), lower_bound=1, upper_bound=action.parameter("n")
+                )
                 action.add_precondition(quantifier(self.marked(i), i))
                 action.add_effect(self.marked(i), True, forall=(i,))
                 result = self.compile_action(action)
@@ -106,8 +108,8 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                 self.assertFalse(result.problem.kind.has_int_variables_in_effects())
 
     def test_nested_ranges_and_variable_scope(self):
-        i = IntVariable("i", 1, 2)
-        j = IntVariable("j", 1, i + 0)
+        i = Variable("i", IntType(1, 2))
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=i + 0)
         self.problem.add_goal(Forall(Forall(And(self.marked(i), self.marked(j)), j), i))
         action = InstantaneousAction("mark", i=IntType(0, 0))
         action.add_precondition(
@@ -121,12 +123,57 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
     def test_nonconstant_range_is_rejected(self):
         limit = Fluent("limit", IntType(0, 2))
         self.problem.add_fluent(limit, default_initial_value=1)
-        i = IntVariable("i", 0, limit())
-        self.problem.add_goal(Forall(self.marked(i), i))
-        with self.assertRaisesRegex(
-            UPProblemDefinitionError, "bounds of integer variable i"
+        for i, message in (
+            (
+                Variable("i", IntType(), lower_bound=0, upper_bound=limit()),
+                "bounds of integer variable i",
+            ),
+            (Variable("i", IntType()), "finite bounds for integer variable i"),
+            (
+                Variable("i", IntType(), lower_bound=0),
+                "finite bounds for integer variable i",
+            ),
+            (
+                Variable("i", IntType(), upper_bound=2),
+                "finite bounds for integer variable i",
+            ),
         ):
-            self.compiler.compile(self.problem)
+            with self.subTest(variable=i):
+                self.problem.clear_goals()
+                self.problem.add_goal(Forall(self.marked(i), i))
+                with self.assertRaisesRegex(UPProblemDefinitionError, message):
+                    self.compiler.compile(self.problem)
+
+    def test_type_and_variable_bounds_are_intersected(self):
+        for i, values in (
+            (Variable("i", IntType(0, 2)), (0, 1, 2)),
+            (Variable("i", IntType(), lower_bound=0, upper_bound=2), (0, 1, 2)),
+            (Variable("i", IntType(1, 2), lower_bound=0, upper_bound=3), (1, 2)),
+            (Variable("i", IntType(0, 2), upper_bound=1), (0, 1)),
+            (Variable("i", IntType(0, 2), lower_bound=1), (1, 2)),
+            (Variable("i", IntType(0, None), upper_bound=2), (0, 1, 2)),
+            (Variable("i", IntType(None, 2), lower_bound=0), (0, 1, 2)),
+            (Variable("i", IntType(0, 2), lower_bound=3), ()),
+        ):
+            for quantifier, combine in ((Forall, And), (Exists, Or)):
+                with self.subTest(variable=i, quantifier=quantifier.__name__):
+                    self.problem.clear_goals()
+                    self.problem.add_goal(quantifier(self.marked(i), i))
+                    action = InstantaneousAction("mark")
+                    action.add_effect(self.marked(i), True, forall=(i,))
+                    compiled = self.compile_action(action).problem
+                    assert isinstance(compiled, Problem)
+                    assert isinstance(compiled.actions[0], InstantaneousAction)
+                    expected = combine(
+                        *(self.marked(value) for value in values)
+                    ).simplify()
+                    self.assertEqual(
+                        compiled.goals, [] if expected.is_true() else [expected]
+                    )
+                    self.assertEqual(
+                        {effect.fluent for effect in compiled.actions[0].effects},
+                        {self.marked(value) for value in values},
+                    )
 
     def test_mixed_quantifiers_in_custom_environment(self):
         env = Environment()
@@ -141,7 +188,10 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         )
         p.add_fluent(marked, default_initial_value=False)
         p.add_object(Object("home", location, env))
-        site, i = Variable("site", location, env), IntVariable("i", 1, 2, env)
+        site, i = (
+            Variable("site", location, env),
+            Variable("i", env.type_manager.IntType(1, 2), env),
+        )
         for quantifier, combine in [(em.Forall, em.And), (em.Exists, em.Or)]:
             with self.subTest(quantifier=quantifier.__name__):
                 p.clear_goals()
@@ -163,7 +213,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         robot = Variable("robot", robot_type)
         available = Fluent("available", robot=robot_type)
         self.problem.add_fluent(available, default_initial_value=True)
-        i = IntVariable("i", 0, 1)
+        i = Variable("i", IntType(0, 1))
         body = And(available(robot), GT(Div(1, i), 0))
         for quantifier in (Forall, Exists):
             goals = [
@@ -186,7 +236,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
             self.compiler.compile(self.problem)
 
     def test_undefined_quantifiers(self):
-        i = IntVariable("i", 0, 1)
+        i = Variable("i", IntType(0, 1))
         for quantifier, defined, negate in product(
             (Forall, Exists), (False, True), (False, True)
         ):
@@ -210,7 +260,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                     )
 
     def test_goals_report_undefined_but_preserve_defined_alternatives(self):
-        i = IntVariable("i", 0, 1)
+        i = Variable("i", IntType(0, 1))
         undefined = Exists(GT(Div(1, i - i), 0), i)
         interval = ClosedTimeInterval(GlobalStartTiming(2), GlobalStartTiming(4))
         for timed, goal in product(
@@ -243,7 +293,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
     def test_undefined_preconditions(self):
         for quantifier in (Forall, Exists):
             action = InstantaneousAction("finish", n=IntType(0, 1))
-            i = IntVariable("i", 0, 1)
+            i = Variable("i", IntType(0, 1))
             action.add_precondition(
                 quantifier(GT(Div(1, i + action.parameter("n")), 0), i)
             )
@@ -337,7 +387,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
     def test_quantified_invalid_effect(self):
         location = UserType("location")
         self.problem.add_object(Object("home", location))
-        site, i = Variable("site", location), IntVariable("i", 0, 1)
+        site, i = Variable("site", location), Variable("i", IntType(0, 1))
         x = Fluent("x", RealType(), site=location, index=IntType(0, 1))
         enabled = Fluent("site_enabled", site=location)
         self.problem.add_fluent(x, default_initial_value=0)
@@ -378,7 +428,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
     def test_durative_quantifiers_and_plan_mapping(self):
         action = DurativeAction("mark", n=IntType(1, 2))
         n = action.parameter("n")
-        i = IntVariable("i", 1, n)
+        i = Variable("i", IntType(), lower_bound=1, upper_bound=n)
         action.set_fixed_duration(ParameterExp(n))
         interval = OpenTimeInterval(StartTiming(), EndTiming())
         action.add_condition(interval, Not(self.enabled))
@@ -423,7 +473,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
     def test_global_effects_and_quantified_constraints(self):
         x = Fluent("x", RealType(), index=IntType(0, 1))
         self.problem.add_fluent(x, default_initial_value=0)
-        i = IntVariable("i", 0, 1)
+        i = Variable("i", IntType(0, 1))
         timing = GlobalStartTiming(1)
         interval = ClosedTimeInterval(timing, timing)
         self.problem.add_timed_effect(
@@ -532,7 +582,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         self.assertEqual(costs, {Int(1): Int(1), Int(2): Real(Fraction(1, 2))})
 
     def test_oversubscription_rewards(self):
-        i = IntVariable("i", 1, 1)
+        i = Variable("i", IntType(1, 1))
         goal = Forall(self.marked(i), i)
         interval = ClosedTimeInterval(GlobalStartTiming(1), GlobalStartTiming(2))
         for temporal in (False, True):
