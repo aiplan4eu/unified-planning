@@ -35,7 +35,6 @@ class OperatorKind(Enum):
     INTERPRETED_FUNCTION_EXP = auto()
     PARAM_EXP = auto()
     VARIABLE_EXP = auto()
-    INT_VARIABLE_EXP = auto()
     OBJECT_EXP = auto()
     TIMING_EXP = auto()
     PRESENT_EXP = auto()

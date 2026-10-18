@@ -17,7 +17,7 @@ This module defines the Variable class.
 A Variable has a name and a type.
 """
 
-from typing import TYPE_CHECKING, List, Optional, FrozenSet, Union
+from typing import List, Optional, FrozenSet
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import UPTypeError
 from unified_planning.model.fnode import FNode
@@ -25,10 +25,6 @@ from unified_planning.model.operators import OperatorKind
 import unified_planning
 import unified_planning.model.walkers as walkers
 import unified_planning.model.operators as op
-
-
-if TYPE_CHECKING:
-    from unified_planning.model.int_variable import IntVariable
 
 
 class Variable:
@@ -233,22 +229,19 @@ class FreeVarsOracle(walkers.DagWalker):
     def _get_children(self, expression: FNode):
         children = list(expression.args)
         if expression.is_variable_exp():
-            variables: List[Union[Variable, "IntVariable"]] = [expression.variable()]
+            variables: List[Variable] = [expression.variable()]
         elif expression.is_exists() or expression.is_forall():
             variables = expression.variables()
         else:
             return children
         # Bounds live on the variable, outside the expression's arguments.
         for variable in variables:
-            if isinstance(variable, Variable):
-                for bound in (variable.lower_bound, variable.upper_bound):
-                    if bound is not None:
-                        children.append(bound)
+            for bound in (variable.lower_bound, variable.upper_bound):
+                if bound is not None:
+                    children.append(bound)
         return children
 
-    def get_free_variables(
-        self, expression: FNode
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
+    def get_free_variables(self, expression: FNode) -> FrozenSet[Variable]:
         """Returns the FrozenSet of Symbols appearing free in the expression."""
         return self.walk(expression)
 
@@ -256,25 +249,19 @@ class FreeVarsOracle(walkers.DagWalker):
     def walk_variable_exp(
         self,
         expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
+        args: List[FrozenSet[Variable]],
         **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
         return frozenset((expression.variable(),)).union(*args)
-
-    @walkers.handles(OperatorKind.INT_VARIABLE_EXP)
-    def walk_int_variable_exp(
-        self, expression: FNode, args: List[FrozenSet["IntVariable"]], **kwargs
-    ) -> FrozenSet["IntVariable"]:
-        return frozenset((expression.int_variable(),))
 
     @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_quantifier(
         self,
         expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
+        args: List[FrozenSet[Variable]],
         **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
         return frozenset(v for variables in args for v in variables).difference(
             expression.variables()
@@ -284,9 +271,9 @@ class FreeVarsOracle(walkers.DagWalker):
     def walk_constant(
         self,
         expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
+        args: List[FrozenSet[Variable]],
         **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
+    ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
         return frozenset()
 
@@ -294,7 +281,6 @@ class FreeVarsOracle(walkers.DagWalker):
         set(OperatorKind)
         - {
             OperatorKind.VARIABLE_EXP,
-            OperatorKind.INT_VARIABLE_EXP,
             OperatorKind.EXISTS,
             OperatorKind.FORALL,
         }
@@ -302,7 +288,7 @@ class FreeVarsOracle(walkers.DagWalker):
     def walk_all(
         self,
         expression: FNode,
-        args: List[FrozenSet[Union[Variable, "IntVariable"]]],
+        args: List[FrozenSet[Variable]],
         **kwargs,
-    ) -> FrozenSet[Union[Variable, "IntVariable"]]:
+    ) -> FrozenSet[Variable]:
         return frozenset(v for s in args for v in s)

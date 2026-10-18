@@ -235,27 +235,21 @@ class Simplifier(walkers.dag.DagWalker):
 
     def _get_quantifier_variables(
         self, args: List[FNode]
-    ) -> Tuple[Union["up.model.Variable", "up.model.IntVariable"], ...]:
+    ) -> Tuple["up.model.Variable", ...]:
         free_vars = self.environment.free_vars_oracle.get_free_variables(args[0])
         for arg in args[1:]:
             if arg.is_variable_exp() and arg.type.is_int_type():
                 # Keep integer domains even if the body no longer uses the
                 # variable, together with dependencies needed by their bounds.
                 free_vars |= self.environment.free_vars_oracle.get_free_variables(arg)
-        variables = (
-            arg.variable() if arg.is_variable_exp() else arg.int_variable()
-            for arg in args[1:]
-        )
+        variables = (arg.variable() for arg in args[1:])
         return tuple(variable for variable in variables if variable in free_vars)
 
     def _has_empty_integer_domain(
-        self, variables: Iterable[Union["up.model.Variable", "up.model.IntVariable"]]
+        self, variables: Iterable["up.model.Variable"]
     ) -> bool:
         for variable in variables:
-            if (
-                not isinstance(variable, up.model.Variable)
-                or not variable.type.is_int_type()
-            ):
+            if not variable.type.is_int_type():
                 continue
             typename = cast(_IntType, variable.type)
             lower, upper = typename.lower_bound, typename.upper_bound
@@ -393,9 +387,7 @@ class Simplifier(walkers.dag.DagWalker):
         if self._has_empty_integer_domain(variables):
             return self.manager.FALSE()
         # Eliminating an integer variable through equality must also preserve  its domain and any bounds that depend on it
-        if any(
-            isinstance(v, up.model.Variable) and v.type.is_int_type() for v in variables
-        ):
+        if any(v.type.is_int_type() for v in variables):
             return self.manager.Exists(args[0], *variables)
         vars = set(variables)
         # Here we check if the arg is in the form:
@@ -699,7 +691,6 @@ class Simplifier(walkers.dag.DagWalker):
     @walkers.handles(op.CONSTANTS)
     @walkers.handles(
         op.OperatorKind.PARAM_EXP,
-        op.OperatorKind.INT_VARIABLE_EXP,
         op.OperatorKind.OBJECT_EXP,
         op.OperatorKind.TIMING_EXP,
         op.OperatorKind.PRESENT_EXP,

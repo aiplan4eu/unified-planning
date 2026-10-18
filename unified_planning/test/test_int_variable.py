@@ -25,7 +25,7 @@ from unified_planning.engines.compilers import IntParametersAndVariablesRemover
 from unified_planning.test import unittest_TestCase
 
 
-class TestIntVariable(unittest_TestCase):
+class TestIntegerVariables(unittest_TestCase):
     def setUp(self):
         super().setUp()
         self.i = Variable("i", IntType(0, 2))

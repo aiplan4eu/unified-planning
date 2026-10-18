@@ -157,20 +157,10 @@ class FNode(object):
 
     def variables(
         self,
-    ) -> List[
-        Union[
-            "unified_planning.model.variable.Variable",
-            "unified_planning.model.int_variable.IntVariable",
-        ]
-    ]:
+    ) -> List["unified_planning.model.variable.Variable"]:
         """Return the `Variables` of the `Exists` or `Forall`."""
         assert self.is_exists() or self.is_forall()
         return list(self._content.payload)
-
-    def int_variable(self) -> "unified_planning.model.int_variable.IntVariable":
-        """Return the variable of the IntVariableExp."""
-        assert self.is_int_variable_exp()
-        return self._content.payload
 
     def object(self) -> "unified_planning.model.object.Object":
         """Return the `Object` stored in this expression."""
@@ -302,10 +292,6 @@ class FNode(object):
     def is_variable_exp(self) -> bool:
         """Test whether the node is a :class:`~unified_planning.model.Variable` Expression."""
         return self.node_type == OperatorKind.VARIABLE_EXP
-
-    def is_int_variable_exp(self) -> bool:
-        """Test whether the node is a :class:`~unified_planning.model.IntVariable` Expression."""
-        return self.node_type == OperatorKind.INT_VARIABLE_EXP
 
     def is_object_exp(self) -> bool:
         """Test whether the node is an :class:`~unified_planning.model.Object` Expression."""
@@ -464,7 +450,6 @@ _REPR_DISPATCH = {
     OperatorKind.DOT: lambda n: f"{n._content.payload}.{n.arg(0)}",
     OperatorKind.PARAM_EXP: lambda n: n._content.payload.name,
     OperatorKind.VARIABLE_EXP: lambda n: n._content.payload.name,
-    OperatorKind.INT_VARIABLE_EXP: lambda n: n._content.payload.name,
     OperatorKind.OBJECT_EXP: lambda n: n._content.payload.name,
     OperatorKind.TIMING_EXP: lambda n: str(n._content.payload),
     OperatorKind.PRESENT_EXP: lambda n: str(n._content.payload),

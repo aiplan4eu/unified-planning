@@ -221,12 +221,6 @@ class ConverterToPDDLString(walkers.DagWalker):
         assert len(args) == 0
         return f"{self.get_mangled_name(expression.variable())}"
 
-    def walk_int_variable_exp(self, expression, args):
-        raise UPTypeError(
-            "PDDL does not support IntVariable. Compile integer variables with "
-            "INT_PARAMETERS_AND_VARIABLES_REMOVING before writing PDDL."
-        )
-
     def walk_and(self, expression, args):
         assert len(args) > 1
         return f"(and {' '.join(args)})"

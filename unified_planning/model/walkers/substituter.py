@@ -210,10 +210,7 @@ class Substituter(IdentityDagWalker):
                 )
             )
         elif expression.is_exists() or expression.is_forall():
-            variables = [
-                arg.variable() if arg.is_variable_exp() else arg.int_variable()
-                for arg in args[1:]
-            ]
+            variables = [arg.variable() for arg in args[1:]]
             if expression.is_exists():
                 return self.manager.Exists(args[0], *variables)
             return self.manager.Forall(args[0], *variables)

@@ -523,9 +523,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable[
-            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
-        ] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -563,9 +561,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable[
-            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
-        ] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given `timed increase effect` to the `Problem`; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.
@@ -607,9 +603,7 @@ class Problem(  # type: ignore[misc]
         fluent: Union["up.model.fnode.FNode", "up.model.fluent.Fluent"],
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
-        forall: Iterable[
-            Union["up.model.variable.Variable", "up.model.int_variable.IntVariable"]
-        ] = tuple(),
+        forall: Iterable["up.model.variable.Variable"] = tuple(),
     ):
         """
         Adds the given timed decrease effect to the problem; a `timed effect` is an :class:`~unified_planning.model.Effect` applied at a fixed time.

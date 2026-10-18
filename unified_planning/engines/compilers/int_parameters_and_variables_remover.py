@@ -38,7 +38,6 @@ from unified_planning.model import (
     MaximizeExpressionOnFinalState,
     Oversubscription,
     TemporalOversubscription,
-    IntVariable,
     Parameter,
     OperatorKind,
     Effect,
@@ -195,20 +194,16 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
 
     # ==================== INT VARIABLE TRANSFORMATION ====================
     def _split_variables(
-        self, variables: Iterable[Union[Variable, IntVariable]]
+        self, variables: Iterable[Variable]
     ) -> Tuple[
         Tuple[Variable, ...],
-        Dict[Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]],
+        Dict[Variable, Tuple[Optional[FNode], Optional[FNode]]],
     ]:
         """Separate regular variables from int variables."""
         regular_vars = []
-        int_vars: Dict[
-            Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]
-        ] = {}
+        int_vars: Dict[Variable, Tuple[Optional[FNode], Optional[FNode]]] = {}
         for var in variables:
-            if isinstance(var, IntVariable):
-                int_vars[var] = (var.initial, var.last)
-            elif var.type.is_int_type():
+            if var.type.is_int_type():
                 int_vars[var] = (var.lower_bound, var.upper_bound)
             else:
                 regular_vars.append(var)
@@ -256,19 +251,15 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         self,
         old_problem: Problem,
         new_problem: Problem,
-        int_vars: Dict[
-            Union[Variable, IntVariable], Tuple[Optional[FNode], Optional[FNode]]
-        ],
-        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_vars: Dict[Variable, Tuple[Optional[FNode], Optional[FNode]]],
+        int_params: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
-    ) -> Iterator[
-        Tuple[Dict[Union[Parameter, Variable, IntVariable], int], Tuple[int, ...]]
-    ]:
+    ) -> Iterator[Tuple[Dict[Union[Parameter, Variable], int], Tuple[int, ...]]]:
         """Evaluate dependent ranges after instantiating their dependencies."""
         oracle = old_problem.environment.free_vars_oracle
         dependencies = {}
         for variable, bounds in int_vars.items():
-            free_vars: Set[Union[Variable, IntVariable]] = set()
+            free_vars: Set[Variable] = set()
             for bound in bounds:
                 if bound is not None:
                     free_vars.update(oracle.get_free_variables(bound))
@@ -327,7 +318,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_params: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> Optional[FNode]:
         """
@@ -433,7 +424,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_params: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> Union[FNode, None]:
         """Generic recursive transformation. Arithmetic that becomes undefined after substitution
@@ -464,7 +455,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         node: FNode,
-        int_params: Optional[Dict[Union[Parameter, Variable, IntVariable], int]] = None,
+        int_params: Optional[Dict[Union[Parameter, Variable], int]] = None,
         instantiation: Optional[Tuple[int, ...]] = None,
     ) -> Union[FNode, None]:
         """
@@ -480,10 +471,8 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         if node.is_constant() or node.is_timing_exp():
             return node
 
-        if node.is_variable_exp() or node.is_int_variable_exp():
-            variable = (
-                node.variable() if node.is_variable_exp() else node.int_variable()
-            )
+        if node.is_variable_exp():
+            variable = node.variable()
             if variable in int_params:
                 var_index = int_params[variable]
                 return old_problem.environment.expression_manager.Int(
@@ -604,7 +593,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         old_problem: Problem,
         new_problem: Problem,
         effect: Effect,
-        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> Iterator[Tuple[Optional[Effect], FNode]]:
         """
@@ -668,7 +657,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         new_problem: Problem,
         old_action: Action,
         new_action: Action,
-        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> bool:
         """
@@ -723,7 +712,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         new_problem: Problem,
         action: Action,
         regular_params: OrderedDict,
-        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int],
+        int_param_map: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> Union[Action, None]:
         """
@@ -834,7 +823,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         """
         # Separate regular and integer parameters
         regular_params = OrderedDict()
-        int_param_map: Dict[Union[Parameter, Variable, IntVariable], int] = {}
+        int_param_map: Dict[Union[Parameter, Variable], int] = {}
         int_param_ranges: Dict[Parameter, Tuple[int, int]] = {}
 
         for param in action.parameters:
