@@ -62,8 +62,10 @@ lpg = ["up-lpg~=0.1.2"]
 fmap = ["up-fmap~=0.0.13"]
 aries = ["up-aries>=0.4.0"]
 symk = ["up-symk>=1.3.0"]
+# Linux wheels only (x86-64, arm64)
+kairos = ["up-kairos>=0.2.1; sys_platform == 'linux'"]
 engines = [
-    "unified-planning[tarski,pyperplan,tamer,tamerlite,enhsp,fast-downward,lpg,fmap,aries,symk]",
+    "unified-planning[tarski,pyperplan,tamer,tamerlite,enhsp,fast-downward,lpg,fmap,aries,symk,kairos]",
 ]
 plot = [
     "plotly>=6.1",
