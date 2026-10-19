@@ -14,6 +14,7 @@
 
 
 from unified_planning.shortcuts import *
+from unified_planning.model import Variable
 from unified_planning.test import unittest_TestCase
 from unified_planning.test.examples import get_example_problems
 from unified_planning.io import ANMLReader, ANMLWriter, PDDLReader
@@ -318,3 +319,40 @@ instance location l1, l2, l3;
 [ start ] safe(l2, l3) := false;
 """
         self.assertEqual(anml_problem, expected_result)
+
+    def test_variable_bounds_narrower_than_type(self):
+        marked_type = IntType(0, 5)
+        problem = Problem("bounded_quantifier")
+        marked = Fluent("marked", BoolType(), i=marked_type)
+        problem.add_fluent(marked, default_initial_value=False)
+        i = Variable("i", marked_type, lower_bound=0, upper_bound=2)
+        problem.add_goal(Forall(marked(i), i))
+        aw = ANMLWriter(problem)
+        anml_problem = aw.get_problem()
+        # The type keeps its full range, the bound is enforced as a guard so
+        # it is not silently lost (and does not widen i back to [0, 5]).
+        self.assertIn(
+            "forall(integer [0, 5] i_0) { (((0 <= i_0) and (i_0 <= 2)) implies marked(i_0)); }",
+            anml_problem,
+        )
+
+    def test_variable_bounds_in_forall_effect(self):
+        marked_type = IntType(0, 10)
+        problem = Problem("bounded_effect")
+        marked = Fluent("marked", BoolType(), i=marked_type)
+        problem.add_fluent(marked, default_initial_value=False)
+        enabled = Fluent("enabled", BoolType())
+        problem.add_fluent(enabled, default_initial_value=True)
+
+        act = InstantaneousAction("act", n=IntType(1, 3))
+        n = act.parameter("n")
+        i = Variable("i", marked_type, lower_bound=1, upper_bound=n)
+        act.add_effect(marked(i), True, condition=enabled, forall=[i])
+        problem.add_action(act)
+
+        aw = ANMLWriter(problem)
+        anml_problem = aw.get_problem()
+        self.assertIn(
+            "forall (integer [0, 10] i_0){\n      when ((1 <= i_0) and (i_0 <= n) and enabled)",
+            anml_problem,
+        )
