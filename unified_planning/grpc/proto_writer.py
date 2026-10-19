@@ -133,6 +133,21 @@ class FNode2Protobuf(walkers.DagWalker):
     def convert(self, expression: model.FNode) -> proto.Expression:
         return self.walk(expression)
 
+    def _get_children(self, expression: model.FNode):
+        if expression.is_variable_exp():
+            variable = expression.variable()
+            return tuple(
+                bound
+                for bound in (variable.lower_bound, variable.upper_bound)
+                if bound is not None
+            )
+        if expression.is_exists() or expression.is_forall():
+            em = expression.environment.expression_manager
+            return expression.args + tuple(
+                em.VariableExp(variable) for variable in expression.variables()
+            )
+        return expression.args
+
     def walk_bool_constant(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
@@ -166,11 +181,15 @@ class FNode2Protobuf(walkers.DagWalker):
     def walk_variable_exp(
         self, expression: model.FNode, args: List[proto.Expression]
     ) -> proto.Expression:
+        variable = expression.variable()
+        bounds = iter(args)
         return proto.Expression(
-            atom=proto.Atom(symbol=expression.variable().name),
+            atom=proto.Atom(symbol=variable.name),
             list=[],
             kind=proto.ExpressionKind.Value("VARIABLE"),
-            type=proto_type(expression.variable().type),
+            type=proto_type(variable.type),
+            lower_bound=next(bounds) if variable.lower_bound is not None else None,
+            upper_bound=next(bounds) if variable.upper_bound is not None else None,
         )
 
     def walk_object_exp(
@@ -293,9 +312,8 @@ class FNode2Protobuf(walkers.DagWalker):
         )
         # forall/exists: add the declared variables from the payload to the beginning of the parameter list.
         if expression.is_exists() or expression.is_forall():
-            sub_list.extend(
-                [self._protobuf_writer.convert(p) for p in expression.variables()]
-            )
+            sub_list.extend(args[1:])
+            args = args[:1]
 
         sub_list.extend(args)
         return proto.Expression(
@@ -784,11 +802,8 @@ class ProtobufWriter(Converter):
         self, variable: model.Variable
     ) -> proto.Expression:
         # a variable declaration (in forall/exists) is converted directly as an expression
-        return proto.Expression(
-            atom=proto.Atom(symbol=variable.name),
-            list=[],
-            kind=proto.ExpressionKind.Value("VARIABLE"),
-            type=proto_type(variable.type),
+        return self.convert(
+            variable.environment.expression_manager.VariableExp(variable)
         )
 
     @handles(unified_planning.plans.ActionInstance)
