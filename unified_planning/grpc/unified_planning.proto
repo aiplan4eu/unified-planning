@@ -36,6 +36,12 @@ message Expression {
     // Kind of the expression, specifying the content of the expression.
     // This is intended to facilitate parsing of the expression.
     ExpressionKind kind = 4;
+
+    // Optional inclusive bounds, only for VARIABLE expressions of integer type.
+    // These further restrict the range specified by the type.
+    // An absent bound imposes no additional restriction.
+    Expression lower_bound = 5;
+    Expression upper_bound = 6;
 }
 
 // The kind of an expression, which gives information related to its structure.
@@ -627,6 +633,7 @@ enum Feature {
     EQUALITIES = 11;
     EXISTENTIAL_CONDITIONS = 12;
     UNIVERSAL_CONDITIONS = 13;
+    INT_VARIABLES_IN_CONDITIONS = 72;
     // EFFECTS_KIND
     CONDITIONAL_EFFECTS = 14;
     INCREASE_EFFECTS = 15;
@@ -638,6 +645,7 @@ enum Feature {
     FLUENTS_IN_NUMERIC_ASSIGNMENTS = 44;
     FLUENTS_IN_OBJECT_ASSIGNMENTS = 58;
     FORALL_EFFECTS = 59;
+    INT_VARIABLES_IN_EFFECTS = 73;
     // TYPING
     FLAT_TYPING = 17;
     HIERARCHICAL_TYPING = 18;

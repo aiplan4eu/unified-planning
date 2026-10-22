@@ -19,6 +19,7 @@ from typing import Callable, List, Union
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
 from unified_planning.engines.results import LogLevel
+from unified_planning.environment import Environment
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
 from unified_planning.test import (
@@ -101,6 +102,68 @@ class TestProtobufIO(unittest_TestCase):
         problem_up = self.pb_reader.convert(problem_pb)
 
         self.assertEqual(problem, problem_up)
+
+    def test_variable_bounds(self):
+        env = Environment()
+        problem = Problem("bounds", environment=env)
+        em, tm = env.expression_manager, env.type_manager
+        for variable in (
+            Variable("i", tm.IntType(0, 3), env),
+            Variable("i", tm.IntType(), env, lower_bound=0),
+            Variable("i", tm.IntType(), env, upper_bound=3),
+            Variable("i", tm.IntType(0, 3), env, lower_bound=1, upper_bound=2),
+        ):
+            with self.subTest(variable=variable):
+                declaration = self.pb_writer.convert(variable)
+                expression = self.pb_writer.convert(em.VariableExp(variable))
+                self.assertEqual(declaration, expression)
+                self.assertEqual(
+                    expression.HasField("lower_bound"),
+                    variable.lower_bound is not None,
+                )
+                self.assertEqual(
+                    expression.HasField("upper_bound"),
+                    variable.upper_bound is not None,
+                )
+                restored = self.pb_reader.convert(
+                    proto.Expression.FromString(expression.SerializeToString()),  # type: ignore[attr-defined]
+                    problem,
+                )
+                self.assertEqual(restored.variable(), variable)
+                self.assertIs(restored.environment, env)
+
+    def test_problem_with_integer_variables(self):
+        for action_type in (InstantaneousAction, DurativeAction):
+            with self.subTest(action_type=action_type.__name__):
+                problem = Problem("integer_variables")
+                marked = Fluent("marked", BoolType(), index=IntType(0, 3))
+                problem.add_fluent(marked, default_initial_value=False)
+                action = action_type("mark", n=IntType(1, 2))
+                i = Variable("i", IntType(), lower_bound=0, upper_bound=action.n + 1)
+                j = Variable("j", IntType(), lower_bound=0, upper_bound=i)
+                condition = Forall(Exists(marked(j), j), i)
+                if isinstance(action, InstantaneousAction):
+                    action.add_precondition(condition)
+                    action.add_effect(marked(j), True, forall=(i, j))
+                else:
+                    action.set_fixed_duration(1)
+                    action.add_condition(StartTiming(), condition)
+                    action.add_effect(EndTiming(), marked(j), True, forall=(i, j))
+                problem.add_action(action)
+                k = Variable("k", IntType(0, 3))
+                problem.add_goal(Forall(marked(k), k))
+
+                encoded = self.pb_writer.convert(problem)
+                self.assertEqual(
+                    {proto.Feature.Name(feature) for feature in encoded.features},  # type: ignore[attr-defined]
+                    problem.kind.features,
+                )
+                self.assertIn(proto.INT_VARIABLES_IN_CONDITIONS, encoded.features)  # type: ignore[attr-defined]
+                self.assertIn(proto.INT_VARIABLES_IN_EFFECTS, encoded.features)  # type: ignore[attr-defined]
+                restored = self.pb_reader.convert(
+                    proto.Problem.FromString(encoded.SerializeToString())  # type: ignore[attr-defined]
+                )
+                self.assertEqual(restored, problem)
 
     def test_type_declaration(self):
         problem = Problem("test")

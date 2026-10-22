@@ -132,7 +132,8 @@ def Iff(left: BoolExpression, right: BoolExpression) -> FNode:
 
 
 def Exists(
-    expression: BoolExpression, *vars: "unified_planning.model.Variable"
+    expression: BoolExpression,
+    *vars: "unified_planning.model.Variable",
 ) -> FNode:
     """
     Creates an expression of the form:
@@ -150,7 +151,8 @@ def Exists(
 
 
 def Forall(
-    expression: BoolExpression, *vars: "unified_planning.model.Variable"
+    expression: BoolExpression,
+    *vars: "unified_planning.model.Variable",
 ) -> FNode:
     """Creates an expression of the form:
         ``Forall (var[0]... var[n]) | expression``

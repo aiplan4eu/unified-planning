@@ -990,6 +990,8 @@ class _KindFactory:
             if t.is_int_type() or t.is_real_type():
                 self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
         if e.is_forall():
+            if any(v.type.is_int_type() for v in e.forall):
+                self.kind.set_effects_kind("INT_VARIABLES_IN_EFFECTS")
             self.kind.set_effects_kind("FORALL_EFFECTS")
             for v in e.forall:
                 self.update_problem_kind_type(v.type)
@@ -1094,6 +1096,12 @@ class _KindFactory:
                     "INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS"
                 )
 
+    def _has_int_vars(self, exp: "up.model.fnode.FNode"):
+        if exp.is_forall() or exp.is_exists():
+            if any(v.type.is_int_type() for v in exp.variables()):
+                return True
+        return any(self._has_int_vars(arg) for arg in exp.args)
+
     def update_problem_kind_expression(
         self,
         exp: "up.model.fnode.FNode",
@@ -1113,6 +1121,8 @@ class _KindFactory:
             self.kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
         if OperatorKind.FORALL in ops:
             self.kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        if self._has_int_vars(exp):
+            self.kind.set_conditions_kind("INT_VARIABLES_IN_CONDITIONS")
         if OperatorKind.INTERPRETED_FUNCTION_EXP in ops:
             self.kind.unset_problem_type("SIMPLE_NUMERIC_PLANNING")
             self.kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
