@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
@@ -1710,6 +1710,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/26/2d/ef58fed122b268c69c0aa099da20bc67657cdfb2e222688d5731bd5b971d/jupyterlab_widgets-3.0.16.tar.gz", hash = "sha256:423da05071d55cf27a9e602216d35a3a65a3e41cdf9c5d3b643b814ce38c19e0", size = 897423, upload-time = "2025-11-01T21:11:29.724Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ab/b5/36c712098e6191d1b4e349304ef73a8d06aed77e56ceaac8c0a306c7bda1/jupyterlab_widgets-3.0.16-py3-none-any.whl", hash = "sha256:45fa36d9c6422cf2559198e4db481aa243c7a32d9926b500781c830c80f7ecf8", size = 914926, upload-time = "2025-11-01T21:11:28.008Z" },
+]
+
+[[package]]
+name = "kairos-planner"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/be/71/a7db8a050c97453ba6a5fdf7e9666b1a6868611f648ce297013c50747ea9/kairos_planner-1.0.4.tar.gz", hash = "sha256:fc0ca0849e33d25690742209af0aa9309fee2094e2431edbd6ae9c0e05e65ace", size = 1487021, upload-time = "2026-10-18T17:30:36.962Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/4c/e1fb9702a48b8c4a2f5dafec5f9a13aa38a6638b4a76266dcceb264c2656/kairos_planner-1.0.4-cp310-cp310-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:0cd99efa3d44af9fe8b036785fde691f0925691ae506ac1630f731eb5ade48b1", size = 3220458, upload-time = "2026-10-18T17:30:25.617Z" },
+    { url = "https://files.pythonhosted.org/packages/a4/7a/7341acc84a12f3466a86a70545cae486e53c759a8d16375dc23dee03e895/kairos_planner-1.0.4-cp310-cp310-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:9e2fcbb9df155c3d548e772a53bcaa4b6afaf054d5314da8febd1b30840650ec", size = 3586674, upload-time = "2026-10-18T17:30:27.774Z" },
+    { url = "https://files.pythonhosted.org/packages/d2/61/fbdfed8430cdf8e1e69dc1f9cb36c6465a99768207493bf50852e5b7efe5/kairos_planner-1.0.4-cp311-cp311-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:cb60ddf985d010f380fc3df6c0424a6579f3302ddc62985cbfd69a701eaa615f", size = 3220864, upload-time = "2026-10-18T17:30:29.82Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/d2/bbbe8e70df48737722efce4025b61f9ba8a52e34c0ee6ce80c55fec2704f/kairos_planner-1.0.4-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:19309772335d72e27ef108d49331adb31133d14044c987c607fa2fc019034ba1", size = 3586981, upload-time = "2026-10-18T17:30:31.647Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/2c/774cfdb3db2d586df11be8fc55e37daeb635cab5d8dd5148ca1396a4c6ce/kairos_planner-1.0.4-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:7925304115113e1c25cf1fdc8e9e075ed1daf203550262af1893c7437dce0358", size = 3215352, upload-time = "2026-10-18T17:30:33.327Z" },
+    { url = "https://files.pythonhosted.org/packages/de/77/f0fc6cc743bb2f814d707baf5d8e8dea798c7e8651d5e5f0931cc039da35/kairos_planner-1.0.4-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c1e77ed38da9fa2d3c78452faef71785e297d99b70474f74e83395080b413848", size = 3582266, upload-time = "2026-10-18T17:30:35.364Z" },
 ]
 
 [[package]]
@@ -4619,6 +4633,7 @@ engines = [
     { name = "up-enhsp" },
     { name = "up-fast-downward" },
     { name = "up-fmap" },
+    { name = "up-kairos", marker = "sys_platform == 'linux'" },
     { name = "up-lpg" },
     { name = "up-pyperplan" },
     { name = "up-symk" },
@@ -4638,6 +4653,9 @@ grpc = [
     { name = "grpcio" },
     { name = "grpcio-tools" },
     { name = "protobuf" },
+]
+kairos = [
+    { name = "up-kairos", marker = "sys_platform == 'linux'" },
 ]
 lpg = [
     { name = "up-lpg" },
@@ -4726,6 +4744,8 @@ requires-dist = [
     { name = "up-fast-downward", marker = "extra == 'fast-downward'", specifier = "~=1.0" },
     { name = "up-fmap", marker = "extra == 'engines'", specifier = "~=0.0.13" },
     { name = "up-fmap", marker = "extra == 'fmap'", specifier = "~=0.0.13" },
+    { name = "up-kairos", marker = "sys_platform == 'linux' and extra == 'engines'", specifier = ">=0.2.1" },
+    { name = "up-kairos", marker = "sys_platform == 'linux' and extra == 'kairos'", specifier = ">=0.2.1" },
     { name = "up-lpg", marker = "extra == 'engines'", specifier = "~=0.1.2" },
     { name = "up-lpg", marker = "extra == 'lpg'", specifier = "~=0.1.2" },
     { name = "up-pyperplan", marker = "extra == 'engines'", specifier = "~=1.1.0" },
@@ -4736,7 +4756,7 @@ requires-dist = [
     { name = "up-tamer", marker = "extra == 'tamer'", specifier = "~=1.1.6" },
     { name = "z3-solver", specifier = ">=4.13.0" },
 ]
-provides-extras = ["aries", "engines", "enhsp", "fast-downward", "fmap", "grpc", "lpg", "plot", "pyperplan", "symk", "tamer", "tamerlite", "tarski"]
+provides-extras = ["aries", "engines", "enhsp", "fast-downward", "fmap", "grpc", "kairos", "lpg", "plot", "pyperplan", "symk", "tamer", "tamerlite", "tarski"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -4804,6 +4824,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d8/99/77cb7f4bef57ff0b259b6093041b231ffba5f47e6bbea8a88afc33580e57/up_fmap-0.0.13.tar.gz", hash = "sha256:96753dfb1c15d54b29db17f3d2e37f241567b6b3ed1faf4b35ea5d037a83a205", size = 12055, upload-time = "2023-11-23T13:42:29.55Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/24/5d/5cc48afeeb248ea8ed8fc0f9d6408279028213a624f09fdfef73df18085f/up_fmap-0.0.13-py3-none-any.whl", hash = "sha256:042124ad38ff6ec029d9a0f95cd516b264a113fb4be3423cd6101b65917fac04", size = 482764, upload-time = "2023-11-23T13:42:27.564Z" },
+]
+
+[[package]]
+name = "up-kairos"
+version = "0.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "kairos-planner" },
+    { name = "unified-planning" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/d1/d65989cb418515baf9083f6a540ccf9d68fbda5395196ba59624b526d326/up_kairos-0.2.1.tar.gz", hash = "sha256:f76038b2efb6bbb53944e0340094f7b615b740072e389eca0d3eeeaa06f7fe12", size = 21005, upload-time = "2026-10-18T17:35:42.479Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ab/a0/ddd30ba1a059e76a8c40344fd36cb24303cf89a6852de26bd0e7a10a8281/up_kairos-0.2.1-py3-none-any.whl", hash = "sha256:3494489f9a8661b6be9d76596e8d4be9fc8f525551601a10a207dbc2c6aaedfd", size = 17591, upload-time = "2026-10-18T17:35:41.286Z" },
 ]
 
 [[package]]
