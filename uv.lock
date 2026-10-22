@@ -4599,10 +4599,10 @@ name = "unified-planning"
 source = { editable = "." }
 dependencies = [
     { name = "configspace" },
+    { name = "lark" },
     { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pddl" },
-    { name = "pyparsing" },
     { name = "pysmt" },
     { name = "z3-solver" },
 ]
@@ -4705,6 +4705,7 @@ requires-dist = [
     { name = "grpcio", marker = "extra == 'grpc'", specifier = ">=1.76.0" },
     { name = "grpcio-tools", marker = "extra == 'grpc'", specifier = ">=1.76.0" },
     { name = "kaleido", marker = "extra == 'plot'", specifier = ">=1.0" },
+    { name = "lark", specifier = ">=1.1.5" },
     { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6" },
     { name = "networkx", specifier = ">=3.0" },
     { name = "pandas", marker = "extra == 'plot'", specifier = ">=1.5" },
@@ -4712,7 +4713,6 @@ requires-dist = [
     { name = "plotly", marker = "extra == 'plot'", specifier = ">=6.1" },
     { name = "protobuf", marker = "extra == 'grpc'", specifier = ">=6.31.1,<7" },
     { name = "pygraphviz", marker = "extra == 'plot'", specifier = ">=1.11" },
-    { name = "pyparsing", specifier = ">=3.0.0" },
     { name = "pysmt", specifier = ">=0.9.6" },
     { name = "tamerlite", extras = ["rust"], marker = "extra == 'engines'", specifier = "~=0.1.0" },
     { name = "tamerlite", extras = ["rust"], marker = "extra == 'tamerlite'", specifier = "~=0.1.0" },
