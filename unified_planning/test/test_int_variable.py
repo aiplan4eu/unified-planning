@@ -1,0 +1,453 @@
+# Copyright 2026 Unified Planning library and its maintainers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from unified_planning.shortcuts import *
+from unified_planning.exceptions import (
+    UPUnboundedVariablesError,
+    UPProblemDefinitionError,
+    UPTypeError,
+)
+from unified_planning.io import PDDLWriter
+from unified_planning.environment import Environment
+from unified_planning.plans import ActionInstance
+from unified_planning.engines.compilers import IntParametersAndVariablesRemover
+from unified_planning.test import unittest_TestCase
+
+
+class TestIntegerVariables(unittest_TestCase):
+    def setUp(self):
+        super().setUp()
+        self.i = Variable("i", IntType(0, 2))
+        self.marked = Fluent("marked", index=IntType(0, 2))
+        self.oracle = self.i.environment.free_vars_oracle
+
+    def test_variable_optional_bounds(self):
+        env = Environment()
+        em, tm = env.expression_manager, env.type_manager
+        n = Parameter("n", tm.IntType(0, 5), env)
+        i = Variable("i", tm.IntType(0, 10), env, lower_bound=1, upper_bound=n)
+        self.assertEqual(i.lower_bound, em.Int(1))
+        self.assertEqual(i.upper_bound, em.ParameterExp(n))
+        self.assertEqual(i.type, tm.IntType(0, 10))
+        self.assertIs(i.environment, env)
+        self.assertIsNone(Variable("j", tm.IntType(), env).lower_bound)
+        self.assertIsNone(Variable("j", tm.IntType(), env).upper_bound)
+        self.assertEqual(
+            Variable("j", tm.IntType(), env, upper_bound=i + 1).upper_bound,
+            em.Plus(i, 1),
+        )
+
+    def test_variable_bounds_identity(self):
+        first = Variable("i", IntType(), lower_bound=0, upper_bound=2)
+        same = Variable("i", IntType(), lower_bound=Int(0), upper_bound=Int(2))
+        other = Variable("i", IntType(), lower_bound=0, upper_bound=3)
+        self.assertEqual(first, same)
+        self.assertEqual(hash(first), hash(same))
+        self.assertNotEqual(first, other)
+        self.assertEqual(len({first, same, other}), 2)
+        self.assertIs(Forall(Bool(True), first), Forall(Bool(True), same))
+        self.assertIsNot(Forall(Bool(True), first), Forall(Bool(True), other))
+
+    def test_invalid_variable_bounds(self):
+        for typename in (BoolType(), RealType(), UserType("location")):
+            with self.subTest(typename=typename):
+                with self.assertRaisesRegex(UPTypeError, "only supported for integer"):
+                    Variable("i", typename, lower_bound=0)
+        for bound in (True, Real(Fraction(1, 2))):
+            for side in ("lower_bound", "upper_bound"):
+                with self.subTest(bound=bound, side=side):
+                    with self.assertRaisesRegex(UPTypeError, "integer expressions"):
+                        Variable(
+                            "i",
+                            IntType(),
+                            lower_bound=bound if side == "lower_bound" else None,
+                            upper_bound=bound if side == "upper_bound" else None,
+                        )
+        env = Environment()
+        with self.assertRaises(AssertionError):
+            Variable("i", IntType(), upper_bound=env.expression_manager.Int(2))
+
+    def test_variable_bound_dependencies(self):
+        i = Variable("i", IntType(0, 2))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i)
+        k = Variable("k", IntType(), lower_bound=j, upper_bound=2)
+        self.assertEqual(self.oracle.get_free_variables(self.marked(k)), {i, j, k})
+        for quantifier in (Forall, Exists):
+            for body in (self.marked(j), Bool(True)):
+                with self.subTest(quantifier=quantifier.__name__, body=body):
+                    inner = quantifier(body, j)
+                    self.assertEqual(self.oracle.get_free_variables(inner), {i})
+                    self.assertEqual(
+                        self.oracle.get_free_variables(quantifier(inner, i)), set()
+                    )
+                    for variables in ((i, j), (j, i)):
+                        self.assertEqual(
+                            self.oracle.get_free_variables(
+                                quantifier(body, *variables)
+                            ),
+                            set(),
+                        )
+                    with self.assertRaises(UPUnboundedVariablesError):
+                        InstantaneousAction("mark").add_precondition(inner)
+
+    def test_effect_variable_bound_dependencies(self):
+        i = Variable("i", IntType(0, 2))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i)
+        for target, value, condition in (
+            (self.marked(j), True, True),
+            (self.marked(0), self.marked(j), True),
+            (self.marked(0), True, self.marked(j)),
+            (self.marked(0), True, True),
+        ):
+            with self.subTest(target=target, value=value, condition=condition):
+                with self.assertRaises(UPUnboundedVariablesError):
+                    InstantaneousAction("mark").add_effect(
+                        target, value, condition, forall=(j,)
+                    )
+                for variables in ((i, j), (j, i)):
+                    action = InstantaneousAction("mark")
+                    action.add_effect(
+                        target, value, condition, forall=iter((*variables, j))
+                    )
+                    self.assertEqual(action.effects[0].forall, variables)
+        empty = Variable("empty", IntType(), lower_bound=1, upper_bound=0)
+        action = InstantaneousAction("mark")
+        action.add_effect(self.marked(0), True, forall=(empty,))
+        self.assertEqual(action.effects[0].forall, (empty,))
+
+    def test_free_variables_and_scope(self):
+        location = UserType("location")
+        site = Variable("site", location)
+        at = Fluent("at", site=location, index=IntType(0, 2))
+        body = at(site, self.i)
+        self.assertEqual(self.oracle.get_free_variables(body), {site, self.i})
+        for quantifier in (Forall, Exists):
+            with self.subTest(quantifier=quantifier.__name__):
+                quantified = quantifier(body, self.i)
+                self.assertEqual(self.oracle.get_free_variables(quantified), {site})
+                self.assertEqual(
+                    self.oracle.get_free_variables(quantifier(quantified, site)), set()
+                )
+                self.assertEqual(
+                    self.oracle.get_free_variables(And(quantified, body)),
+                    {site, self.i},
+                )
+
+    def test_pddl_requires_integer_variable_compilation(self):
+        for context in ("forall", "exists", "effect"):
+            with self.subTest(context=context):
+                p = Problem("integer_quantifier")
+                done = Fluent("done")
+                p.add_fluent(done, default_initial_value=False)
+                action = InstantaneousAction("finish")
+                if context == "effect":
+                    action.add_effect(done, True, self.i >= 0, forall=(self.i,))
+                else:
+                    quantifier = Forall if context == "forall" else Exists
+                    action.add_precondition(quantifier(self.i >= 0, self.i))
+                    action.add_effect(done, True)
+                p.add_action(action)
+                p.add_goal(done)
+                self.assertEqual(
+                    p.kind.has_int_variables_in_conditions(), context != "effect"
+                )
+                self.assertEqual(
+                    p.kind.has_int_variables_in_effects(), context == "effect"
+                )
+                with self.assertRaisesRegex(UPTypeError, "Compile integer variables"):
+                    PDDLWriter(p).get_domain()
+                compiled = IntParametersAndVariablesRemover().compile(p).problem
+                assert isinstance(compiled, Problem)
+                self.assertFalse(compiled.kind.has_int_variables_in_conditions())
+                self.assertFalse(compiled.kind.has_int_variables_in_effects())
+                self.assertIn("(:action finish", PDDLWriter(compiled).get_domain())
+                self.assertIn("(:goal", PDDLWriter(compiled).get_problem())
+
+    def test_problem_kind_distinguishes_integer_quantifiers(self):
+        for variable in (
+            self.i,
+            Variable("i", IntType(0, 2)),
+            Variable("i", IntType()),
+            Variable("i", RealType()),
+        ):
+            for context in ("forall", "exists", "effect", "effect_condition", "both"):
+                with self.subTest(variable=variable, context=context):
+                    p = Problem("quantifier_kind")
+                    done = Fluent("done")
+                    p.add_fluent(done, default_initial_value=False)
+                    action = InstantaneousAction("finish")
+                    body = GE(variable, 1)
+                    if context in ("effect", "both"):
+                        action.add_effect(done, True, body, forall=(variable,))
+                    elif context == "effect_condition":
+                        action.add_effect(done, True, Exists(body, variable))
+                    else:
+                        action.add_effect(done, True)
+                    if context in ("forall", "exists", "both"):
+                        quantifier = Exists if context == "exists" else Forall
+                        p.add_goal(quantifier(body, variable))
+                    p.add_action(action)
+                    is_integer = variable.type.is_int_type()
+                    self.assertEqual(
+                        p.kind.has_int_variables_in_conditions(),
+                        is_integer and context != "effect",
+                    )
+                    self.assertEqual(
+                        p.kind.has_int_variables_in_effects(),
+                        is_integer and context in ("effect", "both"),
+                    )
+
+    def test_substitution_respects_integer_quantifiers(self):
+        action = InstantaneousAction("mark", n=IntType(0, 2))
+        n = action.parameter("n")
+        i = Variable("i", IntType(), lower_bound=0, upper_bound=n)
+        grounded = Variable("i", IntType(), lower_bound=0, upper_bound=2)
+        for quantifier in (Forall, Exists):
+            with self.subTest(quantifier=quantifier.__name__):
+                bound = quantifier(self.marked(i), i)
+                expression = And(self.marked(i), bound)
+                self.assertEqual(
+                    expression.substitute({i: 1}), And(self.marked(1), bound)
+                )
+                self.assertEqual(
+                    bound.substitute({n: 2, i: 1}),
+                    quantifier(self.marked(grounded), grounded),
+                )
+                self.assertEqual(
+                    quantifier(Bool(True), i).substitute({n: 2}),
+                    quantifier(Bool(True), grounded),
+                )
+                self.assertEqual(i.upper_bound, ParameterExp(n))
+
+    def test_substitution_in_dependent_bounds(self):
+        env = Environment()
+        em, tm = env.expression_manager, env.type_manager
+        n = Parameter("n", tm.IntType(0, 2), env)
+        i = Variable("i", tm.IntType(), env, upper_bound=n)
+        j = Variable("j", tm.IntType(), env, lower_bound=i)
+        grounded_i = Variable("i", tm.IntType(), env, upper_bound=2)
+        grounded_j = Variable("j", tm.IntType(), env, lower_bound=grounded_i)
+        body, grounded_body = em.LE(j, i), em.LE(grounded_j, grounded_i)
+        for quantifier in (em.Exists, em.Forall):
+            with self.subTest(quantifier=quantifier.__name__):
+                self.assertEqual(
+                    quantifier(quantifier(body, j), i).substitute({n: 2}),
+                    quantifier(quantifier(grounded_body, grounded_j), grounded_i),
+                )
+                self.assertEqual(
+                    quantifier(body, j, i).substitute({n: 2}),
+                    quantifier(grounded_body, grounded_j, grounded_i),
+                )
+        self.assertEqual(body.substitute({n: 2}), grounded_body)
+        # Replacements are simultaneous; their values are not substituted again
+        self.assertEqual(em.VariableExp(i).substitute({i: j, n: 2}), em.VariableExp(j))
+        self.assertTrue(
+            em.Forall(body, i, j).substitute({em.Forall(body, i, j): True}).is_true()
+        )
+
+    def test_empty_integer_domains_are_preserved(self):
+        for i in (
+            Variable("i", IntType(), lower_bound=Plus(1, 1), upper_bound=1),
+            Variable("i", IntType(1, 2), upper_bound=0),
+            Variable("i", IntType(1, 2), lower_bound=3),
+            Variable("i", IntType(1, 0)),
+        ):
+            for body in (Bool(True), Bool(False), self.marked(0)):
+                with self.subTest(variable=i, body=body):
+                    self.assertTrue(Forall(body, i).simplify().is_true())
+                    self.assertTrue(Exists(body, i).simplify().is_false())
+        n = Parameter("n", IntType(0, 2))
+        i = Variable("i", IntType(), lower_bound=1, upper_bound=n)
+        for quantifier in (Forall, Exists):
+            expression = quantifier(self.marked(0), i)
+            self.assertEqual(expression.simplify(), expression)
+            self.assertEqual(
+                expression.simplify().substitute({n: 0}).simplify(),
+                Bool(quantifier is Forall),
+            )
+
+    def test_simplification_of_dependent_bounds(self):
+        i = Variable("i", IntType(), lower_bound=0, upper_bound=Plus(1, 1))
+        j = Variable("j", IntType(), lower_bound=0, upper_bound=i + 0)
+        simple_i = Variable("i", IntType(), lower_bound=0, upper_bound=2)
+        simple_j = Variable("j", IntType(), lower_bound=0, upper_bound=simple_i)
+        for body, simple_body in (
+            (self.marked(j), self.marked(simple_j)),
+            (Bool(True), Bool(True)),
+        ):
+            with self.subTest(body=body):
+                expected = Forall(Exists(simple_body, simple_j), simple_i)
+                actual = Forall(Exists(body, j), i).simplify()
+                self.assertEqual(actual, expected)
+                self.assertEqual(self.oracle.get_free_variables(actual), set())
+                self.assertEqual(actual.simplify(), actual)
+        # Equality alone does not establish that its value belongs to the domain
+        expression = Exists(And(self.marked(0), Equals(simple_i, 3)), simple_i)
+        self.assertEqual(expression.simplify(), expression)
+
+    def test_effect_variables_and_unbound_uses(self):
+        action = InstantaneousAction("mark")
+        with self.assertRaises(UPUnboundedVariablesError):
+            action.add_precondition(self.marked(self.i))
+        with self.assertRaises(UPUnboundedVariablesError):
+            action.add_effect(self.marked(self.i), True)
+        action.add_effect(self.marked(self.i), True, forall=(self.i, self.i))
+        self.assertEqual(action.effects[0].forall, (self.i,))
+
+        # An empty domain must be retained even when the body does not use it.
+        empty = Variable("empty", IntType(1, 0))
+        action = InstantaneousAction("mark")
+        action.add_effect(self.marked(0), True, forall=(empty, empty))
+        self.assertEqual(action.effects[0].forall, (empty,))
+        p = Problem("empty_effect")
+        p.add_fluent(self.marked, default_initial_value=False)
+        p.add_action(action)
+        compiled = IntParametersAndVariablesRemover().compile(p).problem
+        assert isinstance(compiled, Problem)
+        assert isinstance(compiled.actions[0], InstantaneousAction)
+        self.assertEqual(compiled.actions[0].effects, [])
+
+    def test_dependent_variables_in_same_quantifier(self):
+        pair = Fluent("pair", x=IntType(0, 2), y=IntType(0, 2))
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=self.i + 0)
+        expected = [pair(1, 1), pair(2, 1), pair(2, 2)]
+        compiler = IntParametersAndVariablesRemover()
+        for quantifier, combine in ((Forall, And), (Exists, Or)):
+            for variables in ((self.i, j), (j, self.i)):
+                with self.subTest(quantifier=quantifier.__name__, variables=variables):
+                    p = Problem("dependent_quantifier")
+                    p.add_fluent(pair, default_initial_value=False)
+                    p.add_goal(quantifier(pair(self.i, j), *variables).simplify())
+                    compiled = compiler.compile(p).problem
+                    assert isinstance(compiled, Problem)
+                    self.assertEqual(compiled.goals, [combine(expected)])
+                    p.clear_goals()
+                    p.add_goal(quantifier(quantifier(pair(self.i, j), j), self.i))
+                    nested = compiler.compile(p).problem
+                    assert isinstance(nested, Problem)
+                    self.assertEqual(nested.goals, compiled.goals)
+
+        k = Variable("k", IntType(), lower_bound=1, upper_bound=j + 0)
+        triple = Fluent("triple", x=IntType(0, 2), y=IntType(0, 2), z=IntType(0, 2))
+        p = Problem("three_dependent_variables")
+        p.add_fluent(triple, default_initial_value=False)
+        p.add_goal(Exists(triple(self.i, j, k), k, j, self.i))
+        compiled = compiler.compile(p).problem
+        assert isinstance(compiled, Problem)
+        self.assertEqual(
+            compiled.goals,
+            [Or(triple(1, 1, 1), triple(2, 1, 1), triple(2, 2, 1), triple(2, 2, 2))],
+        )
+
+    def test_dependent_forall_effects_with_action_parameter(self):
+        pair = Fluent("pair", x=IntType(0, 2), y=IntType(0, 2))
+        for action_type in (InstantaneousAction, DurativeAction):
+            with self.subTest(action_type=action_type.__name__):
+                p = Problem("dependent_effect")
+                p.add_fluent(pair, default_initial_value=False)
+                action = action_type("mark", n=IntType(0, 2))
+                n = action.parameter("n")
+                i = Variable("i", IntType(), lower_bound=1, upper_bound=n)
+                j = Variable("j", IntType(), lower_bound=i + 0, upper_bound=n)
+                if isinstance(action, DurativeAction):
+                    action.set_fixed_duration(1)
+                    action.add_effect(StartTiming(), pair(i, j), True, forall=(j, i))
+                else:
+                    action.add_effect(pair(i, j), True, forall=(j, i))
+                p.add_action(action)
+                result = IntParametersAndVariablesRemover().compile(p)
+                assert isinstance(result.problem, Problem)
+                assert result.map_back_action_instance is not None
+                self.assertEqual(len(result.problem.actions), 3)
+                for compiled in result.problem.actions:
+                    assert isinstance(compiled, (InstantaneousAction, DurativeAction))
+                    original = result.map_back_action_instance(ActionInstance(compiled))
+                    assert original is not None
+                    n_value = original.actual_parameters[0].int_constant_value()
+                    effects = (
+                        compiled.effects.get(StartTiming(), [])
+                        if isinstance(compiled, DurativeAction)
+                        else compiled.effects
+                    )
+                    self.assertEqual(
+                        {e.fluent for e in effects},
+                        {
+                            pair(x, y)
+                            for x in range(1, n_value + 1)
+                            for y in range(x, n_value + 1)
+                        },
+                    )
+                    self.assertTrue(all(not e.forall for e in effects))
+
+    def test_empty_dependent_quantifier(self):
+        i = Variable("i", IntType(0, 0))
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=i + 0)
+        pair = Fluent("pair", x=IntType(0, 2), y=IntType(0, 2))
+        for quantifier in (Forall, Exists):
+            with self.subTest(quantifier=quantifier.__name__):
+                p = Problem("empty_dependent_range")
+                p.add_goal(quantifier(pair(i, j), j, i).simplify())
+                p.add_fluent(pair, default_initial_value=False)
+                compiled = IntParametersAndVariablesRemover().compile(p).problem
+                assert isinstance(compiled, Problem)
+                self.assertEqual(
+                    compiled.goals, [] if quantifier is Forall else [Bool(False)]
+                )
+
+    def test_unbound_and_circular_range_dependencies(self):
+        compiler = IntParametersAndVariablesRemover()
+        j = Variable("j", IntType(), lower_bound=1, upper_bound=self.i + 0)
+        p = Problem("unbound_range")
+        p.add_fluent(self.marked, default_initial_value=False)
+        for quantifier in (Forall, Exists):
+            p.clear_goals()
+            p.add_goal(quantifier(self.marked(j), j))
+            with self.assertRaisesRegex(
+                UPProblemDefinitionError, "not been instantiated: i"
+            ):
+                compiler.compile(p)
+            goals = (
+                quantifier(self.marked(j), j, self.i),
+                quantifier(quantifier(self.marked(j), j), self.i),
+            )
+            for goal in goals:
+                for simplify in (False, True):
+                    with self.subTest(goal=goal, simplify=simplify):
+                        p.clear_goals()
+                        p.add_goal(goal.simplify() if simplify else goal)
+                        compiled = compiler.compile(p).problem
+                        assert isinstance(compiled, Problem)
+                        combine = And if quantifier is Forall else Or
+                        self.assertEqual(
+                            compiled.goals, [combine(self.marked(1), self.marked(2))]
+                        )
+        p.clear_goals()
+        action = InstantaneousAction("mark")
+        action.add_effect(self.marked(j), True, forall=(j, self.i))
+        self.assertEqual(action.effects[0].forall, (j, self.i))
+        p.add_action(action)
+        compiled = compiler.compile(p).problem
+        assert isinstance(compiled, Problem)
+        assert isinstance(compiled.actions[0], InstantaneousAction)
+        self.assertEqual(
+            {effect.fluent for effect in compiled.actions[0].effects},
+            {self.marked(1), self.marked(2)},
+        )
+
+        # Exercise cycle detection without mutating the variables identities
+        _, ranges = compiler._split_variables((self.i, j))
+        ranges[self.i] = (Int(0), j + 0)
+        ranges[j] = (Int(0), self.i + 0)
+        with self.assertRaisesRegex(UPProblemDefinitionError, "Circular dependencies"):
+            list(compiler._get_int_var_instantiations(p, p, ranges, {}, ()))

@@ -200,7 +200,10 @@ class ExpressionManager(object):
                 bool,
                 int,
                 Fraction,
-                Tuple["up.model.variable.Variable", ...],
+                Tuple[
+                    "up.model.variable.Variable",
+                    ...,
+                ],
             ]
         ] = None,
     ) -> "up.model.fnode.FNode":
@@ -357,7 +360,9 @@ class ExpressionManager(object):
         return self.create_node(node_type=OperatorKind.IFF, args=(left, right))
 
     def Exists(
-        self, expression: BoolExpression, *vars: "up.model.variable.Variable"
+        self,
+        expression: BoolExpression,
+        *vars: "unified_planning.model.Variable",
     ) -> "up.model.fnode.FNode":
         """
         Creates an expression of the form:
@@ -384,7 +389,9 @@ class ExpressionManager(object):
         )
 
     def Forall(
-        self, expression: BoolExpression, *vars: "up.model.variable.Variable"
+        self,
+        expression: BoolExpression,
+        *vars: "unified_planning.model.Variable",
     ) -> "up.model.fnode.FNode":
         """Creates an expression of the form:
             ``Forall (var[0]... var[n]) | expression``

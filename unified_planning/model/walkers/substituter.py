@@ -21,6 +21,7 @@ from unified_planning.model.walkers.identitydag import IdentityDagWalker
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 from unified_planning.model.expression import Expression
+from unified_planning.model.variable import Variable
 from unified_planning.exceptions import UPTypeError
 from typing import List, Dict
 
@@ -37,14 +38,31 @@ class Substituter(IdentityDagWalker):
     def _get_key(self, expression, **kwargs):
         return expression
 
+    def _get_children(self, expression: FNode):
+        if expression.is_variable_exp():
+            variable = expression.variable()
+            return tuple(
+                bound
+                for bound in (variable.lower_bound, variable.upper_bound)
+                if bound is not None
+            )
+        return expression.args
+
     def _push_with_children_to_stack(self, expression: FNode, **kwargs):
         """Add children to the stack."""
+
+        # Substitution is top-down: do not transform bounds or children of a node that is replaced as a whole.
+        substitutions: Dict[FNode, FNode] = kwargs["subs"]
+        if expression in substitutions:
+            self.memoization[self._get_key(expression, **kwargs)] = substitutions[
+                expression
+            ]
+            return
 
         # Deal with quantifiers
         if expression.is_exists() or expression.is_forall():
             # 1. We create a new substitution in which we remove the
             #    bound variables from the substitution map
-            substitutions: Dict[FNode, FNode] = kwargs["subs"]
             new_subs: Dict[Expression, Expression] = {}
             for k, v in substitutions.items():
                 # If at least one bound variable is in the cone of k,
@@ -60,11 +78,16 @@ class Substituter(IdentityDagWalker):
             #    the new 'reduced' map
             sub = self.__class__(self.environment)
             res_expression = sub.substitute(expression.arg(0), new_subs)
+            # Apply the same map to the variable bounds in the declarations.
+            res_variables = [
+                sub.substitute(self.manager.auto_promote(variable)[0], new_subs)
+                for variable in expression.variables()
+            ]
 
             # 3. We invoke the relevant function (walk_exists or
             #    walk_forall) to compute the substitution
             fun = self.functions[expression.node_type]
-            res = fun(expression, args=[res_expression], **kwargs)
+            res = fun(expression, args=[res_expression, *res_variables], **kwargs)
 
             # 4. We memoize the result
             key = self._get_key(expression, **kwargs)
@@ -170,5 +193,26 @@ class Substituter(IdentityDagWalker):
         res = subs.get(expression, None)
         if res is not None:
             return res
+        elif expression.is_variable_exp():
+            variable = expression.variable()
+            bounds = iter(args)
+            lower = next(bounds) if variable.lower_bound is not None else None
+            upper = next(bounds) if variable.upper_bound is not None else None
+            if lower == variable.lower_bound and upper == variable.upper_bound:
+                return expression
+            return self.manager.VariableExp(
+                Variable(
+                    variable.name,
+                    variable.type,
+                    variable.environment,
+                    lower_bound=lower,
+                    upper_bound=upper,
+                )
+            )
+        elif expression.is_exists() or expression.is_forall():
+            variables = [arg.variable() for arg in args[1:]]
+            if expression.is_exists():
+                return self.manager.Exists(args[0], *variables)
+            return self.manager.Forall(args[0], *variables)
         else:
             return IdentityDagWalker.super(self, expression, args, **kwargs)

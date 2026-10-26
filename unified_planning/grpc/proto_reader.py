@@ -159,6 +159,12 @@ class ProtobufReader(Converter):
                     msg.atom.symbol,
                     convert_type_str(msg.type, problem),
                     problem.environment,
+                    lower_bound=self.convert(msg.lower_bound, problem)
+                    if msg.HasField("lower_bound")
+                    else None,
+                    upper_bound=self.convert(msg.upper_bound, problem)
+                    if msg.HasField("upper_bound")
+                    else None,
                 ),
             )
         elif msg.kind == proto.ExpressionKind.Value("STATE_VARIABLE"):
