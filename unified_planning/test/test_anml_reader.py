@@ -948,3 +948,10 @@ class TestANMLReader(unittest_TestCase):
 
             default_problem = ANMLReader().parse_problem(problem_filename)
             self.assertEqual(str(problem), str(default_problem))
+
+    def test_packrat_scoped_to_anml_parsing(self):
+        # Global packrat makes the PDDL grammar about 2.5x slower.
+        from pyparsing import ParserElement
+
+        ANMLReader().parse_problem(os.path.join(ANML_FILES_PATH, "basic.anml"))
+        self.assertFalse(ParserElement._packratEnabled)
