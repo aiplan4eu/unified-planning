@@ -879,5 +879,183 @@ class TestPerAtomStaticFluentFolding(unittest_TestCase):
         self.assertEqual(s.simplify(e), e)
 
 
+class TestStaticPreconditionNarrowsEffectTargets(unittest_TestCase):
+    """`_EffectTargetIndex` narrows an effect target's parameter from its type to the objects
+    that the transition's static preconditions allow: a grounding whose static precondition is
+    false initially can never fire, so it never writes its target.
+    """
+
+    def setUp(self):
+        unittest_TestCase.setUp(self)
+        self.bottle = UserType("Bottle")
+        self.colour = UserType("Colour")
+        self.below = Fluent(
+            "below", BoolType(), b=self.bottle, c=self.colour, c1=self.colour
+        )
+        self.empty = Fluent("empty", BoolType(), c=self.colour)
+        self.b0 = Object("b0", self.bottle)
+        self.red = Object("red", self.colour)
+        self.blue = Object("blue", self.colour)
+        self.emp = Object("emp", self.colour)
+
+    def _problem(self, *actions, empty_default=False, empty_true=("emp",)) -> "Problem":
+        problem = Problem("narrowing")
+        problem.add_fluent(self.below, default_initial_value=False)
+        problem.add_fluent(self.empty, default_initial_value=empty_default)
+        problem.add_objects([self.b0, self.red, self.blue, self.emp])
+        for o in (self.red, self.blue, self.emp):
+            if o.name in empty_true:
+                problem.set_initial_value(self.empty(o), True)
+            elif empty_default:
+                problem.set_initial_value(self.empty(o), False)
+        problem.add_actions(actions)
+        return problem
+
+    def _pour(self, precondition=None) -> InstantaneousAction:
+        # pour(?b, ?c, ?e): only ever writes below(?b, ?c, ?e) for an `empty` ?e.
+        pour = InstantaneousAction("pour", b=self.bottle, c=self.colour, e=self.colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        pour.add_precondition(
+            self.empty(e) if precondition is None else precondition(e)
+        )
+        pour.add_effect(self.below(b, c, e), True)
+        return pour
+
+    def _simplifier(self, problem) -> Simplifier:
+        return Simplifier(problem.environment, problem, fold_static_fluent_exps=True)
+
+    def test_static_precondition_narrows_effect_parameter(self):
+        s = self._simplifier(self._problem(self._pour()))
+        # below(b0, red, blue) is never written (blue is not empty): folded to its initial value.
+        self.assertEqual(
+            s.simplify(self.below(self.b0, self.red, self.blue)), Bool(False)
+        )
+        # below(b0, red, emp) is written by pour(b0, red, emp): stays symbolic.
+        atom = self.below(self.b0, self.red, self.emp)
+        self.assertEqual(s.simplify(atom), atom)
+
+    def test_unrestricted_writer_keeps_atoms_symbolic(self):
+        # A second action writes below(?b, ?c, ?c1) with no static precondition on ?c1, so
+        # every atom may be written again.
+        anywhere = InstantaneousAction(
+            "anywhere", b=self.bottle, c=self.colour, c1=self.colour
+        )
+        b, c, c1 = (anywhere.parameter(n) for n in ("b", "c", "c1"))
+        anywhere.add_effect(self.below(b, c, c1), True)
+        s = self._simplifier(self._problem(self._pour(), anywhere))
+        atom = self.below(self.b0, self.red, self.blue)
+        self.assertEqual(s.simplify(atom), atom)
+
+    def test_default_true_static_precondition_does_not_narrow(self):
+        # empty defaults to True (false only where set explicitly): not used for narrowing, so
+        # the parameter keeps its type and every below atom may be written.
+        problem = self._problem(self._pour(), empty_default=True)
+        atom = self.below(self.b0, self.red, self.blue)
+        self.assertEqual(self._simplifier(problem).simplify(atom), atom)
+
+    def test_negated_or_disjunctive_static_precondition_does_not_narrow(self):
+        for precondition in (
+            lambda e: Not(self.empty(e)),
+            lambda e: Or(self.empty(e), Equals(e, self.red)),
+        ):
+            problem = self._problem(self._pour(precondition))
+            atom = self.below(self.b0, self.red, self.blue)
+            self.assertEqual(self._simplifier(problem).simplify(atom), atom)
+
+    def test_durative_action_at_end_static_condition_narrows(self):
+        pour = DurativeAction("pour", b=self.bottle, c=self.colour, e=self.colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        pour.set_fixed_duration(1)
+        pour.add_condition(EndTiming(), self.empty(e))
+        pour.add_effect(StartTiming(), self.below(b, c, e), True)
+        s = self._simplifier(self._problem(pour))
+        self.assertEqual(
+            s.simplify(self.below(self.b0, self.red, self.blue)), Bool(False)
+        )
+        atom = self.below(self.b0, self.red, self.emp)
+        self.assertEqual(s.simplify(atom), atom)
+
+    def _durative_pour(self, interval, set_duration) -> DurativeAction:
+        pour = DurativeAction("pour", b=self.bottle, c=self.colour, e=self.colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        set_duration(pour)
+        pour.add_condition(interval, self.empty(e))
+        pour.add_effect(StartTiming(), self.below(b, c, e), True)
+        return pour
+
+    def test_durative_condition_on_possibly_empty_interval_does_not_narrow(self):
+        # With duration 0, (start, end) is empty: pour(b0, red, blue) can fire although
+        # empty(blue) is false, so below(b0, red, blue) may be written.
+        pour = self._durative_pour(
+            OpenTimeInterval(StartTiming(), EndTiming()),
+            lambda a: a.set_closed_duration_interval(0, 1),
+        )
+        atom = self.below(self.b0, self.red, self.blue)
+        self.assertEqual(self._simplifier(self._problem(pour)).simplify(atom), atom)
+
+    def test_durative_condition_on_never_empty_interval_narrows(self):
+        for interval, set_duration in (
+            # Positive minimum duration: (start, end) is never empty.
+            (
+                OpenTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_fixed_duration(5),
+            ),
+            # The duration is strictly above 0.
+            (
+                OpenTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_left_open_duration_interval(0, 1),
+            ),
+            # A closed [start, end] always contains start.
+            (
+                ClosedTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_closed_duration_interval(0, 1),
+            ),
+        ):
+            pour = self._durative_pour(interval, set_duration)
+            s = self._simplifier(self._problem(pour))
+            self.assertEqual(
+                s.simplify(self.below(self.b0, self.red, self.blue)), Bool(False)
+            )
+
+    def test_empty_restriction_writes_nothing(self):
+        # No colour is empty: pour can never fire, so even below(b0, red, emp) is never written.
+        problem = self._problem(self._pour(), empty_true=())
+        s = self._simplifier(problem)
+        self.assertEqual(
+            s.simplify(self.below(self.b0, self.red, self.emp)), Bool(False)
+        )
+
+    def test_constant_and_repeated_arguments_in_static_precondition(self):
+        item = UserType("Item")
+        a, b, c = (Object(n, item) for n in ("a", "b", "c"))
+        conn = Fluent("conn", BoolType(), x=item, y=item)
+        mark = Fluent("mark", BoolType(), x=item)
+        seen = Fluent("seen", BoolType(), x=item)
+
+        # to_c(?x) requires conn(?x, c): only conn's rows with c in the second position count.
+        to_c = InstantaneousAction("to_c", x=item)
+        to_c.add_precondition(conn(to_c.parameter("x"), c))
+        to_c.add_effect(mark(to_c.parameter("x")), True)
+        # loop(?x) requires conn(?x, ?x): only rows repeating the same object count.
+        loop = InstantaneousAction("loop", x=item)
+        loop.add_precondition(conn(loop.parameter("x"), loop.parameter("x")))
+        loop.add_effect(seen(loop.parameter("x")), True)
+
+        problem = Problem("constants_and_repeats")
+        for f in (conn, mark, seen):
+            problem.add_fluent(f, default_initial_value=False)
+        problem.add_objects([a, b, c])
+        problem.set_initial_value(conn(a, c), True)
+        problem.set_initial_value(conn(b, a), True)
+        problem.set_initial_value(conn(c, c), True)
+        problem.add_actions([to_c, loop])
+
+        s = self._simplifier(problem)
+        for written in (mark(a), mark(c), seen(c)):
+            self.assertEqual(s.simplify(written), written)
+        for unwritten in (mark(b), seen(a), seen(b)):
+            self.assertEqual(s.simplify(unwritten), Bool(False))
+
+
 if __name__ == "__main__":
     main()

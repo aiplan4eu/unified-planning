@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+from fractions import Fraction
 from typing import cast
 import warnings
 import unified_planning
@@ -33,7 +34,7 @@ from unified_planning.test import (
     skipIfEngineNotAvailable,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.engines import CompilationKind
+from unified_planning.engines import CompilationKind, ValidationResultStatus
 from unified_planning.engines.compilers import Grounder
 from unified_planning.engines.compilers.grounder import GrounderHelper
 from unified_planning.model.contingent import SensingAction
@@ -1076,6 +1077,125 @@ class TestGrounder(unittest_TestCase):
         self.assertFalse(grounded_problem.has_action("check_waypoint"))
         for a in grounded_problem.actions:
             self.assertTrue(a.name.startswith("move"))
+
+    def test_static_precondition_narrowing_prunes_dead_groundings(self):
+        # below(?b, ?c, ?c1) is written only by pour(?b, ?c, ?e), whose static precondition
+        # empty(?e) holds only for emp. So below(b0, c, c1) with c1 != emp keeps its initial
+        # value, and stack(b0, c, c1) survives grounding only when that atom can hold:
+        # initially true (below(b0, red, blue)), or writable (c1 == emp).
+        bottle, colour = UserType("Bottle"), UserType("Colour")
+        below = Fluent("below", BoolType(), b=bottle, c=colour, c1=colour)
+        empty = Fluent("empty", BoolType(), c=colour)
+        stacked = Fluent("stacked", BoolType(), b=bottle)
+        b0 = Object("b0", bottle)
+        red, blue, emp = (Object(n, colour) for n in ("red", "blue", "emp"))
+
+        pour = InstantaneousAction("pour", b=bottle, c=colour, e=colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        pour.add_precondition(empty(e))
+        pour.add_effect(below(b, c, e), True)
+
+        stack = InstantaneousAction("stack", b=bottle, c=colour, c1=colour)
+        b, c, c1 = stack.parameter("b"), stack.parameter("c"), stack.parameter("c1")
+        stack.add_precondition(below(b, c, c1))
+        stack.add_effect(stacked(b), True)
+
+        problem = Problem("static_precondition_narrowing")
+        for f in (below, empty, stacked):
+            problem.add_fluent(f, default_initial_value=False)
+        problem.add_objects([b0, red, blue, emp])
+        problem.set_initial_value(empty(emp), True)
+        problem.set_initial_value(below(b0, red, blue), True)
+        problem.add_actions([pour, stack])
+        problem.add_goal(stacked(b0))
+
+        result = Grounder().compile(problem, CompilationKind.GROUNDING)
+        grounded = result.problem
+        assert isinstance(grounded, Problem)
+        assert result.map_back_action_instance is not None
+        groundings = set()
+        for a in grounded.actions:
+            lifted = result.map_back_action_instance(
+                unified_planning.plans.ActionInstance(a)
+            )
+            assert lifted is not None
+            groundings.add(
+                (lifted.action.name, tuple(str(p) for p in lifted.actual_parameters))
+            )
+        self.assertEqual(
+            {g for g in groundings if g[0] == "stack"},
+            {
+                ("stack", ("b0", "red", "blue")),
+                ("stack", ("b0", "red", "emp")),
+                ("stack", ("b0", "blue", "emp")),
+                ("stack", ("b0", "emp", "emp")),
+            },
+        )
+        self.assertEqual(
+            {g for g in groundings if g[0] == "pour"},
+            {("pour", ("b0", col, "emp")) for col in ("red", "blue", "emp")},
+        )
+
+    def test_static_condition_on_possibly_empty_interval_does_not_prune(self):
+        # pour's static condition empty(?e) is on (start, end), which is empty when the
+        # duration is 0: pour(b0, red, blue) is applicable although empty(blue) is false, so
+        # neither it nor use (which needs below(b0, red, blue)) may be pruned.
+        bottle, colour = UserType("Bottle"), UserType("Colour")
+        below = Fluent("below", BoolType(), b=bottle, c=colour, c1=colour)
+        empty = Fluent("empty", BoolType(), c=colour)
+        done = Fluent("done", BoolType())
+        b0 = Object("b0", bottle)
+        red, blue, emp = (Object(n, colour) for n in ("red", "blue", "emp"))
+
+        pour = DurativeAction("pour", b=bottle, c=colour, e=colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        pour.set_closed_duration_interval(0, 1)
+        pour.add_condition(OpenTimeInterval(StartTiming(), EndTiming()), empty(e))
+        pour.add_effect(StartTiming(), below(b, c, e), True)
+
+        use = DurativeAction("use")
+        use.set_fixed_duration(1)
+        use.add_condition(StartTiming(), below(b0, red, blue))
+        use.add_effect(EndTiming(), done, True)
+
+        problem = Problem("possibly_empty_interval")
+        for f in (below, empty, done):
+            problem.add_fluent(f, default_initial_value=False)
+        problem.add_objects([b0, red, blue, emp])
+        problem.set_initial_value(empty(emp), True)
+        problem.add_actions([pour, use])
+        problem.add_goal(done)
+
+        plan = unified_planning.plans.TimeTriggeredPlan(
+            [
+                (
+                    Fraction(0),
+                    unified_planning.plans.ActionInstance(pour, (b0, red, blue)),
+                    Fraction(0),
+                ),
+                (Fraction(1), unified_planning.plans.ActionInstance(use), Fraction(1)),
+            ]
+        )
+        with PlanValidator(problem_kind=problem.kind, plan_kind=plan.kind) as v:
+            self.assertEqual(
+                v.validate(problem, plan).status, ValidationResultStatus.VALID
+            )
+
+        result = Grounder().compile(problem, CompilationKind.GROUNDING)
+        grounded = result.problem
+        assert isinstance(grounded, Problem)
+        assert result.map_back_action_instance is not None
+        groundings = set()
+        for a in grounded.actions:
+            lifted = result.map_back_action_instance(
+                unified_planning.plans.ActionInstance(a)
+            )
+            assert lifted is not None
+            groundings.add(
+                (lifted.action.name, tuple(str(p) for p in lifted.actual_parameters))
+            )
+        self.assertIn(("pour", ("b0", "red", "blue")), groundings)
+        self.assertIn(("use", ()), groundings)
 
     def test_fold_static_fluent_exps_false_matches_pre_folding_behavior(self):
         # Same problem as above, but with fold_static_fluent_exps=False: pos(waypoint) must
