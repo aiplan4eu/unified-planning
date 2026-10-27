@@ -16,7 +16,17 @@
 
 from fractions import Fraction
 from collections import OrderedDict
-from typing import Dict, Iterable, List, Optional, FrozenSet, Tuple, Union, cast
+from typing import (
+    AbstractSet,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    FrozenSet,
+    Tuple,
+    Union,
+    cast,
+)
 import unified_planning as up
 import unified_planning.environment
 from unified_planning.exceptions import UPUnreachableCodeError
@@ -28,9 +38,11 @@ import unified_planning.model.operators as op
 
 # One argument-position pattern of a recorded effect target, as classified by
 # `_EffectTargetIndex._arg_spec`: `("const", fnode)` matches only that one constant argument,
-# `("type", type)` matches any argument whose type is compatible with `type` (an action parameter
-# or a forall-bound variable's type), and `("wild", None)` matches anything (a nested expression
-# or object-fluent call the index can't otherwise classify).
+# `("objs", frozenset)` matches only the objects in that set (an action parameter restricted by
+# a static precondition, see `_EffectTargetIndex._parameter_restrictions`), `("type", type)`
+# matches any argument whose type is compatible with `type` (any other action parameter, or a
+# forall-bound variable's type), and `("wild", None)` matches anything (a nested expression or
+# object-fluent call the index can't otherwise classify).
 _ArgSpec = Tuple[str, object]
 
 
@@ -47,6 +59,14 @@ class _EffectTargetIndex:
     target (one spec per argument position, see `_ArgSpec`) and checking a candidate ground atom
     against every recorded pattern of the same fluent.
 
+    A parameter argument is narrowed from its type to the objects its transition's static
+    preconditions allow (see `_parameter_restrictions`): in
+    `pour(?b, ?c, ?e) pre: (empty-colour ?e) eff: (colour-below ?b ?c ?e)`, with `empty-colour`
+    static and true only for `empty`, the effect can only ever write `colour-below(_, _, empty)`,
+    so `colour-below(b, c, c1)` for any other `c1` keeps its initial value. This is sound because
+    a static atom never changes: a grounding of the transition whose static precondition is
+    false initially is false forever, so that grounding never fires and never writes anything.
+
     Argument positions are checked independently of each other, so a correlation between two
     parameters of the same effect (e.g. an effect that only ever fires when two of an action's
     parameters happen to be equal) is invisible to this index -- which only ever makes `may_write`
@@ -57,40 +77,145 @@ class _EffectTargetIndex:
     time must not be modified afterwards, or this index's answers (and its cache) become stale.
     """
 
-    def __init__(self, problem: "up.model.problem.Problem"):
+    def __init__(
+        self,
+        problem: "up.model.problem.Problem",
+        static_fluents: AbstractSet["up.model.fluent.Fluent"],
+    ):
+        """
+        :param problem: The problem whose effect targets are indexed.
+        :param static_fluents: `problem.get_static_fluents()`, passed in by the caller that
+            already computed it.
+        """
+        self._problem = problem
+        self._static_fluents = static_fluents
+        # Built on first use by `_true_arg_tuples`.
+        self._true_args_by_fluent: Optional[
+            Dict["up.model.fluent.Fluent", List[Tuple[FNode, ...]]]
+        ] = None
         self._patterns: Dict["up.model.fluent.Fluent", List[Tuple[_ArgSpec, ...]]] = {}
         self._may_write_cache: Dict[FNode, bool] = {}
         for a in problem.actions:
             self._scan_action(a)
         for ev in problem.events:
-            self._scan_effects(ev.effects)
-            self._scan_simulated_effects(ev.simulated_effect)
+            restrictions = self._parameter_restrictions(ev.preconditions)
+            self._scan_effects(ev.effects, restrictions)
+            self._scan_simulated_effects(ev.simulated_effect, restrictions)
         for pro in problem.processes:
-            self._scan_effects(pro.effects)
+            restrictions = self._parameter_restrictions(pro.preconditions)
+            self._scan_effects(pro.effects, restrictions)
         for effs in problem.timed_effects.values():
-            self._scan_effects(effs)
+            self._scan_effects(effs, {})
 
     def _scan_action(self, a: "up.model.action.Action"):
         if isinstance(a, up.model.action.InstantaneousAction):
-            self._scan_effects(a.effects)
-            self._scan_simulated_effects(a.simulated_effect)
+            restrictions = self._parameter_restrictions(a.preconditions)
+            self._scan_effects(a.effects, restrictions)
+            self._scan_simulated_effects(a.simulated_effect, restrictions)
         elif isinstance(a, up.model.action.DurativeAction):
+            # A static atom has the same value at every timing, so a condition on it restricts
+            # the action's parameters wherever in the action it is checked.
+            restrictions = self._parameter_restrictions(
+                [c for conds in a.conditions.values() for c in conds]
+            )
             for effs in a.effects.values():
-                self._scan_effects(effs)
+                self._scan_effects(effs, restrictions)
             for effs in a.continuous_effects.values():
-                self._scan_effects(effs)
+                self._scan_effects(effs, restrictions)
             for se in a.simulated_effects.values():
-                self._scan_simulated_effects(se)
+                self._scan_simulated_effects(se, restrictions)
         else:
             raise NotImplementedError(
                 f"_EffectTargetIndex does not know how to scan the effects of {type(a)}"
             )
 
-    def _scan_effects(self, effects: Iterable["up.model.effect.Effect"]):
-        for e in effects:
-            self._record_target(e.fluent)
+    def _true_arg_tuples(
+        self, fluent: "up.model.fluent.Fluent"
+    ) -> List[Tuple[FNode, ...]]:
+        """The argument tuples for which `fluent`, a static boolean fluent whose default is not
+        `True`, is true initially: exactly its explicitly-true groundings, since every other
+        grounding is false or has no value (the same semantics as the grounder's
+        `GrounderHelper._fluent_true_arg_tuples`). One pass over the explicit initial values,
+        on first use, groups them for every fluent."""
+        if self._true_args_by_fluent is None:
+            self._true_args_by_fluent = {}
+            for key, value in self._problem.explicit_initial_values.items():
+                if value.is_true() and key.fluent() in self._static_fluents:
+                    self._true_args_by_fluent.setdefault(key.fluent(), []).append(
+                        tuple(key.args)
+                    )
+        return self._true_args_by_fluent.get(fluent, [])
 
-    def _scan_simulated_effects(self, se: Optional["up.model.effect.SimulatedEffect"]):
+    def _parameter_restrictions(
+        self, conditions: Iterable[FNode]
+    ) -> Dict["up.model.parameter.Parameter", FrozenSet[FNode]]:
+        """For each transition parameter that some usable static condition mentions, the
+        objects it can take in a grounding whose static conditions all hold initially.
+
+        A usable condition is a top-level conjunct of `conditions` (nested `And`s flattened)
+        that is a positive fluent expression of a schema-static boolean fluent whose default is
+        not `True`. Each parameter at one of its argument positions gets the projection of that
+        fluent's true tuples onto the position, keeping only tuples that agree with the
+        expression's constant arguments and that repeat the same object wherever the parameter
+        repeats. Several usable conditions on one parameter are intersected. Conditions under a
+        `Not`/`Or`/quantifier, or on a default-`True` fluent, restrict nothing (the parameter
+        keeps its type, as without this narrowing).
+        """
+        restrictions: Dict["up.model.parameter.Parameter", FrozenSet[FNode]] = {}
+        stack = list(conditions)
+        while stack:
+            c = stack.pop()
+            if c.is_and():
+                stack.extend(c.args)
+                continue
+            if not c.is_fluent_exp():
+                continue
+            fluent = c.fluent()
+            if fluent not in self._static_fluents or not fluent.type.is_bool_type():
+                continue
+            default = self._problem.fluents_defaults.get(fluent, None)
+            if default is not None and default.is_true():
+                continue
+            positions: Dict["up.model.parameter.Parameter", List[int]] = {}
+            constants: List[Tuple[int, FNode]] = []
+            for i, arg in enumerate(c.args):
+                if arg.is_parameter_exp():
+                    positions.setdefault(arg.parameter(), []).append(i)
+                elif arg.is_constant():
+                    constants.append((i, arg))
+            if not positions:
+                continue
+            rows = [
+                row
+                for row in self._true_arg_tuples(fluent)
+                if all(row[i] == k for i, k in constants)
+            ]
+            for param, idxs in positions.items():
+                allowed = frozenset(
+                    row[idxs[0]]
+                    for row in rows
+                    if all(row[j] == row[idxs[0]] for j in idxs[1:])
+                    and param.type.is_compatible(row[idxs[0]].type)
+                )
+                previous = restrictions.get(param, None)
+                restrictions[param] = (
+                    allowed if previous is None else previous & allowed
+                )
+        return restrictions
+
+    def _scan_effects(
+        self,
+        effects: Iterable["up.model.effect.Effect"],
+        restrictions: Dict["up.model.parameter.Parameter", FrozenSet[FNode]],
+    ):
+        for e in effects:
+            self._record_target(e.fluent, restrictions)
+
+    def _scan_simulated_effects(
+        self,
+        se: Optional["up.model.effect.SimulatedEffect"],
+        restrictions: Dict["up.model.parameter.Parameter", FrozenSet[FNode]],
+    ):
         if se is None:
             return
         # SimulatedEffect.fluents entries are, by construction, plain fluent expressions whose
@@ -99,22 +224,32 @@ class _EffectTargetIndex:
         # forall-quantified), so they fit the same per-position classification as a regular
         # effect target and need no separate handling.
         for f in se.fluents:
-            self._record_target(f)
+            self._record_target(f, restrictions)
 
-    def _record_target(self, target: FNode):
+    def _record_target(
+        self,
+        target: FNode,
+        restrictions: Dict["up.model.parameter.Parameter", FrozenSet[FNode]],
+    ):
         if target.is_dot():
             # Multi-agent effect target: unwrap the `Dot` to the underlying fluent expression --
             # see UntimedEffectMixin.add_effect, which accepts `fluent_exp.is_dot()`.
             target = target.arg(0)
         fluent = target.fluent()
-        pattern = tuple(self._arg_spec(arg) for arg in target.args)
+        pattern = tuple(self._arg_spec(arg, restrictions) for arg in target.args)
         self._patterns.setdefault(fluent, []).append(pattern)
 
     @staticmethod
-    def _arg_spec(arg: FNode) -> _ArgSpec:
+    def _arg_spec(
+        arg: FNode,
+        restrictions: Dict["up.model.parameter.Parameter", FrozenSet[FNode]],
+    ) -> _ArgSpec:
         if arg.is_constant():
             return ("const", arg)
         if arg.is_parameter_exp():
+            allowed = restrictions.get(arg.parameter(), None)
+            if allowed is not None:
+                return ("objs", allowed)
             return ("type", arg.parameter().type)
         if arg.is_variable_exp():
             return ("type", arg.variable().type)
@@ -146,6 +281,8 @@ class _EffectTargetIndex:
             return True
         if kind == "const":
             return arg == payload
+        if kind == "objs":
+            return arg in cast(FrozenSet[FNode], payload)
         assert kind == "type"
         return cast("up.model.types.Type", payload).is_compatible(arg.type)
 
@@ -198,7 +335,7 @@ class Simplifier(walkers.dag.DagWalker):
             and isinstance(problem, up.model.problem.Problem)
             and not isinstance(problem, up.model.contingent.ContingentProblem)
         ):
-            self._effect_target_index = _EffectTargetIndex(problem)
+            self._effect_target_index = _EffectTargetIndex(problem, self.static_fluents)
 
     def _number_to_fnode(self, value: Union[int, float, Fraction]) -> FNode:
         if isinstance(value, int):
