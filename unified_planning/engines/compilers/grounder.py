@@ -156,7 +156,9 @@ class GrounderHelper:
         # When the grounded instance of the Action is None, it means that the resulting grounding
         # of that action is a meaningless Action.
         # An Action is meaningless when:
-        # - his conditions create a contradiction
+        # - his conditions create a contradiction (for a DurativeAction, on an interval that is
+        #   never empty: a contradiction on an interval that might be empty is kept as a False
+        #   condition, see `check_and_simplify_conditions`)
         # - the action has conflicting effects
         # - for a DurativeAction, its duration interval simplifies to an empty interval
         # Note: an action with no effects is NOT rejected; it is grounded as-is.
@@ -248,7 +250,9 @@ class GrounderHelper:
             the ``grounded_action`` can be ``None`` if the grounding of the ``original_action`` with the given parameters
             creates an invalid or meaningless `Action` (invalid if it has conflicting `Effects`,
             meaningless if its conditions create a contradiction, or, for a `DurativeAction`,
-            if its duration interval simplifies to an empty interval).
+            if its duration interval simplifies to an empty interval). For a `DurativeAction`,
+            a contradiction on an interval that might be empty does not make the grounding
+            meaningless: it is kept as a `False` condition on that interval.
         """
         for old_action in self._problem.actions:
             for grounded_params in self.get_possible_parameters(old_action):
@@ -550,13 +554,17 @@ class GrounderHelper:
         fallback pruning's existing blind spots (`split_all_ands` only flattens top-level
         `And`; a static fluent that doesn't have to hold for the *whole* action to be
         applicable can't be used to filter parameters the way a top-level conjunct can).
+        For the same reason, a `DurativeAction` condition on an interval that might be empty
+        (e.g. `(start + 2, end)` with a duration in `[1, 5]`) is excluded too: it might never
+        be checked.
         """
         if isinstance(action, up.model.action.InstantaneousAction):
             conds = list(action.preconditions)
         elif isinstance(action, up.model.action.DurativeAction):
             conds = []
-            for _, cl in action.conditions.items():
-                conds.extend(cl)
+            for interval, cl in action.conditions.items():
+                if up.model.timing.is_never_empty(interval, action.duration):
+                    conds.extend(cl)
         else:
             return None
         problem_static_fluents = self._get_static_fluents()
@@ -723,6 +731,9 @@ class Grounder(engines.engine.Engine, CompilerMixin):
 
     When an `Action` grounding creates an `Action` with conflicting :func:`Effects <unified_planning.model.InstantaneousAction.effects>`, or an `Action` with impossible
     :func:`conditions <unified_planning.model.InstantaneousAction.preconditions>`, the `Action` is discarded and not added to the final `Problem`.
+    For a :class:`~unified_planning.model.DurativeAction`, a condition on an interval that might be empty (see
+    :func:`~unified_planning.model.timing.is_never_empty`) does not have to hold, so a contradiction on such an interval does not discard
+    the `Action`: it is kept as a `False` condition on that interval, satisfied only by the durations that make the interval empty.
     An `Action` grounding with no `Effects` at all is *not* discarded; it is added to the final `Problem` as-is.
 
     At construction time, the Grounder class can optionally take a map from `Action` to `List[Tuple[FNode, ...]]`. If this map is not None,
