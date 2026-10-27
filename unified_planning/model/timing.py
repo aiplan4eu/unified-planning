@@ -535,3 +535,44 @@ def RightOpenTimeInterval(lower: Timing, upper: Timing) -> TimeInterval:
     :return: The created `TimeInterval`.
     """
     return TimeInterval(lower, upper, False, True)
+
+
+def is_never_empty(interval: TimeInterval, duration: DurationInterval) -> bool:
+    """
+    Returns `True` if the given `interval` of a durative action contains at least one instant
+    for every duration the action's `duration` constraint allows, `False` if it might be empty
+    (or this can't be determined).
+
+    A condition on an interval that might be empty might never be checked: e.g. `(start, end)`
+    is empty when the duration is `0`, so a condition on it does not have to hold for the
+    action to be applicable.
+
+    Each bound is placed on the action's timeline (`delay` for a timing from the start,
+    `duration + delay` for one from the end); the interval is never empty if `upper - lower`
+    is non-negative (closed interval) or positive (otherwise) at the smallest allowed duration.
+    A non-constant duration lower bound is taken as `0`; global timings, and an `upper` bound
+    from the start with a `lower` bound from the end, are never considered never empty.
+
+    :param interval: The `TimeInterval` of a durative action's condition.
+    :param duration: The `duration` constraint of that durative action.
+    :return: `True` if `interval` is never empty, `False` otherwise.
+    """
+    lower, upper = interval.lower, interval.upper
+    if lower.is_global() or upper.is_global():
+        return False
+    coefficient = int(upper.is_from_end()) - int(lower.is_from_end())
+    gap = upper.delay - lower.delay
+    strict = interval.is_left_open() or interval.is_right_open()
+    if coefficient == 0:
+        return gap > 0 or (gap == 0 and not strict)
+    if coefficient < 0:
+        return False
+    min_duration: Union[int, Fraction] = 0
+    min_duration_excluded = False
+    if duration.lower.is_int_constant() or duration.lower.is_real_constant():
+        value = duration.lower.constant_value()
+        if value >= 0:
+            min_duration = value
+            min_duration_excluded = duration.is_left_open()
+    gap += min_duration
+    return gap > 0 or (gap == 0 and (not strict or min_duration_excluded))

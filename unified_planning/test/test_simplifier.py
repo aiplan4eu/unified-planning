@@ -975,6 +975,48 @@ class TestStaticPreconditionNarrowsEffectTargets(unittest_TestCase):
         atom = self.below(self.b0, self.red, self.emp)
         self.assertEqual(s.simplify(atom), atom)
 
+    def _durative_pour(self, interval, set_duration) -> DurativeAction:
+        pour = DurativeAction("pour", b=self.bottle, c=self.colour, e=self.colour)
+        b, c, e = pour.parameter("b"), pour.parameter("c"), pour.parameter("e")
+        set_duration(pour)
+        pour.add_condition(interval, self.empty(e))
+        pour.add_effect(StartTiming(), self.below(b, c, e), True)
+        return pour
+
+    def test_durative_condition_on_possibly_empty_interval_does_not_narrow(self):
+        # With duration 0, (start, end) is empty: pour(b0, red, blue) can fire although
+        # empty(blue) is false, so below(b0, red, blue) may be written.
+        pour = self._durative_pour(
+            OpenTimeInterval(StartTiming(), EndTiming()),
+            lambda a: a.set_closed_duration_interval(0, 1),
+        )
+        atom = self.below(self.b0, self.red, self.blue)
+        self.assertEqual(self._simplifier(self._problem(pour)).simplify(atom), atom)
+
+    def test_durative_condition_on_never_empty_interval_narrows(self):
+        for interval, set_duration in (
+            # Positive minimum duration: (start, end) is never empty.
+            (
+                OpenTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_fixed_duration(5),
+            ),
+            # The duration is strictly above 0.
+            (
+                OpenTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_left_open_duration_interval(0, 1),
+            ),
+            # A closed [start, end] always contains start.
+            (
+                ClosedTimeInterval(StartTiming(), EndTiming()),
+                lambda a: a.set_closed_duration_interval(0, 1),
+            ),
+        ):
+            pour = self._durative_pour(interval, set_duration)
+            s = self._simplifier(self._problem(pour))
+            self.assertEqual(
+                s.simplify(self.below(self.b0, self.red, self.blue)), Bool(False)
+            )
+
     def test_empty_restriction_writes_nothing(self):
         # No colour is empty: pour can never fire, so even below(b0, red, emp) is never written.
         problem = self._problem(self._pour(), empty_true=())

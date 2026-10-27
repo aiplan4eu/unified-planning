@@ -114,9 +114,16 @@ class _EffectTargetIndex:
             self._scan_simulated_effects(a.simulated_effect, restrictions)
         elif isinstance(a, up.model.action.DurativeAction):
             # A static atom has the same value at every timing, so a condition on it restricts
-            # the action's parameters wherever in the action it is checked.
+            # the action's parameters wherever in the action it is checked -- provided it is
+            # checked at all: a condition on an interval that might be empty (e.g. `(start,
+            # end)` with duration 0) need not hold for the action to fire.
             restrictions = self._parameter_restrictions(
-                [c for conds in a.conditions.values() for c in conds]
+                [
+                    c
+                    for interval, conds in a.conditions.items()
+                    if up.model.timing.is_never_empty(interval, a.duration)
+                    for c in conds
+                ]
             )
             for effs in a.effects.values():
                 self._scan_effects(effs, restrictions)
