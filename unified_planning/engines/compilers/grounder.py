@@ -550,13 +550,16 @@ class GrounderHelper:
         fallback pruning's existing blind spots (`split_all_ands` only flattens top-level
         `And`; a static fluent that doesn't have to hold for the *whole* action to be
         applicable can't be used to filter parameters the way a top-level conjunct can).
+        For the same reason, a `DurativeAction` condition on an interval that might be empty
+        (e.g. `(start, end)` with duration 0) is excluded too: it might never be checked.
         """
         if isinstance(action, up.model.action.InstantaneousAction):
             conds = list(action.preconditions)
         elif isinstance(action, up.model.action.DurativeAction):
             conds = []
-            for _, cl in action.conditions.items():
-                conds.extend(cl)
+            for interval, cl in action.conditions.items():
+                if up.model.timing.is_never_empty(interval, action.duration):
+                    conds.extend(cl)
         else:
             return None
         problem_static_fluents = self._get_static_fluents()
