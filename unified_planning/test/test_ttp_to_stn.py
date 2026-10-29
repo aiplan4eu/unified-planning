@@ -6,7 +6,7 @@ from unified_planning.model.problem_kind import (
     classical_kind,
     int_duration_kind,
 )
-from unified_planning.plans import TimeTriggeredPlan
+from unified_planning.plans import STNPlan, TimeTriggeredPlan
 from unified_planning.test.examples import get_example_problems
 from unified_planning.test import unittest_TestCase
 from unified_planning.test import (
@@ -95,6 +95,45 @@ class TestTTPToSTN(unittest_TestCase):
                             self.assertTrue(val_res)
                     except up.exceptions.UPNoSuitableEngineAvailableException as e:
                         pass
+
+    def test_epsilon_from_problem_constants(self):
+        problem = Problem("epsilon_from_problem_constants")
+        x = problem.add_fluent("x", default_initial_value=False)
+        y = problem.add_fluent("y", default_initial_value=False)
+        a = DurativeAction("a")
+        a.set_fixed_duration(Fraction(1, 200))
+        a.add_effect(EndTiming(), x, True)
+        problem.add_action(a)
+        b = DurativeAction("b")
+        b.set_fixed_duration(Fraction(1, 200))
+        b.add_condition(StartTiming(), x)
+        b.add_effect(EndTiming(), y, True)
+        problem.add_action(b)
+        # never used in the plan: its duration only lowers the problem epsilon
+        c = DurativeAction("c")
+        c.set_fixed_duration(Fraction(1, 20000))
+        c.add_effect(EndTiming(), y, True)
+        problem.add_action(c)
+        problem.add_goal(y)
+
+        plan = TimeTriggeredPlan(
+            [
+                (Fraction(0), a(), Fraction(1, 200)),
+                (Fraction(1), b(), Fraction(1, 200)),
+            ]
+        )
+        stn_plan = plan.convert_to(PlanKind.STN_PLAN, problem)
+        assert isinstance(stn_plan, STNPlan)
+        a_to_b = [
+            lower
+            for node, constraints in stn_plan.get_constraints().items()
+            if node.action_instance is not None and node.action_instance.action == a
+            for lower, _, next_node in constraints
+            if next_node.action_instance is not None
+            and next_node.action_instance.action == b
+        ]
+        # end of a (1/200 after its start) + problem epsilon (1/20000 / 10)
+        self.assertEqual(a_to_b, [Fraction(1, 200) + Fraction(1, 200000)])
 
     @skipIfNoPlanValidatorForProblemKind(sim_problem.kind)
     def test_simultaneity(self):

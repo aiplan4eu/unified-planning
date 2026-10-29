@@ -140,6 +140,61 @@ class TestT2S(unittest_TestCase):
         expected_tda.add_decrease_effect(x, 3)
         self.assertEqual(expected_tda, compiled_tda)
 
+    def _two_steps_problem(self, duration) -> Problem:
+        problem = Problem("two_steps")
+        x = problem.add_fluent("x", default_initial_value=False)
+        y = problem.add_fluent("y", default_initial_value=False)
+        a = DurativeAction("a")
+        a.set_fixed_duration(duration)
+        a.add_effect(EndTiming(), x, True)
+        problem.add_action(a)
+        b = DurativeAction("b")
+        b.set_fixed_duration(duration)
+        b.add_condition(StartTiming(), x)
+        b.add_effect(EndTiming(), y, True)
+        problem.add_action(b)
+        problem.add_goal(y)
+        return problem
+
+    def test_map_back_epsilon_from_small_constants(self):
+        # the computed epsilon (1/50 / 10) is smaller than the 1/100 default
+        problem = self._two_steps_problem(Fraction(1, 50))
+        comp_res = TimedToSequential().compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_a = comp_res.problem.action("a")
+        compiled_b = comp_res.problem.action("b")
+        assert comp_res.plan_back_conversion is not None
+        mapped_back_ttp = comp_res.plan_back_conversion(
+            SequentialPlan([compiled_a(), compiled_b()])
+        )
+        expected_ttp = TimeTriggeredPlan(
+            [
+                (Fraction(0), problem.action("a")(), Fraction(1, 50)),
+                (Fraction(11, 500), problem.action("b")(), Fraction(1, 50)),
+            ]
+        )
+        self.assertEqual(expected_ttp, mapped_back_ttp)
+
+    def test_map_back_epsilon_capped_by_default(self):
+        # the computed epsilon (6 / 10) is bigger than the 1/100 default, so the
+        # default is kept
+        problem = self._two_steps_problem(6)
+        comp_res = TimedToSequential().compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_a = comp_res.problem.action("a")
+        compiled_b = comp_res.problem.action("b")
+        assert comp_res.plan_back_conversion is not None
+        mapped_back_ttp = comp_res.plan_back_conversion(
+            SequentialPlan([compiled_a(), compiled_b()])
+        )
+        expected_ttp = TimeTriggeredPlan(
+            [
+                (Fraction(0), problem.action("a")(), Fraction(6)),
+                (Fraction(601, 100), problem.action("b")(), Fraction(6)),
+            ]
+        )
+        self.assertEqual(expected_ttp, mapped_back_ttp)
+
     def test_logistic(self):
         problem = self.problems["logistic"].problem
         assert isinstance(problem, Problem)
