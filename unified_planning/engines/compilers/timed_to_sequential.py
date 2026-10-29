@@ -50,7 +50,10 @@ from unified_planning.plans import (
     ActionInstance,
 )
 from unified_planning.model.problem_kind import FEATURES
-from unified_planning.engines.compilers.utils import remove_fluents
+from unified_planning.engines.compilers.utils import (
+    compute_epsilon,
+    remove_fluents,
+)
 from unified_planning.engines.sequential_simulator import UPSequentialSimulator
 
 
@@ -67,6 +70,9 @@ def plan_back_conversion_callable(
         min_time_step = problem.epsilon
     else:
         min_time_step = Fraction(1, 100)
+        computed_epsilon = compute_epsilon(problem)
+        if computed_epsilon is not None:
+            min_time_step = min(min_time_step, computed_epsilon)
     simulator = UPSequentialSimulator(new_problem)
     simplifier = Simplifier(problem.environment)
     fve = FreeVarsExtractor()

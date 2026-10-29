@@ -254,6 +254,7 @@ def _convert_to_stn(
     # SequentialPlan creating a PartialOrderPlan and re-adding the temporal dimension,
     # getting an STNPlan in the end.
     from unified_planning.plans.stn_plan import STNPlanNode, STNPlan
+    from unified_planning.engines.compilers.utils import compute_epsilon
 
     assert isinstance(problem, Problem), "This algorithm works only for Problem"
 
@@ -264,6 +265,9 @@ def _convert_to_stn(
             epsilon = Fraction(1, 1000)
         else:
             epsilon = min(epsilon / 10, Fraction(1, 1000))
+        computed_epsilon = compute_epsilon(problem)
+        if computed_epsilon is not None:
+            epsilon = min(epsilon, computed_epsilon)
     assert epsilon is not None
 
     # Constraints that go in the final STNPlan

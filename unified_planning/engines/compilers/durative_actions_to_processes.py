@@ -49,6 +49,7 @@ from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.walkers import Simplifier
 from unified_planning.engines.compilers.utils import (
+    compute_epsilon,
     get_fresh_name,
 )
 from typing import (
@@ -75,6 +76,11 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
     to compile a :class:`~unified_planning.model.Problem` with `DurativeActions` into a semantically equivalent `Problem` with `Processes` and `Events`.
 
     For this `Compiler`, only the `DURATIVE_ACTIONS_TO_PROCESSES` :class:`~unified_planning.engines.CompilationKind` is supported.
+
+    The epsilon used by the compilation is the `problem.epsilon`, if set; otherwise it is
+    the minimum between the given `default_epsilon` and the epsilon computed from the
+    problem's time constants (see
+    :func:`~unified_planning.engines.compilers.utils.compute_epsilon`), if any.
     """
 
     def __init__(
@@ -215,9 +221,14 @@ class DurativeActionToProcesses(engines.engine.Engine, CompilerMixin):
             new_problem.clear_actions()
         new_problem.name = f"{problem.name}_DurativeActionsToProcesses"
 
-        epsilon: Fraction = (
-            problem.epsilon if problem.epsilon is not None else self._default_epsilon
-        )
+        epsilon: Fraction
+        if problem.epsilon is not None:
+            epsilon = problem.epsilon
+        else:
+            epsilon = self._default_epsilon
+            computed_epsilon = compute_epsilon(problem)
+            if computed_epsilon is not None:
+                epsilon = min(epsilon, computed_epsilon)
 
         simplifier = Simplifier(new_problem.environment, problem)
 
