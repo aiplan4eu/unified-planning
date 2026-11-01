@@ -52,7 +52,7 @@ Action-Based Planning
     - Y (integers)
     - Y
     - plan length, makespan, action costs
-  * - `Kairos`_
+  * - `Kairos`_ [#kairos-actions]_
     - OneShot, Anytime
     - Y
     - Y
@@ -67,7 +67,7 @@ Action-Based Planning
 
 .. [#aries-actions] Aries' focus is on hierarchical planning and scheduling and is likely not competitive with other planners in action-based planning.
 .. [#pyperplan-note] Pyperplan is mostly intended for education purposes and cannot be expected to scale to non-trivial problems.
-.. [#kairos-val] The validator is the ``kairos-val`` engine; it does not validate problems with processes or events (UPF's plans have no end time), which the ``kairos`` planner plans.
+.. [#kairos-actions] Kairos also supports processes and events (PDDL+), trajectory constraints and state invariants. It is only available on Linux (x86-64 and arm64).
 
 
 Plan Validation
@@ -117,6 +117,8 @@ Plan Validation
     -
     -
     - Y
+
+.. [#kairos-val] Kairos does not validate problems with processes or events, since UP plans for them have no end time.
 
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
