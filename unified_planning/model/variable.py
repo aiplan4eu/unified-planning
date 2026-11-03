@@ -19,6 +19,7 @@ A Variable has a name and a type.
 
 from typing import List, Optional, FrozenSet
 from unified_planning.environment import Environment, get_environment
+from unified_planning.exceptions import UPTypeError
 from unified_planning.model.fnode import FNode
 from unified_planning.model.operators import OperatorKind
 import unified_planning
@@ -27,13 +28,20 @@ import unified_planning.model.operators as op
 
 
 class Variable:
-    """Represents a variable; a `Variable` has a name and a type."""
+    """Represents a variable with a name, a type and optional integer bounds.
+
+    Bounds are inclusive expressions that restrict the variable's range in
+    addition to its type. They are only allowed for variables of integer type.
+    """
 
     def __init__(
         self,
         name: str,
         typename: "unified_planning.model.types.Type",
         environment: Optional[Environment] = None,
+        *,
+        lower_bound: Optional["unified_planning.model.expression.Expression"] = None,
+        upper_bound: Optional["unified_planning.model.expression.Expression"] = None,
     ):
         self._name = name
         self._typename = typename
@@ -41,8 +49,28 @@ class Variable:
         assert self._env.type_manager.has_type(typename), (
             "type of variable does not belong to the same environment of the variable"
         )
+        if (
+            lower_bound is not None or upper_bound is not None
+        ) and not typename.is_int_type():
+            raise UPTypeError(
+                "Variable bounds are only supported for integer variables."
+            )
+        em = self._env.expression_manager
+        self._lower_bound = (
+            None if lower_bound is None else em.auto_promote(lower_bound)[0]
+        )
+        self._upper_bound = (
+            None if upper_bound is None else em.auto_promote(upper_bound)[0]
+        )
+        for bound in (self._lower_bound, self._upper_bound):
+            if bound is not None and not bound.type.is_int_type():
+                raise UPTypeError("Variable bounds must be integer expressions.")
 
     def __repr__(self) -> str:
+        if self.lower_bound is not None or self.upper_bound is not None:
+            lower = "-inf" if self.lower_bound is None else str(self.lower_bound)
+            upper = "inf" if self.upper_bound is None else str(self.upper_bound)
+            return f"{str(self.type)} {self.name} in [{lower}, {upper}]"
         return f"{str(self.type)} {self.name}"
 
     def __eq__(self, oth: object) -> bool:
@@ -51,12 +79,22 @@ class Variable:
                 self._name == oth._name
                 and self._typename == oth._typename
                 and self._env == oth._env
+                and self._lower_bound == oth._lower_bound
+                and self._upper_bound == oth._upper_bound
             )
         else:
             return False
 
     def __hash__(self) -> int:
-        return hash(self._name) + hash(self._typename)
+        return hash(
+            (
+                self._name,
+                self._typename,
+                self._env,
+                self._lower_bound,
+                self._upper_bound,
+            )
+        )
 
     @property
     def name(self) -> str:
@@ -72,6 +110,16 @@ class Variable:
     def environment(self) -> "Environment":
         """Return the `Variable` `Environment`."""
         return self._env
+
+    @property
+    def lower_bound(self) -> Optional[FNode]:
+        """Returns the optional inclusive lower bound as an expression."""
+        return self._lower_bound
+
+    @property
+    def upper_bound(self) -> Optional[FNode]:
+        """Returns the optional inclusive upper bound as an expression."""
+        return self._upper_bound
 
     #
     # Infix operators
@@ -178,36 +226,69 @@ class FreeVarsOracle(walkers.DagWalker):
     # - Other operators need to return the union of all their sons
     # - Constants have no impact
 
+    def _get_children(self, expression: FNode):
+        children = list(expression.args)
+        if expression.is_variable_exp():
+            variables: List[Variable] = [expression.variable()]
+        elif expression.is_exists() or expression.is_forall():
+            variables = expression.variables()
+        else:
+            return children
+        # Bounds live on the variable, outside the expression's arguments.
+        for variable in variables:
+            for bound in (variable.lower_bound, variable.upper_bound):
+                if bound is not None:
+                    children.append(bound)
+        return children
+
     def get_free_variables(self, expression: FNode) -> FrozenSet[Variable]:
         """Returns the FrozenSet of Symbols appearing free in the expression."""
         return self.walk(expression)
 
     @walkers.handles(OperatorKind.VARIABLE_EXP)
     def walk_variable_exp(
-        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+        self,
+        expression: FNode,
+        args: List[FrozenSet[Variable]],
+        **kwargs,
     ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
-        return frozenset((expression.variable(),))
+        return frozenset((expression.variable(),)).union(*args)
 
     @walkers.handles(OperatorKind.EXISTS, OperatorKind.FORALL)
     def walk_quantifier(
-        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+        self,
+        expression: FNode,
+        args: List[FrozenSet[Variable]],
+        **kwargs,
     ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
-        return args[0].difference(expression.variables())
+        return frozenset(v for variables in args for v in variables).difference(
+            expression.variables()
+        )
 
     @walkers.handles(op.CONSTANTS)
     def walk_constant(
-        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+        self,
+        expression: FNode,
+        args: List[FrozenSet[Variable]],
+        **kwargs,
     ) -> FrozenSet[Variable]:
         # pylint: disable=unused-argument
         return frozenset()
 
     @walkers.handles(
         set(OperatorKind)
-        - {OperatorKind.VARIABLE_EXP, OperatorKind.EXISTS, OperatorKind.FORALL}
+        - {
+            OperatorKind.VARIABLE_EXP,
+            OperatorKind.EXISTS,
+            OperatorKind.FORALL,
+        }
     )
     def walk_all(
-        self, expression: FNode, args: List[FrozenSet[Variable]], **kwargs
+        self,
+        expression: FNode,
+        args: List[FrozenSet[Variable]],
+        **kwargs,
     ) -> FrozenSet[Variable]:
         return frozenset(v for s in args for v in s)
