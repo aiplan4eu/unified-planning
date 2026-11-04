@@ -42,9 +42,12 @@ typecheck:
 # Run every check expected before pushing
 check: lint typecheck
 
-# Check that every package and sub-package can be imported
+# Check that every package and sub-package can be imported. Runs in its own environment:
+# `uv run --extra` syncs inexactly, so it would add plot and tarski to .venv permanently and
+# every later `just typecheck` would see a different set of packages than CI does.
 check-imports:
-    uv run --extra plot --extra tarski python scripts/test_imports.py
+    UV_PROJECT_ENVIRONMENT=.venv-imports uv sync --frozen --extra plot --extra tarski
+    UV_PROJECT_ENVIRONMENT=.venv-imports UV_NO_SYNC=1 uv run python scripts/test_imports.py
 
 # Fail if the installed grpc version is not the one the committed bindings were generated
 # against. Plain `uv run`, not `uv run --script`: the latter does not sync the project, so
@@ -89,4 +92,4 @@ open-doc browser="firefox":
 # Remove build, cache and coverage artifacts
 # docs/api is deliberately left alone: it is gitignored but holds tracked .rst files
 clean:
-    rm -rf .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml dist docs/_build unified_planning.egg-info
+    rm -rf .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml dist docs/_build unified_planning.egg-info .venv-imports

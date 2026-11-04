@@ -312,7 +312,7 @@ class SchedulingProblem(  # type: ignore[misc]
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_effect(timing, fluent, value, condition)  # type: ignore
+        self._base.add_effect(timing, fluent, value, condition)
 
     def add_increase_effect(
         self,
@@ -321,7 +321,7 @@ class SchedulingProblem(  # type: ignore[misc]
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_increase_effect(timing, fluent, value, condition)  # type: ignore
+        self._base.add_increase_effect(timing, fluent, value, condition)
 
     def add_decrease_effect(
         self,
@@ -330,7 +330,7 @@ class SchedulingProblem(  # type: ignore[misc]
         value: "up.model.expression.Expression",
         condition: "up.model.expression.BoolExpression" = True,
     ):
-        self._base.add_decrease_effect(timing, fluent, value, condition)  # type: ignore
+        self._base.add_decrease_effect(timing, fluent, value, condition)
 
     @property
     def base_variables(self) -> List[Parameter]:
