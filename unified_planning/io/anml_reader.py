@@ -50,6 +50,7 @@ from unified_planning.io.anml_grammar import (
     TK_WHEN,
     TK_XOR,
     ANMLGrammar,
+    packrat,
     TK_BOOLEAN,
     TK_INTEGER,
     TK_INFINITY,
@@ -249,7 +250,8 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        _parse_file(grammar.problem, problem_filename, parse_all=True)
+        with packrat():
+            _parse_file(grammar.problem, problem_filename, parse_all=True)
         if problem_name is None:
             if isinstance(problem_filename, str):
                 problem_name = problem_filename
@@ -273,7 +275,8 @@ class ANMLReader:
 
         # create the grammar and populate it's data structures
         grammar = ANMLGrammar()
-        grammar.problem.parse_string(problem_str, parse_all=True)
+        with packrat():
+            grammar.problem.parse_string(problem_str, parse_all=True)
 
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
