@@ -70,10 +70,13 @@ def check_and_simplify_conditions(
 ) -> Tuple[bool, List[Tuple[TimeInterval, FNode]]]:
     """
     Simplifies conditions and if it is False (a contraddiction)
-    returns False, otherwise returns True.
+    returns False, otherwise returns True. A contradiction on an interval that might be empty
+    (see :func:`~unified_planning.model.timing.is_never_empty`) does not make the action
+    infeasible: it is kept as a `False` condition, satisfied only by the durations that make
+    that interval empty.
     If the simplification is True (a tautology) removes all conditions at the given timing.
     If the simplification is still an AND rewrites back every "arg" of the AND
-    in the conditions
+    in the conditions.
     If the simplification is not an AND sets the simplification as the only
     condition at the given timing.
     Then, the new conditions are returned as a List[Tuple[Timing, FNode]] and the user can
@@ -89,10 +92,12 @@ def check_and_simplify_conditions(
         cs = simplifier.simplify(c)
         if cs.is_bool_constant():
             if not cs.bool_constant_value():
-                return (
-                    False,
-                    [],
-                )
+                if up.model.timing.is_never_empty(i, action.duration):
+                    return (
+                        False,
+                        [],
+                    )
+                nac.append((i, cs))
         else:
             if cs.is_and():
                 for new_cond in cs.args:
