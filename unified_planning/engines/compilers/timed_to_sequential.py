@@ -147,7 +147,8 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     Timed to Sequential compiler class: this class offers the capability to
     transform a problem with durative actions into one only using instantaneous actions.
     Every durative action is compiled into an instantaneous action by condensing
-    all all conditions at start time and all effects at end time.
+    all all conditions at start time and all effects at end time. Several increase/decrease
+    effects on the same fluent at end time are merged into a single assignment.
 
     Interpreted functions are treated as ordinary sub-expressions: calls appearing in
     conditions, effect values and durations are carried over unchanged, and calls appearing
@@ -416,6 +417,30 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                             )
                         )
             for oeef, oeel in old_end_effects.items():
+                if any(oee.is_increase() or oee.is_decrease() for oee in oeel):
+                    # All the end effects on a fluent happen in the same instant, so
+                    # several increase/decrease effects on it sum up; they are merged
+                    # into a single assignment, as the instantaneous action can not
+                    # contain several assignments to the same fluent.
+                    if len(oeel) > 1 and any(oee.is_conditional() for oee in oeel):
+                        raise UPUnsupportedProblemTypeError(
+                            "conditional end time effects on a fluent that is modified by other increase/decrease effects at end time are not supported"
+                        )
+                    folded_value = cast(FNode, oeef)
+                    for oee in oeel:
+                        if oee.is_increase():
+                            folded_value = em.Plus(folded_value, oee.value)
+                        else:
+                            folded_value = em.Minus(folded_value, oee.value)
+                    folded_value = problem.environment.simplifier.simplify(
+                        folded_value.substitute(start_effects_subs)
+                    )
+                    # NOTE only a single increase/decrease effect can be conditional
+                    folded_cond = problem.environment.simplifier.simplify(
+                        oeel[0].condition.substitute(start_effects_subs)
+                    )
+                    new_action.add_effect(oeef, folded_value, folded_cond)
+                    continue
                 for oee in oeel:
                     assert isinstance(oee, Effect)
                     new_value: Optional[FNode] = None
@@ -442,18 +467,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                             em.EqualsOrIff(oeef, new_value) in new_action.preconditions
                         ):
                             continue
-                        new_action.add_effect(oeef, new_value, new_cond)
-                    elif oee.is_increase():
-                        new_value = em.Plus(oeef, oee.value)
-                        new_value = problem.environment.simplifier.simplify(
-                            new_value.substitute(start_effects_subs)
-                        )
-                        new_action.add_effect(oeef, new_value, new_cond)
-                    elif oee.is_decrease():
-                        new_value = em.Minus(oeef, oee.value)
-                        new_value = problem.environment.simplifier.simplify(
-                            new_value.substitute(start_effects_subs)
-                        )
                         new_action.add_effect(oeef, new_value, new_cond)
                     else:
                         raise UPUnreachableCodeError

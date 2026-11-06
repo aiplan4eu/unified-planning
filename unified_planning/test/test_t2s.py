@@ -28,6 +28,7 @@ from unified_planning.engines.results import (
 from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
 from unified_planning.model.walkers import InterpretedFunctionsExtractor
 from unified_planning.io import PDDLWriter
+from unified_planning.exceptions import UPUnsupportedProblemTypeError
 from fractions import Fraction
 
 
@@ -139,6 +140,69 @@ class TestT2S(unittest_TestCase):
         expected_tda = InstantaneousAction("tda")
         expected_tda.add_decrease_effect(x, 3)
         self.assertEqual(expected_tda, compiled_tda)
+
+    def test_multiple_end_increase_decrease_effects_same_fluent(self):
+        # several end-time increase/decrease effects on the same fluent happen at the
+        # same instant and sum up: they must be merged into a single assignment
+        problem = Problem("multiple_end_inc_dec")
+        f = Fluent("f", IntType())
+        g = Fluent("g", IntType())
+        h = Fluent("h", IntType())
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_fluent(g, default_initial_value=0)
+        problem.add_fluent(h, default_initial_value=0)
+
+        tda = DurativeAction("tda")
+        tda.set_fixed_duration(1)
+        tda.add_increase_effect(EndTiming(), f, 2)
+        tda.add_increase_effect(EndTiming(), f, 3)
+        tda.add_increase_effect(EndTiming(), g, 2)
+        tda.add_decrease_effect(EndTiming(), g, 1)
+        tda.add_increase_effect(StartTiming(), h, 1)
+        tda.add_increase_effect(EndTiming(), h, 2)
+        tda.add_decrease_effect(EndTiming(), h, 1)
+        problem.add_action(tda)
+        problem.add_goal(Equals(f, 10))
+        problem.add_goal(Equals(g, 2))
+        problem.add_goal(Equals(h, 4))
+
+        t2s = TimedToSequential()
+        comp_res = t2s.compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        compiled_tda = comp_res.problem.action("tda")
+
+        expected_tda = InstantaneousAction("tda")
+        expected_tda.add_effect(f, Plus(f, 5))
+        expected_tda.add_effect(g, Minus(Plus(g, 2), 1))
+        expected_tda.add_effect(h, Minus(Plus(h, 3), 1))
+        self.assertEqual(expected_tda, compiled_tda)
+
+        sp = SequentialPlan([compiled_tda(), compiled_tda()])
+        assert comp_res.plan_back_conversion is not None
+        mapped_back_ttp = comp_res.plan_back_conversion(sp)
+        with TimeTriggeredPlanValidator() as validator:
+            val_result = validator.validate(problem, mapped_back_ttp)
+        self.assertEqual(val_result.status, ValidationResultStatus.VALID)
+
+    def test_conditional_effect_in_multiple_end_increase_group_raises(self):
+        # conditional increase/decrease effects can not be merged with other end-time
+        # effects on the same fluent into a single assignment
+        problem = Problem("conditional_multiple_end_inc")
+        f = Fluent("f", IntType())
+        c = Fluent("c", BoolType())
+        problem.add_fluent(f, default_initial_value=0)
+        problem.add_fluent(c, default_initial_value=True)
+
+        tda = DurativeAction("tda")
+        tda.set_fixed_duration(1)
+        tda.add_increase_effect(EndTiming(), f, 2, c)
+        tda.add_increase_effect(EndTiming(), f, 3)
+        problem.add_action(tda)
+
+        t2s = TimedToSequential()
+        t2s.skip_checks = True
+        with self.assertRaises(UPUnsupportedProblemTypeError):
+            t2s.compile(problem)
 
     def test_logistic(self):
         problem = self.problems["logistic"].problem
