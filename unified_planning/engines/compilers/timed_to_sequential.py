@@ -103,31 +103,44 @@ def plan_back_conversion_callable(
         if isinstance(action_for_mapback, DurativeAction):
             tinterval = action_for_mapback.duration
             assert isinstance(tinterval, Interval)
-            dtime = min_time_step
-            if not tinterval.is_left_open():
-                if tinterval.lower.is_constant():
-                    dtime = Fraction(tinterval.lower.constant_value())
+
+            def evaluate_duration_bound(bound: FNode) -> Fraction:
+                if bound.is_constant():
+                    return Fraction(bound.constant_value())
+                par_sub_dict: Dict = {}
+                for paramname, paramvalue in zip(
+                    action_for_mapback.parameters,
+                    action_instance.actual_parameters,
+                ):
+                    par_sub_dict[paramname] = paramvalue
+                bound_with_pars = bound.substitute(par_sub_dict)
+                flu_subs_dict: Dict = {}
+                for flu_obj in fve.get(bound_with_pars):
+                    if flu_obj.fluent() in pruned_fluents:
+                        flu_subs_dict[flu_obj] = original_state.get_value(flu_obj)
+                    else:
+                        assert state is not None
+                        flu_subs_dict[flu_obj] = state.get_value(flu_obj)
+                bound_constant = simplifier.simplify(
+                    bound_with_pars.substitute(flu_subs_dict)
+                )
+                return Fraction(bound_constant.constant_value())
+
+            # NOTE a duration can not be negative, so negative bounds are clamped to 0
+            dtime = max(evaluate_duration_bound(tinterval.lower), Fraction(0))
+            if tinterval.is_left_open():
+                # NOTE the lower bound is excluded from the interval, so the duration
+                # must be strictly greater than it; step past it by min_time_step,
+                # without going beyond the upper bound if the interval is narrower
+                # than that step (its midpoint, if the upper bound is excluded too)
+                upper = max(evaluate_duration_bound(tinterval.upper), Fraction(0))
+                candidate = dtime + min_time_step
+                if candidate < upper:
+                    dtime = candidate
+                elif not tinterval.is_right_open():
+                    dtime = upper
                 else:
-                    par_sub_dict: Dict = {}
-                    for paramname, paramvalue in zip(
-                        action_for_mapback.parameters,
-                        action_instance.actual_parameters,
-                    ):
-                        par_sub_dict[paramname] = paramvalue
-                    tlower_with_pars = tinterval.lower.substitute(par_sub_dict)
-                    flu_subs_dict: Dict = {}
-                    for flu_obj in fve.get(tlower_with_pars):
-                        if flu_obj.fluent() in pruned_fluents:
-                            flu_subs_dict[flu_obj] = original_state.get_value(flu_obj)
-                        else:
-                            flu_subs_dict[flu_obj] = state.get_value(flu_obj)
-                    tlower_constant = simplifier.simplify(
-                        tlower_with_pars.substitute(flu_subs_dict)
-                    )
-                    dtime = Fraction(tlower_constant.constant_value())
-            else:
-                # NOTE if open use min step
-                dtime = min_time_step
+                    dtime = (dtime + upper) / 2
             ttptuples.append((time_now, new_action_instance, dtime))
             time_now = time_now + dtime + min_time_step
         elif isinstance(action_for_mapback, InstantaneousAction):
