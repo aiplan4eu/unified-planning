@@ -18,7 +18,7 @@ from unified_planning.plans import Plan
 
 from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
 from unified_planning.engines.compilers import IntParametersAndVariablesRemover
 from unified_planning.engines.plan_validator import (
     SequentialPlanValidator,
@@ -120,14 +120,14 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         expected = And(self.marked(1), self.marked(0), self.marked(2))
         self.assertEqual(compiled.actions[0].preconditions, [expected])
 
-    def test_nonconstant_range_is_rejected(self):
+    def test_fluent_dependent_bound_is_rejected_at_construction(self):
         limit = Fluent("limit", IntType(0, 2))
         self.problem.add_fluent(limit, default_initial_value=1)
+        with self.assertRaisesRegex(UPTypeError, "cannot reference fluents"):
+            Variable("i", IntType(), lower_bound=0, upper_bound=limit())
+
+    def test_nonconstant_range_is_rejected(self):
         for i, message in (
-            (
-                Variable("i", IntType(), lower_bound=0, upper_bound=limit()),
-                "bounds of integer variable i",
-            ),
             (Variable("i", IntType()), "finite bounds for integer variable i"),
             (
                 Variable("i", IntType(), lower_bound=0),

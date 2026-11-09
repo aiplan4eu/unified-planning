@@ -77,6 +77,16 @@ class TestIntegerVariables(unittest_TestCase):
         env = Environment()
         with self.assertRaises(AssertionError):
             Variable("i", IntType(), upper_bound=env.expression_manager.Int(2))
+        limit = Fluent("limit", IntType(0, 5))
+        for side in ("lower_bound", "upper_bound"):
+            with self.subTest(side=side):
+                with self.assertRaisesRegex(UPTypeError, "cannot reference fluents"):
+                    Variable(
+                        "i",
+                        IntType(),
+                        lower_bound=limit() if side == "lower_bound" else None,
+                        upper_bound=limit() + 1 if side == "upper_bound" else None,
+                    )
 
     def test_variable_bound_dependencies(self):
         i = Variable("i", IntType(0, 2))

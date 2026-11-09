@@ -62,9 +62,16 @@ class Variable:
         self._upper_bound = (
             None if upper_bound is None else em.auto_promote(upper_bound)[0]
         )
+        has_fluent = walkers.AnyChecker(lambda e: e.is_fluent_exp())
         for bound in (self._lower_bound, self._upper_bound):
-            if bound is not None and not bound.type.is_int_type():
+            if bound is None:
+                continue
+            if not bound.type.is_int_type():
                 raise UPTypeError("Variable bounds must be integer expressions.")
+            if has_fluent.any(bound):
+                raise UPTypeError(
+                    f"Variable bounds cannot reference fluents, since their value is not known at compile time: {bound}"
+                )
 
     def __repr__(self) -> str:
         if self.lower_bound is not None or self.upper_bound is not None:
