@@ -267,6 +267,29 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
+        # The increase/decrease effects of a durative action are compiled into assignments
+        # whose value reads the assigned fluent (f := f + v), so the compiled problem uses
+        # general numeric assignments; SIMPLE_NUMERIC_PLANNING is kept, since the increase/
+        # decrease effects of instantaneous actions are copied unchanged.
+        if problem_kind.has_increase_effects() or problem_kind.has_decrease_effects():
+            new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+            new_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        # Start-time effect values are substituted into end-time conditions, so the
+        # operators of a Boolean assignment value, which are not classified as conditions
+        # in the input kind, can end up in a precondition and make it non-linear; declare
+        # all of them as a sound over-approximation.
+        if (
+            problem_kind.has_fluents_in_boolean_assignments()
+            or problem_kind.has_static_fluents_in_boolean_assignments()
+            or problem_kind.has_interpreted_functions_in_boolean_assignments()
+        ):
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+            new_kind.set_conditions_kind("EQUALITIES")
+            new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+            new_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+            if problem_kind.has_simple_numeric_planning():
+                new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
         return new_kind
 
     def get_effects_data_structures(
