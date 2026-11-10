@@ -18,18 +18,23 @@ from unified_planning.test import (
     skipIfNoOneshotPlannerForProblemKind,
 )
 from unified_planning.test.examples import get_example_problems
-from unified_planning.model.problem_kind import classical_kind
+from unified_planning.model.problem_kind import classical_kind, general_numeric_kind
 from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.engines.results import (
     ValidationResultStatus,
     POSITIVE_OUTCOMES,
 )
-from unified_planning.engines.plan_validator import TimeTriggeredPlanValidator
+from unified_planning.engines.plan_validator import (
+    SequentialPlanValidator,
+    TimeTriggeredPlanValidator,
+)
+from unified_planning.exceptions import UPUnsupportedProblemTypeError
 from unified_planning.model.walkers import InterpretedFunctionsExtractor
 from unified_planning.io import PDDLWriter
 from fractions import Fraction
 from types import SimpleNamespace
+from typing import Dict
 
 
 def _get_interpreted_function(*expressions):
@@ -99,6 +104,8 @@ class TestT2S(unittest_TestCase):
         # expected_tda.add_precondition(Equals(Plus(x, 1), 5))
         expected_tda.add_precondition(Not(Equals(Plus(y, 3), 1)))
         expected_tda.add_precondition(Not(Equals(Plus(x, 2), 1)))
+        # the duration interval [z, 100] must not be empty
+        expected_tda.add_precondition(LE(z, 100))
         expected_tda.add_effect(x, Minus(Plus(x, 2), 2))
         expected_tda.add_increase_effect(y, 3)
         expected_tda.add_effect(z, Plus(y, 7), GE(Plus(x, 2), Plus(y, 3)))
@@ -150,12 +157,12 @@ class TestT2S(unittest_TestCase):
         self.assertTrue(problem.kind.has_continuous_time())
         self.assertFalse(comp_res.problem.kind.has_continuous_time())
 
-        # distance/velocity are only used in the move action's duration, which is
-        # dropped by this compilation; since they become unreferenced, they must be
-        # pruned from the compiled problem
+        # distance/velocity are only used in the move action's duration; the duration
+        # must be positive, so they are kept in the compiled problem through that
+        # precondition
         compiled_fluent_names = {f.name for f in comp_res.problem.fluents}
-        self.assertNotIn("distance", compiled_fluent_names)
-        self.assertNotIn("velocity", compiled_fluent_names)
+        self.assertIn("distance", compiled_fluent_names)
+        self.assertIn("velocity", compiled_fluent_names)
 
         compiled_move = comp_res.problem.action("move")
         Robot = problem.user_type("Robot")
@@ -174,6 +181,11 @@ class TestT2S(unittest_TestCase):
         expected_move.add_precondition(is_connected(l_from, l_to))
         expected_move.add_precondition(Not(robot_at(r1, l_to)))
         expected_move.add_precondition(Not(robot_at(r2, l_to)))
+        distance = problem.fluent("distance")
+        velocity = problem.fluent("velocity")
+        expected_move.add_precondition(
+            LT(0, Div(distance(l_from, l_to), velocity(robot)))
+        )
         expected_move.add_effect(robot_at(robot, l_from), False)
         expected_move.add_effect(robot_at(robot, l_to), True)
         self.assertEqual(compiled_move, expected_move)
@@ -261,9 +273,9 @@ class TestT2S(unittest_TestCase):
         assert isinstance(comp_res.problem, Problem)
 
         # normaltime is only used inside the interpreted function call that computes
-        # gohome's duration; once the duration is dropped it becomes unreferenced and
-        # must be pruned, same as distance/velocity in test_logistic
-        self.assertNotIn("normaltime", {f.name for f in comp_res.problem.fluents})
+        # gohome's duration; the duration must be positive, so it is kept in the
+        # compiled problem through that precondition
+        self.assertIn("normaltime", {f.name for f in comp_res.problem.fluents})
 
         original_gohome = problem.action("gohome")
         assert isinstance(original_gohome, DurativeAction)
@@ -284,6 +296,7 @@ class TestT2S(unittest_TestCase):
         expected_gohome = InstantaneousAction("gohome")
         expected_gohome.add_precondition(Not(athome))
         expected_gohome.add_precondition(atwork)
+        expected_gohome.add_precondition(LT(0, original_gohome.duration.upper))
         expected_gohome.add_effect(athome, True)
         expected_gohome.add_effect(atwork, False)
         expected_gohome.add_effect(house_wet, wet_if(rain, have_umbrella))
@@ -340,6 +353,9 @@ class TestT2S(unittest_TestCase):
         expected_charge = InstantaneousAction("charge")
         expected_charge.add_precondition(LT(battery, 10))
         expected_charge.add_precondition(GE(boost_if(battery), 5))
+        # the duration interval [charge_time(battery), 20] must not be empty, evaluated
+        # before the start effect on battery
+        expected_charge.add_precondition(LE(original_charge.duration.lower, 20))
         expected_charge.add_effect(charged, GE(boost_if(battery), 5))
         expected_charge.add_effect(battery, boost_if(battery))
 
@@ -357,7 +373,7 @@ class TestT2S(unittest_TestCase):
             val_result = validator.validate(problem, mapped_back)
         self.assertEqual(val_result.status, ValidationResultStatus.VALID)
 
-    @skipIfNoOneshotPlannerForProblemKind(classical_kind)
+    @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     def test_logistic_with_planner_map_back_validity(self):
         original_problem = self.problems["logistic"].problem
         assert isinstance(original_problem, Problem)
@@ -398,10 +414,10 @@ class TestT2S(unittest_TestCase):
         assert isinstance(comp_res.problem, Problem)
         self.assertIn("rate", {f.name for f in comp_res.problem.fluents})
 
-    def test_object_fluent_nested_in_duration_is_pruned_and_resolves(self):
+    def test_object_fluent_nested_in_duration_resolves(self):
         # OBJECT_FLUENTS: a duration expression where a fluent is nested inside
-        # another fluent's arguments (dist(l1, tgt(l1))) must keep resolving
-        # correctly at map-back time once both fluents are pruned
+        # another fluent's arguments (dist(l1, tgt(l1))) is kept in the compiled problem
+        # by the positive duration precondition, and resolves correctly at map-back
         Location = UserType("Location")
         l1 = Object("l1", Location)
         l2 = Object("l2", Location)
@@ -424,8 +440,11 @@ class TestT2S(unittest_TestCase):
         comp_res = t2s.compile(problem)
         assert isinstance(comp_res.problem, Problem)
         compiled_fluent_names = {f.name for f in comp_res.problem.fluents}
-        self.assertNotIn("tgt", compiled_fluent_names)
-        self.assertNotIn("dist", compiled_fluent_names)
+        self.assertIn("tgt", compiled_fluent_names)
+        self.assertIn("dist", compiled_fluent_names)
+        self.assertEqual(
+            comp_res.problem.action("mv").preconditions, [LT(0, dist(l1, tgt(l1)))]
+        )
 
         sp = SequentialPlan([comp_res.problem.action("mv")()])
         assert comp_res.plan_back_conversion is not None
@@ -434,14 +453,16 @@ class TestT2S(unittest_TestCase):
         self.assertEqual(expected_ttp, mapped_back)
 
     def test_remove_unused_fluents_flag(self):
-        # "speed" is only read by the duration expression, so it is unreferenced in the
-        # compiled problem: the default prunes it, remove_unused_fluents=False keeps it.
-        # Either way the duration must be reconstructed identically, from the original
-        # problem's initial value when pruned and from the simulated state when not.
+        # "log" is never used, so it is unreferenced in the compiled problem: the
+        # default prunes it, remove_unused_fluents=False keeps it. "speed" is
+        # only read by the duration, which must be positive: that precondition keeps
+        # it either way. The duration must be reconstructed identically in both cases.
         problem = Problem("duration_only_fluent")
         speed = Fluent("speed", IntType())
         problem.add_fluent(speed)
         problem.set_initial_value(speed, 3)
+        log = Fluent("log", IntType())
+        problem.add_fluent(log, default_initial_value=0)
         done = Fluent("done", BoolType())
         problem.add_fluent(done, default_initial_value=False)
 
@@ -455,14 +476,19 @@ class TestT2S(unittest_TestCase):
 
         pruning_res = TimedToSequential().compile(problem)
         assert isinstance(pruning_res.problem, Problem)
-        self.assertNotIn("speed", {f.name for f in pruning_res.problem.fluents})
+        pruned_names = {f.name for f in pruning_res.problem.fluents}
+        self.assertNotIn("log", pruned_names)
+        self.assertIn("speed", pruned_names)
+        self.assertEqual(
+            pruning_res.problem.action("act").preconditions, [LT(0, speed())]
+        )
 
         keeping_res = TimedToSequential(remove_unused_fluents=False).compile(problem)
         assert isinstance(keeping_res.problem, Problem)
-        self.assertIn("speed", {f.name for f in keeping_res.problem.fluents})
+        kept_names = {f.name for f in keeping_res.problem.fluents}
+        self.assertIn("log", kept_names)
+        self.assertIn("speed", kept_names)
         self.assertEqual(Int(3), keeping_res.problem.initial_value(speed()))
-        # "speed" is now unreferenced by anything (no duration exists in the compiled
-        # problem anymore) rather than duration-only, so it must contribute INT_FLUENTS
         self.assertTrue(keeping_res.problem.kind.has_int_fluents())
 
         expected_ttp = TimeTriggeredPlan([(Fraction(0), act(), Fraction(3))])
@@ -590,3 +616,191 @@ class TestT2S(unittest_TestCase):
         claimed = TimedToSequential.resulting_problem_kind(problem.kind)
         self.assertFalse(claimed.has_simple_numeric_planning())
         self.assertFalse(claimed.has_general_numeric_planning())
+
+    def test_duration_interval_preconditions(self):
+        # a durative action can only start if its duration interval, evaluated in the
+        # state before the start, contains a positive duration: the compiled action
+        # must not be applicable otherwise
+        def check(
+            name,
+            set_duration,
+            x_value,
+            y_value,
+            expected_status,
+            round_trip=False,
+            start_effect_on_x=None,
+        ):
+            with self.subTest(name):
+                problem = Problem(name)
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                g = Fluent("g", BoolType())
+                problem.add_fluent(x, default_initial_value=x_value)
+                problem.add_fluent(y, default_initial_value=y_value)
+                problem.add_fluent(g, default_initial_value=False)
+                # x and y are written, so they are not static
+                touch = InstantaneousAction("touch")
+                touch.add_effect(x, x_value)
+                touch.add_effect(y, y_value)
+                problem.add_action(touch)
+                tda = DurativeAction("tda")
+                set_duration(tda, x, y)
+                if start_effect_on_x is not None:
+                    tda.add_effect(StartTiming(), x, start_effect_on_x)
+                tda.add_effect(EndTiming(), g, True)
+                problem.add_action(tda)
+                problem.add_goal(g)
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                sp = SequentialPlan([comp_res.problem.action("tda")()])
+                with SequentialPlanValidator() as validator:
+                    val_result = validator.validate(comp_res.problem, sp)
+                self.assertEqual(val_result.status, expected_status)
+                if round_trip:
+                    assert comp_res.plan_back_conversion is not None
+                    ttp = comp_res.plan_back_conversion(sp)
+                    with TimeTriggeredPlanValidator() as validator:
+                        original_result = validator.validate(problem, ttp)
+                    self.assertEqual(original_result.status, expected_status)
+
+        VALID = ValidationResultStatus.VALID
+        INVALID = ValidationResultStatus.INVALID
+        closed = lambda a, x, y: a.set_closed_duration_interval(x, y)
+        left_open = lambda a, x, y: a.set_left_open_duration_interval(x, y)
+        right_open = lambda a, x, y: a.set_right_open_duration_interval(x, y)
+        fixed_x = lambda a, x, y: a.set_fixed_duration(x)
+        check("empty_closed", closed, 5, 3, INVALID)
+        check("non_empty_closed", closed, 3, 5, VALID, round_trip=True)
+        check("point_closed", closed, 4, 4, VALID, round_trip=True)
+        check("point_left_open", left_open, 4, 4, INVALID)
+        check("point_right_open", right_open, 4, 4, INVALID)
+        check("negative_upper", closed, -5, -1, INVALID)
+        # the duration must be strictly positive: the compiled action puts the end of
+        # the durative action strictly after its start
+        check("zero_upper_closed", closed, -1, 0, INVALID)
+        check("zero_upper_right_open", right_open, -1, 0, INVALID)
+        check("fixed_negative", fixed_x, -1, 0, INVALID)
+        check("fixed_zero", fixed_x, 0, 0, INVALID)
+        check("positive_upper_closed", closed, -1, 1, VALID)
+        # (a constant empty interval is already rejected when the action is defined)
+        # the duration is evaluated before the start effects: x := 20 at start must not
+        # make [x, 10] empty
+        check(
+            "pre_start_state",
+            lambda a, x, y: a.set_closed_duration_interval(x, 10),
+            5,
+            0,
+            VALID,
+            round_trip=True,
+            start_effect_on_x=20,
+        )
+
+    def test_constant_duration_adds_no_precondition(self):
+        problem = Problem("constant_duration")
+        g = Fluent("g", BoolType())
+        problem.add_fluent(g, default_initial_value=False)
+        tda = DurativeAction("tda")
+        tda.set_fixed_duration(3)
+        tda.add_effect(EndTiming(), g, True)
+        problem.add_action(tda)
+        problem.add_goal(g)
+        comp_res = TimedToSequential().compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        self.assertEqual(comp_res.problem.action("tda").preconditions, [])
+
+    def test_non_positive_constant_duration_raises(self):
+        # a constant duration that admits no positive value can not be compiled, since
+        # the compiled action puts the end of the durative action strictly after its
+        # start
+        def check(name, set_duration):
+            with self.subTest(name):
+                problem = Problem(name)
+                g = Fluent("g", BoolType())
+                problem.add_fluent(g, default_initial_value=False)
+                tda = DurativeAction("tda")
+                set_duration(tda)
+                tda.add_effect(EndTiming(), g, True)
+                problem.add_action(tda)
+                problem.add_goal(g)
+                with self.assertRaises(UPUnsupportedProblemTypeError):
+                    TimedToSequential().compile(problem)
+
+        check("fixed_zero", lambda a: a.set_fixed_duration(0))
+        # a durative action without an explicit duration has fixed duration 0
+        check("default_duration", lambda a: None)
+        check("zero_upper_closed", lambda a: a.set_closed_duration_interval(-5, 0))
+        check("negative_fixed", lambda a: a.set_fixed_duration(-1))
+
+    def test_resulting_problem_kind_duration_preconditions(self):
+        # the duration bounds become preconditions: the fluents used only in durations
+        # (not counted as INT_FLUENTS/REAL_FLUENTS in the input kind) and the bounds'
+        # arithmetic (not checked for linearity in the input kind) reach the conditions
+        def check(name, set_duration, expected_features, written=False):
+            with self.subTest(name):
+                problem = Problem(name)
+                i = Fluent("i", IntType())
+                j = Fluent("j", IntType())
+                r = Fluent("r", RealType())
+                g = Fluent("g", BoolType())
+                tda = DurativeAction("tda")
+                set_duration(tda, i, j, r)
+                tda.add_effect(EndTiming(), g, True)
+                # declare only the fluents the duration uses: an unused numeric fluent
+                # would set INT_FLUENTS/REAL_FLUENTS in the input kind by itself
+                fve = problem.environment.free_vars_extractor
+                used = {
+                    fe.fluent()
+                    for bound in (tda.duration.lower, tda.duration.upper)
+                    for fe in fve.get(bound)
+                }
+                initial_values: Dict[Fluent, Fraction] = {
+                    i: Fraction(2),
+                    j: Fraction(3),
+                    r: Fraction(5, 2),
+                }
+                for f in (i, j, r):
+                    if f in used:
+                        problem.add_fluent(f, default_initial_value=initial_values[f])
+                problem.add_fluent(g, default_initial_value=False)
+                if written:
+                    # constant assignments make the fluents non-static (static ones are
+                    # constants for the linearity check) and keep the input simple numeric
+                    touch = InstantaneousAction("touch")
+                    for f in used:
+                        touch.add_effect(f, initial_values[f])
+                    problem.add_action(touch)
+                problem.add_action(tda)
+                problem.add_goal(g)
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                compiled_kind = comp_res.problem.kind
+                for feature in expected_features:
+                    self.assertIn(feature, compiled_kind.features)
+                claimed = TimedToSequential.resulting_problem_kind(problem.kind)
+                missing = set(compiled_kind.features) - set(claimed.features)
+                self.assertEqual(missing, set())
+
+        check(
+            "int_fixed",
+            lambda a, i, j, r: a.set_fixed_duration(i),
+            ["INT_FLUENTS", "SIMPLE_NUMERIC_PLANNING"],
+        )
+        check(
+            "real_interval",
+            lambda a, i, j, r: a.set_closed_duration_interval(r, 10),
+            ["REAL_FLUENTS", "SIMPLE_NUMERIC_PLANNING"],
+        )
+        # a real-typed bound made of int fluents only
+        check(
+            "real_typed_int_fluents",
+            lambda a, i, j, r: a.set_fixed_duration(Div(i, j)),
+            ["INT_FLUENTS"],
+        )
+        check(
+            "non_linear",
+            lambda a, i, j, r: a.set_closed_duration_interval(Times(i, j), 10),
+            ["INT_FLUENTS", "GENERAL_NUMERIC_PLANNING"],
+            written=True,
+        )

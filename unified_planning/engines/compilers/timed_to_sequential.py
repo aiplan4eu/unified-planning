@@ -154,8 +154,20 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     in end-time conditions/effects have their arguments rewritten by the start-time effect
     substitution, exactly like any other fluent-based expression.
 
+    A durative action can only start if its duration interval, evaluated in the state before
+    the start, admits a duration: the compiled action gets the preconditions that the interval
+    is not empty and contains a positive value (constant bounds are checked at compile time).
+    So the fluents used in a duration are kept in the compiled problem, which becomes numeric
+    when the durations depend on fluents.
+
+    The duration must be strictly positive because the compiled action applies the end
+    conditions and effects after the start effects, which matches the temporal semantics only
+    if the end comes strictly after the start. A durative action whose duration can not be
+    positive at all (a constant upper bound <= 0, e.g. the default fixed duration 0) is not
+    supported, and compiling it raises an `UPUnsupportedProblemTypeError`.
+
     The `TimedToSequential` class can also optionally take a flag `remove_unused_fluents` to
-    enable/disable the pruning of the fluents that become unused in the compiled problem.
+    enable/disable the pruning of the fluents that are unused in the compiled problem.
 
     Note:
         Since a durative action's start and end collapse into a single instant, an interpreted
@@ -163,13 +175,12 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         evaluated only once here; this is consistent with the library-wide assumption that
         interpreted functions are deterministic.
 
-        An interpreted function used in a duration is not part of the compiled (instantaneous)
-        problem: it is re-evaluated by :func:`plan_back_conversion_callable` against the simulated
-        state, so its callable must be able to handle whatever values are reachable in that state.
-        Fluents that only ever appear inside a duration expression become unused once the
-        duration is dropped from the compiled problem; such fluents are pruned from the compiled
-        problem (see :func:`~unified_planning.engines.compilers.utils.remove_fluents`) and are
-        instead resolved from the original problem's initial value when the duration is reconstructed.
+        The duration itself is not part of the compiled (instantaneous) problem: it is
+        re-evaluated by :func:`plan_back_conversion_callable` against the simulated state, so an
+        interpreted function used in a duration must be able to handle whatever values are
+        reachable in that state. A fluent pruned from the compiled problem (see
+        :func:`~unified_planning.engines.compilers.utils.remove_fluents`) is resolved from the
+        original problem's initial value when the duration is reconstructed.
     """
 
     def __init__(self, remove_unused_fluents: bool = True):
@@ -290,7 +301,45 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
             if problem_kind.has_simple_numeric_planning():
                 new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        # Fluent-dependent duration bounds become preconditions (the interval is not empty
+        # and admits a positive duration). The fluents used only in durations are not
+        # counted as INT_FLUENTS/REAL_FLUENTS in the input kind, and the bounds are not
+        # checked for linearity, so declare both numeric planning types.
+        if (
+            problem_kind.has_fluents_in_durations()
+            or problem_kind.has_static_fluents_in_durations()
+            or problem_kind.has_interpreted_functions_in_durations()
+        ):
+            if problem_kind.has_int_type_durations():
+                new_kind.set_fluents_type("INT_FLUENTS")
+            if problem_kind.has_real_type_durations():
+                # a real-typed bound can contain int fluents too (e.g. distance / velocity)
+                new_kind.set_fluents_type("INT_FLUENTS")
+                new_kind.set_fluents_type("REAL_FLUENTS")
+            new_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+            new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+            if problem_kind.has_interpreted_functions_in_durations():
+                new_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return new_kind
+
+    def get_duration_preconditions(
+        self, action: DurativeAction, em: ExpressionManager
+    ) -> List[FNode]:
+        """
+        Returns the conditions under which the duration interval of the given action
+        admits a duration: the interval is not empty and contains a positive value (the
+        compiled action puts the end of the durative action strictly after its start).
+        They are evaluated in the state before the start of the action, like the duration.
+        """
+        duration = action.duration
+        lower, upper = duration.lower, duration.upper
+        is_open = duration.is_left_open() or duration.is_right_open()
+        conditions: List[FNode] = []
+        # NOTE a fixed duration [d, d] is never empty (and LE(d, d) is not simplified)
+        if lower != upper or is_open:
+            conditions.append(em.LT(lower, upper) if is_open else em.LE(lower, upper))
+        conditions.append(em.LT(em.Int(0), upper))
+        return conditions
 
     def get_effects_data_structures(
         self, action: DurativeAction, em: ExpressionManager, fve: FreeVarsExtractor
@@ -438,6 +487,18 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 oc.substitute(start_effects_subs)
                             )
                         )
+            for dc in self.get_duration_preconditions(action, em):
+                dc = problem.environment.simplifier.simplify(dc)
+                if dc.is_false():
+                    # NOTE the constant bounds can not admit a positive duration (empty
+                    # constant intervals are already rejected by DurativeAction)
+                    raise UPUnsupportedProblemTypeError(
+                        f"The duration {action.duration} of action {action.name} admits "
+                        "no positive value: TimedToSequential only supports durative "
+                        "actions whose end comes strictly after their start."
+                    )
+                if not dc.is_true():
+                    new_action.add_precondition(dc)
             for oeef, oeel in old_end_effects.items():
                 for oee in oeel:
                     assert isinstance(oee, Effect)
