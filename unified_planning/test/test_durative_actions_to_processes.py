@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from fractions import Fraction
 from typing import Tuple
 import unified_planning
 from unified_planning.shortcuts import *
@@ -711,3 +712,56 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
                         self.assertEqual(
                             val_res.status, ValidationResultStatus.VALID, problem_name
                         )
+
+    def _duration_exceeded_bound(self, problem: Problem, compiler) -> Fraction:
+        new_problem = compiler.compile(problem).problem
+        (event,) = (
+            e for e in new_problem.events if e.name == "a_duration_exceeded_error"
+        )
+        (bound,) = (p.arg(0) for p in event.preconditions if p.is_le())
+        return bound.constant_value()
+
+    def _single_action_problem(self, duration=Fraction(1, 200)) -> Problem:
+        problem = Problem("single_action")
+        x = problem.add_fluent("x", default_initial_value=False)
+        a = DurativeAction("a")
+        a.set_fixed_duration(duration)
+        a.add_effect(EndTiming(), x, True)
+        problem.add_action(a)
+        problem.add_goal(x)
+        return problem
+
+    def test_epsilon_computed_from_constants(self):
+        problem = self._single_action_problem()
+        compiler = DurativeActionToProcesses(default_epsilon=Fraction(1, 100))
+        # duration upper bound + computed epsilon (1/200 / 10)
+        self.assertEqual(
+            self._duration_exceeded_bound(problem, compiler), Fraction(11, 2000)
+        )
+        problem.epsilon = Fraction(1, 10)
+        self.assertEqual(
+            self._duration_exceeded_bound(problem, compiler), Fraction(21, 200)
+        )
+
+    def test_computed_epsilon_capped_by_default(self):
+        # the computed epsilon (6 / 10) is bigger than the default, so the default is kept
+        problem = self._single_action_problem(6)
+        compiler = DurativeActionToProcesses(default_epsilon=Fraction(1, 100))
+        self.assertEqual(
+            self._duration_exceeded_bound(problem, compiler), Fraction(601, 100)
+        )
+
+    def test_default_epsilon_without_constants(self):
+        problem = Problem("no_constants")
+        d = problem.add_fluent("d", RealType(), default_initial_value=1)
+        x = problem.add_fluent("x", default_initial_value=False)
+        a = DurativeAction("a")
+        a.set_fixed_duration(d())
+        a.add_effect(EndTiming(), x, True)
+        problem.add_action(a)
+        problem.add_goal(x)
+        compiler = DurativeActionToProcesses(default_epsilon=Fraction(1, 3))
+        # the static duration d is simplified to its initial value 1
+        self.assertEqual(
+            self._duration_exceeded_bound(problem, compiler), Fraction(4, 3)
+        )

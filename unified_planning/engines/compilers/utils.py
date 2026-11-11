@@ -17,6 +17,7 @@
 
 import warnings
 from fractions import Fraction
+from itertools import chain
 import unified_planning as up
 from unified_planning.exceptions import (
     UPConflictingEffectsException,
@@ -699,6 +700,94 @@ def remove_fluents(problem: Problem, fluents: Set[Fluent]) -> None:
         for fluent_exp, value in problem._initial_value.items()
         if fluent_exp.fluent() not in fluents
     }
+
+
+# The epsilon computed from a problem's constants is the smallest gap between them
+# divided by this
+EPSILON_DIVISOR = 10
+
+
+def _min_positive_gap(times: Iterable[Fraction]) -> Optional[Fraction]:
+    """Returns the smallest positive difference between the given `times`, if any."""
+    sorted_times = sorted(set(times))
+    return min(
+        (t2 - t1 for t1, t2 in zip(sorted_times, sorted_times[1:])), default=None
+    )
+
+
+def compute_epsilon(problem: Problem) -> Optional[Fraction]:
+    """
+    Computes an epsilon separation for the given temporal `problem` from the constants
+    in its durations and times: the smallest positive gap between 2 times whose distance
+    is fixed by the problem, divided by `EPSILON_DIVISOR`. The considered gaps are:
+
+    * the ones between the global start, the timed effects and the timed goals bounds;
+    * for every `DurativeAction`, the ones between the start, the end and the timings of
+      its conditions, effects and simulated effects; if the duration is not a fixed
+      constant, the start-relative and end-relative timings are only compared among
+      themselves (with the start and the end respectively) and the constant duration
+      bounds are considered as gaps between the start and the end.
+
+    Non-constant duration bounds are ignored, as well as the gaps that depend on the
+    plan (e.g. between the timings of 2 different actions).
+    The `problem.epsilon` is not considered by this function.
+
+    :param problem: The `Problem` to compute the epsilon of.
+    :return: The computed epsilon, or `None` if the problem does not contain any
+        positive gap between its times.
+    """
+    gaps: List[Optional[Fraction]] = []
+    for action in problem.durative_actions:
+        duration = action.duration
+        timings: List[up.model.Timing] = list(
+            chain(action.effects, action.simulated_effects)
+        )
+        for interval in action.conditions:
+            timings.extend((interval.lower, interval.upper))
+        start_offsets = [Fraction(0)]
+        end_offsets = [Fraction(0)]
+        for timing in timings:
+            if timing.is_from_start():
+                start_offsets.append(Fraction(timing.delay))
+            else:
+                end_offsets.append(Fraction(timing.delay))
+        if (
+            duration.lower == duration.upper
+            and duration.lower.is_constant()
+            and not duration.is_left_open()
+            and not duration.is_right_open()
+        ):
+            fixed_duration = Fraction(duration.lower.constant_value())
+            gaps.append(
+                _min_positive_gap(
+                    chain(start_offsets, (fixed_duration + d for d in end_offsets))
+                )
+            )
+        else:
+            gaps.append(_min_positive_gap(start_offsets))
+            gaps.append(_min_positive_gap(end_offsets))
+            for bound in (duration.lower, duration.upper):
+                if bound.is_constant() and bound.constant_value() > 0:
+                    gaps.append(Fraction(bound.constant_value()))
+    # problem timings relative to the end of the plan must have a delay of 0, so they
+    # can't create a gap and are ignored
+    global_times = [Fraction(0)]
+    global_times.extend(
+        Fraction(timing.delay)
+        for timing in problem.timed_effects
+        if timing.is_from_start()
+    )
+    for interval in problem.timed_goals:
+        global_times.extend(
+            Fraction(timing.delay)
+            for timing in (interval.lower, interval.upper)
+            if timing.is_from_start()
+        )
+    gaps.append(_min_positive_gap(global_times))
+    positive_gaps = [g for g in gaps if g is not None]
+    if not positive_gaps:
+        return None
+    return min(positive_gaps) / EPSILON_DIVISOR
 
 
 def split_all_ands(exp_list: List[FNode]) -> List[FNode]:
