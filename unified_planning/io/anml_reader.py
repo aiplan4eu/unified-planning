@@ -50,11 +50,11 @@ from unified_planning.io.anml_grammar import (
     TK_WHEN,
     TK_XOR,
     ANMLGrammar,
-    packrat,
+    parse_anml,
     TK_BOOLEAN,
     TK_INTEGER,
     TK_INFINITY,
-    TK_FLOAT,
+    TKS_FLOAT,
 )
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import ANMLSyntaxError, UPUnsupportedProblemTypeError
@@ -75,20 +75,20 @@ from unified_planning.model import (
     Variable,
 )
 from fractions import Fraction
-from typing import Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
-from pyparsing import ParseResults
+from typing import Any, Dict, Sequence, Set, Tuple, Union, Callable, List, Optional
 
 
-def _parse_file(grammar, problem_filename: Union[str, Sequence[str]], parse_all: bool):
-    """Parses a single ANML file, or several of them concatenated into one problem."""
-    if isinstance(problem_filename, str):
-        return grammar.parse_file(problem_filename, parse_all=parse_all)
+def _read_files(problem_filename: Union[str, Sequence[str]]) -> str:
+    """Reads a single ANML file, or several of them concatenated into one problem."""
+    filenames = (
+        [problem_filename] if isinstance(problem_filename, str) else problem_filename
+    )
     problem_parts: List[str] = []
-    for filename in problem_filename:
+    for filename in filenames:
         assert isinstance(filename, str), "Typing not respected"
         with open(filename, encoding="utf-8-sig") as file:
             problem_parts.append(file.read())
-    return grammar.parse_string("\n".join(problem_parts), parse_all=parse_all)
+    return "\n".join(problem_parts)
 
 
 class ANMLReader:
@@ -248,10 +248,7 @@ class ANMLReader:
         :return: The `Problem` parsed from the given anml file.
         """
 
-        # create the grammar and populate it's data structures
-        grammar = ANMLGrammar()
-        with packrat():
-            _parse_file(grammar.problem, problem_filename, parse_all=True)
+        grammar = parse_anml(_read_files(problem_filename))
         if problem_name is None:
             if isinstance(problem_filename, str):
                 problem_name = problem_filename
@@ -273,10 +270,7 @@ class ANMLReader:
         :return: The `Problem` parsed from the given anml file.
         """
 
-        # create the grammar and populate it's data structures
-        grammar = ANMLGrammar()
-        with packrat():
-            grammar.problem.parse_string(problem_str, parse_all=True)
+        grammar = parse_anml(problem_str)
 
         self._problem = self._parse_problem(grammar, problem_name)
         return self._problem
@@ -325,8 +319,8 @@ class ANMLReader:
 
     def _add_goal_or_effect_to_problem(
         self,
-        interval: ParseResults,
-        expression: ParseResults,
+        interval: List,
+        expression: List,
         parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         global_start: "Timing",
@@ -342,7 +336,7 @@ class ANMLReader:
         if f_duration:
             raise ANMLSyntaxError("duration keyword can't be used outside of an action")
         if f_when or f_assign or f_increase or f_decrease:  # effect
-            interval_and_exp = ParseResults([interval, expression])
+            interval_and_exp = [interval, expression]
             up_timing, up_effect = self._parse_assignment(
                 interval_and_exp,
                 parameters,
@@ -372,13 +366,13 @@ class ANMLReader:
                 self._problem.add_timed_goal(up_interval, goal)
 
     def _parse_type_reference(
-        self, type_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+        self, type_res: List, types_map: Dict[str, "up.model.Type"]
     ) -> "up.model.Type":
         name = type_res[0]
         assert isinstance(name, str), "parsing error"
         if name == TK_BOOLEAN:
             return self._tm.BoolType()
-        elif name in (TK_INTEGER, TK_FLOAT):
+        elif name in (TK_INTEGER, *TKS_FLOAT):
             lower_bound, upper_bound = None, None
             if len(type_res) == 2:
                 _p: Dict[str, "up.model.Parameter"] = {}
@@ -437,7 +431,7 @@ class ANMLReader:
                 )
 
     def _parse_fluent(
-        self, fluent_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+        self, fluent_res: Dict[str, Any], types_map: Dict[str, "up.model.Type"]
     ) -> Tuple["up.model.Fluent", Optional["FNode"]]:
         fluent_type = self._parse_type_reference(fluent_res["type"], types_map)
         fluent_name = fluent_res["name"]
@@ -456,7 +450,7 @@ class ANMLReader:
         )
 
     def _parse_objects(
-        self, objects_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+        self, objects_res: Dict[str, Any], types_map: Dict[str, "up.model.Type"]
     ) -> List["up.model.Object"]:
         objects_type = self._parse_type_reference(objects_res["type"], types_map)
         up_objects: List["up.model.Object"] = []
@@ -466,7 +460,7 @@ class ANMLReader:
         return up_objects
 
     def _parse_action(
-        self, action_res: ParseResults, types_map: Dict[str, "up.model.Type"]
+        self, action_res: Dict[str, Any], types_map: Dict[str, "up.model.Type"]
     ) -> "up.model.Action":
         name = action_res["name"]
         assert isinstance(name, str), "parsing error"
@@ -492,7 +486,7 @@ class ANMLReader:
     def _populate_parsed_action_body(
         self,
         action: Union["up.model.DurativeAction", "up.model.InstantaneousAction"],
-        action_body_res: ParseResults,
+        action_body_res: List,
         action_parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
     ) -> None:
@@ -627,7 +621,7 @@ class ANMLReader:
                     action.add_condition(up_interval, condition)
 
     def _parse_parameters_def(
-        self, parameters_res: ParseResults, types_map: Dict[str, "Type"]
+        self, parameters_res: List, types_map: Dict[str, "Type"]
     ) -> "OrderedDict[str, Type]":
         up_params: "OrderedDict[str, Type]" = OrderedDict()
         for parameter_res in parameters_res:
@@ -641,7 +635,7 @@ class ANMLReader:
 
     def _parse_interval(
         self,
-        interval_res: ParseResults,
+        interval_res: List,
         parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
@@ -708,7 +702,7 @@ class ANMLReader:
 
     def _parse_timing(
         self,
-        timing_exp_res: ParseResults,
+        timing_exp_res: List,
         parameters: Dict[str, "Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
@@ -774,10 +768,10 @@ class ANMLReader:
 
     def _check_conditional_intervals(
         self,
-        interval_res: ParseResults,
-        condition_interval: ParseResults,
-        effect_interval: ParseResults,
-    ) -> ParseResults:
+        interval_res: List,
+        condition_interval: List,
+        effect_interval: List,
+    ) -> List:
         # interval_res is the interval defined outside the conditional block
         # condition_interval is the interval defined before the condition
         # effect_interval is the interval defined before the effect
@@ -808,7 +802,7 @@ class ANMLReader:
 
     def _parse_assignment(
         self,
-        interval_and_effect: ParseResults,
+        interval_and_effect: List,
         parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
         is_global: bool = False,
@@ -833,7 +827,7 @@ class ANMLReader:
                 (
                     (n, Variable(n, t, self._env))
                     for n, t in self._parse_parameters_def(
-                        effect_exp["quantifier_variables"], types_map
+                        effect_exp[1], types_map
                     ).items()
                 )
             )
@@ -893,7 +887,7 @@ class ANMLReader:
 
     def _parse_expression(
         self,
-        expression: Union[ParseResults, List, str],
+        expression: Union[List, str],
         parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
         is_global: Optional[bool] = None,
@@ -904,26 +898,22 @@ class ANMLReader:
         if isinstance(expression, str):
             expression = [expression]
         vars = {} if variables is None else variables
-        stack: List[
-            Tuple[Union[ParseResults, List, str], bool, Dict[str, "Variable"]]
-        ] = [(expression, False, vars)]
+        stack: List[Tuple[Union[List, str], bool, Dict[str, "Variable"]]] = [
+            (expression, False, vars)
+        ]
         solved: List[FNode] = []
         while len(stack) > 0:
             exp, already_expanded, vars = stack.pop()
             if already_expanded:
-                assert isinstance(exp, ParseResults) or isinstance(exp, List)
+                assert isinstance(exp, list)
                 if len(exp) <= 1:
                     assert len(exp) == 1, "algorithm error"
                     pass
                 elif len(exp) == 2:
                     first_elem = exp[0]
-                    if isinstance(first_elem, List) or isinstance(
-                        first_elem, ParseResults
-                    ):  # parameters list
+                    if isinstance(first_elem, list):  # parameters list
                         second_elem = exp[1]
-                        assert isinstance(second_elem, List) or isinstance(
-                            second_elem, ParseResults
-                        )
+                        assert isinstance(second_elem, list)
                         pass
                     elif first_elem == TK_MINUS:  # unary minus
                         solved.append(self._em.Times(-1, solved.pop()))
@@ -968,7 +958,7 @@ class ANMLReader:
                         TK_FORALL,
                         TK_EXISTS,
                     ):
-                        assert isinstance(exp, ParseResults) or isinstance(exp, list)
+                        assert isinstance(exp, list)
                         quantified_expressions = [solved.pop() for _ in exp[2]]
                         solved.append(
                             self._operators[first_token](
@@ -977,15 +967,9 @@ class ANMLReader:
                         )
                     else:
                         operator = exp[1]
-                        if isinstance(operator, List) or isinstance(
-                            operator, ParseResults
-                        ):  # parameters list
-                            assert isinstance(exp[0], List) or isinstance(
-                                exp[0], ParseResults
-                            )
-                            assert isinstance(exp[2], List) or isinstance(
-                                exp[2], ParseResults
-                            )
+                        if isinstance(operator, list):  # parameters list
+                            assert isinstance(exp[0], List) or isinstance(exp[0], List)
+                            assert isinstance(exp[2], List) or isinstance(exp[2], List)
                             pass
                         elif isinstance(operator, str):  # binary operator
                             # '==' needs special care, because in ANML it can both mean '==' or 'Iff',
@@ -1015,18 +999,18 @@ class ANMLReader:
                             )
                 else:  # expression longer than 3, must be a parameters list
                     for e in exp:
-                        assert isinstance(e, List) or isinstance(e, ParseResults), (
+                        assert isinstance(e, list), (
                             f"expression {exp} is expected to be a parameters list, but it's not"
                         )
                         pass
             else:  # not solved
-                if isinstance(exp, ParseResults) or isinstance(exp, List):
+                if isinstance(exp, list):
                     first_token = exp[0]
                     if isinstance(first_token, str) and first_token in (
                         TK_FORALL,
                         TK_EXISTS,
                     ):  # quantifier
-                        assert isinstance(exp, ParseResults) or isinstance(exp, list), (
+                        assert isinstance(exp, list), (
                             f"{exp} <- {expression}, {type(exp)}"
                         )
                         name_type = self._parse_parameters_def(exp[1], types_map)
@@ -1080,13 +1064,13 @@ def is_float(string: str) -> bool:
         return False
 
 
-def find_strings(result: Union[ParseResults, List], strings: Set[str]) -> Set[str]:
-    stack: List[Union[ParseResults, List]] = [result]
+def find_strings(result: List, strings: Set[str]) -> Set[str]:
+    stack: List[List] = [result]
     container: Set[str] = set()
     while len(stack) > 0:
         res = stack.pop()
         for word in res:
-            if isinstance(word, ParseResults) or isinstance(word, List):
+            if isinstance(word, list):
                 stack.append(word)
             else:
                 assert isinstance(word, str)
