@@ -15,6 +15,7 @@
 
 
 import re
+import threading
 from typing import Callable, List
 import typing
 from warnings import warn
@@ -31,6 +32,22 @@ from unified_planning.io.up_pddl_reader import UPPDDLReader
 
 from pddl.parser.domain import DomainParser  # type: ignore
 from pddl.parser.problem import ProblemParser  # type: ignore
+
+# Building the lark tables costs ~75ms, so the parsers are built once on first use.
+_ai_parsers: typing.Optional[typing.Tuple[DomainParser, ProblemParser]] = None
+# ponytail: one global lock serializes AI-planning parses, per-thread parsers if that ever matters
+_ai_lock = threading.Lock()
+
+
+def _ai_parse(text: typing.Optional[str], is_domain: bool):
+    global _ai_parsers
+    with _ai_lock:
+        if _ai_parsers is None:
+            _ai_parsers = (DomainParser(), ProblemParser())
+        parser = _ai_parsers[0] if is_domain else _ai_parsers[1]
+        # The transformers keep per-domain state (e.g. constants) that leaks into the next parse.
+        parser._transformer.__init__()
+        return parser(text)
 
 
 class PDDLReader:
@@ -123,18 +140,22 @@ class PDDLReader:
             assert self._up_pddl_reader is not None
             return self._up_pddl_reader.parse_problem_string(domain_str, problem_str)
         if self._force_ai_planning_reader:
-            ai_domain = DomainParser()(domain_str)
+            ai_domain = _ai_parse(domain_str, is_domain=True)
             ai_problem = (
-                ProblemParser()(problem_str) if problem_str is not None else None
+                _ai_parse(problem_str, is_domain=False)
+                if problem_str is not None
+                else None
             )
             return convert_problem_from_ai_pddl(ai_domain, ai_problem, self._env)
 
         requirements = extract_pddl_requirements(domain_str)
-        if check_ai_pddl_requirements(requirements):
+        # The converter rejects untyped parameters and objects, so skip parsing these twice.
+        typed = ":typing" in requirements or ":adl" in requirements
+        if typed and check_ai_pddl_requirements(requirements):
             ai_pddl_parsing_failed = False
             try:
-                ai_domain = DomainParser()(domain_str)
-                ai_problem = ProblemParser()(problem_str)
+                ai_domain = _ai_parse(domain_str, is_domain=True)
+                ai_problem = _ai_parse(problem_str, is_domain=False)
             except Exception as e:
                 ai_pddl_parsing_failed = True
                 if self._deactivate_fallback:
