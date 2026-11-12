@@ -77,6 +77,10 @@ class ANMLSyntaxError(UPException, SyntaxError):
     pass
 
 
+class PDDLSyntaxError(UPException, SyntaxError):
+    pass
+
+
 class UPInvalidActionError(UPException):
     pass
 
