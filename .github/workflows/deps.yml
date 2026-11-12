@@ -49,12 +49,10 @@ jobs:
           python-version: "3.10"
           enable-cache: "false"
 
-      # graphviz-dev is not optional: pygraphviz publishes no manylinux wheels, so it is
-      # built from its sdist.
       - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev
+          sudo apt-get install -y graphviz
 
       # No --upgrade needed: --resolution overrides the versions pinned in the existing
       # lock on its own. Rewrites uv.lock in the workspace, so nothing after this point
@@ -106,7 +104,7 @@ jobs:
       - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev
+          sudo apt-get install -y graphviz
 
       # --upgrade ignores every pin in the committed lock and implies --refresh, so a
       # stale index cache cannot hide a new release. Rewrites uv.lock in place; there is
