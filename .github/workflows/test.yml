@@ -28,7 +28,7 @@ jobs:
       - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev
+          sudo apt-get install -y graphviz
 
       - name: Lint
         run: just lint
@@ -80,7 +80,7 @@ jobs:
       - name: Install pandoc and graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y pandoc graphviz graphviz-dev
+          sudo apt-get install -y pandoc graphviz
 
       - name: Build docs
         run: just build-doc
@@ -105,7 +105,7 @@ jobs:
       - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev
+          sudo apt-get install -y graphviz
 
       # Provisions Java and restores the cached build, so the setup-ci step below finds the
       # jar already in place. Must come first: setup-ci builds ENHSP when it is missing, and
@@ -206,7 +206,7 @@ jobs:
       - name: Install graphviz
         run: |
           sudo apt-get update
-          sudo apt-get install -y graphviz graphviz-dev
+          sudo apt-get install -y graphviz
 
       # Exact sync: list every extra and group this job needs on this one line.
       # The docs group supplies jupyter and ipython, which scripts/test_colab.sh

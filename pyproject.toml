@@ -71,7 +71,9 @@ plot = [
     "plotly>=6.1",
     "kaleido>=1.0",
     "matplotlib>=3.6",
-    "pygraphviz>=1.11",
+    # 2.0: first release that builds against graphviz >= 14 (1.x ships a pre-generated
+    # SWIG wrapper with the pre-14 gvRenderData signature), and the first with wheels.
+    "pygraphviz>=2.0",
     "graphviz>=0.20",
     "pandas>=1.5",
 ]
