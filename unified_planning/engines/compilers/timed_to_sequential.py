@@ -37,6 +37,7 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from typing import Dict, Optional, List, Set, Tuple, OrderedDict, cast
 from fractions import Fraction
 from functools import partial
+import math
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
     UPUsageError,
@@ -63,7 +64,13 @@ def plan_back_conversion_callable(
 ) -> TimeTriggeredPlan:
     if not isinstance(sp, SequentialPlan):
         raise UPUsageError("Plan to map back is not sequential")
-    if problem.epsilon is not None:
+    min_time_step: Fraction
+    if problem.discrete_time:
+        # NOTE with discrete time every time point is an integer, so the step between
+        # two events is a whole number of time units: at least 1, and the epsilon
+        # rounded up if one is given
+        min_time_step = Fraction(math.ceil(problem.epsilon or 1))
+    elif problem.epsilon is not None:
         min_time_step = problem.epsilon
     else:
         min_time_step = Fraction(1, 100)
@@ -130,14 +137,24 @@ def plan_back_conversion_callable(
             # action into one instant, applying the end conditions and effects after the
             # start effects; this only matches the temporal semantics if the end comes
             # strictly after the start, so the duration must be strictly positive
-            dtime = evaluate_duration_bound(tinterval.lower)
-            if tinterval.is_left_open() or dtime <= 0:
+            lower = evaluate_duration_bound(tinterval.lower)
+            if problem.discrete_time:
+                # NOTE with discrete time the duration is the smallest positive integer
+                # in the interval. If the interval contains no positive integer (it
+                # admits no duration in discrete time) the result falls outside of it
+                # and the mapped back plan is invalid, as for any empty duration interval.
+                if tinterval.is_left_open():
+                    dtime = Fraction(math.floor(lower) + 1)
+                else:
+                    dtime = Fraction(math.ceil(lower))
+                dtime = max(dtime, Fraction(1))
+            elif tinterval.is_left_open() or lower <= 0:
                 # NOTE the duration must be strictly greater than the lower bound if it
                 # is excluded from the interval, and strictly greater than 0 anyway; step
                 # past the greater of the two by min_time_step, without going beyond the
                 # upper bound if the interval is narrower than that step (its midpoint,
                 # if the upper bound is excluded too)
-                dtime = max(dtime, Fraction(0))
+                dtime = max(lower, Fraction(0))
                 upper = max(evaluate_duration_bound(tinterval.upper), Fraction(0))
                 candidate = dtime + min_time_step
                 if candidate < upper:
@@ -146,6 +163,8 @@ def plan_back_conversion_callable(
                     dtime = upper
                 else:
                     dtime = (dtime + upper) / 2
+            else:
+                dtime = lower
             ttptuples.append((time_now, new_action_instance, dtime))
             time_now = time_now + dtime + min_time_step
         elif isinstance(action_for_mapback, InstantaneousAction):
