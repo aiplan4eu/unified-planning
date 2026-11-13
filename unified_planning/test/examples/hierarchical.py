@@ -189,7 +189,7 @@ def get_example_problems():
     )
 
     htn_temporal.set_initial_value(loc, l1)
-    flat_plan = up.plans.TimeTriggeredPlan(  # type: ignore
+    flat_plan = up.plans.TimeTriggeredPlan(  # type: ignore[assignment]
         [
             (
                 Fraction(0, 100),
@@ -224,7 +224,7 @@ def get_example_problems():
         ]
     )
 
-    acts = [a[1] for a in flat_plan.timed_actions]  # type: ignore
+    acts = [a[1] for a in flat_plan.timed_actions]  # type: ignore[attr-defined]
     plan = HierarchicalPlan(
         flat_plan,
         Decomposition(

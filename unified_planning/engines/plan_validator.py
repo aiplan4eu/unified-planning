@@ -626,7 +626,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
             ):
                 start_time, ai, duration = start_actions.pop()
                 if isinstance(ai.action, DurativeAction):
-                    da = cast(DurativeAction, ai.action)
+                    da = ai.action
                     assert duration is not None
                     if da.duration.is_left_open():
                         lc = em.GT(duration, da.duration.lower)
@@ -686,7 +686,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                             )
                             next_id += 1
                 elif isinstance(ai.action, InstantaneousAction):
-                    a = cast(InstantaneousAction, ai.action)
+                    a = ai.action
                     heapq.heappush(
                         scheduled_effects,
                         (start_time, next_id, a.effects, a.simulated_effect, ai),
