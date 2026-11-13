@@ -707,7 +707,9 @@ def get_example_problems():
 
     problems["durative_continuous_example"] = TestCase(
         problem=problem,
-        solvable=False,
+        # continuous_change has the default duration 1, so each execution adds 1:
+        # 15 executions take the fluent from 5 to the goal value 20
+        solvable=True,
         valid_plans=[],
         invalid_plans=[],
     )

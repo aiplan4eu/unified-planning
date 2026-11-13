@@ -150,7 +150,11 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
 
 
 class DurativeAction(Action, TimedCondsEffs):
-    """Represents a durative action."""
+    """
+    Represents a durative action.
+
+    A durative action must last strictly more than 0.
+    """
 
     def __init__(
         self,
@@ -162,7 +166,7 @@ class DurativeAction(Action, TimedCondsEffs):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         TimedCondsEffs.__init__(self, _env)
         self._duration: "up.model.timing.DurationInterval" = (
-            up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
+            up.model.timing.FixedDuration(self._environment.expression_manager.Int(1))
         )
         self._continuous_effects: Dict[
             "up.model.timing.TimeInterval", List["up.model.effect.Effect"]

@@ -14,6 +14,8 @@
 
 
 from collections import OrderedDict
+import warnings
+
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.exceptions import (
@@ -858,6 +860,13 @@ class TestModel(unittest_TestCase):
             str(type_error.exception),
             f"Decrease continuous effects can be created only on real type!",
         )
+
+    def test_durative_action_default_duration(self):
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            a = DurativeAction("a")
+        self.assertEqual(a.duration, FixedDuration(Int(1)))
+        self.assertEqual(caught, [])
 
     def test_problem(self):
         x = Fluent("x")
