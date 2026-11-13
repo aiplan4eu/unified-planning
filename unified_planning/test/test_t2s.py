@@ -321,6 +321,133 @@ class TestT2S(unittest_TestCase):
             expected_status=ValidationResultStatus.INVALID,
         )
 
+    def test_discrete_time_map_back(self):
+        # with discrete time every time point is an integer: the mapped back plan must
+        # use integer start times and durations. The plan validator does not support
+        # discrete time, so the mapped back values are checked directly.
+        def check(
+            name,
+            set_duration,
+            expected_a_duration,
+            expected_b_start,
+            epsilon=None,
+            discrete_time=True,
+        ):
+            with self.subTest(name):
+                problem = Problem(name)
+                problem.discrete_time = discrete_time
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                p = Fluent("p", BoolType())
+                g = Fluent("g", BoolType())
+                problem.add_fluent(x, default_initial_value=5)
+                problem.add_fluent(y, default_initial_value=10)
+                problem.add_fluent(p, default_initial_value=False)
+                problem.add_fluent(g, default_initial_value=False)
+                # x and y are written, so they are not pruned from the compiled problem
+                touch = InstantaneousAction("touch")
+                touch.add_effect(x, 5)
+                touch.add_effect(y, 10)
+                problem.add_action(touch)
+                a = DurativeAction("a")
+                set_duration(a, x, y)
+                a.add_effect(EndTiming(), p, True)
+                problem.add_action(a)
+                b = DurativeAction("b")
+                b.set_fixed_duration(2)
+                b.add_condition(StartTiming(), p)
+                b.add_effect(EndTiming(), g, True)
+                problem.add_action(b)
+                problem.add_goal(g)
+                if epsilon is not None:
+                    problem.epsilon = epsilon
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                assert comp_res.plan_back_conversion is not None
+                sp = SequentialPlan(
+                    [comp_res.problem.action("a")(), comp_res.problem.action("b")()]
+                )
+                ttp = comp_res.plan_back_conversion(sp)
+                assert isinstance(ttp, TimeTriggeredPlan)
+                ((a_start, _, a_duration), (b_start, _, b_duration)) = ttp.timed_actions
+                self.assertEqual(a_start, 0)
+                self.assertEqual(a_duration, expected_a_duration)
+                self.assertEqual(b_start, expected_b_start)
+                self.assertEqual(b_duration, 2)
+                if discrete_time:
+                    for start, _, duration in ttp.timed_actions:
+                        self.assertEqual(Fraction(start).denominator, 1)
+                        assert duration is not None
+                        self.assertEqual(Fraction(duration).denominator, 1)
+
+        check("fixed", lambda a, x, y: a.set_fixed_duration(2), 2, 3)
+        check(
+            "left_open",
+            lambda a, x, y: a.set_left_open_duration_interval(5, 10),
+            6,
+            7,
+        )
+        check(
+            "left_open_fluents",
+            lambda a, x, y: a.set_left_open_duration_interval(x, y),
+            6,
+            7,
+        )
+        check(
+            "closed_non_integer_lower",
+            lambda a, x, y: a.set_closed_duration_interval(Fraction(5, 2), 4),
+            3,
+            4,
+        )
+        check(
+            "left_open_non_integer_lower",
+            lambda a, x, y: a.set_left_open_duration_interval(Fraction(11, 2), 10),
+            6,
+            7,
+        )
+        # the duration must be strictly positive: the smallest positive integer
+        check(
+            "negative_lower",
+            lambda a, x, y: a.set_closed_duration_interval(-5, 10),
+            1,
+            2,
+        )
+        check(
+            "zero_lower",
+            lambda a, x, y: a.set_closed_duration_interval(0, 10),
+            1,
+            2,
+        )
+        check(
+            "negative_lower_left_open",
+            lambda a, x, y: a.set_left_open_duration_interval(-5, 10),
+            1,
+            2,
+        )
+        check(
+            "epsilon_integer",
+            lambda a, x, y: a.set_fixed_duration(2),
+            2,
+            4,
+            epsilon=2,
+        )
+        check(
+            "epsilon_non_integer",
+            lambda a, x, y: a.set_fixed_duration(2),
+            2,
+            3,
+            epsilon=Fraction(1, 2),
+        )
+        # continuous time keeps the 1/100 default step
+        check(
+            "continuous",
+            lambda a, x, y: a.set_fixed_duration(2),
+            2,
+            Fraction(201, 100),
+            discrete_time=False,
+        )
+
     def test_logistic(self):
         problem = self.problems["logistic"].problem
         assert isinstance(problem, Problem)
