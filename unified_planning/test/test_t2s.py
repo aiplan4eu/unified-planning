@@ -204,6 +204,123 @@ class TestT2S(unittest_TestCase):
         with self.assertRaises(UPUnsupportedProblemTypeError):
             t2s.compile(problem)
 
+    def test_left_open_duration_map_back(self):
+        # a left-open duration interval excludes its lower bound: the mapped back
+        # duration must be strictly greater than it, and still inside the interval
+        def check(
+            name,
+            set_duration,
+            expected_duration,
+            epsilon=None,
+            expected_status=ValidationResultStatus.VALID,
+            start_effect_to_end_condition=False,
+        ):
+            with self.subTest(name):
+                problem = Problem(name)
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                g = Fluent("g", BoolType())
+                problem.add_fluent(x, default_initial_value=5)
+                problem.add_fluent(y, default_initial_value=10)
+                problem.add_fluent(g, default_initial_value=False)
+                # x and y are written, so they are not pruned from the compiled problem
+                touch = InstantaneousAction("touch")
+                touch.add_effect(x, 5)
+                touch.add_effect(y, 10)
+                problem.add_action(touch)
+                tda = DurativeAction("tda")
+                set_duration(tda, x, y)
+                tda.add_effect(EndTiming(), g, True)
+                if start_effect_to_end_condition:
+                    # the end condition only holds after the start effect, so the end
+                    # of the action must come strictly after its start
+                    s = Fluent("s", BoolType())
+                    problem.add_fluent(s, default_initial_value=False)
+                    tda.add_effect(StartTiming(), s, True)
+                    tda.add_condition(EndTiming(), s)
+                problem.add_action(tda)
+                problem.add_goal(g)
+                if epsilon is not None:
+                    problem.epsilon = epsilon
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                assert comp_res.plan_back_conversion is not None
+                sp = SequentialPlan([comp_res.problem.action("tda")()])
+                ttp = comp_res.plan_back_conversion(sp)
+                assert isinstance(ttp, TimeTriggeredPlan)
+                ((_, _, duration),) = ttp.timed_actions
+                self.assertEqual(duration, expected_duration)
+                with TimeTriggeredPlanValidator() as validator:
+                    val_result = validator.validate(problem, ttp)
+                self.assertEqual(val_result.status, expected_status)
+
+        check(
+            "constant",
+            lambda a, x, y: a.set_left_open_duration_interval(5, 10),
+            Fraction(501, 100),
+        )
+        check(
+            "fluents",
+            lambda a, x, y: a.set_left_open_duration_interval(x, y),
+            Fraction(501, 100),
+        )
+        check(
+            "narrower_than_step_right_closed",
+            lambda a, x, y: a.set_left_open_duration_interval(5, Fraction(1001, 200)),
+            Fraction(1001, 200),
+        )
+        check(
+            "narrower_than_step_open",
+            lambda a, x, y: a.set_open_duration_interval(5, Fraction(1001, 200)),
+            Fraction(2001, 400),
+        )
+        check(
+            "epsilon",
+            lambda a, x, y: a.set_left_open_duration_interval(5, 10),
+            Fraction(6),
+            epsilon=1,
+        )
+        # the duration must be strictly positive, since the compiled action puts the
+        # end of the durative action strictly after its start: a lower bound <= 0 is
+        # stepped past like an excluded one
+        check(
+            "negative_lower_left_open",
+            lambda a, x, y: a.set_left_open_duration_interval(-5, 10),
+            Fraction(1, 100),
+        )
+        check(
+            "negative_lower_closed",
+            lambda a, x, y: a.set_closed_duration_interval(-5, 10),
+            Fraction(1, 100),
+        )
+        check(
+            "zero_lower_closed",
+            lambda a, x, y: a.set_closed_duration_interval(0, 10),
+            Fraction(1, 100),
+        )
+        check(
+            "zero_lower_closed_start_effect_to_end_condition",
+            lambda a, x, y: a.set_closed_duration_interval(0, 10),
+            Fraction(1, 100),
+            start_effect_to_end_condition=True,
+        )
+        check(
+            "zero_lower_closed_narrower_than_step",
+            lambda a, x, y: a.set_closed_duration_interval(0, Fraction(1, 200)),
+            Fraction(1, 200),
+            start_effect_to_end_condition=True,
+        )
+        # an empty interval admits no duration at all, so the mapped back plan is
+        # invalid; the compiled action does not exclude the states where the
+        # duration interval is empty, so such a plan can reach the map back
+        check(
+            "empty",
+            lambda a, x, y: a.set_left_open_duration_interval(y, x),
+            Fraction(5),
+            expected_status=ValidationResultStatus.INVALID,
+        )
+
     def test_logistic(self):
         problem = self.problems["logistic"].problem
         assert isinstance(problem, Problem)
