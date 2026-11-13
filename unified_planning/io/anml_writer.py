@@ -135,21 +135,68 @@ class ConverterToANMLString(walkers.DagWalker):
         )
         return f"{', '.join(vars_string_gen)}"
 
+    def convert_forall_bound_guard(self, vars) -> Optional[str]:
+        """Converts the bounds of the given variables into a 'lb <= v and v <= ub' guard,
+        or None if none of them have bounds."""
+        conditions = []
+        for v in vars:
+            name = _get_anml_name(v, self._names_mapping)
+            if v.lower_bound is not None:
+                conditions.append(f"({self.convert(v.lower_bound)} <= {name})")
+            if v.upper_bound is not None:
+                conditions.append(f"({name} <= {self.convert(v.upper_bound)})")
+        return " and ".join(conditions) if conditions else None
+
+    def _get_children(self, expression: "up.model.FNode"):
+        children = list(expression.args)
+        if expression.is_exists() or expression.is_forall():
+            # Bounds live on the variable, outside the quantifier's body, but
+            # still need to be converted so walk_exists/walk_forall can embed
+            # them as a guard narrowing the variable's declared type.
+            for v in expression.variables():
+                for bound in (v.lower_bound, v.upper_bound):
+                    if bound is not None:
+                        children.append(bound)
+        return children
+
+    def _bound_guard(self, variables, extra_args):
+        """Builds the 'lb <= v and v <= ub' guard for bounded variables, consuming
+        the converted bound expressions from extra_args in variable order."""
+        extra = iter(extra_args)
+        conditions = []
+        for v in variables:
+            name = _get_anml_name(v, self._names_mapping)
+            if v.lower_bound is not None:
+                conditions.append(f"({next(extra)} <= {name})")
+            if v.upper_bound is not None:
+                conditions.append(f"({name} <= {next(extra)})")
+        return conditions
+
     def walk_exists(self, expression, args):
-        assert len(args) == 1
+        assert len(args) >= 1
+        variables = list(expression.variables())
+        body = args[0]
+        conditions = self._bound_guard(variables, args[1:])
+        if conditions:
+            body = f"({' and '.join(conditions)} and {body})"
         vars_string_gen = (
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
-            for v in expression.variables()
+            for v in variables
         )
-        return f"(exists({', '.join(vars_string_gen)}) {{ {args[0]}; }})"
+        return f"(exists({', '.join(vars_string_gen)}) {{ {body}; }})"
 
     def walk_forall(self, expression, args):
-        assert len(args) == 1
+        assert len(args) >= 1
+        variables = list(expression.variables())
+        body = args[0]
+        conditions = self._bound_guard(variables, args[1:])
+        if conditions:
+            body = f"(({' and '.join(conditions)}) implies {body})"
         vars_string_gen = (
             f"{_get_anml_name(v.type, self._names_mapping)} {_get_anml_name(v, self._names_mapping)}"
-            for v in expression.variables()
+            for v in variables
         )
-        return f"(forall({', '.join(vars_string_gen)}) {{ {args[0]}; }})"
+        return f"(forall({', '.join(vars_string_gen)}) {{ {body}; }})"
 
     def walk_variable_exp(self, expression, args):
         assert len(args) == 0
@@ -410,15 +457,22 @@ class ANMLWriter:
             self._convert_anml_timing(timing) if timing is not None else "start"
         )
         results.append(f"[ {anml_timing} ] ")
+        bound_guard: Optional[str] = None
         if effect.is_forall():
             vars = converter.convert_forall_variables(effect.forall)
+            bound_guard = converter.convert_forall_bound_guard(effect.forall)
             spaces_from_left += 3
             results.append(f"forall ({vars}){{\n{spaces_from_left * ' '}")
-        if effect.is_conditional():
+        when_opened = effect.is_conditional() or bound_guard is not None
+        if when_opened:
+            if effect.is_conditional() and bound_guard is not None:
+                condition = f"({bound_guard} and {converter.convert(effect.condition)})"
+            elif bound_guard is not None:
+                condition = f"({bound_guard})"
+            else:
+                condition = converter.convert(effect.condition)
             spaces_from_left += 3
-            results.append(
-                f"when {converter.convert(effect.condition)}\n{spaces_from_left * ' '}{{"
-            )
+            results.append(f"when {condition}\n{spaces_from_left * ' '}{{")
         results.append(converter.convert(effect.fluent))
         if effect.is_assignment():
             results.append(" := ")
@@ -429,7 +483,7 @@ class ANMLWriter:
         else:
             raise NotImplementedError
         results.append(f"{converter.convert(effect.value)};\n")
-        if effect.is_conditional():
+        if when_opened:
             results.append(f"{spaces_from_left * ' '}}};\n")
             spaces_from_left -= 3
         if effect.is_forall():
