@@ -14,11 +14,14 @@
 # limitations under the License.
 
 
+import warnings
+
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main
 from unified_planning.test.examples import get_example_problems
 from unified_planning.engines import (
+    FailedValidationReason,
     SequentialPlanValidator,
     ValidationResultStatus,
     TimeTriggeredPlanValidator,
@@ -438,6 +441,70 @@ class TestProblem(unittest_TestCase):
         ttv = TimeTriggeredPlanValidator(environment=get_environment())
         validation_result = ttv.validate(problem, up.plans.TimeTriggeredPlan([]))
         self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
+    def _durative_problem_with_duration(self, set_duration):
+        done = Fluent("done")
+        action = DurativeAction("act")
+        set_duration(action)
+        action.add_effect(EndTiming(), done, True)
+        problem = Problem("durative_duration")
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(action)
+        problem.add_goal(done)
+        return problem, action
+
+    def _assert_invalid_duration(self, problem, action, duration):
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        ai = action()
+        plan = up.plans.TimeTriggeredPlan([(Fraction(0), ai, duration)])
+        validation_result = ttv.validate(problem, plan)
+        self.assertEqual(
+            validation_result.status, ValidationResultStatus.INVALID, duration
+        )
+        self.assertEqual(
+            validation_result.reason, FailedValidationReason.INAPPLICABLE_ACTION
+        )
+        self.assertIs(validation_result.inapplicable_action, ai)
+        assert validation_result.log_messages is not None
+        self.assertTrue(
+            any(
+                "non-positive duration" in m.message
+                for m in validation_result.log_messages
+            )
+        )
+
+    def _assert_valid_duration(self, problem, action, duration):
+        ttv = TimeTriggeredPlanValidator(environment=get_environment())
+        plan = up.plans.TimeTriggeredPlan([(Fraction(0), action(), duration)])
+        validation_result = ttv.validate(problem, plan)
+        self.assertEqual(validation_result.status, ValidationResultStatus.VALID)
+
+    def test_durative_action_duration_must_be_positive(self):
+        # [0, 5] admits d = 0 syntactically, but a durative action must last d > 0
+        problem, action = self._durative_problem_with_duration(
+            lambda a: a.set_closed_duration_interval(0, 5)
+        )
+        for duration in (Fraction(0), Fraction(-1), None):
+            self._assert_invalid_duration(problem, action, duration)
+        self._assert_valid_duration(problem, action, Fraction(1))
+
+    def test_durative_action_negative_lower_bound(self):
+        # [-1, 5] is a legal constraint, but only its positive part can be used
+        problem, action = self._durative_problem_with_duration(
+            lambda a: a.set_closed_duration_interval(-1, 5)
+        )
+        for duration in (Fraction(0), Fraction(-1)):
+            self._assert_invalid_duration(problem, action, duration)
+        self._assert_valid_duration(problem, action, Fraction(1))
+
+    def test_durative_action_zero_fixed_duration(self):
+        # a fixed duration of 0 can be modelled (with a warning), but never executed
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            problem, action = self._durative_problem_with_duration(
+                lambda a: a.set_fixed_duration(0)
+            )
+        self._assert_invalid_duration(problem, action, Fraction(0))
 
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())

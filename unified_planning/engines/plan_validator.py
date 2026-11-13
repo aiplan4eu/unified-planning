@@ -536,6 +536,28 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
         em = problem.environment.expression_manager
         se = StateEvaluator(problem=problem)
 
+        # A durative action must last strictly more than 0, whatever its duration
+        # constraint allows.
+        for start_time, ai, duration in sorted(plan.timed_actions, key=lambda x: x[0]):
+            if isinstance(ai.action, DurativeAction) and (
+                duration is None or duration <= 0
+            ):
+                msg = (
+                    f"Durative action {ai} starting at {start_time} has a "
+                    f"non-positive duration: {duration}"
+                )
+                return ValidationResult(
+                    status=ValidationResultStatus.INVALID,
+                    engine_name=self.name,
+                    log_messages=[LogMessage(LogLevel.INFO, msg)],
+                    metric_evaluations=None,
+                    reason=FailedValidationReason.INAPPLICABLE_ACTION,
+                    inapplicable_action=ai,
+                    trace={
+                        Fraction(-1): UPState(problem.explicit_initial_values, problem)
+                    },
+                )
+
         start_actions: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = list(
             plan.timed_actions
         )
@@ -627,7 +649,7 @@ class TimeTriggeredPlanValidator(engines.engine.Engine, mixins.PlanValidatorMixi
                 start_time, ai, duration = start_actions.pop()
                 if isinstance(ai.action, DurativeAction):
                     da = cast(DurativeAction, ai.action)
-                    assert duration is not None
+                    assert duration is not None  # guaranteed by the check above
                     if da.duration.is_left_open():
                         lc = em.GT(duration, da.duration.lower)
                     else:
