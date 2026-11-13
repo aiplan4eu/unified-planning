@@ -696,7 +696,7 @@ class TestANMLReader(unittest_TestCase):
                 self.assertEqual(len(list(problem.objects(ut))), 3)
 
         move = cast(DurativeAction, problem.action("move"))
-        self.assertEqual(move.duration, FixedDuration(em.Int(0)))
+        self.assertEqual(move.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in move.conditions.items():
             self.assertEqual(interval, self.start_interval)
             self.assertEqual(len(cond_list), 3)

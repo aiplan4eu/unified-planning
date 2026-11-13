@@ -665,6 +665,40 @@ class TestDurativeActionsToProcesses(unittest_TestCase):
         )
         assert isinstance(compiled, Problem)
 
+    def test_variable_duration_end_requires_positive_duration(self):
+        # [0, 5] admits d = 0 syntactically, but a durative action must last d > 0:
+        # the compiled end action must not be applicable while the clock is still 0
+        done = Fluent("done")
+        act = DurativeAction("act")
+        act.set_closed_duration_interval(0, 5)
+        act.add_effect(EndTiming(), done, True)
+        problem = Problem("variable_duration_from_zero")
+        problem.add_fluent(done, default_initial_value=False)
+        problem.add_action(act)
+        problem.add_goal(done)
+
+        compiled = (
+            DurativeActionToProcesses()
+            .compile(problem, CompilationKind.DURATIVE_ACTIONS_TO_PROCESSES)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
+        end_action = compiled.action("act_first_end")
+        assert isinstance(end_action, InstantaneousAction)
+        clock = FluentExp(compiled.fluent("act_clock"))
+        simplifier = compiled.environment.simplifier
+
+        def falsified_at(value):
+            return [
+                p
+                for p in end_action.preconditions
+                if simplifier.simplify(p.substitute({clock: Real(value)})).is_false()
+            ]
+
+        self.assertNotEqual(falsified_at(Fraction(0)), [])
+        self.assertEqual(falsified_at(Fraction(1, 2)), [])
+        self.assertEqual(falsified_at(Fraction(5)), [])
+
     @skipIfEngineNotAvailable("opt-pddl-planner")
     def test_all(self):
         with OneshotPlanner(

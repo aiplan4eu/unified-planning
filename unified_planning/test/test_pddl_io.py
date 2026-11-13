@@ -1276,6 +1276,27 @@ class TestPddlIO(unittest_TestCase):
             pddl_problem = self._normalized_pddl_str(writer.get_problem())
             self.assertIn(expected_goal, pddl_problem)
 
+    def test_zero_duration_raises(self):
+        # a durative action must last d > 0: a zero duration admits no valid duration
+        domain = """(define (domain d)
+         (:requirements :strips :durative-actions)
+         (:predicates (p))
+         (:durative-action a
+          :parameters ()
+          :duration (= ?duration 0)
+          :condition (and)
+          :effect (and (at end (p))))
+        )"""
+        problem_str = """(define (problem pb)
+         (:domain d)
+         (:init)
+         (:goal (and (p)))
+        )"""
+        with self.assertRaisesRegex(
+            UPProblemDefinitionError, "admits no positive value"
+        ):
+            UPPDDLReader().parse_problem_string(domain, problem_str)
+
     def test_total_cost_metric_with_no_actions(self):
         # use_plan_length was never initialised, so this raised UnboundLocalError
         domain = """(define (domain d)

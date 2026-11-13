@@ -435,6 +435,36 @@ class TestGrounder(unittest_TestCase):
         self.assertEqual(len(grounded_problem.actions), 1)
         self.assertEqual(grounded_problem.actions[0].name, "act_a")
 
+    def test_non_positive_simplified_duration_drops_action(self):
+        # a durative action must last d > 0: a grounding whose duration upper bound
+        # simplifies to a constant <= 0 can never be applied, so it is dropped
+        problem = Problem("non_positive_simplified_duration")
+        Item = UserType("Item")
+        a = Object("a", Item)
+        b = Object("b", Item)
+        c = Object("c", Item)
+        static_upper = Fluent("static_upper", IntType(), x=Item)
+        done = Fluent("done")
+
+        action = DurativeAction("act", x=Item)
+        x = action.parameter("x")
+        action.set_closed_duration_interval(-1, static_upper(x))
+        action.add_effect(EndTiming(), done, True)
+
+        problem.add_fluent(static_upper, default_initial_value=0)
+        problem.add_fluent(done, default_initial_value=False)
+        # "a": [-1, 5] admits positive durations; "b": [-1, 0] and "c": [-1, -1] don't
+        problem.set_initial_value(static_upper(a), 5)
+        problem.set_initial_value(static_upper(b), 0)
+        problem.set_initial_value(static_upper(c), -1)
+        problem.add_objects([a, b, c])
+        problem.add_action(action)
+
+        ground_result = Grounder().compile(problem, CompilationKind.GROUNDING)
+        grounded_problem = ground_result.problem
+        assert isinstance(grounded_problem, Problem)
+        self.assertEqual([a.name for a in grounded_problem.actions], ["act_a"])
+
     def test_ad_hoc_1(self):
         problem = Problem("ad_hoc")
         Location = UserType("Location")

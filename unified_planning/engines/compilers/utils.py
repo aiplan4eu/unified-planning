@@ -315,7 +315,8 @@ def create_action_with_given_subs(
         try:
             new_durative_action.set_duration_constraint(new_duration)
         except UPProblemDefinitionError:
-            # the simplified interval is empty, so this grounding can never be applied
+            # the simplified interval is empty or admits no positive duration, so this
+            # grounding can never be applied
             return None
 
         old_conditions = {

@@ -842,10 +842,22 @@ def _first_end_action_duration_constraint(
     upper_operand = mgr.LT if action.duration.is_right_open() else mgr.LE
     lower_bound = mgr.Plus(action.duration.lower, first_end_timing.delay)
     upper_bound = mgr.Plus(action.duration.upper, first_end_timing.delay)
-    return mgr.And(
+    constraints = [
         lower_operand(lower_bound, action_clock),
         upper_operand(action_clock, upper_bound),
-    )
+    ]
+    # a durative action must last d > 0, where d = clock - delay; the lower bound
+    # already guarantees it only if it is a positive constant (or 0, if open)
+    lower = action.duration.lower
+    if not (
+        lower.is_constant()
+        and (
+            lower.constant_value() > 0
+            or (lower.constant_value() == 0 and action.duration.is_left_open())
+        )
+    ):
+        constraints.append(mgr.LT(first_end_timing.delay, action_clock))
+    return mgr.And(constraints)
 
 
 def _add_new_event(
