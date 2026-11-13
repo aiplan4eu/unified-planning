@@ -140,9 +140,8 @@ def plan_back_conversion_callable(
             lower = evaluate_duration_bound(tinterval.lower)
             if problem.discrete_time:
                 # NOTE with discrete time the duration is the smallest positive integer
-                # in the interval. If the interval contains no positive integer (it
-                # admits no duration in discrete time) the result falls outside of it
-                # and the mapped back plan is invalid, as for any empty duration interval.
+                # in the interval; the compiled action is only applicable if the
+                # interval contains one, so the result is always inside the interval.
                 if tinterval.is_left_open():
                     dtime = Fraction(math.floor(lower) + 1)
                 else:
@@ -204,6 +203,11 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     by `DurativeAction`; a constant expression that only simplifies to <= 0 (e.g.
     `set_fixed_duration(Minus(1, 1))`) admits no positive duration either, so it is not
     supported, and compiling it raises an `UPUnsupportedProblemTypeError`.
+
+    With discrete time every duration is an integer, so the interval must contain a positive
+    integer instead: the preconditions compare its smallest and greatest integers (e.g. `(2, 3)`
+    contains none). This can not be expressed for a real-typed bound that is not constant, so
+    such a bound raises an `UPUnsupportedProblemTypeError` with discrete time.
 
     The `TimedToSequential` class can also optionally take a flag `remove_unused_fluents` to
     enable/disable the pruning of the fluents that are unused in the compiled problem.
@@ -339,23 +343,75 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         return new_kind
 
     def get_duration_preconditions(
-        self, action: DurativeAction, em: ExpressionManager
+        self,
+        action: DurativeAction,
+        env: "up.environment.Environment",
+        discrete_time: bool,
     ) -> List[FNode]:
         """
         Returns the conditions under which the duration interval of the given action
         admits a duration: the interval is not empty and contains a positive value (the
         compiled action puts the end of the durative action strictly after its start).
-        They are evaluated in the state before the start of the action, like the duration.
+        With discrete time the duration must be an integer, so the interval must contain
+        a positive integer. They are evaluated in the state before the start of the
+        action, like the duration.
         """
+        em = env.expression_manager
         duration = action.duration
         lower, upper = duration.lower, duration.upper
         is_open = duration.is_left_open() or duration.is_right_open()
         conditions: List[FNode] = []
-        # NOTE a fixed duration [d, d] is never empty (and LE(d, d) is not simplified)
-        if lower != upper or is_open:
-            conditions.append(em.LT(lower, upper) if is_open else em.LE(lower, upper))
-        conditions.append(em.LT(em.Int(0), upper))
+        if not discrete_time:
+            # NOTE a fixed duration [d, d] is never empty (and LE(d, d) is not simplified)
+            if lower != upper or is_open:
+                conditions.append(
+                    em.LT(lower, upper) if is_open else em.LE(lower, upper)
+                )
+            conditions.append(em.LT(em.Int(0), upper))
+            return conditions
+        # NOTE with discrete time, the smallest and the greatest integers in the interval
+        # are int_lower and int_upper: it contains a positive integer if and only if
+        # int_lower <= int_upper and 1 <= int_upper
+        int_lower = self._integer_duration_bound(action, env, lower, True)
+        int_upper = self._integer_duration_bound(action, env, upper, False)
+        # NOTE a fixed int-typed duration [d, d] gives the same bound twice and is never
+        # empty, but a fixed constant like 5/2 is (its integer bounds are 3 and 2)
+        if int_lower != int_upper:
+            conditions.append(em.LE(int_lower, int_upper))
+        conditions.append(em.LE(em.Int(1), int_upper))
         return conditions
+
+    def _integer_duration_bound(
+        self,
+        action: DurativeAction,
+        env: "up.environment.Environment",
+        bound: FNode,
+        is_lower: bool,
+    ) -> FNode:
+        """
+        Returns the smallest (if `is_lower`) or the greatest integer that the given bound
+        of the duration interval of the action admits.
+        """
+        em = env.expression_manager
+        duration = action.duration
+        is_open = duration.is_left_open() if is_lower else duration.is_right_open()
+        simplified_bound = env.simplifier.simplify(bound)
+        if simplified_bound.is_constant():
+            value = Fraction(simplified_bound.constant_value())
+            if is_lower:
+                return em.Int(math.floor(value) + 1 if is_open else math.ceil(value))
+            return em.Int(math.ceil(value) - 1 if is_open else math.floor(value))
+        if env.type_checker.get_type(bound).is_int_type():
+            if not is_open:
+                return bound
+            return em.Plus(bound, 1) if is_lower else em.Minus(bound, 1)
+        # NOTE whether a real-typed expression admits an integer can not be expressed
+        # without floor/ceil, which are not available
+        raise UPUnsupportedProblemTypeError(
+            f"The duration {duration} of action {action.name} has a real-typed bound "
+            f"{bound} that is not constant: TimedToSequential does not support it with "
+            "discrete time, since every duration must be an integer."
+        )
 
     def get_effects_data_structures(
         self, action: DurativeAction, em: ExpressionManager, fve: FreeVarsExtractor
@@ -503,17 +559,24 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 oc.substitute(start_effects_subs)
                             )
                         )
-            for dc in self.get_duration_preconditions(action, em):
+            for dc in self.get_duration_preconditions(
+                action, env, problem.discrete_time
+            ):
                 dc = problem.environment.simplifier.simplify(dc)
                 if dc.is_false():
                     # NOTE the constant bounds can not admit a positive duration (empty
                     # constant intervals and constant upper bounds <= 0 are already
                     # rejected by DurativeAction, so here they are constant expressions
-                    # that only simplify to such values, e.g. Minus(1, 1))
+                    # that only simplify to such values, e.g. Minus(1, 1)), or, with
+                    # discrete time, a positive integer duration (e.g. (2, 3))
+                    if problem.discrete_time:
+                        reason = "no positive integer value, as discrete time requires"
+                    else:
+                        reason = "no positive value"
                     raise UPUnsupportedProblemTypeError(
                         f"The duration {action.duration} of action {action.name} admits "
-                        "no positive value: TimedToSequential only supports durative "
-                        "actions whose end comes strictly after their start."
+                        f"{reason}: TimedToSequential only supports durative actions "
+                        "whose end comes strictly after their start."
                     )
                 if not dc.is_true():
                     new_action.add_precondition(dc)

@@ -948,9 +948,12 @@ class TestT2S(unittest_TestCase):
         # the duration bounds become preconditions: the fluents used only in durations
         # (not counted as INT_FLUENTS/REAL_FLUENTS in the input kind) and the bounds'
         # arithmetic (not checked for linearity in the input kind) reach the conditions
-        def check(name, set_duration, expected_features, written=False):
+        def check(
+            name, set_duration, expected_features, written=False, discrete_time=False
+        ):
             with self.subTest(name):
                 problem = Problem(name)
+                problem.discrete_time = discrete_time
                 i = Fluent("i", IntType())
                 j = Fluent("j", IntType())
                 r = Fluent("r", RealType())
@@ -1016,3 +1019,152 @@ class TestT2S(unittest_TestCase):
             ["INT_FLUENTS", "GENERAL_NUMERIC_PLANNING"],
             written=True,
         )
+        # with discrete time the integer bounds of the interval (i + 1, j - 1) are compared
+        check(
+            "discrete_time_open",
+            lambda a, i, j, r: a.set_open_duration_interval(i, j),
+            ["INT_FLUENTS"],
+            discrete_time=True,
+        )
+
+    def test_discrete_time_duration_preconditions(self):
+        # with discrete time every duration is an integer: a durative action can only
+        # start if its duration interval contains a positive integer
+        def check(
+            name,
+            set_duration,
+            x_value,
+            y_value,
+            expected_status,
+            expected_duration=None,
+            discrete_time=True,
+        ):
+            with self.subTest(name):
+                problem = Problem(name)
+                problem.discrete_time = discrete_time
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                g = Fluent("g", BoolType())
+                problem.add_fluent(x, default_initial_value=x_value)
+                problem.add_fluent(y, default_initial_value=y_value)
+                problem.add_fluent(g, default_initial_value=False)
+                # x and y are written, so they are not static
+                touch = InstantaneousAction("touch")
+                touch.add_effect(x, x_value)
+                touch.add_effect(y, y_value)
+                problem.add_action(touch)
+                tda = DurativeAction("tda")
+                set_duration(tda, x, y)
+                tda.add_effect(EndTiming(), g, True)
+                problem.add_action(tda)
+                problem.add_goal(g)
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                sp = SequentialPlan([comp_res.problem.action("tda")()])
+                with SequentialPlanValidator() as validator:
+                    val_result = validator.validate(comp_res.problem, sp)
+                self.assertEqual(val_result.status, expected_status)
+                if expected_duration is not None:
+                    # the plan validator does not support discrete time, so the mapped
+                    # back duration is checked directly
+                    assert comp_res.plan_back_conversion is not None
+                    ttp = comp_res.plan_back_conversion(sp)
+                    assert isinstance(ttp, TimeTriggeredPlan)
+                    ((_, _, duration),) = ttp.timed_actions
+                    self.assertEqual(duration, expected_duration)
+
+        VALID = ValidationResultStatus.VALID
+        INVALID = ValidationResultStatus.INVALID
+        closed = lambda a, x, y: a.set_closed_duration_interval(x, y)
+        left_open = lambda a, x, y: a.set_left_open_duration_interval(x, y)
+        right_open = lambda a, x, y: a.set_right_open_duration_interval(x, y)
+        open_ = lambda a, x, y: a.set_open_duration_interval(x, y)
+        fixed_x = lambda a, x, y: a.set_fixed_duration(x)
+        constant_lower = lambda a, x, y: a.set_open_duration_interval(Fraction(5, 2), y)
+        # non-empty as real intervals, but with no positive integer in them
+        check("open_no_integer", open_, 2, 3, INVALID)
+        check("left_open_point", left_open, 2, 2, INVALID)
+        check("right_open_point", right_open, 2, 2, INVALID)
+        check("closed_no_positive", closed, -5, 0, INVALID)
+        check("fixed_zero", fixed_x, 0, 0, INVALID)
+        check("constant_lower_no_integer", constant_lower, 0, 3, INVALID)
+        # the mapped back duration is the smallest positive integer in the interval
+        check("open", open_, 2, 4, VALID, expected_duration=3)
+        check("right_open", right_open, 2, 3, VALID, expected_duration=2)
+        check("closed_from_zero", closed, 0, 1, VALID, expected_duration=1)
+        check("fixed_one", fixed_x, 1, 0, VALID, expected_duration=1)
+        check("constant_lower", constant_lower, 0, 4, VALID, expected_duration=3)
+        # continuous time only requires a positive value
+        check("continuous_open", open_, 2, 3, VALID, discrete_time=False)
+
+    def test_discrete_time_constant_duration_without_integer_raises(self):
+        # with discrete time a constant duration interval with no positive integer in
+        # it can not be compiled; with continuous time it is a valid duration
+        def compile_with(set_duration, discrete_time):
+            problem = Problem("constant_duration")
+            problem.discrete_time = discrete_time
+            g = Fluent("g", BoolType())
+            problem.add_fluent(g, default_initial_value=False)
+            tda = DurativeAction("tda")
+            set_duration(tda)
+            tda.add_effect(EndTiming(), g, True)
+            problem.add_action(tda)
+            problem.add_goal(g)
+            return TimedToSequential().compile(problem)
+
+        for name, set_duration in (
+            ("open", lambda a: a.set_open_duration_interval(2, 3)),
+            (
+                "closed",
+                lambda a: a.set_closed_duration_interval(
+                    Fraction(11, 5), Fraction(14, 5)
+                ),
+            ),
+            ("fixed", lambda a: a.set_fixed_duration(Fraction(5, 2))),
+        ):
+            with self.subTest(name):
+                with self.assertRaises(UPUnsupportedProblemTypeError):
+                    compile_with(set_duration, True)
+                compile_with(set_duration, False)
+        with self.subTest("with_integer"):
+            comp_res = compile_with(
+                lambda a: a.set_closed_duration_interval(Fraction(5, 2), 4), True
+            )
+            assert isinstance(comp_res.problem, Problem)
+            self.assertEqual(comp_res.problem.action("tda").preconditions, [])
+
+    def test_discrete_time_real_fluent_duration_raises(self):
+        # with discrete time, whether a real-typed bound that is not constant admits an
+        # integer can not be expressed, so it is not supported
+        def compile_with(set_duration, discrete_time):
+            problem = Problem("real_duration")
+            problem.discrete_time = discrete_time
+            x = Fluent("x", IntType())
+            r = Fluent("r", RealType())
+            g = Fluent("g", BoolType())
+            problem.add_fluent(x, default_initial_value=4)
+            problem.add_fluent(r, default_initial_value=Fraction(5, 2))
+            problem.add_fluent(g, default_initial_value=False)
+            touch = InstantaneousAction("touch")
+            touch.add_effect(x, 4)
+            touch.add_effect(r, Fraction(5, 2))
+            problem.add_action(touch)
+            tda = DurativeAction("tda")
+            set_duration(tda, x, r)
+            tda.add_effect(EndTiming(), g, True)
+            problem.add_action(tda)
+            problem.add_goal(g)
+            return TimedToSequential().compile(problem)
+
+        for name, set_duration in (
+            ("real_fluent", lambda a, x, r: a.set_closed_duration_interval(r, 10)),
+            (
+                "real_typed_int_fluent",
+                lambda a, x, r: a.set_closed_duration_interval(1, Div(x, 2)),
+            ),
+        ):
+            with self.subTest(name):
+                with self.assertRaises(UPUnsupportedProblemTypeError):
+                    compile_with(set_duration, True)
+                compile_with(set_duration, False)
