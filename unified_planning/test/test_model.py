@@ -868,6 +868,31 @@ class TestModel(unittest_TestCase):
         self.assertEqual(a.duration, FixedDuration(Int(1)))
         self.assertEqual(caught, [])
 
+    def test_durative_action_non_positive_duration_raises(self):
+        # a durative action must last d > 0: an upper bound <= 0 admits no valid
+        # duration, so it is rejected and the previous duration is kept
+        a = DurativeAction("a")
+        with self.assertRaises(UPProblemDefinitionError):
+            a.set_fixed_duration(0)
+        with self.assertRaises(UPProblemDefinitionError):
+            a.set_closed_duration_interval(-3, 0)
+        with self.assertRaises(UPProblemDefinitionError):
+            a.set_left_open_duration_interval(-1, 0)
+        self.assertEqual(a.duration, FixedDuration(Int(1)))
+
+    def test_durative_action_non_positive_lower_bound_is_legal(self):
+        # only the upper bound decides: [0, 5] and [-1, 5] still admit positive durations
+        a = DurativeAction("a")
+        a.set_closed_duration_interval(0, 5)
+        self.assertEqual(a.duration, ClosedDurationInterval(Int(0), Int(5)))
+        a.set_closed_duration_interval(-1, 5)
+        self.assertEqual(a.duration, ClosedDurationInterval(Int(-1), Int(5)))
+
+    def test_durative_action_empty_duration_still_raises(self):
+        a = DurativeAction("a")
+        with self.assertRaises(UPProblemDefinitionError):
+            a.set_closed_duration_interval(5, 3)
+
     def test_problem(self):
         x = Fluent("x")
         y = Fluent("y")

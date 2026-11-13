@@ -266,6 +266,10 @@ class DurativeAction(Action, TimedCondsEffs):
         """
         Sets the `duration interval` for this `action`.
 
+        A durative action must last strictly more than 0: if the upper bound is a
+        constant `<= 0`, the interval admits no valid duration and
+        `UPProblemDefinitionError` is raised, as for an empty interval.
+
         :param duration: The new `duration interval` of this `action`.
         """
         lower, upper = duration.lower, duration.upper
@@ -286,6 +290,11 @@ class DurativeAction(Action, TimedCondsEffs):
         ):
             raise UPProblemDefinitionError(
                 f"{duration} is an empty interval duration of action: {self.name}."
+            )
+        if upper.is_constant() and upper.constant_value() <= 0:
+            raise UPProblemDefinitionError(
+                f"Duration {duration} of action {self.name} admits no positive value: "
+                "a durative action must last strictly more than 0."
             )
         self._duration = duration
 

@@ -14,8 +14,6 @@
 # limitations under the License.
 
 
-import warnings
-
 import unified_planning
 from unified_planning.shortcuts import *
 from unified_planning.test import unittest_TestCase, main
@@ -496,15 +494,6 @@ class TestProblem(unittest_TestCase):
         for duration in (Fraction(0), Fraction(-1)):
             self._assert_invalid_duration(problem, action, duration)
         self._assert_valid_duration(problem, action, Fraction(1))
-
-    def test_durative_action_zero_fixed_duration(self):
-        # a fixed duration of 0 can be modelled (with a warning), but never executed
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", UserWarning)
-            problem, action = self._durative_problem_with_duration(
-                lambda a: a.set_fixed_duration(0)
-            )
-        self._assert_invalid_duration(problem, action, Fraction(0))
 
     def test_with_interpreted_functions_sequential(self):
         spv = SequentialPlanValidator(environment=get_environment())
