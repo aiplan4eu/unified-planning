@@ -30,6 +30,7 @@ from unified_planning.model.walkers import InterpretedFunctionsExtractor
 from unified_planning.io import PDDLWriter
 from unified_planning.exceptions import UPUnsupportedProblemTypeError
 from fractions import Fraction
+from types import SimpleNamespace
 
 
 def _get_interpreted_function(*expressions):
@@ -534,3 +535,122 @@ class TestT2S(unittest_TestCase):
             assert comp_res.plan_back_conversion is not None
             sp = SequentialPlan([comp_res.problem.action("act")()])
             self.assertEqual(expected_ttp, comp_res.plan_back_conversion(sp))
+
+    def test_resulting_problem_kind_over_approximates_examples(self):
+        # the kind declared by resulting_problem_kind must include every feature of
+        # the compiled problem, or a compilers pipeline could pick a later stage that
+        # does not support the compiled problem
+        for name, example in self.problems.items():
+            problem = example.problem
+            if not isinstance(problem, Problem):
+                continue
+            kind = problem.kind
+            if not (kind.has_continuous_time() or kind.has_discrete_time()):
+                continue
+            if not TimedToSequential.supports(kind):
+                continue
+            with self.subTest(name):
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                claimed = TimedToSequential.resulting_problem_kind(kind)
+                missing = set(comp_res.problem.kind.features) - set(claimed.features)
+                self.assertEqual(missing, set())
+
+    def test_resulting_problem_kind_start_values_in_end_conditions(self):
+        # a start effect value is substituted into the end conditions: the operators of a
+        # Boolean assignment value, which the input kind does not classify as conditions,
+        # end up in a precondition of the compiled action
+        def check(name, start_value, expected_feature):
+            with self.subTest(name):
+                problem = Problem(name)
+                Location = UserType("Location")
+                l1 = Object("l1", Location)
+                l2 = Object("l2", Location)
+                problem.add_objects([l1, l2])
+                b, c, e, g, s1, s2 = (
+                    Fluent(n, BoolType()) for n in ("b", "c", "e", "g", "s1", "s2")
+                )
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                loc = Fluent("loc", Location)
+                on = Fluent("on", BoolType(), l=Location)
+                for f in (b, c, e, g, s1, s2, on):
+                    problem.add_fluent(f, default_initial_value=False)
+                problem.add_fluent(x, default_initial_value=0)
+                problem.add_fluent(y, default_initial_value=0)
+                problem.add_fluent(loc, default_initial_value=l1)
+                # c, e, x, y, loc and on are written, so they are not static; s1 and s2 are
+                touch = InstantaneousAction("touch")
+                touch.add_effect(c, True)
+                touch.add_effect(e, True)
+                # constant assignments: no increase/decrease effect, so the input is
+                # simple numeric planning
+                touch.add_effect(x, 1)
+                touch.add_effect(y, 1)
+                touch.add_effect(loc, l2)
+                touch.add_effect(on(l1), True)
+                problem.add_action(touch)
+                v = SimpleNamespace(
+                    c=c,
+                    e=e,
+                    s1=s1,
+                    s2=s2,
+                    x=x,
+                    y=y,
+                    loc=loc,
+                    on=on,
+                    l2=l2,
+                    var=Variable("v", Location),
+                )
+                tda = DurativeAction("tda")
+                tda.set_fixed_duration(1)
+                tda.add_effect(StartTiming(), b, start_value(v))
+                tda.add_condition(EndTiming(), b)
+                tda.add_effect(EndTiming(), g, True)
+                problem.add_action(tda)
+                problem.add_goal(g)
+                self.assertTrue(TimedToSequential.supports(problem.kind))
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                compiled_kind = comp_res.problem.kind
+                self.assertIn(expected_feature, compiled_kind.features)
+                claimed = TimedToSequential.resulting_problem_kind(problem.kind)
+                missing = set(compiled_kind.features) - set(claimed.features)
+                self.assertEqual(missing, set())
+
+        check("or", lambda v: Or(v.c, v.e), "DISJUNCTIVE_CONDITIONS")
+        check("implies", lambda v: Implies(v.c, v.e), "DISJUNCTIVE_CONDITIONS")
+        check("not", lambda v: Not(v.c), "NEGATIVE_CONDITIONS")
+        check("equals_object", lambda v: Equals(v.loc, v.l2), "EQUALITIES")
+        check("equals_numeric", lambda v: Equals(v.x, 3), "EQUALITIES")
+        check("exists", lambda v: Exists(v.on(v.var), v.var), "EXISTENTIAL_CONDITIONS")
+        check("forall", lambda v: Forall(v.on(v.var), v.var), "UNIVERSAL_CONDITIONS")
+        check(
+            "non_linear_numeric",
+            lambda v: GT(Times(v.x, v.y), 3),
+            "GENERAL_NUMERIC_PLANNING",
+        )
+        check("static_fluents", lambda v: Or(v.s1, v.s2), "DISJUNCTIVE_CONDITIONS")
+
+    def test_resulting_problem_kind_boolean_assignments_without_numeric_fluents(self):
+        # a problem with no numeric fluents must not be declared as numeric planning
+        problem = Problem("boolean_only")
+        b, c, e, g = (Fluent(n, BoolType()) for n in ("b", "c", "e", "g"))
+        for f in (b, c, e, g):
+            problem.add_fluent(f, default_initial_value=False)
+        touch = InstantaneousAction("touch")
+        touch.add_effect(c, True)
+        problem.add_action(touch)
+        tda = DurativeAction("tda")
+        tda.set_fixed_duration(1)
+        tda.add_effect(StartTiming(), b, Or(c, e))
+        tda.add_condition(EndTiming(), b)
+        tda.add_effect(EndTiming(), g, True)
+        problem.add_action(tda)
+        problem.add_goal(g)
+        self.assertTrue(problem.kind.has_fluents_in_boolean_assignments())
+
+        claimed = TimedToSequential.resulting_problem_kind(problem.kind)
+        self.assertFalse(claimed.has_simple_numeric_planning())
+        self.assertFalse(claimed.has_general_numeric_planning())
