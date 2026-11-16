@@ -754,6 +754,50 @@ class TestT2S(unittest_TestCase):
         expected_ttp = TimeTriggeredPlan([(Fraction(0), mv(), Fraction(7))])
         self.assertEqual(expected_ttp, mapped_back)
 
+    def test_pruned_duration_fluent_map_back(self):
+        # the simplifier can fold a fluent out of every duration precondition (0 * load
+        # becomes 0, so 0 < 5 + 0 * load becomes true): the fluent is then pruned from
+        # the compiled problem, but the map back still evaluates the original duration,
+        # so it must read the pruned fluent from the original problem
+        def check(name, set_duration, expected_duration, explicit_initial_value=False):
+            with self.subTest(name):
+                problem = Problem(name)
+                load = Fluent("load", IntType())
+                if explicit_initial_value:
+                    problem.add_fluent(load)
+                    problem.set_initial_value(load, 3)
+                else:
+                    problem.add_fluent(load, default_initial_value=3)
+                delivered = Fluent("delivered", BoolType())
+                problem.add_fluent(delivered, default_initial_value=False)
+                deliver = DurativeAction("deliver")
+                set_duration(deliver, load)
+                deliver.add_effect(EndTiming(), delivered, True)
+                problem.add_action(deliver)
+                problem.add_goal(delivered)
+
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                self.assertNotIn("load", {f.name for f in comp_res.problem.fluents})
+                assert comp_res.plan_back_conversion is not None
+                sp = SequentialPlan([comp_res.problem.action("deliver")()])
+                self.assertEqual(
+                    comp_res.plan_back_conversion(sp),
+                    TimeTriggeredPlan([(Fraction(0), deliver(), expected_duration)]),
+                )
+
+        fixed = lambda a, load: a.set_fixed_duration(Plus(5, Times(0, load)))
+        check("fixed", fixed, Fraction(5))
+        check("explicit_initial_value", fixed, Fraction(5), explicit_initial_value=True)
+        # the upper bound is evaluated too, to step past the excluded lower bound
+        check(
+            "left_open_upper",
+            lambda a, load: a.set_left_open_duration_interval(
+                3, Plus(Times(0, load), 5)
+            ),
+            Fraction(301, 100),
+        )
+
     def test_remove_unused_fluents_flag(self):
         # "log" is never used, so it is unreferenced in the compiled problem: the
         # default prunes it, remove_unused_fluents=False keeps it. "speed" is

@@ -44,7 +44,7 @@ from unified_planning.exceptions import (
     UPUnreachableCodeError,
 )
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-from unified_planning.model.walkers.simplifier import Simplifier
+from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import (
     SequentialPlan,
     TimeTriggeredPlan,
@@ -53,6 +53,44 @@ from unified_planning.plans import (
 from unified_planning.model.problem_kind import FEATURES
 from unified_planning.engines.compilers.utils import remove_fluents
 from unified_planning.engines.sequential_simulator import UPSequentialSimulator
+
+
+class _PrunedFluentsFallbackState(State):
+    """
+    The state of the compiled problem, where the fluents pruned from it are read from
+    the given state of the original problem instead.
+    """
+
+    def __init__(
+        self, state: State, original_state: State, pruned_fluents: Set[Fluent]
+    ):
+        self._state = state
+        self._original_state = original_state
+        self._pruned_fluents = pruned_fluents
+
+    def get_value(self, fluent: FNode) -> FNode:
+        if fluent.fluent() in self._pruned_fluents:
+            return self._original_state.get_value(fluent)
+        return self._state.get_value(fluent)
+
+
+def _evaluate_duration_bound(
+    bound: FNode,
+    action: DurativeAction,
+    action_instance: ActionInstance,
+    state: State,
+    evaluator: StateEvaluator,
+) -> Fraction:
+    """
+    Evaluates a bound of the duration of the given action, instantiated with the
+    parameters of the given action instance, in the given state of the compiled problem.
+    """
+    if bound.is_constant():
+        return Fraction(bound.constant_value())
+    bound_with_params = bound.substitute(
+        dict(zip(action.parameters, action_instance.actual_parameters))
+    )
+    return Fraction(evaluator.evaluate(bound_with_params, state).constant_value())
 
 
 def plan_back_conversion_callable(
@@ -75,13 +113,10 @@ def plan_back_conversion_callable(
     else:
         min_time_step = Fraction(1, 100)
     simulator = UPSequentialSimulator(new_problem)
-    simplifier = Simplifier(problem.environment)
-    fve = FreeVarsExtractor()
-    # NOTE the fluents pruned from the compiled problem are not part of its state
-    # anymore, so the ones still needed to compute a duration are resolved against
-    # the original problem. A pruned fluent is never written in the compiled problem
-    # and is never written in the original one either, so its initial value is its
-    # value at any point of the plan.
+    # a fluent used in a duration is pruned if the simplification folds it out of every
+    # duration precondition (e.g. 5 + 0 * load); it is never written, so its value is
+    # read from the initial values of the original problem
+    evaluator = StateEvaluator(new_problem)
     original_state = UPState(
         {
             fluent_exp: value
@@ -110,34 +145,21 @@ def plan_back_conversion_callable(
         if isinstance(action_for_mapback, DurativeAction):
             tinterval = action_for_mapback.duration
             assert isinstance(tinterval, Interval)
-
-            def evaluate_duration_bound(bound: FNode) -> Fraction:
-                if bound.is_constant():
-                    return Fraction(bound.constant_value())
-                par_sub_dict: Dict = {}
-                for paramname, paramvalue in zip(
-                    action_for_mapback.parameters,
-                    action_instance.actual_parameters,
-                ):
-                    par_sub_dict[paramname] = paramvalue
-                bound_with_pars = bound.substitute(par_sub_dict)
-                flu_subs_dict: Dict = {}
-                for flu_obj in fve.get(bound_with_pars):
-                    if flu_obj.fluent() in pruned_fluents:
-                        flu_subs_dict[flu_obj] = original_state.get_value(flu_obj)
-                    else:
-                        assert state is not None
-                        flu_subs_dict[flu_obj] = state.get_value(flu_obj)
-                bound_constant = simplifier.simplify(
-                    bound_with_pars.substitute(flu_subs_dict)
-                )
-                return Fraction(bound_constant.constant_value())
-
+            assert state is not None
+            state_with_pruned = _PrunedFluentsFallbackState(
+                state, original_state, pruned_fluents
+            )
             # NOTE the compiled action collapses the start and the end of the durative
             # action into one instant, applying the end conditions and effects after the
             # start effects; this only matches the temporal semantics if the end comes
             # strictly after the start, so the duration must be strictly positive
-            lower = evaluate_duration_bound(tinterval.lower)
+            lower = _evaluate_duration_bound(
+                tinterval.lower,
+                action_for_mapback,
+                action_instance,
+                state_with_pruned,
+                evaluator,
+            )
             if problem.discrete_time:
                 # NOTE with discrete time the duration is the smallest positive integer
                 # in the interval; the compiled action is only applicable if the
@@ -154,7 +176,14 @@ def plan_back_conversion_callable(
                 # upper bound if the interval is narrower than that step (its midpoint,
                 # if the upper bound is excluded too)
                 dtime = max(lower, Fraction(0))
-                upper = max(evaluate_duration_bound(tinterval.upper), Fraction(0))
+                upper = _evaluate_duration_bound(
+                    tinterval.upper,
+                    action_for_mapback,
+                    action_instance,
+                    state_with_pruned,
+                    evaluator,
+                )
+                upper = max(upper, Fraction(0))
                 candidate = dtime + min_time_step
                 if candidate < upper:
                     dtime = candidate
@@ -221,9 +250,11 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         The duration itself is not part of the compiled (instantaneous) problem: it is
         re-evaluated by :func:`plan_back_conversion_callable` against the simulated state, so an
         interpreted function used in a duration must be able to handle whatever values are
-        reachable in that state. A fluent pruned from the compiled problem (see
-        :func:`~unified_planning.engines.compilers.utils.remove_fluents`) is resolved from the
-        original problem's initial value when the duration is reconstructed.
+        reachable in that state. A fluent used in a duration can still be pruned from the
+        compiled problem (see :func:`~unified_planning.engines.compilers.utils.remove_fluents`)
+        if the simplification folds it out of every duration precondition (e.g. `5 + 0 * load`):
+        it is never written, so it is resolved from the original problem's initial value when
+        the duration is reconstructed.
     """
 
     def __init__(self, remove_unused_fluents: bool = True):
@@ -676,11 +707,11 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_to_old[new_action] = action
             new_problem.add_action(new_action)
 
-        # Fluents used only inside a duration expression (e.g. a fluent feeding a durative
-        # action's fixed duration) become unreferenced once the duration is dropped by the
-        # compilation above. `remove_unused_fluents` controls whether they get pruned:
-        # a fluent used only in a `MinimizeActionCosts` cost is always exempted, since
-        # `get_unused_fluents` deliberately reports it as unused too.
+        # `remove_unused_fluents` controls whether the fluents unreferenced in the compiled
+        # problem get pruned. The fluents used in a duration are usually referenced by
+        # its preconditions; a pruned one is read from the original problem when mapping
+        # back. A fluent used only in a `MinimizeActionCosts` cost is always exempted,
+        # since `get_unused_fluents` deliberately reports it as unused too.
         pruned_fluents: Set[Fluent] = set()
         if self._remove_unused_fluents:
             metric_exprs: List[FNode] = []
