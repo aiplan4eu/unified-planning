@@ -1079,12 +1079,13 @@ class TestT2S(unittest_TestCase):
             val_result = validator.validate(problem, ttp)
         self.assertEqual(val_result.status, ValidationResultStatus.VALID)
 
-    def test_non_positive_constant_duration_raises(self):
-        # a constant duration that admits no positive value can not be compiled, since
-        # the compiled action puts the end of the durative action strictly after its
-        # start. A literal constant upper bound <= 0 is already rejected when the
-        # action is defined, so only constant expressions that simplify to <= 0 reach
-        # the compilation.
+    def test_non_positive_constant_duration_drops_action(self):
+        # a constant duration that admits no positive value makes the action
+        # inapplicable, since the compiled action puts the end of the durative action
+        # strictly after its start: it is dropped, and the problem is still solvable
+        # through the other actions. A literal constant upper bound <= 0 is already
+        # rejected when the action is defined, so only constant expressions that
+        # simplify to <= 0 reach the compilation.
         with self.assertRaises(UPProblemDefinitionError):
             DurativeAction("tda").set_fixed_duration(0)
 
@@ -1097,9 +1098,21 @@ class TestT2S(unittest_TestCase):
                 set_duration(tda)
                 tda.add_effect(EndTiming(), g, True)
                 problem.add_action(tda)
+                other = InstantaneousAction("other")
+                other.add_effect(g, True)
+                problem.add_action(other)
                 problem.add_goal(g)
-                with self.assertRaises(UPUnsupportedProblemTypeError):
-                    TimedToSequential().compile(problem)
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                self.assertFalse(comp_res.problem.has_action("tda"))
+                assert comp_res.plan_back_conversion is not None
+                sp = SequentialPlan([comp_res.problem.action("other")()])
+                ttp = comp_res.plan_back_conversion(sp)
+                with TimeTriggeredPlanValidator() as validator:
+                    self.assertEqual(
+                        validator.validate(problem, ttp).status,
+                        ValidationResultStatus.VALID,
+                    )
 
         check("fixed_zero", lambda a: a.set_fixed_duration(Minus(1, 1)))
         check(
@@ -1262,9 +1275,10 @@ class TestT2S(unittest_TestCase):
         # continuous time only requires a positive value
         check("continuous_open", open_, 2, 3, VALID, discrete_time=False)
 
-    def test_discrete_time_constant_duration_without_integer_raises(self):
-        # with discrete time a constant duration interval with no positive integer in
-        # it can not be compiled; with continuous time it is a valid duration
+    def test_discrete_time_constant_duration_without_integer_drops_action(self):
+        # with discrete time an action whose constant duration interval has no positive
+        # integer in it can never be applied, so it is dropped and the problem is still
+        # solvable through the other actions; with continuous time it is kept
         def compile_with(set_duration, discrete_time):
             problem = Problem("constant_duration")
             problem.discrete_time = discrete_time
@@ -1274,8 +1288,13 @@ class TestT2S(unittest_TestCase):
             set_duration(tda)
             tda.add_effect(EndTiming(), g, True)
             problem.add_action(tda)
+            other = InstantaneousAction("other")
+            other.add_effect(g, True)
+            problem.add_action(other)
             problem.add_goal(g)
-            return TimedToSequential().compile(problem)
+            comp_res = TimedToSequential().compile(problem)
+            assert isinstance(comp_res.problem, Problem)
+            return comp_res
 
         for name, set_duration in (
             ("open", lambda a: a.set_open_duration_interval(2, 3)),
@@ -1288,14 +1307,25 @@ class TestT2S(unittest_TestCase):
             ("fixed", lambda a: a.set_fixed_duration(Fraction(5, 2))),
         ):
             with self.subTest(name):
-                with self.assertRaises(UPUnsupportedProblemTypeError):
-                    compile_with(set_duration, True)
-                compile_with(set_duration, False)
+                comp_res = compile_with(set_duration, True)
+                self.assertFalse(comp_res.problem.has_action("tda"))
+                # the plan validator does not support discrete time, so the mapped
+                # back plan is checked directly
+                assert comp_res.plan_back_conversion is not None
+                sp = SequentialPlan([comp_res.problem.action("other")()])
+                ttp = comp_res.plan_back_conversion(sp)
+                assert isinstance(ttp, TimeTriggeredPlan)
+                ((start, action_instance, duration),) = ttp.timed_actions
+                self.assertEqual(start, 0)
+                self.assertEqual(action_instance.action.name, "other")
+                self.assertIsNone(duration)
+                self.assertTrue(
+                    compile_with(set_duration, False).problem.has_action("tda")
+                )
         with self.subTest("with_integer"):
             comp_res = compile_with(
                 lambda a: a.set_closed_duration_interval(Fraction(5, 2), 4), True
             )
-            assert isinstance(comp_res.problem, Problem)
             self.assertEqual(comp_res.problem.action("tda").preconditions, [])
 
     def test_discrete_time_real_fluent_duration_raises(self):
