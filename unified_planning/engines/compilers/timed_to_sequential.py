@@ -129,7 +129,7 @@ def plan_back_conversion_callable(
     assert isinstance(state, UPState)
     time_now = Fraction(0)
     ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
-    for action_instance in sp.actions:
+    for step, action_instance in enumerate(sp.actions):
         if action_instance.action not in new_to_old:
             raise UPUsageError(
                 f"Action {action_instance.action.name} not found during compilation is present in this plan"
@@ -145,7 +145,6 @@ def plan_back_conversion_callable(
         if isinstance(action_for_mapback, DurativeAction):
             tinterval = action_for_mapback.duration
             assert isinstance(tinterval, Interval)
-            assert state is not None
             state_with_pruned = _PrunedFluentsFallbackState(
                 state, original_state, pruned_fluents
             )
@@ -202,7 +201,11 @@ def plan_back_conversion_callable(
             # NOTE this should not happen as other kinds of transitions are not supported
             raise UPUsageError
         state = simulator.apply(cast(State, state), action_instance)
-        assert state is not None
+        if state is None:
+            raise UPUsageError(
+                f"Action {action_instance} at step {step} of the plan to map back is "
+                "not applicable in the compiled problem"
+            )
     ttp = TimeTriggeredPlan(ttptuples)
     return ttp
 
