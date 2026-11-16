@@ -230,13 +230,14 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     conditions and effects after the start effects, which matches the temporal semantics only
     if the end comes strictly after the start. A constant upper bound <= 0 is already rejected
     by `DurativeAction`; a constant expression that only simplifies to <= 0 (e.g.
-    `set_fixed_duration(Minus(1, 1))`) admits no positive duration either, so it is not
-    supported, and compiling it raises an `UPUnsupportedProblemTypeError`.
+    `set_fixed_duration(Minus(1, 1))`) admits no positive duration either: the action can
+    never be applied, so it is dropped from the compiled problem.
 
     With discrete time every duration is an integer, so the interval must contain a positive
-    integer instead: the preconditions compare its smallest and greatest integers (e.g. `(2, 3)`
-    contains none). This can not be expressed for a real-typed bound that is not constant, so
-    such a bound raises an `UPUnsupportedProblemTypeError` with discrete time.
+    integer instead: the preconditions compare its smallest and greatest integers. An action
+    whose constant interval contains none (e.g. `(2, 3)`) is dropped as well. This can not be
+    expressed for a real-typed bound that is not constant, so such a bound raises an
+    `UPUnsupportedProblemTypeError` with discrete time.
 
     The `TimedToSequential` class can also optionally take a flag `remove_unused_fluents` to
     enable/disable the pruning of the fluents that are unused in the compiled problem.
@@ -582,11 +583,21 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 new_to_old[action] = action
                 new_problem.add_action(action.clone())
                 continue
+            assert isinstance(action, DurativeAction)
+            duration_preconditions = [
+                env.simplifier.simplify(dc)
+                for dc in self.get_duration_preconditions(
+                    action, env, problem.discrete_time
+                )
+            ]
+            if any(dc.is_false() for dc in duration_preconditions):
+                # NOTE the constant duration admits no positive value (with discrete
+                # time, no positive integer): the action can never be applied
+                continue
             pdict = OrderedDict()
             for p in action.parameters:
                 pdict[p.name] = p.type
             new_action = InstantaneousAction(action.name, pdict)
-            assert isinstance(action, DurativeAction)
 
             (
                 start_effects_subs,
@@ -613,25 +624,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 oc.substitute(start_effects_subs)
                             )
                         )
-            for dc in self.get_duration_preconditions(
-                action, env, problem.discrete_time
-            ):
-                dc = problem.environment.simplifier.simplify(dc)
-                if dc.is_false():
-                    # NOTE the constant bounds can not admit a positive duration (empty
-                    # constant intervals and constant upper bounds <= 0 are already
-                    # rejected by DurativeAction, so here they are constant expressions
-                    # that only simplify to such values, e.g. Minus(1, 1)), or, with
-                    # discrete time, a positive integer duration (e.g. (2, 3))
-                    if problem.discrete_time:
-                        reason = "no positive integer value, as discrete time requires"
-                    else:
-                        reason = "no positive value"
-                    raise UPUnsupportedProblemTypeError(
-                        f"The duration {action.duration} of action {action.name} admits "
-                        f"{reason}: TimedToSequential only supports durative actions "
-                        "whose end comes strictly after their start."
-                    )
+            for dc in duration_preconditions:
                 if not dc.is_true():
                     new_action.add_precondition(dc)
             for oeef, oeel in old_end_effects.items():
