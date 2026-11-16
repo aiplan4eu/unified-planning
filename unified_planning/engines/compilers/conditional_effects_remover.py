@@ -238,6 +238,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
         if isinstance(action, up.model.InstantaneousAction):
             cond_effects = action.conditional_effects
             for p in powerset(range(len(cond_effects))):
+                conflicting = False
                 new_action = action.clone()
                 new_action.name = get_fresh_name(new_problem, action.name)
                 new_action.clear_effects()
@@ -254,17 +255,21 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             e.kind,
                             e.forall,
                         )
-                        # We try to add the new effect, but it might be in conflict with exising effects,
-                        # so the action is not added to the problem
+                        # The new effect might conflict with the effects already added. Then the
+                        # original action is not applicable when these conditions hold, so this
+                        # variant is not added to the problem.
                         try:
                             new_action._add_effect_instance(ne)
                         except UPConflictingEffectsException:
-                            continue
+                            conflicting = True
+                            break
                     else:
                         # negative precondition
                         new_action.add_precondition(
                             env.expression_manager.Not(e.condition)
                         )
+                if conflicting:
+                    continue
                 # new action is created, then is checked if it has any impact and if it can be simplified
                 if len(new_action.effects) > 0:
                     (
@@ -284,6 +289,7 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                 (e, t) for t, el in timing_cond_effects.items() for e in el
             ]
             for p in powerset(range(len(cond_effects_timing))):
+                conflicting = False
                 new_action = action.clone()
                 new_action.name = get_fresh_name(new_problem, action.name)
                 new_action.clear_effects()
@@ -301,17 +307,21 @@ class ConditionalEffectsRemover(engines.engine.Engine, CompilerMixin):
                             e.kind,
                             e.forall,
                         )
-                        # We try to add the new effect, but it might be in conflict with exising effects,
-                        # so the action is not added to the problem
+                        # The new effect might conflict with the effects already added. Then the
+                        # original action is not applicable when these conditions hold, so this
+                        # variant is not added to the problem.
                         try:
                             new_action._add_effect_instance(t, ne)
                         except UPConflictingEffectsException:
-                            continue
+                            conflicting = True
+                            break
                     else:
                         # negative precondition
                         new_action.add_condition(
                             t, env.expression_manager.Not(e.condition)
                         )
+                if conflicting:
+                    continue
                 # new action is created, then is checked if it has any impact and if it can be simplified
                 if len(new_action.effects) > 0:
                     (
