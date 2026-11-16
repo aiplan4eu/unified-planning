@@ -135,7 +135,9 @@ class ProtobufReader(Converter):
     def _convert_object(
         self, msg: proto.ObjectDeclaration, problem: Problem
     ) -> model.Object:
-        return model.Object(msg.name, convert_type_str(msg.type, problem))
+        return model.Object(
+            msg.name, convert_type_str(msg.type, problem), problem.environment
+        )
 
     @handles(proto.Expression)
     def _convert_expression(
@@ -548,35 +550,40 @@ class ProtobufReader(Converter):
                 default=self.convert(msg.default_action_cost, problem)
                 if msg.HasField("default_action_cost")
                 else None,
+                environment=problem.environment,
             )
 
         elif msg.kind == proto.Metric.MINIMIZE_SEQUENTIAL_PLAN_LENGTH:
-            return metrics.MinimizeSequentialPlanLength()
+            return metrics.MinimizeSequentialPlanLength(environment=problem.environment)
 
         elif msg.kind == proto.Metric.MINIMIZE_MAKESPAN:
-            return metrics.MinimizeMakespan()
+            return metrics.MinimizeMakespan(environment=problem.environment)
 
         elif msg.kind == proto.Metric.MINIMIZE_EXPRESSION_ON_FINAL_STATE:
             return metrics.MinimizeExpressionOnFinalState(
-                expression=self.convert(msg.expression, problem)
+                expression=self.convert(msg.expression, problem),
+                environment=problem.environment,
             )
 
         elif msg.kind == proto.Metric.MAXIMIZE_EXPRESSION_ON_FINAL_STATE:
             return metrics.MaximizeExpressionOnFinalState(
-                expression=self.convert(msg.expression, problem)
+                expression=self.convert(msg.expression, problem),
+                environment=problem.environment,
             )
         elif msg.kind == proto.Metric.OVERSUBSCRIPTION:
             goals = {}
             for g in msg.goals:
                 goals[self.convert(g.goal, problem)] = self.convert(g.weight)
-            return metrics.Oversubscription(goals)
+            return metrics.Oversubscription(goals, environment=problem.environment)
         elif msg.kind == proto.Metric.TEMPORAL_OVERSUBSCRIPTION:
             timed_goals = {}
             for g in msg.timed_goals:
                 timed_goals[
                     (self.convert(g.timing, problem), self.convert(g.goal, problem))
                 ] = self.convert(g.weight)
-            return metrics.TemporalOversubscription(timed_goals)
+            return metrics.TemporalOversubscription(
+                timed_goals, environment=problem.environment
+            )
         else:
             raise UPException(f"Unknown metric kind `{msg.kind}`")
 
@@ -589,10 +596,10 @@ class ProtobufReader(Converter):
             parameters[param.name] = convert_type_str(param.type, problem)
 
         if msg.HasField("duration"):
-            action = DurativeAction(msg.name, parameters)
+            action = DurativeAction(msg.name, parameters, _env=problem.environment)
             action.set_duration_constraint(self.convert(msg.duration, problem))
         else:
-            action = InstantaneousAction(msg.name, parameters)
+            action = InstantaneousAction(msg.name, parameters, _env=problem.environment)
 
         conditions = []
         for condition in msg.conditions:
