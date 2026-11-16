@@ -66,9 +66,11 @@ class QuantifierSimplifier(Simplifier):
         assert self._variable_assignments is None
         self._assignments = assignments
         self._variable_assignments = variable_assignments
-        r = self.walk(expression)
-        self._assignments = None
-        self._variable_assignments = None
+        try:
+            r = self.walk(expression)
+        finally:
+            self._assignments = None
+            self._variable_assignments = None
         return r
 
     def _push_with_children_to_stack(self, expression: "FNode", **kwargs):

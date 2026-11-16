@@ -266,3 +266,18 @@ class TestSimulator(unittest_TestCase):
             state = simulator.apply(cast(State, state), ai)
             self.assertIsNotNone(state)
         self.assertTrue(simulator.is_goal(cast(State, state)))
+
+    def test_undefined_initial_value_does_not_break_simulator(self):
+        # set_b's precondition reads fluent2, which has no initial value: the
+        # simulator reports set_b as not applicable and must stay usable after.
+        problem = self.problems["basic_undef_bool"].problem
+        a1 = problem.action("a1")
+        simulator = UPSequentialSimulator(problem)
+        state = simulator.get_initial_state()
+        for _ in range(2):
+            applicable = [a for a, _ in simulator.get_applicable_actions(state)]
+            self.assertEqual(applicable, [a1])
+        self.assertFalse(simulator.is_goal(state))
+        next_state = simulator.apply(state, a1)
+        assert next_state is not None
+        self.assertTrue(simulator.is_goal(next_state))
