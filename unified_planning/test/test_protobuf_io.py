@@ -18,6 +18,7 @@ import dataclasses
 from typing import Callable, List, Union
 import unified_planning.grpc.generated.unified_planning_pb2 as proto
 from unified_planning.engines import LogMessage
+from unified_planning.environment import Environment
 from unified_planning.engines.results import LogLevel
 from unified_planning.plans import ActionInstance
 from unified_planning.shortcuts import *
@@ -199,6 +200,33 @@ class TestProtobufIO(unittest_TestCase):
             metric_pb = self.pb_writer.convert(metric)
             metric_up = self.pb_reader.convert(metric_pb, problem)
 
+            self.assertEqual(str(metric), str(metric_up))
+
+    def test_metric_non_default_environment(self):
+        env = Environment()
+        problem = Problem("test", environment=env)
+        x = Fluent("x", env.type_manager.BoolType(), environment=env)
+        problem.add_fluent(x, default_initial_value=False)
+        y = Fluent("y", env.type_manager.IntType(), environment=env)
+        problem.add_fluent(y, default_initial_value=0)
+        a = InstantaneousAction("a", _env=env)
+        problem.add_action(a)
+        end = TimePointInterval(GlobalEndTiming())
+        quality_metrics = [
+            MinimizeActionCosts({a: 1}, default=2, environment=env),
+            MinimizeSequentialPlanLength(environment=env),
+            MinimizeMakespan(environment=env),
+            MinimizeExpressionOnFinalState(y(), environment=env),
+            MaximizeExpressionOnFinalState(y(), environment=env),
+            Oversubscription({x(): 3}, environment=env),
+            TemporalOversubscription({(end, x()): 2}, environment=env),
+        ]
+
+        for metric in quality_metrics:
+            metric_pb = self.pb_writer.convert(metric)
+            metric_up = self.pb_reader.convert(metric_pb, problem)
+
+            self.assertIs(metric_up.environment, env, str(metric))
             self.assertEqual(str(metric), str(metric_up))
 
     def test_log_message(self):
@@ -459,6 +487,47 @@ class TestProtobufProblems(unittest_TestCase):
                     hash(problem_up),
                     f"[hash] Error on problem {name}: \n\n{problem}\n=====\n{problem_up}",
                 )
+
+    def test_all_problems_non_default_environment(self):
+        for name, example in self.problems.items():
+            problem = example.problem
+            kind = problem.kind
+            if (
+                kind.has_increase_continuous_effects()
+                or kind.has_decrease_continuous_effects()
+                or kind.has_interpreted_functions_in_durations()
+                or kind.has_interpreted_functions_in_boolean_assignments()
+                or kind.has_interpreted_functions_in_numeric_assignments()
+                or kind.has_interpreted_functions_in_object_assignments()
+                or kind.has_interpreted_functions_in_conditions()
+            ):
+                continue
+            # The scheduling model layer itself (decision variables, activities
+            # and their parameters) does not yet build its components in the
+            # problem's environment, so it cannot be rebuilt in a fresh one.
+            if isinstance(problem, up.model.scheduling.SchedulingProblem):
+                continue
+            env = Environment()
+            problem_pb = self.pb_writer.convert(problem)
+            problem_up = self.pb_reader.convert(problem_pb, env)
+
+            self.assertIs(problem_up.environment, env, name)
+            for o in problem_up.all_objects:
+                self.assertIs(o.environment, env, f"{name}: object {o}")
+            for f in problem_up.fluents:
+                self.assertIs(f.environment, env, f"{name}: fluent {f.name}")
+            for a in problem_up.actions:
+                self.assertIs(a.environment, env, f"{name}: action {a.name}")
+            for m in problem_up.quality_metrics:
+                self.assertIs(m.environment, env, f"{name}: metric {m}")
+            # Problem equality also compares environments, so compare the
+            # structure with the same round trip in the default environment
+            # (checked equal to the original in test_all_problems) through
+            # the printed representation instead.
+            problem_default_env = self.pb_reader.convert(
+                self.pb_writer.convert(problem)
+            )
+            self.assertEqual(str(problem_default_env), str(problem_up), name)
 
     def test_all_plans(self):
         for name, example in self.problems.items():
