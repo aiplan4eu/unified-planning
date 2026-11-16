@@ -34,6 +34,7 @@ from unified_planning.io import PDDLWriter
 from unified_planning.exceptions import (
     UPProblemDefinitionError,
     UPUnsupportedProblemTypeError,
+    UPUsageError,
 )
 from fractions import Fraction
 from types import SimpleNamespace
@@ -962,6 +963,35 @@ class TestT2S(unittest_TestCase):
         claimed = TimedToSequential.resulting_problem_kind(problem.kind)
         self.assertFalse(claimed.has_simple_numeric_planning())
         self.assertFalse(claimed.has_general_numeric_planning())
+
+    def test_map_back_inapplicable_plan_raises(self):
+        # a plan that is not applicable in the compiled problem, e.g. one starting a
+        # durative action whose duration interval is empty, can not be mapped back
+        problem = Problem("inapplicable_plan")
+        x = Fluent("x", IntType())
+        y = Fluent("y", IntType())
+        g = Fluent("g", BoolType())
+        problem.add_fluent(x, default_initial_value=5)
+        problem.add_fluent(y, default_initial_value=3)
+        problem.add_fluent(g, default_initial_value=False)
+        touch = InstantaneousAction("touch")
+        touch.add_effect(x, 5)
+        touch.add_effect(y, 3)
+        problem.add_action(touch)
+        tda = DurativeAction("tda")
+        tda.set_closed_duration_interval(x(), y())
+        tda.add_effect(EndTiming(), g, True)
+        problem.add_action(tda)
+        problem.add_goal(g)
+
+        comp_res = TimedToSequential().compile(problem)
+        assert isinstance(comp_res.problem, Problem)
+        assert comp_res.plan_back_conversion is not None
+        sp = SequentialPlan(
+            [comp_res.problem.action("touch")(), comp_res.problem.action("tda")()]
+        )
+        with self.assertRaisesRegex(UPUsageError, "at step 1 "):
+            comp_res.plan_back_conversion(sp)
 
     def test_duration_interval_preconditions(self):
         # a durative action can only start if its duration interval, evaluated in the
