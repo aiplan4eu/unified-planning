@@ -113,9 +113,7 @@ def plan_back_conversion_callable(
     else:
         min_time_step = Fraction(1, 100)
     simulator = UPSequentialSimulator(new_problem)
-    # a fluent used in a duration is pruned if the simplification folds it out of every
-    # duration precondition (e.g. 5 + 0 * load); it is never written, so its value is
-    # read from the initial values of the original problem
+    # pruned duration fluents come from the original problem (see the class docstring)
     evaluator = StateEvaluator(new_problem)
     original_state = UPState(
         {
@@ -148,10 +146,7 @@ def plan_back_conversion_callable(
             state_with_pruned = _PrunedFluentsFallbackState(
                 state, original_state, pruned_fluents
             )
-            # NOTE the compiled action collapses the start and the end of the durative
-            # action into one instant, applying the end conditions and effects after the
-            # start effects; this only matches the temporal semantics if the end comes
-            # strictly after the start, so the duration must be strictly positive
+            # the duration must be strictly positive (see the class docstring)
             lower = _evaluate_duration_bound(
                 tinterval.lower,
                 action_for_mapback,
@@ -160,20 +155,15 @@ def plan_back_conversion_callable(
                 evaluator,
             )
             if problem.discrete_time:
-                # NOTE with discrete time the duration is the smallest positive integer
-                # in the interval; the compiled action is only applicable if the
-                # interval contains one, so the result is always inside the interval.
+                # the smallest positive integer in the interval
                 if tinterval.is_left_open():
                     dtime = Fraction(math.floor(lower) + 1)
                 else:
                     dtime = Fraction(math.ceil(lower))
                 dtime = max(dtime, Fraction(1))
             elif tinterval.is_left_open() or lower <= 0:
-                # NOTE the duration must be strictly greater than the lower bound if it
-                # is excluded from the interval, and strictly greater than 0 anyway; step
-                # past the greater of the two by min_time_step, without going beyond the
-                # upper bound if the interval is narrower than that step (its midpoint,
-                # if the upper bound is excluded too)
+                # step past the excluded lower bound or 0, without going beyond the
+                # upper bound (its midpoint, if the upper bound is excluded too)
                 dtime = max(lower, Fraction(0))
                 upper = _evaluate_duration_bound(
                     tinterval.upper,
@@ -408,11 +398,10 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     ) -> List[FNode]:
         """
         Returns the conditions under which the duration interval of the given action
-        admits a duration: the interval is not empty and contains a positive value (the
-        compiled action puts the end of the durative action strictly after its start).
-        With discrete time the duration must be an integer, so the interval must contain
-        a positive integer. They are evaluated in the state before the start of the
-        action, like the duration.
+        admits a duration: the interval is not empty and contains a positive value (see
+        the class docstring). With discrete time the duration must be an integer, so the
+        interval must contain a positive integer. They are evaluated in the state before
+        the start of the action, like the duration.
         """
         em = env.expression_manager
         duration = action.duration
@@ -594,8 +583,7 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 )
             ]
             if any(dc.is_false() for dc in duration_preconditions):
-                # NOTE the constant duration admits no positive value (with discrete
-                # time, no positive integer): the action can never be applied
+                # the action can never be applied (see the class docstring)
                 continue
             pdict = OrderedDict()
             for p in action.parameters:
