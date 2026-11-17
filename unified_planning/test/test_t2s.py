@@ -19,7 +19,10 @@ from unified_planning.test import (
 )
 from unified_planning.test.examples import get_example_problems
 from unified_planning.model.problem_kind import classical_kind, general_numeric_kind
-from unified_planning.engines.compilers.timed_to_sequential import TimedToSequential
+from unified_planning.engines.compilers.timed_to_sequential import (
+    TimedToSequential,
+    _constant_difference,
+)
 from unified_planning.plans import SequentialPlan, TimeTriggeredPlan
 from unified_planning.engines.results import (
     ValidationResultStatus,
@@ -38,7 +41,7 @@ from unified_planning.exceptions import (
 )
 from fractions import Fraction
 from types import SimpleNamespace
-from typing import Dict
+from typing import Dict, List, Optional, Tuple
 
 
 def _get_interpreted_function(*expressions):
@@ -1085,6 +1088,95 @@ class TestT2S(unittest_TestCase):
         comp_res = TimedToSequential().compile(problem)
         assert isinstance(comp_res.problem, Problem)
         self.assertEqual(comp_res.problem.action("tda").preconditions, [])
+
+    def test_constant_difference(self):
+        x = Fluent("x", IntType())()
+        y = Fluent("y", RealType())()
+        cases: List[Tuple[FNode, FNode, Optional[Fraction]]] = [
+            (Plus(x, Fraction(1, 1000)), x, Fraction(1, 1000)),
+            (Plus(x, 5), Plus(x, 2), Fraction(3)),
+            (Minus(Plus(x, 1), 1), x, Fraction(0)),
+            (Times(2, Plus(x, 3)), Plus(x, x), Fraction(6)),
+            (Div(Plus(Times(2, x), 1), 2), x, Fraction(1, 2)),
+            # the coefficients do not cancel out
+            (Times(2, x), x, None),
+            (y, x, None),
+            # a non-linear product is a term itself
+            (Plus(Times(x, y), 1), Times(x, y), Fraction(1)),
+            (Times(x, y), Times(y, x), None),
+            # x cancels out in the lower bound but does not appear in the upper one
+            (Int(5), Plus(Minus(x, x), 3), None),
+            # constant bounds
+            (Int(5), Real(Fraction(5, 2)), Fraction(5, 2)),
+        ]
+        for upper, lower, expected in cases:
+            with self.subTest(f"{upper} - {lower}"):
+                self.assertEqual(_constant_difference(upper, lower), expected)
+
+    def test_duration_precondition_skips_constant_difference(self):
+        # the bounds comparison is not added when their difference is a constant that
+        # makes it true: only the positivity of the upper bound is required
+        def check(name, set_duration, expected_preconditions, discrete_time=False):
+            with self.subTest(name):
+                problem = Problem(name)
+                problem.discrete_time = discrete_time
+                x = Fluent("x", IntType())
+                y = Fluent("y", IntType())
+                g = Fluent("g", BoolType())
+                problem.add_fluent(x, default_initial_value=3)
+                problem.add_fluent(y, default_initial_value=5)
+                problem.add_fluent(g, default_initial_value=False)
+                tda = DurativeAction("tda")
+                set_duration(tda, x, y)
+                tda.add_effect(EndTiming(), g, True)
+                problem.add_action(tda)
+                problem.add_goal(g)
+                comp_res = TimedToSequential().compile(problem)
+                assert isinstance(comp_res.problem, Problem)
+                self.assertEqual(
+                    comp_res.problem.action("tda").preconditions,
+                    expected_preconditions(x, y),
+                )
+
+        check(
+            "left_open_epsilon",
+            lambda a, x, y: a.set_left_open_duration_interval(
+                x, Plus(x, Fraction(1, 1000))
+            ),
+            lambda x, y: [LT(0, Plus(x, Fraction(1, 1000)))],
+        )
+        check(
+            "closed_shifted",
+            lambda a, x, y: a.set_closed_duration_interval(Plus(x, 2), Plus(x, 5)),
+            lambda x, y: [LT(0, Plus(x, 5))],
+        )
+        check(
+            "discrete_right_open_unit",
+            lambda a, x, y: a.set_right_open_duration_interval(x, Plus(x, 1)),
+            lambda x, y: [LE(1, Minus(Plus(x, 1), 1))],
+            discrete_time=True,
+        )
+        # a constant difference that empties the interval drops the action
+        with self.subTest("empty_shifted"):
+            problem = Problem("empty_shifted")
+            x = Fluent("x", IntType())
+            g = Fluent("g", BoolType())
+            problem.add_fluent(x, default_initial_value=3)
+            problem.add_fluent(g, default_initial_value=False)
+            tda = DurativeAction("tda")
+            tda.set_closed_duration_interval(Plus(x, 5), Plus(x, 2))
+            tda.add_effect(EndTiming(), g, True)
+            problem.add_action(tda)
+            problem.add_goal(g)
+            comp_res = TimedToSequential().compile(problem)
+            assert isinstance(comp_res.problem, Problem)
+            self.assertFalse(comp_res.problem.has_action("tda"))
+        # a difference that is not constant still needs the comparison
+        check(
+            "different_fluents",
+            lambda a, x, y: a.set_closed_duration_interval(x, y),
+            lambda x, y: [LE(x, y), LT(0, y)],
+        )
 
     def test_default_duration(self):
         # a durative action without an explicit duration has fixed duration 1: it
