@@ -44,6 +44,9 @@ from unified_planning.exceptions import (
     UPUnreachableCodeError,
 )
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+from unified_planning.model.walkers.dag import DagWalker
+from unified_planning.model.walkers.generic import handles
+from unified_planning.model.operators import OperatorKind
 from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import (
     SequentialPlan,
@@ -91,6 +94,92 @@ def _evaluate_duration_bound(
         dict(zip(action.parameters, action_instance.actual_parameters))
     )
     return Fraction(evaluator.evaluate(bound_with_params, state).constant_value())
+
+
+LinearTerms = Tuple[Dict[FNode, Fraction], Fraction]
+
+
+class _LinearTermsExtractor(DagWalker):
+    """
+    Writes a numeric expression as a sum of terms, each times a constant coefficient,
+    plus a constant. Sums, differences and products or divisions by a constant are
+    expanded; any other sub-expression (a fluent, a parameter, an interpreted function
+    call, a non-linear product, ...) is a term itself. A term whose coefficients cancel
+    out is kept with coefficient 0.
+    """
+
+    def get(self, expression: FNode) -> LinearTerms:
+        return self.walk(expression)
+
+    @handles(
+        set(OperatorKind)
+        - {
+            OperatorKind.INT_CONSTANT,
+            OperatorKind.REAL_CONSTANT,
+            OperatorKind.PLUS,
+            OperatorKind.MINUS,
+            OperatorKind.TIMES,
+            OperatorKind.DIV,
+        }
+    )
+    def walk_term(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        return {expression: Fraction(1)}, Fraction(0)
+
+    @handles(OperatorKind.INT_CONSTANT, OperatorKind.REAL_CONSTANT)
+    def walk_constant(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        return {}, Fraction(expression.constant_value())
+
+    @handles(OperatorKind.PLUS, OperatorKind.MINUS)
+    def walk_sum(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        terms: Dict[FNode, Fraction] = {}
+        constant = Fraction(0)
+        for i, (arg_terms, arg_constant) in enumerate(args):
+            sign = -1 if expression.is_minus() and i > 0 else 1
+            for term, coefficient in arg_terms.items():
+                terms[term] = terms.get(term, Fraction(0)) + sign * coefficient
+            constant += sign * arg_constant
+        return terms, constant
+
+    def walk_times(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        terms: Dict[FNode, Fraction] = {}
+        constant = Fraction(1)
+        for arg_terms, arg_constant in args:
+            if terms and arg_terms:
+                # a product of two non-constant factors is not linear
+                return self.walk_term(expression, args)
+            if arg_terms:
+                terms = {t: constant * c for t, c in arg_terms.items()}
+            else:
+                terms = {t: c * arg_constant for t, c in terms.items()}
+            constant *= arg_constant
+        return terms, constant
+
+    def walk_div(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        (numerator_terms, numerator_constant), (denominator_terms, denominator) = args
+        if denominator_terms or denominator == 0:
+            return self.walk_term(expression, args)
+        return (
+            {t: c / denominator for t, c in numerator_terms.items()},
+            numerator_constant / denominator,
+        )
+
+
+def _constant_difference(upper: FNode, lower: FNode) -> Optional[Fraction]:
+    """
+    Returns `upper - lower` if it is a constant, i.e. if the terms of the two
+    expressions cancel out, `None` otherwise (or if it can not be established). Every
+    term of `lower` must also appear in `upper`, so the fluents of `lower` are still
+    referenced when only a condition on `upper` is kept.
+    """
+    extractor = _LinearTermsExtractor()
+    upper_terms, upper_constant = extractor.get(upper)
+    lower_terms, lower_constant = extractor.get(lower)
+    if not set(lower_terms).issubset(upper_terms):
+        return None
+    for term, coefficient in upper_terms.items():
+        if coefficient != lower_terms.get(term, Fraction(0)):
+            return None
+    return upper_constant - lower_constant
 
 
 def plan_back_conversion_callable(
@@ -409,10 +498,16 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         is_open = duration.is_left_open() or duration.is_right_open()
         conditions: List[FNode] = []
         if not discrete_time:
-            # NOTE a fixed duration [d, d] is never empty (and LE(d, d) is not simplified)
-            if lower != upper or is_open:
+            # the simplifier does not cancel the same term on both sides (e.g.
+            # x < x + 1), so a constant difference of the bounds is checked here
+            difference = _constant_difference(upper, lower)
+            if difference is None:
                 conditions.append(
                     em.LT(lower, upper) if is_open else em.LE(lower, upper)
+                )
+            else:
+                conditions.append(
+                    em.Bool(difference > 0 if is_open else difference >= 0)
                 )
             conditions.append(em.LT(em.Int(0), upper))
             return conditions
@@ -421,10 +516,13 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         # int_lower <= int_upper and 1 <= int_upper
         int_lower = self._integer_duration_bound(action, env, lower, True)
         int_upper = self._integer_duration_bound(action, env, upper, False)
-        # NOTE a fixed int-typed duration [d, d] gives the same bound twice and is never
-        # empty, but a fixed constant like 5/2 is (its integer bounds are 3 and 2)
-        if int_lower != int_upper:
+        # as above: a fixed duration [d, d] or [x, x + 1) with int x is never empty,
+        # but a fixed constant like 5/2 is (its integer bounds are 3 and 2)
+        difference = _constant_difference(int_upper, int_lower)
+        if difference is None:
             conditions.append(em.LE(int_lower, int_upper))
+        else:
+            conditions.append(em.Bool(difference >= 0))
         conditions.append(em.LE(em.Int(1), int_upper))
         return conditions
 
