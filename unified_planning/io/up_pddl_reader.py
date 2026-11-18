@@ -24,49 +24,43 @@ import unified_planning.model.htn as htn
 from unified_planning.model.contingent import ContingentProblem
 from unified_planning.environment import Environment, get_environment
 from unified_planning.exceptions import (
+    PDDLSyntaxError,
     UPException,
     UPUnsupportedProblemTypeError,
 )
 
-from pyparsing import ParseResults
-from pyparsing import CharsNotIn, Empty, Located, col, lineno
-from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
-from pyparsing import Suppress, Group, Optional, Forward
-from pyparsing import one_of, rest_of_line
+
+def lineno(loc: int, s: str) -> int:
+    return s.count("\n", 0, loc) + 1
+
+
+def col(loc: int, s: str) -> int:
+    return loc - s.rfind("\n", 0, loc)
 
 
 class CustomParseResults:
-    def __init__(self, r):
-        self.res = r
-        self.value = r.value
-        self.locn_start = r.locn_start
-        self.locn_end = r.locn_end
-        if len(self.value) == 1 and isinstance(self.value[0], str):
-            self.value = self.value[0]
+    """A PDDL s-expression node: an atom (`value` is a str) or a list of nodes, with its source span."""
+
+    __slots__ = ("value", "locn_start", "locn_end")
+
+    def __init__(self, value, locn_start: int, locn_end: int):
+        self.value = value
+        self.locn_start = locn_start
+        self.locn_end = locn_end
 
     def __iter__(self):
-        for i in range(len(self)):
-            yield self[i]
+        return iter(self.value)
 
     def __getitem__(self, i):
-        return CustomParseResults(self.value[i])
+        return self.value[i]
 
     def __len__(self):
         return len(self.value)
 
     def __contains__(self, string: str):
-        stack = [self]
-        while len(stack) > 0:
-            exp = stack.pop()
-            if isinstance(exp.value, str):
-                if exp.value == string:
-                    return True
-            elif isinstance(exp.value, ParseResults):
-                for e in exp:
-                    stack.append(e)
-            else:
-                raise SyntaxError(f"Not able to handle: {exp}")
-        return False
+        if isinstance(self.value, str):
+            return self.value == string
+        return any(string in e for e in self.value)
 
     def __str__(self):
         if isinstance(self.value, str):
@@ -89,276 +83,352 @@ class CustomParseResults:
 Object = "object"
 TypesMap = Dict[str, up.model.Type]
 
+# Skips whitespace and ";" comments, then captures a parenthesis or an atom.
+_TOKEN = re.compile(r"(?:\s+|;[^\n]*)*([()]|[^\s();]+)")
 
-def nested_expr():
-    """
-    A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
-    """
-    cnt = Empty() + CharsNotIn("() \n\t\r")
-    nested = Forward()
-    nested <<= Group(
-        Located(
-            Suppress("(") + ZeroOrMore(Group(Located(cnt)) | nested) + Suppress(")")
-        )
-    )
-    return nested
+# Names as the legacy grammar accepted them; the input is already lower case.
+_NAME = re.compile(r"[a-z][a-z0-9_-]*\Z")
+
+_REQUIREMENTS = frozenset(
+    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality"
+    " :existential-preconditions :universal-preconditions :quantified-preconditions"
+    " :conditional-effects :fluents :numeric-fluents :object-fluents :adl"
+    " :durative-actions :duration-inequalities :timed-initial-literals"
+    " :timed-initial-effects :action-costs :hierarchy :method-preconditions"
+    " :constraints :contingent :preferences :time :continuous-effects".split()
+)
+
+# Accepted keywords of each section, mapped to the key they are stored under.
+_ACTION_FIELDS = {
+    ":parameters": "params",
+    ":precondition": "pre",
+    ":effect": "eff",
+    ":observe": "obs",
+}
+_PROCESS_FIELDS = {":parameters": "params", ":precondition": "pre", ":effect": "eff"}
+_DURATIVE_FIELDS = {
+    ":parameters": "params",
+    ":duration": "duration",
+    ":condition": "cond",
+    ":effect": "eff",
+}
+_TASK_FIELDS = {":parameters": "params"}
+_METHOD_FIELDS = {
+    ":parameters": "params",
+    ":task": "task",
+    ":precondition": "precondition",
+    ":ordered-subtasks": "ordered-subtasks",
+    ":ordered-tasks": "ordered-subtasks",
+    ":subtasks": "subtasks",
+    ":tasks": "subtasks",
+    ":ordering": "ordering",
+    ":constraints": "constraints",
+}
+_HTN_FIELDS = {
+    ":parameters": "params",
+    ":ordered-tasks": "ordered-tasks",
+    ":ordered-subtasks": "ordered-tasks",
+    ":tasks": "tasks",
+    ":subtasks": "tasks",
+    ":ordering": "ordering",
+    ":constraints": "constraints",
+}
 
 
-class PDDLGrammar:
-    def __init__(self):
-        name = Word(alphas, alphanums + "_" + "-")
-        variable = Suppress("?") + name
+def _error(msg: str, loc: int, s: str) -> PDDLSyntaxError:
+    return PDDLSyntaxError(f"{msg} at line {lineno(loc, s)}, col {col(loc, s)}")
 
-        require_def = (
-            Suppress("(")
-            + ":requirements"
-            + OneOrMore(
-                one_of(
-                    ":strips :typing :negative-preconditions :disjunctive-preconditions :equality :existential-preconditions :universal-preconditions :quantified-preconditions :conditional-effects :fluents :numeric-fluents :object-fluents :adl :durative-actions :duration-inequalities :timed-initial-literals :timed-initial-effects :action-costs :hierarchy :method-preconditions :constraints :contingent :preferences :time :continuous-effects"
-                )
+
+def _atom(node: CustomParseResults, s: str, what: str) -> str:
+    if not isinstance(node.value, str):
+        raise _error(f"Expected {what}, found {node}", node.locn_start, s)
+    return node.value
+
+
+def _typed_list(
+    nodes: List[CustomParseResults], s: str, variables: bool
+) -> List[CustomParseResults]:
+    """Parses `a b - t c` into nodes whose value is `[names]` or `[names, type]`."""
+    groups = []
+    names: List[str] = []
+    first_start = last_end = 0
+    i = 0
+    while i < len(nodes):
+        tok = _atom(nodes[i], s, "a name")
+        if tok[0] == "-":
+            # Names start with a letter, so "-t" is the type annotation "- t".
+            if tok == "-" and i + 1 < len(nodes):
+                type_node = nodes[i + 1]
+                t = _atom(type_node, s, "a type name")
+                i += 2
+            else:
+                type_node, t = nodes[i], tok[1:]
+                i += 1
+            if not names or not t:
+                raise _error("Misplaced '-' in typed list", nodes[i - 1].locn_start, s)
+            groups.append(
+                CustomParseResults([names, t], first_start, type_node.locn_end)
             )
-            + Suppress(")")
-        )
+            names = []
+            continue
+        if variables:
+            if tok[0] != "?" or len(tok) == 1:
+                raise _error(
+                    f"Expected a variable, found {tok}", nodes[i].locn_start, s
+                )
+            tok = tok[1:]
+        if not names:
+            first_start = nodes[i].locn_start
+        names.append(tok)
+        last_end = nodes[i].locn_end
+        i += 1
+    if names:
+        groups.append(CustomParseResults([names], first_start, last_end))
+    return groups
 
-        types_def = (
-            Suppress("(")
-            + ":types"
-            - OneOrMore(
-                Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-            ).set_results_name("types")
-            + Suppress(")")
-        )
 
-        constants_def = (
-            Suppress("(")
-            + ":constants"
-            - ZeroOrMore(
-                Group(Located(Group(OneOrMore(name)) + Optional(Suppress("-") + name)))
-            ).set_results_name("constants")
-            + Suppress(")")
-        )
+_DOMAIN_STRUCTURES = {
+    ":action": ("actions", _ACTION_FIELDS, (":parameters",)),
+    ":durative-action": (
+        "actions",
+        _DURATIVE_FIELDS,
+        (":parameters", ":duration", ":effect"),
+    ),
+    ":process": ("processes", _PROCESS_FIELDS, (":parameters",)),
+    ":event": ("events", _PROCESS_FIELDS, (":parameters",)),
+    ":task": ("tasks", _TASK_FIELDS, (":parameters",)),
+    ":method": ("methods", _METHOD_FIELDS, (":parameters", ":task")),
+}
 
-        predicate = (
-            Suppress("(")
-            + Group(
-                name
-                + Group(
-                    ZeroOrMore(
-                        Group(
-                            Located(
-                                Group(OneOrMore(variable))
-                                + Optional(Suppress("-") + name)
-                            )
-                        )
+
+class _Parser:
+    """Recursive descent over the PDDL tokens, so that errors point where the structure breaks."""
+
+    def __init__(self, s: str):
+        self.s = s
+        self.toks = [(m.group(1), m.start(1)) for m in _TOKEN.finditer(s)]
+        self.i = 0
+
+    def peek(self, ahead: int = 0) -> typing.Optional[str]:
+        i = self.i + ahead
+        return self.toks[i][0] if i < len(self.toks) else None
+
+    def loc(self) -> int:
+        return self.toks[self.i][1] if self.i < len(self.toks) else len(self.s)
+
+    def error(self, msg: str) -> PDDLSyntaxError:
+        tok = self.peek()
+        found = "end of file" if tok is None else repr(tok)
+        return _error(f"{msg}, found {found}", self.loc(), self.s)
+
+    def expect(self, tok: str):
+        if self.peek() != tok:
+            raise self.error(f"Expected '{tok}'")
+        self.i += 1
+
+    def atom(self, what: str) -> CustomParseResults:
+        tok = self.peek()
+        if tok is None or tok == "(" or tok == ")":
+            raise self.error(f"Expected {what}")
+        start = self.toks[self.i][1]
+        self.i += 1
+        return CustomParseResults(tok, start, start + len(tok))
+
+    def nested(self) -> CustomParseResults:
+        """Parses a balanced parenthesized expression into a tree of nodes."""
+        if self.peek() != "(":
+            raise self.error("Expected '('")
+        toks, i = self.toks, self.i
+        stack: List[Tuple[int, List[CustomParseResults]]] = []
+        children: List[CustomParseResults] = []
+        while i < len(toks):
+            tok, start = toks[i]
+            i += 1
+            if tok == "(":
+                stack.append((start, children))
+                children = []
+            elif tok == ")":
+                list_start, parent = stack.pop()
+                node = CustomParseResults(children, list_start, start + 1)
+                parent.append(node)
+                children = parent
+                if not stack:
+                    self.i = i
+                    return node
+            else:
+                children.append(CustomParseResults(tok, start, start + len(tok)))
+        self.i = i
+        raise self.error("Expected ')'")
+
+    def nested_list(self) -> List[CustomParseResults]:
+        """Parses `(...) (...) ...)` and consumes the closing ')'."""
+        res = []
+        while self.peek() == "(":
+            res.append(self.nested())
+        self.expect(")")
+        return res
+
+    def typed_list(self, variables: bool) -> List[CustomParseResults]:
+        """Parses `a b - t c` up to the closing ')', which is not consumed."""
+        what = "a variable" if variables else "a name"
+        nodes = []
+        while self.peek() != ")":
+            tok = self.peek() or ""
+            bare = tok[1:] if tok[:1] in ("?", "-") else tok
+            if tok != "-" and not _NAME.match(bare):
+                raise self.error(f"Expected {what}")
+            nodes.append(self.atom(what))
+        return _typed_list(nodes, self.s, variables)
+
+    def at_predicate(self) -> bool:
+        return self.peek() == "(" and _NAME.match(self.peek(1) or "") is not None
+
+    def predicate(self) -> List[typing.Any]:
+        start = self.loc()
+        try:
+            self.expect("(")
+            res = [self.atom("a predicate name").value, self.typed_list(True)]
+            self.expect(")")
+        except PDDLSyntaxError as e:
+            # Blame the declaration, as the legacy grammar did, and keep the detail.
+            loc = f"line {lineno(start, self.s)}, col {col(start, self.s)}"
+            raise PDDLSyntaxError(f"Invalid declaration at {loc}: {e}") from None
+        return res
+
+    def requirements(self) -> List[str]:
+        res = []
+        while self.peek() != ")":
+            if self.peek() not in _REQUIREMENTS:
+                raise self.error("Expected a requirement")
+            res.append(self.atom("a requirement").value)
+        self.i += 1
+        return res
+
+    def fields(
+        self,
+        fields: Dict[str, str],
+        required: Tuple[str, ...],
+        kind: str,
+        start: int,
+        has_name: bool = True,
+    ) -> Dict[str, typing.Any]:
+        """Parses `name :keyword (...) ...)` into a dict keyed by `fields`."""
+        res: Dict[str, typing.Any] = {}
+        if has_name:
+            if not _NAME.match(self.peek() or ""):
+                raise self.error("Expected a name")
+            res["name"] = self.atom("a name").value
+        while self.peek() != ")":
+            field = fields.get(typing.cast(str, self.peek()))
+            if field is None:
+                raise self.error(f"Unexpected token in ({kind}")
+            if field in res:
+                raise self.error(f"Duplicate {self.peek()} in ({kind}")
+            self.i += 1
+            if field == "params":
+                self.expect("(")
+                res[field] = self.typed_list(True)
+                self.expect(")")
+            else:
+                res[field] = self.nested()
+        for keyword in required:
+            if fields[keyword] not in res:
+                raise self.error(f"Missing {keyword} in ({kind}")
+        self.i += 1
+        return res
+
+    def header(self, kind: str) -> str:
+        """Parses `(define (kind name)` and returns the name."""
+        self.expect("(")
+        self.expect("define")
+        self.expect("(")
+        self.expect(kind)
+        name = self.atom(f"the {kind} name").value
+        self.expect(")")
+        return name
+
+    def sections(self) -> typing.Iterator[Tuple[str, int]]:
+        """Yields the keyword and start of each section; the caller parses its body."""
+        while self.peek() != ")":
+            start = self.loc()
+            self.expect("(")
+            yield self.atom("a section keyword").value, start
+        self.i += 1
+        if self.i != len(self.toks):
+            raise self.error("Expected end of file")
+
+
+def _parse_domain(s: str) -> Dict[str, typing.Any]:
+    p = _Parser(s)
+    res: Dict[str, typing.Any] = {"name": p.header("domain")}
+    for key in ("tasks", "methods", "actions", "processes", "events"):
+        res[key] = []
+    for kind, start in p.sections():
+        if kind == ":requirements":
+            res["features"] = p.requirements()
+        elif kind in (":types", ":constants"):
+            res[kind[1:]] = p.typed_list(False)
+            p.expect(")")
+        elif kind == ":predicates":
+            res["predicates"] = []
+            while p.at_predicate():
+                res["predicates"].append(p.predicate())
+            p.expect(")")
+        elif kind == ":functions":
+            res["functions"] = []
+            while p.at_predicate():
+                function: List[typing.Any] = [p.predicate()]
+                tok = p.peek()
+                if tok is not None and tok[0] == "-":
+                    # Names start with a letter, so "-t" is the type annotation "- t".
+                    p.i += 1
+                    function.append(
+                        p.atom("a type name").value if tok == "-" else tok[1:]
                     )
-                )
-            )
-            + Suppress(")")
-        )
+                res["functions"].append(function)
+            p.expect(")")
+        elif kind in _DOMAIN_STRUCTURES:
+            key, fields, required = _DOMAIN_STRUCTURES[kind]
+            res[key].append(p.fields(fields, required, kind, start))
+        else:
+            raise _error(f"Unknown domain section ({kind}", start, s)
+    return res
 
-        predicates_def = (
-            Suppress("(")
-            + ":predicates"
-            - Group(OneOrMore(predicate)).set_results_name("predicates")
-            + Suppress(")")
-        )
 
-        functions_def = (
-            Suppress("(")
-            + ":functions"
-            - Group(
-                OneOrMore(Group(predicate + Optional(Suppress("-") + name)))
-            ).set_results_name("functions")
-            + Suppress(")")
-        )
-
-        parameters = ZeroOrMore(
-            Group(Located(Group(OneOrMore(variable)) + Optional(Suppress("-") + name)))
-        ).set_results_name("params")
-        action_def = Group(
-            Suppress("(")
-            + ":action"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Optional(":precondition" - nested_expr().set_results_name("pre"))
-            + Optional(":effect" - nested_expr().set_results_name("eff"))
-            + Optional(":observe" - nested_expr().set_results_name("obs"))
-            + Suppress(")")
-        )
-        process_def = Group(
-            Suppress("(")
-            + ":process"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Optional(":precondition" - nested_expr().set_results_name("pre"))
-            + Optional(":effect" - nested_expr().set_results_name("eff"))
-            + Suppress(")")
-        )
-        event_def = Group(
-            Suppress("(")
-            + ":event"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Optional(":precondition" - nested_expr().set_results_name("pre"))
-            + Optional(":effect" - nested_expr().set_results_name("eff"))
-            + Suppress(")")
-        )
-
-        dur_action_def = Group(
-            Suppress("(")
-            + ":durative-action"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + ":duration"
-            - nested_expr().set_results_name("duration")
-            + Optional(":condition" - nested_expr().set_results_name("cond"))
-            + ":effect"
-            - nested_expr().set_results_name("eff")
-            + Suppress(")")
-        )
-
-        task_def = Group(
-            Suppress("(")
-            + ":task"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + Suppress(")")
-        )
-
-        method_def = Group(
-            Suppress("(")
-            + ":method"
-            - name.set_results_name("name")
-            + ":parameters"
-            - Suppress("(")
-            + parameters
-            + Suppress(")")
-            + ":task"
-            - nested_expr().set_results_name("task")
-            + Optional(":precondition" - nested_expr().set_results_name("precondition"))
-            + Optional(
-                one_of(":ordered-subtasks :ordered-tasks")
-                - nested_expr().set_results_name("ordered-subtasks")
-            )
-            + Optional(
-                one_of(":subtasks :tasks") - nested_expr().set_results_name("subtasks")
-            )
-            + Optional(":ordering" - nested_expr().set_results_name("ordering"))
-            + Optional(":constraints" - nested_expr().set_results_name("constraints"))
-            + Suppress(")")
-        )
-
-        domain = (
-            Suppress("(")
-            + "define"
-            + Suppress("(")
-            + "domain"
-            + name.set_results_name("name")
-            + Suppress(")")
-            + Optional(require_def).set_results_name("features")
-            + Optional(types_def)
-            + Optional(constants_def)
-            + Optional(predicates_def)
-            + Optional(functions_def)
-            + Group(ZeroOrMore(task_def)).set_results_name("tasks")
-            + Group(ZeroOrMore(method_def)).set_results_name("methods")
-            + Group(ZeroOrMore(action_def | dur_action_def)).set_results_name("actions")
-            + Group(ZeroOrMore(process_def)).set_results_name("processes")
-            + Group(ZeroOrMore(event_def)).set_results_name("events")
-            + Suppress(")")
-        )
-
-        objects = ZeroOrMore(
-            Group(Group(OneOrMore(name)) + Optional(Suppress("-") + name))
-        ).set_results_name("objects")
-
-        htn_def = Group(
-            Suppress("(")
-            + ":htn"
-            - Optional(":parameters" - Suppress("(") + parameters + Suppress(")"))
-            + Optional(
-                one_of(":ordered-tasks :ordered-subtasks")
-                - nested_expr().set_results_name("ordered-tasks")
-            )
-            + Optional(
-                one_of(":tasks :subtasks") - nested_expr().set_results_name("tasks")
-            )
-            + Optional(":ordering" - nested_expr().set_results_name("ordering"))
-            + Optional(":constraints" - nested_expr().set_results_name("constraints"))
-            + Suppress(")")
-        )
-
-        metric = (Keyword("minimize") | Keyword("maximize")).set_results_name(
-            "optimization"
-        ) + (name | nested_expr()).set_results_name("metric")
-
-        problem = (
-            Suppress("(")
-            + "define"
-            + Suppress("(")
-            + "problem"
-            + name.set_results_name("name")
-            + Suppress(")")
-            + Suppress("(")
-            + ":domain"
-            + name
-            + Suppress(")")
-            + Optional(require_def)
-            + Optional(Suppress("(") + ":objects" + objects + Suppress(")"))
-            + Optional(htn_def.set_results_name("htn"))
-            + Suppress("(")
-            + ":init"
-            + ZeroOrMore(nested_expr()).set_results_name("init")
-            + Suppress(")")
-            + Optional(
-                Suppress("(")
-                + ":goal"
-                + nested_expr().set_results_name("goal")
-                + Suppress(")")
-            )
-            + Optional(
-                Suppress("(")
-                + ":constraints"
-                + OneOrMore(nested_expr()).set_results_name("constraints")
-                + Suppress(")")
-            )
-            + Optional(Suppress("(") + ":metric" + metric + Suppress(")"))
-            + Suppress(")")
-        )
-
-        domain.ignore(";" + rest_of_line)
-        problem.ignore(";" + rest_of_line)
-
-        self._domain = domain
-        self._problem = problem
-        self._parameters = parameters
-
-    @property
-    def domain(self):
-        return self._domain
-
-    @property
-    def problem(self):
-        return self._problem
-
-    @property
-    def parameters(self):
-        return self._parameters
+def _parse_problem_sexpr(s: str) -> Dict[str, typing.Any]:
+    p = _Parser(s)
+    res: Dict[str, typing.Any] = {"name": p.header("problem")}
+    for kind, start in p.sections():
+        if kind == ":domain":
+            p.atom("the domain name")
+            p.expect(")")
+        elif kind == ":requirements":
+            p.requirements()
+        elif kind == ":objects":
+            res["objects"] = p.typed_list(False)
+            p.expect(")")
+        elif kind == ":htn":
+            res["htn"] = p.fields(_HTN_FIELDS, (), kind, start, has_name=False)
+        elif kind == ":init":
+            res["init"] = p.nested_list()
+        elif kind == ":goal":
+            res["goal"] = p.nested()
+            p.expect(")")
+        elif kind == ":constraints":
+            res["constraints"] = p.nested_list()
+        elif kind == ":metric":
+            if p.peek() not in ("minimize", "maximize"):
+                raise p.error("Expected 'minimize' or 'maximize'")
+            res["optimization"] = p.atom("an optimization").value
+            if p.peek() == "(":
+                res["metric"] = p.nested()
+            else:  # a bare name, as in (total-time)
+                a = p.atom("a metric")
+                res["metric"] = CustomParseResults([a], a.locn_start, a.locn_end)
+            p.expect(")")
+        else:
+            raise _error(f"Unknown problem section ({kind}", start, s)
+    return res
 
 
 class UPPDDLReader:
@@ -396,10 +466,6 @@ class UPPDDLReader:
             "sometime-after": self._em.SometimeAfter,
             "at-most-once": self._em.AtMostOnce,
         }
-        grammar = PDDLGrammar()
-        self._pp_domain = grammar.domain
-        self._pp_problem = grammar.problem
-        self._pp_parameters = grammar.parameters
         self._fve = self._env.free_vars_extractor
         self._totalcost: typing.Optional[up.model.FNode] = None
 
@@ -446,7 +512,7 @@ class UPPDDLReader:
                             exp.line_end(complete_str),
                             exp.col_end(complete_str),
                         )
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             repr(e)
                             + f"\nError from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
@@ -463,7 +529,7 @@ class UPPDDLReader:
                         f"Invalid expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                     )
             else:
-                if isinstance(exp.value, ParseResults):
+                if isinstance(exp.value, list):
                     if len(exp) == 0:  # empty precodition
                         solved.append(self._em.TRUE())
                     elif exp[0].value == "-" and len(exp) == 2:  # unary minus
@@ -474,12 +540,9 @@ class UPPDDLReader:
                         for i in range(1, len(exp)):
                             stack.append((var, exp[i], False))
                     elif exp[0].value in ["exists", "forall"]:  # quantifier operators
-                        vars_string = " ".join([e.value for e in exp[1]])
-                        vars_res = self._pp_parameters.parse_string(
-                            vars_string, parse_all=False
-                        )
+                        vars_res = _typed_list(exp[1].value, complete_str, True)
                         new_vars = {}
-                        for g in vars_res["params"]:
+                        for g in vars_res:
                             try:
                                 t = types_map[
                                     g.value[1] if len(g.value) > 1 else Object
@@ -493,7 +556,7 @@ class UPPDDLReader:
                                     lineno(g.locn_end, complete_str),
                                     col(g.locn_end, complete_str),
                                 )
-                                raise SyntaxError(
+                                raise PDDLSyntaxError(
                                     f"Undefined variable's type: {g[1]}."
                                     + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                                 )
@@ -526,7 +589,7 @@ class UPPDDLReader:
                             exp.line_end(complete_str),
                             exp.col_end(complete_str),
                         )
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Not able to handle: {complete_str[exp.locn_start : exp.locn_end]} found at line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
                 elif isinstance(exp.value, str):
@@ -549,7 +612,7 @@ class UPPDDLReader:
                                 exp.line_end(complete_str),
                                 exp.col_end(complete_str),
                             )
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Undefined name found: {exp.value[1:]}.\nError in expression from"
                                 + f" line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                             )
@@ -569,7 +632,7 @@ class UPPDDLReader:
                                 exp.line_end(complete_str),
                                 exp.col_end(complete_str),
                             )
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Found invalid expression: {complete_str[exp.locn_start : exp.locn_end]}. From line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                             )
                         if n.denominator == 1:
@@ -585,7 +648,7 @@ class UPPDDLReader:
                         exp.line_end(complete_str),
                         exp.col_end(complete_str),
                     )
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                     )
         assert len(solved) == 1  # sanity check
@@ -752,7 +815,9 @@ class UPPDDLReader:
                             assert isinstance(timing, up.model.timing.TimeInterval)
                             act.add_increase_continuous_effect(timing, *con_eff_without)
                     else:
-                        raise SyntaxError("Continuous change syntax is not correct!")
+                        raise PDDLSyntaxError(
+                            "Continuous change syntax is not correct!"
+                        )
 
                 else:
                     eff = (
@@ -878,7 +943,9 @@ class UPPDDLReader:
                             assert isinstance(timing, up.model.timing.TimeInterval)
                             act.add_increase_continuous_effect(timing, *con_eff_without)
                     else:
-                        raise SyntaxError("Continuous change syntax is not correct!")
+                        raise PDDLSyntaxError(
+                            "Continuous change syntax is not correct!"
+                        )
 
                 else:
                     eff = (
@@ -911,11 +978,8 @@ class UPPDDLReader:
                         "Nested forall on effects are not supported."
                     )
                 forall_variables = forall_variables.copy()
-                vars_string = " ".join([e.value for e in exp[1]])
-                vars_res = self._pp_parameters.parse_string(
-                    vars_string, parse_all=False
-                )
-                for g in vars_res["params"]:
+                vars_res = _typed_list(exp[1].value, complete_str, True)
+                for g in vars_res:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
                         forall_variables[o] = up.model.Variable(o, t, self._env)
@@ -952,13 +1016,10 @@ class UPPDDLReader:
                 for i in range(1, len(exp)):
                     to_add.append((exp[i], vars))
             elif op == "forall":
-                vars_string = " ".join([e.value for e in exp[1]])
-                vars_res = self._pp_parameters.parse_string(
-                    vars_string, parse_all=False
-                )
+                vars_res = _typed_list(exp[1].value, complete_str, True)
                 if vars is None:
                     vars = {}
-                for g in vars_res["params"]:
+                for g in vars_res:
                     try:
                         t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     except KeyError:
@@ -970,7 +1031,7 @@ class UPPDDLReader:
                             lineno(g.locn_end, complete_str),
                             col(g.locn_end, complete_str),
                         )
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Undefined variable's type: {g[1]}."
                             + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                         )
@@ -1025,7 +1086,7 @@ class UPPDDLReader:
                     exp.line_end(complete_str),
                     exp.col_end(complete_str),
                 )
-                raise SyntaxError(
+                raise PDDLSyntaxError(
                     f"Not able to handle: {exp}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                 )
 
@@ -1160,11 +1221,8 @@ class UPPDDLReader:
                         "Nested forall on effects are not supported."
                     )
                 forall_variables = forall_variables.copy()
-                vars_string = " ".join([e.value for e in eff[1]])
-                vars_res = self._pp_parameters.parse_string(
-                    vars_string, parse_all=False
-                )
-                for g in vars_res["params"]:
+                vars_res = _typed_list(eff[1].value, complete_str, True)
+                for g in vars_res:
                     t = types_map[g.value[1] if len(g.value) > 1 else Object]
                     for o in g.value[0]:
                         forall_variables[o] = up.model.Variable(o, t, self._env)
@@ -1178,7 +1236,7 @@ class UPPDDLReader:
                     eff.line_end(complete_str),
                     eff.col_end(complete_str),
                 )
-                raise SyntaxError(
+                raise PDDLSyntaxError(
                     f"Not able to handle: {eff.value}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                 )
 
@@ -1196,7 +1254,7 @@ class UPPDDLReader:
                     lineno(g.locn_end, domain_str),
                     col(g.locn_end, domain_str),
                 )
-                raise SyntaxError(
+                raise PDDLSyntaxError(
                     f"Undefined parameter's type: {g.value[1]}."
                     + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                 )
@@ -1276,7 +1334,7 @@ class UPPDDLReader:
                 e.col_start(complete_str),
             )
             end_line, end_col = e.line_end(complete_str), e.col_end(complete_str)
-            raise SyntaxError(
+            raise PDDLSyntaxError(
                 f"Could not parse the subtasks list: {e}, from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
             )
 
@@ -1366,9 +1424,9 @@ class UPPDDLReader:
 
     def _parse_problem(
         self,
-        domain_res: ParseResults,
+        domain_res: Dict[str, typing.Any],
         domain_str: str,
-        problem_res: typing.Optional[ParseResults],
+        problem_res: typing.Optional[Dict[str, typing.Any]],
         problem_str=typing.Optional[str],
     ) -> "up.model.Problem":
         problem: up.model.Problem
@@ -1403,7 +1461,7 @@ class UPPDDLReader:
             for declared_type in type_line[0]:
                 declared_type = str(declared_type)
                 if declared_type in type_declarations:
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Type {declared_type} is declared more than once"
                     )
                 if declared_type == Object:
@@ -1426,7 +1484,7 @@ class UPPDDLReader:
                 father = types_map[father_name]
             elif father_name in type_declarations:
                 if type == father_name:
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Type '{type}' is defined as a subtype of itself"
                     )
                 # father exists but was not processed yet. Force processing immediately
@@ -1467,7 +1525,7 @@ class UPPDDLReader:
                         lineno(g.locn_end, domain_str),
                         col(g.locn_end, domain_str),
                     )
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
@@ -1492,7 +1550,7 @@ class UPPDDLReader:
                 try:
                     param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
                 except KeyError:
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
@@ -1508,7 +1566,7 @@ class UPPDDLReader:
                             lineno(g.locn_end, domain_str),
                             col(g.locn_end, domain_str),
                         )
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"In definition of function {n} the parameter {param_name} "
                             + f"is defined twice.\nError from line: {g_start_line}, col: {g_start_col}"
                             + f" to line: {g_end_line}, col: {g_end_col}."
@@ -1521,7 +1579,7 @@ class UPPDDLReader:
                 elif ret_type_name in types_map:
                     fluent_type = types_map[ret_type_name]
                 else:
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Undefined return type '{ret_type_name}' for function '{n}'."
                     )
             else:
@@ -1544,7 +1602,7 @@ class UPPDDLReader:
                     lineno(g.locn_end, domain_str),
                     col(g.locn_end, domain_str),
                 )
-                raise SyntaxError(
+                raise PDDLSyntaxError(
                     f"Undefined variable's type: {g.value[1]}."
                     + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                 )
@@ -1567,7 +1625,7 @@ class UPPDDLReader:
                         lineno(g.locn_end, domain_str),
                         col(g.locn_end, domain_str),
                     )
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Undefined parameter's type: {g.value[1]}."
                         + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
@@ -1586,7 +1644,7 @@ class UPPDDLReader:
                         proc,
                         types_map,
                         {},
-                        CustomParseResults(a["pre"][0]),
+                        a["pre"],
                         domain_str,
                     )
                 )
@@ -1595,7 +1653,7 @@ class UPPDDLReader:
                     problem,
                     proc,
                     types_map,
-                    CustomParseResults(a["eff"][0]),
+                    a["eff"],
                     domain_str,
                 )
             problem.add_process(proc)
@@ -1611,7 +1669,7 @@ class UPPDDLReader:
                         evt,
                         types_map,
                         {},
-                        CustomParseResults(a["pre"][0]),
+                        a["pre"],
                         domain_str,
                     )
                 )
@@ -1620,7 +1678,7 @@ class UPPDDLReader:
                     problem,
                     evt,
                     types_map,
-                    CustomParseResults(a["eff"][0]),
+                    a["eff"],
                     domain_str,
                 )
             problem.add_event(evt)
@@ -1630,7 +1688,7 @@ class UPPDDLReader:
             a_params = self._get_params(a, types_map, domain_str)
             if "duration" in a:
                 dur_act = up.model.DurativeAction(n, a_params, self._env)
-                dur = CustomParseResults(a["duration"][0])
+                dur = a["duration"]
                 if dur[0].value == "=":
                     dur_act.set_fixed_duration(
                         self._parse_exp(
@@ -1654,12 +1712,12 @@ class UPPDDLReader:
                             )
                             is_right_open = dur[j][0].value == "<"
                         else:
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Not able to handle duration constraint of action {n}"
                                 + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                             )
                     if lower is None or upper is None:
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Not able to handle duration constraint of action {n}"
                             + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                         )
@@ -1669,14 +1727,14 @@ class UPPDDLReader:
                     )
                     dur_act.set_duration_constraint(d)
                 else:
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"Not able to handle duration constraint of action {n}"
                         + f"Line: {dur.line_start(domain_str)}, col: {dur.col_start(domain_str)}",
                     )
                 if "cond" in a:
-                    cond = CustomParseResults(a["cond"][0])
+                    cond = a["cond"]
                     self._add_condition(problem, dur_act, cond, types_map, domain_str)
-                eff = CustomParseResults(a["eff"][0])
+                eff = a["eff"]
                 self._add_timed_effects(problem, dur_act, types_map, eff, domain_str)
                 problem.add_action(dur_act)
                 has_actions_cost = has_actions_cost and self._durative_action_has_cost(
@@ -1690,7 +1748,7 @@ class UPPDDLReader:
                 ] = None
                 if "obs" in a:
                     act = up.model.contingent.SensingAction(n, a_params, self._env)
-                    obs_fluent = CustomParseResults(a["obs"][0])
+                    obs_fluent = a["obs"]
                     if obs_fluent[0].value == "and":  # more than 1 fluent
                         for i in range(1, len(obs_fluent)):
                             act.add_observed_fluent(
@@ -1718,7 +1776,7 @@ class UPPDDLReader:
                             act,
                             types_map,
                             {},
-                            CustomParseResults(a["pre"][0]),
+                            a["pre"],
                             domain_str,
                         )
                     )
@@ -1727,7 +1785,7 @@ class UPPDDLReader:
                         problem,
                         act,
                         types_map,
-                        CustomParseResults(a["eff"][0]),
+                        a["eff"],
                         domain_str,
                     )
                 problem.add_action(act)
@@ -1744,12 +1802,12 @@ class UPPDDLReader:
                     method_params[p] = t
 
             method = htn.Method(name, method_params, self._env)
-            achieved_task = CustomParseResults(m["task"][0])
+            achieved_task = m["task"]
             pnames = []
             for i in range(1, len(achieved_task)):
                 pname = achieved_task[i].value
                 if pname[0] != "?":
-                    raise SyntaxError(
+                    raise PDDLSyntaxError(
                         f"All arguments of the task {achieved_task} should be parameters."
                         + f"Line: {achieved_task.line_start(domain_str)}, col: {achieved_task.col_start(domain_str)}",
                     )
@@ -1759,7 +1817,7 @@ class UPPDDLReader:
                 problem.get_task(achieved_task[0].value), *achieved_task_params
             )
             if "ordered-subtasks" in m:
-                ost = CustomParseResults(m.get("ordered-subtasks")[0])
+                ost = m.get("ordered-subtasks")
                 ord_subs = self._parse_subtasks(
                     ost, method, problem, types_map, domain_str
                 )
@@ -1767,12 +1825,12 @@ class UPPDDLReader:
                     method.add_subtask(s)
                 method.set_ordered(*ord_subs)
             if "subtasks" in m:
-                st = CustomParseResults(m.get("subtasks")[0])
+                st = m.get("subtasks")
                 subs = self._parse_subtasks(st, method, problem, types_map, domain_str)
                 for s in subs:
                     method.add_subtask(s)
             if "ordering" in m:
-                stack = [CustomParseResults(m.get("ordering")[0])]
+                stack = [m.get("ordering")]
                 while stack:
                     ordering = stack.pop(0)
                     if len(ordering) == 0:
@@ -1783,7 +1841,7 @@ class UPPDDLReader:
                             stack.append(ordering[i])
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Wrong number of parameters in ordering relation: {ordering}"
                                 + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
@@ -1791,7 +1849,7 @@ class UPPDDLReader:
                         right = method.get_subtask(ordering[2].value)
                         method.set_strictly_before(left, right)
                     else:
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
                             + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
@@ -1802,7 +1860,7 @@ class UPPDDLReader:
                         method,
                         types_map,
                         {},
-                        CustomParseResults(m["precondition"][0]),
+                        m["precondition"],
                         domain_str,
                     )
                 )
@@ -1831,7 +1889,7 @@ class UPPDDLReader:
                 ta = tasknet.get("tasks", None)
                 if ta:
                     subtasks = self._parse_subtasks(
-                        CustomParseResults(ta[0]),
+                        ta,
                         problem.task_network,
                         problem,
                         types_map,
@@ -1843,7 +1901,7 @@ class UPPDDLReader:
                 ot = tasknet.get("ordered-tasks", None)
                 if ot:
                     subtasks = self._parse_subtasks(
-                        CustomParseResults(ot[0]),
+                        ot,
                         problem.task_network,
                         problem,
                         types_map,
@@ -1859,7 +1917,7 @@ class UPPDDLReader:
                 oq = tasknet.get("ordering", None)
                 stack = []
                 if oq:
-                    stack.append(CustomParseResults(oq[0]))
+                    stack.append(oq)
                 while len(stack) > 0:
                     ordering = stack.pop(0)
                     if len(ordering) == 0:
@@ -1870,7 +1928,7 @@ class UPPDDLReader:
                             stack.append(ordering[i])
                     elif ordering[0].value == "<":
                         if len(ordering) != 3:
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Wrong number of parameters in ordering relation: {ordering}"
                                 + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                             )
@@ -1878,14 +1936,14 @@ class UPPDDLReader:
                         right = problem.task_network.get_subtask(ordering[2].value)
                         problem.task_network.set_strictly_before(left, right)
                     else:
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Invalid expression in ordering, expected 'and' or '<' but got '{ordering[0]}"
                             + f"Line: {ordering.line_start(domain_str)}, col: {ordering.col_start(domain_str)}",
                         )
 
                 cs = tasknet.get("constraints", None)
                 if cs:
-                    constraints = CustomParseResults(cs[0])
+                    constraints = cs
                     for i in range(len(constraints)):
                         constraint = constraints[i]
                         problem.task_network.add_constraint(
@@ -1900,10 +1958,14 @@ class UPPDDLReader:
                         )
 
             init_list = problem_res.get("init", [])
-            if len(init_list) == 1 and list(init_list[0].value[0].value) == ["and"]:
+            if (
+                len(init_list) == 1
+                and init_list[0].value
+                and init_list[0][0].value == "and"
+            ):
                 init_list = init_list[0].value[1:]
             for j in init_list:
-                init = CustomParseResults(j)
+                init = j
                 operator = init[0].value
                 if operator == "=":
                     problem.set_initial_value(
@@ -1930,7 +1992,7 @@ class UPPDDLReader:
                             init.line_end(problem_str),
                             init.col_end(problem_str),
                         )
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"Expected number, found {init[1].value} in expression from line: {start_line}, col {start_col} to line: {end_line}, col {end_col}"
                         )
                     if init[2][0].value in ["assign", "increase", "decrease"]:
@@ -1955,7 +2017,7 @@ class UPPDDLReader:
                         elif va.is_not():
                             problem.add_timed_effect(ti, va.arg(0), self._em.FALSE())
                         else:
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"Not able to handle this TIL {init}"
                                 + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                             )
@@ -1980,7 +2042,7 @@ class UPPDDLReader:
                 elif operator == "unknown":
                     assert isinstance(problem, ContingentProblem)
                     if len(init) != 2:
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             "`unknown` constraint requires exactly one argument."
                             + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
@@ -1994,7 +2056,7 @@ class UPPDDLReader:
                     )
                     if not exp.is_not():
                         if not exp.is_fluent_exp():
-                            raise SyntaxError(
+                            raise PDDLSyntaxError(
                                 f"In init expected predicate, found {exp}\n"
                                 + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                             )
@@ -2003,7 +2065,7 @@ class UPPDDLReader:
                             self._em.TRUE(),
                         )
                     elif not exp.arg(0).is_fluent_exp():
-                        raise SyntaxError(
+                        raise PDDLSyntaxError(
                             f"In init expected (not predicate), found {exp}\n"
                             + f"Line: {init.line_start(problem_str)}, col: {init.col_start(problem_str)}",
                         )
@@ -2014,12 +2076,12 @@ class UPPDDLReader:
                         None,
                         types_map,
                         {},
-                        CustomParseResults(problem_res["goal"][0]),
+                        problem_res["goal"],
                         problem_str,
                     )
                 )
             elif not isinstance(problem, htn.HierarchicalProblem):
-                raise SyntaxError("Missing goal section in problem file.")
+                raise PDDLSyntaxError("Missing goal section in problem file.")
 
             if "constraints" in problem_res:
                 for tc in problem_res["constraints"]:
@@ -2029,7 +2091,7 @@ class UPPDDLReader:
                             None,
                             types_map,
                             {},
-                            CustomParseResults(tc),
+                            tc,
                             problem_str,
                         )
                     )
@@ -2041,7 +2103,7 @@ class UPPDDLReader:
             m = problem_res.get("metric", None)
 
             if m is not None:
-                metric = CustomParseResults(m[0])
+                metric = m
                 if (
                     optimization == "minimize"
                     and len(metric) == 1
@@ -2176,11 +2238,11 @@ class UPPDDLReader:
         :return: The `Problem` parsed from the given pddl domain + problem.
         """
         domain_str = domain_str.replace("\t", " ").lower()
-        domain_res = self._pp_domain.parse_string(domain_str, parse_all=True)
+        domain_res = _parse_domain(domain_str)
 
         if problem_str is not None:
             problem_str = problem_str.replace("\t", " ").lower()
-            problem_res = self._pp_problem.parse_string(problem_str, parse_all=True)
+            problem_res = _parse_problem_sexpr(problem_str)
         else:
             problem_res = None
 

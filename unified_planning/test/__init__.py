@@ -14,6 +14,7 @@
 
 
 import unittest
+from contextlib import contextmanager
 import unified_planning as up
 from fractions import Fraction
 from functools import wraps
@@ -158,6 +159,24 @@ class skipIfModuleNotInstalled(object):
 
 unittest_TestCase = unittest.TestCase
 main = unittest.main
+
+
+@contextmanager
+def coverage_paused():
+    """Pauses coverage, which slows tight parsing loops about 15x, so that timings measure the code."""
+    try:
+        import coverage
+
+        cov = coverage.Coverage.current()
+    except ImportError:
+        cov = None
+    if cov is not None:
+        cov.stop()
+    try:
+        yield
+    finally:
+        if cov is not None:
+            cov.start()
 
 
 class TestCase:
