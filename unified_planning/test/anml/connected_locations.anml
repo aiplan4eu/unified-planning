@@ -5,6 +5,7 @@ fluent boolean is_connected(Location l1, Location l2);
 
 
 action move(Location from, Location to) { // test comment inside an action
+    duration := 1;
     [start] is_at(from);
     [start] is_at(from) := false; // test comment inside an action
     [start] is_at(to) := true;

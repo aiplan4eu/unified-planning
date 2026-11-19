@@ -9,6 +9,7 @@ fluent boolean clear(Location space);
 fluent boolean on(Movable object_, Location space);
 
 action move(Movable item, Location l_from, Location l_to) {
+   duration := 1;
    [start] clear(item);
    [start] clear(l_to);
    [start] on(item, l_from);

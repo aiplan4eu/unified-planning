@@ -105,6 +105,8 @@ class ANMLReader:
         * ``duration CT expression and duration CT expression``, where ``CT`` are Compare Tokens, so ``>``, ``>=``, ``<`` and ``<=``.
 
         All the other ways to define the duration of an Action are not supported.
+        Every durative action (i.e. every action not annotated with ``::("InstantaneousAction")``)
+        must define its duration, otherwise an ``ANMLSyntaxError`` is raised.
     #. Statements containing both conditions and effects are **not** supported ( ``(at(l_from) == true) := false);`` or ``(at(l_from) == true) and (at(l_from) := false);`` ).
     #. Quantifier body does not support intervals, they can only be defined outside.
     #. Forall over the assignments are not nested.
@@ -493,6 +495,7 @@ class ANMLReader:
         action_parameters: Dict[str, "up.model.Parameter"],
         types_map: Dict[str, "Type"],
     ) -> None:
+        has_duration = False
         for interval_and_exp in action_body_res:
             relevant_words = {
                 TK_DURATION,
@@ -511,6 +514,7 @@ class ANMLReader:
             if f_duration and not isinstance(
                 action, up.model.InstantaneousAction
             ):  # handle duration
+                has_duration = True
                 if f_when:
                     raise ANMLSyntaxError(
                         "expressions containing the duration can't be conditional"
@@ -622,6 +626,12 @@ class ANMLReader:
                     action.add_precondition(condition)
                 else:
                     action.add_condition(up_interval, condition)
+        if isinstance(action, up.model.DurativeAction) and not has_duration:
+            raise ANMLSyntaxError(
+                f"durative action '{action.name}' does not define its duration; "
+                + "add a duration statement (e.g. 'duration := 1;') or annotate "
+                + 'the action with ::("InstantaneousAction")'
+            )
 
     def _parse_parameters_def(
         self, parameters_res: ParseResults, types_map: Dict[str, "Type"]
