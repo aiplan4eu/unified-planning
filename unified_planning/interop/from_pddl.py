@@ -694,16 +694,18 @@ class AIPDDLConverter:
             action.name, action_parameters, self._environment
         )
 
-        up_action.add_precondition(
-            self._expression_converter.convert_expression(
-                action.precondition, action_parameters_expression, {}
+        if action.precondition is not None:
+            up_action.add_precondition(
+                self._expression_converter.convert_expression(
+                    action.precondition, action_parameters_expression, {}
+                )
             )
-        )
 
-        for e in self._convert_effects(
-            action_parameters_expression, action.effect, action.name
-        ):
-            up_action._add_effect_instance(e)
+        if action.effect is not None:
+            for e in self._convert_effects(
+                action_parameters_expression, action.effect, action.name
+            ):
+                up_action._add_effect_instance(e)
 
         self._up_problem.add_action(up_action)
 
@@ -815,6 +817,11 @@ class AIPDDLConverter:
             self._em, self._types, self._fluents, self._objects
         )
         self._expression_converter = expression_converter
+
+        # pddl>=0.6 parses ":durative-action"s into a separate collection;
+        # fail loudly instead of silently dropping them
+        if getattr(self._domain, "durative_actions", None):
+            raise UPUnsupportedProblemTypeError("Durative actions are not supported")
 
         for action in self._domain.actions:
             self._convert_action(action)
