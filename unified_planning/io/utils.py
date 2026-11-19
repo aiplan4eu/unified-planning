@@ -16,6 +16,7 @@
 
 from decimal import Decimal, localcontext
 from fractions import Fraction
+from typing import Iterable
 from warnings import warn
 
 
@@ -47,3 +48,20 @@ def decimal_literal(frac: Fraction, precision: int, printer: str) -> str:
             )
         res = format(dec, "f")  # never scientific notation
     return res if "." in res else f"{res}.0"  # some grammars require a fractional part
+
+
+def unique_parameter_name(name: str, used: Iterable[str]) -> str:
+    """
+    Returns ``name``, or ``name`` with the first free numeric suffix if it is already in ``used``.
+
+    PDDL allows a predicate declaration such as ``(in ?obj ?obj)``: the names in a
+    predicate signature carry no meaning, only the positions do. Giving repeated
+    names distinct suffixes keeps the declared arity.
+    """
+    used = set(used)
+    if name not in used:
+        return name
+    i = 1
+    while f"{name}_{i}" in used:
+        i += 1
+    return f"{name}_{i}"

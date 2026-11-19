@@ -23,6 +23,7 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 from unified_planning.model.contingent import ContingentProblem
 from unified_planning.environment import Environment, get_environment
+from unified_planning.io.utils import unique_parameter_name
 from unified_planning.exceptions import (
     UPException,
     UPUnsupportedProblemTypeError,
@@ -1454,7 +1455,7 @@ class UPPDDLReader:
 
         for p in domain_res.get("predicates", []):
             n = p[0]
-            params = OrderedDict()
+            params: OrderedDict[str, up.model.Type] = OrderedDict()
             for g in p[1]:
                 try:
                     param_type = types_map[g.value[1] if len(g.value) > 1 else Object]
@@ -1472,7 +1473,7 @@ class UPPDDLReader:
                         + f"\nError from line: {g_start_line}, col: {g_start_col} to line: {g_end_line}, col: {g_end_col}."
                     )
                 for param_name in g.value[0]:
-                    params[param_name] = param_type
+                    params[unique_parameter_name(param_name, params)] = param_type
             f = up.model.Fluent(n, self._tm.BoolType(), params, self._env)
             problem.add_fluent(f)
 
