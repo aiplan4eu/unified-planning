@@ -39,7 +39,7 @@ from unified_planning.engines.compilers.utils import (
     replace_action,
     updated_minimize_action_costs,
 )
-from unified_planning.exceptions import UPExpressionDefinitionError, UPUsageError
+from unified_planning.exceptions import UPExpressionDefinitionError
 from typing import List, Dict, Union, Optional
 from functools import partial
 
@@ -101,11 +101,10 @@ class NegativeFluentRemover(IdentityDagWalker):
                 else:
                     left_list = list(self._problem.objects(type_here))
                 right_list = list(self._problem.objects(type_here))
-                # if there are no objects of the usertype we cannot compile this
+                # with no objects of the usertype the action (or quantifier) that binds
+                # this parameter has no groundings, so the condition is never checked
                 if (len(left_list) <= 0) or (len(right_list) <= 0):
-                    raise UPUsageError(
-                        f"No objects present for the usertype {type_here}"
-                    )
+                    return self._env.expression_manager.FALSE()
                 if len(left_list) == 1 and len(right_list) == 1:
                     # there is only one object in the problem, the values will always be equal
                     return self._env.expression_manager.FALSE()

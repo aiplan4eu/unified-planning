@@ -268,6 +268,31 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         self.assertEqual(expected_action, comp_res.problem.action("test_action"))
         self.assertEqual(expected_tca, comp_res.problem.action("tca"))
 
+    def test_inequality_over_uninstantiated_user_type(self):
+        # A parameter of a user type without objects has no groundings, so the
+        # action is never applicable and the condition does not need compiling (#840)
+        item = UserType("Item")
+        empty = UserType("Empty", item)
+        at = Fluent("at", BoolType(), x=item)
+        swap = InstantaneousAction("swap", x=empty, y=empty)
+        swap.add_precondition(Not(Equals(swap.parameter("x"), swap.parameter("y"))))
+        swap.add_effect(at(swap.parameter("x")), True)
+        problem = Problem("empty_type")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_action(swap)
+        i1 = Object("i1", item)
+        problem.add_object(i1)
+        problem.add_goal(at(i1))
+
+        comp_res = NegativeConditionsRemover().compile(
+            problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+        )
+
+        assert isinstance(comp_res.problem, Problem)
+        compiled_swap = comp_res.problem.action("swap")
+        assert isinstance(compiled_swap, InstantaneousAction)
+        self.assertEqual(compiled_swap.preconditions, [FALSE()])
+
     def test_booleans(self):
         problem = Problem("test_booleans")
         bx = Fluent("bx", BoolType())
