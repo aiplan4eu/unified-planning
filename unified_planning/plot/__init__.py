@@ -23,3 +23,4 @@ from unified_planning.plot.plan_plot import (
     show_partial_order_plan,
 )
 from unified_planning.plot.causal_graph_plot import plot_causal_graph
+from unified_planning.plot.action_plot import plot_actions, plot_action
