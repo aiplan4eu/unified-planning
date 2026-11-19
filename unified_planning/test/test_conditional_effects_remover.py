@@ -89,14 +89,13 @@ class TestConditionalEffectsRemover(unittest_TestCase):
         assert isinstance(compiled, Problem)
 
         self.assertEqual(len(compiled.actions), 2)
+        em = compiled.environment.expression_manager
         for action in compiled.actions:
             assert isinstance(action, DurativeAction)
-            required: set[str] = set()
-            for conditions in action.conditions.values():
-                for condition in conditions:
-                    args = condition.args if condition.is_and() else [condition]
-                    required.update(str(arg) for arg in args if arg.is_fluent_exp())
-            self.assertFalse({"c1", "c2"} <= required)
+            conditions = [c for cs in action.conditions.values() for c in cs]
+            # no compiled action may be applicable when both c1 and c2 hold
+            both = em.And(conditions).substitute({c1: True, c2: True})
+            self.assertTrue(both.simplify().is_false())
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
