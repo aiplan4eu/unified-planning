@@ -28,6 +28,9 @@ from unified_planning.engines import CompilationKind, ValidationResultStatus
 from unified_planning.model.fluent import get_all_fluent_exp
 from unified_planning.model.types import domain_item, domain_size
 from unified_planning.model.walkers import QuantifierSimplifier
+from unified_planning.engines.compilers.usertype_fluents_remover import (
+    UsertypeFluentsRemover,
+)
 
 
 class TestUsertypeFLuentsRemover(unittest_TestCase):
@@ -331,3 +334,121 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
             self.assertEqual(len(action_expected_effects), len(action_effects))
             for effect in action_effects:
                 self.assertIn(effect, action_expected_effects)
+
+    def _check_same_applicability(self, problem, action_name, parameters_list):
+        compiled = (
+            UsertypeFluentsRemover()
+            .compile(problem, CompilationKind.USERTYPE_FLUENTS_REMOVING)
+            .problem
+        )
+        original_action = problem.action(action_name)
+        compiled_action = compiled.action(action_name)
+        c1, c2 = problem.fluent("c1"), problem.fluent("c2")
+        results = []
+        for v1, v2 in product([True, False], repeat=2):
+            original_problem = problem.clone()
+            original_problem.set_initial_value(c1, v1)
+            original_problem.set_initial_value(c2, v2)
+            compiled_problem = compiled.clone()
+            compiled_problem.set_initial_value(c1, v1)
+            compiled_problem.set_initial_value(c2, v2)
+            for params in parameters_list:
+                with SequentialSimulator(problem=original_problem) as simulator:
+                    expected = simulator.is_applicable(
+                        simulator.get_initial_state(), original_action, params
+                    )
+                with SequentialSimulator(problem=compiled_problem) as simulator:
+                    actual = simulator.is_applicable(
+                        simulator.get_initial_state(), compiled_action, params
+                    )
+                self.assertEqual(expected, actual, (v1, v2, params))
+                results.append(expected)
+        return results
+
+    def _conflict_problem(self):
+        T = UserType("T")
+        objects = [Object(f"o{i}", T) for i in range(1, 4)]
+        x = Fluent("x", T)
+        problem = Problem("conflict")
+        problem.add_objects(objects)
+        problem.add_fluent(x, default_initial_value=objects[0])
+        problem.add_fluent("c1", default_initial_value=True)
+        problem.add_fluent("c2", default_initial_value=True)
+        problem.add_goal(Equals(x, objects[1]))
+        return problem, T, objects, x
+
+    def test_conflicting_conditional_assignments(self):
+        problem, T, (o1, o2, o3), x = self._conflict_problem()
+        c1, c2 = problem.fluent("c1"), problem.fluent("c2")
+        a = InstantaneousAction("a")
+        a.add_effect(x, o2, c1)
+        a.add_effect(x, o3, c2)
+        problem.add_action(a)
+        # both effects fire only in the first state, so only there is the action not applicable
+        results = self._check_same_applicability(problem, "a", [()])
+        self.assertEqual(results, [False, True, True, True])
+
+        # equal values do not conflict
+        same = problem.clone()
+        same.clear_actions()
+        b = InstantaneousAction("a")
+        b.add_effect(x, o2, c1)
+        b.add_effect(x, o2, c2)
+        same.add_action(b)
+        self.assertEqual(self._check_same_applicability(same, "a", [()]), [True] * 4)
+
+    def test_conflicting_parametric_assignments(self):
+        problem, T, objects, x = self._conflict_problem()
+        c1, c2 = problem.fluent("c1"), problem.fluent("c2")
+        a = InstantaneousAction("a", p=T, q=T)
+        a.add_effect(x, a.parameter("p"), c1)
+        a.add_effect(x, a.parameter("q"), c2)
+        problem.add_action(a)
+        # the compiled action stays applicable when p = q
+        params = list(product(objects, repeat=2))
+        self._check_same_applicability(problem, "a", params)
+
+    def test_conflicting_forall_assignments(self):
+        problem, T, (o1, o2, o3), x = self._conflict_problem()
+        c1, c2 = problem.fluent("c1"), problem.fluent("c2")
+        y = Fluent("y", T, t=T)
+        problem.add_fluent(y, default_initial_value=o1)
+        problem.set_initial_value(y(o2), o2)
+        problem.set_initial_value(y(o3), o3)
+        v = Variable("v", T)
+        w = Variable("w", T)
+        # forall v: x := v if c1 and y(v) == v, which writes x once per v that matches
+        a = InstantaneousAction("a")
+        a.add_effect(x, v, And(c1, Equals(y(v), v)), forall=[v])
+        problem.add_action(a)
+        self._check_same_applicability(problem, "a", [()])
+
+        # a forall effect on y(w) and a plain effect on y(o2) write the same atom for w = o2
+        other = problem.clone()
+        other.clear_actions()
+        b = InstantaneousAction("a")
+        b.add_effect(y(w), o3, c1, forall=[w])
+        b.add_effect(y(o2), o1, c2)
+        other.add_action(b)
+        results = self._check_same_applicability(other, "a", [()])
+        self.assertEqual(results, [False, True, True, True])
+
+    def test_conflicting_durative_assignments(self):
+        problem, T, (o1, o2, o3), x = self._conflict_problem()
+        c1, c2 = problem.fluent("c1"), problem.fluent("c2")
+        a = DurativeAction("a")
+        a.set_fixed_duration(1)
+        a.add_effect(EndTiming(), x, o2, c1)
+        a.add_effect(EndTiming(), x, o3, c2)
+        a.add_effect(StartTiming(), x, o3, c2)
+        problem.add_action(a)
+        compiled = (
+            UsertypeFluentsRemover()
+            .compile(problem, CompilationKind.USERTYPE_FLUENTS_REMOVING)
+            .problem
+        )
+        conditions = compiled.action("a").conditions
+        self.assertEqual(
+            conditions,
+            {TimePointInterval(EndTiming()): [Not(And(c1, c2))]},
+        )
