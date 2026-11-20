@@ -88,7 +88,7 @@ from unified_planning.model import (
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
 from unified_planning.environment import get_environment, Environment
-from unified_planning.io.utils import unique_parameter_name
+from unified_planning.utils import unique_parameter_name
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )

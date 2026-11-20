@@ -23,7 +23,7 @@ import unified_planning as up
 import unified_planning.model.htn as htn
 from unified_planning.model.contingent import ContingentProblem
 from unified_planning.environment import Environment, get_environment
-from unified_planning.io.utils import unique_parameter_name
+from unified_planning.utils import unique_parameter_name
 from unified_planning.exceptions import (
     UPException,
     UPUnsupportedProblemTypeError,
