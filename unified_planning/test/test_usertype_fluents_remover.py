@@ -341,6 +341,7 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
             .compile(problem, CompilationKind.USERTYPE_FLUENTS_REMOVING)
             .problem
         )
+        assert isinstance(compiled, Problem)
         original_action = problem.action(action_name)
         compiled_action = compiled.action(action_name)
         c1, c2 = problem.fluent("c1"), problem.fluent("c2")
@@ -433,6 +434,29 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
         results = self._check_same_applicability(other, "a", [()])
         self.assertEqual(results, [False, True, True, True])
 
+    def test_forall_on_its_own_atoms_adds_no_condition(self):
+        # forall v: y(v) := z(v) writes a different atom for each v, so it
+        # cannot conflict with itself and must not add a condition
+        problem, T, (o1, o2, o3), x = self._conflict_problem()
+        y = Fluent("y", T, t=T)
+        z = Fluent("z", T, t=T)
+        problem.add_fluent(y, default_initial_value=o1)
+        problem.add_fluent(z, default_initial_value=o2)
+        v = Variable("v", T)
+        a = InstantaneousAction("a")
+        a.add_effect(y(v), z(v), forall=[v])
+        problem.add_action(a)
+        compiled = (
+            UsertypeFluentsRemover()
+            .compile(problem, CompilationKind.USERTYPE_FLUENTS_REMOVING)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
+        compiled_action = compiled.action("a")
+        assert isinstance(compiled_action, InstantaneousAction)
+        self.assertEqual(compiled_action.preconditions, [])
+        self.assertFalse(compiled.kind.has_universal_conditions())
+
     def test_conflicting_durative_assignments(self):
         problem, T, (o1, o2, o3), x = self._conflict_problem()
         c1, c2 = problem.fluent("c1"), problem.fluent("c2")
@@ -447,7 +471,10 @@ class TestUsertypeFLuentsRemover(unittest_TestCase):
             .compile(problem, CompilationKind.USERTYPE_FLUENTS_REMOVING)
             .problem
         )
-        conditions = compiled.action("a").conditions
+        assert isinstance(compiled, Problem)
+        compiled_action = compiled.action("a")
+        assert isinstance(compiled_action, DurativeAction)
+        conditions = compiled_action.conditions
         self.assertEqual(
             conditions,
             {TimePointInterval(EndTiming()): [Not(And(c1, c2))]},

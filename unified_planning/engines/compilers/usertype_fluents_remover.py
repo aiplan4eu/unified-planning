@@ -406,7 +406,8 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         `v2` and the same fluent at arguments `args1`, `args2`, the condition is
         `Not(And(c1, c2, args1 == args2, v1 != v2))`, quantified over the
         variables of both effects. An assignment under a `forall` is also
-        paired with itself, since its instances can write the same atom.
+        paired with itself, since its instances can write the same atom, unless
+        every variable of the `forall` is an argument of the fluent.
 
         :param effects: The effects that happen at the same time.
         :param fluents_map: The map from the usertype fluents to the new ones.
@@ -419,8 +420,19 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         conditions: List[FNode] = []
         for i, first in enumerate(assignments):
             for second in assignments[i:]:
-                if first is second and not first.is_forall():
-                    continue
+                if first is second:
+                    if not first.is_forall():
+                        continue
+                    # when every variable of the forall is an argument of the
+                    # fluent, two instances that write the same atom are the
+                    # same instance, so they cannot conflict
+                    direct_args = {
+                        arg.variable()
+                        for arg in first.fluent.args
+                        if arg.is_variable_exp()
+                    }
+                    if all(v in direct_args for v in first.forall):
+                        continue
                 if first.fluent.fluent() != second.fluent.fluent():
                     continue
                 # rename the variables of the second effect apart from the first one
