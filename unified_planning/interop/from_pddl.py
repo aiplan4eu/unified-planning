@@ -88,6 +88,7 @@ from unified_planning.model import (
 from unified_planning.model.type_manager import TypeManager
 from unified_planning.model.expression import ExpressionManager
 from unified_planning.environment import get_environment, Environment
+from unified_planning.utils import unique_parameter_name
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
 )
@@ -438,7 +439,9 @@ class AIPDDLConverter:
 
     def _convert_predicate_to_fluent(self, predicate: Predicate):
         assert self._up_problem is not None
-        params = OrderedDict((v.name, self._variable_type(v)) for v in predicate.terms)
+        params: OrderedDict[str, Type] = OrderedDict()
+        for v in predicate.terms:
+            params[unique_parameter_name(v.name, params)] = self._variable_type(v)
         fluent = Fluent(
             predicate.name,
             self._tm.BoolType(),

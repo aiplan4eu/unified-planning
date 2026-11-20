@@ -427,6 +427,34 @@ class TestPddlIO(unittest_TestCase):
             pddl_domain,
         )
 
+    def test_repeated_predicate_parameter_names(self):
+        # PDDL allows repeated names in a predicate signature, e.g. `(in ?obj ?obj)`
+        # in the logistics00 benchmark; only the positions matter (#816)
+        domain_str = """
+        (define (domain d)
+          (:requirements :strips :typing)
+          (:types thing)
+          (:predicates (rel ?x - thing ?x - thing)))
+        """
+        problem_str = """
+        (define (problem p)
+          (:domain d)
+          (:objects a b - thing)
+          (:init (rel a b))
+          (:goal (rel a b)))
+        """
+        for reader in (
+            PDDLReader(deactivate_fallback=True),
+            PDDLReader(force_up_pddl_reader=True),
+        ):
+            problem = reader.parse_problem_string(domain_str, problem_str)
+            rel = problem.fluent("rel")
+            self.assertEqual([p.name for p in rel.signature], ["x", "x_1"])
+            a, b = problem.object("a"), problem.object("b")
+            self.assertEqual(problem.initial_value(rel(a, b)), TRUE())
+            self.assertEqual(problem.initial_value(rel(b, a)), FALSE())
+            self.assertEqual(problem.goals, [rel(a, b)])
+
     def test_renamings(self):
         problem = self.problems["hierarchical_blocks_world"].problem
         problem = problem.clone()
