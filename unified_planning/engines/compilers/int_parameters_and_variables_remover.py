@@ -18,7 +18,7 @@ from itertools import product
 from fractions import Fraction
 import warnings
 import unified_planning as up
-from unified_planning.exceptions import UPProblemDefinitionError
+from unified_planning.exceptions import UPProblemDefinitionError, UPUsageError
 from unified_planning.model.fnode import FNode
 import unified_planning.engines as engines
 from unified_planning.engines.mixins.compiler import CompilationKind, CompilerMixin
@@ -69,33 +69,63 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
     """
     Removes bounded integer action parameters and quantified integer variables.
 
-    Each combination of integer parameter values produces an action candidate.
-    Other parameter types remain in the action signature. For example, an
-    action with ``n: IntType(1, 3)`` and precondition ``n < 2`` produces only the
-    instance with ``n = 1``; the other candidates have false preconditions.
+    Each combination of integer parameter values produces an action. Other parameter types remain.
+    For example, an action with
+        ``n: IntType(1, 3)`` and precondition ``n < 2``
+    produces only the instance with ``n = 1``; the other candidates have false preconditions.
 
-    After substituting action parameters, integer variable ranges are expanded
-    into conjunctions for ``Forall``, disjunctions for ``Exists``, and individual
-    effects for universal effects. Both endpoints are included. Dependencies
-    between integer variables determine their expansion order, and all bounds
-    must become integer constants. Variable bounds restrict the range of the
-    integer type. Object variables remain quantified.
+    After substituting action parameters, integer variable ranges are expanded into conjunctions for ``Forall``,
+    disjunctions for ``Exists``, and individual effects for universal effects. Both endpoints are included.
+    A variable's bounds can depend on action parameters or on other integer variables, e.g. ``j`` with
+    ``upper_bound=i``: ``i`` is expanded first. The range of a variable is the intersection of the range of its
+    type and its bounds, e.g. ``Variable("i", IntType(0, 5), upper_bound=2)`` ranges over 0, 1 and 2.
+    Object variables remain quantified.
 
-    Supports instantaneous and durative actions; continuous effects are not
-    supported. Integer-valued fluents and integer fluent parameters are not
-    removed by this compiler.
+    Supports instantaneous and durative actions; continuous effects are not supported. Integer-valued fluents
+    and integer fluent parameters are not removed.
 
-    The returned ``CompilerResult.map_back_action_instance`` restores the
-    original action and the integer arguments at their original positions.
-    Use it with ``Plan.replace_action_instances`` to reconstruct a plan for
-    the original problem.
+    Substitution can make the index of a fluent fall outside the bounds of its parameter type, e.g. ``f(n + 1)``
+    with ``n = 2`` and ``f`` indexed over ``IntType(0, 2)``. Such a reference is undefined, and ``mode`` selects how
+    it is handled:
+
+    - ``"pddl"`` (default), following the semantics UP uses for undefined numeric fluents: an action instance that
+      reads an undefined reference, in a precondition, in the value or condition of an effect, or in the target of
+      an increase or decrease, is discarded, and so is an instance that assigns to an undefined target, unless the
+      condition of that assignment is false. An undefined goal, or a global timed effect that can never be applied,
+      makes the problem unsolvable.
+    - ``"strict"``: an undefined reference raises an error, even if the action instance would be discarded anyway,
+      e.g. because the reference is guarded by a condition that is false for that instance.
+    - ``"permissive"``: undefinedness propagates through each operator. ``Or``, ``Exists`` and ``Implies`` ignore
+      undefined alternatives unless all of them are undefined, while the other operators become undefined.
+      An undefined precondition or unconditional effect discards the action instance, a conditional effect whose
+      condition is false or undefined is removed, and a conditional effect with an undefined target or value is
+      removed and the negation of its condition is added to the preconditions.
+      A goal that becomes undefined raises an error.
+
+    The mode only affects references that become undefined through substitution; numeric fluents without an
+    initial value keep UP's semantics.
+
+    In all modes, an action effect that assigns a constant outside the bounds of its target fluent is invalid: if it
+    is unconditional, the action instance is discarded; if it is conditional, the effect is removed and the negation
+    of its condition is added to the preconditions. For a global timed effect, this makes the problem unsolvable in
+    pddl mode if the effect always applies, and raises an error otherwise.
+
+    The returned ``CompilerResult.map_back_action_instance`` restores the original action and the integer arguments
+    at their original positions. Use it with ``Plan.replace_action_instances`` to reconstruct a plan for the original
+    problem.
     """
 
-    def __init__(self):
+    def __init__(self, mode: str = "pddl"):
         engines.engine.Engine.__init__(self)
         CompilerMixin.__init__(
             self, CompilationKind.INT_PARAMETERS_AND_VARIABLES_REMOVING
         )
+        if mode not in ("pddl", "strict", "permissive"):
+            raise UPUsageError(
+                f"Unknown mode {mode!r} for ipavr: "
+                "use 'pddl', 'strict' or 'permissive'."
+            )
+        self._mode = mode
 
     @property
     def name(self):
@@ -190,6 +220,13 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
             new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
             if problem_kind.has_forall_effects():
                 new_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+        if problem_kind.has_timed_effects() and (
+            problem_kind.has_int_variables_in_conditions()
+            or problem_kind.has_int_variables_in_effects()
+        ):
+            # In pddl mode, a global timed effect that can never be applied
+            # becomes a false timed goal.
+            new_kind.set_time("TIMED_GOALS")
         return new_kind
 
     # ==================== INT VARIABLE TRANSFORMATION ====================
@@ -366,9 +403,9 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
                     old_problem, new_problem, arg, expanded_int_params, full_inst
                 )
                 if transformed is None:
-                    # Forall is strict; Exists ignores undefined instances
+                    # In permissive mode, Exists ignores undefined instances
                     # unless every instance is undefined.
-                    if node.is_forall():
+                    if node.is_forall() or self._mode == "pddl":
                         return None
                     continue
                 expanded_args.append(transformed)
@@ -394,12 +431,31 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         self, old_problem, new_problem, node, int_params, instantiation
     ):
         new_args = []
-        for arg in node.args:
+        for arg, parameter in zip(node.args, node.fluent().signature):
             transformed = self._transform_expression(
                 old_problem, new_problem, arg, int_params, instantiation
             )
             if transformed is None:
                 return None
+            if transformed.is_int_constant() and parameter.type.is_int_type():
+                # An index outside the parameter's bounds refers to no fluent.
+                parameter_type = cast(_IntType, parameter.type)
+                index = transformed.int_constant_value()
+                lower, upper = parameter_type.lower_bound, parameter_type.upper_bound
+                if (lower is not None and index < lower) or (
+                    upper is not None and index > upper
+                ):
+                    if self._mode == "strict":
+                        values = ", ".join(
+                            f"{p.name} = {instantiation[i]}"
+                            for p, i in int_params.items()
+                        )
+                        raise UPProblemDefinitionError(
+                            f"Out-of-range fluent index in {node}"
+                            f"{f' with {values}' if values else ''}: {index} is "
+                            f"outside the bounds of {parameter_type}."
+                        )
+                    return None
             new_args.append(transformed)
         return node.fluent()(*new_args)
 
@@ -409,6 +465,8 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         """Handle undefined (None) values in arguments based on operator semantics."""
         if None not in args:
             return args
+        if self._mode == "pddl":
+            return None
         if node_type in {OperatorKind.OR, OperatorKind.EXISTS}:
             filtered = [arg for arg in args if arg is not None]
             return filtered if filtered else None
@@ -427,8 +485,8 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         int_params: Dict[Union[Parameter, Variable], int],
         instantiation: Tuple[int, ...],
     ) -> Union[FNode, None]:
-        """Generic recursive transformation. Arithmetic that becomes undefined after substitution
-        (e.g. division by zero) is handled and returned as None."""
+        """Generic recursive transformation. Undefined arguments are handled according to the operator semantics
+        and may make the result None."""
         em = old_problem.environment.expression_manager
         new_args = [
             self._transform_expression(
@@ -443,12 +501,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         defined_args = self._handle_undef_args(node.node_type, new_args, em)
         if defined_args is None or defined_args == []:
             return None
-        try:
-            return em.create_node(node.node_type, tuple(defined_args)).simplify()
-        except (
-            ZeroDivisionError
-        ):  # division by zero is currently the only undefined arithmetic
-            return None
+        return em.create_node(node.node_type, tuple(defined_args)).simplify()
 
     def _transform_expression(
         self,
@@ -506,14 +559,16 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
 
     def _transform_simulated_effect(
         self, problem, new_problem, effect, int_param_map, instantiation
-    ) -> SimulatedEffect:
-        """Instantiate targets and restore integer arguments for the callback."""
+    ) -> Optional[SimulatedEffect]:
+        """Instantiate targets and restore integer arguments for the callback.
+        Returns None if a target is undefined."""
         fluents = []
         for fluent in effect.fluents:
             transformed = self._transform_expression(
                 problem, new_problem, fluent, int_param_map, instantiation
             )
-            assert transformed is not None
+            if transformed is None:
+                return None
             fluents.append(transformed)
         em = problem.environment.expression_manager
         integer_arguments = {
@@ -564,6 +619,18 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         not modify an action or a problem.
         """
         em = effect.environment.expression_manager
+        if self._mode == "pddl" and None in (fluent, value, condition):
+            # As in UP, only reads matter: an undefined target that is just
+            # written (not increased or decreased) is harmless if the effect
+            # never fires.
+            if (
+                value is not None
+                and condition is not None
+                and condition.is_false()
+                and effect.is_assignment()
+            ):
+                return None, em.TRUE()
+            return None, em.FALSE()
         if condition is None or condition.is_false():
             return None, em.TRUE()
         if fluent is not None and value is not None:
@@ -697,11 +764,15 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
                 for transformed, guard in self._instantiate_effect(
                     problem, new_problem, effect, {}, ()
                 ):
-                    if not guard.is_true():
+                    if guard.is_false() and self._mode == "pddl":
+                        # As UP does for undefined numeric fluents, the effect
+                        # always happens, so the problem becomes unsolvable.
+                        new_problem.add_timed_goal(timing, guard)
+                    elif not guard.is_true():
                         raise UPProblemDefinitionError(
                             f"IPAVR cannot compile global timed effect at {timing}: "
-                            "integer-variable expansion produces an invalid effect "
-                            f"that may be enabled. Check the effect: {effect}"
+                            "integer-variable expansion produces an undefined or "
+                            f"invalid effect. Check the effect: {effect}"
                         )
                     if transformed is not None:
                         new_problem._add_effect_instance(timing, transformed)
@@ -779,11 +850,9 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
                 transformed = self._transform_expression(
                     problem, new_problem, expression, int_param_map, instantiation
                 )
-                if transformed is None:
+                if transformed is None or transformed.is_false():
                     return None
                 if isinstance(new_action, InstantaneousAction):
-                    if transformed.is_false():
-                        return None
                     new_action.add_precondition(transformed)
                 else:
                     assert interval is not None
@@ -804,6 +873,8 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
                     int_param_map,
                     instantiation,
                 )
+                if simulated is None:
+                    return None
                 if isinstance(new_action, InstantaneousAction):
                     new_action.set_simulated_effect(simulated)
                 else:
@@ -845,12 +916,56 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         instantiation = self._get_range_instantiation(int_param_ranges)
         result = []
         for inst in instantiation:
+            if self._mode == "strict":
+                self._check_references(
+                    problem, new_problem, action, int_param_map, inst
+                )
             new_action = self._create_instantiated_action(
                 problem, new_problem, action, regular_params, int_param_map, inst
             )
             if new_action is not None:
                 result.append((new_action, inst))
         return result
+
+    def _check_references(
+        self,
+        problem: Problem,
+        new_problem: Problem,
+        action: Action,
+        int_param_map: Dict[Union[Parameter, Variable], int],
+        instantiation: Tuple[int, ...],
+    ):
+        """
+        Evaluate every expression of the action instance, so that in strict mode
+        an out-of-range reference raises an error even when the instance would be
+        discarded before reaching it.
+        """
+        expressions: List[FNode] = []
+        effects: List[Effect] = []
+        simulated_effects: List[Optional[SimulatedEffect]] = []
+        if isinstance(action, InstantaneousAction):
+            expressions.extend(action.preconditions)
+            effects.extend(action.effects)
+            simulated_effects.append(action.simulated_effect)
+        elif isinstance(action, DurativeAction):
+            for conditions in action.conditions.values():
+                expressions.extend(conditions)
+            expressions.extend((action.duration.lower, action.duration.upper))
+            for timed_effects in action.effects.values():
+                effects.extend(timed_effects)
+            simulated_effects.extend(action.simulated_effects.values())
+        for simulated in simulated_effects:
+            if simulated is not None:
+                expressions.extend(simulated.fluents)
+        for expression in expressions:
+            self._transform_expression(
+                problem, new_problem, expression, int_param_map, instantiation
+            )
+        for effect in effects:
+            for _ in self._instantiate_effect(
+                problem, new_problem, effect, int_param_map, instantiation
+            ):
+                pass
 
     def _transform_actions(
         self, problem: Problem, new_problem: Problem
@@ -962,21 +1077,30 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
 
     # ==================== GOALS TRANSFORMATION ====================
     def _transform_goals(self, problem: Problem, new_problem: Problem):
+        # In strict mode, as UP does for undefined numeric fluents, an undefined
+        # goal can never be satisfied.
+        false = new_problem.environment.expression_manager.FALSE()
         for goal in problem.goals:
             transformed = self._transform_expression(problem, new_problem, goal)
             if transformed is None:
-                raise UPProblemDefinitionError(
-                    f"Undefined final goal after expanding integer variables: {goal}"
-                )
+                if self._mode == "pddl":
+                    transformed = false
+                else:
+                    raise UPProblemDefinitionError(
+                        f"Undefined final goal after expanding integer variables: {goal}"
+                    )
             new_problem.add_goal(transformed)
         for interval, goals in problem.timed_goals.items():
             for goal in goals:
                 transformed = self._transform_expression(problem, new_problem, goal)
                 if transformed is None:
-                    raise UPProblemDefinitionError(
-                        f"Undefined timed goal in interval {interval} "
-                        f"after expanding integer variables: {goal}"
-                    )
+                    if self._mode == "pddl":
+                        transformed = false
+                    else:
+                        raise UPProblemDefinitionError(
+                            f"Undefined timed goal in interval {interval} "
+                            f"after expanding integer variables: {goal}"
+                        )
                 new_problem.add_timed_goal(interval, transformed)
         for constraint in problem.trajectory_constraints:
             transformed = self._transform_expression(problem, new_problem, constraint)

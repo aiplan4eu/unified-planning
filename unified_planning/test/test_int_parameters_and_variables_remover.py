@@ -18,7 +18,7 @@ from unified_planning.plans import Plan
 
 from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
-from unified_planning.exceptions import UPProblemDefinitionError, UPTypeError
+from unified_planning.exceptions import UPProblemDefinitionError
 from unified_planning.engines.compilers import IntParametersAndVariablesRemover
 from unified_planning.engines.plan_validator import (
     SequentialPlanValidator,
@@ -35,14 +35,17 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         self.problem = Problem("ipavr")
         self.compiler = IntParametersAndVariablesRemover()
         self.marked = Fluent("marked", index=IntType(0, 2))
+        self.cell = Fluent("cell", index=IntType(1, 2))
         self.enabled, self.done = Fluent("enabled"), Fluent("done")
-        for fluent in (self.marked, self.enabled, self.done):
+        for fluent in (self.marked, self.cell, self.enabled, self.done):
             self.problem.add_fluent(fluent, default_initial_value=False)
 
-    def compile_action(self, action):
+    def compile_action(self, action, mode="pddl"):
         self.problem.clear_actions()
         self.problem.add_action(action)
-        return self.compiler.compile(self.problem)
+        if mode == "pddl":
+            return self.compiler.compile(self.problem)
+        return IntParametersAndVariablesRemover(mode).compile(self.problem)
 
     def integer_instances(self, result):
         return {
@@ -119,12 +122,6 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         self.assertEqual(compiled.goals, [And(self.marked(1), self.marked(2))])
         expected = And(self.marked(1), self.marked(0), self.marked(2))
         self.assertEqual(compiled.actions[0].preconditions, [expected])
-
-    def test_fluent_dependent_bound_is_rejected_at_construction(self):
-        limit = Fluent("limit", IntType(0, 2))
-        self.problem.add_fluent(limit, default_initial_value=1)
-        with self.assertRaisesRegex(UPTypeError, "cannot reference fluents"):
-            Variable("i", IntType(), lower_bound=0, upper_bound=limit())
 
     def test_nonconstant_range_is_rejected(self):
         for i, message in (
@@ -214,7 +211,7 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         available = Fluent("available", robot=robot_type)
         self.problem.add_fluent(available, default_initial_value=True)
         i = Variable("i", IntType(0, 1))
-        body = And(available(robot), GT(Div(1, i), 0))
+        body = And(available(robot), self.cell(i))
         for quantifier in (Forall, Exists):
             goals = [
                 quantifier(body, robot, i),
@@ -232,91 +229,148 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
         self.problem.clear_goals()
         self.problem.add_object(Object("drone1", UserType("drone", robot_type)))
         self.problem.add_goal(Forall(body, robot, i))
+        compiled = self.compiler.compile(self.problem).problem
+        assert isinstance(compiled, Problem)
+        self.assertEqual(compiled.goals, [Bool(False)])
         with self.assertRaisesRegex(UPProblemDefinitionError, "Undefined final goal"):
-            self.compiler.compile(self.problem)
+            IntParametersAndVariablesRemover("permissive").compile(self.problem)
 
     def test_undefined_quantifiers(self):
         i = Variable("i", IntType(0, 1))
-        for quantifier, defined, negate in product(
-            (Forall, Exists), (False, True), (False, True)
+        for mode, quantifier, negate in product(
+            ("pddl", "permissive"), (Forall, Exists), (False, True)
         ):
-            with self.subTest(
-                quantifier=quantifier.__name__, defined=defined, negate=negate
-            ):
-                body = GT(Div(1, i), 0) if defined else LT(Div(1, i), 0)
-                goal = quantifier(body, i)
+            with self.subTest(mode=mode, quantifier=quantifier.__name__, negate=negate):
+                goal = quantifier(self.cell(i), i)
                 self.problem.clear_goals()
                 self.problem.add_goal(Not(goal) if negate else goal)
-                if quantifier is Forall:
+                compiler = IntParametersAndVariablesRemover(mode)
+                if mode == "permissive" and quantifier is Forall:
                     with self.assertRaisesRegex(
                         UPProblemDefinitionError, "Undefined final goal"
                     ):
-                        self.compiler.compile(self.problem)
+                        compiler.compile(self.problem)
+                    continue
+                compiled = compiler.compile(self.problem).problem
+                assert isinstance(compiled, Problem)
+                if mode == "pddl":
+                    expected = Bool(False)
                 else:
-                    compiled = self.compiler.compile(self.problem).problem
-                    assert isinstance(compiled, Problem)
-                    self.assertEqual(
-                        compiled.goals, [] if defined != negate else [Bool(False)]
-                    )
+                    expected = Not(self.cell(1)) if negate else self.cell(1)
+                self.assertEqual(compiled.goals, [expected])
 
     def test_goals_report_undefined_but_preserve_defined_alternatives(self):
         i = Variable("i", IntType(0, 1))
-        undefined = Exists(GT(Div(1, i - i), 0), i)
+        undefined = Exists(self.cell(i - i), i)
         interval = ClosedTimeInterval(GlobalStartTiming(2), GlobalStartTiming(4))
-        for timed, goal in product(
+        for mode, timed, goal in product(
+            ("pddl", "permissive"),
             (False, True),
             (undefined, Not(undefined), Or(undefined, self.enabled), Bool(False)),
         ):
-            with self.subTest(timed=timed, goal=goal):
+            with self.subTest(mode=mode, timed=timed, goal=goal):
                 self.problem.clear_goals()
                 self.problem.clear_timed_goals()
                 if timed:
                     self.problem.add_timed_goal(interval, goal)
                 else:
                     self.problem.add_goal(goal)
-                if goal in (undefined, Not(undefined)):
+                compiler = IntParametersAndVariablesRemover(mode)
+                if mode == "permissive" and goal in (undefined, Not(undefined)):
                     with self.assertRaisesRegex(
                         UPProblemDefinitionError, "Undefined .*goal"
                     ) as error:
-                        self.compiler.compile(self.problem)
+                        compiler.compile(self.problem)
                     self.assertIn(str(goal), str(error.exception))
                     if timed:
                         self.assertIn(str(interval), str(error.exception))
+                    continue
+                compiled = compiler.compile(self.problem).problem
+                assert isinstance(compiled, Problem)
+                goals = compiled.timed_goals[interval] if timed else compiled.goals
+                if mode == "permissive" and goal.is_or():
+                    self.assertEqual(goals, [self.enabled()])
                 else:
-                    compiled = self.compiler.compile(self.problem).problem
-                    assert isinstance(compiled, Problem)
-                    goals = compiled.timed_goals[interval] if timed else compiled.goals
-                    self.assertEqual(
-                        goals, [Bool(False) if goal.is_false() else self.enabled()]
-                    )
+                    self.assertEqual(goals, [Bool(False)])
 
     def test_undefined_preconditions(self):
-        for quantifier in (Forall, Exists):
-            action = InstantaneousAction("finish", n=IntType(0, 1))
-            i = Variable("i", IntType(0, 1))
-            action.add_precondition(
-                quantifier(GT(Div(1, i + action.parameter("n")), 0), i)
-            )
-            actions = self.integer_instances(self.compile_action(action))
-            self.assertEqual(
-                set(actions),
-                {(Int(1),)} if quantifier is Forall else {(Int(0),), (Int(1),)},
-            )
+        for mode, quantifier in product(("pddl", "permissive"), (Forall, Exists)):
+            with self.subTest(mode=mode, quantifier=quantifier.__name__):
+                action = InstantaneousAction("finish", n=IntType(0, 1))
+                i = Variable("i", IntType(0, 1))
+                action.add_precondition(
+                    quantifier(self.cell(i + action.parameter("n")), i)
+                )
+                actions = self.integer_instances(self.compile_action(action, mode))
+                self.assertEqual(
+                    set(actions),
+                    (
+                        {(Int(0),), (Int(1),)}
+                        if mode == "permissive" and quantifier is Exists
+                        else {(Int(1),)}
+                    ),
+                )
+
+    def test_out_of_range_fluent_index(self):
+        f = Fluent("f", index=IntType(0, 5))
+        self.problem.add_fluent(f, default_initial_value=False)
+        effect = InstantaneousAction("effect", x=IntType(0, 5))
+        effect.add_effect(f(effect.parameter("x") + 1), True)
+        precondition = InstantaneousAction("precondition", x=IntType(0, 5))
+        x = precondition.parameter("x")
+        precondition.add_precondition(Or(Equals(x, 5), f(x + 1)))
+        conditional = InstantaneousAction("conditional", x=IntType(0, 5))
+        conditional.add_effect(f(conditional.parameter("x") + 1), True, self.enabled)
+        # In strict mode, the guard x < 5 does not prevent the error.
+        guarded = InstantaneousAction("guarded", x=IntType(0, 5))
+        x = guarded.parameter("x")
+        guarded.add_precondition(x < 5)
+        guarded.add_effect(f(x + 1), True)
+        for mode, action in product(
+            ("pddl", "permissive"), (effect, precondition, conditional, guarded)
+        ):
+            with self.subTest(mode=mode, action=action.name):
+                instances = self.integer_instances(self.compile_action(action, mode))
+                kept = mode == "permissive" and action in (precondition, conditional)
+                self.assertEqual(len(instances), 6 if kept else 5)
+                if kept:
+                    last = instances[(Int(5),)]
+                    self.assertEqual(last.effects, [])
+                    self.assertEqual(
+                        last.preconditions,
+                        [] if action is precondition else [Not(self.enabled)],
+                    )
+        for action in (effect, precondition, conditional, guarded):
+            with self.subTest(mode="strict", action=action.name):
+                with self.assertRaisesRegex(
+                    UPProblemDefinitionError, "with x = 5: 6 is outside"
+                ):
+                    self.compile_action(action, "strict")
+        # Simulated effects only accept parameters as indices.
+        simulated = InstantaneousAction("simulated", x=IntType(0, 6))
+        with self.assertWarns(DeprecationWarning):
+            target = f(simulated.parameter("x"))
+            simulated.set_simulated_effect(SimulatedEffect([target], lambda *_: [True]))
+        for mode in ("pddl", "permissive"):
+            with self.subTest(mode=mode, action=simulated.name):
+                instances = self.integer_instances(self.compile_action(simulated, mode))
+                self.assertEqual(set(instances), {(Int(x),) for x in range(6)})
 
     def test_invalid_conditional_effects(self):
         x = Fluent("x", IntType(0, 1))
         self.problem.add_fluent(x, default_initial_value=0)
-        real_x = Fluent("real_x", RealType())
-        self.problem.add_fluent(real_x, default_initial_value=0)
-        for action_type, invalid in product(
-            (InstantaneousAction, DurativeAction), ("bounds", "division")
+        for mode, action_type, invalid in product(
+            ("pddl", "permissive"),
+            (InstantaneousAction, DurativeAction),
+            ("bounds", "undefined"),
         ):
-            with self.subTest(action_type=action_type.__name__, invalid=invalid):
+            with self.subTest(
+                mode=mode, action_type=action_type.__name__, invalid=invalid
+            ):
                 action = action_type("update", n=IntType(0, 2))
                 assert isinstance(action, (InstantaneousAction, DurativeAction))
                 n = action.parameter("n")
-                value = n if invalid == "bounds" else Div(1, n)
-                target = x if invalid == "bounds" else real_x
+                target, value = (x, n) if invalid == "bounds" else (self.cell(n), True)
                 if isinstance(action, DurativeAction):
                     action.set_fixed_duration(1)
                     action.add_effect(EndTiming(), target, value, self.enabled)
@@ -324,10 +378,12 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                 else:
                     action.add_effect(target, value, self.enabled)
                     action.add_effect(self.done, True)
-                result = self.compile_action(action)
-                compiled = self.integer_instances(result)[
-                    (Int(2 if invalid == "bounds" else 0),)
-                ]
+                result = self.compile_action(action, mode)
+                instances = self.integer_instances(result)
+                if mode == "pddl" and invalid == "undefined":
+                    self.assertNotIn((Int(0),), instances)
+                    continue
+                compiled = instances[(Int(2 if invalid == "bounds" else 0),)]
                 plan: Plan
                 validator: Union[TimeTriggeredPlanValidator, SequentialPlanValidator]
                 if isinstance(compiled, DurativeAction):
@@ -359,42 +415,47 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
                         )
 
     def test_invalid_effect_with_constant_condition(self):
-        x = Fluent("x", RealType(), flag=BoolType())
-        self.problem.add_fluent(x, default_initial_value=0)
-        for target_undefined, condition_kind in product(
-            (False, True), ("true", "false", "undefined")
+        for mode, target_undefined, condition_kind in product(
+            ("pddl", "permissive"), (False, True), ("true", "false", "undefined")
         ):
-            with self.subTest(target=target_undefined, condition=condition_kind):
+            with self.subTest(
+                mode=mode, target=target_undefined, condition=condition_kind
+            ):
                 action = InstantaneousAction("update", n=IntType(0, 1))
                 n = action.parameter("n")
-                quotient = Div(1, n)
                 condition = {
                     "true": Equals(n, 0),
                     "false": GT(n, 0),
-                    "undefined": GT(quotient, 0),
+                    "undefined": self.cell(n),
                 }[condition_kind]
-                target = x(GT(quotient, 0)) if target_undefined else x(True)
-                action.add_effect(
-                    target, 1 if target_undefined else quotient, condition
-                )
-                actions = self.integer_instances(self.compile_action(action))
-                if condition_kind == "true":
-                    self.assertNotIn((Int(0),), actions)
+                if target_undefined:
+                    action.add_effect(self.cell(n), True, condition)
                 else:
+                    action.add_effect(self.done, self.cell(n), condition)
+                actions = self.integer_instances(self.compile_action(action, mode))
+                # In pddl mode only an undefined target that is never written keeps the instance
+                if mode == "pddl":
+                    kept = target_undefined and condition_kind == "false"
+                else:
+                    kept = condition_kind != "true"
+                if kept:
                     self.assertEqual(actions[(Int(0),)].effects, [])
                     self.assertEqual(actions[(Int(0),)].preconditions, [])
+                else:
+                    self.assertNotIn((Int(0),), actions)
 
     def test_quantified_invalid_effect(self):
         location = UserType("location")
         self.problem.add_object(Object("home", location))
         site, i = Variable("site", location), Variable("i", IntType(0, 1))
-        x = Fluent("x", RealType(), site=location, index=IntType(0, 1))
+        x = Fluent("x", site=location, index=IntType(1, 1))
         enabled = Fluent("site_enabled", site=location)
-        self.problem.add_fluent(x, default_initial_value=0)
+        self.problem.add_fluent(x, default_initial_value=False)
         self.problem.add_fluent(enabled, default_initial_value=False)
         action = InstantaneousAction("update")
-        action.add_effect(x(site, i), Div(1, i), enabled(site), forall=(site, i))
-        compiled = self.compile_action(action).problem.actions[0]
+        action.add_effect(x(site, i), True, enabled(site), forall=(site, i))
+        self.assertEqual(self.compile_action(action, "pddl").problem.actions, [])
+        compiled = self.compile_action(action, "permissive").problem.actions[0]
         self.assertEqual(compiled.preconditions, [Forall(Not(enabled(site)), site)])
         self.assertEqual([e.fluent for e in compiled.effects], [x(site, 1)])
         self.assertEqual(compiled.effects[0].forall, (site,))
@@ -471,42 +532,56 @@ class TestIntParametersAndVariablesRemover(unittest_TestCase):
             self.compile_action(action)
 
     def test_global_effects_and_quantified_constraints(self):
-        x = Fluent("x", RealType(), index=IntType(0, 1))
+        x = Fluent("x", RealType(), index=IntType(1, 1))
         self.problem.add_fluent(x, default_initial_value=0)
         i = Variable("i", IntType(0, 1))
         timing = GlobalStartTiming(1)
         interval = ClosedTimeInterval(timing, timing)
-        self.problem.add_timed_effect(
-            timing, x(i), Div(1, i), self.enabled, forall=(i,)
-        )
+        self.problem.add_timed_effect(timing, x(i), 1, self.enabled, forall=(i,))
+        compiled = self.compiler.compile(self.problem).problem
+        assert isinstance(compiled, Problem)
+        self.assertEqual(compiled.timed_goals[interval], [Bool(False)])
+        self.assertTrue(compiled.kind.has_timed_goals())
         with self.assertRaisesRegex(
             UPProblemDefinitionError, "global timed effect"
         ) as error:
-            self.compiler.compile(self.problem)
+            IntParametersAndVariablesRemover("permissive").compile(self.problem)
         self.assertIn(str(timing), str(error.exception))
-        self.assertIn(str(Div(1, i)), str(error.exception))
+        self.assertIn(str(x(i)), str(error.exception))
+        with self.assertRaisesRegex(UPProblemDefinitionError, "with i = 0"):
+            IntParametersAndVariablesRemover("strict").compile(self.problem)
         self.problem.clear_timed_effects()
         self.problem.add_timed_effect(
-            timing, x(i), Div(1, i), And(self.enabled, i > 0), forall=(i,)
+            timing, x(i), 1, And(self.enabled, i > 0), forall=(i,)
         )
         self.problem.add_increase_effect(GlobalStartTiming(2), x(1), 2)
         self.problem.add_decrease_effect(GlobalStartTiming(3), x(1), 1)
         self.problem.add_trajectory_constraint(Always(Forall(self.marked(i), i)))
         self.problem.add_timed_goal(GlobalStartTiming(4), Forall(self.marked(i), i))
-        compiled = self.compiler.compile(self.problem).problem
-        assert isinstance(compiled, Problem)
-        self.assertNotIn(interval, compiled.timed_goals)
-        self.assertEqual([e.fluent for e in compiled.timed_effects[timing]], [x(1)])
-        self.assertTrue(compiled.timed_effects[GlobalStartTiming(2)][0].is_increase())
-        self.assertTrue(compiled.timed_effects[GlobalStartTiming(3)][0].is_decrease())
-        expanded = And(self.marked(0), self.marked(1))
-        self.assertEqual(compiled.trajectory_constraints, [Always(expanded)])
-        self.assertEqual(
-            compiled.timed_goals[
-                ClosedTimeInterval(GlobalStartTiming(4), GlobalStartTiming(4))
-            ],
-            [expanded],
-        )
+        for mode in ("pddl", "permissive"):
+            with self.subTest(mode=mode):
+                compiled = (
+                    IntParametersAndVariablesRemover(mode).compile(self.problem).problem
+                )
+                assert isinstance(compiled, Problem)
+                self.assertNotIn(interval, compiled.timed_goals)
+                self.assertEqual(
+                    [e.fluent for e in compiled.timed_effects[timing]], [x(1)]
+                )
+                self.assertTrue(
+                    compiled.timed_effects[GlobalStartTiming(2)][0].is_increase()
+                )
+                self.assertTrue(
+                    compiled.timed_effects[GlobalStartTiming(3)][0].is_decrease()
+                )
+                expanded = And(self.marked(0), self.marked(1))
+                self.assertEqual(compiled.trajectory_constraints, [Always(expanded)])
+                self.assertEqual(
+                    compiled.timed_goals[
+                        ClosedTimeInterval(GlobalStartTiming(4), GlobalStartTiming(4))
+                    ],
+                    [expanded],
+                )
 
     def test_simulated_effect_arguments_and_timing(self):
         location = UserType("location")
