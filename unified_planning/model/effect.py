@@ -102,6 +102,18 @@ class Effect:
         )
         free_vars.update(fvo.get_free_variables(value))
         free_vars.update(fvo.get_free_variables(condition))
+        forall = tuple(forall)
+        for variable in forall:
+            if (
+                isinstance(variable, up.model.variable.Variable)
+                and variable.type.is_int_type()
+            ):
+                # An empty range suppresses the effect even if the variable is
+                # absent from its target, value and condition.
+                free_vars.add(variable)
+                for bound in (variable.lower_bound, variable.upper_bound):
+                    if bound is not None:
+                        free_vars.update(fvo.get_free_variables(bound))
 
         def free_vars_without_duplicates() -> Iterator["up.model.variable.Variable"]:
             # store seen variables to avoid duplicates
@@ -109,9 +121,10 @@ class Effect:
             for v in forall:
                 if v in free_vars and v not in seen:
                     seen.add(v)
-                    assert isinstance(v, up.model.variable.Variable), (
-                        "Typing not respected"
-                    )
+                    assert isinstance(
+                        v,
+                        up.model.variable.Variable,
+                    ), "Typing not respected"
                     yield v
             unbounded_vars = free_vars.difference(seen)
             if unbounded_vars:
@@ -119,9 +132,10 @@ class Effect:
                     f"Some variables in the effect are unbounded: {unbounded_vars}"
                 )
 
-        self._forall: Tuple["up.model.variable.Variable", ...] = tuple(
-            free_vars_without_duplicates()
-        )
+        self._forall: Tuple[
+            "up.model.variable.Variable",
+            ...,
+        ] = tuple(free_vars_without_duplicates())
         assert (
             fluent.environment == value.environment
             and value.environment == condition.environment
@@ -226,7 +240,9 @@ class Effect:
         return self._kind
 
     @property
-    def forall(self) -> Tuple["up.model.variable.Variable", ...]:
+    def forall(
+        self,
+    ) -> Tuple["up.model.variable.Variable", ...]:
         """Returns the `Variables` that are universally quantified in this `Effect`."""
         return self._forall
 
