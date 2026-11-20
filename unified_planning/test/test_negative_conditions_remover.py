@@ -293,6 +293,43 @@ class TestNegativeConditionsRemover(unittest_TestCase):
         assert isinstance(compiled_swap, InstantaneousAction)
         self.assertEqual(compiled_swap.preconditions, [FALSE()])
 
+    def _empty_type_problem(self, precondition_builder):
+        item = UserType("Item")
+        empty = UserType("Empty", item)
+        at = Fluent("at", BoolType(), x=item)
+        a = InstantaneousAction("a", p=item)
+        v = Variable("v", empty)
+        a.add_precondition(precondition_builder(v, a.parameter("p")))
+        a.add_effect(at(a.parameter("p")), True)
+        problem = Problem("empty_type_quantifier")
+        problem.add_fluent(at, default_initial_value=False)
+        problem.add_action(a)
+        i1 = Object("i1", item)
+        problem.add_object(i1)
+        problem.add_goal(at(i1))
+        return problem, i1
+
+    def _applicable(self, problem, action_name, params):
+        with SequentialSimulator(problem=problem) as simulator:
+            return simulator.is_applicable(
+                simulator.get_initial_state(), problem.action(action_name), params
+            )
+
+    def test_quantifiers_over_uninstantiated_user_type(self):
+        # Forall over an empty type is true and Exists over an empty type is
+        # false, whatever the compiled body is (#840)
+        for builder, expected in (
+            (lambda v, p: Forall(Not(Equals(v, p)), v), True),
+            (lambda v, p: Exists(Not(Equals(v, p)), v), False),
+        ):
+            problem, i1 = self._empty_type_problem(builder)
+            comp_res = NegativeConditionsRemover().compile(
+                problem, CompilationKind.NEGATIVE_CONDITIONS_REMOVING
+            )
+            assert isinstance(comp_res.problem, Problem)
+            self.assertEqual(self._applicable(problem, "a", (i1,)), expected)
+            self.assertEqual(self._applicable(comp_res.problem, "a", (i1,)), expected)
+
     def test_booleans(self):
         problem = Problem("test_booleans")
         bx = Fluent("bx", BoolType())

@@ -101,8 +101,9 @@ class NegativeFluentRemover(IdentityDagWalker):
                 else:
                     left_list = list(self._problem.objects(type_here))
                 right_list = list(self._problem.objects(type_here))
-                # with no objects of the usertype the action (or quantifier) that binds
-                # this parameter has no groundings, so the condition is never checked
+                # with no objects of the usertype the action that binds this
+                # parameter has no groundings, so the condition is never checked;
+                # quantifiers over such a type are handled in walk_forall/walk_exists
                 if (len(left_list) <= 0) or (len(right_list) <= 0):
                     return self._env.expression_manager.FALSE()
                 if len(left_list) == 1 and len(right_list) == 1:
@@ -140,6 +141,28 @@ class NegativeFluentRemover(IdentityDagWalker):
             raise UPExpressionDefinitionError(
                 f"Unable to remove negative conditions from expression: {expression}"
             )
+
+    def _has_empty_domain(self, expression: FNode) -> bool:
+        # a quantifier with a variable of a usertype without objects ranges over
+        # an empty domain
+        return any(
+            v.type.is_user_type()
+            and not any(True for _ in self._problem.objects(v.type))
+            for v in expression.variables()
+        )
+
+    def walk_forall(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        # a universal condition over an empty domain is always true, whatever
+        # the body was compiled to
+        if self._has_empty_domain(expression):
+            return self._env.expression_manager.TRUE()
+        return super().walk_forall(expression, args, **kwargs)
+
+    def walk_exists(self, expression: FNode, args: List[FNode], **kwargs) -> FNode:
+        # an existential condition over an empty domain is always false
+        if self._has_empty_domain(expression):
+            return self._env.expression_manager.FALSE()
+        return super().walk_exists(expression, args, **kwargs)
 
     @property
     def fluent_mapping(self) -> Dict[Fluent, Fluent]:
