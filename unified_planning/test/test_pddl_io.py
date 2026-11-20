@@ -998,6 +998,25 @@ class TestPddlIO(unittest_TestCase):
         )
         self.assertEqual(parsed_plan_2, plan_2)
 
+    def test_domain_constants_default_action_cost(self):
+        T = UserType("T")
+        t1, t2 = Object("t1", T), Object("t2", T)
+        fuel = Fluent("fuel", IntType(), t=T)
+        a = InstantaneousAction("a", t=T)
+        a.add_increase_effect(fuel(a.parameter("t")), 1)
+        problem = Problem("default_cost")
+        problem.add_objects([t1, t2])
+        problem.add_fluent(fuel, default_initial_value=0)
+        problem.add_action(a)
+        problem.add_quality_metric(MinimizeActionCosts({}, default=fuel(t1)))
+
+        w = PDDLWriter(problem)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn("(:constants t1 - t)", pddl_domain)
+        self.assertIn("(increase (total-cost) (fuel t1))", pddl_domain)
+        pddl_problem = self._normalized_pddl_str(w.get_problem())
+        self.assertIn("(:objects t2 - t)", pddl_problem)
+
     def test_ad_hoc_1(self):
         when = UserType("when")
         fl = Fluent("4ction")
@@ -1256,6 +1275,27 @@ class TestPddlIO(unittest_TestCase):
             writer = PDDLWriter(problem)
             pddl_problem = self._normalized_pddl_str(writer.get_problem())
             self.assertIn(expected_goal, pddl_problem)
+
+    def test_zero_duration_raises(self):
+        # a durative action must last d > 0: a zero duration admits no valid duration
+        domain = """(define (domain d)
+         (:requirements :strips :durative-actions)
+         (:predicates (p))
+         (:durative-action a
+          :parameters ()
+          :duration (= ?duration 0)
+          :condition (and)
+          :effect (and (at end (p))))
+        )"""
+        problem_str = """(define (problem pb)
+         (:domain d)
+         (:init)
+         (:goal (and (p)))
+        )"""
+        with self.assertRaisesRegex(
+            UPProblemDefinitionError, "admits no positive value"
+        ):
+            UPPDDLReader().parse_problem_string(domain, problem_str)
 
     def test_total_cost_metric_with_no_actions(self):
         # use_plan_length was never initialised, so this raised UnboundLocalError

@@ -39,6 +39,7 @@ from unified_planning.engines.mixins.sequential_simulator import (
     SequentialSimulatorMixin,
 )
 from unified_planning.engines.mixins.action_selector import ActionSelectorMixin
+from unified_planning.engines.mixins.heuristic import HeuristicMixin
 from unified_planning.engines.engine import OperationMode
 from unified_planning.engines.compilers.compilers_pipeline import CompilersPipeline
 from typing import IO, Any, Dict, Tuple, Optional, List, Union, Type, Sequence, cast
@@ -63,6 +64,8 @@ DEFAULT_ENGINES = {
     "fmap": ("up_fmap.fmap_planner", "FMAPsolver"),
     "aries": ("up_aries", "Aries"),
     "aries-val": ("up_aries", "AriesVal"),
+    "kairos": ("up_kairos", "KairosEngine"),
+    "kairos-val": ("up_kairos", "KairosValidator"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -74,6 +77,10 @@ DEFAULT_ENGINES = {
     "sequential_simulator": (
         "unified_planning.engines.sequential_simulator",
         "UPSequentialSimulator",
+    ),
+    "up_goal_counting": (
+        "unified_planning.engines.goal_counting_heuristic",
+        "GoalCountingHeuristic",
     ),
     "up_bounded_types_remover": (
         "unified_planning.engines.compilers.bounded_types_remover",
@@ -199,9 +206,12 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "fmap",
     "aries",
     "aries-val",
+    "kairos",
+    "kairos-val",
     "up_durative_actions_to_processes",
     "up_undefined_initial_numeric_remover",
     "up_timed_to_sequential",
+    "up_goal_counting",
 ]
 
 DEFAULT_META_ENGINES_PREFERENCE_LIST = [
@@ -750,6 +760,7 @@ class Factory:
             elif (
                 operation_mode == OperationMode.SEQUENTIAL_SIMULATOR
                 or operation_mode == OperationMode.ACTION_SELECTOR
+                or operation_mode == OperationMode.HEURISTIC
             ):
                 assert problem is not None
                 res = EngineClass(
@@ -757,8 +768,10 @@ class Factory:
                     error_on_failed_checks=error_failed_checks,
                     **params,
                 )
-                assert isinstance(res, SequentialSimulatorMixin) or isinstance(
-                    res, ActionSelectorMixin
+                assert (
+                    isinstance(res, SequentialSimulatorMixin)
+                    or isinstance(res, ActionSelectorMixin)
+                    or isinstance(res, HeuristicMixin)
                 )
             elif operation_mode == OperationMode.COMPILER:
                 res = EngineClass(**params)
@@ -1072,6 +1085,31 @@ class Factory:
         """
         return self._get_engine(
             OperationMode.ACTION_SELECTOR,
+            name,
+            None,
+            params,
+            problem.kind,
+            problem=problem,
+        )
+
+    def Heuristic(
+        self,
+        problem: "up.model.AbstractProblem",
+        *,
+        name: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> "up.engines.engine.Engine":
+        """
+        Returns a Heuristic. There are two ways to call this method:
+
+        *   | using ``problem_kind`` through the problem field.
+            | e.g. ``Heuristic(problem)``
+        *   | using ``name`` (the name of a specific heuristic engine) and eventually some ``params``
+            | (engine dependent options, e.g. which heuristic to compute).
+            | e.g. ``Heuristic(problem, name='up_goal_counting')``
+        """
+        return self._get_engine(
+            OperationMode.HEURISTIC,
             name,
             None,
             params,

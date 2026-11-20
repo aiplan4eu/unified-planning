@@ -67,6 +67,7 @@ io.MAPDDLWriter
 engines.Factory
 engines.OptimalityGuarantee
 engines.AnytimeGuarantee
+engines.HeuristicGuarantee
 engines.CompilationKind
 engines.PlanGenerationResult
 engines.ValidationResult

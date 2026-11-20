@@ -69,12 +69,14 @@ def _get_pddl_test_cases(
     domain_filenames: List[str] = []
     problem_filenames: List[str] = []
     for filename in pddl_files:
-        if domain_filter in filename:
+        # Match against the file name only, not the directories above it
+        basename = os.path.basename(filename)
+        if domain_filter in basename:
             domain_filenames.append(filename)
         else:
-            if any(b in filename for b in block):
+            if any(b in basename for b in block):
                 continue
-            if filter is None or any(f in filename for f in filter):
+            if filter is None or any(f in basename for f in filter):
                 problem_filenames.append(filename)
 
     assert len(domain_filenames) == 1, (
@@ -90,10 +92,11 @@ def _get_pddl_test_cases(
         valid_plans = []
         invalid_plans = []
         for plan_file in plan_files:
-            if problem.name + "_" not in plan_file:
+            plan_basename = os.path.basename(plan_file)
+            if problem.name + "_" not in plan_basename:
                 continue
             plan = reader.parse_plan(problem, plan_file)
-            if "invalid" in plan_file:
+            if "invalid" in plan_basename:
                 invalid_plans.append(plan)
             else:
                 valid_plans.append(plan)

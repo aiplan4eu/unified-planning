@@ -52,22 +52,22 @@ class STNPlanNode:
     kind: TimepointKind
     action_instance: Optional[ActionInstance] = None
 
-    def __post_init___(self):
+    def __post_init__(self):
         if (
             self.kind in (TimepointKind.GLOBAL_START, TimepointKind.GLOBAL_END)
             and self.action_instance is not None
         ):
             raise UPUsageError(
-                f"A global kind represents Start/End of the plan;",
-                "the ActionInstance is not accepted.",
+                "A global kind represents Start/End of the plan; "
+                "the ActionInstance is not accepted."
             )
         if (
             self.kind in (TimepointKind.START, TimepointKind.END)
             and self.action_instance is None
         ):
             raise UPUsageError(
-                f"kind represents Start/End of an ActionInstance",
-                "but the ActionInstance is not given.",
+                "kind represents Start/End of an ActionInstance "
+                "but the ActionInstance is not given."
             )
 
     def __repr__(self) -> str:

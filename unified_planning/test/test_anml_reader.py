@@ -18,6 +18,7 @@ import tempfile
 from typing import cast
 from unified_planning.shortcuts import *
 from unified_planning.environment import Environment
+from unified_planning.exceptions import ANMLSyntaxError
 from unified_planning.model import DurativeAction, InstantaneousAction
 from unified_planning.test import unittest_TestCase
 from unified_planning.io import ANMLReader, ANMLWriter
@@ -112,6 +113,7 @@ class TestANMLReader(unittest_TestCase):
             instance typewriter instanceof;
             fluent boolean fluently(typewriter whenever);
             action actionable(typewriter constantly) {
+                duration := 1;
                 [start] fluently(constantly) == false;
                 [end] fluently(constantly) := true;
             };
@@ -696,7 +698,7 @@ class TestANMLReader(unittest_TestCase):
                 self.assertEqual(len(list(problem.objects(ut))), 3)
 
         move = cast(DurativeAction, problem.action("move"))
-        self.assertEqual(move.duration, FixedDuration(em.Int(0)))
+        self.assertEqual(move.duration, FixedDuration(em.Int(1)))
         for interval, cond_list in move.conditions.items():
             self.assertEqual(interval, self.start_interval)
             self.assertEqual(len(cond_list), 3)
@@ -948,3 +950,14 @@ class TestANMLReader(unittest_TestCase):
 
             default_problem = ANMLReader().parse_problem(problem_filename)
             self.assertEqual(str(problem), str(default_problem))
+
+    def test_durative_action_without_duration(self):
+        anml = """
+            fluent boolean p;
+            action no_duration() { [end] p := true; };
+            goal [end] p;
+        """
+        with self.assertRaises(ANMLSyntaxError) as ctx:
+            ANMLReader().parse_problem_string(anml)
+        self.assertIn("no_duration", str(ctx.exception))
+        self.assertIn("duration", str(ctx.exception))

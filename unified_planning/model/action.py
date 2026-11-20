@@ -150,7 +150,11 @@ class InstantaneousAction(UntimedEffectMixin, Action, PreconditionMixin):
 
 
 class DurativeAction(Action, TimedCondsEffs):
-    """Represents a durative action."""
+    """
+    Represents a durative action.
+
+    A durative action must last strictly more than 0.
+    """
 
     def __init__(
         self,
@@ -162,7 +166,7 @@ class DurativeAction(Action, TimedCondsEffs):
         Action.__init__(self, _name, _parameters, _env, **kwargs)
         TimedCondsEffs.__init__(self, _env)
         self._duration: "up.model.timing.DurationInterval" = (
-            up.model.timing.FixedDuration(self._environment.expression_manager.Int(0))
+            up.model.timing.FixedDuration(self._environment.expression_manager.Int(1))
         )
         self._continuous_effects: Dict[
             "up.model.timing.TimeInterval", List["up.model.effect.Effect"]
@@ -262,6 +266,10 @@ class DurativeAction(Action, TimedCondsEffs):
         """
         Sets the `duration interval` for this `action`.
 
+        A durative action must last strictly more than 0: if the upper bound is a
+        constant `<= 0`, the interval admits no valid duration and
+        `UPProblemDefinitionError` is raised, as for an empty interval.
+
         :param duration: The new `duration interval` of this `action`.
         """
         lower, upper = duration.lower, duration.upper
@@ -282,6 +290,11 @@ class DurativeAction(Action, TimedCondsEffs):
         ):
             raise UPProblemDefinitionError(
                 f"{duration} is an empty interval duration of action: {self.name}."
+            )
+        if upper.is_constant() and upper.constant_value() <= 0:
+            raise UPProblemDefinitionError(
+                f"Duration {duration} of action {self.name} admits no positive value: "
+                "a durative action must last strictly more than 0."
             )
         self._duration = duration
 

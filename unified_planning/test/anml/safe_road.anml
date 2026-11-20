@@ -4,11 +4,13 @@ fluent boolean safe(location l1_0, location l2_0);
 fluent boolean disaster_happened;
 
 action check(location l1_0, location l2_0) {
+   duration := 1;
    [ start ] (not safe(l1_0, l2_0));
    [ start ] safe(l1_0, l2_0) := true;
 };
 
 action natural_disaster() {
+   duration := 1;
    [ end ] forall (location l1_1, location l2_1){
       safe(l1_1, l2_1) := false;
    };

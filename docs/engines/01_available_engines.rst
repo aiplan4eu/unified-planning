@@ -52,6 +52,12 @@ Action-Based Planning
     - Y (integers)
     - Y
     - plan length, makespan, action costs
+  * - `Kairos`_ [#kairos-actions]_
+    - OneShot, Anytime
+    - Y
+    - Y
+    - Y
+    - plan length, makespan, action costs, final value, oversubscription
   * - `Pyperplan`_ [#pyperplan-note]_
     - OneShot
     - Y
@@ -61,6 +67,7 @@ Action-Based Planning
 
 .. [#aries-actions] Aries' focus is on hierarchical planning and scheduling and is likely not competitive with other planners in action-based planning.
 .. [#pyperplan-note] Pyperplan is mostly intended for education purposes and cannot be expected to scale to non-trivial problems.
+.. [#kairos-actions] Kairos also supports processes and events (PDDL+), trajectory constraints and state invariants. It is only available on Linux (x86-64 and arm64).
 
 
 Plan Validation
@@ -96,6 +103,13 @@ Plan Validation
     - Y
     - Y
     -
+  * - `Kairos`_ [#kairos-val]_
+    - Y
+    - Y
+    - Y
+    -
+    -
+    -
   * - `MA-Plan-Validator`_
     - Y
     -
@@ -103,6 +117,8 @@ Plan Validation
     -
     -
     - Y
+
+.. [#kairos-val] Kairos does not validate problems with processes or events, since UP plans for them have no end time.
 
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
@@ -158,5 +174,6 @@ Support for task and motion planning is currently provided by the `Spiderplan`_ 
 .. _`spiderplan`: https://github.com/aiplan4eu/up-spiderplan/blob/master/README.md
 .. _`fmap`: https://github.com/aiplan4eu/up-fmap/blob/master/README.md
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
+.. _`kairos`: https://github.com/PlanSys2/up-kairos/blob/main/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
 .. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md

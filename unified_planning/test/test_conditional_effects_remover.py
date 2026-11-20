@@ -37,6 +37,66 @@ class TestConditionalEffectsRemover(unittest_TestCase):
         unittest_TestCase.setUp(self)
         self.problems = get_example_problems()
 
+    def test_conflicting_conditional_assignments(self):
+        # Both assignments fire when c1 and c2 hold, so the original action is not
+        # applicable there and no compiled action may be applicable in that state.
+        for first, second in ((3, 4), (4, 3)):
+            x = Fluent("x", IntType(0, 5))
+            c1 = Fluent("c1")
+            c2 = Fluent("c2")
+            problem = Problem("conflicting")
+            problem.add_fluent(x, default_initial_value=0)
+            problem.add_fluent(c1, default_initial_value=True)
+            problem.add_fluent(c2, default_initial_value=True)
+            a = InstantaneousAction("a")
+            a.add_effect(x, first, c1)
+            a.add_effect(x, second, c2)
+            problem.add_action(a)
+            problem.add_goal(GE(x, 3))
+
+            compiled = (
+                ConditionalEffectsRemover()
+                .compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+                .problem
+            )
+            assert isinstance(compiled, Problem)
+            self.assertEqual(len(compiled.actions), 2)
+            with SequentialSimulator(problem=compiled) as simulator:
+                state = simulator.get_initial_state()
+                for action in compiled.actions:
+                    self.assertFalse(simulator.is_applicable(state, action))
+
+    def test_conflicting_temporal_conditional_assignments(self):
+        x = Fluent("x", IntType(0, 5))
+        c1 = Fluent("c1")
+        c2 = Fluent("c2")
+        problem = Problem("conflicting_temporal")
+        problem.add_fluent(x, default_initial_value=0)
+        problem.add_fluent(c1, default_initial_value=True)
+        problem.add_fluent(c2, default_initial_value=True)
+        a = DurativeAction("a")
+        a.set_fixed_duration(1)
+        a.add_effect(EndTiming(), x, 3, c1)
+        a.add_effect(EndTiming(), x, 4, c2)
+        problem.add_action(a)
+        problem.add_goal(GE(x, 3))
+
+        compiled = (
+            ConditionalEffectsRemover()
+            .compile(problem, CompilationKind.CONDITIONAL_EFFECTS_REMOVING)
+            .problem
+        )
+        assert isinstance(compiled, Problem)
+
+        self.assertEqual(len(compiled.actions), 2)
+        em = compiled.environment.expression_manager
+        for action in compiled.actions:
+            assert isinstance(action, DurativeAction)
+            conditions = [c for cs in action.conditions.values() for c in cs]
+            # no compiled action may be applicable when both c1 and c2 hold
+            both = em.And(conditions).substitute({c1: True, c2: True})
+            self.assertTrue(both.simplify().is_false())
+
     @skipIfNoOneshotPlannerForProblemKind(classical_kind)
     @skipIfNoPlanValidatorForProblemKind(full_classical_kind)
     def test_basic_conditional(self):

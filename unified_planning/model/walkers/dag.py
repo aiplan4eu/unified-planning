@@ -98,10 +98,16 @@ class DagWalker(Walker):
         if expression in self.memoization:
             return self.memoization[expression]
 
-        res = self.iter_walk(expression, **kwargs)
-
-        if self.invalidate_memoization:
-            self.memoization.clear()
+        try:
+            res = self.iter_walk(expression, **kwargs)
+        except BaseException:
+            # Drop the nodes left unprocessed by the aborted walk, otherwise the
+            # next walk would process them (failing on their missing children).
+            self.stack.clear()
+            raise
+        finally:
+            if self.invalidate_memoization:
+                self.memoization.clear()
         return res
 
     def _get_key(self, expression: FNode, **kwargs):

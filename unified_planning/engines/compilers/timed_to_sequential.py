@@ -37,13 +37,17 @@ from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_V
 from typing import Dict, Optional, List, Set, Tuple, OrderedDict, cast
 from fractions import Fraction
 from functools import partial
+import math
 from unified_planning.exceptions import (
     UPUnsupportedProblemTypeError,
     UPUsageError,
     UPUnreachableCodeError,
 )
 from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-from unified_planning.model.walkers.simplifier import Simplifier
+from unified_planning.model.walkers.dag import DagWalker
+from unified_planning.model.walkers.generic import handles
+from unified_planning.model.operators import OperatorKind
+from unified_planning.model.walkers.state_evaluator import StateEvaluator
 from unified_planning.plans import (
     SequentialPlan,
     TimeTriggeredPlan,
@@ -52,6 +56,130 @@ from unified_planning.plans import (
 from unified_planning.model.problem_kind import FEATURES
 from unified_planning.engines.compilers.utils import remove_fluents
 from unified_planning.engines.sequential_simulator import UPSequentialSimulator
+
+
+class _PrunedFluentsFallbackState(State):
+    """
+    The state of the compiled problem, where the fluents pruned from it are read from
+    the given state of the original problem instead.
+    """
+
+    def __init__(
+        self, state: State, original_state: State, pruned_fluents: Set[Fluent]
+    ):
+        self._state = state
+        self._original_state = original_state
+        self._pruned_fluents = pruned_fluents
+
+    def get_value(self, fluent: FNode) -> FNode:
+        if fluent.fluent() in self._pruned_fluents:
+            return self._original_state.get_value(fluent)
+        return self._state.get_value(fluent)
+
+
+def _evaluate_duration_bound(
+    bound: FNode,
+    action: DurativeAction,
+    action_instance: ActionInstance,
+    state: State,
+    evaluator: StateEvaluator,
+) -> Fraction:
+    """
+    Evaluates a bound of the duration of the given action, instantiated with the
+    parameters of the given action instance, in the given state of the compiled problem.
+    """
+    if bound.is_constant():
+        return Fraction(bound.constant_value())
+    bound_with_params = bound.substitute(
+        dict(zip(action.parameters, action_instance.actual_parameters))
+    )
+    return Fraction(evaluator.evaluate(bound_with_params, state).constant_value())
+
+
+LinearTerms = Tuple[Dict[FNode, Fraction], Fraction]
+
+
+class _LinearTermsExtractor(DagWalker):
+    """
+    Writes a numeric expression as a sum of terms, each times a constant coefficient,
+    plus a constant. Sums, differences and products or divisions by a constant are
+    expanded; any other sub-expression (a fluent, a parameter, an interpreted function
+    call, a non-linear product, ...) is a term itself. A term whose coefficients cancel
+    out is kept with coefficient 0.
+    """
+
+    def get(self, expression: FNode) -> LinearTerms:
+        return self.walk(expression)
+
+    @handles(
+        set(OperatorKind)
+        - {
+            OperatorKind.INT_CONSTANT,
+            OperatorKind.REAL_CONSTANT,
+            OperatorKind.PLUS,
+            OperatorKind.MINUS,
+            OperatorKind.TIMES,
+            OperatorKind.DIV,
+        }
+    )
+    def walk_term(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        return {expression: Fraction(1)}, Fraction(0)
+
+    @handles(OperatorKind.INT_CONSTANT, OperatorKind.REAL_CONSTANT)
+    def walk_constant(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        return {}, Fraction(expression.constant_value())
+
+    @handles(OperatorKind.PLUS, OperatorKind.MINUS)
+    def walk_sum(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        terms: Dict[FNode, Fraction] = {}
+        constant = Fraction(0)
+        for i, (arg_terms, arg_constant) in enumerate(args):
+            sign = -1 if expression.is_minus() and i > 0 else 1
+            for term, coefficient in arg_terms.items():
+                terms[term] = terms.get(term, Fraction(0)) + sign * coefficient
+            constant += sign * arg_constant
+        return terms, constant
+
+    def walk_times(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        terms: Dict[FNode, Fraction] = {}
+        constant = Fraction(1)
+        for arg_terms, arg_constant in args:
+            if terms and arg_terms:
+                # a product of two non-constant factors is not linear
+                return self.walk_term(expression, args)
+            if arg_terms:
+                terms = {t: constant * c for t, c in arg_terms.items()}
+            else:
+                terms = {t: c * arg_constant for t, c in terms.items()}
+            constant *= arg_constant
+        return terms, constant
+
+    def walk_div(self, expression: FNode, args: List[LinearTerms]) -> LinearTerms:
+        (numerator_terms, numerator_constant), (denominator_terms, denominator) = args
+        if denominator_terms or denominator == 0:
+            return self.walk_term(expression, args)
+        return (
+            {t: c / denominator for t, c in numerator_terms.items()},
+            numerator_constant / denominator,
+        )
+
+
+def _constant_difference(upper: FNode, lower: FNode) -> Optional[Fraction]:
+    """
+    Returns `upper - lower` if it is a constant, i.e. if the terms of the two
+    expressions cancel out, `None` otherwise (or if it can not be established). Every
+    term of `lower` must also appear in `upper`, so the fluents of `lower` are still
+    referenced when only a condition on `upper` is kept.
+    """
+    extractor = _LinearTermsExtractor()
+    upper_terms, upper_constant = extractor.get(upper)
+    lower_terms, lower_constant = extractor.get(lower)
+    if not set(lower_terms).issubset(upper_terms):
+        return None
+    for term, coefficient in upper_terms.items():
+        if coefficient != lower_terms.get(term, Fraction(0)):
+            return None
+    return upper_constant - lower_constant
 
 
 def plan_back_conversion_callable(
@@ -63,18 +191,19 @@ def plan_back_conversion_callable(
 ) -> TimeTriggeredPlan:
     if not isinstance(sp, SequentialPlan):
         raise UPUsageError("Plan to map back is not sequential")
-    if problem.epsilon is not None:
+    min_time_step: Fraction
+    if problem.discrete_time:
+        # NOTE with discrete time every time point is an integer, so the step between
+        # two events is a whole number of time units: at least 1, and the epsilon
+        # rounded up if one is given
+        min_time_step = Fraction(math.ceil(problem.epsilon or 1))
+    elif problem.epsilon is not None:
         min_time_step = problem.epsilon
     else:
         min_time_step = Fraction(1, 100)
     simulator = UPSequentialSimulator(new_problem)
-    simplifier = Simplifier(problem.environment)
-    fve = FreeVarsExtractor()
-    # NOTE the fluents pruned from the compiled problem are not part of its state
-    # anymore, so the ones still needed to compute a duration are resolved against
-    # the original problem. A pruned fluent is never written in the compiled problem
-    # and is never written in the original one either, so its initial value is its
-    # value at any point of the plan.
+    # pruned duration fluents come from the original problem (see the class docstring)
+    evaluator = StateEvaluator(new_problem)
     original_state = UPState(
         {
             fluent_exp: value
@@ -87,7 +216,7 @@ def plan_back_conversion_callable(
     assert isinstance(state, UPState)
     time_now = Fraction(0)
     ttptuples: List[Tuple[Fraction, ActionInstance, Optional[Fraction]]] = []
-    for action_instance in sp.actions:
+    for step, action_instance in enumerate(sp.actions):
         if action_instance.action not in new_to_old:
             raise UPUsageError(
                 f"Action {action_instance.action.name} not found during compilation is present in this plan"
@@ -103,31 +232,45 @@ def plan_back_conversion_callable(
         if isinstance(action_for_mapback, DurativeAction):
             tinterval = action_for_mapback.duration
             assert isinstance(tinterval, Interval)
-            dtime = min_time_step
-            if not tinterval.is_left_open():
-                if tinterval.lower.is_constant():
-                    dtime = Fraction(tinterval.lower.constant_value())
+            state_with_pruned = _PrunedFluentsFallbackState(
+                state, original_state, pruned_fluents
+            )
+            # the duration must be strictly positive (see the class docstring)
+            lower = _evaluate_duration_bound(
+                tinterval.lower,
+                action_for_mapback,
+                action_instance,
+                state_with_pruned,
+                evaluator,
+            )
+            if problem.discrete_time:
+                # the smallest positive integer in the interval
+                if tinterval.is_left_open():
+                    dtime = Fraction(math.floor(lower) + 1)
                 else:
-                    par_sub_dict: Dict = {}
-                    for paramname, paramvalue in zip(
-                        action_for_mapback.parameters,
-                        action_instance.actual_parameters,
-                    ):
-                        par_sub_dict[paramname] = paramvalue
-                    tlower_with_pars = tinterval.lower.substitute(par_sub_dict)
-                    flu_subs_dict: Dict = {}
-                    for flu_obj in fve.get(tlower_with_pars):
-                        if flu_obj.fluent() in pruned_fluents:
-                            flu_subs_dict[flu_obj] = original_state.get_value(flu_obj)
-                        else:
-                            flu_subs_dict[flu_obj] = state.get_value(flu_obj)
-                    tlower_constant = simplifier.simplify(
-                        tlower_with_pars.substitute(flu_subs_dict)
-                    )
-                    dtime = Fraction(tlower_constant.constant_value())
+                    dtime = Fraction(math.ceil(lower))
+                dtime = max(dtime, Fraction(1))
+            elif tinterval.is_left_open() or lower <= 0:
+                # step past the excluded lower bound or 0, without going beyond the
+                # upper bound (its midpoint, if the upper bound is excluded too)
+                dtime = max(lower, Fraction(0))
+                upper = _evaluate_duration_bound(
+                    tinterval.upper,
+                    action_for_mapback,
+                    action_instance,
+                    state_with_pruned,
+                    evaluator,
+                )
+                upper = max(upper, Fraction(0))
+                candidate = dtime + min_time_step
+                if candidate < upper:
+                    dtime = candidate
+                elif not tinterval.is_right_open():
+                    dtime = upper
+                else:
+                    dtime = (dtime + upper) / 2
             else:
-                # NOTE if open use min step
-                dtime = min_time_step
+                dtime = lower
             ttptuples.append((time_now, new_action_instance, dtime))
             time_now = time_now + dtime + min_time_step
         elif isinstance(action_for_mapback, InstantaneousAction):
@@ -137,7 +280,11 @@ def plan_back_conversion_callable(
             # NOTE this should not happen as other kinds of transitions are not supported
             raise UPUsageError
         state = simulator.apply(cast(State, state), action_instance)
-        assert state is not None
+        if state is None:
+            raise UPUsageError(
+                f"Action {action_instance} at step {step} of the plan to map back is "
+                "not applicable in the compiled problem"
+            )
     ttp = TimeTriggeredPlan(ttptuples)
     return ttp
 
@@ -147,15 +294,35 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
     Timed to Sequential compiler class: this class offers the capability to
     transform a problem with durative actions into one only using instantaneous actions.
     Every durative action is compiled into an instantaneous action by condensing
-    all all conditions at start time and all effects at end time.
+    all all conditions at start time and all effects at end time. Several increase/decrease
+    effects on the same fluent at end time are merged into a single assignment.
 
     Interpreted functions are treated as ordinary sub-expressions: calls appearing in
     conditions, effect values and durations are carried over unchanged, and calls appearing
     in end-time conditions/effects have their arguments rewritten by the start-time effect
     substitution, exactly like any other fluent-based expression.
 
+    A durative action can only start if its duration interval, evaluated in the state before
+    the start, admits a duration: the compiled action gets the preconditions that the interval
+    is not empty and contains a positive value (constant bounds are checked at compile time).
+    So the fluents used in a duration are kept in the compiled problem, which becomes numeric
+    when the durations depend on fluents.
+
+    The duration must be strictly positive because the compiled action applies the end
+    conditions and effects after the start effects, which matches the temporal semantics only
+    if the end comes strictly after the start. A constant upper bound <= 0 is already rejected
+    by `DurativeAction`; a constant expression that only simplifies to <= 0 (e.g.
+    `set_fixed_duration(Minus(1, 1))`) admits no positive duration either: the action can
+    never be applied, so it is dropped from the compiled problem.
+
+    With discrete time every duration is an integer, so the interval must contain a positive
+    integer instead: the preconditions compare its smallest and greatest integers. An action
+    whose constant interval contains none (e.g. `(2, 3)`) is dropped as well. This can not be
+    expressed for a real-typed bound that is not constant, so such a bound raises an
+    `UPUnsupportedProblemTypeError` with discrete time.
+
     The `TimedToSequential` class can also optionally take a flag `remove_unused_fluents` to
-    enable/disable the pruning of the fluents that become unused in the compiled problem.
+    enable/disable the pruning of the fluents that are unused in the compiled problem.
 
     Note:
         Since a durative action's start and end collapse into a single instant, an interpreted
@@ -163,13 +330,14 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
         evaluated only once here; this is consistent with the library-wide assumption that
         interpreted functions are deterministic.
 
-        An interpreted function used in a duration is not part of the compiled (instantaneous)
-        problem: it is re-evaluated by :func:`plan_back_conversion_callable` against the simulated
-        state, so its callable must be able to handle whatever values are reachable in that state.
-        Fluents that only ever appear inside a duration expression become unused once the
-        duration is dropped from the compiled problem; such fluents are pruned from the compiled
-        problem (see :func:`~unified_planning.engines.compilers.utils.remove_fluents`) and are
-        instead resolved from the original problem's initial value when the duration is reconstructed.
+        The duration itself is not part of the compiled (instantaneous) problem: it is
+        re-evaluated by :func:`plan_back_conversion_callable` against the simulated state, so an
+        interpreted function used in a duration must be able to handle whatever values are
+        reachable in that state. A fluent used in a duration can still be pruned from the
+        compiled problem (see :func:`~unified_planning.engines.compilers.utils.remove_fluents`)
+        if the simplification folds it out of every duration precondition (e.g. `5 + 0 * load`):
+        it is never written, so it is resolved from the original problem's initial value when
+        the duration is reconstructed.
     """
 
     def __init__(self, remove_unused_fluents: bool = True):
@@ -267,7 +435,128 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_BOOLEAN_ASSIGNMENTS")
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_NUMERIC_ASSIGNMENTS")
             new_kind.set_effects_kind("INTERPRETED_FUNCTIONS_IN_OBJECT_ASSIGNMENTS")
+        # The increase/decrease effects of a durative action are compiled into assignments
+        # whose value reads the assigned fluent (f := f + v), so the compiled problem uses
+        # general numeric assignments; SIMPLE_NUMERIC_PLANNING is kept, since the increase/
+        # decrease effects of instantaneous actions are copied unchanged.
+        if problem_kind.has_increase_effects() or problem_kind.has_decrease_effects():
+            new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+            new_kind.set_effects_kind("FLUENTS_IN_NUMERIC_ASSIGNMENTS")
+        # Start-time effect values are substituted into end-time conditions, so the
+        # operators of a Boolean assignment value, which are not classified as conditions
+        # in the input kind, can end up in a precondition and make it non-linear; declare
+        # all of them as a sound over-approximation.
+        if (
+            problem_kind.has_fluents_in_boolean_assignments()
+            or problem_kind.has_static_fluents_in_boolean_assignments()
+            or problem_kind.has_interpreted_functions_in_boolean_assignments()
+        ):
+            new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            new_kind.set_conditions_kind("DISJUNCTIVE_CONDITIONS")
+            new_kind.set_conditions_kind("EQUALITIES")
+            new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
+            new_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
+            if problem_kind.has_simple_numeric_planning():
+                new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+        # Fluent-dependent duration bounds become preconditions (the interval is not empty
+        # and admits a positive duration). The fluents used only in durations are not
+        # counted as INT_FLUENTS/REAL_FLUENTS in the input kind, and the bounds are not
+        # checked for linearity, so declare both numeric planning types.
+        if (
+            problem_kind.has_fluents_in_durations()
+            or problem_kind.has_static_fluents_in_durations()
+            or problem_kind.has_interpreted_functions_in_durations()
+        ):
+            if problem_kind.has_int_type_durations():
+                new_kind.set_fluents_type("INT_FLUENTS")
+            if problem_kind.has_real_type_durations():
+                # a real-typed bound can contain int fluents too (e.g. distance / velocity)
+                new_kind.set_fluents_type("INT_FLUENTS")
+                new_kind.set_fluents_type("REAL_FLUENTS")
+            new_kind.set_problem_type("SIMPLE_NUMERIC_PLANNING")
+            new_kind.set_problem_type("GENERAL_NUMERIC_PLANNING")
+            if problem_kind.has_interpreted_functions_in_durations():
+                new_kind.set_conditions_kind("INTERPRETED_FUNCTIONS_IN_CONDITIONS")
         return new_kind
+
+    def get_duration_preconditions(
+        self,
+        action: DurativeAction,
+        env: "up.environment.Environment",
+        discrete_time: bool,
+    ) -> List[FNode]:
+        """
+        Returns the conditions under which the duration interval of the given action
+        admits a duration: the interval is not empty and contains a positive value (see
+        the class docstring). With discrete time the duration must be an integer, so the
+        interval must contain a positive integer. They are evaluated in the state before
+        the start of the action, like the duration.
+        """
+        em = env.expression_manager
+        duration = action.duration
+        lower, upper = duration.lower, duration.upper
+        is_open = duration.is_left_open() or duration.is_right_open()
+        conditions: List[FNode] = []
+        if not discrete_time:
+            # the simplifier does not cancel the same term on both sides (e.g.
+            # x < x + 1), so a constant difference of the bounds is checked here
+            difference = _constant_difference(upper, lower)
+            if difference is None:
+                conditions.append(
+                    em.LT(lower, upper) if is_open else em.LE(lower, upper)
+                )
+            else:
+                conditions.append(
+                    em.Bool(difference > 0 if is_open else difference >= 0)
+                )
+            conditions.append(em.LT(em.Int(0), upper))
+            return conditions
+        # NOTE with discrete time, the smallest and the greatest integers in the interval
+        # are int_lower and int_upper: it contains a positive integer if and only if
+        # int_lower <= int_upper and 1 <= int_upper
+        int_lower = self._integer_duration_bound(action, env, lower, True)
+        int_upper = self._integer_duration_bound(action, env, upper, False)
+        # as above: a fixed duration [d, d] or [x, x + 1) with int x is never empty,
+        # but a fixed constant like 5/2 is (its integer bounds are 3 and 2)
+        difference = _constant_difference(int_upper, int_lower)
+        if difference is None:
+            conditions.append(em.LE(int_lower, int_upper))
+        else:
+            conditions.append(em.Bool(difference >= 0))
+        conditions.append(em.LE(em.Int(1), int_upper))
+        return conditions
+
+    def _integer_duration_bound(
+        self,
+        action: DurativeAction,
+        env: "up.environment.Environment",
+        bound: FNode,
+        is_lower: bool,
+    ) -> FNode:
+        """
+        Returns the smallest (if `is_lower`) or the greatest integer that the given bound
+        of the duration interval of the action admits.
+        """
+        em = env.expression_manager
+        duration = action.duration
+        is_open = duration.is_left_open() if is_lower else duration.is_right_open()
+        simplified_bound = env.simplifier.simplify(bound)
+        if simplified_bound.is_constant():
+            value = Fraction(simplified_bound.constant_value())
+            if is_lower:
+                return em.Int(math.floor(value) + 1 if is_open else math.ceil(value))
+            return em.Int(math.ceil(value) - 1 if is_open else math.floor(value))
+        if env.type_checker.get_type(bound).is_int_type():
+            if not is_open:
+                return bound
+            return em.Plus(bound, 1) if is_lower else em.Minus(bound, 1)
+        # NOTE whether a real-typed expression admits an integer can not be expressed
+        # without floor/ceil, which are not available
+        raise UPUnsupportedProblemTypeError(
+            f"The duration {duration} of action {action.name} has a real-typed bound "
+            f"{bound} that is not constant: TimedToSequential does not support it with "
+            "discrete time, since every duration must be an integer."
+        )
 
     def get_effects_data_structures(
         self, action: DurativeAction, em: ExpressionManager, fve: FreeVarsExtractor
@@ -384,11 +673,20 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                 new_to_old[action] = action
                 new_problem.add_action(action.clone())
                 continue
+            assert isinstance(action, DurativeAction)
+            duration_preconditions = [
+                env.simplifier.simplify(dc)
+                for dc in self.get_duration_preconditions(
+                    action, env, problem.discrete_time
+                )
+            ]
+            if any(dc.is_false() for dc in duration_preconditions):
+                # the action can never be applied (see the class docstring)
+                continue
             pdict = OrderedDict()
             for p in action.parameters:
                 pdict[p.name] = p.type
             new_action = InstantaneousAction(action.name, pdict)
-            assert isinstance(action, DurativeAction)
 
             (
                 start_effects_subs,
@@ -415,7 +713,34 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                                 oc.substitute(start_effects_subs)
                             )
                         )
+            for dc in duration_preconditions:
+                if not dc.is_true():
+                    new_action.add_precondition(dc)
             for oeef, oeel in old_end_effects.items():
+                if any(oee.is_increase() or oee.is_decrease() for oee in oeel):
+                    # All the end effects on a fluent happen in the same instant, so
+                    # several increase/decrease effects on it sum up; they are merged
+                    # into a single assignment, as the instantaneous action can not
+                    # contain several assignments to the same fluent.
+                    if len(oeel) > 1 and any(oee.is_conditional() for oee in oeel):
+                        raise UPUnsupportedProblemTypeError(
+                            "conditional end time effects on a fluent that is modified by other increase/decrease effects at end time are not supported"
+                        )
+                    folded_value = cast(FNode, oeef)
+                    for oee in oeel:
+                        if oee.is_increase():
+                            folded_value = em.Plus(folded_value, oee.value)
+                        else:
+                            folded_value = em.Minus(folded_value, oee.value)
+                    folded_value = problem.environment.simplifier.simplify(
+                        folded_value.substitute(start_effects_subs)
+                    )
+                    # NOTE only a single increase/decrease effect can be conditional
+                    folded_cond = problem.environment.simplifier.simplify(
+                        oeel[0].condition.substitute(start_effects_subs)
+                    )
+                    new_action.add_effect(oeef, folded_value, folded_cond)
+                    continue
                 for oee in oeel:
                     assert isinstance(oee, Effect)
                     new_value: Optional[FNode] = None
@@ -443,18 +768,6 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
                         ):
                             continue
                         new_action.add_effect(oeef, new_value, new_cond)
-                    elif oee.is_increase():
-                        new_value = em.Plus(oeef, oee.value)
-                        new_value = problem.environment.simplifier.simplify(
-                            new_value.substitute(start_effects_subs)
-                        )
-                        new_action.add_effect(oeef, new_value, new_cond)
-                    elif oee.is_decrease():
-                        new_value = em.Minus(oeef, oee.value)
-                        new_value = problem.environment.simplifier.simplify(
-                            new_value.substitute(start_effects_subs)
-                        )
-                        new_action.add_effect(oeef, new_value, new_cond)
                     else:
                         raise UPUnreachableCodeError
             for osef, osel in old_start_effects.items():
@@ -476,11 +789,11 @@ class TimedToSequential(engines.engine.Engine, CompilerMixin):
             new_to_old[new_action] = action
             new_problem.add_action(new_action)
 
-        # Fluents used only inside a duration expression (e.g. a fluent feeding a durative
-        # action's fixed duration) become unreferenced once the duration is dropped by the
-        # compilation above. `remove_unused_fluents` controls whether they get pruned:
-        # a fluent used only in a `MinimizeActionCosts` cost is always exempted, since
-        # `get_unused_fluents` deliberately reports it as unused too.
+        # `remove_unused_fluents` controls whether the fluents unreferenced in the compiled
+        # problem get pruned. The fluents used in a duration are usually referenced by
+        # its preconditions; a pruned one is read from the original problem when mapping
+        # back. A fluent used only in a `MinimizeActionCosts` cost is always exempted,
+        # since `get_unused_fluents` deliberately reports it as unused too.
         pruned_fluents: Set[Fluent] = set()
         if self._remove_unused_fluents:
             metric_exprs: List[FNode] = []

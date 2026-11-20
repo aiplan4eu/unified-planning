@@ -268,7 +268,7 @@ def convert_problem_from_tarski(
     em = environment.expression_manager
     tm = environment.type_manager
     lang = tarski_problem.language
-    problem = unified_planning.model.Problem(tarski_problem.name)
+    problem = unified_planning.model.Problem(tarski_problem.name, environment)
 
     # Convert types
     types: Dict[str, Optional["unified_planning.model.Type"]] = {}
@@ -291,7 +291,9 @@ def convert_problem_from_tarski(
             type = types[str(t.name)]
             assert type is not None
             signature[f"p{str(i + 1)}"] = type
-        fluent = unified_planning.model.Fluent(p.name, tm.BoolType(), signature)
+        fluent = unified_planning.model.Fluent(
+            p.name, tm.BoolType(), signature, environment=environment
+        )
         fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
     for p in lang.functions:
@@ -307,7 +309,7 @@ def convert_problem_from_tarski(
             if func_sort.encode == lang.Real.encode:
                 if func_sort.name == "Real" or func_sort.name == "number":
                     fluent = unified_planning.model.Fluent(
-                        p.name, tm.RealType(), signature
+                        p.name, tm.RealType(), signature, environment=environment
                     )
                 else:
                     fluent = unified_planning.model.Fluent(
@@ -317,6 +319,7 @@ def convert_problem_from_tarski(
                             upper_bound=Fraction(func_sort.upper_bound),
                         ),
                         signature,
+                        environment=environment,
                     )
             else:
                 assert (
@@ -325,11 +328,14 @@ def convert_problem_from_tarski(
                 )
                 if func_sort.name == "Integer":
                     fluent = unified_planning.model.Fluent(
-                        p.name, tm.IntType(), signature
+                        p.name, tm.IntType(), signature, environment=environment
                     )
                 elif func_sort.name == "Natual":
                     fluent = unified_planning.model.Fluent(
-                        p.name, tm.IntType(lower_bound=0), signature
+                        p.name,
+                        tm.IntType(lower_bound=0),
+                        signature,
+                        environment=environment,
                     )
                 else:
                     fluent = unified_planning.model.Fluent(
@@ -339,10 +345,11 @@ def convert_problem_from_tarski(
                             upper_bound=func_sort.upper_bound,
                         ),
                         signature,
+                        environment=environment,
                     )
         else:
             fluent = unified_planning.model.Fluent(
-                p.name, types[func_sort.name], signature
+                p.name, types[func_sort.name], signature, environment=environment
             )
         fluents[fluent.name] = fluent
         problem.add_fluent(fluent)
@@ -364,7 +371,9 @@ def convert_problem_from_tarski(
             type = types[str(p.sort.name)]
             assert type is not None
             parameters[p.symbol] = type
-        action = unified_planning.model.InstantaneousAction(a_name, parameters)
+        action = unified_planning.model.InstantaneousAction(
+            a_name, parameters, environment
+        )
         action_parameters = {}
         for p in parameters.keys():
             action_parameters[p] = action.parameter(p)
