@@ -44,6 +44,7 @@ from unified_planning.model import (
     Expression,
     DurationInterval,
     UPState,
+    Variable,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
 from unified_planning.model.walkers import UsertypeFluentsWalker
@@ -158,6 +159,9 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
             new_kind.set_conditions_kind("EXISTENTIAL_CONDITIONS")
             new_kind.set_conditions_kind("EQUALITIES")
             new_kind.set_conditions_kind("NEGATIVE_CONDITIONS")
+            if new_kind.has_forall_effects():
+                # conflicts between forall assignments become universal conditions
+                new_kind.set_conditions_kind("UNIVERSAL_CONDITIONS")
         return new_kind
 
     def _compile(
@@ -216,6 +220,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                     new_action.add_precondition(
                         utf_remover.remove_usertype_fluents_from_condition(p)
                     )
+                for c in self._conflicting_assignments_conditions(
+                    old_action.effects, fluents_map, em
+                ):
+                    new_action.add_precondition(
+                        utf_remover.remove_usertype_fluents_from_condition(c)
+                    )
                 for e in old_action.effects:
                     for ne in self._convert_effect(
                         e, problem, fluents_map, em, utf_remover
@@ -238,6 +248,12 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
                             i, utf_remover.remove_usertype_fluents_from_condition(c)
                         )
                 for t, el in old_action.effects.items():
+                    for c in self._conflicting_assignments_conditions(
+                        el, fluents_map, em
+                    ):
+                        new_action.add_condition(
+                            t, utf_remover.remove_usertype_fluents_from_condition(c)
+                        )
                     for e in el:
                         for ne in self._convert_effect(
                             e, problem, fluents_map, em, utf_remover
@@ -372,6 +388,89 @@ class UsertypeFluentsRemover(engines.engine.Engine, CompilerMixin):
         return CompilerResult(
             new_problem, partial(replace_action, map=new_to_old), self.name
         )
+
+    def _conflicting_assignments_conditions(
+        self,
+        effects: List[Effect],
+        fluents_map: Dict[Fluent, Fluent],
+        em: ExpressionManager,
+    ) -> List[FNode]:
+        """
+        Returns the conditions that keep two assignments of different values to
+        the same usertype fluent from firing together.
+
+        The original action is not applicable when two of its assignments write
+        different values to the same fluent. The compiled Boolean effects
+        cannot detect this, so the conflict becomes a condition of the action:
+        for each pair of assignments with conditions `c1`, `c2`, values `v1`,
+        `v2` and the same fluent at arguments `args1`, `args2`, the condition is
+        `Not(And(c1, c2, args1 == args2, v1 != v2))`, quantified over the
+        variables of both effects. An assignment under a `forall` is also
+        paired with itself, since its instances can write the same atom, unless
+        every variable of the `forall` is an argument of the fluent.
+
+        :param effects: The effects that happen at the same time.
+        :param fluents_map: The map from the usertype fluents to the new ones.
+        :param em: The expression manager.
+        :return: The conditions that are not trivially true.
+        """
+        assignments = [
+            e for e in effects if e.is_assignment() and e.fluent.fluent() in fluents_map
+        ]
+        conditions: List[FNode] = []
+        for i, first in enumerate(assignments):
+            for second in assignments[i:]:
+                if first is second:
+                    if not first.is_forall():
+                        continue
+                    # when every variable of the forall is an argument of the
+                    # fluent, two instances that write the same atom are the
+                    # same instance, so they cannot conflict
+                    direct_args = {
+                        arg.variable()
+                        for arg in first.fluent.args
+                        if arg.is_variable_exp()
+                    }
+                    if all(v in direct_args for v in first.forall):
+                        continue
+                if first.fluent.fluent() != second.fluent.fluent():
+                    continue
+                # rename the variables of the second effect apart from the first one
+                used_names = {v.name for v in first.forall}
+                renaming: Dict[Expression, Expression] = {}
+                renamed_vars: List[Variable] = []
+                for v in second.forall:
+                    new_name = v.name
+                    count = 0
+                    while new_name in used_names:
+                        new_name = f"{v.name}_{count}"
+                        count += 1
+                    used_names.add(new_name)
+                    new_var = Variable(new_name, v.type, em.environment)
+                    renamed_vars.append(new_var)
+                    renaming[em.VariableExp(v)] = em.VariableExp(new_var)
+                second_fluent = second.fluent.substitute(renaming)
+                second_value = second.value.substitute(renaming)
+                second_condition = second.condition.substitute(renaming)
+                same_atom = [
+                    em.EqualsOrIff(a1, a2)
+                    for a1, a2 in zip(first.fluent.args, second_fluent.args)
+                ]
+                conflict = em.Not(
+                    em.And(
+                        first.condition,
+                        second_condition,
+                        *same_atom,
+                        em.Not(em.Equals(first.value, second_value)),
+                    )
+                )
+                variables = list(first.forall) + renamed_vars
+                if variables:
+                    conflict = em.Forall(conflict, *variables)
+                conflict = conflict.simplify()
+                if not conflict.is_true():
+                    conditions.append(conflict)
+        return conditions
 
     def _convert_simulated_effect(
         self,
