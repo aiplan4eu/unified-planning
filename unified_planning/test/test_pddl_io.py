@@ -1897,6 +1897,46 @@ class TestPddlIO(unittest_TestCase):
         up_problem_2 = UPPDDLReader(Environment()).parse_problem_string(domain, problem)
         self.assertEqual(str(up_problem), str(up_problem_2))
 
+    def test_up_pddl_reader_variable_without_leading_space(self):
+        """A variable can follow a name without whitespace, as in the Zenotravel
+        benchmark: "?" cannot occur in a PDDL name, so it starts a new token."""
+
+        def domain(precondition):
+            return f"""
+(define (domain d)
+  (:requirements :strips)
+  (:predicates (aircraft ?a) (fueled ?a))
+  (:action refuel
+    :parameters (?a)
+    :precondition {precondition}
+    :effect (fueled?a)))
+"""
+
+        problem = """
+(define (problem p)
+  (:domain d)
+  (:objects plane)
+  (:init (aircraft plane))
+  (:goal (fueled plane)))
+"""
+        compact = UPPDDLReader().parse_problem_string(
+            domain("(and(aircraft?a)(not(fueled?a)))"), problem
+        )
+        spaced = UPPDDLReader().parse_problem_string(
+            domain("(and (aircraft ?a) (not (fueled ?a)))"), problem
+        )
+        self.assertEqual(str(compact), str(spaced))
+
+        refuel = compact.action("refuel")
+        assert isinstance(refuel, InstantaneousAction)
+        a = refuel.parameter("a")
+        aircraft, fueled = compact.fluent("aircraft"), compact.fluent("fueled")
+        em = compact.environment.expression_manager
+        self.assertEqual(refuel.preconditions, [em.And(aircraft(a), em.Not(fueled(a)))])
+        (effect,) = refuel.effects
+        self.assertEqual(effect.fluent, fueled(a))
+        self.assertTrue(effect.value.is_true())
+
     def test_up_pddl_reader_custom_environment_durative(self):
         """A `forall` inside a durative action's timed effect must also build
         its `Variable` in the `Environment` given to `UPPDDLReader`."""

@@ -32,7 +32,7 @@ from pyparsing import ParseResults
 from pyparsing import CharsNotIn, Empty, Located, col, lineno
 from pyparsing import Word, alphanums, alphas, ZeroOrMore, OneOrMore, Keyword
 from pyparsing import Suppress, Group, Optional, Forward
-from pyparsing import one_of, rest_of_line
+from pyparsing import one_of, rest_of_line, Regex
 
 
 class CustomParseResults:
@@ -94,7 +94,9 @@ def nested_expr():
     """
     A hand-rolled alternative to pyparsing.nested_expr() that substantially improves its performance in our case.
     """
-    cnt = Empty() + CharsNotIn("() \n\t\r")
+    # A "?" can only start a token: PDDL names cannot contain it, so in
+    # "(aircraft?a)" it ends "aircraft" and starts the variable "?a".
+    cnt = Empty() + Regex(r"\??[^()? \n\t\r]+")
     nested = Forward()
     nested <<= Group(
         Located(
