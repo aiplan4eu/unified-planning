@@ -1714,16 +1714,16 @@ wheels = [
 
 [[package]]
 name = "kaleido"
-version = "1.5.1"
+version = "1.5.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "choreographer" },
     { name = "logistro" },
     { name = "packaging" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/eb/7702391704c68535d7ed0a30f6c560417a928282c5e6d9e7e8cf9e2ee319/kaleido-1.5.1.tar.gz", hash = "sha256:871b4dd87c716ec7fec414ac62d158575dbb98908ac9bc61faa27cb0dbdd8e72", size = 70953, upload-time = "2026-11-12T19:50:15.504Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/09/1355d65c03a9be73f6af76d13016b0615708f117d20f3ac2114ddc9353b8/kaleido-1.5.2.tar.gz", hash = "sha256:a1231ec1219783d7db2a58aeaccc4bee0783500fed0a5f1fe598fb54fbb67670", size = 69833, upload-time = "2026-11-18T22:00:29.508Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/56/38/16e51a14c4d4cb7a8339d258300eabd82714ad88990e64f88c06a1ffc85e/kaleido-1.5.1-py3-none-any.whl", hash = "sha256:0bd9b5d428362c1bd93ad09992271fb86af59e21b147da9c3691916423874aa0", size = 55840, upload-time = "2026-11-12T19:50:14.07Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/0b/33e6e63d23691c4561a8a60e14c458dffa350b72255350dfdd008d6d838a/kaleido-1.5.2-py3-none-any.whl", hash = "sha256:758ae0712881f3ecfa7bac10fdd4eff9597f6561d34b4802d6225191cca1bb17", size = 56288, upload-time = "2026-11-18T22:00:28.159Z" },
 ]
 
 [[package]]
