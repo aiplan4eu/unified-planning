@@ -629,6 +629,54 @@ class TestPddlIO(unittest_TestCase):
         problem_2 = reader.parse_problem_string(domain_str, problem_str)
         self._test_htn_transport_reader(problem_2)
 
+    def test_hddl_sections_in_any_order(self):
+        """Files in use, the HTN tracks of the IPC among them, declare tasks before
+        predicates, methods after actions, or the initial task network after
+        `:init`: the result is the same as in the usual order."""
+        domain = """(define (domain d) (:requirements :typing :hierarchy)
+            (:types room)
+            {first}
+            (:predicates (at ?r - room))
+            {second}
+            {third})"""
+        task = "(:task go :parameters (?r - room))"
+        method = """(:method go-there :parameters (?r - room) :task (go ?r)
+            :ordered-subtasks (and (move ?r)))"""
+        action = """(:action move :parameters (?r - room)
+            :precondition (and (not (at ?r))) :effect (at ?r))"""
+        problem = """(define (problem p) (:domain d) (:objects a b - room)
+            {before} (:init (at b)) {after})"""
+        htn = "(:htn :ordered-subtasks (and (go a)))"
+        reader = UPPDDLReader()
+        usual = reader.parse_problem_string(
+            domain.format(first="", second=task, third=method + action),
+            problem.format(before=htn, after=""),
+        )
+        assert isinstance(usual, unified_planning.model.htn.HierarchicalProblem)
+        self.assertEqual(len(usual.tasks), 1)
+        self.assertEqual(len(usual.methods), 1)
+        self.assertEqual(len(usual.actions), 1)
+        self.assertEqual(len(usual.task_network.subtasks), 1)
+        others = [
+            (dict(first=task, second="", third=method + action), (htn, "")),
+            (dict(first="", second=task, third=action + method), (htn, "")),
+            (dict(first=task, second=action, third=method), ("", htn)),
+        ]
+        for sections, (before, after) in others:
+            other = reader.parse_problem_string(
+                domain.format(**sections), problem.format(before=before, after=after)
+            )
+            assert isinstance(other, unified_planning.model.htn.HierarchicalProblem)
+            self.assertEqual(other.kind, usual.kind)
+            self.assertEqual(other.tasks, usual.tasks)
+            self.assertEqual(other.actions, usual.actions)
+            self.assertEqual(
+                [m.name for m in other.methods], [m.name for m in usual.methods]
+            )
+            self.assertEqual(
+                len(other.task_network.subtasks), len(usual.task_network.subtasks)
+            )
+
     def test_htn_transport_reader_custom_environment(self):
         """`UPPDDLReader` must build the HTN `Task`/`Method`/`Subtask` objects
         it parses from HDDL in the `Environment` given to it, not the
