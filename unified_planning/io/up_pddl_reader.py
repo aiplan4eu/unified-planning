@@ -271,15 +271,20 @@ class PDDLGrammar:
             + name.set_results_name("name")
             + Suppress(")")
             + Optional(require_def).set_results_name("features")
-            + Optional(types_def)
-            + Optional(constants_def)
-            + Optional(predicates_def)
-            + Optional(functions_def)
-            + Group(ZeroOrMore(task_def)).set_results_name("tasks")
-            + Group(ZeroOrMore(method_def)).set_results_name("methods")
-            + Group(ZeroOrMore(action_def | dur_action_def)).set_results_name("actions")
-            + Group(ZeroOrMore(process_def)).set_results_name("processes")
-            + Group(ZeroOrMore(event_def)).set_results_name("events")
+            # The sections may come in any order: files in use (the HTN tracks of the
+            # IPC among them) declare tasks before predicates or methods after actions
+            + ZeroOrMore(
+                types_def
+                | constants_def
+                | predicates_def
+                | functions_def
+                | task_def.set_results_name("tasks", list_all_matches=True)
+                | method_def.set_results_name("methods", list_all_matches=True)
+                | action_def.set_results_name("actions", list_all_matches=True)
+                | dur_action_def.set_results_name("actions", list_all_matches=True)
+                | process_def.set_results_name("processes", list_all_matches=True)
+                | event_def.set_results_name("events", list_all_matches=True)
+            )
             + Suppress(")")
         )
 
@@ -325,6 +330,8 @@ class PDDLGrammar:
             + ":init"
             + ZeroOrMore(nested_expr()).set_results_name("init")
             + Suppress(")")
+            # Also read after :init, where some files of the IPC have it
+            + Optional(htn_def.set_results_name("htn"))
             + Optional(
                 Suppress("(")
                 + ":goal"
