@@ -45,7 +45,10 @@ from unified_planning.model import (
     SimulatedEffect,
 )
 from unified_planning.model.problem_kind_versioning import LATEST_PROBLEM_KIND_VERSION
-from unified_planning.engines.compilers.utils import get_fresh_name
+from unified_planning.engines.compilers.utils import (
+    get_fresh_name,
+    lift_action_instance,
+)
 from unified_planning.plans import ActionInstance
 from typing import (
     Dict,
@@ -969,17 +972,33 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
 
     def _transform_actions(
         self, problem: Problem, new_problem: Problem
-    ) -> Dict[Action, Tuple[Action, Tuple[int, ...]]]:
-        """Transform all actions by grounding integer parameters."""
-        new_to_old = {}
+    ) -> Dict[Action, Tuple[Action, List[FNode]]]:
+        """
+        Transform all actions by grounding integer parameters. Returns, for each new action, the original action and
+        its original parameters: integer parameters are replaced by their values, and the other parameters are kept
+        as parameter expressions, which lift_action_instance replaces with the actual parameters of the action instance.
+        """
+        em = problem.environment.expression_manager
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]] = {}
         for action in problem.actions:
             instantiated_actions = self._instantiate_action(
                 problem, new_problem, action
             )
             for new_action, instantiation in instantiated_actions:
                 new_problem.add_action(new_action)
-                new_to_old[new_action] = (action, instantiation)
-        return new_to_old
+                values = iter(instantiation)
+                trace_back_map[new_action] = (
+                    action,
+                    [
+                        (
+                            em.Int(next(values))
+                            if parameter.type.is_int_type()
+                            else em.ParameterExp(parameter)
+                        )
+                        for parameter in action.parameters
+                    ],
+                )
+        return trace_back_map
 
     # ==================== QUALITY METRICS TRANSFORMATION ====================
 
@@ -987,7 +1006,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         self,
         problem: Problem,
         new_problem: Problem,
-        new_to_old: Dict[Action, Tuple[Action, Tuple[int, ...]]],
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]],
     ):
         """Transform quality metrics, handling action costs with integer parameter substitution."""
         for qm in problem.quality_metrics:
@@ -995,7 +1014,7 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
                 new_problem.add_quality_metric(qm)
             elif qm.is_minimize_action_costs():
                 assert isinstance(qm, MinimizeActionCosts)
-                new_costs = self._transform_action_costs(qm, new_to_old)
+                new_costs = self._transform_action_costs(qm, trace_back_map)
                 new_problem.add_quality_metric(
                     MinimizeActionCosts(
                         new_costs,
@@ -1054,23 +1073,16 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
     def _transform_action_costs(
         self,
         qm: MinimizeActionCosts,
-        new_to_old: Dict[Action, Tuple[Action, Tuple[int, ...]]],
+        trace_back_map: Dict[Action, Tuple[Action, List[FNode]]],
     ) -> Dict[Action, Expression]:
         """Transform action costs by substituting integer parameter values."""
         new_costs: Dict[Action, Expression] = {}
-        for new_action, (old_action, instantiation) in new_to_old.items():
-            if old_action is None:
-                continue
+        for new_action, (old_action, parameters) in trace_back_map.items():
             old_cost = qm.get_action_cost(old_action)
             if old_cost is None:
                 continue
-            integer_parameters = (
-                parameter
-                for parameter in old_action.parameters
-                if parameter.type.is_int_type()
-            )
             substitutions: Dict[Expression, Expression] = dict(
-                zip(integer_parameters, instantiation)
+                zip(old_action.parameters, parameters)
             )
             new_costs[new_action] = old_cost.substitute(substitutions)
         return new_costs
@@ -1111,28 +1123,6 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
             elif not transformed.is_true():
                 new_problem.add_trajectory_constraint(transformed)
 
-    @staticmethod
-    def _map_back_action_instance(
-        action_instance: ActionInstance,
-        new_to_old: Dict[Action, Tuple[Action, Tuple[int, ...]]],
-    ) -> ActionInstance:
-        """Restore integer arguments in their original positions."""
-        original_action, integer_values = new_to_old[action_instance.action]
-        integers = iter(integer_values)
-        remaining = iter(action_instance.actual_parameters)
-
-        parameters = [
-            next(integers) if parameter.type.is_int_type() else next(remaining)
-            for parameter in original_action.parameters
-        ]
-
-        return ActionInstance(
-            original_action,
-            parameters,
-            action_instance.agent,
-            action_instance.motion_paths,
-        )
-
     def _compile(
         self,
         problem: "up.model.AbstractProblem",
@@ -1155,13 +1145,13 @@ class IntParametersAndVariablesRemover(engines.engine.Engine, CompilerMixin):
         new_problem.clear_timed_effects()
         new_problem.clear_trajectory_constraints()
 
-        new_to_old = self._transform_actions(problem, new_problem)
-        self._transform_quality_metrics(problem, new_problem, new_to_old)
+        trace_back_map = self._transform_actions(problem, new_problem)
+        self._transform_quality_metrics(problem, new_problem, trace_back_map)
         self._transform_goals(problem, new_problem)
         self._transform_timed_effects(problem, new_problem)
 
         return CompilerResult(
             new_problem,
-            partial(self._map_back_action_instance, new_to_old=new_to_old),
+            partial(lift_action_instance, map=trace_back_map),
             self.name,
         )
