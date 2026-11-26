@@ -946,4 +946,6 @@ def ground_minimize_action_costs_metric(
         old_cost = metric.get_action_cost(old_action)
         if old_cost is not None:
             new_costs[new_action] = simplifier.simplify(old_cost.substitute(subs))
-    return MinimizeActionCosts(new_costs)
+    return MinimizeActionCosts(
+        new_costs, default=metric.default, environment=metric.environment
+    )

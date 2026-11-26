@@ -63,21 +63,25 @@ class TestGrounder(unittest_TestCase):
         self.assertEqual(grounded_problem, problem)
 
     def test_grounding_keeps_the_action_cost_metric(self):
-        Item = UserType("Item")
-        i1 = Object("i1", Item)
-        i2 = Object("i2", Item)
-        done = Fluent("done", BoolType(), x=Item)
-        act = InstantaneousAction("act", x=Item)
+        env = Environment()
+        em, tm = env.expression_manager, env.type_manager
+        Item = tm.UserType("Item")
+        i1 = Object("i1", Item, env)
+        i2 = Object("i2", Item, env)
+        done = Fluent("done", tm.BoolType(), environment=env, x=Item)
+        act = InstantaneousAction("act", _env=env, x=Item)
         x = act.parameter("x")
         act.add_effect(done(x), True)
 
-        problem = Problem("mockup")
+        problem = Problem("mockup", environment=env)
         problem.add_object(i1)
         problem.add_object(i2)
         problem.add_fluent(done, default_initial_value=False)
         problem.add_action(act)
         problem.add_goal(done(i1))
-        problem.add_quality_metric(MinimizeActionCosts({act: 7}))
+        problem.add_quality_metric(
+            MinimizeActionCosts({act: 7}, default=3, environment=env)
+        )
 
         gro = Grounder()
         res = gro.compile(problem, CompilationKind.GROUNDING)
@@ -87,8 +91,10 @@ class TestGrounder(unittest_TestCase):
         self.assertEqual(len(grounded_problem.quality_metrics), 1)
         metric = grounded_problem.quality_metrics[0]
         assert isinstance(metric, MinimizeActionCosts)
+        self.assertIs(metric.environment, env)
+        self.assertEqual(metric.default, em.Int(3))
         costs = {metric.get_action_cost(a) for a in grounded_problem.actions}
-        self.assertEqual(costs, {Int(7)})
+        self.assertEqual(costs, {em.Int(7)})
 
     @skipIfNoOneshotPlannerForProblemKind(classical_kind.union(general_numeric_kind))
     @skipIfNoPlanValidatorForProblemKind(classical_kind.union(general_numeric_kind))
