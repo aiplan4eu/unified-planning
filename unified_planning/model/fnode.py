@@ -155,7 +155,9 @@ class FNode(object):
         assert self.is_variable_exp()
         return self._content.payload
 
-    def variables(self) -> List["unified_planning.model.variable.Variable"]:
+    def variables(
+        self,
+    ) -> List["unified_planning.model.variable.Variable"]:
         """Return the `Variables` of the `Exists` or `Forall`."""
         assert self.is_exists() or self.is_forall()
         return list(self._content.payload)

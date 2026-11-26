@@ -933,6 +933,12 @@ class PDDLWriter:
     ) -> str:
         """This function returns a valid and unique PDDL name."""
 
+        if isinstance(item, up.model.Variable) and item.type.is_int_type():
+            raise UPTypeError(
+                "PDDL does not support integer variables. Compile integer variables with "
+                "INT_PARAMETERS_AND_VARIABLES_REMOVING before writing PDDL."
+            )
+
         # If we already encountered this item, return it
         if item in self.otn_renamings:
             return self.otn_renamings[item]
@@ -1135,12 +1141,15 @@ def _write_effect(
         )
     forall_str = ""
     if effect.is_forall():
-        mid_str = " ".join(
-            (
-                f"{get_mangled_name(v)} - {get_mangled_name(v.type)}"
-                for v in effect.forall
-            )
-        )
+        variables = []
+        for v in effect.forall:
+            if not isinstance(v, up.model.Variable) or v.type.is_int_type():
+                raise UPTypeError(
+                    "PDDL does not support integer variables. Compile integer variables with "
+                    "INT_PARAMETERS_AND_VARIABLES_REMOVING before writing PDDL."
+                )
+            variables.append(f"{get_mangled_name(v)} - {get_mangled_name(v.type)}")
+        mid_str = " ".join(variables)
         forall_str = f"(forall ({mid_str})"
     simplified_cond = effect.condition.simplify()
     if non_const_bool_ass:

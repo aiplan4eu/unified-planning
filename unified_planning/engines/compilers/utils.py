@@ -436,9 +436,18 @@ def lift_action_instance(
     (original_action, parameters).
 
     Where the grounded action is obtained by grounding
-    the "original_action" with the specific "parameters"."""
+    the "original_action" with the specific "parameters".
+
+    In a partial grounding, the parameters that are not grounded appear as their own parameter expression,
+    and are filled, in order, with the actual parameters of the given action instance."""
     lifted_action, parameters = map[action_instance.action]
-    return ActionInstance(lifted_action, tuple(parameters))
+    actual_parameters = iter(action_instance.actual_parameters)
+    return ActionInstance(
+        lifted_action,
+        tuple(
+            next(actual_parameters) if p.is_parameter_exp() else p for p in parameters
+        ),
+    )
 
 
 def replace_action(
