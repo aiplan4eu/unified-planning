@@ -1035,7 +1035,7 @@ class TestPddlIO(unittest_TestCase):
         self.assertIn("(:action go :parameters ())", pddl_domain)
         read = PDDLReader().parse_problem_string(w.get_domain(), w.get_problem())
         metric = read.quality_metrics[0]
-        self.assertTrue(metric.is_minimize_action_costs())
+        assert isinstance(metric, MinimizeActionCosts)
         self.assertEqual(metric.get_action_cost(read.action("wait")), Int(3))
 
     def test_ad_hoc_1(self):
