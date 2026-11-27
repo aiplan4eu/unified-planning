@@ -66,6 +66,8 @@ DEFAULT_ENGINES = {
     "aries-val": ("up_aries", "AriesVal"),
     "kairos": ("up_kairos", "KairosEngine"),
     "kairos-val": ("up_kairos", "KairosValidator"),
+    "klimax": ("up_klimax", "KlimaxEngine"),
+    "klimax-val": ("up_klimax", "KlimaxValidator"),
     "sequential_plan_validator": (
         "unified_planning.engines.plan_validator",
         "SequentialPlanValidator",
@@ -203,6 +205,8 @@ DEFAULT_ENGINES_PREFERENCE_LIST = [
     "aries-val",
     "kairos",
     "kairos-val",
+    "klimax",
+    "klimax-val",
     "up_durative_actions_to_processes",
     "up_undefined_initial_numeric_remover",
     "up_timed_to_sequential",
