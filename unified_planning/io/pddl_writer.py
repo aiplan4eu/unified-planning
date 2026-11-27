@@ -1067,7 +1067,12 @@ class PDDLWriter:
             out.write(f"\n  :precondition ()")
 
     def _write_untimed_effects(self, item, converter, out, costs):
-        if len(item.effects) > 0:
+        cost = costs.get(item) if item in costs else None
+        has_cost = cost is not None and not (
+            cost.is_constant() and cost.constant_value() == 0
+        )
+        # An action with a cost and no effects still has an effect: its cost
+        if len(item.effects) > 0 or has_cost:
             out.write("\n  :effect (and")
             for e in item.effects:
                 _write_effect(
@@ -1078,13 +1083,8 @@ class PDDLWriter:
                     self.rewrite_bool_assignments,
                     self._get_mangled_name,
                 )
-
-            if item in costs:
-                cost = costs[item]
-                if cost is not None and not (
-                    cost.is_constant() and cost.constant_value() == 0
-                ):
-                    out.write(f" (increase (total-cost) {converter.convert(cost)})")
+            if has_cost:
+                out.write(f" (increase (total-cost) {converter.convert(cost)})")
             out.write(")")
 
 
