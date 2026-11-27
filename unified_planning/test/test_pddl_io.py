@@ -1017,6 +1017,27 @@ class TestPddlIO(unittest_TestCase):
         pddl_problem = self._normalized_pddl_str(w.get_problem())
         self.assertIn("(:objects t2 - t)", pddl_problem)
 
+    def test_action_cost_without_effects(self):
+        # An action that only costs keeps its cost when written, and when read back
+        a = InstantaneousAction("wait")
+        b = InstantaneousAction("go")
+        problem = Problem("cost_only")
+        problem.add_action(a)
+        problem.add_action(b)
+        problem.add_quality_metric(MinimizeActionCosts({a: Int(3), b: Int(0)}))
+
+        w = PDDLWriter(problem)
+        pddl_domain = self._normalized_pddl_str(w.get_domain())
+        self.assertIn(
+            "(:action wait :parameters () :effect (and (increase (total-cost) 3)))",
+            pddl_domain,
+        )
+        self.assertIn("(:action go :parameters ())", pddl_domain)
+        read = PDDLReader().parse_problem_string(w.get_domain(), w.get_problem())
+        metric = read.quality_metrics[0]
+        self.assertTrue(metric.is_minimize_action_costs())
+        self.assertEqual(metric.get_action_cost(read.action("wait")), Int(3))
+
     def test_ad_hoc_1(self):
         when = UserType("when")
         fl = Fluent("4ction")
