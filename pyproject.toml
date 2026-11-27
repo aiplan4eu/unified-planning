@@ -64,8 +64,9 @@ aries = ["up-aries>=0.4.0"]
 symk = ["up-symk>=1.3.0"]
 # Linux wheels only (x86-64, arm64)
 kairos = ["up-kairos>=0.2.1; sys_platform == 'linux'"]
+klimax = ["up-klimax>=1.0.0; sys_platform == 'linux'"]
 engines = [
-    "unified-planning[tarski,pyperplan,tamer,tamerlite,enhsp,fast-downward,lpg,fmap,aries,symk,kairos]",
+    "unified-planning[tarski,pyperplan,tamer,tamerlite,enhsp,fast-downward,lpg,fmap,aries,symk,kairos,klimax]",
 ]
 plot = [
     "plotly>=6.1",

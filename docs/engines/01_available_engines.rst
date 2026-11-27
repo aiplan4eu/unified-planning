@@ -27,7 +27,7 @@ Action-Based Planning
     - Y
     -
     -
-    - plan length, action costs
+    - plan length, action costs, final value
   * - `ENHSP`_
     - OneShot, Anytime
     - Y
@@ -110,6 +110,13 @@ Plan Validation
     -
     -
     -
+  * - `Klimax`_ [#klimax-val]_
+    -
+    - Y
+    - Y
+    - Y
+    -
+    -
   * - `MA-Plan-Validator`_
     - Y
     -
@@ -119,6 +126,8 @@ Plan Validation
     - Y
 
 .. [#kairos-val] Kairos does not validate problems with processes or events, since UP plans for them have no end time.
+
+.. [#klimax-val] Klimax validates hierarchical plans: the decomposition of each task, not only the actions. It is only available on Linux (x86-64 and arm64).
 
 Hierarchical Planning
 ^^^^^^^^^^^^^^^^^^^^^
@@ -139,6 +148,15 @@ Hierarchical Planning
     - Y
     - Y
     - plan length, makespan, action costs
+  * - `Klimax`_ [#klimax-htn]_
+    - OneShot, Anytime
+    - Y
+    - Y
+    - Y
+    - Y
+    - plan length, action costs, final value
+
+.. [#klimax-htn] Klimax plans HDDL 1.0 and 2.1 problems and proves unsolvability (``UNSOLVABLE_PROVEN``) and the shortest or cheapest plan (``SOLVED_OPTIMALLY``). It is only available on Linux (x86-64 and arm64).
 
 A WIP integration is known for `SIADEX <https://github.com/UGR-IntelligentSystemsGroup/up-siadex/>`_.
 
@@ -175,5 +193,6 @@ Support for task and motion planning is currently provided by the `Spiderplan`_ 
 .. _`fmap`: https://github.com/aiplan4eu/up-fmap/blob/master/README.md
 .. _`lpg`: https://github.com/aiplan4eu/up-lpg/blob/master/README.md
 .. _`kairos`: https://github.com/PlanSys2/up-kairos/blob/main/README.md
+.. _`klimax`: https://github.com/PlanSys2/up-klimax/blob/main/README.md
 .. _`pyperplan`: https://github.com/aiplan4eu/up-pyperplan/blob/master/README.md
 .. _`ma-plan-validator`: https://github.com/aiplan4eu/ma-plan-validator/blob/master/README.md
